@@ -1,0 +1,57 @@
+{
+  "game": {
+    "gameDate": "2020-08-14",
+    "humanManager": {
+      "id": "manager-1",
+      "name": "Alex Example"
+    },
+    "controlledClub": {
+      "id": "club-100",
+      "name": "North London FC"
+    }
+  },
+  "squad": {
+    "club": {
+      "id": "club-100",
+      "name": "North London FC"
+    },
+    "asOfDate": "2020-08-14",
+    "players": [
+      {
+        "id": "player-1",
+        "name": "Sam Keeper",
+        "age": 28,
+        "positions": ["GK"],
+        "clubId": "club-100",
+        "attributes": {
+          "aerialReach": { "visibility": "known", "value": 15 },
+          "reflexes": { "visibility": "known", "value": 16 }
+        }
+      },
+      {
+        "id": "player-2",
+        "name": "Chris Centreback",
+        "age": 24,
+        "positions": ["DC", "DM"],
+        "clubId": "club-100",
+        "attributes": {
+          "marking": { "visibility": "known", "value": 14 },
+          "passing": { "visibility": "range", "minimum": 11, "maximum": 14 },
+          "vision": { "visibility": "unknown" }
+        }
+      },
+      {
+        "id": "player-3",
+        "name": "Morgan Midfielder",
+        "age": 21,
+        "positions": ["MC", "AMC"],
+        "clubId": "club-100",
+        "attributes": {
+          "passing": { "visibility": "known", "value": 15 },
+          "vision": { "visibility": "known", "value": 14 }
+        }
+      }
+    ]
+  }
+}
+

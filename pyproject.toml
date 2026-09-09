@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fm-analytics"
+version = "0.1.0"
+description = "Manager-visible analytics for Football Manager"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+fm-analytics = "fm_analytics.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fm_analytics"]
+
