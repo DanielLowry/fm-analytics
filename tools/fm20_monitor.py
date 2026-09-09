@@ -48,6 +48,11 @@ DASHBOARD = """<!doctype html>
     button, a.button { appearance: none; border: 1px solid #3b6955; background: #18372a; color: #e9f3ed; border-radius: 9px; padding: 10px 14px; font: inherit; cursor: pointer; text-decoration: none; }
     button:hover, a.button:hover { background: #214b39; }
     pre { display: none; white-space: pre-wrap; padding: 18px; border-radius: 12px; background: #050b08; color: #bce7cf; overflow: auto; }
+    .table-wrap { margin-top: 14px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 11px 8px; border-bottom: 1px solid #264438; text-align: left; }
+    th { color: #8eaa9c; font-size: .76rem; text-transform: uppercase; letter-spacing: .08em; }
+    td:last-child { color: #bce7cf; }
     footer { color: #668176; margin-top: 28px; font-size: .82rem; }
     @media (max-width: 620px) { header { align-items: start; flex-direction: column; } .grid { grid-template-columns: 1fr; } }
   </style>
@@ -62,6 +67,7 @@ DASHBOARD = """<!doctype html>
     <button id="refresh">Refresh now</button>
     <button id="toggle-json">Show JSON</button>
     <a class="button" href="/api/status.json?download=1">Download JSON</a>
+    <a class="button" href="/api/squad.json?download=1">Download squad</a>
   </div>
   <section class="grid">
     <article class="card"><div class="label">Game date</div><div id="game-date" class="value">—</div></article>
@@ -69,6 +75,11 @@ DASHBOARD = """<!doctype html>
     <article class="card"><div class="label">Human manager</div><div id="manager" class="value">—</div><div id="manager-id" class="subtle"></div></article>
     <article class="card"><div class="label">Process</div><div id="process" class="value">—</div><div id="version" class="subtle"></div></article>
     <article class="card wide"><div class="label">Last observation</div><div id="captured" class="value">—</div><div id="error" class="subtle"></div></article>
+    <article class="card wide">
+      <div class="label">First-team squad</div>
+      <div id="squad-count" class="value">—</div>
+      <div class="table-wrap"><table><thead><tr><th>Player</th><th>ID</th><th>Positions</th></tr></thead><tbody id="squad"></tbody></table></div>
+    </article>
   </section>
   <pre id="json"></pre>
   <footer>Phase 00 probe · manager-visible fields only · refreshes every 30 seconds</footer>
@@ -77,6 +88,17 @@ DASHBOARD = """<!doctype html>
 const byId = id => document.getElementById(id);
 let latest = null;
 function put(id, value) { byId(id).textContent = value ?? '—'; }
+function renderSquad(players) {
+  const body = byId('squad'); body.replaceChildren();
+  for (const player of players) {
+    const row = document.createElement('tr');
+    for (const value of [player.name, player.id, player.positions.join(', ')]) {
+      const cell = document.createElement('td'); cell.textContent = value; row.appendChild(cell);
+    }
+    body.appendChild(row);
+  }
+  put('squad-count', `${players.length} players`);
+}
 async function refresh() {
   const status = byId('source-status');
   status.className = 'status'; status.lastElementChild.textContent = 'Reading…';
@@ -86,7 +108,7 @@ async function refresh() {
     byId('json').textContent = JSON.stringify(latest, null, 2);
     if (!response.ok) throw new Error(latest.error || `HTTP ${response.status}`);
     status.className = 'status online'; status.lastElementChild.textContent = 'Live';
-    const manager = latest.human_managers?.[0];
+    const manager = latest.human_managers?.find(item => item.active) ?? latest.human_managers?.[0];
     put('game-date', latest.game_date);
     put('manager', manager?.name || 'Not found');
     put('manager-id', manager ? `ID ${manager.id}` : '');
@@ -96,6 +118,7 @@ async function refresh() {
     put('version', latest.expected_product_version);
     put('captured', new Date(latest.observed_at).toLocaleString());
     put('error', '');
+    renderSquad(latest.first_team_squad ?? []);
   } catch (error) {
     status.className = 'status error'; status.lastElementChild.textContent = 'Unavailable';
     put('error', error.message);
@@ -147,9 +170,19 @@ class MonitorHandler(BaseHTTPRequestHandler):
         if request.path == "/":
             self._send(DASHBOARD.encode(), "text/html; charset=utf-8")
             return
-        if request.path in {"/api/status", "/api/status.json"}:
+        if request.path in {
+            "/api/status",
+            "/api/status.json",
+            "/api/squad",
+            "/api/squad.json",
+        }:
             try:
-                document = self.cache.get(force="refresh" in parse_qs(request.query))
+                source = self.cache.get(force="refresh" in parse_qs(request.query))
+                document = (
+                    self._squad_document(source)
+                    if request.path.startswith("/api/squad")
+                    else source
+                )
                 status = HTTPStatus.OK
             except (OSError, ProbeError) as exc:
                 document = {
@@ -160,7 +193,14 @@ class MonitorHandler(BaseHTTPRequestHandler):
                 status = HTTPStatus.SERVICE_UNAVAILABLE
             headers = {}
             if parse_qs(request.query).get("download") == ["1"]:
-                headers["Content-Disposition"] = 'attachment; filename="fm20-status.json"'
+                filename = (
+                    "fm20-squad.json"
+                    if request.path.startswith("/api/squad")
+                    else "fm20-status.json"
+                )
+                headers["Content-Disposition"] = (
+                    f'attachment; filename="{filename}"'
+                )
             self._send(
                 json.dumps(document, indent=2).encode(),
                 "application/json; charset=utf-8",
@@ -169,6 +209,23 @@ class MonitorHandler(BaseHTTPRequestHandler):
             )
             return
         self._send(b"not found\n", "text/plain; charset=utf-8", HTTPStatus.NOT_FOUND)
+
+    @staticmethod
+    def _squad_document(source: dict[str, Any]) -> dict[str, Any]:
+        managers = source.get("human_managers", [])
+        manager = next(
+            (item for item in managers if item.get("active")),
+            managers[0] if managers else None,
+        )
+        players = source.get("first_team_squad", [])
+        return {
+            "status": source["status"],
+            "observed_at": source["observed_at"],
+            "game_date": source["game_date"],
+            "club": manager.get("club") if manager else None,
+            "player_count": len(players),
+            "players": players,
+        }
 
     def _send(
         self,
@@ -184,7 +241,11 @@ class MonitorHandler(BaseHTTPRequestHandler):
         for name, value in (headers or {}).items():
             self.send_header(name, value)
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            # Browsers can abandon a refresh while the live probe is reading.
+            pass
 
     def log_message(self, format: str, *args: object) -> None:
         print(f"[{self.log_date_time_string()}] {format % args}")

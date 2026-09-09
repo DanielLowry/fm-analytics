@@ -23,8 +23,8 @@ the development source and later phases remain planning work.
 | --- | --- | --- | --- |
 | 00.1 | [Environment baseline](00.1-environment-baseline.md) | In progress | A reproducible test matrix and pinned dependencies |
 | 00.2 | [Process attachment](00.2-process-attachment.md) | In progress | Safe detection and attachment with useful failures |
-| 00.3 | [Game context](00.3-game-context.md) | In progress | Live date, manager, and controlled club |
-| 00.4 | [Squad extraction](00.4-squad-extraction.md) | Not started | Stable first-team identities and basic fields |
+| 00.3 | [Game context](00.3-game-context.md) | Live proof working | Live date, manager, and controlled club |
+| 00.4 | [Squad extraction](00.4-squad-extraction.md) | In progress | Stable first-team identities and basic fields |
 | 00.5 | [End-to-end validation](00.5-end-to-end-validation.md) | Not started | Live FM20 → bridge → Python proof |
 | 00.6 | [Basic live monitor](00.6-basic-monitor.md) | In progress | Inspect, refresh, and download current visible data |
 

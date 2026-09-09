@@ -51,16 +51,17 @@ Useful bridge endpoints are `GET /health`, `GET /game`, and `GET /squad`.
 ## Linux/Proton Phase 00 probe
 
 On Linux, a narrow read-only probe can auto-detect FM20 running through Proton
-and read the current in-game date:
+and read the current in-game date, active manager, controlled club, and
+first-team player identities and positions:
 
 ```bash
 python3 tools/fm20_linux_probe.py
 ```
 
 This probe is feasibility tooling, not a second analytics data source. It reads
-the mapped PE signature, current date, and narrowly traversed human-manager
-context for the final FM20 20.4.4 executable. Live player extraction still
-belongs behind FMBridge.
+the mapped PE signature and narrowly traverses documented collections for the
+final FM20 20.4.4 executable. It does not return hidden ability values. The
+live source still belongs behind FMBridge after the mappings are validated.
 
 For a basic auto-refreshing local interface:
 
@@ -68,8 +69,9 @@ For a basic auto-refreshing local interface:
 python3 tools/fm20_monitor.py
 ```
 
-Open `http://127.0.0.1:8765`. The page also provides the currently observed
-JSON for inspection or download.
+Open `http://127.0.0.1:8765`. The page shows the detected club and first-team
+squad. Full status is available at `/api/status`; a focused squad document is
+available at `/api/squad`, with download buttons for both.
 
 ## Current boundary
 
