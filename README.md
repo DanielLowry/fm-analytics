@@ -1,5 +1,7 @@
 # FM Analytics
 
+[![CI](https://github.com/DanielLowry/fm-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/DanielLowry/fm-analytics/actions/workflows/ci.yml)
+
 An experimental analytics department for Football Manager 2020. The system is
 intended to make recommendations from information visible to the human manager,
 without using hidden Current Ability, Potential Ability, or other internal
@@ -33,6 +35,10 @@ uv run fm-analytics --fixture src/FMBridge/fixtures/sample-game.json
 uv run python -m unittest discover -s tests -v
 ```
 
+CI runs the tests and builds the Python package on Python 3.11 and 3.14. It also
+restores and builds FMBridge with the .NET 8 SDK. Live Proton/FM20 probes are
+deliberately excluded because hosted runners do not have the game process.
+
 To exercise the full HTTP path, install the .NET 8 SDK and use two terminals:
 
 ```bash
@@ -52,8 +58,18 @@ python3 tools/fm20_linux_probe.py
 ```
 
 This probe is feasibility tooling, not a second analytics data source. It reads
-only the mapped PE signature and current-date field for the final FM20 20.4.4
-executable. Live player extraction still belongs behind FMBridge.
+the mapped PE signature, current date, and narrowly traversed human-manager
+context for the final FM20 20.4.4 executable. Live player extraction still
+belongs behind FMBridge.
+
+For a basic auto-refreshing local interface:
+
+```bash
+python3 tools/fm20_monitor.py
+```
+
+Open `http://127.0.0.1:8765`. The page also provides the currently observed
+JSON for inspection or download.
 
 ## Current boundary
 

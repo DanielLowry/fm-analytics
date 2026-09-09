@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using FMBridge.Data;
 
@@ -24,4 +25,3 @@ app.MapGet("/squad", async (IFmDataSource source, CancellationToken cancellation
     Results.Ok(await source.GetSquadAsync(cancellationToken)));
 
 app.Run();
-

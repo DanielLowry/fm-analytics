@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.14"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.9.26"
+
+      - name: Install locked environment
+        run: uv sync --locked
+
+      - name: Run tests
+        run: uv run --no-sync python -m unittest discover -s tests -v
+
+      - name: Compile Python sources
+        run: uv run --no-sync python -m compileall -q src tools tests
+
+      - name: Build Python package
+        run: uv build --no-sources
+
+  dotnet:
+    name: FMBridge (.NET 8)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore FMBridge
+        run: dotnet restore src/FMBridge/FMBridge.csproj
+
+      - name: Build FMBridge
+        run: dotnet build src/FMBridge/FMBridge.csproj --configuration Release --no-restore
+

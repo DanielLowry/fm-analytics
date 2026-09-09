@@ -27,6 +27,11 @@ class Fm20Profile:
     name: str
     expected_product_version: str
     current_date_offset: int
+    main_address_offset: int
+    person_collection_offset: int
+    team_collection_offset: int
+    collection_indirection_offset: int
+    human_manager_type_offset: int
 
 
 # Source: AppCakeLtd/FMScoutFramework at commit 9fb3904 (FMSE20 Final),
@@ -36,6 +41,11 @@ FM20_4_4_STEAM = Fm20Profile(
     name="FM20 20.4.4 Steam/Windows executable",
     expected_product_version="20.4.4-1442341",
     current_date_offset=0x7386EE0,
+    main_address_offset=0x748F280,
+    person_collection_offset=0x70,
+    team_collection_offset=0xA0,
+    collection_indirection_offset=0x90,
+    human_manager_type_offset=0x6D80CE0,
 )
 
 
@@ -51,6 +61,20 @@ class ProbeResult:
     profile: str
     expected_product_version: str
     game_date: str
+    human_managers: tuple[HumanManagerResult, ...]
+
+
+@dataclass(frozen=True)
+class ClubResult:
+    id: str
+    name: str
+
+
+@dataclass(frozen=True)
+class HumanManagerResult:
+    id: str
+    name: str
+    club: ClubResult | None
 
 
 def parse_module_mapping(lines: Iterable[str]) -> tuple[int, str]:
@@ -91,6 +115,152 @@ def read_exact(memory_fd: int, address: int, size: int) -> bytes:
             f"short memory read at 0x{address:x}: expected {size}, got {len(data)}"
         )
     return data
+
+
+def read_i32(memory_fd: int, address: int) -> int:
+    return struct.unpack("<i", read_exact(memory_fd, address, 4))[0]
+
+
+def read_u64(memory_fd: int, address: int) -> int:
+    return struct.unpack("<Q", read_exact(memory_fd, address, 8))[0]
+
+
+def read_fm_string(memory_fd: int, field_address: int) -> str:
+    container_address = read_u64(memory_fd, field_address)
+    if container_address == 0:
+        return ""
+    string_address = read_u64(memory_fd, container_address)
+    if string_address == 0:
+        return ""
+    length = read_i32(memory_fd, string_address)
+    if length <= 0:
+        return ""
+    if length > 1024:
+        raise ProbeError(f"implausible FM string length {length} at 0x{string_address:x}")
+    raw = read_exact(memory_fd, string_address + 4, length)
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ProbeError(f"invalid FM string at 0x{string_address:x}") from exc
+
+
+def read_pointer_collection(
+    memory_fd: int,
+    module_base: int,
+    root_offset: int,
+    collection_offset: int,
+    indirection_offset: int,
+) -> tuple[int, ...]:
+    root_field = module_base + root_offset + collection_offset
+    first_pointer = read_u64(memory_fd, root_field)
+    collection = read_u64(memory_fd, first_pointer + indirection_offset)
+    start = read_u64(memory_fd, collection)
+    end = read_u64(memory_fd, collection + 8)
+    if start == 0 or end < start or (end - start) % 8 != 0:
+        raise ProbeError(
+            f"invalid pointer collection bounds 0x{start:x}-0x{end:x}"
+        )
+    count = (end - start) // 8
+    if count > 1_000_000:
+        raise ProbeError(f"implausible pointer collection size {count}")
+    if count == 0:
+        return ()
+    return struct.unpack(f"<{count}Q", read_exact(memory_fd, start, count * 8))
+
+
+def read_human_managers(memory_fd: int, module_base: int) -> tuple[HumanManagerResult, ...]:
+    profile = FM20_4_4_STEAM
+    people = read_pointer_collection(
+        memory_fd,
+        module_base,
+        profile.main_address_offset,
+        profile.person_collection_offset,
+        profile.collection_indirection_offset,
+    )
+    expected_type = module_base + profile.human_manager_type_offset
+    results: list[HumanManagerResult] = []
+
+    for person_address in people:
+        if person_address == 0:
+            continue
+        try:
+            if read_u64(memory_fd, person_address) != expected_type:
+                continue
+
+            # The human-manager structure begins 0x458 bytes before its shared
+            # Person structure. Its embedded ActualPerson begins at +0x480.
+            manager_base = person_address - 0x458
+            actual_person = manager_base + 0x480
+            manager_id = read_i32(memory_fd, person_address + 0xC)
+            first_name = read_fm_string(memory_fd, actual_person + 0x30)
+            last_name = read_fm_string(memory_fd, actual_person + 0x38)
+            name = " ".join(part for part in (first_name, last_name) if part).strip()
+            if not name:
+                name = read_fm_string(memory_fd, actual_person + 0x20)
+
+            club: ClubResult | None = None
+            contract = read_u64(memory_fd, actual_person + 0xA0)
+            if contract:
+                team = read_u64(memory_fd, contract + 0x10)
+                if team:
+                    club = read_club_from_team(memory_fd, team)
+
+            if club is None:
+                club = find_managed_club(
+                    memory_fd, module_base, person_address, expected_type
+                )
+
+            results.append(HumanManagerResult(id=str(manager_id), name=name, club=club))
+        except (OSError, ProbeError):
+            # One stale person entry should not prevent finding another human
+            # manager during a game-state transition.
+            continue
+
+    return tuple(results)
+
+
+def read_club_from_team(memory_fd: int, team_address: int) -> ClubResult | None:
+    club_address = read_u64(memory_fd, team_address + 0x18)
+    if club_address == 0:
+        return None
+    return ClubResult(
+        id=str(read_i32(memory_fd, club_address + 0xC)),
+        name=read_fm_string(memory_fd, club_address + 0xB8),
+    )
+
+
+def find_managed_club(
+    memory_fd: int,
+    module_base: int,
+    human_person_address: int,
+    expected_human_type: int,
+) -> ClubResult | None:
+    profile = FM20_4_4_STEAM
+    teams = read_pointer_collection(
+        memory_fd,
+        module_base,
+        profile.main_address_offset,
+        profile.team_collection_offset,
+        profile.collection_indirection_offset,
+    )
+    for team_address in teams:
+        if team_address == 0:
+            continue
+        try:
+            manager_pointer = read_u64(memory_fd, team_address + 0x78)
+            if manager_pointer == 0:
+                continue
+            if read_u64(memory_fd, manager_pointer) == expected_human_type:
+                candidate_person = manager_pointer
+            elif read_u64(memory_fd, manager_pointer + 0x458) == expected_human_type:
+                candidate_person = manager_pointer + 0x458
+            else:
+                continue
+            if candidate_person == human_person_address:
+                return read_club_from_team(memory_fd, team_address)
+        except (OSError, ProbeError):
+            continue
+    return None
 
 
 def decode_fm_date(raw: bytes) -> date:
@@ -135,6 +305,7 @@ def probe(pid: int, proc_root: Path = Path("/proc")) -> ProbeResult:
         raw_date = read_exact(
             memory_fd, module_base + FM20_4_4_STEAM.current_date_offset, 4
         )
+        human_managers = read_human_managers(memory_fd, module_base)
     finally:
         os.close(memory_fd)
 
@@ -146,6 +317,7 @@ def probe(pid: int, proc_root: Path = Path("/proc")) -> ProbeResult:
         profile=FM20_4_4_STEAM.name,
         expected_product_version=FM20_4_4_STEAM.expected_product_version,
         game_date=game_date.isoformat(),
+        human_managers=human_managers,
     )
 
 
@@ -187,9 +359,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Profile: {result.profile}")
         print(f"Expected product version: {result.expected_product_version}")
         print(f"Game date: {result.game_date}")
+        if result.human_managers:
+            for manager in result.human_managers:
+                print(f"Human manager: {manager.name} (ID {manager.id})")
+                if manager.club:
+                    print(f"Controlled club: {manager.club.name} (ID {manager.club.id})")
+                else:
+                    print("Controlled club: none")
+        else:
+            print("Human manager: not found")
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

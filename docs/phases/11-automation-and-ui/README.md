@@ -4,6 +4,8 @@
 
 Outline only. Automation is introduced incrementally alongside useful earlier
 features; a substantial dashboard waits until recurring workflows are proven.
+The disposable Phase 00 live monitor supplies immediate visibility and should
+inform this phase, but does not dictate its architecture.
 
 ## Outcome
 
@@ -79,4 +81,3 @@ observations where possible.
 - Remote multi-user hosting
 - Mobile/native applications
 - UI complexity unsupported by an established repeated workflow
-
