@@ -19,13 +19,13 @@ the development source and later phases remain planning work.
 
 ## Subphases
 
-| ID | Subphase | Result |
-| --- | --- | --- |
-| 00.1 | [Environment baseline](00.1-environment-baseline.md) | A reproducible test matrix and pinned dependencies |
-| 00.2 | [Process attachment](00.2-process-attachment.md) | Safe detection and attachment with useful failures |
-| 00.3 | [Game context](00.3-game-context.md) | Live date, manager, and controlled club |
-| 00.4 | [Squad extraction](00.4-squad-extraction.md) | Stable first-team identities and basic fields |
-| 00.5 | [End-to-end validation](00.5-end-to-end-validation.md) | Live FM20 → bridge → Python proof |
+| ID | Subphase | Status | Result |
+| --- | --- | --- | --- |
+| 00.1 | [Environment baseline](00.1-environment-baseline.md) | In progress | A reproducible test matrix and pinned dependencies |
+| 00.2 | [Process attachment](00.2-process-attachment.md) | In progress | Safe detection and attachment with useful failures |
+| 00.3 | [Game context](00.3-game-context.md) | In progress | Live date, manager, and controlled club |
+| 00.4 | [Squad extraction](00.4-squad-extraction.md) | Not started | Stable first-team identities and basic fields |
+| 00.5 | [End-to-end validation](00.5-end-to-end-validation.md) | Not started | Live FM20 → bridge → Python proof |
 
 ## Phase exit criteria
 
@@ -54,4 +54,3 @@ the development source and later phases remain planning work.
 - Pointers or object wrappers may become stale when the game advances.
 - Apparent attributes may be underlying truth rather than manager knowledge.
 - Identifiers may not remain stable across reloads.
-

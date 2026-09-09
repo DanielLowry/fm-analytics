@@ -42,6 +42,19 @@ uv run fm-analytics --base-url http://localhost:5072
 
 Useful bridge endpoints are `GET /health`, `GET /game`, and `GET /squad`.
 
+## Linux/Proton Phase 00 probe
+
+On Linux, a narrow read-only probe can auto-detect FM20 running through Proton
+and read the current in-game date:
+
+```bash
+python3 tools/fm20_linux_probe.py
+```
+
+This probe is feasibility tooling, not a second analytics data source. It reads
+only the mapped PE signature and current-date field for the final FM20 20.4.4
+executable. Live player extraction still belongs behind FMBridge.
+
 ## Current boundary
 
 The public contract exposes manager-visible attribute observations as one of:
