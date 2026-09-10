@@ -20,9 +20,24 @@
       {
         "id": "player-1",
         "name": "Sam Keeper",
+        "dateOfBirth": "1992-02-10",
         "age": 28,
         "positions": ["GK"],
         "clubId": "club-100",
+        "conditionPercent": 96,
+        "matchFitnessPercent": 91,
+        "availability": "available",
+        "injured": false,
+        "suspended": false,
+        "contract": {
+          "contractType": "full_time",
+          "startDate": "2019-07-01",
+          "endDate": "2022-06-30",
+          "joinedDate": "2019-07-01",
+          "squadStatus": "first_team_regular",
+          "transferStatus": "not_set",
+          "contractedClub": { "id": "club-100", "name": "North London FC" }
+        },
         "attributes": {
           "aerialReach": { "visibility": "known", "value": 15 },
           "reflexes": { "visibility": "known", "value": 16 }
@@ -31,9 +46,24 @@
       {
         "id": "player-2",
         "name": "Chris Centreback",
+        "dateOfBirth": "1996-05-18",
         "age": 24,
         "positions": ["DC", "DM"],
         "clubId": "club-100",
+        "conditionPercent": 89,
+        "matchFitnessPercent": 94,
+        "availability": "available",
+        "injured": false,
+        "suspended": false,
+        "contract": {
+          "contractType": "full_time",
+          "startDate": "2018-07-01",
+          "endDate": "2021-06-30",
+          "joinedDate": "2018-07-01",
+          "squadStatus": "squad_rotation",
+          "transferStatus": "not_set",
+          "contractedClub": { "id": "club-100", "name": "North London FC" }
+        },
         "attributes": {
           "marking": { "visibility": "known", "value": 14 },
           "passing": { "visibility": "range", "minimum": 11, "maximum": 14 },
@@ -43,9 +73,24 @@
       {
         "id": "player-3",
         "name": "Morgan Midfielder",
+        "dateOfBirth": "1999-10-02",
         "age": 21,
         "positions": ["MC", "AMC"],
         "clubId": "club-100",
+        "conditionPercent": 100,
+        "matchFitnessPercent": 86,
+        "availability": "suspended",
+        "injured": false,
+        "suspended": true,
+        "contract": {
+          "contractType": "full_time",
+          "startDate": "2020-07-01",
+          "endDate": "2024-06-30",
+          "joinedDate": "2020-07-01",
+          "squadStatus": "hot_prospect",
+          "transferStatus": "not_set",
+          "contractedClub": { "id": "club-100", "name": "North London FC" }
+        },
         "attributes": {
           "passing": { "visibility": "known", "value": 15 },
           "vision": { "visibility": "known", "value": 14 }
@@ -54,4 +99,3 @@
     ]
   }
 }
-

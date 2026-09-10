@@ -20,6 +20,11 @@ public sealed class FixtureFmDataSource : IFmDataSource
 
     public string Name => "fixture";
 
+    public Task<SourceHealth> GetHealthAsync(CancellationToken cancellationToken)
+    {
+        return Task.FromResult(new SourceHealth("ready", Name));
+    }
+
     public async Task<GameState> GetGameAsync(CancellationToken cancellationToken)
     {
         var fixture = await ReadFixtureAsync(cancellationToken);

@@ -11,6 +11,7 @@ from tools.fm20_linux_probe import (
     read_fm_string,
     read_optional_contract_date,
     read_pointer_collection,
+    validate_executable,
 )
 
 
@@ -25,6 +26,13 @@ class LinuxFm20ProbeTests(unittest.TestCase):
 
         self.assertEqual(base, 0x140000000)
         self.assertTrue(executable.endswith("Football Manager 2020/fm.exe"))
+
+    def test_rejects_an_executable_with_the_wrong_size(self) -> None:
+        import tempfile
+
+        with tempfile.NamedTemporaryFile() as executable:
+            with self.assertRaisesRegex(ProbeError, "unsupported executable size"):
+                validate_executable(executable.name)
 
     def test_decode_date_masks_fm_flag_bits(self) -> None:
         self.assertEqual(decode_fm_date(bytes.fromhex("af 1a e3 07")), date(2019, 6, 24))

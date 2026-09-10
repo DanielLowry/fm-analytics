@@ -18,6 +18,12 @@ class ProjectConfigurationTests(unittest.TestCase):
         self.assertTrue(
             any(item.get("Update") == "fixtures/sample-game.json" for item in content_items)
         )
+        self.assertTrue(
+            any(
+                item.get("Include") == "../../tools/fm20_linux_probe.py"
+                for item in content_items
+            )
+        )
 
     def test_dotnet_sdk_stays_within_version_eight(self) -> None:
         with (ROOT / "global.json").open(encoding="utf-8") as global_file:

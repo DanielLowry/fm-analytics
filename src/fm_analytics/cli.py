@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Sequence
 
 from fm_analytics.api import BridgeClient, BridgeError
-from fm_analytics.domain import GameState, Squad
+from fm_analytics.domain import GameState, Player, Squad
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -32,18 +32,39 @@ def load_fixture(path: Path) -> tuple[GameState, Squad]:
 
 
 def render(game: GameState, squad: Squad) -> str:
+    club_name = squad.club.name if squad.club else "No controlled club"
     lines = [
         f"Game date: {game.game_date.strftime('%d %B %Y')}",
         f"Manager: {game.human_manager.name}",
-        f"Club: {squad.club.name}",
+        f"Club: {club_name}",
         "",
         "Players",
         "-------",
     ]
     for player in squad.players:
         positions = ", ".join(player.positions)
-        lines.append(f"{player.name:<28} {positions}")
+        age = str(player.age) if player.age is not None else "?"
+        condition = _percent(player.condition_percent)
+        fitness = _percent(player.match_fitness_percent)
+        contract = _contract_summary(player, squad)
+        lines.append(
+            f"{player.name:<28} age {age:<2}  {positions:<12} "
+            f"condition {condition:<4} fitness {fitness:<4} "
+            f"{player.availability}{contract}"
+        )
     return "\n".join(lines)
+
+
+def _percent(value: int | None) -> str:
+    return f"{value}%" if value is not None else "?"
+
+
+def _contract_summary(player: Player, squad: Squad) -> str:
+    contract = player.contract
+    contracted_club = contract.contracted_club if contract else None
+    if contracted_club and squad.club and contracted_club.id != squad.club.id:
+        return f" · loan from {contracted_club.name}"
+    return ""
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -64,4 +85,3 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -6,12 +6,13 @@ From Python, print the current date, human-controlled club, and first-team squad
 from a running FM20 save. The path must be repeatable, read-only, and explicit
 about what has and has not been verified as manager-visible.
 
-This is the principal feasibility gate. Until it passes, the fixture remains
-the development source and later phases remain planning work.
+This is the principal feasibility gate. The complete path is implemented and
+has run against the live save; two player-driven change checks remain before
+the phase can be marked closed.
 
 ## Prerequisites
 
-- A supported Windows environment with FM20 and a test save
+- The recorded x86-64 Linux/Proton environment with FM20 and a test save
 - Exact game/database build recorded
 - A pinned candidate memory-reading framework or fork
 - .NET SDK/runtime compatible with that framework
@@ -21,12 +22,12 @@ the development source and later phases remain planning work.
 
 | ID | Subphase | Status | Result |
 | --- | --- | --- | --- |
-| 00.1 | [Environment baseline](00.1-environment-baseline.md) | In progress | A reproducible test matrix and pinned dependencies |
-| 00.2 | [Process attachment](00.2-process-attachment.md) | In progress | Safe detection and attachment with useful failures |
-| 00.3 | [Game context](00.3-game-context.md) | Live proof working | Live date, manager, and controlled club |
-| 00.4 | [Squad extraction](00.4-squad-extraction.md) | In progress | Stable first-team identities and basic fields |
-| 00.5 | [End-to-end validation](00.5-end-to-end-validation.md) | Not started | Live FM20 → bridge → Python proof |
-| 00.6 | [Basic live monitor](00.6-basic-monitor.md) | In progress | Inspect, refresh, and download current visible data |
+| 00.1 | [Environment baseline](00.1-environment-baseline.md) | Complete | Reproducible matrix and pinned toolchain |
+| 00.2 | [Process attachment](00.2-process-attachment.md) | Complete | Safe detection, bounded reads, recovery, useful failures |
+| 00.3 | [Game context](00.3-game-context.md) | Acceptance check | Live date, manager, and club; advancement/reload pending |
+| 00.4 | [Squad extraction](00.4-squad-extraction.md) | Acceptance check | 17 live identities and safe basics; manual/change checks pending |
+| 00.5 | [End-to-end validation](00.5-end-to-end-validation.md) | Acceptance check | Live FM20 → bridge → Python proven; change checks pending |
+| 00.6 | [Basic live monitor](00.6-basic-monitor.md) | Complete | Bridge-backed inspection, refresh, and safe downloads |
 
 ## Phase exit criteria
 
@@ -40,6 +41,19 @@ the development source and later phases remain planning work.
 - At least two runs after a clean restart produce the same identities.
 - No write operation against FM memory is present or required.
 - Environment versions, limitations, and sanitized evidence are documented.
+
+## Current acceptance record
+
+On 10 September 2026, the live path returned the active human manager,
+Hungerford Town, game date `2019-06-24`, and 17 unique first-team player IDs.
+The Python CLI printed the same 17 players through FMBridge, including a loan
+whose contracted club differs from the squad club. Restarting FMBridge and
+repeating the queries produced the same date, manager, club, count, and IDs.
+
+The remaining checks require changing the running save: advance at least one
+day, make one visible first-team membership change, and reload the save. Use
+`tools/phase00_validate.py` as documented in [00.5](00.5-end-to-end-validation.md)
+to record those checks without retaining player details.
 
 ## Non-goals
 

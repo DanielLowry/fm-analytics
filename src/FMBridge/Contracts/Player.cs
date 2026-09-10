@@ -33,12 +33,28 @@ public sealed record AttributeObservation
 public sealed record Player(
     string Id,
     string Name,
-    int Age,
+    DateOnly? DateOfBirth,
+    int? Age,
     IReadOnlyList<string> Positions,
     string ClubId,
+    int? ConditionPercent,
+    int? MatchFitnessPercent,
+    string Availability,
+    bool? Injured,
+    bool? Suspended,
+    PlayerContract? Contract,
     IReadOnlyDictionary<string, AttributeObservation> Attributes);
 
+public sealed record PlayerContract(
+    string? ContractType,
+    DateOnly? StartDate,
+    DateOnly? EndDate,
+    DateOnly? JoinedDate,
+    string? SquadStatus,
+    string? TransferStatus,
+    ClubSummary? ContractedClub);
+
 public sealed record Squad(
-    ClubSummary Club,
+    ClubSummary? Club,
     DateOnly AsOfDate,
     IReadOnlyList<Player> Players);

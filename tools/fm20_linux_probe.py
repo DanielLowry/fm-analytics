@@ -26,6 +26,7 @@ FM20_EXECUTABLE_SUFFIX = "/Football Manager 2020/fm.exe"
 class Fm20Profile:
     name: str
     expected_product_version: str
+    expected_executable_size: int
     current_date_offset: int
     active_object_offset: int
     main_address_offset: int
@@ -43,6 +44,7 @@ class Fm20Profile:
 FM20_4_4_STEAM = Fm20Profile(
     name="FM20 20.4.4 Steam/Windows executable",
     expected_product_version="20.4.4-1442341",
+    expected_executable_size=532_226_560,
     current_date_offset=0x7386EE0,
     active_object_offset=0x75FC4B0,
     main_address_offset=0x748F280,
@@ -196,6 +198,19 @@ def find_fm20_processes(proc_root: Path = Path("/proc")) -> list[int]:
             continue
         matches.append(int(entry.name))
     return sorted(matches)
+
+
+def validate_executable(path: str, profile: Fm20Profile = FM20_4_4_STEAM) -> None:
+    """Reject an executable that does not match the one proven for this profile."""
+    try:
+        size = Path(path).stat().st_size
+    except OSError as exc:
+        raise ProbeError(f"cannot inspect FM20 executable {path!r}: {exc}") from exc
+    if size != profile.expected_executable_size:
+        raise ProbeError(
+            "unsupported executable size: "
+            f"expected {profile.expected_executable_size}, got {size}"
+        )
 
 
 def read_exact(memory_fd: int, address: int, size: int) -> bytes:
@@ -451,7 +466,8 @@ def read_first_team_squad(
         raise ProbeError(f"implausible first-team squad size {count}")
 
     expected_type = module_base + FM20_4_4_STEAM.player_type_offset
-    players: dict[str, SquadPlayerResult] = {}
+    players: list[SquadPlayerResult] = []
+    player_ids: set[str] = set()
     for index in range(count):
         try:
             slot_address = read_u64(memory_fd, start + index * 8)
@@ -501,7 +517,7 @@ def read_first_team_squad(
                 contract = read_player_contract(memory_fd, actual_person)
             except (OSError, ProbeError):
                 contract = None
-            players[player_id] = SquadPlayerResult(
+            player = SquadPlayerResult(
                 id=player_id,
                 name=name,
                 date_of_birth=date_of_birth_text,
@@ -516,7 +532,11 @@ def read_first_team_squad(
             )
         except (OSError, ProbeError):
             continue
-    return tuple(sorted(players.values(), key=lambda player: player.name.casefold()))
+        if player_id in player_ids:
+            raise ProbeError(f"duplicate player ID {player_id} in first-team squad")
+        player_ids.add(player_id)
+        players.append(player)
+    return tuple(sorted(players, key=lambda player: player.name.casefold()))
 
 
 def find_managed_club(
@@ -582,6 +602,8 @@ def probe(pid: int, proc_root: Path = Path("/proc")) -> ProbeResult:
             module_base, executable = parse_module_mapping(maps_file)
     except OSError as exc:
         raise ProbeError(f"cannot read process {pid} mappings: {exc}") from exc
+
+    validate_executable(executable)
 
     try:
         memory_fd = os.open(process_dir / "mem", os.O_RDONLY | os.O_CLOEXEC)

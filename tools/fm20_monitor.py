@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import threading
 import time
 from dataclasses import asdict
@@ -12,7 +13,9 @@ from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Sequence
+from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlparse
+from urllib.request import urlopen
 
 try:
     from tools.fm20_linux_probe import ProbeError, choose_pid, probe
@@ -85,7 +88,7 @@ DASHBOARD = """<!doctype html>
     </article>
   </section>
   <pre id="json"></pre>
-  <footer>Phase 00 probe · manager-visible fields only · refreshes every 30 seconds</footer>
+  <footer>Phase 00 bridge monitor · manager-visible fields only · refreshes every 30 seconds</footer>
 </main>
 <script>
 const byId = id => document.getElementById(id);
@@ -143,8 +146,8 @@ async function refresh() {
     put('manager-id', manager ? `ID ${manager.id}` : '');
     put('club', manager?.club?.name || 'Not resolved');
     put('club-id', manager?.club ? `ID ${manager.club.id}` : '');
-    put('process', `PID ${latest.pid}`);
-    put('version', latest.expected_product_version);
+    put('process', latest.pid ? `PID ${latest.pid}` : latest.source);
+    put('version', latest.expected_product_version || 'FMBridge');
     put('captured', new Date(latest.observed_at).toLocaleString());
     put('error', '');
     renderSquad(latest.first_team_squad ?? [], manager?.club?.id);
@@ -191,6 +194,81 @@ class StatusCache:
             return self._document
 
 
+class MonitorSourceError(RuntimeError):
+    """The configured monitor source is not ready."""
+
+
+class BridgeStatusCache:
+    def __init__(self, base_url: str, ttl_seconds: float = 10.0):
+        self.base_url = base_url.rstrip("/")
+        self.ttl_seconds = ttl_seconds
+        self._lock = threading.Lock()
+        self._loaded_at = 0.0
+        self._document: dict[str, Any] | None = None
+
+    def get(self, force: bool = False) -> dict[str, Any]:
+        with self._lock:
+            if (
+                not force
+                and self._document is not None
+                and time.monotonic() - self._loaded_at < self.ttl_seconds
+            ):
+                return self._document
+            health = self._read("health", accept_error=True)
+            if health.get("status") != "ready":
+                raise MonitorSourceError(
+                    str(health.get("detail") or health.get("status") or "unavailable")
+                )
+            game = _snake_keys(self._read("game"))
+            squad = _snake_keys(self._read("squad"))
+            manager = {
+                **game["human_manager"],
+                "club": game.get("controlled_club"),
+                "active": True,
+            }
+            self._document = {
+                "status": "live",
+                "source": health.get("source", "FMBridge"),
+                "observed_at": datetime.now(timezone.utc).isoformat(),
+                "game_date": game["game_date"],
+                "human_managers": [manager],
+                "first_team_squad": squad["players"],
+            }
+            self._loaded_at = time.monotonic()
+            return self._document
+
+    def _read(self, path: str, *, accept_error: bool = False) -> dict[str, Any]:
+        url = f"{self.base_url}/{path}"
+        try:
+            with urlopen(url, timeout=10) as response:  # noqa: S310
+                payload = json.load(response)
+        except HTTPError as exc:
+            if not accept_error:
+                raise MonitorSourceError(f"FMBridge returned HTTP {exc.code}") from exc
+            try:
+                payload = json.load(exc)
+            except json.JSONDecodeError as decode_error:
+                raise MonitorSourceError(
+                    f"FMBridge returned HTTP {exc.code}"
+                ) from decode_error
+        except (URLError, TimeoutError, json.JSONDecodeError) as exc:
+            raise MonitorSourceError(f"could not reach FMBridge at {url}: {exc}") from exc
+        if not isinstance(payload, dict):
+            raise MonitorSourceError(f"FMBridge returned a non-object from {url}")
+        return payload
+
+
+def _snake_keys(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            re.sub(r"(?<!^)(?=[A-Z])", "_", key).lower(): _snake_keys(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_snake_keys(item) for item in value]
+    return value
+
+
 class MonitorHandler(BaseHTTPRequestHandler):
     cache = StatusCache()
 
@@ -213,7 +291,7 @@ class MonitorHandler(BaseHTTPRequestHandler):
                     else source
                 )
                 status = HTTPStatus.OK
-            except (OSError, ProbeError) as exc:
+            except (OSError, ProbeError, MonitorSourceError) as exc:
                 document = {
                     "status": "unavailable",
                     "observed_at": datetime.now(timezone.utc).isoformat(),
@@ -284,13 +362,27 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Serve the local FM20 monitor")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument(
+        "--bridge-url",
+        default="http://127.0.0.1:5072",
+        help="FMBridge URL (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--direct",
+        action="store_true",
+        help="use the diagnostic memory probe directly instead of FMBridge",
+    )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    MonitorHandler.cache = (
+        StatusCache() if args.direct else BridgeStatusCache(args.bridge_url)
+    )
     server = ThreadingHTTPServer((args.host, args.port), MonitorHandler)
-    print(f"FM20 monitor listening on http://{args.host}:{args.port}")
+    source = "direct probe" if args.direct else args.bridge_url
+    print(f"FM20 monitor listening on http://{args.host}:{args.port} via {source}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

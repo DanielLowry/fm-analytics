@@ -1,6 +1,13 @@
 import unittest
 
-from tools.fm20_monitor import DASHBOARD, MonitorHandler, StatusCache
+from tools.fm20_monitor import (
+    DASHBOARD,
+    BridgeStatusCache,
+    MonitorHandler,
+    StatusCache,
+    _snake_keys,
+    build_parser,
+)
 
 
 class MonitorTests(unittest.TestCase):
@@ -16,6 +23,21 @@ class MonitorTests(unittest.TestCase):
     def test_empty_cache_has_configured_ttl(self) -> None:
         cache = StatusCache(ttl_seconds=15)
         self.assertEqual(cache.ttl_seconds, 15)
+
+    def test_bridge_is_the_default_monitor_source(self) -> None:
+        args = build_parser().parse_args([])
+
+        self.assertFalse(args.direct)
+        self.assertEqual(args.bridge_url, "http://127.0.0.1:5072")
+        self.assertEqual(BridgeStatusCache(args.bridge_url).base_url, args.bridge_url)
+
+    def test_bridge_payload_keys_are_normalised(self) -> None:
+        payload = {"dateOfBirth": "2000-01-01", "contractedClub": {"id": "1"}}
+
+        self.assertEqual(
+            _snake_keys(payload),
+            {"date_of_birth": "2000-01-01", "contracted_club": {"id": "1"}},
+        )
 
     def test_squad_document_selects_the_active_manager_club(self) -> None:
         source = {

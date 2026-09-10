@@ -3,17 +3,17 @@
 ## First vertical slice
 
 ```text
-Football Manager 2020 (eventually)     sample-game.json (today)
-                  \                       /
-                   IFmDataSource adapter
-                            |
-                     FMBridge (C#)
-                            |
-             manager-visible JSON over HTTP
-                            |
-                 Python BridgeClient
-                            |
-               analytics and recommendations
+Football Manager 2020 via Proton       sample-game.json
+                |                           |
+  read-only Linux process probe        fixture source
+                \                           /
+                    IFmDataSource
+                          |
+                   FMBridge (C#)
+                          |
+           manager-visible JSON over HTTP
+                     /          \
+          Python BridgeClient   local monitor
 ```
 
 `FMBridge` is an anti-corruption layer. It knows how to read FM data, but it
@@ -49,17 +49,21 @@ Keeping hidden values out of the DTOs makes accidental leakage harder.
 
 ## Data-source seam
 
-`IFmDataSource` currently has a fixture implementation. A future
-`FmScoutDataSource` should be the only assembly area coupled to FMScout or
-another memory reader. It needs to answer three questions before replacing the
-fixture:
+`IFmDataSource` has fixture and `linux-proton` implementations. The live
+implementation runs the narrow probe with a ten-second bound, validates its
+projection, caches successful observations for one second, and converts source
+failures into structured health states. Probe implementation details do not
+cross the interface.
+
+Phase 01 should replace the subprocess seam if measurements justify it, while
+preserving these answers:
 
 1. Can it reliably identify the human manager and club?
 2. Can it enumerate the club's first team while the save advances?
 3. Can it read the manager-visible form of attributes, including ranges and
    unknowns, without exposing underlying truth?
 
-Do not add persistence or analytics to the bridge while answering these.
+Do not add persistence or analytics to the bridge.
 
 ## Python boundary
 
@@ -72,12 +76,11 @@ development; it is not intended to become a second production extraction path.
 
 ## Near-term sequence
 
-1. Run the bridge fixture on a Windows machine and validate the HTTP contract.
-2. Add the extraction framework as an isolated dependency.
-3. Implement `FmScoutDataSource`, initially for `/game` only.
-4. Add squad enumeration and attribute-visibility probes.
-5. Record sanitized responses as contract fixtures and test regressions.
-6. Only then add SQLite snapshots and role-scoring analytics.
+1. Complete the recorded live date, membership, and save-reload checks.
+2. Stabilise and version the Phase 01 extraction contract.
+3. Add source lifecycle telemetry and contract-level bridge tests.
+4. Investigate manager-visible player attributes without reading hidden truth.
+5. Only then add SQLite snapshots and role-scoring analytics.
 
 The delivery gates and open questions live in the
 [phase roadmap](phases/README.md), beginning with

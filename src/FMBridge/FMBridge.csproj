@@ -9,5 +9,8 @@
     <Content Update="fixtures/sample-game.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="../../tools/fm20_linux_probe.py" Link="tools/fm20_linux_probe.py">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

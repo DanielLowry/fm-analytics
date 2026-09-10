@@ -1,6 +1,6 @@
 import unittest
 
-from fm_analytics.domain.models import AttributeObservation, Visibility
+from fm_analytics.domain.models import AttributeObservation, Player, Visibility
 
 
 class AttributeObservationTests(unittest.TestCase):
@@ -28,6 +28,20 @@ class AttributeObservationTests(unittest.TestCase):
             AttributeObservation(
                 visibility=Visibility.RANGE, minimum=15, maximum=10
             )
+
+
+class PlayerTests(unittest.TestCase):
+    def test_rejects_out_of_range_visible_percentage(self) -> None:
+        raw = {
+            "id": "1",
+            "name": "Player",
+            "positions": ["MC"],
+            "clubId": "2",
+            "conditionPercent": 101,
+        }
+
+        with self.assertRaisesRegex(ValueError, "conditionPercent"):
+            Player.from_dict(raw)
 
 
 if __name__ == "__main__":
