@@ -33,6 +33,46 @@ class Phase00ValidationTests(unittest.TestCase):
             ):
                 capture("http://bridge.test")
 
+    def test_capture_uses_versioned_resources(self) -> None:
+        responses = [
+            BytesIO(
+                json.dumps(
+                    {"status": "ready", "source": "fixture", "detail": None}
+                ).encode()
+            ),
+            BytesIO(
+                json.dumps(
+                    {
+                        "gameDate": "2019-06-24",
+                        "humanManager": {"id": "1", "name": "Manager"},
+                        "controlledClub": {"id": "2", "name": "Club"},
+                    }
+                ).encode()
+            ),
+            BytesIO(
+                json.dumps(
+                    {
+                        "club": {"id": "2", "name": "Club"},
+                        "asOfDate": "2019-06-24",
+                        "players": [],
+                    }
+                ).encode()
+            ),
+        ]
+
+        with patch("tools.phase00_validate.urlopen", side_effect=responses) as request:
+            observation = capture("http://bridge.test")
+
+        self.assertEqual(observation["playerCount"], 0)
+        self.assertEqual(
+            [call.args[0] for call in request.call_args_list],
+            [
+                "http://bridge.test/v1/health",
+                "http://bridge.test/v1/game",
+                "http://bridge.test/v1/squad",
+            ],
+        )
+
     def test_accepts_stable_identity_and_expected_changes(self) -> None:
         before = {
             "gameDate": "2019-06-24",

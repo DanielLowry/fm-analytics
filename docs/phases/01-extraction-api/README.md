@@ -14,23 +14,22 @@ probe/framework types or putting football decisions in the bridge.
 
 ## Subphases
 
-| ID | Subphase | Result |
-| --- | --- | --- |
-| 01.1 | [Contract and versioning](01.1-contract-and-versioning.md) | A documented, compatibility-tested wire contract |
-| 01.2 | [Source lifecycle](01.2-source-lifecycle.md) | Reliable live and fixture data sources |
-| 01.3 | [Core resources](01.3-core-resources.md) | Deliberately scoped game, club, player, squad, and fixture endpoints |
-| 01.4 | [Reliability and diagnostics](01.4-reliability-and-diagnostics.md) | Bounded requests and actionable operational status |
-| 01.5 | [Contract verification](01.5-contract-verification.md) | Automated producer/consumer compatibility evidence |
+| ID | Subphase | Status | Result |
+| --- | --- | --- | --- |
+| 01.1 | [Contract and versioning](01.1-contract-and-versioning.md) | Complete | Versioned paths, published v1 semantics, strict decoding, and shared golden resources implemented |
+| 01.2 | [Source lifecycle](01.2-source-lifecycle.md) | In progress | Automated cache refresh and failure recovery covered; live advancement/membership soak remains |
+| 01.3 | [Core resources](01.3-core-resources.md) | Planned | Deliberately scoped game, club, player, squad, and fixture endpoints |
+| 01.4 | [Reliability and diagnostics](01.4-reliability-and-diagnostics.md) | Planned | Bounded requests and actionable operational status |
+| 01.5 | [Contract verification](01.5-contract-verification.md) | Planned | Automated producer/consumer compatibility evidence |
 
 ## Current starting point
 
-Implementation starts at 01.1 by freezing the existing `/health`, `/game`, and
-`/squad` behavior into an explicit versioned contract and sanitized golden
-fixtures. The same step inventories the MVP's squad inputs—positions,
-availability, visible condition, match sharpness, and attribute observations—so
-every later extraction addition has an identified consumer and visibility owner.
+01.1 has frozen the existing `/health`, `/game`, and `/squad` behavior into an
+explicit versioned contract and sanitized golden fixtures. The
+[MVP squad-input inventory](mvp-squad-inputs.md) records what is proven live and
+what remains blocked on visibility research.
 
-The first live follow-up is the 01.2 deferred date-advance and temporary
+Work now moves to 01.2, beginning with the deferred date-advance and temporary
 squad-membership-change soak check. External-player enumeration does not begin
 here; it remains gated by the Phase 03 discoverability research.
 

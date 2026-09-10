@@ -1,48 +1,20 @@
 import json
 import unittest
+from copy import deepcopy
 from io import BytesIO
+from pathlib import Path
 from unittest.mock import patch
 from urllib.error import HTTPError
 
-from fm_analytics.api import BridgeClient
+from fm_analytics.api import BridgeClient, BridgeContractError, BridgeError
 
 
-GAME = {
-    "gameDate": "2020-08-14",
-    "humanManager": {"id": "m1", "name": "Manager"},
-    "controlledClub": {"id": "c1", "name": "Club"},
-}
-SQUAD = {
-    "club": {"id": "c1", "name": "Club"},
-    "asOfDate": "2020-08-14",
-    "players": [
-        {
-            "id": "p1",
-            "name": "Player",
-            "age": 22,
-            "positions": ["MC"],
-            "clubId": "c1",
-            "dateOfBirth": "1998-04-03",
-            "conditionPercent": 97,
-            "matchFitnessPercent": 84,
-            "availability": "available",
-            "injured": False,
-            "suspended": False,
-            "contract": {
-                "contractType": "full_time",
-                "startDate": "2019-07-01",
-                "endDate": "2022-06-30",
-                "joinedDate": "2019-07-01",
-                "squadStatus": "first_team_regular",
-                "transferStatus": "not_set",
-                "contractedClub": {"id": "c1", "name": "Club"},
-            },
-            "attributes": {
-                "passing": {"visibility": "known", "value": 14}
-            },
-        }
-    ],
-}
+ROOT = Path(__file__).resolve().parent.parent
+GOLDEN = json.loads(
+    (ROOT / "src/fm_analytics/fixtures/sample-game.json").read_text(encoding="utf-8")
+)
+GAME = GOLDEN["game"]
+SQUAD = GOLDEN["squad"]
 
 
 class BridgeClientTests(unittest.TestCase):
@@ -57,23 +29,17 @@ class BridgeClientTests(unittest.TestCase):
             game = client.get_game()
             squad = client.get_squad()
 
-        self.assertEqual(game.controlled_club.name, "Club")
-        self.assertEqual(squad.players[0].name, "Player")
-        self.assertEqual(squad.players[0].condition_percent, 97)
+        self.assertEqual(game.controlled_club.name, "North London FC")
+        self.assertEqual(squad.players[0].name, "Sam Keeper")
+        self.assertEqual(squad.players[0].condition_percent, 96)
         self.assertEqual(squad.players[0].contract.end_date.isoformat(), "2022-06-30")
-        self.assertEqual(squad.players[0].attributes["passing"].value, 14)
+        self.assertEqual(squad.players[1].attributes["passing"].minimum, 11)
         self.assertEqual(request.call_count, 2)
+        self.assertEqual(request.call_args_list[0].args[0], "http://bridge.test/v1/game")
+        self.assertEqual(request.call_args_list[1].args[0], "http://bridge.test/v1/squad")
 
     def test_reads_unavailable_health_document(self) -> None:
-        body = BytesIO(
-            json.dumps(
-                {
-                    "status": "save_not_loaded",
-                    "source": "linux-proton",
-                    "detail": "No save is loaded.",
-                }
-            ).encode()
-        )
+        body = BytesIO(json.dumps(GOLDEN["errors"]["healthUnavailable"]).encode())
         error = HTTPError(
             "http://bridge.test/health",
             503,
@@ -88,6 +54,103 @@ class BridgeClientTests(unittest.TestCase):
 
         self.assertFalse(health.is_ready)
         self.assertEqual(health.status, "save_not_loaded")
+
+    def test_reports_missing_required_game_field_with_resource_context(self) -> None:
+        client = BridgeClient("http://bridge.test")
+
+        with patch(
+            "fm_analytics.api.client.urlopen",
+            return_value=BytesIO(
+                json.dumps(GOLDEN["breakingExamples"]["gameDateRenamed"]).encode()
+            ),
+        ):
+            with self.assertRaisesRegex(
+                BridgeContractError,
+                "invalid v1 game response: missing required field 'gameDate'",
+            ):
+                client.get_game()
+
+    def test_reports_invalid_nested_squad_observation_with_context(self) -> None:
+        invalid_squad = deepcopy(SQUAD)
+        invalid_squad["players"][1]["attributes"]["passing"] = {
+            "visibility": "range",
+            "minimum": 15,
+            "maximum": 10,
+        }
+        client = BridgeClient("http://bridge.test")
+
+        with patch(
+            "fm_analytics.api.client.urlopen",
+            return_value=BytesIO(json.dumps(invalid_squad).encode()),
+        ):
+            with self.assertRaisesRegex(
+                BridgeContractError,
+                "invalid v1 squad response: attribute minimum cannot exceed maximum",
+            ):
+                client.get_squad()
+
+    def test_accepts_nullable_fields_and_open_availability_value(self) -> None:
+        squad_payload = deepcopy(SQUAD)
+        player = squad_payload["players"][0]
+        for name in (
+            "dateOfBirth",
+            "age",
+            "conditionPercent",
+            "matchFitnessPercent",
+            "injured",
+            "suspended",
+            "contract",
+        ):
+            player[name] = None
+        player["availability"] = "future_visible_status"
+        client = BridgeClient("http://bridge.test")
+
+        with patch(
+            "fm_analytics.api.client.urlopen",
+            return_value=BytesIO(json.dumps(squad_payload).encode()),
+        ):
+            squad = client.get_squad()
+
+        self.assertIsNone(squad.players[0].condition_percent)
+        self.assertEqual(squad.players[0].availability, "future_visible_status")
+
+    def test_rejects_unknown_closed_visibility_value(self) -> None:
+        squad_payload = deepcopy(SQUAD)
+        squad_payload["players"][0]["attributes"]["reflexes"] = {
+            "visibility": "estimated",
+            "value": 16,
+        }
+        client = BridgeClient("http://bridge.test")
+
+        with patch(
+            "fm_analytics.api.client.urlopen",
+            return_value=BytesIO(json.dumps(squad_payload).encode()),
+        ):
+            with self.assertRaisesRegex(
+                BridgeContractError,
+                "invalid v1 squad response: 'estimated' is not a valid Visibility",
+            ):
+                client.get_squad()
+
+    def test_surfaces_unsupported_contract_version(self) -> None:
+        body = BytesIO(
+            json.dumps(GOLDEN["errors"]["unsupportedContractVersion"]).encode()
+        )
+        error = HTTPError(
+            "http://bridge.test/v2/game",
+            404,
+            "Not Found",
+            {},
+            body,
+        )
+        client = BridgeClient("http://bridge.test")
+
+        with patch("fm_analytics.api.client.urlopen", side_effect=error):
+            with self.assertRaisesRegex(
+                BridgeError,
+                "unsupported_contract_version",
+            ):
+                client.get_game()
 
 
 if __name__ == "__main__":

@@ -10,15 +10,27 @@ class AttributeObservationTests(unittest.TestCase):
         )
         self.assertEqual(observation.value, 15)
         self.assertEqual(observation.display(), "15")
+        self.assertEqual(
+            observation.to_dict(), {"visibility": "known", "value": 15}
+        )
 
     def test_range_attribute(self) -> None:
         observation = AttributeObservation.from_dict(
             {"visibility": "range", "minimum": 10, "maximum": 14}
         )
         self.assertEqual(observation.display(), "10-14")
+        self.assertEqual(
+            observation.to_dict(),
+            {"visibility": "range", "minimum": 10, "maximum": 14},
+        )
+
+    def test_unknown_attribute_serializes_without_numeric_fields(self) -> None:
+        observation = AttributeObservation.from_dict({"visibility": "unknown"})
+
+        self.assertEqual(observation.to_dict(), {"visibility": "unknown"})
 
     def test_unknown_attribute_rejects_leaked_value(self) -> None:
-        with self.assertRaisesRegex(ValueError, "cannot contain values"):
+        with self.assertRaisesRegex(ValueError, "forbid numeric fields"):
             AttributeObservation.from_dict(
                 {"visibility": "unknown", "value": 13}
             )
@@ -35,12 +47,40 @@ class PlayerTests(unittest.TestCase):
         raw = {
             "id": "1",
             "name": "Player",
+            "dateOfBirth": None,
+            "age": 22,
             "positions": ["MC"],
             "clubId": "2",
             "conditionPercent": 101,
+            "matchFitnessPercent": None,
+            "availability": "available",
+            "injured": False,
+            "suspended": False,
+            "contract": None,
+            "attributes": {},
         }
 
         with self.assertRaisesRegex(ValueError, "conditionPercent"):
+            Player.from_dict(raw)
+
+    def test_rejects_coerced_identifier_and_percentage_types(self) -> None:
+        raw = {
+            "id": 1,
+            "name": "Player",
+            "dateOfBirth": None,
+            "age": 22,
+            "positions": ["MC"],
+            "clubId": "2",
+            "conditionPercent": "97",
+            "matchFitnessPercent": None,
+            "availability": "available",
+            "injured": False,
+            "suspended": False,
+            "contract": None,
+            "attributes": {},
+        }
+
+        with self.assertRaisesRegex(TypeError, "id must be a string"):
             Player.from_dict(raw)
 
 

@@ -51,7 +51,9 @@ uv run fm-bridge
 uv run fm-analytics --base-url http://localhost:5072
 ```
 
-Useful bridge endpoints are `GET /health`, `GET /game`, and `GET /squad`.
+Useful bridge endpoints are `GET /v1/health`, `GET /v1/game`, and
+`GET /v1/squad`. The original unversioned paths remain temporary Phase 00
+compatibility aliases.
 
 ## Run against FM20 on Linux/Proton
 

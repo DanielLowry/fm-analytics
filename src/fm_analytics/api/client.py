@@ -1,16 +1,24 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Callable, TypeVar
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin
 from urllib.request import urlopen
 
+from fm_analytics.contract import versioned_path
 from fm_analytics.domain import GameState, SourceHealth, Squad
 
 
 class BridgeError(RuntimeError):
     """The FM bridge could not be reached or returned invalid data."""
+
+
+class BridgeContractError(BridgeError):
+    """The FM bridge response does not satisfy the selected contract."""
+
+
+Decoded = TypeVar("Decoded")
 
 
 class BridgeClient:
@@ -19,16 +27,40 @@ class BridgeClient:
         self.timeout = timeout
 
     def get_game(self) -> GameState:
-        return GameState.from_dict(self._get("game"))
+        return self._decode("game", GameState.from_dict)
 
     def get_health(self) -> SourceHealth:
-        return SourceHealth.from_dict(self._get("health", accept_error=True))
+        return self._decode(
+            "health",
+            SourceHealth.from_dict,
+            accept_error=True,
+        )
 
     def get_squad(self) -> Squad:
-        return Squad.from_dict(self._get("squad"))
+        return self._decode("squad", Squad.from_dict)
+
+    def _decode(
+        self,
+        resource: str,
+        decoder: Callable[[dict[str, Any]], Decoded],
+        *,
+        accept_error: bool = False,
+    ) -> Decoded:
+        payload = self._get(resource, accept_error=accept_error)
+        try:
+            return decoder(payload)
+        except KeyError as exc:
+            field = exc.args[0] if exc.args else "unknown"
+            raise BridgeContractError(
+                f"invalid v1 {resource} response: missing required field {field!r}"
+            ) from exc
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise BridgeContractError(
+                f"invalid v1 {resource} response: {exc}"
+            ) from exc
 
     def _get(self, path: str, *, accept_error: bool = False) -> dict[str, Any]:
-        url = urljoin(self.base_url, path)
+        url = urljoin(self.base_url, versioned_path(path))
         try:
             with urlopen(url, timeout=self.timeout) as response:  # noqa: S310
                 payload = json.load(response)

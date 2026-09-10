@@ -24,14 +24,35 @@ class AttributeObservation:
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> AttributeObservation:
+        raw = _mapping(raw, "attribute observation")
+        visibility = Visibility(_required_string(raw, "visibility"))
+        if visibility is Visibility.KNOWN:
+            if "minimum" in raw or "maximum" in raw:
+                raise ValueError("known attributes forbid minimum and maximum")
+            value = _required_int(raw, "value")
+            return cls(visibility=visibility, value=value)
+        if visibility is Visibility.RANGE:
+            if "value" in raw:
+                raise ValueError("range attributes forbid value")
+            return cls(
+                visibility=visibility,
+                minimum=_required_int(raw, "minimum"),
+                maximum=_required_int(raw, "maximum"),
+            )
+        if any(name in raw for name in ("value", "minimum", "maximum")):
+            raise ValueError("unknown attributes forbid numeric fields")
         return cls(
-            visibility=Visibility(raw["visibility"]),
-            value=raw.get("value"),
-            minimum=raw.get("minimum"),
-            maximum=raw.get("maximum"),
+            visibility=visibility,
         )
 
     def _validate(self) -> None:
+        for name, value in (
+            ("value", self.value),
+            ("minimum", self.minimum),
+            ("maximum", self.maximum),
+        ):
+            if value is not None and not _is_int(value):
+                raise TypeError(f"attribute {name} must be an integer")
         if self.visibility is Visibility.KNOWN:
             if self.value is None or self.minimum is not None or self.maximum is not None:
                 raise ValueError("known attributes require only an exact value")
@@ -51,12 +72,15 @@ class AttributeObservation:
         return "?"
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "visibility": self.visibility.value,
-            "value": self.value,
-            "minimum": self.minimum,
-            "maximum": self.maximum,
-        }
+        if self.visibility is Visibility.KNOWN:
+            return {"visibility": self.visibility.value, "value": self.value}
+        if self.visibility is Visibility.RANGE:
+            return {
+                "visibility": self.visibility.value,
+                "minimum": self.minimum,
+                "maximum": self.maximum,
+            }
+        return {"visibility": self.visibility.value}
 
 
 @dataclass(frozen=True)
@@ -66,7 +90,11 @@ class Club:
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> Club:
-        return cls(id=str(raw["id"]), name=str(raw["name"]))
+        raw = _mapping(raw, "club")
+        return cls(
+            id=_required_string(raw, "id"),
+            name=_required_string(raw, "name"),
+        )
 
     def to_dict(self) -> dict[str, str]:
         return {"id": self.id, "name": self.name}
@@ -79,7 +107,11 @@ class Manager:
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> Manager:
-        return cls(id=str(raw["id"]), name=str(raw["name"]))
+        raw = _mapping(raw, "manager")
+        return cls(
+            id=_required_string(raw, "id"),
+            name=_required_string(raw, "name"),
+        )
 
     def to_dict(self) -> dict[str, str]:
         return {"id": self.id, "name": self.name}
@@ -97,10 +129,11 @@ class SourceHealth:
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> SourceHealth:
+        raw = _mapping(raw, "health")
         return cls(
-            status=str(raw["status"]),
-            source=str(raw["source"]),
-            detail=str(raw["detail"]) if raw.get("detail") is not None else None,
+            status=_required_string(raw, "status"),
+            source=_required_string(raw, "source"),
+            detail=_nullable_string(raw, "detail"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -119,13 +152,14 @@ class GameState:
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> GameState:
+        raw = _mapping(raw, "game")
+        manager = _mapping(_required(raw, "humanManager"), "humanManager")
+        controlled_club = _nullable_mapping(raw, "controlledClub")
         return cls(
-            game_date=date.fromisoformat(raw["gameDate"]),
-            human_manager=Manager.from_dict(raw["humanManager"]),
+            game_date=_required_date(raw, "gameDate"),
+            human_manager=Manager.from_dict(manager),
             controlled_club=(
-                Club.from_dict(raw["controlledClub"])
-                if raw.get("controlledClub") is not None
-                else None
+                Club.from_dict(controlled_club) if controlled_club is not None else None
             ),
         )
 
@@ -151,17 +185,17 @@ class PlayerContract:
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> PlayerContract:
+        raw = _mapping(raw, "contract")
+        contracted_club = _nullable_mapping(raw, "contractedClub")
         return cls(
-            contract_type=raw.get("contractType"),
-            start_date=_optional_date(raw.get("startDate")),
-            end_date=_optional_date(raw.get("endDate")),
-            joined_date=_optional_date(raw.get("joinedDate")),
-            squad_status=raw.get("squadStatus"),
-            transfer_status=raw.get("transferStatus"),
+            contract_type=_nullable_string(raw, "contractType"),
+            start_date=_nullable_date(raw, "startDate"),
+            end_date=_nullable_date(raw, "endDate"),
+            joined_date=_nullable_date(raw, "joinedDate"),
+            squad_status=_nullable_string(raw, "squadStatus"),
+            transfer_status=_nullable_string(raw, "transferStatus"),
             contracted_club=(
-                Club.from_dict(raw["contractedClub"])
-                if raw.get("contractedClub") is not None
-                else None
+                Club.from_dict(contracted_club) if contracted_club is not None else None
             ),
         )
 
@@ -200,33 +234,42 @@ class Player:
             ("conditionPercent", self.condition_percent),
             ("matchFitnessPercent", self.match_fitness_percent),
         ):
-            if value is not None and not 0 <= value <= 100:
-                raise ValueError(f"{name} must be between 0 and 100")
-        if self.age is not None and self.age < 0:
-            raise ValueError("age cannot be negative")
+            if value is not None:
+                if not _is_int(value):
+                    raise TypeError(f"{name} must be an integer")
+                if not 0 <= value <= 100:
+                    raise ValueError(f"{name} must be between 0 and 100")
+        if self.age is not None:
+            if not _is_int(self.age):
+                raise TypeError("age must be an integer")
+            if self.age < 0:
+                raise ValueError("age cannot be negative")
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> Player:
+        raw = _mapping(raw, "player")
+        contract = _nullable_mapping(raw, "contract")
+        attributes = _mapping(_required(raw, "attributes"), "attributes")
         return cls(
-            id=str(raw["id"]),
-            name=str(raw["name"]),
-            date_of_birth=_optional_date(raw.get("dateOfBirth")),
-            age=int(raw["age"]) if raw.get("age") is not None else None,
-            positions=tuple(raw["positions"]),
-            club_id=str(raw["clubId"]),
-            condition_percent=_optional_int(raw.get("conditionPercent")),
-            match_fitness_percent=_optional_int(raw.get("matchFitnessPercent")),
-            availability=str(raw.get("availability", "unknown")),
-            injured=raw.get("injured"),
-            suspended=raw.get("suspended"),
+            id=_required_string(raw, "id"),
+            name=_required_string(raw, "name"),
+            date_of_birth=_nullable_date(raw, "dateOfBirth"),
+            age=_nullable_int(raw, "age"),
+            positions=_required_string_array(raw, "positions"),
+            club_id=_required_string(raw, "clubId"),
+            condition_percent=_nullable_int(raw, "conditionPercent"),
+            match_fitness_percent=_nullable_int(raw, "matchFitnessPercent"),
+            availability=_required_string(raw, "availability"),
+            injured=_nullable_bool(raw, "injured"),
+            suspended=_nullable_bool(raw, "suspended"),
             contract=(
-                PlayerContract.from_dict(raw["contract"])
-                if raw.get("contract") is not None
-                else None
+                PlayerContract.from_dict(contract) if contract is not None else None
             ),
             attributes={
-                name: AttributeObservation.from_dict(value)
-                for name, value in raw.get("attributes", {}).items()
+                _string(name, "attribute name"): AttributeObservation.from_dict(
+                    _mapping(value, f"attribute {name!r}")
+                )
+                for name, value in attributes.items()
             },
         )
 
@@ -259,10 +302,15 @@ class Squad:
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> Squad:
+        raw = _mapping(raw, "squad")
+        club = _nullable_mapping(raw, "club")
+        players = _required_list(raw, "players")
         return cls(
-            club=Club.from_dict(raw["club"]) if raw.get("club") is not None else None,
-            as_of_date=date.fromisoformat(raw["asOfDate"]),
-            players=tuple(Player.from_dict(player) for player in raw["players"]),
+            club=Club.from_dict(club) if club is not None else None,
+            as_of_date=_required_date(raw, "asOfDate"),
+            players=tuple(
+                Player.from_dict(_mapping(player, "players item")) for player in players
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -277,9 +325,96 @@ def _date_text(value: date | None) -> str | None:
     return value.isoformat() if value is not None else None
 
 
-def _optional_date(value: object) -> date | None:
-    return date.fromisoformat(str(value)) if value is not None else None
+def _required(raw: Mapping[str, Any], name: str) -> Any:
+    if name not in raw:
+        raise KeyError(name)
+    return raw[name]
 
 
-def _optional_int(value: object) -> int | None:
-    return int(value) if value is not None else None
+def _mapping(value: object, name: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise TypeError(f"{name} must be an object")
+    return value
+
+
+def _string(value: object, name: str) -> str:
+    if not isinstance(value, str):
+        raise TypeError(f"{name} must be a string")
+    return value
+
+
+def _required_string(raw: Mapping[str, Any], name: str) -> str:
+    return _string(_required(raw, name), name)
+
+
+def _nullable_string(raw: Mapping[str, Any], name: str) -> str | None:
+    value = _required(raw, name)
+    return None if value is None else _string(value, name)
+
+
+def _required_int(raw: Mapping[str, Any], name: str) -> int:
+    value = _required(raw, name)
+    if not _is_int(value):
+        raise TypeError(f"{name} must be an integer")
+    return value
+
+
+def _nullable_int(raw: Mapping[str, Any], name: str) -> int | None:
+    value = _required(raw, name)
+    if value is None:
+        return None
+    if not _is_int(value):
+        raise TypeError(f"{name} must be an integer or null")
+    return value
+
+
+def _nullable_bool(raw: Mapping[str, Any], name: str) -> bool | None:
+    value = _required(raw, name)
+    if value is not None and not isinstance(value, bool):
+        raise TypeError(f"{name} must be a boolean or null")
+    return value
+
+
+def _required_date(raw: Mapping[str, Any], name: str) -> date:
+    value = _required_string(raw, name)
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an ISO 8601 date") from exc
+
+
+def _nullable_date(raw: Mapping[str, Any], name: str) -> date | None:
+    value = _required(raw, name)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise TypeError(f"{name} must be an ISO 8601 date or null")
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an ISO 8601 date or null") from exc
+
+
+def _nullable_mapping(
+    raw: Mapping[str, Any], name: str
+) -> Mapping[str, Any] | None:
+    value = _required(raw, name)
+    return None if value is None else _mapping(value, name)
+
+
+def _required_list(raw: Mapping[str, Any], name: str) -> list[Any]:
+    value = _required(raw, name)
+    if not isinstance(value, list):
+        raise TypeError(f"{name} must be an array")
+    return value
+
+
+def _required_string_array(raw: Mapping[str, Any], name: str) -> tuple[str, ...]:
+    values = _required_list(raw, name)
+    if not values:
+        raise ValueError(f"{name} must not be empty")
+    return tuple(_string(value, f"{name} item") for value in values)
+
+
+def _is_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)

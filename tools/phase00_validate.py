@@ -12,7 +12,6 @@ from typing import Any, Mapping, Sequence
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
-
 class ValidationError(RuntimeError):
     """An observation could not be captured or did not meet expectations."""
 
@@ -42,11 +41,11 @@ def read_json(
 
 
 def capture(base_url: str) -> dict[str, Any]:
-    health = read_json(base_url, "health", accept_http_error=True)
+    health = read_json(base_url, "v1/health", accept_http_error=True)
     if health.get("status") != "ready":
         raise ValidationError(str(health.get("detail") or health.get("status")))
-    game = read_json(base_url, "game")
-    squad = read_json(base_url, "squad")
+    game = read_json(base_url, "v1/game")
+    squad = read_json(base_url, "v1/squad")
     players = squad.get("players")
     if not isinstance(players, list):
         raise ValidationError("squad response omitted players")

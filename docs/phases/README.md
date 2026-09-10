@@ -15,7 +15,7 @@ are hypotheses, not promises about implementation.
 | Phase | Outcome | Status | Detail | Depends on |
 | --- | --- | --- | --- | --- |
 | [00 — Data access](00-data-access/README.md) | Prove safe, repeatable access to a running FM20 save | Complete | Proven on Linux/Proton; mutation soak deferred | Existing fixture prototype |
-| [01 — Extraction API](01-extraction-api/README.md) | Supply stable, observable inputs for the MVP | Next | Execution-ready | 00 |
+| [01 — Extraction API](01-extraction-api/README.md) | Supply stable, observable inputs for the MVP | In progress | Execution-ready | 00 |
 | [02 — Persistence](02-persistence/README.md) | Retain the observations and provenance needed to reproduce decisions | Planned | Detailed | 01 |
 | [03 — Information visibility](03-information-visibility/README.md) | Enforce field knowledge and the discoverable-player boundary | Planned | Detailed | 00–02 |
 | [04 — Squad model](04-squad-analytics/README.md) | Explain role suitability, baseline-tactic fit, depth, and weaknesses | Planned | MVP-defined | 02–03 |

@@ -1,4 +1,38 @@
 {
+  "contractVersion": "1",
+  "health": {
+    "status": "ready",
+    "source": "fixture",
+    "detail": null
+  },
+  "errors": {
+    "healthUnavailable": {
+      "status": "save_not_loaded",
+      "source": "linux-proton",
+      "detail": "No save is loaded."
+    },
+    "notFound": {
+      "status": "not_found",
+      "error": "No contract resource exists at '/v1/unknown'."
+    },
+    "unsupportedContractVersion": {
+      "status": "unsupported_contract_version",
+      "error": "Contract version '2' is not supported; use version '1'."
+    }
+  },
+  "breakingExamples": {
+    "gameDateRenamed": {
+      "currentDate": "2020-08-14",
+      "humanManager": {
+        "id": "manager-1",
+        "name": "Alex Example"
+      },
+      "controlledClub": {
+        "id": "club-100",
+        "name": "North London FC"
+      }
+    }
+  },
   "game": {
     "gameDate": "2020-08-14",
     "humanManager": {
