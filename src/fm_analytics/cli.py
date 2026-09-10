@@ -15,12 +15,12 @@ def build_parser() -> argparse.ArgumentParser:
     source.add_argument(
         "--base-url",
         default="http://localhost:5072",
-        help="FMBridge base URL (default: %(default)s)",
+        help="FM bridge base URL (default: %(default)s)",
     )
     source.add_argument(
         "--fixture",
         type=Path,
-        help="read a combined game/squad fixture without running FMBridge",
+        help="read a combined game/squad fixture without running the bridge",
     )
     return parser
 

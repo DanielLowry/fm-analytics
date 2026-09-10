@@ -147,7 +147,7 @@ async function refresh() {
     put('club', manager?.club?.name || 'Not resolved');
     put('club-id', manager?.club ? `ID ${manager.club.id}` : '');
     put('process', latest.pid ? `PID ${latest.pid}` : latest.source);
-    put('version', latest.expected_product_version || 'FMBridge');
+    put('version', latest.expected_product_version || 'Python bridge');
     put('captured', new Date(latest.observed_at).toLocaleString());
     put('error', '');
     renderSquad(latest.first_team_squad ?? [], manager?.club?.id);
@@ -233,7 +233,7 @@ class BridgeStatusCache:
             }
             self._document = {
                 "status": "live",
-                "source": health.get("source", "FMBridge"),
+                "source": health.get("source", "Python bridge"),
                 "observed_at": datetime.now(timezone.utc).isoformat(),
                 "game_date": game["game_date"],
                 "human_managers": [manager],
@@ -249,17 +249,17 @@ class BridgeStatusCache:
                 payload = json.load(response)
         except HTTPError as exc:
             if not accept_error:
-                raise MonitorSourceError(f"FMBridge returned HTTP {exc.code}") from exc
+                raise MonitorSourceError(f"FM bridge returned HTTP {exc.code}") from exc
             try:
                 payload = json.load(exc)
             except json.JSONDecodeError as decode_error:
                 raise MonitorSourceError(
-                    f"FMBridge returned HTTP {exc.code}"
+                    f"FM bridge returned HTTP {exc.code}"
                 ) from decode_error
         except (URLError, TimeoutError, json.JSONDecodeError) as exc:
-            raise MonitorSourceError(f"could not reach FMBridge at {url}: {exc}") from exc
+            raise MonitorSourceError(f"could not reach FM bridge at {url}: {exc}") from exc
         if not isinstance(payload, dict):
-            raise MonitorSourceError(f"FMBridge returned a non-object from {url}")
+            raise MonitorSourceError(f"FM bridge returned a non-object from {url}")
         return payload
 
 
@@ -377,12 +377,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--bridge-url",
         default="http://127.0.0.1:5072",
-        help="FMBridge URL (default: %(default)s)",
+        help="FM bridge URL (default: %(default)s)",
     )
     parser.add_argument(
         "--direct",
         action="store_true",
-        help="use the diagnostic memory probe directly instead of FMBridge",
+        help="use the diagnostic memory probe directly instead of the Python bridge",
     )
     return parser
 

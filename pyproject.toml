@@ -12,7 +12,10 @@ dependencies = []
 
 [project.scripts]
 fm-analytics = "fm_analytics.cli:main"
+fm-bridge = "fm_analytics.bridge.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fm_analytics"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"src/fm_analytics/fixtures/sample-game.json" = "fm_analytics/fixtures/sample-game.json"

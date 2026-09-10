@@ -11,16 +11,16 @@ The repository now contains a live Phase 00 vertical slice for the proven
 Linux/Proton environment, plus a deterministic fixture path:
 
 ```text
-FM20 -> read-only Linux probe -> FMBridge HTTP API -> Python client/monitor
-fixture -------------------------> FMBridge HTTP API -> Python client
+FM20 -> read-only Linux probe -> Python bridge HTTP API -> Python client/monitor
+fixture -----------------------> Python bridge HTTP API -> Python client
 ```
 
 ## Repository layout
 
 ```text
-src/FMBridge/       Small ASP.NET bridge and data-source boundary
-src/fm_analytics/   Python client, domain objects, and CLI
-tests/              Python contract/client tests
+src/fm_analytics/   Python bridge, client, domain objects, and CLI
+tools/              Low-level FM20 probe and monitor utilities
+tests/              Python contract, source, and client tests
 docs/               Architecture and delivery notes
 ```
 
@@ -29,18 +29,18 @@ docs/               Architecture and delivery notes
 No third-party Python packages are required.
 
 ```bash
-uv run fm-analytics --fixture src/FMBridge/fixtures/sample-game.json
+uv run fm-analytics --fixture src/fm_analytics/fixtures/sample-game.json
 uv run python -m unittest discover -s tests -v
 ```
 
-CI runs the tests and builds the Python package on Python 3.11 and 3.14. It also
-restores and builds FMBridge with the .NET 8 SDK. Live Proton/FM20 probes are
-deliberately excluded because hosted runners do not have the game process.
+CI runs the tests, builds the Python package, and smoke-tests the fixture bridge
+on Python 3.11 and 3.14. Live Proton/FM20 probes are deliberately excluded
+because hosted runners do not have the game process.
 
-To exercise the full HTTP path, install the .NET 8 SDK and use two terminals:
+To exercise the full HTTP path, use two terminals:
 
 ```bash
-dotnet run --project src/FMBridge
+uv run fm-bridge
 uv run fm-analytics --base-url http://localhost:5072
 ```
 
@@ -52,7 +52,7 @@ The live adapter is proven against FM20 Steam build `20.4.4-1442341` running
 through Proton on x86-64 Linux. Start FM20, load the save, then run:
 
 ```bash
-FM_BRIDGE_SOURCE=linux-proton dotnet run --project src/FMBridge
+FM_BRIDGE_SOURCE=linux-proton uv run fm-bridge
 ```
 
 In another terminal, either print the current squad or start the monitor:
@@ -77,8 +77,8 @@ For a save reload that should not change either value, use
 `--expect-date-stable --expect-squad-stable` instead.
 
 `tools/fm20_linux_probe.py` remains available with `--json` as a direct
-diagnostic. The monitor can also use it via `--direct`, but FMBridge is the
-normal application boundary. All process memory access is opened read-only.
+diagnostic. The monitor can also use it via `--direct`, but the Python bridge is
+the normal application boundary. All process memory access is opened read-only.
 The live contract deliberately omits hidden Current Ability, Potential
 Ability, raw fitness precision, and any field whose manager-visible meaning has
 not been established.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture and compare compact Phase 00 observations from FMBridge."""
+"""Capture and compare compact Phase 00 observations from the Python bridge."""
 
 from __future__ import annotations
 

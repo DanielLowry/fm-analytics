@@ -7,16 +7,16 @@ Football Manager 2020 via Proton       sample-game.json
                 |                           |
   read-only Linux process probe        fixture source
                 \                           /
-                    IFmDataSource
+                    FmDataSource
                           |
-                   FMBridge (C#)
+                   Python bridge
                           |
            manager-visible JSON over HTTP
                      /          \
           Python BridgeClient   local monitor
 ```
 
-`FMBridge` is an anti-corruption layer. It knows how to read FM data, but it
+The Python bridge is an anti-corruption layer. It knows how to read FM data, but it
 does not rank players or make football decisions. The Python application does
 not know about memory addresses or third-party extraction-library types.
 
@@ -49,7 +49,7 @@ Keeping hidden values out of the DTOs makes accidental leakage harder.
 
 ## Data-source seam
 
-`IFmDataSource` has fixture and `linux-proton` implementations. The live
+`FmDataSource` has fixture and `linux-proton` implementations. The live
 implementation runs the narrow probe with a ten-second bound, validates its
 projection, caches successful observations for one second, and converts source
 failures into structured health states. Probe implementation details do not

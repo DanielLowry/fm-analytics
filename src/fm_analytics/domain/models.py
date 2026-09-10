@@ -50,6 +50,14 @@ class AttributeObservation:
             return f"{self.minimum}-{self.maximum}"
         return "?"
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "visibility": self.visibility.value,
+            "value": self.value,
+            "minimum": self.minimum,
+            "maximum": self.maximum,
+        }
+
 
 @dataclass(frozen=True)
 class Club:
@@ -60,6 +68,9 @@ class Club:
     def from_dict(cls, raw: Mapping[str, Any]) -> Club:
         return cls(id=str(raw["id"]), name=str(raw["name"]))
 
+    def to_dict(self) -> dict[str, str]:
+        return {"id": self.id, "name": self.name}
+
 
 @dataclass(frozen=True)
 class Manager:
@@ -69,6 +80,9 @@ class Manager:
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> Manager:
         return cls(id=str(raw["id"]), name=str(raw["name"]))
+
+    def to_dict(self) -> dict[str, str]:
+        return {"id": self.id, "name": self.name}
 
 
 @dataclass(frozen=True)
@@ -89,6 +103,13 @@ class SourceHealth:
             detail=str(raw["detail"]) if raw.get("detail") is not None else None,
         )
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "source": self.source,
+            "detail": self.detail,
+        }
+
 
 @dataclass(frozen=True)
 class GameState:
@@ -107,6 +128,15 @@ class GameState:
                 else None
             ),
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "gameDate": self.game_date.isoformat(),
+            "humanManager": self.human_manager.to_dict(),
+            "controlledClub": (
+                self.controlled_club.to_dict() if self.controlled_club else None
+            ),
+        }
 
 
 @dataclass(frozen=True)
@@ -134,6 +164,19 @@ class PlayerContract:
                 else None
             ),
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "contractType": self.contract_type,
+            "startDate": _date_text(self.start_date),
+            "endDate": _date_text(self.end_date),
+            "joinedDate": _date_text(self.joined_date),
+            "squadStatus": self.squad_status,
+            "transferStatus": self.transfer_status,
+            "contractedClub": (
+                self.contracted_club.to_dict() if self.contracted_club else None
+            ),
+        }
 
 
 @dataclass(frozen=True)
@@ -187,6 +230,26 @@ class Player:
             },
         )
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "dateOfBirth": _date_text(self.date_of_birth),
+            "age": self.age,
+            "positions": list(self.positions),
+            "clubId": self.club_id,
+            "conditionPercent": self.condition_percent,
+            "matchFitnessPercent": self.match_fitness_percent,
+            "availability": self.availability,
+            "injured": self.injured,
+            "suspended": self.suspended,
+            "contract": self.contract.to_dict() if self.contract else None,
+            "attributes": {
+                name: observation.to_dict()
+                for name, observation in self.attributes.items()
+            },
+        }
+
 
 @dataclass(frozen=True)
 class Squad:
@@ -201,6 +264,17 @@ class Squad:
             as_of_date=date.fromisoformat(raw["asOfDate"]),
             players=tuple(Player.from_dict(player) for player in raw["players"]),
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "club": self.club.to_dict() if self.club else None,
+            "asOfDate": self.as_of_date.isoformat(),
+            "players": [player.to_dict() for player in self.players],
+        }
+
+
+def _date_text(value: date | None) -> str | None:
+    return value.isoformat() if value is not None else None
 
 
 def _optional_date(value: object) -> date | None:

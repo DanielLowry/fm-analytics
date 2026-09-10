@@ -47,23 +47,9 @@ jobs:
       - name: Build Python package
         run: uv build --no-sources
 
-  dotnet:
-    name: FMBridge (.NET 8)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Restore FMBridge
-        run: dotnet restore src/FMBridge/FMBridge.csproj
-
-      - name: Build FMBridge
-        run: dotnet build src/FMBridge/FMBridge.csproj --configuration Release --no-restore
-
+      - name: Run bridge fixture smoke test
+        run: |
+          uv run --no-sync fm-bridge --host 127.0.0.1 --port 5072 &
+          bridge_pid=$!
+          trap 'kill "$bridge_pid"' EXIT
+          uv run --no-sync python -c "from fm_analytics.api import BridgeClient; assert BridgeClient('http://127.0.0.1:5072').get_health().is_ready"
