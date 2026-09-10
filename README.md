@@ -15,6 +15,13 @@ FM20 -> read-only Linux probe -> Python bridge HTTP API -> Python client/monitor
 fixture -----------------------> Python bridge HTTP API -> Python client
 ```
 
+The current delivery target is an
+[early-game decision-support MVP](docs/mvp.md): compare a small set of baseline
+tactics and valid XIs for the current squad, explain weaknesses, and shortlist
+only manager-discoverable recruitment candidates while preserving exact,
+ranged, unknown, and stale knowledge. Opposition-specific tactical changes are
+deliberately later work.
+
 ## Repository layout
 
 ```text
@@ -90,6 +97,10 @@ The public contract exposes manager-visible attribute observations as one of:
 - a known exact value;
 - a scouted minimum/maximum range; or
 - unknown.
+
+Before recruitment is added, the same boundary will also determine which
+players are legitimately discoverable by the human manager. Reachability in
+FM's internal player database will not be treated as visibility.
 
 Hidden FM values should never cross the HTTP boundary. See
 [the architecture notes](docs/architecture.md) for the design and the next

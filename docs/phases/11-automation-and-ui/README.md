@@ -49,6 +49,10 @@ Provide a CLI or generated local report for today's decisions, next match,
 squad alerts, scouting actions, and recruitment briefs. Establish information
 hierarchy and feedback capture before building a rich UI.
 
+The early-game MVP should add its first usable generated report while Phases
+04–06 are delivered; this subphase later unifies and automates that proven
+workflow rather than delaying all presentation until Phase 11.
+
 ### 11.5 — Local dashboard
 
 If recurring use justifies it, add a browser UI over Python application APIs.

@@ -2,9 +2,9 @@
 
 ## Outcome
 
-Persist reproducible observations from FMBridge in a local SQLite database so
-the system can compare game state over time without confusing observations with
-current truth.
+Persist the smallest reproducible set of observations from FMBridge in a local
+SQLite database so an MVP recommendation can be recreated without confusing
+observations with current truth.
 
 ## Prerequisites
 
@@ -29,6 +29,8 @@ current truth.
   capture event.
 - Attribute visibility and ranges survive a round trip unchanged.
 - Every snapshot records source/contract version and capture provenance.
+- Squad analytics can load one coherent input capture without depending on the
+  live game still being in the same state.
 - Schema creation, upgrade, backup, and restore have automated tests or a
   documented repeatable check.
 - The database contains no field that the public bridge contract forbids.
@@ -38,5 +40,5 @@ current truth.
 - A warehouse optimized for ML
 - Cloud or multi-user database operation
 - Deriving conclusions during ingestion
+- Broad match-history or warehouse design not required by the MVP
 - Treating repeated polling as match-event capture
-

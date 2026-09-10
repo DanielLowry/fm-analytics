@@ -1,6 +1,7 @@
 # Delivery roadmap
 
-This directory turns the vision in `initial_plan.md` into gated increments.
+This directory turns the vision in `initial_plan.md` and the
+[early-game MVP](../mvp.md) into gated increments.
 Each phase has a useful outcome of its own; later work should not begin merely
 because code for the previous phase exists. Its exit criteria must be met and
 the important findings recorded.
@@ -14,15 +15,15 @@ are hypotheses, not promises about implementation.
 | Phase | Outcome | Status | Detail | Depends on |
 | --- | --- | --- | --- | --- |
 | [00 — Data access](00-data-access/README.md) | Prove safe, repeatable access to a running FM20 save | Complete | Proven on Linux/Proton; mutation soak deferred | Existing fixture prototype |
-| [01 — Extraction API](01-extraction-api/README.md) | Turn the spike into a stable, observable bridge | Planned | Execution-ready | 00 |
-| [02 — Persistence](02-persistence/README.md) | Retain immutable, reproducible snapshots | Planned | Detailed | 01 |
-| [03 — Information visibility](03-information-visibility/README.md) | Enforce what the human manager legitimately knows | Planned | Detailed | 00–02 |
-| [04 — Squad analytics](04-squad-analytics/README.md) | Explain player suitability and squad depth | Planned | Provisional | 02–03 |
-| [05 — XI optimisation](05-xi-optimisation/README.md) | Recommend valid, explainable lineups | Planned | Provisional | 04 |
-| [06 — Recruitment](06-recruitment/README.md) | Rank squad improvements under uncertainty and cost | Planned | Provisional | 03–05 |
+| [01 — Extraction API](01-extraction-api/README.md) | Supply stable, observable inputs for the MVP | Next | Execution-ready | 00 |
+| [02 — Persistence](02-persistence/README.md) | Retain the observations and provenance needed to reproduce decisions | Planned | Detailed | 01 |
+| [03 — Information visibility](03-information-visibility/README.md) | Enforce field knowledge and the discoverable-player boundary | Planned | Detailed | 00–02 |
+| [04 — Squad model](04-squad-analytics/README.md) | Explain role suitability, baseline-tactic fit, depth, and weaknesses | Planned | MVP-defined | 02–03 |
+| [05 — Tactic and XI selection](05-xi-optimisation/README.md) | Recommend a valid baseline tactic and lineup jointly | Planned | MVP-defined | 04 |
+| [06 — Recruitment](06-recruitment/README.md) | Convert weaknesses into uncertainty-aware visible-player shortlists | Planned | MVP-defined | 03–05 |
 | [07 — Match database](07-match-database/README.md) | Build a trustworthy history of matches and decisions | Planned | Provisional | 01–03 |
 | [08 — Opposition analysis](08-opposition-analysis/README.md) | Produce evidence-backed pre-match reports | Planned | Outline | 07 |
-| [09 — Tactical recommendations](09-tactical-recommendations/README.md) | Recommend matchup-specific tactical choices | Planned | Outline | 05, 07–08 |
+| [09 — Opposition-specific tactics](09-tactical-recommendations/README.md) | Adjust the baseline tactic for a particular matchup | Planned | Outline | 05, 07–08 |
 | [10 — Machine learning](10-machine-learning/README.md) | Learn calibrated models only where they beat baselines | Planned | Outline | 04, 06–09 |
 | [11 — Automation and UI](11-automation-and-ui/README.md) | Deliver timely decisions in the normal play loop | Planned | Outline | Capabilities from earlier phases |
 
@@ -30,6 +31,26 @@ The numeric order expresses the default delivery sequence, not a ban on small
 research spikes. For example, match-data reconnaissance can happen before the
 recruitment feature is complete. A spike must not quietly introduce a hard
 dependency on an unfinished later phase.
+
+## MVP cut line
+
+The first product milestone spans Phases 01–06. It is complete when the system
+can use a live, reproducible, manager-visible capture to:
+
+1. compare a small catalogue of baseline tactics;
+2. recommend a legal XI and substitutes for the best-fitting tactic;
+3. explain first-choice, depth, simultaneous-coverage, and temporary
+   availability weaknesses; and
+4. turn a weakness into a shortlist of legitimately discoverable players with
+   uncertainty bounds and targeted further-scouting advice.
+
+This changes the earlier interpretation of tactics. Baseline, squad-fit tactic
+selection is part of Phases 04–05. Phase 09 is reserved for evidence-backed
+opposition-specific adjustments.
+
+The MVP is intentionally narrow. It does not require every FM20 role, automatic
+in-game actions, opponent tailoring, machine learning, a rich dashboard, or a
+universal transfer-value score.
 
 ## Common phase structure
 

@@ -74,13 +74,62 @@ wire representation. Callers therefore receive `GameState`, `Player`, and
 The CLI can also consume the fixture directly. That mode is useful for Python
 development; it is not intended to become a second production extraction path.
 
+## MVP decision path
+
+The first useful product is defined in the [early-game MVP](mvp.md). Its Python
+side keeps observations, football definitions, optimisation, and reporting
+separate:
+
+```text
+FMBridge observations
+        |
+        v
+snapshot + visibility provenance
+        |
+        v
+role and baseline-tactic catalogue
+        |
+        v
+joint tactic/XI evaluation
+        |
+        +-------------------+
+        |                   |
+        v                   v
+team recommendation   weakness model
+                            |
+                            v
+                     recruitment brief
+                            |
+                            v
+              discoverable-player shortlist
+```
+
+Baseline tactical definitions are versioned Python configuration. FMBridge
+exposes facts, not role weights, tactical judgments, or candidate rankings.
+
+External-player access has two gates. First, the player must belong to a
+verified manager-discoverable collection; the existence of an internal player
+object is insufficient. Second, every returned field must carry its approved
+knowledge semantics. Direct lookup must not permit hidden-player ID probing.
+
+Analytics does not implicitly turn a ranged or unknown observation into a
+number. Suitability results retain lower/central/upper estimates, the policy
+used for a central estimate, and the source observations. Readiness inputs such
+as condition and match sharpness remain separate from intrinsic role quality.
+
 ## Near-term sequence
 
-1. Stabilise and version the Phase 01 extraction contract.
-2. Add source lifecycle telemetry and contract-level bridge tests.
-3. Run the deferred live advancement and membership-change soak check.
-4. Investigate manager-visible player attributes without reading hidden truth.
-5. Only then add SQLite snapshots and role-scoring analytics.
+1. Stabilise and version the Phase 01 contract around the squad observations
+   required by the MVP.
+2. Add source lifecycle telemetry and contract-level bridge tests, including the
+   deferred live advancement and membership-change soak check.
+3. Add the narrow SQLite capture path needed to reproduce a recommendation.
+4. Prove both field knowledge and the discoverable-player collection against
+   controlled FM20 UI cases without reading hidden truth into production DTOs.
+5. Define the first role and baseline-tactic catalogue from the real squad data.
+6. Implement deterministic role/depth reporting, then joint tactic/XI selection.
+7. Convert weaknesses into recruitment briefs and rank visible candidates with
+   uncertainty bounds and targeted further-scouting guidance.
 
 The delivery gates and open questions live in the
 [phase roadmap](phases/README.md), beginning with

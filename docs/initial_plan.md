@@ -2,7 +2,8 @@
 
 > This is the original vision document. The maintained delivery breakdown is
 > in the [phase roadmap](phases/README.md); the roadmap may refine ordering and
-> scope as evidence is gathered.
+> scope as evidence is gathered. The current first-product definition is the
+> [early-game decision-support MVP](mvp.md).
 
 ## Background
 
@@ -87,6 +88,25 @@ Python Analytics Application
 The important distinction is that the C# component should be extremely small.
 
 Its job is **data extraction, not analytics**.
+
+## Current early-game MVP
+
+Phase 0 has proved live read-only access. The first useful product now targets
+the decisions that arise immediately after starting a save:
+
+1. compare a small set of opponent-neutral tactical templates against the
+   current available squad;
+2. recommend a valid starting XI and substitutes jointly with the best-fitting
+   template;
+3. explain weak starters, poor depth, simultaneous-coverage conflicts, and
+   temporary availability gaps; and
+4. turn structural weaknesses into recruitment briefs and uncertainty-aware
+   shortlists drawn only from players the manager can legitimately discover.
+
+Visibility applies both to whether a player can enter the candidate universe
+and to whether each field is exact, ranged, unknown, unavailable, or stale.
+Opposition-specific tactical adjustments, automation, and learned models remain
+later extensions.
 
 ---
 
@@ -338,9 +358,9 @@ Ideally the Python application should never even receive hidden values.
 
 ---
 
-# Phase 4 — Squad Analytics
+# Phase 4 — Squad Model and Baseline Tactics
 
-Build the first genuinely useful decision engine.
+Build the first genuinely useful football model.
 
 Initially use transparent deterministic models rather than ML.
 
@@ -377,18 +397,23 @@ Best Goalkeepers
 3. Player C       69.8
 ```
 
-This immediately becomes useful for:
+Add a small versioned catalogue of complete baseline tactical templates—three
+to five formations with coherent roles, duties, mentality, and a limited set of
+instructions. This immediately becomes useful for:
 
 * Player comparison
 * Squad depth
 * Starting XI selection
 * Identifying weak positions
+* Comparing how well the squad supports different tactical shapes
+* Distinguishing weak starters, poor depth and simultaneous-coverage problems
 
 ---
 
-# Phase 5 — Starting XI Optimisation
+# Phase 5 — Joint Tactic and Starting XI Optimisation
 
-Move from individual player rankings to optimisation.
+Move from individual player rankings to jointly evaluating each supported
+baseline tactic and its best valid player assignment.
 
 Example objective:
 
@@ -415,13 +440,19 @@ Eventually additional constraints could include:
 * Home/away
 * Opposition strength
 
+The MVP keeps the tactic opponent-neutral and returns the chosen template,
+starting XI, substitutes, binding constraints, and close alternatives. Current
+condition and match sharpness affect readiness but remain separate from a
+player's intrinsic role suitability.
+
 This could naturally become an optimisation problem using something such as OR-Tools.
 
 ---
 
-# Phase 6 — Recruitment
+# Phase 6 — Recruitment and Further Scouting
 
-Build a recruitment model using only known/scouted information.
+Build a recruitment model using only legitimately discoverable players and
+manager-visible fields.
 
 Questions:
 
@@ -451,6 +482,19 @@ Player C               81       £3m      94
 ```
 
 This could become one of the most interesting parts of the project.
+
+The first recruitment slice should be simpler than the table above. A
+tactic-aware weakness becomes a recruitment brief; every candidate is compared
+with the current squad using lower, central and upper role-fit estimates. The
+system should say `scout more` and name the consequential unknown fields when
+additional knowledge could change the decision. A central estimate must record
+its policy and must not conceal the original ranges or unknowns.
+
+Entity discoverability is separate from attribute visibility. A player being
+reachable in FM's internal database does not make that player a legitimate
+candidate. Candidate collections must match verified in-game player-search or
+manager-knowledge structures and direct lookup must not enable hidden-ID
+probing.
 
 ---
 
@@ -509,9 +553,10 @@ Later it could become statistical.
 
 ---
 
-# Phase 9 — Tactical Recommendation Engine
+# Phase 9 — Opposition-Specific Tactical Recommendation Engine
 
-Instead of hard-coding one "best tactic", estimate which tactic should work against a specific opponent.
+Start from the opponent-neutral baseline tactic and XI selected in Phase 5, then
+estimate which small adjustments should help against a specific opponent.
 
 Inputs might include:
 
@@ -699,9 +744,9 @@ No repeated CSV exports or manual data entry should be required.
 
 ---
 
-# First Milestone
+# Completed Feasibility Milestone and Current Product Milestone
 
-Keep the initial milestone deliberately small:
+The initial feasibility milestone was deliberately small:
 
 > Automatically connect to FM2020 and retrieve the current squad from Python.
 
@@ -722,6 +767,11 @@ print(players)
 Once this works, most of the uncertainty around the project disappears.
 
 Everything after that can be built incrementally.
+
+That milestone is now complete on the supported Linux/Proton FM20 build. The
+current product milestone is the [early-game MVP](mvp.md): a reproducible
+baseline tactic/XI recommendation, squad weakness report, and visible-player
+recruitment shortlist with useful further-scouting guidance.
 
 ---
 
@@ -762,15 +812,15 @@ fm-analytics/
 
 # Immediate Next Steps
 
-1. Create repository.
-2. Obtain/test the FM20 extraction framework.
-3. Create a minimal C# console application.
-4. Attach to a running FM20 save.
-5. Print current game date.
-6. Identify the human-controlled club.
-7. Print the current squad.
-8. Replace console output with a tiny HTTP API.
-9. Write a Python client.
-10. Begin investigating how FM represents scouting visibility.
-
-At that point we will have the foundation on which the actual football analytics system can be built.
+1. Stabilise and version the Phase 01 API contract around the squad inputs the
+   MVP requires.
+2. Complete the deferred live date-advance and squad-membership-change soak
+   checks.
+3. Add narrow snapshot persistence so recommendations are reproducible.
+4. Verify manager-visible attribute states and the discoverable-player universe
+   against controlled FM20 UI cases.
+5. Define the first three to five baseline tactics and their role catalogue from
+   the real squad data.
+6. Build deterministic role, depth, and weakness reports.
+7. Add joint tactic/XI selection and explainable alternatives.
+8. Turn weaknesses into briefs and rank visible candidates under uncertainty.

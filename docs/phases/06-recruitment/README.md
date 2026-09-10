@@ -2,57 +2,76 @@
 
 ## Planning status
 
-Provisional. Recruitment semantics depend heavily on the visibility research,
-transfer-market observations, and actual save data.
+MVP-defined through the first uncertainty-aware shortlist. Rich cost, contract,
+development, and exit planning remain provisional extensions.
 
 ## Outcome
 
-Plan squad change: identify and compare attainable players who improve specific
-weaknesses, decide where more scouting is valuable, and support development,
-contract, retention, and sale decisions. Uncertainty, cost, risk, and
-squad-registration effects remain explicit.
+Turn a tactic-aware squad weakness into a reproducible recruitment brief and
+rank legitimately discoverable players who may improve it. Candidate quality,
+knowledge uncertainty, current-squad comparison, cost, and risk remain separate
+and explainable.
+
+The MVP must identify when further scouting could change the decision. It must
+not imply that a partially known estimate is an exact player rating.
 
 ## Prerequisites
 
-- Phase 03 permits the candidate fields used
-- Phase 04 can measure squad need and role improvement
-- Phase 05 can evaluate how a candidate changes feasible lineups
-- Contract/value/wage observations have understood currency and timing semantics
+- Phase 03 defines and enforces the discoverable-player universe and permissible
+  candidate fields
+- Phase 04 produces tactic-aware weaknesses and role suitability intervals
+- Phase 05 can evaluate how a candidate could change a valid tactic/XI result
+- Any cost or contract field used has verified visibility, units, currency, and
+  observation-time semantics
 
-## Subphases
+## MVP subphases
 
-### 06.1 — Need definition
+### 06.1 — Recruitment brief
 
-Turn squad-depth weaknesses, age profile, expected departures, tactical plans,
-and registration constraints into explicit recruitment briefs. A brief should
-state the role, horizon, minimum improvement, budget, and risk tolerance.
+Turn first-choice quality, depth, simultaneous-coverage, and temporary-gap
+findings into explicit briefs. A brief records the tactic/template, role,
+horizon, current benchmark, minimum useful improvement, applicable constraints,
+and risk tolerance. Temporary availability alone should not automatically
+become a permanent recruitment need.
 
 ### 06.2 — Candidate universe
 
-Build candidates only from players the manager can legitimately discover or
-has scouted. Track why each candidate is present and avoid querying all hidden
-database players merely because the memory framework can see them.
+Read candidates only from the Phase 03 manager-discoverable collection. Track
+why and when each candidate was included, use bounded pagination and coherent
+captures, and prevent arbitrary lookup of hidden database players.
 
-Turn consequential unknowns into scouting priorities, with a reason, target
-information, and deadline rather than an undirected request to scout everyone.
+Candidate generation may apply visible filters for position, age, geography,
+contract, or affordability, but it must retain enough provenance to explain why
+a player was considered or excluded.
 
 ### 06.3 — Quality under uncertainty
 
-Estimate role-fit bounds or distributions from visible observations. Show which
-unknowns dominate the decision and recommend additional scouting where the
-value of information is material.
+Score candidates for the brief with the same versioned role model used for the
+squad. Report lower, central, and upper suitability estimates, the named policy
+behind any central estimate, comparison with the current player/depth threshold,
+and the observations driving the range.
+
+Recommend `scout more` when plausible values for consequential unknowns could
+materially change whether the candidate is an improvement or reorder the
+shortlist. Name the fields that would be most valuable to resolve. Do not direct
+scouting merely because any value is unknown.
+
+The MVP cut line is reached when 06.1–06.3 can produce a useful shortlist from
+a live-derived stored capture.
+
+## Post-MVP subphases
 
 ### 06.4 — Cost and attainability
 
-Normalize fee ranges, wages, bonuses, contract duration, agent costs, loan
-terms, and currency. Separate reported/estimated cost from an actual negotiated
-offer and model affordability over an agreed horizon.
+Normalize visible fee ranges, wages, bonuses, contract duration, agent costs,
+loan terms, and currency. Separate reported or estimated cost from an actual
+negotiated offer and model affordability over an agreed horizon.
 
 ### 06.5 — Risk and future value
 
-Introduce transparent heuristics for age curve, injury record, adaptation,
-playing-time fit, resale horizon, and information uncertainty. Do not infer
-hidden potential ability.
+Introduce transparent heuristics for age curve, visible injury record,
+adaptation, playing-time fit, resale horizon, and information uncertainty. Do
+not infer hidden potential ability.
 
 ### 06.6 — Retention, contracts, and exits
 
@@ -67,25 +86,34 @@ Compare buying with internal development, retraining, promotion, or delaying
 the decision. Use observed development history and planned playing time without
 claiming access to hidden potential ability.
 
-### 06.8 — Shortlist and decision record
+### 06.8 — Decision record
 
-Rank candidates against a recruitment brief, show Pareto trade-offs and
-scenario sensitivity, and record decisions/outcomes for later evaluation.
-Include a “do nothing/develop internally” baseline.
+Show Pareto trade-offs and scenario sensitivity, record decisions/outcomes for
+later evaluation, and include a `do nothing/develop internally` baseline.
 
-## Phase exit criteria
+## MVP exit criteria
 
-- A stored recruitment brief produces a reproducible shortlist.
-- Candidate inclusion is traceable to legitimate manager knowledge.
-- Quality, cost, uncertainty, and risk remain separate before any combined score.
-- Reports expose dominant unknowns and useful next scouting actions.
+- A stored tactic-aware recruitment brief produces a reproducible shortlist.
+- Candidate inclusion is traceable to legitimate manager discoverability.
+- Direct lookup and collection behavior cannot expose an undiscoverable player.
+- Each candidate is compared with the current squad benchmark using role-score
+  bounds; any central estimate names its uncertainty policy.
+- Reports expose dominant unknowns and targeted next scouting actions when
+  resolving them could change the decision.
+- A less-scouted player gains neither an automatic advantage nor an unjustified
+  exact ranking.
+
+## Full-phase exit criteria
+
+- Quality, cost, uncertainty, attainability, and risk remain separate before
+  any combined decision rule.
 - Contract, exit, and internal-development alternatives can be compared with a
   purchase without being forced into one opaque score.
 - Historical recommendations can be compared with later contribution and cost.
 
-## Deferred
+## Deferred beyond this phase
 
-- Automated bids or negotiations
+- Automated scouting assignments, bids, or negotiations
 - Claims about potential based on hidden PA
 - Learned resale/development models before Phase 10
-- A universal scalar “value score” unless its trade-offs are demonstrably useful
+- A universal scalar `value score` unless its trade-offs are demonstrably useful
