@@ -17,12 +17,24 @@ class ValidationError(RuntimeError):
     """An observation could not be captured or did not meet expectations."""
 
 
-def read_json(base_url: str, resource: str) -> dict[str, Any]:
+def read_json(
+    base_url: str,
+    resource: str,
+    *,
+    accept_http_error: bool = False,
+) -> dict[str, Any]:
     url = f"{base_url.rstrip('/')}/{resource}"
     try:
         with urlopen(url, timeout=15) as response:  # noqa: S310
             payload = json.load(response)
-    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
+    except HTTPError as exc:
+        if not accept_http_error:
+            raise ValidationError(f"could not read {url}: {exc}") from exc
+        try:
+            payload = json.load(exc)
+        except (json.JSONDecodeError, UnicodeError) as decode_error:
+            raise ValidationError(f"could not read {url}: {exc}") from decode_error
+    except (URLError, TimeoutError, json.JSONDecodeError) as exc:
         raise ValidationError(f"could not read {url}: {exc}") from exc
     if not isinstance(payload, dict):
         raise ValidationError(f"expected an object from {url}")
@@ -30,7 +42,7 @@ def read_json(base_url: str, resource: str) -> dict[str, Any]:
 
 
 def capture(base_url: str) -> dict[str, Any]:
-    health = read_json(base_url, "health")
+    health = read_json(base_url, "health", accept_http_error=True)
     if health.get("status") != "ready":
         raise ValidationError(str(health.get("detail") or health.get("status")))
     game = read_json(base_url, "game")
@@ -59,6 +71,8 @@ def compare(
     *,
     expect_date_change: bool,
     expect_squad_change: bool,
+    expect_date_stable: bool = False,
+    expect_squad_stable: bool = False,
 ) -> list[str]:
     failures: list[str] = []
     for field in ("managerId", "clubId"):
@@ -68,8 +82,12 @@ def compare(
     squad_changed = before.get("playerIds") != after.get("playerIds")
     if expect_date_change and not date_changed:
         failures.append("gameDate did not change")
+    if expect_date_stable and date_changed:
+        failures.append("gameDate changed")
     if expect_squad_change and not squad_changed:
         failures.append("first-team membership did not change")
+    if expect_squad_stable and squad_changed:
+        failures.append("first-team membership changed")
     return failures
 
 
@@ -81,8 +99,12 @@ def build_parser() -> argparse.ArgumentParser:
     capture_parser.add_argument("output", type=Path)
     compare_parser = subparsers.add_parser("compare")
     compare_parser.add_argument("baseline", type=Path)
-    compare_parser.add_argument("--expect-date-change", action="store_true")
-    compare_parser.add_argument("--expect-squad-change", action="store_true")
+    date_expectation = compare_parser.add_mutually_exclusive_group()
+    date_expectation.add_argument("--expect-date-change", action="store_true")
+    date_expectation.add_argument("--expect-date-stable", action="store_true")
+    squad_expectation = compare_parser.add_mutually_exclusive_group()
+    squad_expectation.add_argument("--expect-squad-change", action="store_true")
+    squad_expectation.add_argument("--expect-squad-stable", action="store_true")
     return parser
 
 
@@ -102,12 +124,23 @@ def main(argv: Sequence[str] | None = None) -> int:
             observation,
             expect_date_change=args.expect_date_change,
             expect_squad_change=args.expect_squad_change,
+            expect_date_stable=args.expect_date_stable,
+            expect_squad_stable=args.expect_squad_stable,
         )
         if failures:
             raise ValidationError("; ".join(failures))
+        checks = ["manager/club stability"]
+        if args.expect_date_change:
+            checks.append("date change")
+        if args.expect_date_stable:
+            checks.append("date stability")
+        if args.expect_squad_change:
+            checks.append("squad change")
+        if args.expect_squad_stable:
+            checks.append("squad stability")
         print(
-            f"Validated manager/club stability with {observation['playerCount']} players "
-            f"on {observation['gameDate']}"
+            f"Validated {', '.join(checks)} with "
+            f"{observation['playerCount']} players on {observation['gameDate']}"
         )
         return 0
     except (OSError, KeyError, TypeError, ValueError, ValidationError) as exc:

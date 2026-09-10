@@ -73,6 +73,9 @@ python3 tools/phase00_validate.py compare data/phase00-baseline.json \
   --expect-date-change --expect-squad-change
 ```
 
+For a save reload that should not change either value, use
+`--expect-date-stable --expect-squad-stable` instead.
+
 `tools/fm20_linux_probe.py` remains available with `--json` as a direct
 diagnostic. The monitor can also use it via `--direct`, but FMBridge is the
 normal application boundary. All process memory access is opened read-only.

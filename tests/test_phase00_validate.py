@@ -1,9 +1,38 @@
 import unittest
+import json
+from io import BytesIO
+from unittest.mock import patch
+from urllib.error import HTTPError
 
-from tools.phase00_validate import compare
+from tools.phase00_validate import ValidationError, capture, compare
 
 
 class Phase00ValidationTests(unittest.TestCase):
+    def test_capture_reports_structured_unavailable_detail(self) -> None:
+        body = BytesIO(
+            json.dumps(
+                {
+                    "status": "game_absent",
+                    "source": "linux-proton",
+                    "detail": "no running FM20 process was found",
+                }
+            ).encode()
+        )
+        error = HTTPError(
+            "http://bridge.test/health",
+            503,
+            "Service Unavailable",
+            {},
+            body,
+        )
+
+        with patch("tools.phase00_validate.urlopen", side_effect=error):
+            with self.assertRaisesRegex(
+                ValidationError,
+                "no running FM20 process was found",
+            ):
+                capture("http://bridge.test")
+
     def test_accepts_stable_identity_and_expected_changes(self) -> None:
         before = {
             "gameDate": "2019-06-24",
@@ -45,6 +74,48 @@ class Phase00ValidationTests(unittest.TestCase):
         self.assertEqual(
             failures,
             ["gameDate did not change", "first-team membership did not change"],
+        )
+
+    def test_accepts_expected_stability(self) -> None:
+        observation = {
+            "gameDate": "2019-06-24",
+            "managerId": "1",
+            "clubId": "2",
+            "playerIds": ["3", "4"],
+        }
+
+        failures = compare(
+            observation,
+            observation,
+            expect_date_change=False,
+            expect_squad_change=False,
+            expect_date_stable=True,
+            expect_squad_stable=True,
+        )
+
+        self.assertEqual(failures, [])
+
+    def test_reports_unexpected_changes(self) -> None:
+        before = {
+            "gameDate": "2019-06-24",
+            "managerId": "1",
+            "clubId": "2",
+            "playerIds": ["3"],
+        }
+        after = {**before, "gameDate": "2019-06-25", "playerIds": ["4"]}
+
+        failures = compare(
+            before,
+            after,
+            expect_date_change=False,
+            expect_squad_change=False,
+            expect_date_stable=True,
+            expect_squad_stable=True,
+        )
+
+        self.assertEqual(
+            failures,
+            ["gameDate changed", "first-team membership changed"],
         )
 
 

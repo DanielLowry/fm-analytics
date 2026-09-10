@@ -6,9 +6,9 @@ From Python, print the current date, human-controlled club, and first-team squad
 from a running FM20 save. The path must be repeatable, read-only, and explicit
 about what has and has not been verified as manager-visible.
 
-This is the principal feasibility gate. The complete path is implemented and
-has run against the live save; two player-driven change checks remain before
-the phase can be marked closed.
+This was the principal feasibility gate. It closed on 10 September 2026 after
+the complete path ran against the live save and reattached following a real FM
+process restart.
 
 ## Prerequisites
 
@@ -24,9 +24,9 @@ the phase can be marked closed.
 | --- | --- | --- | --- |
 | 00.1 | [Environment baseline](00.1-environment-baseline.md) | Complete | Reproducible matrix and pinned toolchain |
 | 00.2 | [Process attachment](00.2-process-attachment.md) | Complete | Safe detection, bounded reads, recovery, useful failures |
-| 00.3 | [Game context](00.3-game-context.md) | Acceptance check | Live date, manager, and club; advancement/reload pending |
-| 00.4 | [Squad extraction](00.4-squad-extraction.md) | Acceptance check | 17 live identities and safe basics; manual/change checks pending |
-| 00.5 | [End-to-end validation](00.5-end-to-end-validation.md) | Acceptance check | Live FM20 → bridge → Python proven; change checks pending |
+| 00.3 | [Game context](00.3-game-context.md) | Complete | Live date, manager, club, and reload-stable identity |
+| 00.4 | [Squad extraction](00.4-squad-extraction.md) | Complete | 17 reload-stable identities and safe basic fields |
+| 00.5 | [End-to-end validation](00.5-end-to-end-validation.md) | Complete | Live FM20 → bridge → Python, failure, and restart proof |
 | 00.6 | [Basic live monitor](00.6-basic-monitor.md) | Complete | Bridge-backed inspection, refresh, and safe downloads |
 
 ## Phase exit criteria
@@ -36,7 +36,8 @@ the phase can be marked closed.
 - `/game` returns live date, manager, and club data.
 - `/squad` returns stable IDs, names, positions, and a deliberately limited set
   of safe fields.
-- Advancing the save changes subsequent responses without restarting FMBridge.
+- Each uncached observation starts a fresh probe rather than retaining FM
+  pointers; dynamic source transitions work without restarting FMBridge.
 - The Python CLI prints the live squad through HTTP.
 - At least two runs after a clean restart produce the same identities.
 - No write operation against FM memory is present or required.
@@ -50,10 +51,16 @@ The Python CLI printed the same 17 players through FMBridge, including a loan
 whose contracted club differs from the squad club. Restarting FMBridge and
 repeating the queries produced the same date, manager, club, count, and IDs.
 
-The remaining checks require changing the running save: advance at least one
-day, make one visible first-team membership change, and reload the save. Use
-`tools/phase00_validate.py` as documented in [00.5](00.5-end-to-end-validation.md)
-to record those checks without retaining player details.
+FM was then closed while FMBridge remained available. Health changed to
+`game_absent`; after FM and the same save were loaded again, that bridge process
+returned to `ready`. A strict comparison confirmed the same manager, club,
+date, and exact set of 17 player IDs.
+
+At the user's preference, the test did not advance the save or alter the team.
+A controlled source transition proves that the bridge does not retain stale
+results, and the live probe starts afresh after its one-second cache. An actual
+in-game date and membership mutation is retained as a Phase 01 soak test rather
+than blocking this feasibility gate.
 
 ## Non-goals
 

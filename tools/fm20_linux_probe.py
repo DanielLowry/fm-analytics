@@ -13,7 +13,7 @@ import json
 import os
 import struct
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Iterable, Sequence
@@ -292,7 +292,7 @@ def read_human_manager_contexts(
         profile.collection_indirection_offset,
     )
     expected_type = module_base + profile.human_manager_type_offset
-    active_manager_id = read_i32(
+    active_object_id = read_i32(
         memory_fd, module_base + profile.active_object_offset
     )
     results: list[_ManagerContext] = []
@@ -309,7 +309,7 @@ def read_human_manager_contexts(
             manager_base = person_address - 0x458
             actual_person = manager_base + 0x480
             manager_id = read_i32(memory_fd, person_address + 0xC)
-            is_active = manager_id == active_manager_id
+            is_active_hint = manager_id == active_object_id
             first_name = read_fm_string(memory_fd, actual_person + 0x30)
             last_name = read_fm_string(memory_fd, actual_person + 0x38)
             name = " ".join(part for part in (first_name, last_name) if part).strip()
@@ -326,7 +326,7 @@ def read_human_manager_contexts(
                 if team:
                     club = read_club_from_team(memory_fd, team)
 
-            if club is None and is_active:
+            if club is None and is_active_hint:
                 club = find_managed_club(
                     memory_fd, module_base, person_address, expected_type
                 )
@@ -335,7 +335,7 @@ def read_human_manager_contexts(
                 id=str(manager_id),
                 name=name,
                 club=club,
-                active=is_active,
+                active=False,
             )
             results.append(_ManagerContext(manager=manager, team_address=team))
         except (OSError, ProbeError):
@@ -343,7 +343,45 @@ def read_human_manager_contexts(
             # manager during a game-state transition.
             continue
 
-    return tuple(sorted(results, key=lambda item: not item.manager.active))
+    active_manager_id = select_active_manager_id(
+        tuple(context.manager for context in results),
+        active_object_id,
+    )
+    selected = tuple(
+        replace(
+            context,
+            manager=replace(
+                context.manager,
+                active=context.manager.id == active_manager_id,
+            ),
+        )
+        for context in results
+    )
+    return tuple(sorted(selected, key=lambda item: not item.manager.active))
+
+
+def select_active_manager_id(
+    managers: Sequence[HumanManagerResult],
+    active_object_id: int,
+) -> str | None:
+    """Select one human manager without treating ActiveObject as authoritative."""
+    active_object_matches = [
+        manager
+        for manager in managers
+        if manager.id == str(active_object_id)
+    ]
+    managed_matches = [manager for manager in active_object_matches if manager.club]
+    if len(managed_matches) == 1:
+        return managed_matches[0].id
+
+    employed_managers = [manager for manager in managers if manager.club]
+    if len(employed_managers) == 1:
+        return employed_managers[0].id
+    if len(active_object_matches) == 1:
+        return active_object_matches[0].id
+    if len(managers) == 1:
+        return managers[0].id
+    return None
 
 
 def read_human_managers(

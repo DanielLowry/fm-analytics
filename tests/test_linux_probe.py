@@ -2,6 +2,8 @@ import unittest
 from datetime import date
 
 from tools.fm20_linux_probe import (
+    ClubResult,
+    HumanManagerResult,
     ProbeError,
     calculate_age,
     decode_fm_date,
@@ -11,11 +13,33 @@ from tools.fm20_linux_probe import (
     read_fm_string,
     read_optional_contract_date,
     read_pointer_collection,
+    select_active_manager_id,
     validate_executable,
 )
 
 
 class LinuxFm20ProbeTests(unittest.TestCase):
+    def test_selects_unique_managed_human_when_active_object_moves(self) -> None:
+        managers = (
+            HumanManagerResult("1", "Placeholder", None, False),
+            HumanManagerResult(
+                "2",
+                "Manager",
+                ClubResult("3", "Club"),
+                False,
+            ),
+        )
+
+        self.assertEqual(select_active_manager_id(managers, 999), "2")
+
+    def test_uses_active_object_to_disambiguate_multiple_managers(self) -> None:
+        managers = (
+            HumanManagerResult("1", "First", ClubResult("3", "Club"), False),
+            HumanManagerResult("2", "Second", ClubResult("4", "Other"), False),
+        )
+
+        self.assertEqual(select_active_manager_id(managers, 2), "2")
+
     def test_parses_proton_module_base(self) -> None:
         mapping = (
             "140000000-140001000 r--p 00000000 103:03 42 "

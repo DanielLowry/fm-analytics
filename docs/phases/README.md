@@ -13,7 +13,7 @@ are hypotheses, not promises about implementation.
 
 | Phase | Outcome | Status | Detail | Depends on |
 | --- | --- | --- | --- | --- |
-| [00 — Data access](00-data-access/README.md) | Prove safe, repeatable access to a running FM20 save | Acceptance check | Implemented; live change checks remain | Existing fixture prototype |
+| [00 — Data access](00-data-access/README.md) | Prove safe, repeatable access to a running FM20 save | Complete | Proven on Linux/Proton; mutation soak deferred | Existing fixture prototype |
 | [01 — Extraction API](01-extraction-api/README.md) | Turn the spike into a stable, observable bridge | Planned | Execution-ready | 00 |
 | [02 — Persistence](02-persistence/README.md) | Retain immutable, reproducible snapshots | Planned | Detailed | 01 |
 | [03 — Information visibility](03-information-visibility/README.md) | Enforce what the human manager legitimately knows | Planned | Detailed | 00–02 |

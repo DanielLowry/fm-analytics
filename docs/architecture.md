@@ -76,9 +76,9 @@ development; it is not intended to become a second production extraction path.
 
 ## Near-term sequence
 
-1. Complete the recorded live date, membership, and save-reload checks.
-2. Stabilise and version the Phase 01 extraction contract.
-3. Add source lifecycle telemetry and contract-level bridge tests.
+1. Stabilise and version the Phase 01 extraction contract.
+2. Add source lifecycle telemetry and contract-level bridge tests.
+3. Run the deferred live advancement and membership-change soak check.
 4. Investigate manager-visible player attributes without reading hidden truth.
 5. Only then add SQLite snapshots and role-scoring analytics.
 
