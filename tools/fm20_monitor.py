@@ -53,6 +53,8 @@ DASHBOARD = """<!doctype html>
     th, td { padding: 11px 8px; border-bottom: 1px solid #264438; text-align: left; }
     th { color: #8eaa9c; font-size: .76rem; text-transform: uppercase; letter-spacing: .08em; }
     td:last-child { color: #bce7cf; }
+    .player-id { color: #668176; font-size: .76rem; margin-top: 3px; }
+    .nowrap { white-space: nowrap; }
     footer { color: #668176; margin-top: 28px; font-size: .82rem; }
     @media (max-width: 620px) { header { align-items: start; flex-direction: column; } .grid { grid-template-columns: 1fr; } }
   </style>
@@ -78,7 +80,8 @@ DASHBOARD = """<!doctype html>
     <article class="card wide">
       <div class="label">First-team squad</div>
       <div id="squad-count" class="value">—</div>
-      <div class="table-wrap"><table><thead><tr><th>Player</th><th>ID</th><th>Positions</th></tr></thead><tbody id="squad"></tbody></table></div>
+      <div class="subtle">Visible basics only; per-player morale is not exposed until its mapping is verified.</div>
+      <div class="table-wrap"><table><thead><tr><th>Player</th><th>Age</th><th>Positions</th><th>Condition</th><th>Match fitness</th><th>Availability</th><th>Contract</th></tr></thead><tbody id="squad"></tbody></table></div>
     </article>
   </section>
   <pre id="json"></pre>
@@ -88,12 +91,38 @@ DASHBOARD = """<!doctype html>
 const byId = id => document.getElementById(id);
 let latest = null;
 function put(id, value) { byId(id).textContent = value ?? '—'; }
-function renderSquad(players) {
+function words(value) {
+  if (!value) return 'Unknown';
+  const text = value.replaceAll('_', ' '); return text[0].toUpperCase() + text.slice(1);
+}
+function contractText(player, clubId) {
+  const contract = player.contract;
+  if (!contract) return 'Not found';
+  if (contract.contracted_club && contract.contracted_club.id !== clubId) {
+    return `Loan from ${contract.contracted_club.name}`;
+  }
+  const end = contract.end_date ? ` · to ${contract.end_date}` : '';
+  return `${words(contract.contract_type)}${end}`;
+}
+function percent(value) { return value == null ? '—' : `${value}%`; }
+function renderSquad(players, clubId) {
   const body = byId('squad'); body.replaceChildren();
   for (const player of players) {
     const row = document.createElement('tr');
-    for (const value of [player.name, player.id, player.positions.join(', ')]) {
-      const cell = document.createElement('td'); cell.textContent = value; row.appendChild(cell);
+    const playerCell = document.createElement('td'); playerCell.textContent = player.name;
+    const id = document.createElement('div'); id.className = 'player-id'; id.textContent = `ID ${player.id}`;
+    playerCell.appendChild(id); row.appendChild(playerCell);
+    const values = [
+      player.age ?? '—',
+      player.positions.join(', '),
+      percent(player.condition_percent),
+      percent(player.match_fitness_percent),
+      words(player.availability),
+      contractText(player, clubId),
+    ];
+    for (const value of values) {
+      const cell = document.createElement('td'); cell.className = 'nowrap';
+      cell.textContent = value; row.appendChild(cell);
     }
     body.appendChild(row);
   }
@@ -118,7 +147,7 @@ async function refresh() {
     put('version', latest.expected_product_version);
     put('captured', new Date(latest.observed_at).toLocaleString());
     put('error', '');
-    renderSquad(latest.first_team_squad ?? []);
+    renderSquad(latest.first_team_squad ?? [], manager?.club?.id);
   } catch (error) {
     status.className = 'status error'; status.lastElementChild.textContent = 'Unavailable';
     put('error', error.message);

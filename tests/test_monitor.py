@@ -9,6 +9,8 @@ class MonitorTests(unittest.TestCase):
         self.assertIn('href="/api/status.json?download=1"', DASHBOARD)
         self.assertIn('href="/api/squad.json?download=1"', DASHBOARD)
         self.assertIn('id="squad"', DASHBOARD)
+        self.assertIn("Match fitness", DASHBOARD)
+        self.assertIn("contractText", DASHBOARD)
         self.assertIn("setInterval(refresh, 30000)", DASHBOARD)
 
     def test_empty_cache_has_configured_ttl(self) -> None:

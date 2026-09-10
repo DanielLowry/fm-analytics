@@ -51,8 +51,9 @@ Useful bridge endpoints are `GET /health`, `GET /game`, and `GET /squad`.
 ## Linux/Proton Phase 00 probe
 
 On Linux, a narrow read-only probe can auto-detect FM20 running through Proton
-and read the current in-game date, active manager, controlled club, and
-first-team player identities and positions:
+and read the current in-game date, active manager, controlled club, and a safe
+first-team projection containing identity, age, positions, fitness,
+availability, and contract context:
 
 ```bash
 python3 tools/fm20_linux_probe.py

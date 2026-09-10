@@ -6,9 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="fixtures/sample-game.json">
+    <Content Update="fixtures/sample-game.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 </Project>
-

@@ -3,10 +3,13 @@ from datetime import date
 
 from tools.fm20_linux_probe import (
     ProbeError,
+    calculate_age,
     decode_fm_date,
     decode_positions,
+    display_percent,
     parse_module_mapping,
     read_fm_string,
+    read_optional_contract_date,
     read_pointer_collection,
 )
 
@@ -29,6 +32,32 @@ class LinuxFm20ProbeTests(unittest.TestCase):
     def test_decode_date_rejects_invalid_value(self) -> None:
         with self.assertRaisesRegex(ProbeError, "invalid FM date"):
             decode_fm_date(bytes.fromhex("00 00 00 00"))
+
+    def test_decodes_player_birth_date_before_the_game_era(self) -> None:
+        self.assertEqual(
+            decode_fm_date(bytes.fromhex("01 00 c3 07")),
+            date(1987, 1, 1),
+        )
+
+    def test_calculates_age_on_either_side_of_birthday(self) -> None:
+        born = date(2000, 6, 25)
+
+        self.assertEqual(calculate_age(born, date(2019, 6, 24)), 18)
+        self.assertEqual(calculate_age(born, date(2019, 6, 25)), 19)
+
+    def test_display_percent_discards_hidden_precision(self) -> None:
+        self.assertEqual(display_percent(9_775), 98)
+        self.assertEqual(display_percent(6_250), 63)
+        with self.assertRaisesRegex(ProbeError, "percentage"):
+            display_percent(10_001)
+
+    def test_contract_date_treats_fm_sentinel_as_missing(self) -> None:
+        memory = bytearray(bytes.fromhex("02 00 6c 07"))
+
+        with self.memory_file(memory) as memory_fd:
+            result = read_optional_contract_date(memory_fd, 0)
+
+        self.assertIsNone(result)
 
     def test_reads_valid_pointer_collection(self) -> None:
         memory = bytearray(160)

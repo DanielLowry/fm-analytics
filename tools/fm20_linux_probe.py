@@ -86,10 +86,29 @@ class HumanManagerResult:
 
 
 @dataclass(frozen=True)
+class PlayerContractResult:
+    contract_type: str | None
+    start_date: str | None
+    end_date: str | None
+    joined_date: str | None
+    squad_status: str | None
+    transfer_status: str | None
+    contracted_club: ClubResult | None
+
+
+@dataclass(frozen=True)
 class SquadPlayerResult:
     id: str
     name: str
+    date_of_birth: str | None
+    age: int | None
     positions: tuple[str, ...]
+    condition_percent: int | None
+    match_fitness_percent: int | None
+    availability: str
+    injured: bool | None
+    suspended: bool | None
+    contract: PlayerContractResult | None
 
 
 @dataclass(frozen=True)
@@ -115,6 +134,37 @@ POSITION_CODES = (
     "WBL",
     "WBR",
 )
+
+CONTRACT_TYPES = {
+    0: "part_time",
+    1: "full_time",
+    2: "amateur",
+    3: "youth",
+    4: "non_contract",
+}
+
+SQUAD_STATUSES = {
+    0: "not_set",
+    1: "key_player",
+    2: "first_team_regular",
+    3: "squad_rotation",
+    4: "backup_player",
+    5: "hot_prospect",
+    6: "decent_youngster",
+    7: "not_needed",
+}
+
+TRANSFER_STATUSES = {
+    4: "not_set",
+    5: "transfer_listed",
+    6: "listed_for_loan",
+    7: "transfer_and_loan_listed",
+    12: "transfer_listed_by_request",
+    15: "listed_by_request_and_for_loan",
+    68: "not_available_for_loan",
+    69: "transfer_listed_not_for_loan",
+    76: "listed_by_request_not_for_loan",
+}
 
 
 def parse_module_mapping(lines: Iterable[str]) -> tuple[int, str]:
@@ -159,6 +209,10 @@ def read_exact(memory_fd: int, address: int, size: int) -> bytes:
 
 def read_i32(memory_fd: int, address: int) -> int:
     return struct.unpack("<i", read_exact(memory_fd, address, 4))[0]
+
+
+def read_i16(memory_fd: int, address: int) -> int:
+    return struct.unpack("<h", read_exact(memory_fd, address, 2))[0]
 
 
 def read_u64(memory_fd: int, address: int) -> int:
@@ -240,6 +294,7 @@ def read_human_manager_contexts(
             manager_base = person_address - 0x458
             actual_person = manager_base + 0x480
             manager_id = read_i32(memory_fd, person_address + 0xC)
+            is_active = manager_id == active_manager_id
             first_name = read_fm_string(memory_fd, actual_person + 0x30)
             last_name = read_fm_string(memory_fd, actual_person + 0x38)
             name = " ".join(part for part in (first_name, last_name) if part).strip()
@@ -256,7 +311,7 @@ def read_human_manager_contexts(
                 if team:
                     club = read_club_from_team(memory_fd, team)
 
-            if club is None:
+            if club is None and is_active:
                 club = find_managed_club(
                     memory_fd, module_base, person_address, expected_type
                 )
@@ -265,7 +320,7 @@ def read_human_manager_contexts(
                 id=str(manager_id),
                 name=name,
                 club=club,
-                active=manager_id == active_manager_id,
+                active=is_active,
             )
             results.append(_ManagerContext(manager=manager, team_address=team))
         except (OSError, ProbeError):
@@ -309,8 +364,81 @@ def decode_positions(ratings: bytes) -> tuple[str, ...]:
     return (POSITION_CODES[highest],)
 
 
+def calculate_age(date_of_birth: date, as_of_date: date) -> int:
+    before_birthday = (as_of_date.month, as_of_date.day) < (
+        date_of_birth.month,
+        date_of_birth.day,
+    )
+    return as_of_date.year - date_of_birth.year - before_birthday
+
+
+def display_percent(raw_value: int) -> int:
+    if not 0 <= raw_value <= 10_000:
+        raise ProbeError(f"invalid percentage source value {raw_value}")
+    return min(100, (raw_value + 50) // 100)
+
+
+def read_optional_contract_date(memory_fd: int, address: int) -> str | None:
+    raw = read_exact(memory_fd, address, 4)
+    _encoded_day, year = struct.unpack("<HH", raw)
+    if year == 1900:
+        return None
+    return decode_fm_date(raw, minimum_year=1901).isoformat()
+
+
+def read_player_contract(
+    memory_fd: int, actual_person: int
+) -> PlayerContractResult | None:
+    contract = read_u64(memory_fd, actual_person + 0xA0)
+    if contract == 0:
+        return None
+    team = read_u64(memory_fd, contract + 0x10)
+    contracted_club = read_club_from_team(memory_fd, team) if team else None
+    contract_type = read_exact(memory_fd, contract + 0xAC, 1)[0]
+    squad_status = read_exact(memory_fd, contract + 0x4C, 1)[0]
+    transfer_status = read_exact(memory_fd, contract + 0x4E, 1)[0]
+    return PlayerContractResult(
+        contract_type=CONTRACT_TYPES.get(contract_type),
+        start_date=read_optional_contract_date(memory_fd, contract + 0x3C),
+        end_date=read_optional_contract_date(memory_fd, contract + 0x40),
+        joined_date=read_optional_contract_date(memory_fd, contract + 0x44),
+        squad_status=SQUAD_STATUSES.get(squad_status),
+        transfer_status=TRANSFER_STATUSES.get(transfer_status),
+        contracted_club=contracted_club,
+    )
+
+
+def read_availability(memory_fd: int, player_address: int) -> tuple[str, bool, bool]:
+    injuries = read_u64(memory_fd, player_address + 0xD8)
+    injured = False
+    suspended = False
+    if injuries:
+        start = read_u64(memory_fd, injuries)
+        end = read_u64(memory_fd, injuries + 0x8)
+        if start == 0 and end == 0:
+            injury_count = 0
+        elif start == 0 or end < start or (end - start) % 8 != 0:
+            raise ProbeError(f"invalid injury bounds 0x{start:x}-0x{end:x}")
+        else:
+            injury_count = (end - start) // 8
+        injured = injury_count > 0
+        suspended = read_u64(memory_fd, injuries + 0x18) != 0
+    if injured and suspended:
+        availability = "injured_and_suspended"
+    elif injured:
+        availability = "injured"
+    elif suspended:
+        availability = "suspended"
+    else:
+        availability = "available"
+    return availability, injured, suspended
+
+
 def read_first_team_squad(
-    memory_fd: int, module_base: int, team_address: int
+    memory_fd: int,
+    module_base: int,
+    team_address: int,
+    as_of_date: date,
 ) -> tuple[SquadPlayerResult, ...]:
     if read_exact(memory_fd, team_address + 0x30, 1) != b"\x00":
         raise ProbeError("active manager contract does not point to a first team")
@@ -343,10 +471,48 @@ def read_first_team_squad(
                     memory_fd, actual_person + 0x20, indirect=False
                 )
             ratings = read_exact(memory_fd, player_address + 0x164, 15)
+            try:
+                date_of_birth = decode_fm_date(
+                    read_exact(memory_fd, actual_person + 0x1C, 4),
+                    maximum_year=as_of_date.year,
+                )
+                date_of_birth_text = date_of_birth.isoformat()
+                age = calculate_age(date_of_birth, as_of_date)
+            except (OSError, ProbeError):
+                date_of_birth_text = None
+                age = None
+            try:
+                condition_percent = display_percent(
+                    read_i16(memory_fd, player_address + 0x150)
+                )
+                match_fitness_percent = display_percent(
+                    read_i16(memory_fd, player_address + 0x14C)
+                )
+            except (OSError, ProbeError):
+                condition_percent = None
+                match_fitness_percent = None
+            try:
+                availability, injured, suspended = read_availability(
+                    memory_fd, player_address
+                )
+            except (OSError, ProbeError):
+                availability, injured, suspended = "unknown", None, None
+            try:
+                contract = read_player_contract(memory_fd, actual_person)
+            except (OSError, ProbeError):
+                contract = None
             players[player_id] = SquadPlayerResult(
                 id=player_id,
                 name=name,
+                date_of_birth=date_of_birth_text,
+                age=age,
                 positions=decode_positions(ratings),
+                condition_percent=condition_percent,
+                match_fitness_percent=match_fitness_percent,
+                availability=availability,
+                injured=injured,
+                suspended=suspended,
+                contract=contract,
             )
         except (OSError, ProbeError):
             continue
@@ -387,12 +553,17 @@ def find_managed_club(
     return None
 
 
-def decode_fm_date(raw: bytes) -> date:
+def decode_fm_date(
+    raw: bytes,
+    *,
+    minimum_year: int = 1900,
+    maximum_year: int = 2300,
+) -> date:
     if len(raw) != 4:
         raise ProbeError(f"FM date requires four bytes, got {len(raw)}")
     encoded_day, year = struct.unpack("<HH", raw)
     day_of_year = encoded_day & 0x01FF
-    if not 1 <= day_of_year <= 366 or not 2018 <= year <= 2300:
+    if not 1 <= day_of_year <= 366 or not minimum_year <= year <= maximum_year:
         raise ProbeError(
             f"invalid FM date components: day={day_of_year}, year={year}"
         )
@@ -429,6 +600,7 @@ def probe(pid: int, proc_root: Path = Path("/proc")) -> ProbeResult:
         raw_date = read_exact(
             memory_fd, module_base + FM20_4_4_STEAM.current_date_offset, 4
         )
+        game_date = decode_fm_date(raw_date, minimum_year=2018)
         manager_contexts = read_human_manager_contexts(memory_fd, module_base)
         human_managers = tuple(context.manager for context in manager_contexts)
         active_context = next(
@@ -436,7 +608,10 @@ def probe(pid: int, proc_root: Path = Path("/proc")) -> ProbeResult:
         )
         first_team_squad = (
             read_first_team_squad(
-                memory_fd, module_base, active_context.team_address
+                memory_fd,
+                module_base,
+                active_context.team_address,
+                game_date,
             )
             if active_context and active_context.team_address
             else ()
@@ -444,7 +619,6 @@ def probe(pid: int, proc_root: Path = Path("/proc")) -> ProbeResult:
     finally:
         os.close(memory_fd)
 
-    game_date = decode_fm_date(raw_date)
     return ProbeResult(
         pid=pid,
         executable=executable,
@@ -507,7 +681,23 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("Human manager: not found")
         print(f"First-team squad: {len(result.first_team_squad)} players")
         for player in result.first_team_squad:
-            print(f"- {player.name} (ID {player.id}; {', '.join(player.positions)})")
+            age = str(player.age) if player.age is not None else "unknown"
+            condition = (
+                f"{player.condition_percent}%"
+                if player.condition_percent is not None
+                else "unknown"
+            )
+            match_fitness = (
+                f"{player.match_fitness_percent}%"
+                if player.match_fitness_percent is not None
+                else "unknown"
+            )
+            details = (
+                f"age {age}; {', '.join(player.positions)}; "
+                f"condition {condition}; match fitness {match_fitness}; "
+                f"{player.availability}"
+            )
+            print(f"- {player.name} (ID {player.id}; {details})")
     return 0
 
 
