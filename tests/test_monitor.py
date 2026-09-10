@@ -4,6 +4,7 @@ from tools.fm20_monitor import (
     DASHBOARD,
     BridgeStatusCache,
     MonitorHandler,
+    MonitorSourceError,
     StatusCache,
     _snake_keys,
     build_parser,
@@ -38,6 +39,19 @@ class MonitorTests(unittest.TestCase):
             _snake_keys(payload),
             {"date_of_birth": "2000-01-01", "contracted_club": {"id": "1"}},
         )
+
+    def test_bridge_unavailable_status_is_preserved(self) -> None:
+        cache = BridgeStatusCache("http://bridge.test")
+        cache._read = lambda *_args, **_kwargs: {
+            "status": "save_not_loaded",
+            "detail": "Load a save.",
+        }
+
+        with self.assertRaises(MonitorSourceError) as context:
+            cache.get()
+
+        self.assertEqual(context.exception.status, "save_not_loaded")
+        self.assertEqual(str(context.exception), "Load a save.")
 
     def test_squad_document_selects_the_active_manager_club(self) -> None:
         source = {

@@ -197,6 +197,10 @@ class StatusCache:
 class MonitorSourceError(RuntimeError):
     """The configured monitor source is not ready."""
 
+    def __init__(self, detail: str, status: str = "unavailable"):
+        super().__init__(detail)
+        self.status = status
+
 
 class BridgeStatusCache:
     def __init__(self, base_url: str, ttl_seconds: float = 10.0):
@@ -217,7 +221,8 @@ class BridgeStatusCache:
             health = self._read("health", accept_error=True)
             if health.get("status") != "ready":
                 raise MonitorSourceError(
-                    str(health.get("detail") or health.get("status") or "unavailable")
+                    str(health.get("detail") or health.get("status") or "unavailable"),
+                    str(health.get("status") or "unavailable"),
                 )
             game = _snake_keys(self._read("game"))
             squad = _snake_keys(self._read("squad"))
@@ -291,7 +296,14 @@ class MonitorHandler(BaseHTTPRequestHandler):
                     else source
                 )
                 status = HTTPStatus.OK
-            except (OSError, ProbeError, MonitorSourceError) as exc:
+            except MonitorSourceError as exc:
+                document = {
+                    "status": exc.status,
+                    "observed_at": datetime.now(timezone.utc).isoformat(),
+                    "error": str(exc),
+                }
+                status = HTTPStatus.SERVICE_UNAVAILABLE
+            except (OSError, ProbeError) as exc:
                 document = {
                     "status": "unavailable",
                     "observed_at": datetime.now(timezone.utc).isoformat(),
