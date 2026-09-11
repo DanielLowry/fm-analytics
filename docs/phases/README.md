@@ -16,11 +16,11 @@ are hypotheses, not promises about implementation.
 | --- | --- | --- | --- | --- |
 | [00 — Data access](00-data-access/README.md) | Prove safe, repeatable access to a running FM20 save | Complete | Proven on Linux/Proton; mutation soak deferred | Existing fixture prototype |
 | [01 — Extraction API](01-extraction-api/README.md) | Supply stable, observable inputs for the MVP | In progress | Execution-ready | 00 |
-| [02 — Persistence](02-persistence/README.md) | Retain the observations and provenance needed to reproduce decisions | Planned | Detailed | 01 |
-| [03 — Information visibility](03-information-visibility/README.md) | Enforce field knowledge and the discoverable-player boundary | Planned | Detailed | 00–02 |
-| [04 — Squad model](04-squad-analytics/README.md) | Explain role suitability, baseline-tactic fit, depth, and weaknesses | Planned | MVP-defined | 02–03 |
-| [05 — Tactic and XI selection](05-xi-optimisation/README.md) | Recommend a valid baseline tactic and lineup jointly | Planned | MVP-defined | 04 |
-| [06 — Recruitment](06-recruitment/README.md) | Convert weaknesses into uncertainty-aware visible-player shortlists | Planned | MVP-defined | 03–05 |
+| [02 — Persistence](02-persistence/README.md) | Retain the observations and provenance needed to reproduce decisions | In progress | Detailed | 01 |
+| [03 — Information visibility](03-information-visibility/README.md) | Enforce field knowledge and the discoverable-player boundary | In progress | Strict UI import/count contract; real export validation outstanding | 00–02 |
+| [04 — Squad model](04-squad-analytics/README.md) | Explain role suitability, baseline-tactic fit, depth, and weaknesses | In progress | Three tactics, role scoring, and weakness pass implemented | 02–03 |
+| [05 — Tactic and XI selection](05-xi-optimisation/README.md) | Recommend a valid baseline tactic and lineup jointly | In progress | Joint assignment, readiness, and explainable bench implemented | 04 |
+| [06 — Recruitment](06-recruitment/README.md) | Convert weaknesses into uncertainty-aware visible-player shortlists | In progress | Brief, bounded shortlist, and export-count gate implemented | 03–05 |
 | [07 — Match database](07-match-database/README.md) | Build a trustworthy history of matches and decisions | Planned | Provisional | 01–03 |
 | [08 — Opposition analysis](08-opposition-analysis/README.md) | Produce evidence-backed pre-match reports | Planned | Outline | 07 |
 | [09 — Opposition-specific tactics](09-tactical-recommendations/README.md) | Adjust the baseline tactic for a particular matchup | Planned | Outline | 05, 07–08 |

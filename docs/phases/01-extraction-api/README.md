@@ -17,7 +17,7 @@ probe/framework types or putting football decisions in the bridge.
 | ID | Subphase | Status | Result |
 | --- | --- | --- | --- |
 | 01.1 | [Contract and versioning](01.1-contract-and-versioning.md) | Complete | Versioned paths, published v1 semantics, strict decoding, and shared golden resources implemented |
-| 01.2 | [Source lifecycle](01.2-source-lifecycle.md) | In progress | Automated cache refresh and failure recovery covered; live advancement/membership soak remains |
+| 01.2 | [Source lifecycle](01.2-source-lifecycle.md) | MVP-complete | Automated cache refresh and failure recovery covered; live mutation soak deferred until the manager chooses to advance |
 | 01.3 | [Core resources](01.3-core-resources.md) | Planned | Deliberately scoped game, club, player, squad, and fixture endpoints |
 | 01.4 | [Reliability and diagnostics](01.4-reliability-and-diagnostics.md) | Planned | Bounded requests and actionable operational status |
 | 01.5 | [Contract verification](01.5-contract-verification.md) | Planned | Automated producer/consumer compatibility evidence |
@@ -29,9 +29,10 @@ explicit versioned contract and sanitized golden fixtures. The
 [MVP squad-input inventory](mvp-squad-inputs.md) records what is proven live and
 what remains blocked on visibility research.
 
-Work now moves to 01.2, beginning with the deferred date-advance and temporary
-squad-membership-change soak check. External-player enumeration does not begin
-here; it remains gated by the Phase 03 discoverability research.
+The automated portion of 01.2 is complete. The date-advance and temporary
+squad-membership soak is explicitly deferred until the manager is ready to
+advance the save; it does not block the early-game MVP. External-player
+enumeration remains gated by the Phase 03 discoverability research.
 
 ## Phase exit criteria
 
@@ -43,8 +44,9 @@ here; it remains gated by the Phase 03 discoverability research.
   distinct and documented.
 - Sanitized contract fixtures and automated consumer tests cover every public
   response shape.
-- Repeated polling while the game advances does not leak resources or serve
-  internally inconsistent responses.
+- Automated lifecycle tests prove refresh and recovery. A live advancement
+  soak remains a release-hardening check before relying on unattended polling;
+  it does not block manually triggered MVP captures.
 - The contract can represent the squad inputs required by the MVP—positions,
   availability, condition, match sharpness, and attribute observations—even
   where live mappings remain deliberately unavailable pending Phase 03 proof.

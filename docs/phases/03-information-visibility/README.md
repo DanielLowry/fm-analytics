@@ -10,6 +10,27 @@ provenance, and staleness where those concepts matter.
 This is a governance and data-correctness phase, not merely a different JSON
 shape. It is the gate for analytics involving players outside our club.
 
+## Current status
+
+In progress. Static research has rejected the pinned framework's raw
+`PlayerAttributes` object as a production visibility source: it contains exact
+underlying values and provides neither manager-knowledge states nor a
+discoverable-player collection. The bridge still excludes these attributes.
+Controlled UI/source comparisons remain outstanding and can be performed
+without advancing the save.
+
+A strict manager-visible HTML import candidate now supports exact, ranged, and
+unknown attribute cells without using memory truth. It remains behind the
+visibility gate until an FM20 export from the real save verifies headers, cell
+syntax, and complete selected-row coverage.
+
+The importer now also has a fail-closed completeness check: the caller supplies
+the count displayed by the unchanged FM view, and the merged export must have
+exactly that many unique player UIDs. This detects missed pages, unrendered
+rows, unexpected duplicates, and exporting a different result set. It proves
+count agreement, not yet that FM's export includes all manager-discoverable
+players; that still needs the controlled real-save comparison.
+
 ## Prerequisites
 
 - Phase 00 has proved safe live reads on the supported environment

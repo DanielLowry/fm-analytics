@@ -40,6 +40,54 @@ uv run fm-analytics --fixture src/fm_analytics/fixtures/sample-game.json
 uv run python -m unittest discover -s tests -v
 ```
 
+Validate one or more manager-visible FM20 HTML exports without advancing the
+save:
+
+```bash
+uv run fm-analytics --fm-html squad.html player-search-page-*.html \
+  --fm-html-player-count 87
+```
+
+Create the files from the relevant FM20 Squad or Player Search view with
+`Ctrl+P` and Web Page/HTML selected. The view must contain `UID`, `Name`,
+`Position`, and the desired attribute columns. This import path is currently a
+visibility-safe MVP candidate: it parses exact values, ranges, and unknowns,
+and combines paginated exports. Supplying the count shown in the unchanged FM
+view makes the CLI require that exact number of unique UIDs after merging; a
+missing or extra row fails the import.
+
+Once a complete current-squad export validates, combine its visible attributes
+with live condition and availability to generate the first tactic/XI report:
+
+```bash
+uv run fm-analytics --fm-html squad.html --recommend \
+  --fm-html-player-count 24 \
+  --snapshot-db data/fm-analytics.sqlite3
+```
+
+Add one or more exports from the visible Player Search result set to populate
+the generated recruitment briefs:
+
+```bash
+uv run fm-analytics --fm-html squad.html --recommend \
+  --candidate-html player-search-page-*.html \
+  --candidate-player-count 487
+```
+
+`--candidate-player-count` is mandatory for recruitment. Enter the result
+count displayed by the exact Player Search view you exported. The command
+refuses to shortlist candidates when merged unique UIDs do not match it.
+
+The command refuses to recommend from the memory probe alone because that
+probe's raw player attributes have not passed the manager-visibility gate.
+
+To retain an immutable, idempotent squad observation for later recommendations:
+
+```bash
+uv run fm-analytics --fixture src/fm_analytics/fixtures/sample-game.json \
+  --snapshot-db data/fm-analytics.sqlite3
+```
+
 CI runs the tests, builds the Python package, and smoke-tests the fixture bridge
 on Python 3.11 and 3.14. Live Proton/FM20 probes are deliberately excluded
 because hosted runners do not have the game process.
@@ -71,6 +119,9 @@ uv run fm-analytics --base-url http://127.0.0.1:5072
 python3 tools/fm20_monitor.py
 ```
 
+Add `--snapshot-db data/fm-analytics.sqlite3` to the `fm-analytics` command to
+capture the current live squad without advancing the save.
+
 Open `http://127.0.0.1:8765` for the monitor. It refreshes every 30 seconds and
 offers approved JSON downloads at `/api/status` and `/api/squad`.
 
@@ -100,9 +151,11 @@ The public contract exposes manager-visible attribute observations as one of:
 - a scouted minimum/maximum range; or
 - unknown.
 
-Before recruitment is added, the same boundary will also determine which
-players are legitimately discoverable by the human manager. Reachability in
-FM's internal player database will not be treated as visibility.
+Recruitment accepts only players present in a manager-visible UI export and
+requires its merged unique-player count to match the FM view. This proves
+export completeness, but the first real-save comparison is still required to
+approve the UI export route itself. Reachability in FM's internal player
+database is never treated as visibility.
 
 Hidden FM values should never cross the HTTP boundary. See
 [the architecture notes](docs/architecture.md) for the design and the next

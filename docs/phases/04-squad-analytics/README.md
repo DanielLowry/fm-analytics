@@ -2,8 +2,44 @@
 
 ## Planning status
 
-MVP-defined. Exact roles, weights, and tactic templates are selected from the
-first real Phase 02–03 captures and then versioned.
+In progress. The first deterministic role-scoring core is implemented. Exact
+roles, weights, and tactic templates are selected from the first real Phase
+02–03 captures and then versioned.
+
+## Implemented MVP slice
+
+The Python analytics boundary now provides versioned role definitions and
+weighted scoring with lower, central, and upper results. It preserves every
+input observation and contribution, treats omitted inputs as unknown, orders
+information gaps by their possible effect, and uses a deliberately conservative
+central value for unknown attributes so missing knowledge cannot improve a
+player's ranking.
+
+Candidate comparison uses conservative central ranking and only calls a winner
+interval-certain when its lower bound beats every alternative's upper bound.
+Where plausible candidates overlap, uncertain inputs are returned in order of
+their maximum effect on the role score. This is the first reusable `scout more`
+primitive; it does not yet claim that the external candidates themselves are
+safe to enumerate.
+
+Position eligibility is exposed separately and condition, sharpness, injury,
+and suspension are not accepted by the intrinsic role scorer. This preserves
+the distinction needed by the eventual XI selector between player quality,
+positional fit, current readiness, and availability.
+
+The first catalogue (`fm20-mvp-v1`) contains thirteen shared roles and three
+materially different opponent-neutral templates: a balanced 4-4-2, a positive
+4-2-3-1, and a positive 4-3-3 with a defensive midfielder. Each has eleven
+versioned slots, mentality, and a deliberately small instruction set. The
+definitions are provisional football hypotheses pending review against the
+real squad; changes create a new catalogue version rather than silently
+changing old recommendations.
+
+The first tactic-aware weakness pass now keeps starter quality, available
+backup quality, structural gaps, temporary availability gaps, and shared
+simultaneous cover as distinct findings. Thresholds are versioned independently
+from the role catalogue. This is sufficient to form the first traceable weak
+points; richer severity calibration and recruitment-brief generation remain.
 
 ## Outcome
 

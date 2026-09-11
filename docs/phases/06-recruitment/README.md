@@ -2,8 +2,8 @@
 
 ## Planning status
 
-MVP-defined through the first uncertainty-aware shortlist. Rich cost, contract,
-development, and exit planning remain provisional extensions.
+In progress through the first uncertainty-aware shortlist. Rich cost,
+contract, development, and exit planning remain provisional extensions.
 
 ## Outcome
 
@@ -14,6 +14,22 @@ and explainable.
 
 The MVP must identify when further scouting could change the decision. It must
 not imply that a partially known estimate is an exact player rating.
+
+## Implemented MVP slice
+
+Actionable tactic weaknesses can now become position/role recruitment briefs
+with a starter or depth threshold. A shortlist scorer accepts only players
+already present in the manager-visible export, filters by visible position, and
+keeps candidates whose observed lower bound meets the threshold or whose upper
+bound could still meet it. The latter are labelled
+`possible_with_more_scouting` and carry the role attributes to investigate.
+Players below even their optimistic bound are excluded.
+
+Candidate exports must now be accompanied by the result count visible in FM.
+Recruitment fails unless the merged export contains exactly that many unique
+UIDs. This closes silent pagination/row-loss failures, while real FM20 export
+verification, persistence, and cost/attainability remain before recruitment is
+complete.
 
 ## Prerequisites
 

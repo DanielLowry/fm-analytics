@@ -2,8 +2,24 @@
 
 ## Planning status
 
-MVP-defined. Solver choice and exact constraint weights follow the Phase 04
-baseline and real squad scenarios.
+In progress. A deterministic joint assignment engine now evaluates each
+versioned tactic against the available squad. Exact constraint weights still
+need review against the first visibility-safe squad capture.
+
+The initial engine assigns each eligible player to at most one of the eleven
+tactic slots and maximizes the total central selection score. Injury,
+suspension, explicit availability, and minimum readiness thresholds are hard
+constraints. Condition and match fitness apply a separately versioned,
+separately reported penalty; they never alter intrinsic role quality. Unknown
+readiness is penalized and explained. An incomplete shape reports its unfilled
+slots and ranks behind any shape with a legal eleven.
+
+The selected shape now also receives an explainable seven-player bench. Only
+selectable non-starters are considered; greedy selection prioritizes new
+XI-slot coverage and then role/readiness quality. Each substitute reports every
+slot they can cover, their primary assignment, and any collective coverage
+gaps. This is a deliberately transparent MVP heuristic rather than a claim
+about competition-specific bench rules or match-state substitution planning.
 
 ## Outcome
 

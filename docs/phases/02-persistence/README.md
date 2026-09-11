@@ -22,6 +22,25 @@ observations with current truth.
 | 02.4 | [Queries and provenance](02.4-queries-and-provenance.md) | Reproducible current and historical reads |
 | 02.5 | [Operations and validation](02.5-operations-and-validation.md) | Backup, migration, and data-quality checks |
 
+## Implemented MVP slice
+
+`SnapshotStore` now creates a versioned SQLite schema and transactionally stores
+one coherent game/squad observation. Players, ordered positions, contracts, and
+exact/ranged/unknown attributes are stored as normalized observations rather
+than raw bridge response bodies. A deterministic fingerprint makes repeated
+identical captures idempotent, while a changed visible value creates a new
+immutable capture.
+
+The CLI accepts `--snapshot-db`, allowing either fixture or manually triggered
+live observations to be stored without advancing the save or enabling
+background polling. Stored captures reconstruct the validated `GameState` and
+`Squad` domain objects used by later analytics.
+
+The initial schema deliberately scopes player observations to a capture instead
+of claiming cross-save identity. Stable save identity, migrations from an older
+schema, backup/restore operations, and historical query breadth remain Phase 02
+work, but they do not block the first single-save MVP recommendations.
+
 ## Phase exit criteria
 
 - Importing the same bridge observation twice does not create a false change.

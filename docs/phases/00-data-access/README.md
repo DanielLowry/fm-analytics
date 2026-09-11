@@ -59,8 +59,9 @@ date, and exact set of 17 player IDs.
 At the user's preference, the test did not advance the save or alter the team.
 A controlled source transition proves that the bridge does not retain stale
 results, and the live probe starts afresh after its one-second cache. An actual
-in-game date and membership mutation is retained as a Phase 01 soak test rather
-than blocking this feasibility gate.
+in-game date and membership mutation is retained as a later Phase 01 hardening
+test rather than blocking either this feasibility gate or the manually
+triggered early-game MVP.
 
 ## Non-goals
 
