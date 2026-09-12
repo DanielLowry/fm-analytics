@@ -57,7 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--recommend",
         action="store_true",
-        help="combine live/fixture readiness with --fm-html and recommend a tactic/XI",
+        help="recommend a tactic/XI from complete live visible attributes or --fm-html",
     )
     parser.add_argument(
         "--fm-html-player-count",
@@ -188,15 +188,16 @@ def render_recommendation(
     lines = [
         f"MVP recommendation for {club_name} on {game.game_date.isoformat()}",
     ]
-    required_attributes = {
-        attribute.name
-        for role in MVP_CATALOGUE.roles.values()
-        for attribute in role.attributes
-    }
-    provided_attributes = {
-        name for player in squad.players for name in player.attributes
-    }
-    missing_attributes = tuple(sorted(required_attributes - provided_attributes))
+    required_attributes = _required_role_attributes()
+    missing_attributes = tuple(
+        sorted(
+            {
+                name
+                for player in squad.players
+                for name in required_attributes.difference(player.attributes)
+            }
+        )
+    )
     lines.append(
         f"Attribute coverage: {len(required_attributes) - len(missing_attributes)}"
         f"/{len(required_attributes)} role inputs"
@@ -326,6 +327,21 @@ def _band(value: ScoreBand) -> str:
     return f"{value.lower:.1f}/{value.central:.1f}/{value.upper:.1f}"
 
 
+def _required_role_attributes() -> frozenset[str]:
+    return frozenset(
+        attribute.name
+        for role in MVP_CATALOGUE.roles.values()
+        for attribute in role.attributes
+    )
+
+
+def _has_complete_role_attributes(squad: Squad) -> bool:
+    required = _required_role_attributes()
+    return bool(squad.players) and all(
+        required.issubset(player.attributes) for player in squad.players
+    )
+
+
 def _percent(value: int | None) -> str:
     return f"{value}%" if value is not None else "?"
 
@@ -341,8 +357,6 @@ def _contract_summary(player: Player, squad: Squad) -> str:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        if args.recommend and not args.fm_html:
-            raise ValueError("--recommend requires at least one --fm-html export")
         if args.fm_html_player_count is not None and not args.fm_html:
             raise ValueError("--fm-html-player-count requires --fm-html")
         if args.candidate_html and not args.recommend:
@@ -378,15 +392,21 @@ def main(argv: Sequence[str] | None = None) -> int:
             briefs = ()
             shortlists = ()
             if args.recommend:
-                squad_export = load_squad_html_import(args.fm_html)
-                if args.fm_html_player_count is not None:
-                    verify_export_completeness(
-                        squad_export,
-                        expected_players=args.fm_html_player_count,
+                if args.fm_html:
+                    squad_export = load_squad_html_import(args.fm_html)
+                    if args.fm_html_player_count is not None:
+                        verify_export_completeness(
+                            squad_export,
+                            expected_players=args.fm_html_player_count,
+                        )
+                    merged = overlay_squad_export(squad, squad_export)
+                    squad = merged.squad
+                    source_name = f"{source_name}+fm20-ui-html"
+                elif not _has_complete_role_attributes(squad):
+                    raise ValueError(
+                        "--recommend requires complete manager-visible squad attributes; "
+                        "the current source is incomplete"
                     )
-                merged = overlay_squad_export(squad, squad_export)
-                squad = merged.squad
-                source_name = f"{source_name}+fm20-ui-html"
                 recommendation = recommend_tactic(
                     tuple(
                         PlayerSelectionInput.from_player(player)

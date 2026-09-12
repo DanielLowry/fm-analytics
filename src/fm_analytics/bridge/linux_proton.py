@@ -5,11 +5,13 @@ import subprocess
 import sys
 import threading
 import time
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 from typing import Any, Mapping
 
 from fm_analytics.domain import (
+    AttributeObservation,
     Club,
     GameState,
     Manager,
@@ -22,6 +24,20 @@ from fm_analytics.domain import (
 from .errors import BridgeSourceError
 
 
+# Kept at the bridge boundary as an independent allowlist. The owned reader
+# must supply exactly these proven FM20 display attributes for every player.
+OWNED_ATTRIBUTE_ALLOWLIST = frozenset({
+    "aerialReach", "acceleration", "aggression", "agility", "anticipation",
+    "balance", "bravery", "commandOfArea", "communication", "composure",
+    "concentration", "corners", "crossing", "decisions", "determination",
+    "dribbling", "finishing", "firstTouch", "flair", "handling", "heading",
+    "jumpingReach", "kicking", "longShots", "marking", "naturalFitness",
+    "offTheBall", "oneOnOnes", "pace", "passing", "positioning",
+    "reflexes", "rushingOut", "stamina", "strength", "tackling", "teamwork",
+    "technique", "throwing", "vision", "workRate",
+})
+
+
 class LinuxProtonDataSource:
     """Adapt the read-only Python FM20 probe to the bridge contract."""
 
@@ -32,8 +48,12 @@ class LinuxProtonDataSource:
         probe_path: str | Path | None = None,
         python_executable: str | None = None,
         timeout_seconds: int | str | None = None,
+        owned_source_path: str | Path | None = None,
     ):
         self.probe_path = Path(probe_path) if probe_path else _default_probe_path()
+        self.owned_source_path = (
+            Path(owned_source_path) if owned_source_path else _default_owned_source_path()
+        )
         self.python_executable = python_executable or sys.executable
         try:
             configured_timeout = int(timeout_seconds) if timeout_seconds is not None else 10
@@ -47,6 +67,11 @@ class LinuxProtonDataSource:
     def get_health(self) -> SourceHealth:
         try:
             self._read_probe()
+            if not self.owned_source_path.is_file():
+                raise BridgeSourceError(
+                    "misconfigured",
+                    f"FM20 owned-squad source was not found at '{self.owned_source_path}'.",
+                )
         except BridgeSourceError as exc:
             return SourceHealth(exc.status, self.name, str(exc))
         return SourceHealth("ready", self.name)
@@ -64,8 +89,15 @@ class LinuxProtonDataSource:
         document = self._read_probe()
         manager = _active_manager(document)
         club = _map_club(manager.get("club"))
+        if club is None:
+            raise BridgeSourceError("save_not_ready", "Active manager has no club.")
+        owned = self._run_owned_source()
+        observations = _validate_owned_source(owned, document, club.id)
         players = tuple(
-            _map_player(player, club.id if club else "")
+            replace(
+                _map_player(player, club.id),
+                attributes=observations[str(player["id"])],
+            )
             for player in document["first_team_squad"]
         )
         return Squad(
@@ -128,9 +160,122 @@ class LinuxProtonDataSource:
             )
         return document
 
+    def _run_owned_source(self) -> dict[str, Any]:
+        if not self.owned_source_path.is_file():
+            raise BridgeSourceError(
+                "misconfigured",
+                f"FM20 owned-squad source was not found at '{self.owned_source_path}'.",
+            )
+        try:
+            process = subprocess.Popen(
+                [self.python_executable, str(self.owned_source_path)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+        except OSError as exc:
+            raise BridgeSourceError(
+                "misconfigured", f"Could not start '{self.python_executable}': {exc}"
+            ) from exc
+        try:
+            output, error = process.communicate(timeout=self.timeout_seconds)
+        except subprocess.TimeoutExpired as exc:
+            process.kill()
+            process.communicate()
+            raise BridgeSourceError(
+                "timeout", f"FM20 owned-squad source exceeded {self.timeout_seconds} seconds."
+            ) from exc
+        if process.returncode != 0:
+            detail = _clean_detail(error if error.strip() else output)
+            raise BridgeSourceError(_classify_failure(detail), detail)
+        try:
+            result = json.loads(output)
+        except json.JSONDecodeError as exc:
+            raise BridgeSourceError(
+                "invalid_payload", f"FM20 owned-squad source returned invalid JSON: {exc}"
+            ) from exc
+        if not isinstance(result, dict):
+            raise BridgeSourceError(
+                "invalid_payload", "FM20 owned-squad source did not return a JSON object."
+            )
+        return result
+
 
 def _default_probe_path() -> Path:
     return Path(__file__).resolve().parents[3] / "tools" / "fm20_linux_probe.py"
+
+
+def _default_owned_source_path() -> Path:
+    return Path(__file__).resolve().parents[3] / "tools" / "fm20_owned_visible_source.py"
+
+
+def _validate_owned_source(
+    owned: Mapping[str, Any],
+    probe: Mapping[str, Any],
+    club_id: str,
+) -> dict[str, dict[str, AttributeObservation]]:
+    if (
+        owned.get("source") != "live-owned-squad"
+        or owned.get("visibilityGuarantee") != "managed-player-exact"
+        or owned.get("gameDate") != probe["game_date"]
+    ):
+        raise BridgeSourceError(
+            "invalid_payload", "Owned-squad source provenance or game date disagrees with probe."
+        )
+    team = owned.get("team")
+    if not isinstance(team, dict) or str(team.get("id")) != club_id:
+        raise BridgeSourceError("invalid_payload", "Owned-squad source club disagrees with probe.")
+    manager = owned.get("manager")
+    active = _active_manager(probe)
+    if not isinstance(manager, dict) or str(manager.get("id")) != str(active["id"]):
+        raise BridgeSourceError("invalid_payload", "Owned-squad source manager disagrees with probe.")
+    raw_players = owned.get("players")
+    if not isinstance(raw_players, list):
+        raise BridgeSourceError("invalid_payload", "Owned-squad source omitted players.")
+    expected = {
+        str(player["id"]): str(player["name"])
+        for player in probe["first_team_squad"]
+    }
+    observations: dict[str, dict[str, AttributeObservation]] = {}
+    for player in raw_players:
+        if not isinstance(player, dict):
+            raise BridgeSourceError("invalid_payload", "Owned-squad player must be an object.")
+        player_id = str(player.get("id"))
+        if player_id not in expected or player_id in observations:
+            raise BridgeSourceError("invalid_payload", "Owned-squad player IDs disagree with probe.")
+        if player.get("name") != expected[player_id]:
+            raise BridgeSourceError("invalid_payload", "Owned-squad player name disagrees with probe.")
+        raw_attributes = player.get("attributes")
+        if not isinstance(raw_attributes, dict) or set(raw_attributes) != OWNED_ATTRIBUTE_ALLOWLIST:
+            raise BridgeSourceError(
+                "invalid_payload", "Owned-squad player attributes disagree with the allowlist."
+            )
+        if any(
+            not isinstance(value, dict) or set(value) != {"visibility", "value"}
+            for value in raw_attributes.values()
+        ):
+            raise BridgeSourceError(
+                "invalid_payload", "Owned-squad source returned an unexpected attribute field."
+            )
+        try:
+            decoded = {
+                name: AttributeObservation.from_dict(value)
+                for name, value in raw_attributes.items()
+            }
+        except (TypeError, ValueError, KeyError) as exc:
+            raise BridgeSourceError("invalid_payload", f"Invalid owned-squad attribute: {exc}") from exc
+        if any(item.visibility.value != "known" for item in decoded.values()):
+            raise BridgeSourceError(
+                "invalid_payload", "Owned-squad source returned a non-exact attribute."
+            )
+        if any(item.value is None or not 1 <= item.value <= 20 for item in decoded.values()):
+            raise BridgeSourceError(
+                "invalid_payload", "Owned-squad source returned an out-of-range attribute."
+            )
+        observations[player_id] = decoded
+    if set(observations) != set(expected):
+        raise BridgeSourceError("invalid_payload", "Owned-squad player IDs disagree with probe.")
+    return observations
 
 
 def _validate_document(document: Mapping[str, Any]) -> None:

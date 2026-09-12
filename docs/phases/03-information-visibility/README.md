@@ -13,11 +13,12 @@ shape. It is the gate for analytics involving players outside our club.
 ## Current status
 
 In progress. Static research has rejected the pinned framework's raw
-`PlayerAttributes` object as a production visibility source: it contains exact
-underlying values and provides neither manager-knowledge states nor a
-discoverable-player collection. The bridge still excludes these attributes.
-External-player UI/source comparisons remain outstanding and can be performed
-without advancing the save.
+`PlayerAttributes` object as a general production visibility source: it
+contains exact underlying values and provides neither manager-knowledge states
+nor a discoverable-player collection. The bridge now admits exact attributes
+only for the verified active manager's first-team roster. External-player
+attributes remain excluded. External-player UI/source comparisons remain
+outstanding and can be performed without advancing the save.
 
 A strict manager-visible HTML import candidate now supports exact, ranged, and
 unknown attribute cells without using memory truth. The first real-save squad
@@ -38,20 +39,23 @@ and split position and attribute columns, so owned-squad pages are merged by
 unique normalized name and then bound to live IDs. Duplicate squad names fail
 closed; this narrow exception does not apply to external-player searches.
 
-Render-path tracing is now a first-class automatic extraction option. A bounded
+Render-path tracing is a research and validation tool, not a production
+extraction option. A bounded
 hardware-watchpoint experiment separated FM's raw 1--20 normalization getter
 from a downstream function that classifies exact, ranged, and unknown results
 for formatting. A research-only resolver locates transient trace addresses and
-display-path identifiers without reading attribute values. The preferred result
-is a verified reimplementation of FM's visibility calculation; passive capture
-at the newly identified result boundary is second, and invoking an internal
-function remains the riskiest option.
+display-path identifiers without reading attribute values. Production requires
+a verified, cache-independent reimplementation of FM's visibility calculation
+and a separately verified discoverable-player collection. Passive capture can
+compare results but cannot supply a complete queryable dataset; invoking FM's
+internal builder is not a production path.
 
 The same getter/caller path has now been observed while FM redraws an external
 club's Physical squad table. At the pre-format boundary FM still exposes the
 player object, attribute identifier, and visible result, making a single
-visibility-safe table capture hook a plausible route to bulk discovery. The
-capture must consume only visible bound/sentinel bytes and explicitly exclude
+visibility-safe table capture hook a useful research comparator, but not a
+screen-independent query mechanism. The capture must consume only visible
+bound/sentinel bytes and explicitly exclude
 the structure's concealed-value byte.
 
 `decode_visible_bound_bytes` now enforces that rule in the bridge: it accepts
@@ -101,16 +105,22 @@ match the four recovered position profiles, and FM's exact raw-position-rating
 selector reproduces every profile choice. The three-way effective-knowledge
 merge is also reproduced, but the baseline relationship value, report-object
 inputs, and discoverable-player collection still need safe live sources.
+Offline disassembly has isolated the baseline function and its final adjustment
+helper, including relationship-dependent base levels; their input fields still
+need mapping and passive validation before external queries.
 Separately, knowing how to calculate visibility is not permission to enumerate
 the hidden database.
 
-As a concrete MVP checkpoint, a standalone owned-squad source now performs a
+As a concrete MVP checkpoint, an owned-squad source now performs a
 fresh, read-only, cache-independent live query by managed team or player. Owned
 attributes are guaranteed exact in FM, so the source normalizes them only after
 restricting IDs to the active manager's verified first-team collection. The
 first run returned 17 players and 697 observations (41 per player); all 136
 Physical observations matched the previous UI export. It rejects external
-targets, for which the builder/discoverability work above remains mandatory.
+targets. The bridge now consumes this source with independent provenance,
+roster/date, and attribute-allowlist checks, but the new bridge integration
+still needs a live end-to-end verification run. External players remain gated
+by the baseline/report/discoverability work above.
 
 Earlier bounded passive traces detached normally and left FM responsive. A
 later chained direct-call experiment caused the crash described above, so that

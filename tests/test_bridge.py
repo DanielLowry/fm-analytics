@@ -12,6 +12,8 @@ from fm_analytics.bridge import (
     FixtureDataSource,
     LinuxProtonDataSource,
 )
+from fm_analytics.bridge.linux_proton import OWNED_ATTRIBUTE_ALLOWLIST
+from tools.fm20_visibility_trace import ATTRIBUTE_OFFSETS
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -21,6 +23,9 @@ GOLDEN = json.loads(
 
 
 class BridgeSourceTests(unittest.TestCase):
+    def test_owned_bridge_allowlist_matches_supported_reader(self) -> None:
+        self.assertEqual(OWNED_ATTRIBUTE_ALLOWLIST, set(ATTRIBUTE_OFFSETS))
+
     def test_fixture_source_maps_the_python_domain_contract(self) -> None:
         source = FixtureDataSource(ROOT / "src/fm_analytics/fixtures/sample-game.json")
 
@@ -60,6 +65,14 @@ class BridgeSourceTests(unittest.TestCase):
 
         with (
             patch.object(source, "_run_probe", side_effect=[before, after]) as run,
+            patch.object(
+                source,
+                "_run_owned_source",
+                side_effect=[
+                    self.owned_document(before),
+                    self.owned_document(after),
+                ],
+            ),
             patch(
                 "fm_analytics.bridge.linux_proton.time.monotonic",
                 side_effect=[10.0, 10.0, 10.5, 11.1, 11.1],
@@ -74,6 +87,84 @@ class BridgeSourceTests(unittest.TestCase):
         self.assertEqual(refreshed_squad.as_of_date.isoformat(), "2019-06-25")
         self.assertEqual(len(refreshed_squad.players), 2)
         self.assertEqual(run.call_count, 2)
+
+    def test_linux_source_adds_only_verified_exact_owned_attributes(self) -> None:
+        source = LinuxProtonDataSource(__file__)
+        probe = self.probe_document("2019-06-24", ("player-1",))
+        with (
+            patch.object(source, "_run_probe", return_value=probe),
+            patch.object(source, "_run_owned_source", return_value=self.owned_document(probe)),
+        ):
+            squad = source.get_squad()
+
+        self.assertEqual(squad.players[0].attributes["passing"].value, 12)
+        self.assertEqual(squad.players[0].attributes["passing"].visibility.value, "known")
+        self.assertEqual(len(squad.players[0].attributes), 41)
+
+    def test_linux_source_rejects_unverified_owned_observations(self) -> None:
+        source = LinuxProtonDataSource(__file__)
+        probe = self.probe_document("2019-06-24", ("player-1",))
+        cases = (
+            ("hidden diagnostic", {"visibilityGuarantee": "underlying-exact-not-manager-visible"}),
+            ("different date", {"gameDate": "2019-06-25"}),
+            ("different team", {"team": {"id": "other", "name": "Other"}}),
+            ("different manager", {"manager": {"id": "other", "name": "Other"}}),
+            ("no player", {"players": []}),
+            (
+                "extra attribute",
+                {"players": [{
+                    "id": "player-1",
+                    "name": "Player player-1",
+                    "attributes": {
+                        **{name: {"visibility": "known", "value": 12} for name in OWNED_ATTRIBUTE_ALLOWLIST},
+                        "currentAbility": {"visibility": "known", "value": 20},
+                    },
+                }]},
+            ),
+            (
+                "concealed field",
+                {"players": [{
+                    "id": "player-1",
+                    "name": "Player player-1",
+                    "attributes": {
+                        **{name: {"visibility": "known", "value": 12} for name in OWNED_ATTRIBUTE_ALLOWLIST},
+                        "passing": {"visibility": "known", "value": 12, "hidden": 19},
+                    },
+                }]},
+            ),
+            (
+                "out-of-range attribute",
+                {"players": [{
+                    "id": "player-1",
+                    "name": "Player player-1",
+                    "attributes": {
+                        **{name: {"visibility": "known", "value": 12} for name in OWNED_ATTRIBUTE_ALLOWLIST},
+                        "passing": {"visibility": "known", "value": 21},
+                    },
+                }]},
+            ),
+            (
+                "unknown attribute",
+                {"players": [{
+                    "id": "player-1",
+                    "name": "Player player-1",
+                    "attributes": {
+                        **{name: {"visibility": "known", "value": 12} for name in OWNED_ATTRIBUTE_ALLOWLIST},
+                        "passing": {"visibility": "unknown"},
+                    },
+                }]},
+            ),
+        )
+        for label, change in cases:
+            with self.subTest(label=label):
+                owned = {**self.owned_document(probe), **change}
+                with (
+                    patch.object(source, "_run_probe", return_value=probe),
+                    patch.object(source, "_run_owned_source", return_value=owned),
+                ):
+                    with self.assertRaises(BridgeSourceError) as error:
+                        source.get_squad()
+                self.assertEqual(error.exception.status, "invalid_payload")
 
     def test_linux_source_does_not_cache_failure(self) -> None:
         source = LinuxProtonDataSource(__file__)
@@ -124,6 +215,30 @@ class BridgeSourceTests(unittest.TestCase):
                     "suspended": False,
                 }
                 for player_id in player_ids
+            ],
+        }
+
+    @staticmethod
+    def owned_document(probe: dict) -> dict:
+        return {
+            "source": "live-owned-squad",
+            "visibilityGuarantee": "managed-player-exact",
+            "gameDate": probe["game_date"],
+            "manager": {
+                "id": probe["human_managers"][0]["id"],
+                "name": probe["human_managers"][0]["name"],
+            },
+            "team": probe["human_managers"][0]["club"],
+            "players": [
+                {
+                    "id": player["id"],
+                    "name": player["name"],
+                    "attributes": {
+                        name: {"visibility": "known", "value": 12}
+                        for name in OWNED_ATTRIBUTE_ALLOWLIST
+                    },
+                }
+                for player in probe["first_team_squad"]
             ],
         }
 

@@ -49,7 +49,7 @@ enumeration remains gated by the Phase 03 discoverability research.
   it does not block manually triggered MVP captures.
 - The contract can represent the squad inputs required by the MVP—positions,
   availability, condition, match sharpness, and attribute observations—even
-  where live mappings remain deliberately unavailable pending Phase 03 proof.
+   where external live mappings remain deliberately unavailable pending Phase 03 proof.
 
 ## Non-goals
 

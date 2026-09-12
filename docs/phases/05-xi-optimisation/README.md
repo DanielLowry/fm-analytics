@@ -27,6 +27,13 @@ role. Because only 8 of 32 role inputs were exported, the CLI now labels those
 scores provisional and lists the missing inputs; this is a pipeline validation,
 not yet the accepted football recommendation.
 
+The proven exact owned-squad reader is now wired into FMBridge, and the CLI can
+recommend without HTML when every player has the complete role-input set. A
+synthetic eleven-player no-HTML end-to-end test covers a legal XI and snapshot.
+A fresh live recommendation through the bridge, followed by a football review
+of the tactic catalogue and thresholds, is still required before accepting the
+first real recommendation.
+
 ## Outcome
 
 Recommend an opponent-neutral tactical template, legal starting XI, and

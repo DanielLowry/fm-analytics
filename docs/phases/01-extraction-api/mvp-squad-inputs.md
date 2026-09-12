@@ -24,7 +24,7 @@ verified collection semantics.
 | Injury and suspension | Hard/soft availability constraints | Extraction implemented; controlled positive live cases not yet recorded | Verify injured, suspended, and combined scenarios |
 | Derived availability | Selection constraint and explanation | Implemented from the visible flags above | Keep the string vocabulary open |
 | Contract and owning club | Explain loans; later squad planning | Implemented, including a live loan case | Not required for initial XI scoring |
-| Playing attributes | Role suitability and tactic fit | V1 shape proven with fixtures; live adapter intentionally returns an empty map | Blocking visibility research: map only manager-visible exact/range/unknown observations |
+| Playing attributes | Role suitability and tactic fit | Exact owned first-team attributes wired into the live bridge with fail-closed allowlist and roster checks; live bridge integration run pending | External exact/range/unknown inputs remain gated by baseline knowledge, reports, and discoverability |
 
 ## Required attribute capability
 
@@ -38,9 +38,10 @@ from the same manager-knowledge representation used by the UI. For later
 external candidates, the same public observation shape must support exact,
 ranged, and unknown values without ever carrying hidden truth.
 
-Until that mapping is proven, an empty attribute map means `not supplied by this
-source`; it must never be interpreted as zero ability or as a fully unknown
-scouting report.
+Where a source still returns an empty attribute map, it means `not supplied by
+this source`; it must never be interpreted as zero ability or as a fully unknown
+scouting report. The live owned-squad path now fails rather than returning a
+partial map when its exact attribute source cannot be verified.
 
 ## Explicitly deferred from the first scoring slice
 

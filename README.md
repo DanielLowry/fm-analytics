@@ -7,11 +7,11 @@ intended to make recommendations from information visible to the human manager,
 without using hidden Current Ability, Potential Ability, or other internal
 values.
 
-The repository now contains a live Phase 00 vertical slice for the proven
-Linux/Proton environment, plus a deterministic fixture path:
+The repository contains a read-only Linux/Proton bridge for the controlled
+first-team squad, plus a deterministic fixture path:
 
 ```text
-FM20 -> read-only Linux probe -> Python bridge HTTP API -> Python client/monitor
+FM20 -> read-only Linux probes -> Python bridge HTTP API -> Python analytics
 fixture -----------------------> Python bridge HTTP API -> Python client
 ```
 
@@ -40,12 +40,40 @@ uv run fm-analytics --fixture src/fm_analytics/fixtures/sample-game.json
 uv run python -m unittest discover -s tests -v
 ```
 
-Validate one or more manager-visible FM20 HTML exports without advancing the
-save:
+## Automated current-squad recommendation
+
+With FM20 running and a save loaded, start the live bridge and request a
+recommendation in another terminal:
 
 ```bash
-uv run fm-analytics --fm-html squad.html player-search-page-*.html \
-  --fm-html-player-count 87
+FM_BRIDGE_SOURCE=linux-proton uv run fm-bridge
+```
+
+```bash
+uv run fm-analytics --recommend --snapshot-db data/fm-analytics.sqlite3
+```
+
+This path requires no HTML export or open player/table screen. The bridge
+restricts attribute reads to the active manager's verified first-team roster,
+requires all 41 allowlisted attributes per player, and rejects a mismatched
+manager, club, date, or player set. It supplies exact owned-player attributes
+alongside live readiness for tactic, XI, bench, weakness, and recruitment-brief
+analysis. The end-to-end bridge wiring has automated tests; a fresh live run
+through the bridge is still needed to validate this integration against FM.
+
+External-player discovery and range/unknown queries are not yet automated or
+production-ready. The passive render hook remains research evidence only; it
+is not used by the bridge.
+
+## Research-only HTML verification
+
+The legacy HTML importer remains available to compare manager-visible cells
+with the read-only extraction research. It is not the product workflow. For
+example, validate an unchanged-save squad export with:
+
+```bash
+uv run fm-analytics --fm-html squad-general.html squad-physical.html \
+  --fm-html-player-count 17
 ```
 
 Create the files from the relevant FM20 Squad view with `Ctrl+P` and Web
@@ -57,8 +85,7 @@ the unchanged FM view requires that exact number of unique players after
 merging, so a missing or extra row fails the import.
 
 The CLI reports how many of the 32 role-model inputs are present. A partial
-export can exercise the pipeline, but all football scores are explicitly
-labelled provisional until required attribute coverage is complete.
+export can exercise tests, but its football scores are labelled provisional.
 
 ### Standalone live owned-squad proof
 
@@ -96,33 +123,10 @@ uv run python tools/fm20_owned_visible_source.py \
 Without `--visibility full`, in-game visibility remains the default. Full mode
 will not run unless the acknowledgement flag is also present.
 
-Once a complete current-squad export validates, combine its visible attributes
-with live condition and availability to generate the first tactic/XI report:
-
-```bash
-uv run fm-analytics --fm-html squad.html --recommend \
-  --fm-html-player-count 24 \
-  --snapshot-db data/fm-analytics.sqlite3
-```
-
-Add one or more exports from the visible Player Search result set to populate
-the generated recruitment briefs:
-
-```bash
-uv run fm-analytics --fm-html squad.html --recommend \
-  --candidate-html player-search-page-*.html \
-  --candidate-player-count 487
-```
-
-`--candidate-player-count` is mandatory for recruitment. Enter the result
-count displayed by the exact Player Search view you exported. The command
-refuses to shortlist candidates when merged unique UIDs do not match it.
-
-The main application still refuses to recommend from the memory probe alone;
-the standalone owned-squad proof has not yet been integrated into FMBridge.
-External Player Search exports remain stricter than owned-squad exports and
-currently require a `UID` column while their stable identity strategy is
-validated against a real FM20 search export.
+The legacy `--candidate-html` option also exists for parser research, but it
+does not satisfy the automated external-player requirement. It requires an FM
+visible count and stable UID, and it is not an approved production candidate
+source.
 
 To retain an immutable, idempotent squad observation for later recommendations:
 
@@ -207,11 +211,11 @@ The public contract exposes manager-visible attribute observations as one of:
 - a scouted minimum/maximum range; or
 - unknown.
 
-Recruitment accepts only players present in a manager-visible UI export and
-requires its merged unique-player count to match the FM view. This proves
-export completeness, but the first real-save comparison is still required to
-approve the UI export route itself. Reachability in FM's internal player
-database is never treated as visibility.
+The automated recruitment path is blocked until the bridge can reproduce
+external-player knowledge and query the verified manager-discoverable player
+collection without opening FM screens. Reachability in FM's internal player
+database is never treated as visibility. Legacy HTML candidate import remains
+research-only.
 
 Hidden FM values should never cross the HTTP boundary. See
 [the architecture notes](docs/architecture.md) for the design and the next

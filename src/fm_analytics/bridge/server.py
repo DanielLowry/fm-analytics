@@ -27,6 +27,7 @@ def source_from_environment(environ: dict[str, str] | None = None) -> FmDataSour
     if source_name == "linux-proton":
         return LinuxProtonDataSource(
             probe_path=settings.get("FM_BRIDGE_PROBE"),
+            owned_source_path=settings.get("FM_BRIDGE_OWNED_SOURCE"),
             python_executable=settings.get("FM_BRIDGE_PYTHON"),
             timeout_seconds=settings.get("FM_BRIDGE_PROBE_TIMEOUT_SECONDS"),
         )
