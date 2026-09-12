@@ -19,8 +19,22 @@ from urllib.request import urlopen
 
 try:
     from tools.fm20_linux_probe import ProbeError, choose_pid, probe
+    from tools.fm20_attribute_page import ATTRIBUTE_PAGE
+    from tools.fm20_owned_visible_source import (
+        list_full_team_players,
+        list_full_visibility_teams,
+        source_full_visibility_data,
+        source_owned_visible_data,
+    )
 except ModuleNotFoundError:  # Support `python3 tools/fm20_monitor.py`.
     from fm20_linux_probe import ProbeError, choose_pid, probe
+    from fm20_attribute_page import ATTRIBUTE_PAGE
+    from fm20_owned_visible_source import (
+        list_full_team_players,
+        list_full_visibility_teams,
+        source_full_visibility_data,
+        source_owned_visible_data,
+    )
 
 
 DASHBOARD = """<!doctype html>
@@ -71,6 +85,7 @@ DASHBOARD = """<!doctype html>
   <div class="actions">
     <button id="refresh">Refresh now</button>
     <button id="toggle-json">Show JSON</button>
+    <a class="button" href="/attributes">Attribute proof</a>
     <a class="button" href="/api/status.json?download=1">Download JSON</a>
     <a class="button" href="/api/squad.json?download=1">Download squad</a>
   </div>
@@ -282,6 +297,12 @@ class MonitorHandler(BaseHTTPRequestHandler):
         if request.path == "/":
             self._send(DASHBOARD.encode(), "text/html; charset=utf-8")
             return
+        if request.path == "/attributes":
+            self._send(ATTRIBUTE_PAGE.encode(), "text/html; charset=utf-8")
+            return
+        if request.path == "/api/attributes/catalog":
+            self._attribute_catalog()
+            return
         if request.path in {
             "/api/status",
             "/api/status.json",
@@ -328,6 +349,132 @@ class MonitorHandler(BaseHTTPRequestHandler):
             )
             return
         self._send(b"not found\n", "text/plain; charset=utf-8", HTTPStatus.NOT_FOUND)
+
+    def do_POST(self) -> None:  # noqa: N802
+        path = urlparse(self.path).path
+        routes = {
+            "/api/attributes/teams": self._full_team_search,
+            "/api/attributes/players": self._full_team_players,
+            "/api/attributes/query": self._attribute_query,
+        }
+        operation = routes.get(path)
+        if operation is None:
+            self._send(
+                b"not found\n", "text/plain; charset=utf-8", HTTPStatus.NOT_FOUND
+            )
+            return
+        try:
+            payload = self._read_json_body()
+            document = operation(payload)
+            self._send(
+                json.dumps(document, indent=2).encode(),
+                "application/json; charset=utf-8",
+            )
+        except (KeyError, TypeError, ValueError, OSError, ProbeError) as exc:
+            self._send(
+                json.dumps({"error": str(exc)}).encode(),
+                "application/json; charset=utf-8",
+                HTTPStatus.BAD_REQUEST,
+            )
+
+    def _attribute_catalog(self) -> None:
+        try:
+            source = self.cache.get(force=True)
+            managers = source.get("human_managers", [])
+            manager = next(
+                (item for item in managers if item.get("active")),
+                managers[0] if managers else None,
+            )
+            if manager is None or manager.get("club") is None:
+                raise MonitorSourceError("active managed team was not found")
+            players = source.get("first_team_squad", [])
+            club = manager["club"]
+            document = {
+                "mode": "in-game",
+                "team": {
+                    "id": club["id"],
+                    "name": club["name"],
+                    "playerCount": len(players),
+                },
+                "players": [
+                    {"id": item["id"], "name": item["name"]} for item in players
+                ],
+            }
+            status = HTTPStatus.OK
+        except (KeyError, MonitorSourceError, OSError, ProbeError) as exc:
+            document = {"error": str(exc)}
+            status = HTTPStatus.SERVICE_UNAVAILABLE
+        self._send(
+            json.dumps(document, indent=2).encode(),
+            "application/json; charset=utf-8",
+            status,
+        )
+
+    @staticmethod
+    def _require_full_ack(payload: dict[str, Any]) -> None:
+        if payload.get("mode") != "full" or payload.get("acknowledged") is not True:
+            raise ValueError("full visibility requires explicit acknowledgement")
+
+    def _full_team_search(self, payload: dict[str, Any]) -> dict[str, object]:
+        self._require_full_ack(payload)
+        query = payload.get("query")
+        if not isinstance(query, str):
+            raise ValueError("team search query must be a string")
+        return {
+            "mode": "full",
+            "teams": list_full_visibility_teams(
+                choose_pid(None), query=query
+            ),
+        }
+
+    def _full_team_players(self, payload: dict[str, Any]) -> dict[str, object]:
+        self._require_full_ack(payload)
+        return list_full_team_players(
+            choose_pid(None), team_id=self._required_id(payload, "teamId")
+        )
+
+    def _attribute_query(self, payload: dict[str, Any]) -> dict[str, object]:
+        mode = payload.get("mode", "in-game")
+        team_id = self._required_id(payload, "teamId")
+        player_id = self._optional_int_id(payload, "playerId")
+        pid = choose_pid(None)
+        if mode == "in-game":
+            return source_owned_visible_data(
+                pid, team_id=team_id, player_id=player_id
+            )
+        self._require_full_ack(payload)
+        return source_full_visibility_data(
+            pid, team_id=team_id, player_id=player_id
+        )
+
+    def _read_json_body(self) -> dict[str, Any]:
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError as exc:
+            raise ValueError("invalid Content-Length") from exc
+        if not 1 <= length <= 16_384:
+            raise ValueError("JSON request body must be between 1 and 16384 bytes")
+        try:
+            payload = json.loads(self.rfile.read(length))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"invalid JSON request: {exc}") from exc
+        if not isinstance(payload, dict):
+            raise ValueError("JSON request must be an object")
+        return payload
+
+    @staticmethod
+    def _required_id(payload: dict[str, Any], name: str) -> str:
+        value = payload.get(name)
+        if not isinstance(value, str) or not value.isdecimal():
+            raise ValueError(f"{name} must be a numeric string")
+        return value
+
+    @classmethod
+    def _optional_int_id(cls, payload: dict[str, Any], name: str) -> int | None:
+        value = payload.get(name)
+        if value is None:
+            return None
+        return int(cls._required_id(payload, name))
 
     @staticmethod
     def _squad_document(source: dict[str, Any]) -> dict[str, Any]:

@@ -9,6 +9,7 @@ from tools.fm20_monitor import (
     _snake_keys,
     build_parser,
 )
+from tools.fm20_attribute_page import ATTRIBUTE_PAGE
 
 
 class MonitorTests(unittest.TestCase):
@@ -16,6 +17,7 @@ class MonitorTests(unittest.TestCase):
         self.assertIn('id="source-status"', DASHBOARD)
         self.assertIn('href="/api/status.json?download=1"', DASHBOARD)
         self.assertIn('href="/api/squad.json?download=1"', DASHBOARD)
+        self.assertIn('href="/attributes"', DASHBOARD)
         self.assertIn('id="squad"', DASHBOARD)
         self.assertIn("Match fitness", DASHBOARD)
         self.assertIn("contractText", DASHBOARD)
@@ -69,6 +71,29 @@ class MonitorTests(unittest.TestCase):
 
         self.assertEqual(document["club"]["name"], "Club")
         self.assertEqual(document["player_count"], 1)
+
+    def test_attribute_page_defaults_to_in_game_visibility(self) -> None:
+        self.assertIn('value="in-game" checked', ATTRIBUTE_PAGE)
+        self.assertIn('value="full"', ATTRIBUTE_PAGE)
+        self.assertIn("underlying exact attributes", ATTRIBUTE_PAGE)
+
+    def test_full_visibility_requires_explicit_acknowledgement(self) -> None:
+        with self.assertRaisesRegex(ValueError, "explicit acknowledgement"):
+            MonitorHandler._require_full_ack(
+                {"mode": "full", "acknowledged": False}
+            )
+
+        MonitorHandler._require_full_ack(
+            {"mode": "full", "acknowledged": True}
+        )
+
+    def test_attribute_request_ids_are_numeric_strings(self) -> None:
+        self.assertEqual(
+            MonitorHandler._required_id({"teamId": "608"}, "teamId"),
+            "608",
+        )
+        with self.assertRaisesRegex(ValueError, "numeric string"):
+            MonitorHandler._required_id({"teamId": "Bath"}, "teamId")
 
 
 if __name__ == "__main__":

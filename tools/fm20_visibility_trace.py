@@ -32,11 +32,6 @@ from tools.fm20_linux_probe_runtime import choose_pid
 
 PLAYER_FROM_PERSON_OFFSET = 0x1C0
 PLAYER_ATTRIBUTE_BLOCK_OFFSET = 0x164
-# The traced virtual getter indexes attributes from player + 0x16c. The
-# framework offsets below are relative to player + 0x164, so its display-path
-# attribute identifier is eight less than the framework offset.
-DISPLAY_ATTRIBUTE_BASE_DELTA = 0x08
-
 # Supported-build instruction immediately after the caller has loaded the
 # three-byte visibility result pointer and immediately before it invokes the
 # string formatter. The first two result bytes are the visible bounds or the
@@ -88,6 +83,53 @@ ATTRIBUTE_OFFSETS = {
     "concentration": 0x44,
 }
 
+# FM20's display attribute enum is not the raw storage order. The supported
+# executable maps UI IDs to raw getter IDs in the dispatcher at RVA 0x4282970.
+# This inverse table covers only the MVP attributes allowlisted above.
+DISPLAY_ATTRIBUTE_IDS = {
+    "aerialReach": 0x00,
+    "commandOfArea": 0x01,
+    "communication": 0x02,
+    "handling": 0x04,
+    "kicking": 0x05,
+    "reflexes": 0x06,
+    "rushingOut": 0x07,
+    "throwing": 0x09,
+    "oneOnOnes": 0x0A,
+    "crossing": 0x0B,
+    "dribbling": 0x0C,
+    "finishing": 0x0D,
+    "heading": 0x0E,
+    "longShots": 0x0F,
+    "marking": 0x11,
+    "passing": 0x12,
+    "tackling": 0x15,
+    "technique": 0x16,
+    "firstTouch": 0x17,
+    "corners": 0x18,
+    "aggression": 0x19,
+    "anticipation": 0x1A,
+    "bravery": 0x1B,
+    "vision": 0x1C,
+    "decisions": 0x1D,
+    "determination": 0x1E,
+    "flair": 0x1F,
+    "offTheBall": 0x21,
+    "positioning": 0x22,
+    "teamwork": 0x23,
+    "workRate": 0x24,
+    "composure": 0x25,
+    "concentration": 0x26,
+    "acceleration": 0x27,
+    "agility": 0x28,
+    "balance": 0x29,
+    "pace": 0x2A,
+    "stamina": 0x2B,
+    "strength": 0x2C,
+    "jumpingReach": 0x2D,
+    "naturalFitness": 0x2E,
+}
+
 
 @dataclass(frozen=True)
 class TraceTarget:
@@ -113,10 +155,9 @@ def raw_attribute_address(player_address: int, attribute: str) -> int:
 
 def display_attribute_id(attribute: str) -> int:
     try:
-        attribute_offset = ATTRIBUTE_OFFSETS[attribute]
+        return DISPLAY_ATTRIBUTE_IDS[attribute]
     except KeyError as exc:
         raise ProbeError(f"unsupported trace attribute {attribute!r}") from exc
-    return attribute_offset - DISPLAY_ATTRIBUTE_BASE_DELTA
 
 
 def resolve_trace_target(

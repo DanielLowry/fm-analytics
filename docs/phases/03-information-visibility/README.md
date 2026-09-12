@@ -60,6 +60,57 @@ values to `range`, and the paired `0xff` sentinel to `unknown`. Partial
 sentinels, reversed bounds, and values outside 1--20 fail closed. Its API has no
 argument for the concealed third byte.
 
+A bounded capture harness now owns debugger attachment, visible-event parsing,
+deduplication, timeout, and detachment. It labels output as render-event-only
+and incomplete because cached cells need not execute the hook. A fresh squad
+table produced all eight Physical-column identifiers and repeated calls, proving
+the hook works. Static inspection of FM's UI-to-raw dispatcher then established
+the complete eight-column mapping without reading concealed player values. A
+subsequent narrowed run resolved all 392 eligible events to stable player UIDs,
+yielding 205 unique visible observations across 31 players.
+
+Tracing the downstream knowledge helper established that FM keys its explicit
+knowledge records by `Person.RowID`, which can be mapped directly to the stable
+`Person.UID`. All 86 player lookups in the latest sample mapped successfully,
+but none returned an explicit record. Static analysis shows FM then computes a
+separate baseline knowledge value and uses the higher of the two; the report
+cache alone cannot reproduce visibility.
+
+A later live sample captured that merge for 83 players. All explicit values
+were zero while baseline values ranged over 0, 2, 5, 7, 12, and 22. Baseline 12
+corresponded to both ranged and unknown Acceleration cells, leading to the next
+verified stage: FM may augment the initial merge from another staff/report
+object, then compares final effective knowledge with distinct range and exact
+thresholds. A final-comparison sample captured 287 decisions for 79 players
+(173 unknown, 109 ranged, and 5 exact) and confirmed that rule. A subsequent
+fresh-table capture retained FM's display selector and paired all 26 visible
+Acceleration observations with their decisions without a single mismatch. It
+also captured a complete 208-cell knowledge matrix for the table's eight
+Physical columns. Future decision traces enforce this agreement fail-closed.
+
+The next cache-independent experiment targets FM's visible-result builder
+rather than the table's rendered-string cache. Its complete call site has now
+been identified statically. Any replay begins with the same player and attribute
+on the original render thread and remains research-only until its calling
+contract and non-mutation behavior are verified. Separately, the player inputs
+must come from a UI-verified discoverable universe; the builder is not permission
+to enumerate the hidden database.
+
+As a concrete MVP checkpoint, a standalone owned-squad source now performs a
+fresh, read-only, cache-independent live query by managed team or player. Owned
+attributes are guaranteed exact in FM, so the source normalizes them only after
+restricting IDs to the active manager's verified first-team collection. The
+first run returned 17 players and 697 observations (41 per player); all 136
+Physical observations matched the previous UI export. It rejects external
+targets, for which the builder/discoverability work above remains mandatory.
+
+The latest bounded trace detached normally and FM remained responsive on its
+original PID. A contradictory process check came from a restricted namespace
+that could not see the external game process and was discarded. The speculative
+render-wrapper scan has nevertheless been removed, identity resolution now
+follows FM's own runtime interface adjustment, and future runs verify liveness
+from the same host-visible context used for attachment.
+
 ## Prerequisites
 
 - Phase 00 has proved safe live reads on the supported environment

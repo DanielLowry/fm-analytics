@@ -60,6 +60,42 @@ The CLI reports how many of the 32 role-model inputs are present. A partial
 export can exercise the pipeline, but all football scores are explicitly
 labelled provisional until required attribute coverage is complete.
 
+### Standalone live owned-squad proof
+
+The cache-independent proof source reads the managed first team directly from
+the running FM20 process; it needs neither an open FM screen nor an HTML export:
+
+```bash
+uv run python tools/fm20_owned_visible_source.py --team "Hungerford Town"
+```
+
+It can instead query one managed player and selected attributes:
+
+```bash
+uv run python tools/fm20_owned_visible_source.py \
+  --player-name "Yan Klukowski" \
+  --attribute acceleration --attribute pace
+```
+
+The command is intentionally limited to the active manager's first-team squad,
+where attributes are visible exactly in FM. It rejects another team or a player
+outside that squad. External exact/ranged/unknown queries remain behind the
+Phase 03 visibility gate. The first live run returned 17 Hungerford players with
+41 supported attributes each; all 136 Physical cells matched the previous FM
+UI export exactly. The export was validation evidence only, not an input.
+
+The same standalone tool exposes the explicitly unsafe comparison mode used by
+the page:
+
+```bash
+uv run python tools/fm20_owned_visible_source.py \
+  --visibility full --acknowledge-hidden-data \
+  --team "Bath City" --player-name "Adam Mann"
+```
+
+Without `--visibility full`, in-game visibility remains the default. Full mode
+will not run unless the acknowledgement flag is also present.
+
 Once a complete current-squad export validates, combine its visible attributes
 with live condition and availability to generate the first tactic/XI report:
 
@@ -82,8 +118,8 @@ uv run fm-analytics --fm-html squad.html --recommend \
 count displayed by the exact Player Search view you exported. The command
 refuses to shortlist candidates when merged unique UIDs do not match it.
 
-The command refuses to recommend from the memory probe alone because that
-probe's raw player attributes have not passed the manager-visibility gate.
+The main application still refuses to recommend from the memory probe alone;
+the standalone owned-squad proof has not yet been integrated into FMBridge.
 External Player Search exports remain stricter than owned-squad exports and
 currently require a `UID` column while their stable identity strategy is
 validated against a real FM20 search export.
@@ -131,6 +167,19 @@ capture the current live squad without advancing the save.
 
 Open `http://127.0.0.1:8765` for the monitor. It refreshes every 30 seconds and
 offers approved JSON downloads at `/api/status` and `/api/squad`.
+
+For the standalone live attribute proof, run the monitor in direct diagnostic
+mode and open `/attributes`:
+
+```bash
+uv run python tools/fm20_monitor.py --direct
+```
+
+The page defaults to in-game visibility and offers the managed team and player
+selectors. Its separately acknowledged **Full visibility** mode can search
+other loaded teams and deliberately exposes underlying exact values for
+comparison. Full-mode responses are labelled as hidden-data diagnostics and do
+not enter FMBridge, snapshots, or recommendation code.
 
 To capture a compact baseline and later check an in-game date or squad change:
 

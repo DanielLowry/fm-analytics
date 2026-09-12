@@ -13,9 +13,9 @@ class VisibilityTraceTests(unittest.TestCase):
         with self.assertRaisesRegex(ProbeError, "unsupported trace attribute"):
             raw_attribute_address(0x1000, "hiddenThing")
 
-    def test_maps_framework_offset_to_display_attribute_identifier(self) -> None:
-        self.assertEqual(display_attribute_id("acceleration"), 0x29)
-        self.assertEqual(display_attribute_id("agility"), 0x35)
+    def test_maps_attribute_to_executable_display_identifier(self) -> None:
+        self.assertEqual(display_attribute_id("acceleration"), 0x27)
+        self.assertEqual(display_attribute_id("agility"), 0x28)
 
 
 if __name__ == "__main__":
