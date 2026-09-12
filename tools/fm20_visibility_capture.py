@@ -9,7 +9,6 @@ claim that every discoverable player or cached cell was observed.
 
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import selectors
@@ -33,7 +32,6 @@ from tools.fm20_linux_probe import (
     parse_module_mapping,
     validate_executable,
 )
-from tools.fm20_linux_probe_runtime import choose_pid
 from tools.fm20_visibility_trace import (
     ATTRIBUTE_OFFSETS,
     VISIBILITY_RESULT_RVA,
@@ -47,6 +45,7 @@ HIT_PREFIX = "FMVIS_HIT "
 KNOWLEDGE_PREFIX = "FMVIS_KNOWLEDGE "
 KNOWLEDGE_DECISION_PREFIX = "FMVIS_KNOWLEDGE_DECISION "
 IDENTITY_PREFIX = "FMVIS_IDENTITY "
+REPLAY_PREFIX = "FMVIS_REPLAY "
 READY_LINE = "FMVIS_READY"
 GDB_SCRIPT = Path(__file__).with_suffix(".gdb")
 ATTACH_TIMEOUT_SECONDS = 20.0
@@ -56,6 +55,7 @@ KNOWLEDGE_CONTEXT_ENTRY_RVA = 0x15A4DC0
 KNOWLEDGE_DECISION_ENTRY_RVA = 0x15A51B5
 KNOWLEDGE_DECISION_MERGE_RVA = 0x15A51DC
 KNOWLEDGE_DECISION_RESULT_RVA = 0x15A52B5
+VISIBLE_RESULT_BUILDER_RVA = 0x15A4A90
 
 ATTRIBUTE_NAMES_BY_ID = {
     display_attribute_id(name): name for name in ATTRIBUTE_OFFSETS
@@ -133,6 +133,22 @@ class KnowledgeDecisionEvent:
 
 
 @dataclass(frozen=True)
+class ReplayEvent:
+    player_id: str
+    attribute: str
+    attribute_id: str
+    matched: bool
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "playerId": self.player_id,
+            "attribute": self.attribute,
+            "attributeId": self.attribute_id,
+            "matched": self.matched,
+        }
+
+
+@dataclass(frozen=True)
 class CaptureResult:
     pid: int
     profile: str
@@ -143,6 +159,7 @@ class CaptureResult:
     identity_resolution_counts: tuple[tuple[str, int], ...]
     knowledge_cache_events: tuple[KnowledgeCacheEvent, ...]
     knowledge_decision_events: tuple[KnowledgeDecisionEvent, ...]
+    replay_events: tuple[ReplayEvent, ...]
     raw_event_count: int
     observations: tuple[VisibleCaptureEvent, ...]
     complete: bool = False
@@ -170,6 +187,8 @@ class CaptureResult:
             event.to_dict() for event in self.knowledge_decision_events
         ]
         result.pop("knowledge_decision_events")
+        result["replayEvents"] = [event.to_dict() for event in self.replay_events]
+        result.pop("replay_events")
         result["observations"] = [event.to_dict() for event in self.observations]
         return result
 
@@ -182,6 +201,7 @@ class CaptureAccumulator:
         self._events: dict[tuple[str, str], VisibleCaptureEvent] = {}
         self._knowledge_events: set[KnowledgeCacheEvent] = set()
         self._knowledge_decision_events: set[KnowledgeDecisionEvent] = set()
+        self._replay_events: set[ReplayEvent] = set()
         self.identity_resolution_counts: dict[str, int] = {}
 
     def add(self, event: VisibleCaptureEvent) -> None:
@@ -211,6 +231,13 @@ class CaptureAccumulator:
 
     def add_knowledge_decision(self, event: KnowledgeDecisionEvent) -> None:
         self._knowledge_decision_events.add(event)
+
+    def add_replay(self, event: ReplayEvent) -> None:
+        if not event.matched:
+            raise CaptureError(
+                "direct visible-result replay disagreed with FM's original result"
+            )
+        self._replay_events.add(event)
 
     def validate_knowledge_alignment(self) -> None:
         classifications: dict[tuple[str, str], set[str]] = {}
@@ -265,6 +292,15 @@ class CaptureAccumulator:
                     event.baseline_knowledge,
                     event.effective_knowledge,
                 ),
+            )
+        )
+
+    @property
+    def replay_events(self) -> tuple[ReplayEvent, ...]:
+        return tuple(
+            sorted(
+                self._replay_events,
+                key=lambda event: (int(event.player_id), event.attribute),
             )
         )
 
@@ -448,6 +484,32 @@ def parse_knowledge_decision(line: str) -> KnowledgeDecisionEvent | None:
     )
 
 
+def parse_replay_event(line: str) -> ReplayEvent | None:
+    if not line.startswith(REPLAY_PREFIX):
+        return None
+    try:
+        raw = json.loads(line.removeprefix(REPLAY_PREFIX))
+    except json.JSONDecodeError as exc:
+        raise CaptureError(f"invalid replay JSON: {exc}") from exc
+    required = {"attribute_id", "matched", "player_id"}
+    if not isinstance(raw, dict) or set(raw) != required:
+        raise CaptureError("replay event has an unexpected field contract")
+    player_id = _required_nonnegative_int(raw, "player_id")
+    attribute_id = _required_bounded_int(raw, "attribute_id", 0, 0xFF)
+    matched = raw.get("matched")
+    if type(matched) is not bool:
+        raise CaptureError("replay matched flag must be boolean")
+    attribute = ATTRIBUTE_NAMES_BY_ID.get(attribute_id)
+    if attribute is None:
+        raise CaptureError(f"replay used unsupported attribute ID 0x{attribute_id:02x}")
+    return ReplayEvent(
+        player_id=str(player_id),
+        attribute=attribute,
+        attribute_id=f"0x{attribute_id:02x}",
+        matched=matched,
+    )
+
+
 def build_gdb_environment(
     base_environment: dict[str, str],
     module_base: int,
@@ -457,6 +519,7 @@ def build_gdb_environment(
     diagnostic_hits: bool = False,
     trace_knowledge_cache: bool = False,
     trace_knowledge_decision: bool = False,
+    replay_same_cell: bool = False,
 ) -> dict[str, str]:
     environment = dict(base_environment)
     environment["FMVIS_BREAKPOINT"] = hex(module_base + VISIBILITY_RESULT_RVA)
@@ -487,6 +550,10 @@ def build_gdb_environment(
     environment["FMVIS_KNOWLEDGE_DECISION_RESULT_BREAKPOINT"] = hex(
         module_base + KNOWLEDGE_DECISION_RESULT_RVA
     )
+    environment["FMVIS_VISIBLE_RESULT_BUILDER_BREAKPOINT"] = hex(
+        module_base + VISIBLE_RESULT_BUILDER_RVA
+    )
+    environment["FMVIS_REPLAY_SAME_CELL"] = "1" if replay_same_cell else "0"
     return environment
 
 
@@ -502,6 +569,7 @@ def capture(
     diagnostic_hits: bool = False,
     trace_knowledge_cache: bool = False,
     trace_knowledge_decision: bool = False,
+    replay_same_cell: bool = False,
 ) -> CaptureResult:
     if duration_seconds <= 0:
         raise CaptureError("capture duration must be positive")
@@ -519,6 +587,7 @@ def capture(
         diagnostic_hits=diagnostic_hits,
         trace_knowledge_cache=trace_knowledge_cache,
         trace_knowledge_decision=trace_knowledge_decision,
+        replay_same_cell=replay_same_cell,
     )
     command = [
         gdb_executable,
@@ -575,6 +644,10 @@ def capture(
             if knowledge_decision is not None:
                 accumulator.add_knowledge_decision(knowledge_decision)
                 continue
+            replay_event = parse_replay_event(line)
+            if replay_event is not None:
+                accumulator.add_replay(replay_event)
+                continue
             identity_status = parse_identity_resolution(line)
             if identity_status is not None:
                 accumulator.record_identity_resolution(identity_status)
@@ -611,6 +684,7 @@ def capture(
         ),
         knowledge_cache_events=accumulator.knowledge_events,
         knowledge_decision_events=accumulator.knowledge_decision_events,
+        replay_events=accumulator.replay_events,
         raw_event_count=accumulator.raw_event_count,
         observations=accumulator.observations,
     )
@@ -763,74 +837,10 @@ def _optional_nonnegative_int(
     return value
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Capture manager-visible FM20 attribute render events"
-    )
-    parser.add_argument("--pid", type=int, help="FM20 host PID; auto-detected")
-    parser.add_argument(
-        "--duration",
-        type=float,
-        default=30.0,
-        help="seconds to collect after GDB is attached (default: 30)",
-    )
-    parser.add_argument(
-        "--attribute",
-        action="append",
-        choices=tuple(sorted(ATTRIBUTE_OFFSETS)),
-        help="attribute to capture; repeatable; defaults to the supported set",
-    )
-    parser.add_argument(
-        "--player-id",
-        action="append",
-        type=int,
-        default=[],
-        help="optional player filter; repeatable",
-    )
-    parser.add_argument("--output", type=Path, help="write final JSON to this path")
-    parser.add_argument(
-        "--diagnostic-hits",
-        action="store_true",
-        help="count hook executions and attribute IDs without reading extra values",
-    )
-    parser.add_argument(
-        "--trace-knowledge-cache",
-        action="store_true",
-        help="trace manager-knowledge lookup results without raw attributes",
-    )
-    parser.add_argument(
-        "--trace-knowledge-decision",
-        action="store_true",
-        help="trace FM's explicit, baseline, and combined knowledge levels",
-    )
-    return parser
-
-
 def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    try:
-        result = capture(
-            choose_pid(args.pid),
-            duration_seconds=args.duration,
-            attributes=args.attribute or tuple(sorted(ATTRIBUTE_OFFSETS)),
-            player_ids=args.player_id,
-            diagnostic_hits=args.diagnostic_hits,
-            trace_knowledge_cache=args.trace_knowledge_cache,
-            trace_knowledge_decision=args.trace_knowledge_decision,
-            ready_callback=lambda: print(
-                "Capture armed; redraw the target FM table now.",
-                file=sys.stderr,
-                flush=True,
-            ),
-        )
-    except (CaptureError, ProbeError) as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
-    rendered = json.dumps(result.to_dict(), indent=2)
-    if args.output is not None:
-        args.output.write_text(rendered + "\n", encoding="utf-8")
-    print(rendered)
-    return 0
+    from tools.fm20_visibility_capture_cli import main as cli_main
+
+    return cli_main(argv)
 
 
 if __name__ == "__main__":

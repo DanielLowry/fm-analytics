@@ -10,10 +10,12 @@ from tools.fm20_visibility_capture import (
     KNOWLEDGE_PREFIX,
     KNOWLEDGE_DECISION_PREFIX,
     IDENTITY_PREFIX,
+    REPLAY_PREFIX,
     CaptureAccumulator,
     CaptureError,
     KnowledgeCacheEvent,
     KnowledgeDecisionEvent,
+    ReplayEvent,
     VisibleCaptureEvent,
     build_gdb_environment,
     parse_diagnostic_hit,
@@ -21,6 +23,7 @@ from tools.fm20_visibility_capture import (
     parse_knowledge_event,
     parse_knowledge_decision,
     parse_identity_resolution,
+    parse_replay_event,
     _verify_inferior_alive,
 )
 
@@ -171,6 +174,36 @@ class VisibilityCaptureTests(unittest.TestCase):
                 classification="range",
             ),
         )
+
+    def test_parses_matching_same_cell_replay(self) -> None:
+        event = parse_replay_event(
+            REPLAY_PREFIX
+            + json.dumps(
+                {
+                    "attribute_id": 0x27,
+                    "matched": True,
+                    "player_id": 89065906,
+                }
+            )
+        )
+
+        self.assertEqual(
+            event,
+            ReplayEvent(
+                player_id="89065906",
+                attribute="acceleration",
+                attribute_id="0x27",
+                matched=True,
+            ),
+        )
+
+    def test_rejects_a_replay_mismatch(self) -> None:
+        accumulator = CaptureAccumulator()
+
+        with self.assertRaisesRegex(CaptureError, "replay disagreed"):
+            accumulator.add_replay(
+                ReplayEvent("1", "acceleration", "0x27", matched=False)
+            )
 
     def test_preserves_an_unmapped_knowledge_attribute_id(self) -> None:
         event = parse_knowledge_decision(
@@ -341,6 +374,7 @@ class VisibilityCaptureTests(unittest.TestCase):
             diagnostic_hits=True,
             trace_knowledge_cache=True,
             trace_knowledge_decision=True,
+            replay_same_cell=True,
         )
 
         self.assertEqual(environment["EXISTING"], "yes")
@@ -371,6 +405,11 @@ class VisibilityCaptureTests(unittest.TestCase):
             environment["FMVIS_KNOWLEDGE_DECISION_RESULT_BREAKPOINT"],
             "0x1415a52b5",
         )
+        self.assertEqual(
+            environment["FMVIS_VISIBLE_RESULT_BUILDER_BREAKPOINT"],
+            "0x1415a4a90",
+        )
+        self.assertEqual(environment["FMVIS_REPLAY_SAME_CELL"], "1")
 
     def test_post_detach_liveness_check_rejects_a_missing_process(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

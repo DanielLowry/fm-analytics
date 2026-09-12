@@ -57,6 +57,7 @@ ATTRIBUTE_PAGE = """<!doctype html>
     <div id="warning" class="warning">
       <strong>Hidden-data diagnostic.</strong> Full visibility exposes underlying exact attributes and must not feed recommendations.
       <div class="ack"><label><input id="ack" type="checkbox"> I understand this may reveal hidden information</label></div>
+      <div class="meta">After acknowledgement, Bath City is loaded as the first external comparison team. You can search for any other loaded club.</div>
     </div>
     <div id="search" class="search">
       <input id="team-search" placeholder="Search loaded teams, e.g. Bath City">
@@ -130,7 +131,8 @@ async function reveal() {
   try { const body={mode, acknowledged:acknowledged(), teamId:team.value, playerId:player.value||null}; const data=await request('/api/attributes/query', body); render(data); showStatus(`Loaded ${data.players.length} player${data.players.length===1?'':'s'} from ${data.team.name}.`); }
   catch (error) { showStatus(error.message, true); } finally { get('reveal').disabled=false; }
 }
-for (const radio of document.querySelectorAll('input[name=mode]')) radio.addEventListener('change', () => { const full=currentMode()==='full'; get('warning').classList.toggle('visible',full); get('search').classList.toggle('visible',full); get('results').replaceChildren(); if (!full) loadManaged(); else { setTeams([]); setPlayers([]); showStatus('Acknowledge the warning, then search for a team.'); } });
+for (const radio of document.querySelectorAll('input[name=mode]')) radio.addEventListener('change', () => { const full=currentMode()==='full'; get('warning').classList.toggle('visible',full); get('search').classList.toggle('visible',full); get('results').replaceChildren(); if (!full) loadManaged(); else { setTeams([]); setPlayers([]); get('team-search').value='Bath City'; showStatus('Acknowledge the warning to load Bath City, or enter another team.'); if (acknowledged()) searchTeams(); } });
+get('ack').addEventListener('change', () => { if (currentMode()==='full' && acknowledged()) { if (!get('team-search').value.trim()) get('team-search').value='Bath City'; searchTeams(); } });
 get('search-button').addEventListener('click',searchTeams); get('team-search').addEventListener('keydown',event=>{if(event.key==='Enter')searchTeams();});
 team.addEventListener('change',loadPlayers); get('reveal').addEventListener('click',reveal); loadManaged();
 </script></body></html>

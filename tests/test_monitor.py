@@ -76,6 +76,7 @@ class MonitorTests(unittest.TestCase):
         self.assertIn('value="in-game" checked', ATTRIBUTE_PAGE)
         self.assertIn('value="full"', ATTRIBUTE_PAGE)
         self.assertIn("underlying exact attributes", ATTRIBUTE_PAGE)
+        self.assertIn("Bath City", ATTRIBUTE_PAGE)
 
     def test_full_visibility_requires_explicit_acknowledgement(self) -> None:
         with self.assertRaisesRegex(ValueError, "explicit acknowledgement"):

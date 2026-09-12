@@ -10,6 +10,7 @@ HIT_PREFIX = "FMVIS_HIT "
 KNOWLEDGE_PREFIX = "FMVIS_KNOWLEDGE "
 KNOWLEDGE_DECISION_PREFIX = "FMVIS_KNOWLEDGE_DECISION "
 IDENTITY_PREFIX = "FMVIS_IDENTITY "
+REPLAY_PREFIX = "FMVIS_REPLAY "
 
 PLAYER_TYPE_OFFSET = 0x6D92778
 PLAYER_FROM_PERSON_OFFSET = 0x1C0
@@ -33,6 +34,36 @@ def _read_uint(inferior, address, size, signed=False):
 
 MODULE_BASE = int(os.environ["FMVIS_MODULE_BASE"], 0)
 EXPECTED_PLAYER_TYPE = MODULE_BASE + PLAYER_TYPE_OFFSET
+VISIBLE_RESULT_ADDRESS = int(os.environ["FMVIS_BREAKPOINT"], 0)
+VISIBLE_RESULT_BUILDER_ADDRESS = int(
+    os.environ["FMVIS_VISIBLE_RESULT_BUILDER_BREAKPOINT"], 0
+)
+REPLAY_ENABLED = os.environ.get("FMVIS_REPLAY_SAME_CELL") == "1"
+BUILDER_CALLS = {}
+REPLAY_STATES = {}
+REPLAY_STARTED = False
+
+
+def _thread_key():
+    thread = gdb.selected_thread()
+    return tuple(thread.ptid) if thread is not None else (0, 0, 0)
+
+
+def _register(name):
+    return int(gdb.parse_and_eval(f"${name}"))
+
+
+def _set_register(name, value):
+    gdb.execute(f"set ${name} = {value:#x}", to_string=True)
+
+
+def _write_uint(inferior, address, value, size=8):
+    inferior.write_memory(address, int(value).to_bytes(size, "little"))
+
+
+def _restore_replay_registers(replay):
+    for register, value in replay["registers"].items():
+        _set_register(register, value)
 
 
 def _identity_at_known_address(inferior, address):
@@ -83,6 +114,36 @@ def _resolve_render_identity(inferior, render_reference):
         return None, "unresolved", None
     identity, _kind = match
     return identity[0], "interface-person", adjustment
+
+
+class _VisibleResultBuilderBreakpoint(gdb.Breakpoint):
+    def __init__(self):
+        super().__init__(f"*{VISIBLE_RESULT_BUILDER_ADDRESS:#x}", internal=True)
+
+    def stop(self):
+        try:
+            thread_key = _thread_key()
+            # A second hit on this thread is the replay itself. Keep the
+            # original call contract rather than replacing it with our call.
+            if thread_key in REPLAY_STATES:
+                return False
+            inferior = gdb.selected_inferior()
+            stack_pointer = _register("rsp")
+            BUILDER_CALLS[thread_key] = {
+                "arg5": _read_uint(inferior, stack_pointer + 0x28, 8),
+                "arg6": _read_uint(inferior, stack_pointer + 0x30, 8),
+                "attribute_id": _register("r9") & 0xFF,
+                "context": _register("rcx"),
+                "render_reference": _register("r8"),
+                "result_address": _register("rdx"),
+            }
+        except Exception as exc:
+            error = {"message": f"{type(exc).__name__}: {exc}"}
+            gdb.write(ERROR_PREFIX + json.dumps(error, sort_keys=True) + "\n")
+            gdb.flush()
+        return False
+
+
 class _VisibleResultBreakpoint(gdb.Breakpoint):
     def __init__(self):
         address = int(os.environ["FMVIS_BREAKPOINT"], 0)
@@ -92,8 +153,33 @@ class _VisibleResultBreakpoint(gdb.Breakpoint):
         self.diagnostic_hits = os.environ.get("FMVIS_DIAGNOSTIC_HITS") == "1"
 
     def stop(self):
+        global REPLAY_STARTED
+        thread_key = None
         try:
             inferior = gdb.selected_inferior()
+            thread_key = _thread_key()
+            replay = REPLAY_STATES.pop(thread_key, None)
+            if replay is not None:
+                # Read only FM's two public bound bytes. The builder also
+                # writes a third internal byte, which this harness never reads.
+                replay_visible = bytes(
+                    inferior.read_memory(replay["scratch_address"], 2)
+                )
+                matched = replay_visible == replay["visible"]
+                replay_event = {
+                    "attribute_id": replay["attribute_id"],
+                    "matched": matched,
+                    "player_id": replay["player_id"],
+                }
+                gdb.write(
+                    REPLAY_PREFIX
+                    + json.dumps(replay_event, sort_keys=True)
+                    + "\n"
+                )
+                gdb.flush()
+                _restore_replay_registers(replay)
+                return False
+
             attribute_id = int(gdb.parse_and_eval("$r14")) & 0xFF
             if self.diagnostic_hits:
                 hit = {"attribute_id": attribute_id}
@@ -134,7 +220,67 @@ class _VisibleResultBreakpoint(gdb.Breakpoint):
             }
             gdb.write(EVENT_PREFIX + json.dumps(event, sort_keys=True) + "\n")
             gdb.flush()
+
+            if REPLAY_ENABLED and not REPLAY_STARTED:
+                call = BUILDER_CALLS.get(thread_key)
+                if call is None:
+                    raise RuntimeError("visible result has no captured builder call")
+                if call["attribute_id"] != attribute_id:
+                    raise RuntimeError("builder attribute does not match visible result")
+                if call["render_reference"] != render_reference:
+                    raise RuntimeError("builder player does not match visible result")
+                if call["result_address"] != result_address:
+                    raise RuntimeError("builder destination does not match visible result")
+
+                current_stack = _register("rsp")
+                if current_stack & 0xF:
+                    raise RuntimeError("post-call stack is not 16-byte aligned")
+                replay_stack = current_stack - 0x108
+                if replay_stack & 0xF != 8:
+                    raise RuntimeError("replay entry stack has invalid ABI alignment")
+
+                # The renderer owns three bytes at rbp-0x40 for the original
+                # result and a 16-byte context at rbp-0x30. Static inspection
+                # leaves rbp-0x38..-0x31 as an unused eight-byte gap, so use
+                # its first three bytes as the replay destination.
+                scratch_address = _register("rbp") - 0x38
+                registers = {
+                    name: _register(name)
+                    for name in (
+                        "rax",
+                        "rcx",
+                        "rdx",
+                        "r8",
+                        "r9",
+                        "r10",
+                        "r11",
+                        "rsp",
+                        "eflags",
+                    )
+                }
+                REPLAY_STATES[thread_key] = {
+                    "attribute_id": attribute_id,
+                    "player_id": player_id,
+                    "registers": registers,
+                    "scratch_address": scratch_address,
+                    "visible": visible,
+                }
+                REPLAY_STARTED = True
+
+                _write_uint(inferior, replay_stack, VISIBLE_RESULT_ADDRESS)
+                _write_uint(inferior, replay_stack + 0x28, call["arg5"])
+                _write_uint(inferior, replay_stack + 0x30, call["arg6"])
+                _set_register("rcx", call["context"])
+                _set_register("rdx", scratch_address)
+                _set_register("r8", call["render_reference"])
+                _set_register("r9", call["attribute_id"])
+                _set_register("rsp", replay_stack)
+                _set_register("rip", VISIBLE_RESULT_BUILDER_ADDRESS)
         except Exception as exc:
+            if thread_key is not None:
+                replay = REPLAY_STATES.pop(thread_key, None)
+                if replay is not None:
+                    _restore_replay_registers(replay)
             error = {"message": f"{type(exc).__name__}: {exc}"}
             gdb.write(ERROR_PREFIX + json.dumps(error, sort_keys=True) + "\n")
             gdb.flush()
@@ -207,11 +353,6 @@ class _KnowledgeResultBreakpoint(gdb.Breakpoint):
 
 PENDING_KNOWLEDGE_DECISIONS = {}
 CURRENT_KNOWLEDGE_CONTEXT = {}
-
-
-def _thread_key():
-    thread = gdb.selected_thread()
-    return tuple(thread.ptid) if thread is not None else (0, 0, 0)
 
 
 class _KnowledgeContextEntryBreakpoint(gdb.Breakpoint):
@@ -347,6 +488,8 @@ class _KnowledgeDecisionResultBreakpoint(gdb.Breakpoint):
         return False
 
 
+if REPLAY_ENABLED:
+    _VisibleResultBuilderBreakpoint()
 _VisibleResultBreakpoint()
 if os.environ.get("FMVIS_TRACE_KNOWLEDGE_CACHE") == "1":
     _KnowledgeResultBreakpoint()
