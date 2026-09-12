@@ -52,4 +52,15 @@ jobs:
           uv run --no-sync fm-bridge --host 127.0.0.1 --port 5072 &
           bridge_pid=$!
           trap 'kill "$bridge_pid"' EXIT
-          uv run --no-sync python -c "from fm_analytics.api import BridgeClient; assert BridgeClient('http://127.0.0.1:5072').get_health().is_ready"
+          uv run --no-sync python -c "
+          import time, sys
+          from fm_analytics.api import BridgeClient
+          for attempt in range(20):
+              try:
+                  assert BridgeClient('http://127.0.0.1:5072').get_health().is_ready
+                  sys.exit(0)
+              except Exception:
+                  if attempt == 19:
+                      raise
+                  time.sleep(0.5)
+          "

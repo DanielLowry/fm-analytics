@@ -98,8 +98,9 @@ The cache-independent MVP route is now a read-only reimplementation of the
 verified classification, threshold selection, and range-building logic,
 checked against passive captures. All 208 Physical thresholds from 26 players
 match the four recovered position profiles, and FM's exact raw-position-rating
-selector reproduces every profile choice. Effective manager knowledge,
-report-quality inputs, and the discoverable-player collection remain open.
+selector reproduces every profile choice. The three-way effective-knowledge
+merge is also reproduced, but the baseline relationship value, report-object
+inputs, and discoverable-player collection still need safe live sources.
 Separately, knowing how to calculate visibility is not permission to enumerate
 the hidden database.
 
@@ -111,12 +112,11 @@ first run returned 17 players and 697 observations (41 per player); all 136
 Physical observations matched the previous UI export. It rejects external
 targets, for which the builder/discoverability work above remains mandatory.
 
-The latest bounded trace detached normally and FM remained responsive on its
-original PID. A contradictory process check came from a restricted namespace
-that could not see the external game process and was discarded. The speculative
-render-wrapper scan has nevertheless been removed, identity resolution now
-follows FM's own runtime interface adjustment, and future runs verify liveness
-from the same host-visible context used for attachment.
+Earlier bounded passive traces detached normally and left FM responsive. A
+later chained direct-call experiment caused the crash described above, so that
+path has been removed. Identity resolution follows FM's own runtime interface
+adjustment, and any future liveness checks use the same host-visible context as
+the game process.
 
 ## Prerequisites
 

@@ -189,9 +189,9 @@ def thresholds_for_attribute(
 ) -> VisibilityThresholds:
     """Return the supported build's thresholds, failing closed on gaps.
 
-    Position-family selection is intentionally an explicit input. FM selects
-    the profile from internal position ratings; that selection rule has not yet
-    been fully reproduced and must not be guessed from a display position.
+    Position-family selection is intentionally an explicit input for this
+    low-level lookup. Use :func:`select_position_family` with FM's raw position
+    ratings rather than guessing from its display labels.
     """
 
     if not isinstance(position_family, PositionFamily):
