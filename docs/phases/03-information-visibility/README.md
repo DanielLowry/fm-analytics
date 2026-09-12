@@ -38,6 +38,28 @@ and split position and attribute columns, so owned-squad pages are merged by
 unique normalized name and then bound to live IDs. Duplicate squad names fail
 closed; this narrow exception does not apply to external-player searches.
 
+Render-path tracing is now a first-class automatic extraction option. A bounded
+hardware-watchpoint experiment separated FM's raw 1--20 normalization getter
+from a downstream function that classifies exact, ranged, and unknown results
+for formatting. A research-only resolver locates transient trace addresses and
+display-path identifiers without reading attribute values. The preferred result
+is a verified reimplementation of FM's visibility calculation; passive capture
+at the newly identified result boundary is second, and invoking an internal
+function remains the riskiest option.
+
+The same getter/caller path has now been observed while FM redraws an external
+club's Physical squad table. At the pre-format boundary FM still exposes the
+player object, attribute identifier, and visible result, making a single
+visibility-safe table capture hook a plausible route to bulk discovery. The
+capture must consume only visible bound/sentinel bytes and explicitly exclude
+the structure's concealed-value byte.
+
+`decode_visible_bound_bytes` now enforces that rule in the bridge: it accepts
+exactly the two visible bytes, maps equal values to `known`, ordered unequal
+values to `range`, and the paired `0xff` sentinel to `unknown`. Partial
+sentinels, reversed bounds, and values outside 1--20 fail closed. Its API has no
+argument for the concealed third byte.
+
 ## Prerequisites
 
 - Phase 00 has proved safe live reads on the supported environment

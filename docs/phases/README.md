@@ -17,7 +17,7 @@ are hypotheses, not promises about implementation.
 | [00 — Data access](00-data-access/README.md) | Prove safe, repeatable access to a running FM20 save | Complete | Proven on Linux/Proton; mutation soak deferred | Existing fixture prototype |
 | [01 — Extraction API](01-extraction-api/README.md) | Supply stable, observable inputs for the MVP | In progress | Execution-ready | 00 |
 | [02 — Persistence](02-persistence/README.md) | Retain the observations and provenance needed to reproduce decisions | In progress | Detailed | 01 |
-| [03 — Information visibility](03-information-visibility/README.md) | Enforce field knowledge and the discoverable-player boundary | In progress | Strict UI import/count contract; real export validation outstanding | 00–02 |
+| [03 — Information visibility](03-information-visibility/README.md) | Enforce field knowledge and the discoverable-player boundary | In progress | Pre-format visibility boundary verified; passive capture integration underway | 00–02 |
 | [04 — Squad model](04-squad-analytics/README.md) | Explain role suitability, baseline-tactic fit, depth, and weaknesses | In progress | Three tactics, role scoring, and weakness pass implemented | 02–03 |
 | [05 — Tactic and XI selection](05-xi-optimisation/README.md) | Recommend a valid baseline tactic and lineup jointly | In progress | Joint assignment, readiness, and explainable bench implemented | 04 |
 | [06 — Recruitment](06-recruitment/README.md) | Convert weaknesses into uncertainty-aware visible-player shortlists | In progress | Brief, bounded shortlist, and export-count gate implemented | 03–05 |
