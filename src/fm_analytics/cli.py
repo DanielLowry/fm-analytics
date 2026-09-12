@@ -27,7 +27,9 @@ from fm_analytics.domain import GameState, Player, Squad
 from fm_analytics.imports import (
     FmHtmlExport,
     merge_fm_html_exports,
+    merge_fm_squad_html_exports,
     parse_fm_html_export,
+    parse_fm_squad_html_export,
     verify_export_completeness,
 )
 from fm_analytics.persistence import SnapshotStore
@@ -122,12 +124,23 @@ def load_html_import(paths: Sequence[Path]) -> FmHtmlExport:
     )
 
 
+def load_squad_html_import(paths: Sequence[Path]) -> FmHtmlExport:
+    return merge_fm_squad_html_exports(
+        tuple(
+            parse_fm_squad_html_export(
+                path.read_text(encoding="utf-8", errors="replace")
+            )
+            for path in paths
+        )
+    )
+
+
 def render_html_import(
     paths: Sequence[Path],
     *,
     expected_players: int | None = None,
 ) -> str:
-    combined = load_html_import(paths)
+    combined = load_squad_html_import(paths)
     completeness = (
         verify_export_completeness(
             combined,
@@ -174,10 +187,36 @@ def render_recommendation(
     club_name = squad.club.name if squad.club else "No controlled club"
     lines = [
         f"MVP recommendation for {club_name} on {game.game_date.isoformat()}",
+    ]
+    required_attributes = {
+        attribute.name
+        for role in MVP_CATALOGUE.roles.values()
+        for attribute in role.attributes
+    }
+    provided_attributes = {
+        name for player in squad.players for name in player.attributes
+    }
+    missing_attributes = tuple(sorted(required_attributes - provided_attributes))
+    lines.append(
+        f"Attribute coverage: {len(required_attributes) - len(missing_attributes)}"
+        f"/{len(required_attributes)} role inputs"
+    )
+    if missing_attributes:
+        lines.extend(
+            (
+                "Warning: partial squad export; football scores are provisional.",
+                "Missing role inputs: " + ", ".join(missing_attributes),
+            )
+        )
+    else:
+        lines.append("Attribute coverage: complete")
+    lines.extend(
+        (
         "",
         "Tactic comparison",
         "-----------------",
-    ]
+        )
+    )
     for evaluation in recommendation.evaluations:
         status = "legal XI" if evaluation.has_legal_xi else (
             "missing " + ", ".join(slot.key for slot in evaluation.unfilled_slots)
@@ -339,7 +378,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             briefs = ()
             shortlists = ()
             if args.recommend:
-                squad_export = load_html_import(args.fm_html)
+                squad_export = load_squad_html_import(args.fm_html)
                 if args.fm_html_player_count is not None:
                     verify_export_completeness(
                         squad_export,

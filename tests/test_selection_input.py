@@ -3,7 +3,7 @@ from datetime import date
 
 from fm_analytics.analytics import overlay_squad_export
 from fm_analytics.domain import Club, Player, Squad, Visibility
-from fm_analytics.imports import parse_fm_html_export
+from fm_analytics.imports import parse_fm_html_export, parse_fm_squad_html_export
 
 
 def squad() -> Squad:
@@ -52,7 +52,7 @@ class SelectionInputTests(unittest.TestCase):
         self.assertEqual(result.extra_export_player_ids, ("2",))
 
     def test_rejects_missing_squad_player(self) -> None:
-        with self.assertRaisesRegex(ValueError, "missing player UIDs"):
+        with self.assertRaisesRegex(ValueError, "missing players"):
             overlay_squad_export(squad(), parse_fm_html_export(export(uid="3")))
 
     def test_rejects_identity_name_conflict(self) -> None:
@@ -61,6 +61,24 @@ class SelectionInputTests(unittest.TestCase):
                 squad(),
                 parse_fm_html_export(export(name="Different Person")),
             )
+
+    def test_name_only_stock_view_binds_to_live_id_and_keeps_live_position(self) -> None:
+        html = """
+        <table>
+          <tr><th>Name</th><th>Acc</th><th>Pac</th></tr>
+          <tr><td>Alex Exact</td><td>12</td><td>13</td></tr>
+        </table>
+        """
+
+        result = overlay_squad_export(
+            squad(),
+            parse_fm_squad_html_export(html),
+        )
+
+        player = result.squad.players[0]
+        self.assertEqual(player.id, "1")
+        self.assertEqual(player.positions, ("MC",))
+        self.assertEqual(player.attributes["pace"].value, 13)
 
 
 if __name__ == "__main__":

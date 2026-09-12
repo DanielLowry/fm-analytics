@@ -40,6 +40,7 @@ class RecommendationCliTests(unittest.TestCase):
 
         self.assertEqual(status, 0)
         self.assertIn("MVP recommendation", output.getvalue())
+        self.assertIn("football scores are provisional", output.getvalue())
         self.assertIn("Best feasible partial XI", output.getvalue())
         self.assertIn("Substitutes", output.getvalue())
         self.assertIn("Weak points", output.getvalue())

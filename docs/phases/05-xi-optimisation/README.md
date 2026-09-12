@@ -21,6 +21,12 @@ slot they can cover, their primary assignment, and any collective coverage
 gaps. This is a deliberately transparent MVP heuristic rather than a claim
 about competition-specific bench rules or match-state substitution planning.
 
+The full pipeline has now run against a real unchanged-save Physical export.
+It produced a feasible partial XI and exposed the squad's missing left-sided
+role. Because only 8 of 32 role inputs were exported, the CLI now labels those
+scores provisional and lists the missing inputs; this is a pipeline validation,
+not yet the accepted football recommendation.
+
 ## Outcome
 
 Recommend an opponent-neutral tactical template, legal starting XI, and

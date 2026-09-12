@@ -3,8 +3,10 @@ import unittest
 from fm_analytics.domain import Visibility
 from fm_analytics.imports import (
     merge_fm_html_exports,
+    merge_fm_squad_html_exports,
     parse_attribute_cell,
     parse_fm_html_export,
+    parse_fm_squad_html_export,
     verify_export_completeness,
 )
 
@@ -28,6 +30,22 @@ HTML = """
     </tr>
   </table>
 </body></html>
+"""
+
+SQUAD_GENERAL_HTML = """
+<table>
+  <tr><th>Name</th><th>Position</th><th>Nat</th></tr>
+  <tr><td>Alex Exact</td><td>M/AM (LC)</td><td>ENG</td></tr>
+  <tr><td>Jamie Range</td><td>D (RC), DM</td><td>WAL</td></tr>
+</table>
+"""
+
+SQUAD_PHYSICAL_HTML = """
+<table>
+  <tr><th>Name</th><th>Acc</th><th>Nat</th><th>Pac</th></tr>
+  <tr><td>Alex Exact</td><td>15</td><td>14</td><td>13</td></tr>
+  <tr><td>Jamie Range</td><td>10-14</td><td>?</td><td>12</td></tr>
+</table>
 """
 
 
@@ -132,6 +150,26 @@ class FmHtmlImportTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "at least 1"):
             verify_export_completeness(export, expected_players=0)
+
+    def test_parses_and_merges_stock_partial_squad_views_by_unique_name(self) -> None:
+        general = parse_fm_squad_html_export(SQUAD_GENERAL_HTML)
+        physical = parse_fm_squad_html_export(SQUAD_PHYSICAL_HTML)
+
+        combined = merge_fm_squad_html_exports((general, physical))
+
+        self.assertEqual(len(combined.players), 2)
+        alex = combined.players[0]
+        self.assertEqual(alex.id, "squad-name:alex exact")
+        self.assertEqual(alex.positions, ("ML", "MC", "AML", "AMC"))
+        self.assertEqual(alex.attributes["acceleration"].value, 15)
+        self.assertEqual(alex.attributes["naturalFitness"].value, 14)
+        self.assertNotIn("nationality", alex.attributes)
+
+    def test_squad_name_only_identity_rejects_duplicate_names(self) -> None:
+        duplicate = SQUAD_PHYSICAL_HTML.replace("Jamie Range", "Alex Exact")
+
+        with self.assertRaisesRegex(ValueError, "name-only identity is unsafe"):
+            parse_fm_squad_html_export(duplicate)
 
 
 if __name__ == "__main__":

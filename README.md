@@ -48,13 +48,17 @@ uv run fm-analytics --fm-html squad.html player-search-page-*.html \
   --fm-html-player-count 87
 ```
 
-Create the files from the relevant FM20 Squad or Player Search view with
-`Ctrl+P` and Web Page/HTML selected. The view must contain `UID`, `Name`,
-`Position`, and the desired attribute columns. This import path is currently a
-visibility-safe MVP candidate: it parses exact values, ranges, and unknowns,
-and combines paginated exports. Supplying the count shown in the unchanged FM
-view makes the CLI require that exact number of unique UIDs after merging; a
-missing or extra row fails the import.
+Create the files from the relevant FM20 Squad view with `Ctrl+P` and Web
+Page/HTML selected. Stock FM20 views split attributes by category, so
+`--fm-html` accepts several General, Physical, Mental, Technical, and
+Goalkeeping exports. It merges them by unique squad name before binding them to
+the live bridge IDs; duplicate names fail closed. Supplying the count shown in
+the unchanged FM view requires that exact number of unique players after
+merging, so a missing or extra row fails the import.
+
+The CLI reports how many of the 32 role-model inputs are present. A partial
+export can exercise the pipeline, but all football scores are explicitly
+labelled provisional until required attribute coverage is complete.
 
 Once a complete current-squad export validates, combine its visible attributes
 with live condition and availability to generate the first tactic/XI report:
@@ -80,6 +84,9 @@ refuses to shortlist candidates when merged unique UIDs do not match it.
 
 The command refuses to recommend from the memory probe alone because that
 probe's raw player attributes have not passed the manager-visibility gate.
+External Player Search exports remain stricter than owned-squad exports and
+currently require a `UID` column while their stable identity strategy is
+validated against a real FM20 search export.
 
 To retain an immutable, idempotent squad observation for later recommendations:
 

@@ -16,13 +16,14 @@ In progress. Static research has rejected the pinned framework's raw
 `PlayerAttributes` object as a production visibility source: it contains exact
 underlying values and provides neither manager-knowledge states nor a
 discoverable-player collection. The bridge still excludes these attributes.
-Controlled UI/source comparisons remain outstanding and can be performed
+External-player UI/source comparisons remain outstanding and can be performed
 without advancing the save.
 
 A strict manager-visible HTML import candidate now supports exact, ranged, and
-unknown attribute cells without using memory truth. It remains behind the
-visibility gate until an FM20 export from the real save verifies headers, cell
-syntax, and complete selected-row coverage.
+unknown attribute cells without using memory truth. The first real-save squad
+comparison has verified stock headers, exact physical cells, and selected-row
+coverage. External Player Search membership and ranged/unknown real cells
+remain behind the visibility gate.
 
 The importer now also has a fail-closed completeness check: the caller supplies
 the count displayed by the unchanged FM view, and the merged export must have
@@ -30,6 +31,12 @@ exactly that many unique player UIDs. This detects missed pages, unrendered
 rows, unexpected duplicates, and exporting a different result set. It proves
 count agreement, not yet that FM's export includes all manager-discoverable
 players; that still needs the controlled real-save comparison.
+
+The unchanged-save owned-squad comparison found the same 17 sanitized squad
+identities in two stock FM20 exports and the live bridge. Stock views omit UID
+and split position and attribute columns, so owned-squad pages are merged by
+unique normalized name and then bound to live IDs. Duplicate squad names fail
+closed; this narrow exception does not apply to external-player searches.
 
 ## Prerequisites
 

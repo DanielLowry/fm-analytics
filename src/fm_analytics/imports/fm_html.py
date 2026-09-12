@@ -132,6 +132,58 @@ def merge_fm_html_exports(exports: tuple[FmHtmlExport, ...]) -> FmHtmlExport:
     )
 
 
+def merge_fm_squad_html_exports(
+    exports: tuple[FmHtmlExport, ...],
+) -> FmHtmlExport:
+    """Merge partial owned-squad views using their unique normalized names."""
+    if not exports:
+        raise ValueError("at least one FM squad HTML export is required")
+
+    players_by_id: dict[str, VisibleExportPlayer] = {}
+    headers: list[str] = []
+    for export in exports:
+        if export.source != "fm20-ui-html-squad-name":
+            raise ValueError(f"unsupported FM squad export source {export.source!r}")
+        headers.extend(header for header in export.headers if header not in headers)
+        for player in export.players:
+            existing = players_by_id.get(player.id)
+            if existing is None:
+                players_by_id[player.id] = player
+                continue
+            if existing.name != player.name:
+                raise ValueError(
+                    f"conflicting display names for squad identity {player.id!r}"
+                )
+            if (
+                existing.positions
+                and player.positions
+                and existing.positions != player.positions
+            ):
+                raise ValueError(
+                    f"conflicting positions for exported squad player {player.name!r}"
+                )
+            attributes = dict(existing.attributes)
+            for name, observation in player.attributes.items():
+                if name in attributes and attributes[name] != observation:
+                    raise ValueError(
+                        f"conflicting {name} observations for squad player "
+                        f"{player.name!r}"
+                    )
+                attributes[name] = observation
+            players_by_id[player.id] = VisibleExportPlayer(
+                id=player.id,
+                name=player.name,
+                positions=existing.positions or player.positions,
+                attributes=attributes,
+            )
+
+    return FmHtmlExport(
+        source="fm20-ui-html-squad-name",
+        headers=tuple(headers),
+        players=tuple(players_by_id.values()),
+    )
+
+
 def parse_attribute_cell(value: str) -> AttributeObservation:
     text = _cell_text(value)
     if text.casefold() in _UNKNOWN_CELLS:
@@ -172,13 +224,10 @@ def parse_fm_html_export(
     uid_index = _required_header(header_indexes, "UID")
     name_index = _required_header(header_indexes, "Name")
     position_index = _required_header(header_indexes, "Position")
-    attribute_indexes = tuple(
-        (
-            header_indexes[header.casefold()],
-            canonical_name,
-        )
-        for header, canonical_name in attribute_headers.items()
-        if header.casefold() in header_indexes
+    attribute_indexes = _recognized_attribute_indexes(
+        normalized_headers,
+        header_indexes,
+        attribute_headers,
     )
     if not attribute_indexes:
         raise ValueError("FM export contains no recognized attribute columns")
@@ -219,6 +268,79 @@ def parse_fm_html_export(
     )
 
 
+def parse_fm_squad_html_export(
+    html: str,
+    *,
+    attribute_headers: Mapping[str, str] = FM20_ATTRIBUTE_HEADERS,
+) -> FmHtmlExport:
+    """Parse one partial stock squad view for later live-identity binding."""
+    parser = _TableParser()
+    parser.feed(html)
+    parser.close()
+    headers, rows = _select_squad_table(parser.tables)
+
+    normalized_headers = tuple(_cell_text(header) for header in headers)
+    if len({header.casefold() for header in normalized_headers}) != len(
+        normalized_headers
+    ):
+        raise ValueError("FM squad export column headers must be unique")
+    header_indexes = {
+        header.casefold(): index for index, header in enumerate(normalized_headers)
+    }
+    name_index = _required_header(header_indexes, "Name")
+    position_index = header_indexes.get("position")
+    attribute_indexes = _recognized_attribute_indexes(
+        normalized_headers,
+        header_indexes,
+        attribute_headers,
+    )
+    if position_index is None and not attribute_indexes:
+        raise ValueError(
+            "FM squad export requires Position or recognized attribute columns"
+        )
+
+    players: list[VisibleExportPlayer] = []
+    seen_ids: set[str] = set()
+    for row_number, row in enumerate(rows, start=2):
+        if len(row) != len(normalized_headers):
+            raise ValueError(
+                f"FM squad export row {row_number} has {len(row)} cells; "
+                f"expected {len(normalized_headers)}"
+            )
+        name = _cell_text(row[name_index])
+        if not name:
+            raise ValueError(f"FM squad export row {row_number} requires Name")
+        player_id = "squad-name:" + _identity_name(name)
+        if player_id in seen_ids:
+            raise ValueError(
+                f"FM squad export contains duplicate player name {name!r}; "
+                "name-only identity is unsafe"
+            )
+        seen_ids.add(player_id)
+        players.append(
+            VisibleExportPlayer(
+                id=player_id,
+                name=name,
+                positions=(
+                    parse_positions(row[position_index])
+                    if position_index is not None
+                    else ()
+                ),
+                attributes={
+                    canonical_name: parse_attribute_cell(row[index])
+                    for index, canonical_name in attribute_indexes
+                },
+            )
+        )
+    if not players:
+        raise ValueError("FM squad export contains no player rows")
+    return FmHtmlExport(
+        source="fm20-ui-html-squad-name",
+        headers=normalized_headers,
+        players=tuple(players),
+    )
+
+
 def parse_positions(value: str) -> tuple[str, ...]:
     positions: list[str] = []
     for part in (_cell_text(item) for item in value.split(",")):
@@ -249,6 +371,28 @@ def _cell_text(value: str) -> str:
     return " ".join(value.split())
 
 
+def _identity_name(value: str) -> str:
+    return _cell_text(value).casefold()
+
+
+def _recognized_attribute_indexes(
+    headers: tuple[str, ...],
+    header_indexes: Mapping[str, int],
+    attribute_headers: Mapping[str, str],
+) -> tuple[tuple[int, str], ...]:
+    del headers
+    physical_context = bool(
+        {"acc", "agi", "bal", "jum", "pac", "sta", "str"}
+        & set(header_indexes)
+    )
+    return tuple(
+        (header_indexes[header.casefold()], canonical_name)
+        for header, canonical_name in attribute_headers.items()
+        if header.casefold() in header_indexes
+        and (header.casefold() != "nat" or physical_context)
+    )
+
+
 def _required_header(indexes: Mapping[str, int], name: str) -> int:
     try:
         return indexes[name.casefold()]
@@ -267,6 +411,19 @@ def _select_player_table(
         if {"uid", "name", "position"}.issubset(normalized):
             return headers, table[1:]
     raise ValueError("no FM player table with UID, Name, and Position was found")
+
+
+def _select_squad_table(
+    tables: tuple[tuple[tuple[str, ...], ...], ...]
+) -> tuple[tuple[str, ...], tuple[tuple[str, ...], ...]]:
+    for table in tables:
+        if not table:
+            continue
+        headers = table[0]
+        normalized = {_cell_text(header).casefold() for header in headers}
+        if "name" in normalized:
+            return headers, table[1:]
+    raise ValueError("no FM squad table with Name was found")
 
 
 class _TableParser(HTMLParser):
