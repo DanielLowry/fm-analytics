@@ -88,13 +88,20 @@ Acceleration observations with their decisions without a single mismatch. It
 also captured a complete 208-cell knowledge matrix for the table's eight
 Physical columns. Future decision traces enforce this agreement fail-closed.
 
-The next cache-independent experiment targets FM's visible-result builder
-rather than the table's rendered-string cache. Its complete call site has now
-been identified statically. Any replay begins with the same player and attribute
-on the original render thread and remains research-only until its calling
-contract and non-mutation behavior are verified. Separately, the player inputs
-must come from a UI-verified discoverable universe; the builder is not permission
-to enumerate the hidden database.
+The visible-result builder's call site has been identified statically. Two
+same-cell Acceleration replays matched FM's public two-byte result exactly, but
+an experiment that chained a different attribute was followed by an FM crash.
+The multi-call path has been removed. Direct invocation is not an application
+data source; the retained same-cell option is research-only calibration.
+
+The cache-independent MVP route is now a read-only reimplementation of the
+verified classification, threshold selection, and range-building logic,
+checked against passive captures. All 208 Physical thresholds from 26 players
+match the four recovered position profiles, and FM's exact raw-position-rating
+selector reproduces every profile choice. Effective manager knowledge,
+report-quality inputs, and the discoverable-player collection remain open.
+Separately, knowing how to calculate visibility is not permission to enumerate
+the hidden database.
 
 As a concrete MVP checkpoint, a standalone owned-squad source now performs a
 fresh, read-only, cache-independent live query by managed team or player. Owned
