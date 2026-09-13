@@ -28,7 +28,6 @@ pid = int(os.environ["FM_COLD_PID"])
 module_base = int(os.environ["FM_COLD_MODULE_BASE"], 0)
 context = int(os.environ["FM_COLD_CONTEXT"], 0)
 player = int(os.environ["FM_COLD_PLAYER_INTERFACE"], 0)
-manager = int(os.environ["FM_COLD_MANAGER_INTERFACE"], 0)
 attribute = int(os.environ["FM_COLD_ATTRIBUTE_ID"], 0)
 thread = next(
     item for item in gdb.selected_inferior().threads()
@@ -55,7 +54,7 @@ return_trap = module_base + 0x15A4A84
 put(call_rsp, return_trap)
 put(call_rsp + 0x28, 0)  # optional report object
 put(call_rsp + 0x30, small_context)
-put(small_context, manager)
+put(small_context, 0)
 put(small_context + 8, 1)
 put(result, 0xFFFFFFFFFFFFFFFF)
 

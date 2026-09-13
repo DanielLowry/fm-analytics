@@ -132,8 +132,15 @@ active-manager and player-uniqueness checks) now has dedicated tests against a
 synthetic memory graph, and both cold-call tools gained a `--dry-run` mode plus
 a louder failure when a timed-out call is force-abandoned mid-flight. Fresh
 same-session calls reproduced both previously recorded cells for an unopened
-Lincoln City player exactly; a fresh-FM-session repeat, in-UI confirmation, and
-the optional report-object source remain open.
+Lincoln City player exactly. A fresh-FM-session repeat and in-UI confirmation
+then found two false positives (Sheringham's Finishing, Grimshaw's Reflexes).
+A passive hook on FM's real builder-call arguments -- never calling into FM --
+found the cause: the cold-call tools fabricated the builder's small
+caller-context argument's first 8 bytes as the manager pointer, but FM's own
+calls always pass zero there. Fixing that eliminated all 11 false positives
+across a 97-attribute sweep of three players with no regressions. A second,
+call-varying field in that same argument remains unexplained but unproven to
+matter; the optional report-object argument's non-null case remains open.
 
 As a concrete MVP checkpoint, an owned-squad source now performs a
 fresh, read-only, cache-independent live query by managed team or player. Owned

@@ -84,7 +84,6 @@ def cold_query(pid: int, player_id: int, attribute: str) -> tuple[int, int]:
     module_base = int(inputs["FM_COLD_MODULE_BASE"], 0)
     context = int(inputs["FM_COLD_CONTEXT"], 0)
     player = int(inputs["FM_COLD_PLAYER_INTERFACE"], 0)
-    manager = int(inputs["FM_COLD_MANAGER_INTERFACE"], 0)
     builder = module_base + 0x15A4A90
     return_trap = module_base + 0x15A4A84  # verified INT3 padding
     fd = -1
@@ -108,7 +107,7 @@ def cold_query(pid: int, player_id: int, attribute: str) -> tuple[int, int]:
         write_int(fd, call_rsp, return_trap)
         write_int(fd, call_rsp + 0x28, 0)  # optional report object
         write_int(fd, call_rsp + 0x30, small_context)
-        write_int(fd, small_context, manager)
+        write_int(fd, small_context, 0)
         write_int(fd, small_context + 8, 1)
         write_int(fd, result, 0xFFFFFFFFFFFFFFFF)
 
