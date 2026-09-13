@@ -11,6 +11,7 @@ KNOWLEDGE_PREFIX = "FMVIS_KNOWLEDGE "
 KNOWLEDGE_DECISION_PREFIX = "FMVIS_KNOWLEDGE_DECISION "
 IDENTITY_PREFIX = "FMVIS_IDENTITY "
 REPLAY_PREFIX = "FMVIS_REPLAY "
+BASELINE_HELPER_PREFIX = "FMVIS_BASELINE_HELPER "
 
 PLAYER_TYPE_OFFSET = 0x6D92778
 PLAYER_FROM_PERSON_OFFSET = 0x1C0
@@ -353,6 +354,132 @@ class _KnowledgeResultBreakpoint(gdb.Breakpoint):
 
 PENDING_KNOWLEDGE_DECISIONS = {}
 CURRENT_KNOWLEDGE_CONTEXT = {}
+PENDING_BASELINE_HELPERS = {}
+DYNAMIC_RELATIONSHIP_BY_THREAD = {}
+
+
+class _DynamicRelationshipScoreBreakpoint(gdb.Breakpoint):
+    def __init__(self):
+        address = int(os.environ["FMVIS_DYNAMIC_SCORE_BREAKPOINT"], 0)
+        super().__init__(f"*{address:#x}", internal=True)
+
+    def stop(self):
+        try:
+            DYNAMIC_RELATIONSHIP_BY_THREAD[_thread_key()] = {
+                "player_reference": _register("rdi"),
+                "dynamic_score": _register("rax") & 0xFF,
+                "relationship_source_address": _register("rbp"),
+                "relationship_target_address": _register("rbx"),
+            }
+        except Exception as exc:
+            gdb.write(ERROR_PREFIX + json.dumps({"message": str(exc)}) + "\n")
+            gdb.flush()
+        return False
+
+
+class _BaselineSelectorBreakpoint(gdb.Breakpoint):
+    def __init__(self):
+        address = int(os.environ["FMVIS_BASELINE_SELECTOR_BREAKPOINT"], 0)
+        super().__init__(f"*{address:#x}", internal=True)
+
+    def stop(self):
+        try:
+            inferior = gdb.selected_inferior()
+            player_reference = _register("r15")
+            player_id, _status, _offset = _resolve_render_identity(
+                inferior, player_reference
+            )
+            caller_rva = _read_uint(
+                inferior, _register("rsp") + 0x58, 8
+            ) - MODULE_BASE
+            dynamic = DYNAMIC_RELATIONSHIP_BY_THREAD.pop(_thread_key(), None)
+            if caller_rva == 0x15A58D4:
+                if dynamic is None or dynamic["player_reference"] != player_reference:
+                    raise RuntimeError("dynamic baseline has no matching score")
+            else:
+                dynamic = None
+            PENDING_BASELINE_HELPERS.setdefault(_thread_key(), []).append(
+                {
+                    "player_id": player_id,
+                    "observer_address": _register("r14"),
+                    "caller_rva": caller_rva,
+                    "player_selector": _register("rax") & 0xFF,
+                    "relationship_base": _register("rbx") & 0xFF,
+                    "relationship_bonus": False,
+                    "dynamic_score": dynamic["dynamic_score"] if dynamic else None,
+                    "relationship_source_address": (
+                        dynamic["relationship_source_address"] if dynamic else None
+                    ),
+                    "relationship_target_address": (
+                        dynamic["relationship_target_address"] if dynamic else None
+                    ),
+                }
+            )
+        except Exception as exc:
+            gdb.write(ERROR_PREFIX + json.dumps({"message": str(exc)}) + "\n")
+            gdb.flush()
+        return False
+
+
+class _BaselineRatingBreakpoint(gdb.Breakpoint):
+    def __init__(self):
+        address = int(os.environ["FMVIS_BASELINE_RATING_BREAKPOINT"], 0)
+        super().__init__(f"*{address:#x}", internal=True)
+
+    def stop(self):
+        try:
+            pending = PENDING_BASELINE_HELPERS.get(_thread_key(), [])
+            if not pending:
+                raise RuntimeError("baseline rating has no selector entry")
+            pending[-1]["observer_rating"] = _register("rcx") & 0xFF
+        except Exception as exc:
+            gdb.write(ERROR_PREFIX + json.dumps({"message": str(exc)}) + "\n")
+            gdb.flush()
+        return False
+
+
+class _BaselineBonusBreakpoint(gdb.Breakpoint):
+    def __init__(self):
+        address = int(os.environ["FMVIS_BASELINE_BONUS_BREAKPOINT"], 0)
+        super().__init__(f"*{address:#x}", internal=True)
+
+    def stop(self):
+        try:
+            pending = PENDING_BASELINE_HELPERS.get(_thread_key(), [])
+            if not pending:
+                raise RuntimeError("baseline bonus has no selector entry")
+            predicate = _register("rax") & 0xFF
+            if predicate not in (0, 1):
+                raise RuntimeError("baseline bonus predicate is not boolean")
+            pending[-1]["relationship_bonus"] = bool(predicate)
+        except Exception as exc:
+            gdb.write(ERROR_PREFIX + json.dumps({"message": str(exc)}) + "\n")
+            gdb.flush()
+        return False
+
+
+class _BaselineReturnBreakpoint(gdb.Breakpoint):
+    def __init__(self):
+        address = int(os.environ["FMVIS_BASELINE_RETURN_BREAKPOINT"], 0)
+        super().__init__(f"*{address:#x}", internal=True)
+
+    def stop(self):
+        try:
+            pending = PENDING_BASELINE_HELPERS.get(_thread_key(), [])
+            if not pending:
+                raise RuntimeError("baseline result has no selector entry")
+            event = pending.pop()
+            if event["player_id"] is None:
+                return False
+            if "observer_rating" not in event:
+                raise RuntimeError("baseline result has no normalized rating")
+            event["baseline_knowledge"] = _register("rax") & 0xFF
+            gdb.write(BASELINE_HELPER_PREFIX + json.dumps(event, sort_keys=True) + "\n")
+            gdb.flush()
+        except Exception as exc:
+            gdb.write(ERROR_PREFIX + json.dumps({"message": str(exc)}) + "\n")
+            gdb.flush()
+        return False
 
 
 class _KnowledgeContextEntryBreakpoint(gdb.Breakpoint):
@@ -498,6 +625,12 @@ if os.environ.get("FMVIS_TRACE_KNOWLEDGE_DECISION") == "1":
     _KnowledgeDecisionEntryBreakpoint()
     _KnowledgeDecisionMergeBreakpoint()
     _KnowledgeDecisionResultBreakpoint()
+if os.environ.get("FMVIS_TRACE_BASELINE_HELPER") == "1":
+    _DynamicRelationshipScoreBreakpoint()
+    _BaselineSelectorBreakpoint()
+    _BaselineRatingBreakpoint()
+    _BaselineBonusBreakpoint()
+    _BaselineReturnBreakpoint()
 gdb.write("FMVIS_READY\n")
 gdb.flush()
 end

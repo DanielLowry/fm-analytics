@@ -45,6 +45,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="trace FM's explicit, baseline, and combined knowledge levels",
     )
     parser.add_argument(
+        "--trace-baseline-helper", action="store_true",
+        help="trace baseline helper inputs and output without player attributes",
+    )
+    parser.add_argument(
         "--replay-same-cell", action="store_true",
         help="research-only: directly rebuild one rendered cell and compare it",
     )
@@ -62,6 +66,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             diagnostic_hits=args.diagnostic_hits,
             trace_knowledge_cache=args.trace_knowledge_cache,
             trace_knowledge_decision=args.trace_knowledge_decision,
+            trace_baseline_helper=args.trace_baseline_helper,
             replay_same_cell=args.replay_same_cell,
             ready_callback=lambda: print(
                 "Capture armed; redraw the target FM table now.",

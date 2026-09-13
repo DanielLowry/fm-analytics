@@ -45,10 +45,10 @@ hardware-watchpoint experiment separated FM's raw 1--20 normalization getter
 from a downstream function that classifies exact, ranged, and unknown results
 for formatting. A research-only resolver locates transient trace addresses and
 display-path identifiers without reading attribute values. Production requires
-a verified, cache-independent reimplementation of FM's visibility calculation
-and a separately verified discoverable-player collection. Passive capture can
-compare results but cannot supply a complete queryable dataset; invoking FM's
-internal builder is not a production path.
+a separately verified discoverable-player collection and a cache-independent
+attribute query. The preferred attribute route is now a safe cold invocation
+of FM's own visibility logic; reimplementation is Plan B. Passive capture can
+compare results but cannot supply a complete queryable dataset.
 
 The same getter/caller path has now been observed while FM redraws an external
 club's Physical squad table. At the pre-format boundary FM still exposes the
@@ -98,7 +98,7 @@ an experiment that chained a different attribute was followed by an FM crash.
 The multi-call path has been removed. Direct invocation is not an application
 data source; the retained same-cell option is research-only calibration.
 
-The cache-independent MVP route is now a read-only reimplementation of the
+The earlier Plan B research route is a read-only reimplementation of the
 verified classification, threshold selection, and range-building logic,
 checked against passive captures. All 208 Physical thresholds from 26 players
 match the four recovered position profiles, and FM's exact raw-position-rating
@@ -110,6 +110,22 @@ helper, including relationship-dependent base levels; their input fields still
 need mapping and passive validation before external queries.
 Separately, knowing how to calculate visibility is not permission to enumerate
 the hidden database.
+
+The new Plan A inspection found non-render callers of FM's visibility core and
+builder, plus a manager-to-knowledge-context resolver. A read-only live pointer
+join confirmed the sole context belongs to the active human manager. This is
+now backed by a native-call proof: a fixed player-interface relation was
+validated for 500 loaded players, and a direct `ptrace` call on FM's primary
+thread returned two ranges and one unknown result matching earlier UI captures.
+A different attribute selector also returned a range. A player at a club not
+previously opened in the session was queried before UI verification, which is
+pending. The wrappers still fail open when context lookup fails (one returns
+raw exact bytes; another returns the `exact` class), and the core updates
+lookup caches. The research harness is not a production bridge: it does not
+enforce discoverability, batch safely, or finish the side-effect/thread audit.
+The previous different-attribute GDB replay crash was avoided by using a
+separate direct-call mechanism, but it remains a warning against assuming all
+invocation contexts are safe.
 
 As a concrete MVP checkpoint, an owned-squad source now performs a
 fresh, read-only, cache-independent live query by managed team or player. Owned

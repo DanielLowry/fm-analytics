@@ -26,6 +26,11 @@ if __package__ in {None, ""}:
 
 from fm_analytics.bridge.visibility_result import decode_visible_bound_bytes
 from fm_analytics.domain.models import AttributeObservation
+from tools.fm20_baseline_capture_event import (
+    BaselineHelperEvent,
+    configure_baseline_gdb_environment,
+    parse_baseline_helper_event,
+)
 from tools.fm20_linux_probe import (
     FM20_4_4_STEAM,
     ProbeError,
@@ -160,6 +165,7 @@ class CaptureResult:
     knowledge_cache_events: tuple[KnowledgeCacheEvent, ...]
     knowledge_decision_events: tuple[KnowledgeDecisionEvent, ...]
     replay_events: tuple[ReplayEvent, ...]
+    baseline_helper_events: tuple[BaselineHelperEvent, ...]
     raw_event_count: int
     observations: tuple[VisibleCaptureEvent, ...]
     complete: bool = False
@@ -189,6 +195,10 @@ class CaptureResult:
         result.pop("knowledge_decision_events")
         result["replayEvents"] = [event.to_dict() for event in self.replay_events]
         result.pop("replay_events")
+        result["baselineHelperEvents"] = [
+            event.to_dict() for event in self.baseline_helper_events
+        ]
+        result.pop("baseline_helper_events")
         result["observations"] = [event.to_dict() for event in self.observations]
         return result
 
@@ -202,6 +212,7 @@ class CaptureAccumulator:
         self._knowledge_events: set[KnowledgeCacheEvent] = set()
         self._knowledge_decision_events: set[KnowledgeDecisionEvent] = set()
         self._replay_events: set[ReplayEvent] = set()
+        self._baseline_helper_events: set[BaselineHelperEvent] = set()
         self.identity_resolution_counts: dict[str, int] = {}
 
     def add(self, event: VisibleCaptureEvent) -> None:
@@ -238,6 +249,9 @@ class CaptureAccumulator:
                 "direct visible-result replay disagreed with FM's original result"
             )
         self._replay_events.add(event)
+
+    def add_baseline_helper(self, event: BaselineHelperEvent) -> None:
+        self._baseline_helper_events.add(event)
 
     def validate_knowledge_alignment(self) -> None:
         classifications: dict[tuple[str, str], set[str]] = {}
@@ -301,6 +315,15 @@ class CaptureAccumulator:
             sorted(
                 self._replay_events,
                 key=lambda event: (int(event.player_id), event.attribute),
+            )
+        )
+
+    @property
+    def baseline_helper_events(self) -> tuple[BaselineHelperEvent, ...]:
+        return tuple(
+            sorted(
+                self._baseline_helper_events,
+                key=lambda event: (int(event.player_id), event.relationship_base),
             )
         )
 
@@ -519,6 +542,7 @@ def build_gdb_environment(
     diagnostic_hits: bool = False,
     trace_knowledge_cache: bool = False,
     trace_knowledge_decision: bool = False,
+    trace_baseline_helper: bool = False,
     replay_same_cell: bool = False,
 ) -> dict[str, str]:
     environment = dict(base_environment)
@@ -554,6 +578,9 @@ def build_gdb_environment(
         module_base + VISIBLE_RESULT_BUILDER_RVA
     )
     environment["FMVIS_REPLAY_SAME_CELL"] = "1" if replay_same_cell else "0"
+    configure_baseline_gdb_environment(
+        environment, module_base, trace_baseline_helper
+    )
     return environment
 
 
@@ -569,6 +596,7 @@ def capture(
     diagnostic_hits: bool = False,
     trace_knowledge_cache: bool = False,
     trace_knowledge_decision: bool = False,
+    trace_baseline_helper: bool = False,
     replay_same_cell: bool = False,
 ) -> CaptureResult:
     if duration_seconds <= 0:
@@ -587,6 +615,7 @@ def capture(
         diagnostic_hits=diagnostic_hits,
         trace_knowledge_cache=trace_knowledge_cache,
         trace_knowledge_decision=trace_knowledge_decision,
+        trace_baseline_helper=trace_baseline_helper,
         replay_same_cell=replay_same_cell,
     )
     command = [
@@ -636,6 +665,13 @@ def capture(
                 continue
             if line.startswith(ERROR_PREFIX):
                 raise CaptureError(line.removeprefix(ERROR_PREFIX))
+            try:
+                baseline_helper = parse_baseline_helper_event(line)
+            except ValueError as exc:
+                raise CaptureError(str(exc)) from exc
+            if baseline_helper is not None:
+                accumulator.add_baseline_helper(baseline_helper)
+                continue
             knowledge_event = parse_knowledge_event(line)
             if knowledge_event is not None:
                 accumulator.add_knowledge_event(knowledge_event)
@@ -685,6 +721,7 @@ def capture(
         knowledge_cache_events=accumulator.knowledge_events,
         knowledge_decision_events=accumulator.knowledge_decision_events,
         replay_events=accumulator.replay_events,
+        baseline_helper_events=accumulator.baseline_helper_events,
         raw_event_count=accumulator.raw_event_count,
         observations=accumulator.observations,
     )

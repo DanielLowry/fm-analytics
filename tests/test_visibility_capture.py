@@ -4,6 +4,11 @@ import unittest
 from pathlib import Path
 
 from fm_analytics.domain.models import AttributeObservation, Visibility
+from tools.fm20_baseline_capture_event import (
+    BASELINE_HELPER_PREFIX,
+    BaselineHelperEvent,
+    parse_baseline_helper_event,
+)
 from tools.fm20_visibility_capture import (
     EVENT_PREFIX,
     HIT_PREFIX,
@@ -29,6 +34,64 @@ from tools.fm20_visibility_capture import (
 
 
 class VisibilityCaptureTests(unittest.TestCase):
+    def test_parses_and_checks_baseline_helper_event(self) -> None:
+        raw = {
+            "baseline_knowledge": 22,
+            "caller_rva": 0x15A5789,
+            "dynamic_score": None,
+            "observer_address": 0x123400,
+            "observer_rating": 11,
+            "player_id": 89065906,
+            "player_selector": 24,
+            "relationship_base": 20,
+            "relationship_bonus": False,
+            "relationship_source_address": None,
+            "relationship_target_address": None,
+        }
+        event = parse_baseline_helper_event(
+            BASELINE_HELPER_PREFIX + json.dumps(raw)
+        )
+        self.assertEqual(
+            event,
+            BaselineHelperEvent(
+                "89065906", "0x123400", "0x15a5789", 24, 20, 11,
+                False, 22, None, None, None,
+            ),
+        )
+        self.assertEqual(event.to_dict()["baselineKnowledge"], 22)
+
+        raw["baseline_knowledge"] = 23
+        with self.assertRaisesRegex(ValueError, "disagrees with the pure model"):
+            parse_baseline_helper_event(BASELINE_HELPER_PREFIX + json.dumps(raw))
+
+        raw["baseline_knowledge"] = 22
+        raw["concealed_attribute"] = 16
+        with self.assertRaisesRegex(ValueError, "unexpected field contract"):
+            parse_baseline_helper_event(BASELINE_HELPER_PREFIX + json.dumps(raw))
+
+    def test_parses_dynamic_baseline_score_without_player_attributes(self) -> None:
+        raw = {
+            "baseline_knowledge": 12,
+            "caller_rva": 0x15A58D4,
+            "dynamic_score": 100,
+            "observer_address": 0x123400,
+            "observer_rating": 3,
+            "player_id": 89065906,
+            "player_selector": 24,
+            "relationship_base": 40,
+            "relationship_bonus": False,
+            "relationship_source_address": 0x234500,
+            "relationship_target_address": 0x345600,
+        }
+        event = parse_baseline_helper_event(
+            BASELINE_HELPER_PREFIX + json.dumps(raw)
+        )
+        self.assertEqual(event.dynamic_score, 100)
+        self.assertEqual(event.relationship_target_address, "0x345600")
+        raw["dynamic_score"] = None
+        with self.assertRaisesRegex(ValueError, "missing a relationship input"):
+            parse_baseline_helper_event(BASELINE_HELPER_PREFIX + json.dumps(raw))
+
     def test_parses_visible_range_event(self) -> None:
         event = parse_event_line(
             EVENT_PREFIX
@@ -374,6 +437,7 @@ class VisibilityCaptureTests(unittest.TestCase):
             diagnostic_hits=True,
             trace_knowledge_cache=True,
             trace_knowledge_decision=True,
+            trace_baseline_helper=True,
             replay_same_cell=True,
         )
 
@@ -410,6 +474,27 @@ class VisibilityCaptureTests(unittest.TestCase):
             "0x1415a4a90",
         )
         self.assertEqual(environment["FMVIS_REPLAY_SAME_CELL"], "1")
+        self.assertEqual(environment["FMVIS_TRACE_BASELINE_HELPER"], "1")
+        self.assertEqual(
+            environment["FMVIS_BASELINE_SELECTOR_BREAKPOINT"],
+            "0x1415a6250",
+        )
+        self.assertEqual(
+            environment["FMVIS_BASELINE_RATING_BREAKPOINT"],
+            "0x1415a628c",
+        )
+        self.assertEqual(
+            environment["FMVIS_BASELINE_BONUS_BREAKPOINT"],
+            "0x1415a636b",
+        )
+        self.assertEqual(
+            environment["FMVIS_BASELINE_RETURN_BREAKPOINT"],
+            "0x1415a63a6",
+        )
+        self.assertEqual(
+            environment["FMVIS_DYNAMIC_SCORE_BREAKPOINT"],
+            "0x1415a57ef",
+        )
 
     def test_post_detach_liveness_check_rejects_a_missing_process(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
