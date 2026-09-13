@@ -14,6 +14,7 @@ import gdb
 CALLER_PREFIX = "FMVIS_CALLER "
 PLAYER_PREFIX = "FMVIS_SEARCH_PLAYER "
 PLAYER_OFFSET_PREFIX = "FMVIS_SEARCH_PLAYER_OFFSET "
+SOURCE_PREFIX = "FMVIS_SEARCH_SOURCE "
 ERROR_PREFIX = "FMVIS_ERROR "
 MODULE_BASE = int(os.environ["FMVIS_MODULE_BASE"], 0)
 MODULE_END = int(os.environ["FMVIS_MODULE_END"], 0)
@@ -24,6 +25,7 @@ PERSON_HEADERS = (
 HIT_LIMIT = int(os.environ.get("FMVIS_HIT_LIMIT", "200000"))
 TARGETS = json.loads(os.environ["FMVIS_TRACE_TARGETS"])
 CAPTURE_CANDIDATES = os.environ.get("FMVIS_CAPTURE_CANDIDATES") == "1"
+CAPTURE_SOURCE = os.environ.get("FMVIS_CAPTURE_SOURCE") == "1"
 COUNTS = {}
 # Distinct second-argument values per function. Some evaluators receive a
 # reusable wrapper, so its address alone does not count candidate players.
@@ -31,6 +33,7 @@ RECORDS = {}
 RECORD_PAYLOADS = {}
 RECORD_CAP = 400000
 RESOLVED_OFFSETS = set()
+SOURCE_EVENTS = 0
 # These evaluators receive a reusable filterable wrapper in RDX; the
 # candidate player interface is the pointer stored at wrapper + 8.
 PAYLOAD_RULES = {
@@ -72,6 +75,7 @@ class _CallerBreakpoint(gdb.Breakpoint):
         self.hits = 0
 
     def stop(self):
+        global SOURCE_EVENTS
         try:
             self.hits += 1
             if self.hits >= HIT_LIMIT:
@@ -82,6 +86,35 @@ class _CallerBreakpoint(gdb.Breakpoint):
             )
             caller = ret - MODULE_BASE if MODULE_BASE <= ret < MODULE_END else -1
             second_arg = int(gdb.parse_and_eval("$rdx"))
+            if CAPTURE_SOURCE and self.label == "search_filter_pass" and SOURCE_EVENTS < 50:
+                source = int(gdb.parse_and_eval("$rcx"))
+                inferior = gdb.selected_inferior()
+                begin = int.from_bytes(
+                    bytes(inferior.read_memory(source + 0xD0, 8)), "little"
+                )
+                end = int.from_bytes(
+                    bytes(inferior.read_memory(source + 0xD8, 8)), "little"
+                )
+                if end < begin or (end - begin) % 8 or (end - begin) // 8 > 1000000:
+                    raise ValueError("invalid search source vector bounds")
+                SOURCE_EVENTS += 1
+                gdb.write(
+                    SOURCE_PREFIX
+                    + json.dumps(
+                        {
+                            "source_pointer": source,
+                            "vector_begin": begin,
+                            "vector_end": end,
+                            "vector_count": (end - begin) // 8,
+                            "filter_pointer": second_arg,
+                            "output_pointer": int(gdb.parse_and_eval("$r8")),
+                            "context_pointer": int(gdb.parse_and_eval("$r9")),
+                            "caller_rva": caller,
+                        }
+                    )
+                    + "\n"
+                )
+                gdb.flush()
             records = RECORDS.setdefault(self.label, set())
             new_second_arg = second_arg not in records
             if len(records) < RECORD_CAP:

@@ -29,6 +29,26 @@ comparison captured 4,320 versus 4,933 unique player IDs: the smaller set
 is wholly contained in the larger, with exactly 613 added. This validates
 package-sensitive search membership but does not yet expose the package-aware
 candidate producer as a screen-independent query.
+The [discoverability experiment protocol](discoverability-experiment-protocol.md)
+now has a single guided `study` command. In one terminal session it captures
+both the FM search source vector and result IDs for No Package and the Senior
+Vanarama package, prompts for each in-game action, validates exact membership,
+and saves a diagnostic JSON report. A subsequent direct native call rebuilt
+the Senior package's 4,953-player **source** without a Player Search refresh,
+including when the operator had moved to an unrelated FM screen (report
+`cold-source-builder-20260913T181806Z.json`). Both successful calls started
+with the same 4,953 IDs and still reused a previously observed search object;
+they do not prove fresh-session construction or changed-state recomputation.
+A separate native batch confirmed FM's include-own rule accounts for 19 of the 20
+source-only IDs; the last is not rejected by the active filter-list callback.
+This is not yet the fresh-process, screen-independent discoverability query
+required by the application. No exact external-player set is exposed by the
+bridge. The next checkpoint is to resolve/construct the search context
+without ever opening Player Search in that process and to identify FM's final
+result path, then validate exact IDs against the UI afterward. The protocol
+explicitly forbids rerunning the same package A/B or off-screen test without
+a new hypothesis and specifies a one-run, machine-readable experiment/report
+contract for the next harness.
 
 The remainder of this section is a chronological log kept for provenance.
 

@@ -18,7 +18,7 @@ import subprocess
 import sys
 from pathlib import Path
 from time import monotonic
-from typing import Sequence
+from typing import Callable, Sequence
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -38,6 +38,7 @@ from tools.fm20_visibility_capture import (
 CALLER_PREFIX = "FMVIS_CALLER "
 PLAYER_PREFIX = "FMVIS_SEARCH_PLAYER "
 PLAYER_OFFSET_PREFIX = "FMVIS_SEARCH_PLAYER_OFFSET "
+SOURCE_PREFIX = "FMVIS_SEARCH_SOURCE "
 GDB_SCRIPT = Path(__file__).with_suffix(".gdb")
 TRACE_TARGETS = {
     "visible_result_builder": "0x15A4A90",
@@ -63,6 +64,7 @@ TRACE_TARGETS = {
     "rule_can_be_scouted_slot16": "0x54E77B0",
     "rule_can_be_scouted_slot17": "0x54E8A10",
     "generic_filter_slot9": "0x42C96A0",
+    "search_filter_pass": "0x52769E0",
     "person_search_slot4": "0x1D62750",
     "person_search_slot5": "0x1D65010",
     "person_search_slot6": "0x1D635F0",
@@ -85,11 +87,19 @@ def trace_callers(
     *,
     duration_seconds: float,
     candidate_only: bool = False,
+    source_only: bool = False,
+    combined_only: bool = False,
+    stop_requested: Callable[[], bool] | None = None,
+    settle_seconds: float = 2.0,
     ready_callback=None,
     proc_root: Path = Path("/proc"),
-) -> dict[str, dict[str, object]]:
+) -> dict[str, object]:
     if duration_seconds <= 0:
         raise CaptureError("trace duration must be positive")
+    if sum((candidate_only, source_only, combined_only)) > 1:
+        raise CaptureError("capture modes are mutually exclusive")
+    if settle_seconds < 0:
+        raise CaptureError("settle_seconds cannot be negative")
     module_base = _validated_module_base(pid, proc_root)
     environment = dict(os.environ)
     environment["FMVIS_MODULE_BASE"] = hex(module_base)
@@ -97,10 +107,16 @@ def trace_callers(
         module_base + FM20_4_4_STEAM.expected_executable_size
     )
     environment["FMVIS_TRACE_TARGETS"] = json.dumps(
-        {"large_field_switch": TRACE_TARGETS["large_field_switch"]}
-        if candidate_only else TRACE_TARGETS
+        ({"large_field_switch": TRACE_TARGETS["large_field_switch"]}
+         if candidate_only else
+         {"search_filter_pass": TRACE_TARGETS["search_filter_pass"]}
+         if source_only else
+         {name: TRACE_TARGETS[name]
+          for name in ("large_field_switch", "search_filter_pass")}
+         if combined_only else TRACE_TARGETS)
     )
-    environment["FMVIS_CAPTURE_CANDIDATES"] = "1" if candidate_only else "0"
+    environment["FMVIS_CAPTURE_CANDIDATES"] = "1" if candidate_only or combined_only else "0"
+    environment["FMVIS_CAPTURE_SOURCE"] = "1" if source_only or combined_only else "0"
     command = [
         "gdb", "-q", "-nx", "-ex", "set pagination off",
         "-ex", "set confirm off", "-ex", "set print thread-events off",
@@ -116,17 +132,28 @@ def trace_callers(
     except OSError as exc:
         raise CaptureError(f"cannot start GDB: {exc}") from exc
     reader = _LineReader(process)
-    result: dict[str, dict[str, object]] = {}
+    result: dict[str, object] = {}
     candidate_pointers: dict[int, int | None] = {}
     player_offsets: set[int] = set()
+    source_events: list[dict[str, int]] = []
     pending_error: CaptureError | None = None
     try:
         _wait_until_ready(process, reader)
         if ready_callback is not None:
             ready_callback()
         deadline = monotonic() + duration_seconds
+        done_at: float | None = None
         while monotonic() < deadline:
-            line = reader.read_line(deadline - monotonic())
+            if done_at is None and stop_requested is not None and stop_requested():
+                done_at = monotonic()
+            if done_at is not None and monotonic() >= done_at + settle_seconds:
+                break
+            wait_seconds = deadline - monotonic()
+            if stop_requested is not None:
+                wait_seconds = min(wait_seconds, 0.25)
+            if done_at is not None:
+                wait_seconds = min(wait_seconds, done_at + settle_seconds - monotonic())
+            line = reader.read_line(max(0.0, wait_seconds))
             if line is None:
                 if process.poll() is not None:
                     raise CaptureError(
@@ -141,6 +168,9 @@ def trace_callers(
                 continue
             if line.startswith(PLAYER_OFFSET_PREFIX):
                 player_offsets.add(int(line.removeprefix(PLAYER_OFFSET_PREFIX)))
+                continue
+            if line.startswith(SOURCE_PREFIX):
+                source_events.append(json.loads(line.removeprefix(SOURCE_PREFIX)))
                 continue
             if line.startswith(CALLER_PREFIX):
                 event = json.loads(line.removeprefix(CALLER_PREFIX))
@@ -170,11 +200,13 @@ def trace_callers(
     if detach_error is not None:
         raise detach_error
     _verify_inferior_alive(pid, proc_root)
-    if candidate_only:
+    if candidate_only or combined_only:
         result["_candidate_pointer_ids"] = sorted(
             (pointer, player_id) for pointer, player_id in candidate_pointers.items()
         )
         result["_candidate_identity_offsets"] = sorted(player_offsets)
+    if source_only or combined_only:
+        result["_search_source_events"] = source_events
     return result
 
 
