@@ -127,7 +127,7 @@ artifacts, not inputs to the application or its recruitment analytics.
 | Default exclusion | Partial: FM's include-own rule excludes 19 of 20 source-only IDs. | Resolve the last ID via an authoritative final-output path. |
 | Off-screen builder | Complete but limited: native call works off Player Search, with an existing search object and unchanged 4,953 IDs. | Construct/resolve context without a prior search screen. |
 | Exact cold query | Open: no final 4,933-ID native result or application API. | Obtain final IDs from FM and compare them exactly with UI afterward. |
-| Fresh-session validation | Open: saved pointers cannot survive restart. | Use a purpose-built single-run harness, then test package and knowledge changes. |
+| Fresh-session validation | Ready to test: manager-rooted argument discovery works in the existing process, but has not been tested before Player Search opens after restart. | Run the guided fresh-process A/B once; knowledge changes remain later. |
 
 Stop expanding passive trace targets once a checkpoint has a decisive
 answer. A package-sensitive vector plus a verified FM-native exclusion
@@ -168,28 +168,52 @@ remaining one-player discrepancy may be elsewhere in the search pass or in
 the broad result trace. Do not infer an extra exclusion rule from it yet;
 locate a more authoritative native output set first.
 
-## Next checkpoint: fresh-process cold query (harness not yet implemented)
+## Next checkpoint: fresh-process, manager-rooted source A/B
 
 Do **not** restart FM merely to rerun `fm20_discoverability_cold_builder.py`
 with the old report. Its saved pointers belong to the current process and
 its preflight should fail after restart. Reopening Player Search first to
 capture new pointers would answer only whether the call survives a process
 restart *after* UI initialization, not whether a genuinely cold query works.
-Keep the current process available while the native search object owner or
-constructor and final output path are located; a restart can then provide one
-clean, discriminating test.
 
-The next guided script should be written before asking the operator to
-restart. One run should: (1) record the new PID, manager, date, build and
-package; (2) while an unrelated screen is open and Player Search has never
-been opened in that process, locate or construct the search context from
-manager/game state; (3) call FM's native source and final-selection path and
-save exact IDs; (4) optionally repeat the query in the same unchanged state
-to check stability, without mistaking this for change sensitivity; (5) only
-then instruct the operator to open Player Search for count and exact-ID
-verification; (6) write one complete report, including any failed stage.
-If native package state cannot yet be read, record it as operator-declared
-and keep that limitation explicit. A later guided package/knowledge change
-should test changed-state recomputation separately. The user should need to
-run one script and follow its terminal prompts, then supply only the report
-path—not coordinate each subtest in chat.
+The manager owner has now been found: the player-search source sits in an
+array at `+0x190` on the active manager's native search interface. The
+builder's three arguments can be resolved from the manager's person/team
+records, without a search trace or saved process pointers. A current-process
+direct call using this route passed against all 4,953 Senior IDs. The next
+distinct test is whether the source object exists **before Player Search has
+ever been opened in a fresh FM process**, and whether FM's builder updates it
+after package changes. `tools/fm20_discoverability_manager_builder.py`
+combines this into one guided run and records full before/after ID sets and
+checks for each state.
+
+Restart FM once, reload the same save/date, and leave it on **Inbox** or
+another unrelated screen. **Do not open Player Search or Scouting Packages
+before starting the script.**
+Run the following in an interactive terminal:
+
+```bash
+.venv/bin/python -u tools/fm20_discoverability_manager_builder.py \
+  --oracle data/research/discoverability/package-study-20260913T170215Z.json \
+  --previous-report data/research/discoverability/cold-source-builder-20260913T181806Z.json \
+  --guided-ab
+```
+
+The script first checks for the manager-owned source **before either relevant
+screen is opened**. Then follow its three package prompts: Senior Players → Vanarama
+North/South, No Package, then Senior again. Use only the Scouting Packages
+screen for these changes; leave Player Search closed and do not advance the
+game date. At each step the script resolves the source from the active
+manager, invokes FM's builder, and checks the *exact* source IDs against the
+saved A/B oracle (4,953 → 4,340 → 4,953). Only after all native steps does
+it ask you to open Player Search with all criteria Any and enter the final
+UI count (expected 4,933). The result or first failure is saved to one
+timestamped JSON report. Give Codex only its `RESULT` line/report path.
+
+Package selection and off-screen state remain operator-declared; the script
+does not yet read FM's package field or capture the screen. Passing this test
+would prove manager-rooted source access before search rendering and
+package-sensitive cold recomputation, **not** the exact final 4,933-ID
+discoverability set. The latter still requires the authoritative final
+output path, including the unexplained one-player discrepancy, before bridge
+integration.

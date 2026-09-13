@@ -43,12 +43,22 @@ A separate native batch confirmed FM's include-own rule accounts for 19 of the 2
 source-only IDs; the last is not rejected by the active filter-list callback.
 This is not yet the fresh-process, screen-independent discoverability query
 required by the application. No exact external-player set is exposed by the
-bridge. The next checkpoint is to resolve/construct the search context
-without ever opening Player Search in that process and to identify FM's final
-result path, then validate exact IDs against the UI afterward. The protocol
+bridge. The next checkpoint is to test the manager-rooted search context
+before ever opening Player Search in a fresh process and to identify FM's
+final result path, then validate exact IDs against the UI afterward. The protocol
 explicitly forbids rerunning the same package A/B or off-screen test without
 a new hypothesis and specifies a one-run, machine-readable experiment/report
 contract for the next harness.
+
+The search-source owner is now mapped to the active manager: a five-entry
+source array at `+0x190` on the manager's `db::HUMAN_NON_PLAYER` interface
+contains the player source, and the builder's remaining argument is the
+manager's team pointer. The new manager-rooted tool resolved and invoked
+the builder without saved search pointers in the current process, matching
+all 4,953 Senior source IDs. A guided fresh-process Senior → No Package →
+Senior test is ready but not yet run. It will establish whether this manager
+array exists before any Player Search screen and whether direct calls respond
+to package changes. The 4,953-to-4,933 final-result gap remains open.
 
 The remainder of this section is a chronological log kept for provenance.
 

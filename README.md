@@ -217,6 +217,15 @@ collection without opening FM screens. Reachability in FM's internal player
 database is never treated as visibility. Legacy HTML candidate import remains
 research-only.
 
+Research tooling can now call FM's manager-visible attribute logic off-screen
+and resolve the player-search source builder directly from the active manager,
+without saved UI trace pointers. The manager-rooted builder returned the exact
+4,953-player Senior-package *source* in the current process; this is not the
+final 4,933-player search result or a bridge endpoint. A scripted fresh-process
+package A/B test is the next gate. See the
+[Phase 03 status](docs/phases/03-information-visibility/README.md) and
+[guided experiment protocol](docs/phases/03-information-visibility/discoverability-experiment-protocol.md).
+
 Hidden FM values should never cross the HTTP boundary. See
 [the architecture notes](docs/architecture.md) for the design and the next
 implementation step. The complete staged delivery plan starts at
