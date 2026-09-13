@@ -39,6 +39,63 @@ BUILDER_SCRIPT = Path(__file__).with_suffix(".gdb")
 RESULT_PREFIX = "FM_COLD_RESULT "
 
 
+def resolve_cold_call_addresses(
+    memory_fd: int,
+    module_base: int,
+    player_id: int,
+    active_manager_id: str,
+) -> tuple[int, int, int]:
+    """Resolve (context, manager_interface, player_interface) addresses.
+
+    Pure given an already-open, already-validated process memory fd and the
+    already-verified active manager's ID: every guard fails closed rather than
+    returning a best-effort address. Kept free of the human-manager collection
+    scan so it can be exercised with synthetic memory in tests.
+    """
+
+    root = read_u64(memory_fd, module_base + CONTEXT_ROOT_RVA)
+    if not root:
+        raise ProbeError("manager-knowledge context root is missing")
+    start = read_u64(memory_fd, root + 0x18)
+    end = read_u64(memory_fd, root + 0x20)
+    if not start or end - start != 8:
+        raise ProbeError("expected exactly one manager-knowledge context")
+    context = read_u64(memory_fd, start)
+    if not context:
+        raise ProbeError("manager-knowledge context is null")
+    manager_person = read_u64(memory_fd, context + 0x18)
+    if read_u64(memory_fd, manager_person) != module_base + FM20_4_4_STEAM.human_manager_type_offset:
+        raise ProbeError("knowledge-context owner is not a human manager")
+    if active_manager_id != str(read_i32(memory_fd, manager_person + 0xC)):
+        raise ProbeError("knowledge-context owner is not the active manager")
+    manager_interface = manager_person - 0x480
+    manager_table = read_u64(memory_fd, manager_interface + 8)
+    if manager_interface + 8 + read_i32(memory_fd, manager_table + 4) != manager_person:
+        raise ProbeError("manager interface adjustment does not resolve to owner")
+
+    people = read_pointer_collection(
+        memory_fd,
+        module_base,
+        FM20_4_4_STEAM.main_address_offset,
+        FM20_4_4_STEAM.person_collection_offset,
+        FM20_4_4_STEAM.collection_indirection_offset,
+    )
+    matches = [
+        address for address in people
+        if address
+        and read_u64(memory_fd, address) == module_base + FM20_4_4_STEAM.player_type_offset
+        and read_i32(memory_fd, address + 0xC) == player_id
+    ]
+    if len(matches) != 1:
+        raise ProbeError("player ID did not resolve uniquely to a loaded player")
+    player_person = matches[0]
+    player_interface = player_person - 0x1C8
+    player_table = read_u64(memory_fd, player_interface + 8)
+    if player_interface + 8 + read_i32(memory_fd, player_table + 4) != player_person:
+        raise ProbeError("player interface adjustment does not resolve to player")
+    return context, manager_interface, player_interface
+
+
 def preflight(pid: int, player_id: int, attribute: str) -> dict[str, str]:
     process = Path("/proc") / str(pid)
     with (process / "maps").open(encoding="utf-8") as mappings:
@@ -51,48 +108,13 @@ def preflight(pid: int, player_id: int, attribute: str) -> dict[str, str]:
 
     fd = os.open(process / "mem", os.O_RDONLY | os.O_CLOEXEC)
     try:
-        root = read_u64(fd, module_base + CONTEXT_ROOT_RVA)
-        if not root:
-            raise ProbeError("manager-knowledge context root is missing")
-        start = read_u64(fd, root + 0x18)
-        end = read_u64(fd, root + 0x20)
-        if not start or end - start != 8:
-            raise ProbeError("expected exactly one manager-knowledge context")
-        context = read_u64(fd, start)
-        if not context:
-            raise ProbeError("manager-knowledge context is null")
-        manager_person = read_u64(fd, context + 0x18)
-        if read_u64(fd, manager_person) != module_base + FM20_4_4_STEAM.human_manager_type_offset:
-            raise ProbeError("knowledge-context owner is not a human manager")
         managers = read_human_manager_contexts(fd, module_base)
-        active = [item for item in managers if item.manager.active]
-        if len(active) != 1 or active[0].manager.id != str(read_i32(fd, manager_person + 0xC)):
-            raise ProbeError("knowledge-context owner is not the active manager")
-        manager_interface = manager_person - 0x480
-        manager_table = read_u64(fd, manager_interface + 8)
-        if manager_interface + 8 + read_i32(fd, manager_table + 4) != manager_person:
-            raise ProbeError("manager interface adjustment does not resolve to owner")
-
-        people = read_pointer_collection(
-            fd,
-            module_base,
-            FM20_4_4_STEAM.main_address_offset,
-            FM20_4_4_STEAM.person_collection_offset,
-            FM20_4_4_STEAM.collection_indirection_offset,
+        active = [item.manager for item in managers if item.manager.active]
+        if len(active) != 1:
+            raise ProbeError("expected exactly one active human manager")
+        context, manager_interface, player_interface = resolve_cold_call_addresses(
+            fd, module_base, player_id, active[0].id
         )
-        matches = [
-            address for address in people
-            if address
-            and read_u64(fd, address) == module_base + FM20_4_4_STEAM.player_type_offset
-            and read_i32(fd, address + 0xC) == player_id
-        ]
-        if len(matches) != 1:
-            raise ProbeError("player ID did not resolve uniquely to a loaded player")
-        player_person = matches[0]
-        player_interface = player_person - 0x1C8
-        player_table = read_u64(fd, player_interface + 8)
-        if player_interface + 8 + read_i32(fd, player_table + 4) != player_person:
-            raise ProbeError("player interface adjustment does not resolve to player")
     finally:
         os.close(fd)
 
@@ -111,12 +133,23 @@ def main() -> int:
     parser.add_argument("--pid", type=int)
     parser.add_argument("--player-id", type=int, required=True)
     parser.add_argument("--attribute", choices=sorted(DISPLAY_ATTRIBUTE_IDS), required=True)
-    parser.add_argument("--acknowledge-native-call", action="store_true", required=True)
+    parser.add_argument("--acknowledge-native-call", action="store_true")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="run preflight only; never attach or call into FM",
+    )
     args = parser.parse_args()
+    if not args.dry_run and not args.acknowledge_native_call:
+        parser.error("--acknowledge-native-call is required unless --dry-run is set")
     try:
-        environment = os.environ | preflight(
+        preflight_environment = preflight(
             choose_pid(args.pid), args.player_id, args.attribute
         )
+        if args.dry_run:
+            print(json.dumps(preflight_environment, sort_keys=True))
+            return 0
+        environment = os.environ | preflight_environment
         process = subprocess.run(
             [
                 "gdb", "-q", "-nx", "-batch", "-ex", "set pagination off",

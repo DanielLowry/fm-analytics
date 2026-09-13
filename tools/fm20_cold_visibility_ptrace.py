@@ -154,6 +154,14 @@ def cold_query(pid: int, player_id: int, attribute: str) -> tuple[int, int]:
                 os.kill(pid, signal.SIGCONT)
         if fd >= 0:
             os.close(fd)
+        if forced_stop:
+            raise ProbeError(
+                "native call did not reach its return trap within the timeout "
+                "and was force-abandoned mid-flight; the builder may have "
+                "partially executed (it can lazily write lookup/report state) "
+                "before being interrupted, so verify FM is still healthy "
+                "before attempting another cold call"
+            )
 
 
 def main() -> int:
@@ -161,9 +169,19 @@ def main() -> int:
     parser.add_argument("--pid", type=int)
     parser.add_argument("--player-id", type=int, required=True)
     parser.add_argument("--attribute", choices=sorted(DISPLAY_ATTRIBUTE_IDS), required=True)
-    parser.add_argument("--acknowledge-native-call", action="store_true", required=True)
+    parser.add_argument("--acknowledge-native-call", action="store_true")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="run preflight only; never attach or call into FM",
+    )
     args = parser.parse_args()
+    if not args.dry_run and not args.acknowledge_native_call:
+        parser.error("--acknowledge-native-call is required unless --dry-run is set")
     try:
+        if args.dry_run:
+            print(json.dumps(preflight(choose_pid(args.pid), args.player_id, args.attribute), sort_keys=True))
+            return 0
         bounds = cold_query(choose_pid(args.pid), args.player_id, args.attribute)
         observation = decode_visible_bound_bytes(*bounds)
     except (OSError, ProbeError, TimeoutError, ValueError) as exc:

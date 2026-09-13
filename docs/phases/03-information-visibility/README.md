@@ -127,6 +127,14 @@ The previous different-attribute GDB replay crash was avoided by using a
 separate direct-call mechanism, but it remains a warning against assuming all
 invocation contexts are safe.
 
+The shared cold-call preflight (address resolution, interface adjustment,
+active-manager and player-uniqueness checks) now has dedicated tests against a
+synthetic memory graph, and both cold-call tools gained a `--dry-run` mode plus
+a louder failure when a timed-out call is force-abandoned mid-flight. Fresh
+same-session calls reproduced both previously recorded cells for an unopened
+Lincoln City player exactly; a fresh-FM-session repeat, in-UI confirmation, and
+the optional report-object source remain open.
+
 As a concrete MVP checkpoint, an owned-squad source now performs a
 fresh, read-only, cache-independent live query by managed team or player. Owned
 attributes are guaranteed exact in FM, so the source normalizes them only after
