@@ -12,7 +12,7 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Sequence
+from typing import Any, Iterable, Iterator, Sequence
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
@@ -356,6 +356,18 @@ class MonitorHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
+        if path == "/api/attributes/query/team-stream":
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send(
+                    json.dumps({"error": str(exc)}).encode(),
+                    "application/json; charset=utf-8",
+                    HTTPStatus.BAD_REQUEST,
+                )
+                return
+            self._send_ndjson_stream(self._attribute_query_team_stream(payload))
+            return
         routes = {
             "/api/attributes/teams": self._full_team_search,
             "/api/attributes/players": self._full_team_players,
@@ -469,12 +481,6 @@ class MonitorHandler(BaseHTTPRequestHandler):
             players = [item for item in players if int(item["id"]) == player_id]
             if not players:
                 raise ProbeError(f"player {player_id} was not found on this team")
-        elif len(players) > 20:
-            raise ValueError(
-                f"{len(players)} players on this team; select one player for a "
-                "live in-game query, since each one needs its own set of calls "
-                "into FM (a whole-squad batch tool is a separate, offline job)"
-            )
         return {
             "team": found["team"],
             "players": [
@@ -489,6 +495,60 @@ class MonitorHandler(BaseHTTPRequestHandler):
                 for item in players
             ],
         }
+
+    def _attribute_query_team_stream(
+        self, payload: dict[str, Any]
+    ) -> Iterator[dict[str, object]]:
+        """Whole-team cold in-game query, reporting real per-player progress.
+
+        Every player still needs its own set of live calls into FM; this
+        just makes that visible instead of leaving the caller staring at a
+        blank screen for however long the team takes.
+        """
+        team_id = self._required_id(payload, "teamId")
+        pid = choose_pid(None)
+        try:
+            found = list_full_team_players(pid, team_id=team_id)
+        except (OSError, ProbeError) as exc:
+            yield {"type": "error", "error": str(exc)}
+            return
+        players = list(found["players"])
+        total = len(players)
+        yield {"type": "start", "team": found["team"], "total": total}
+        results = []
+        for index, item in enumerate(players, start=1):
+            try:
+                attributes = query_visible_attributes(pid, int(item["id"]))
+            except (OSError, ProbeError, ValueError) as exc:
+                yield {"type": "error", "error": f"{item['name']}: {exc}"}
+                return
+            results.append({
+                "id": item["id"],
+                "name": item["name"],
+                "positions": [],
+                "condition_percent": None,
+                "match_fitness_percent": None,
+                "attributes": attributes,
+            })
+            yield {
+                "type": "progress", "done": index, "total": total,
+                "player": item["name"],
+            }
+        yield {"type": "result", "team": found["team"], "players": results}
+
+    def _send_ndjson_stream(self, events: Iterable[dict[str, object]]) -> None:
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "application/x-ndjson")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.close_connection = True
+        try:
+            for event in events:
+                self.wfile.write((json.dumps(event) + "\n").encode())
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def _attribute_query(self, payload: dict[str, Any]) -> dict[str, object]:
         mode = payload.get("mode", "in-game")

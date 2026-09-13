@@ -62,7 +62,7 @@ ATTRIBUTE_PAGE = """<!doctype html>
       <div class="meta">After acknowledgement, Bath City is loaded as the first external comparison team. You can search for any other loaded club.</div>
     </div>
     <div id="cross-team-notice" class="warning">
-      <strong>Cross-team search.</strong> This searches every team loaded in memory, not just teams your manager has actually discovered &mdash; matching a team here does not confirm your manager could find it via Player Search. Attribute values shown are still the safe manager-visible ones (exact/range/unknown), the same source as your own squad and Discoverable mode, never hidden data. Whole-team queries are capped at 20 players; pick one player for a large squad.
+      <strong>Cross-team search.</strong> This searches every team loaded in memory, not just teams your manager has actually discovered &mdash; matching a team here does not confirm your manager could find it via Player Search. Attribute values shown are still the safe manager-visible ones (exact/range/unknown), the same source as your own squad and Discoverable mode, never hidden data.
       <div class="ack"><label><input id="cross-team-ack" type="checkbox"> I understand this searches beyond confirmed discoverability</label></div>
     </div>
     <div id="search" class="search">
@@ -81,6 +81,12 @@ ATTRIBUTE_PAGE = """<!doctype html>
     </div>
     <button id="reveal" type="button" style="margin-top:16px">Reveal attributes</button>
     <div id="status" class="status"></div>
+    <div id="progress-container" hidden style="margin-top:10px">
+      <div style="height:8px;border-radius:6px;background:#0b1a13;overflow:hidden">
+        <div id="progress-bar" style="height:100%;width:0%;background:#54e391;transition:width .15s linear"></div>
+      </div>
+      <div id="progress-label" class="meta"></div>
+    </div>
   </section>
   <section id="results"></section>
 </main>
@@ -92,10 +98,37 @@ const acknowledged = () => get('ack').checked;
 const discoverAcknowledged = () => get('discover-ack').checked;
 const crossTeamAcknowledged = () => get('cross-team-ack').checked;
 const searchAcknowledged = () => currentMode()==='full' ? acknowledged() : crossTeamAcknowledged();
+let managedClubId = null;
 async function request(path, body) {
   const options = body ? {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)} : {cache:'no-store'};
   const response = await fetch(path, options); const data = await response.json();
   if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`); return data;
+}
+async function requestWithProgress(path, body) {
+  const progress=get('progress-container'), bar=get('progress-bar'), label=get('progress-label');
+  progress.hidden=false; bar.style.width='0%'; label.textContent='Starting…';
+  try {
+    const response=await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if (!response.ok) { const data=await response.json().catch(()=>({})); throw new Error(data.error || `HTTP ${response.status}`); }
+    const reader=response.body.getReader(); const decoder=new TextDecoder(); let buffer=''; let result=null;
+    while (true) {
+      const {done, value}=await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, {stream:true});
+      let newline;
+      while ((newline=buffer.indexOf('\n')) !== -1) {
+        const line=buffer.slice(0, newline); buffer=buffer.slice(newline+1);
+        if (!line.trim()) continue;
+        const event=JSON.parse(line);
+        if (event.type==='start') { label.textContent=`0 / ${event.total} players`; }
+        else if (event.type==='progress') { bar.style.width=`${Math.round(100*event.done/event.total)}%`; label.textContent=`${event.done} / ${event.total} players (${event.player})`; }
+        else if (event.type==='error') { throw new Error(event.error); }
+        else if (event.type==='result') { result=event; }
+      }
+    }
+    if (!result) throw new Error('the query stream ended without a result');
+    return result;
+  } finally { progress.hidden=true; }
 }
 function option(value, text) { const node=document.createElement('option'); node.value=value; node.textContent=text; return node; }
 function setTeams(items) { team.replaceChildren(); for (const item of items) team.appendChild(option(item.id, `${item.name} (${item.playerCount} players)`)); }
@@ -103,7 +136,7 @@ function setPlayers(items) { player.replaceChildren(option('', 'Entire team')); 
 function showStatus(message, error=false) { status.textContent=message; status.className=error?'status error':'status'; }
 async function loadManaged() {
   showStatus('Reading managed squad…');
-  try { const data=await request('/api/attributes/catalog'); setTeams([data.team]); setPlayers(data.players); showStatus('Ready.'); }
+  try { const data=await request('/api/attributes/catalog'); managedClubId=data.team.id; setTeams([data.team]); setPlayers(data.players); showStatus('Ready.'); }
   catch (error) { showStatus(error.message, true); }
 }
 async function searchTeams() {
@@ -170,7 +203,13 @@ async function reveal() {
   if (!team.value) return showStatus('Select a team.', true);
   if (mode==='full' && !acknowledged()) return showStatus('Acknowledge the full-visibility warning first.', true);
   showStatus('Reading live FM data…'); get('reveal').disabled=true;
-  try { const body={mode, acknowledged:acknowledged(), teamId:team.value, playerId:player.value||null}; const data=await request('/api/attributes/query', body); render(data); showStatus(`Loaded ${data.players.length} player${data.players.length===1?'':'s'} from ${data.team.name}.`); }
+  try {
+    const wholeExternalTeam = mode==='in-game' && !player.value && team.value !== managedClubId;
+    const data = wholeExternalTeam
+      ? await requestWithProgress('/api/attributes/query/team-stream', {teamId:team.value})
+      : await request('/api/attributes/query', {mode, acknowledged:acknowledged(), teamId:team.value, playerId:player.value||null});
+    render(data); showStatus(`Loaded ${data.players.length} player${data.players.length===1?'':'s'} from ${data.team.name}.`);
+  }
   catch (error) { showStatus(error.message, true); } finally { get('reveal').disabled=false; }
 }
 function syncPanels() {

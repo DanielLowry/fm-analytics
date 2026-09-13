@@ -22,7 +22,11 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(project_root / "src"))
 
 from fm_analytics.bridge.visibility_result import decode_visible_bound_bytes
-from tools.fm20_cold_visibility_call import preflight
+from tools.fm20_cold_query_cache import (
+    resolve_context_and_manager,
+    resolve_player_interfaces,
+    verified_module_base,
+)
 from tools.fm20_linux_probe import ProbeError
 from tools.fm20_linux_probe_runtime import choose_pid
 from tools.fm20_visibility_trace import DISPLAY_ATTRIBUTE_IDS
@@ -88,10 +92,16 @@ def write_int(fd: int, address: int, value: int, size: int = 8) -> None:
 
 
 def cold_query(pid: int, player_id: int, attribute: str) -> tuple[int, int]:
-    inputs = preflight(pid, player_id, attribute)
-    module_base = int(inputs["FM_COLD_MODULE_BASE"], 0)
-    context = int(inputs["FM_COLD_CONTEXT"], 0)
-    player = int(inputs["FM_COLD_PLAYER_INTERFACE"], 0)
+    module_base = verified_module_base(pid)
+    identity_fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
+    try:
+        context, _manager_interface = resolve_context_and_manager(identity_fd, module_base)
+        players = resolve_player_interfaces(pid, identity_fd, module_base, (player_id,))
+    finally:
+        os.close(identity_fd)
+    if player_id not in players:
+        raise ProbeError("player ID did not resolve uniquely to a loaded player")
+    player = players[player_id]
     builder = module_base + 0x15A4A90
     return_trap = module_base + 0x15A4A84  # verified INT3 padding
     fd = -1
