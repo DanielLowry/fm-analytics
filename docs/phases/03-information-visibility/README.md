@@ -12,6 +12,26 @@ shape. It is the gate for analytics involving players outside our club.
 
 ## Current status
 
+**Summary as of 13 September 2026:** the attribute-visibility half of this
+phase is effectively solved as a research capability -- a live, screen-
+independent, cache-independent call into FM's own visibility logic, validated
+to 0 mismatches across 97 attribute checks on three players with different
+knowledge profiles, with a real false-positive bug found and fixed along the
+way. See the "Attribute-visibility status snapshot" at the top of
+[03.2](03.2-fm-representation-research.md) for the full rollup. It is
+research tooling, not a production source: there is still no discoverability
+gate, so no external-player data has been wired into `FmDataSource`, the
+bridge, or recruitment analytics. **Discoverability is now the active
+investigation** and the most important open item in this phase -- see the
+dated entries at the end of this section for its progress.
+The current No Package versus Senior Players (Vanarama North/South) search
+comparison captured 4,320 versus 4,933 unique player IDs: the smaller set
+is wholly contained in the larger, with exactly 613 added. This validates
+package-sensitive search membership but does not yet expose the package-aware
+candidate producer as a screen-independent query.
+
+The remainder of this section is a chronological log kept for provenance.
+
 In progress. Static research has rejected the pinned framework's raw
 `PlayerAttributes` object as a general production visibility source: it
 contains exact underlying values and provides neither manager-knowledge states
@@ -158,6 +178,17 @@ later chained direct-call experiment caused the crash described above, so that
 path has been removed. Identity resolution follows FM's own runtime interface
 adjustment, and any future liveness checks use the same host-visible context as
 the game process.
+
+**Discoverability, 13 September 2026.** Investigation started. The existing
+visible-result render hook does fire on Player Search, contrary to an early
+misreading caused by capture sequencing. A correctly timed capture of an
+8-player "transfer listed" search resolved exactly the 8 players in FM's own
+export of that search, with no extras and none missing. That gives a reliable
+comparator for validating any discoverability source against real searches,
+but it is render-dependent and is not itself a source. Next: locate the
+in-memory result collection behind an open search and the code that builds
+it. Details are in [03.2](03.2-fm-representation-research.md), "Discoverability
+investigation, first results".
 
 ## Prerequisites
 
