@@ -62,6 +62,14 @@ def ptrace(request: int, tid: int, data: int = 0) -> None:
 
 
 def wait_stopped(tid: int, timeout: float) -> int:
+    """Poll for the tracee to stop, checking far more often than we sleep.
+
+    The native call this waits for typically completes in well under a
+    millisecond; the poll interval only controls how quickly we notice, not
+    how long the call itself takes. A short sleep keeps this a bounded,
+    low-CPU wait without adding artificial latency to every call -- this
+    matters when a batch makes thousands of calls in one attach.
+    """
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         waited, status = os.waitpid(tid, os.WNOHANG | WAIT_ALL)
@@ -69,7 +77,7 @@ def wait_stopped(tid: int, timeout: float) -> int:
             if not os.WIFSTOPPED(status):
                 raise ProbeError(f"FM thread exited during native call (status {status})")
             return os.WSTOPSIG(status)
-        time.sleep(0.01)
+        time.sleep(0.0002)
     raise TimeoutError("FM did not stop at the native-call return trap")
 
 

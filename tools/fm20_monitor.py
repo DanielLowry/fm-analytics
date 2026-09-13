@@ -26,6 +26,8 @@ try:
         source_full_visibility_data,
         source_owned_visible_data,
     )
+    from tools.fm20_discoverability_cold_query import run as discoverability_run
+    from tools.fm20_player_visibility_query import query_visible_attributes
 except ModuleNotFoundError:  # Support `python3 tools/fm20_monitor.py`.
     from fm20_linux_probe import ProbeError, choose_pid, probe
     from fm20_attribute_page import ATTRIBUTE_PAGE
@@ -35,6 +37,8 @@ except ModuleNotFoundError:  # Support `python3 tools/fm20_monitor.py`.
         source_full_visibility_data,
         source_owned_visible_data,
     )
+    from fm20_discoverability_cold_query import run as discoverability_run
+    from fm20_player_visibility_query import query_visible_attributes
 
 
 DASHBOARD = """<!doctype html>
@@ -356,6 +360,8 @@ class MonitorHandler(BaseHTTPRequestHandler):
             "/api/attributes/teams": self._full_team_search,
             "/api/attributes/players": self._full_team_players,
             "/api/attributes/query": self._attribute_query,
+            "/api/discoverability/query": self._discoverability_query,
+            "/api/discoverability/attributes": self._discoverability_attributes,
         }
         operation = routes.get(path)
         if operation is None:
@@ -415,23 +421,74 @@ class MonitorHandler(BaseHTTPRequestHandler):
         if payload.get("mode") != "full" or payload.get("acknowledged") is not True:
             raise ValueError("full visibility requires explicit acknowledgement")
 
+    @staticmethod
+    def _require_ack(payload: dict[str, Any]) -> None:
+        if payload.get("acknowledged") is not True:
+            raise ValueError("this diagnostic requires explicit acknowledgement")
+
     def _full_team_search(self, payload: dict[str, Any]) -> dict[str, object]:
-        self._require_full_ack(payload)
+        self._require_ack(payload)
         query = payload.get("query")
         if not isinstance(query, str):
             raise ValueError("team search query must be a string")
         return {
-            "mode": "full",
+            "mode": payload.get("mode", "full"),
             "teams": list_full_visibility_teams(
                 choose_pid(None), query=query
             ),
         }
 
     def _full_team_players(self, payload: dict[str, Any]) -> dict[str, object]:
-        self._require_full_ack(payload)
+        self._require_ack(payload)
         return list_full_team_players(
             choose_pid(None), team_id=self._required_id(payload, "teamId")
         )
+
+    def _managed_club_id(self) -> str | None:
+        source = self.cache.get(force=True)
+        managers = source.get("human_managers", [])
+        manager = next(
+            (item for item in managers if item.get("active")),
+            managers[0] if managers else None,
+        )
+        club = manager.get("club") if manager else None
+        return club["id"] if club else None
+
+    def _cold_visible_team_data(
+        self, pid: int, team_id: str, player_id: int | None
+    ) -> dict[str, object]:
+        """Any team's players, read via the safe cold-call mechanism.
+
+        Never reads a hidden value: each attribute is exact/range/unknown,
+        the same as the manager's own squad. Discoverability of this team's
+        players is not verified here -- use Discoverable mode for that.
+        """
+        found = list_full_team_players(pid, team_id=team_id)
+        players = list(found["players"])
+        if player_id is not None:
+            players = [item for item in players if int(item["id"]) == player_id]
+            if not players:
+                raise ProbeError(f"player {player_id} was not found on this team")
+        elif len(players) > 20:
+            raise ValueError(
+                f"{len(players)} players on this team; select one player for a "
+                "live in-game query, since each one needs its own set of calls "
+                "into FM (a whole-squad batch tool is a separate, offline job)"
+            )
+        return {
+            "team": found["team"],
+            "players": [
+                {
+                    "id": item["id"],
+                    "name": item["name"],
+                    "positions": [],
+                    "condition_percent": None,
+                    "match_fitness_percent": None,
+                    "attributes": query_visible_attributes(pid, int(item["id"])),
+                }
+                for item in players
+            ],
+        }
 
     def _attribute_query(self, payload: dict[str, Any]) -> dict[str, object]:
         mode = payload.get("mode", "in-game")
@@ -439,13 +496,61 @@ class MonitorHandler(BaseHTTPRequestHandler):
         player_id = self._optional_int_id(payload, "playerId")
         pid = choose_pid(None)
         if mode == "in-game":
-            return source_owned_visible_data(
-                pid, team_id=team_id, player_id=player_id
-            )
+            if team_id == self._managed_club_id():
+                return source_owned_visible_data(
+                    pid, team_id=team_id, player_id=player_id
+                )
+            return self._cold_visible_team_data(pid, team_id, player_id)
         self._require_full_ack(payload)
         return source_full_visibility_data(
             pid, team_id=team_id, player_id=player_id
         )
+
+    def _discoverability_query(self, payload: dict[str, Any]) -> dict[str, object]:
+        self._require_ack(payload)
+        expected_count = self._optional_int_id(payload, "expectedCount")
+        pid = choose_pid(None)
+        result = discoverability_run(pid, True, True, expected_count, with_names=True)
+        if result.get("error"):
+            raise ProbeError(result["error"])
+        return {
+            "mode": "discoverable",
+            "gameDate": result.get("gameDate"),
+            "managedClub": result.get("managedClub"),
+            "sourceCount": result.get("sourceCount"),
+            "excludedCount": result.get("excludedCount"),
+            "count": result.get("discoverableCount"),
+            "players": result.get("discoverablePlayers") or [],
+            "matchesExpectedCount": result.get("matchesExpectedCount"),
+            "passed": result.get("passed"),
+            "caveats": (
+                "Research query, not a verified production source. Conservative: "
+                "known to miss a small number of high-profile players FM's UI "
+                "would list, but has shown no false inclusions in testing. "
+                "Package and date sensitivity are not yet independently checked."
+            ),
+        }
+
+    def _discoverability_attributes(self, payload: dict[str, Any]) -> dict[str, object]:
+        self._require_ack(payload)
+        player_id = self._optional_int_id(payload, "playerId")
+        player_name = payload.get("playerName")
+        if player_id is None:
+            raise ValueError("playerId is required")
+        pid = choose_pid(None)
+        attributes = query_visible_attributes(pid, player_id)
+        return {
+            "mode": "discoverable",
+            "team": {"name": "Discoverable pool"},
+            "players": [{
+                "id": str(player_id),
+                "name": player_name or f"Player {player_id}",
+                "positions": [],
+                "condition_percent": None,
+                "match_fitness_percent": None,
+                "attributes": attributes,
+            }],
+        }
 
     def _read_json_body(self) -> dict[str, Any]:
         try:
