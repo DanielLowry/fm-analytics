@@ -5,11 +5,11 @@ from fm_analytics.imports import FM20_ATTRIBUTE_HEADERS
 
 
 class MvpCatalogueTests(unittest.TestCase):
-    def test_has_three_materially_different_complete_tactics(self) -> None:
-        self.assertEqual(len(MVP_CATALOGUE.tactics), 3)
+    def test_has_four_materially_different_complete_tactics(self) -> None:
+        self.assertEqual(len(MVP_CATALOGUE.tactics), 4)
         self.assertEqual(
             {tactic.formation for tactic in MVP_CATALOGUE.tactics.values()},
-            {"4-4-2", "4-2-3-1 DM AM Wide", "4-3-3 DM Wide"},
+            {"4-1-2-1-2 DM Narrow", "4-4-2", "4-2-3-1 DM AM Wide", "4-3-3 DM Wide"},
         )
         self.assertTrue(
             all(len(tactic.slots) == 11 for tactic in MVP_CATALOGUE.tactics.values())

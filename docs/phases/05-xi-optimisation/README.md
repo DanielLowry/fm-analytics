@@ -30,9 +30,17 @@ not yet the accepted football recommendation.
 The proven exact owned-squad reader is now wired into FMBridge, and the CLI can
 recommend without HTML when every player has the complete role-input set. A
 synthetic eleven-player no-HTML end-to-end test covers a legal XI and snapshot.
-A fresh live recommendation through the bridge, followed by a football review
-of the tactic catalogue and thresholds, is still required before accepting the
-first real recommendation.
+The new `--direct-live --recommend` route uses the same validated owned-squad
+source without starting the HTTP bridge. It rejects mismatched game/squad dates
+or clubs before scoring. On the live 24 June 2019 Hungerford save, all 32 role
+inputs were present for every player. The original three wide templates could
+not produce a legal XI because no player was eligible at ML/AML. The versioned
+balanced narrow diamond did produce eleven unique, position-eligible starters,
+plus a bench, weaknesses, and draft recruitment briefs. This completes a live
+technical slice for goals 1–3, but football review of role weights,
+instructions, and the low-tier weakness thresholds remains before accepting
+its judgments. The separate HTTP bridge transport still needs a fresh live
+validation.
 
 ## Outcome
 

@@ -31,6 +31,7 @@ from tools.fm20_discoverability_cold_builder import (
 from tools.fm20_discoverability_experiment import _write_report
 from tools.fm20_linux_probe import ProbeError, read_exact
 from tools.fm20_linux_probe_runtime import choose_pid, probe
+from tools.fm20_native_call_log import log_event, next_call_number
 
 RULE_VTABLE_RVA = 0x6DAB260
 RULE_EVALUATOR_RVA = 0x54E72E0
@@ -121,6 +122,11 @@ def native_filter_batch(
         raise ProbeError("saved excluded/visible samples do not fit the live source")
     ordering = sample + [player_id for player_id in sorted(records) if player_id not in sample]
     results: dict[int, bool] = {}
+    batch_number = next_call_number()
+    log_event(
+        "native_filter_batch_started", batch_number=batch_number, pid=pid,
+        record_count=len(records), evaluator_rva=hex(evaluator_rva),
+    )
     fd = -1
     attached = False
     stopped = False
@@ -170,21 +176,45 @@ def native_filter_batch(
                     f"signal={stop_signal}, rip=0x{after.rip:x}"
                 )
             results[player_id] = bool(after.rax & 0xFF)
+            if index % 200 == 0 or index == len(ordering) - 1:
+                log_event(
+                    "native_filter_batch_progress", batch_number=batch_number,
+                    pid=pid, done=index + 1, total=len(ordering),
+                )
             if index == len(sample) - 1 and any(
                 results[item] == (item in known_own_excluded) for item in sample
             ):
+                log_event(
+                    "native_filter_batch_sample_mismatch", batch_number=batch_number,
+                    pid=pid, done=index + 1, total=len(ordering),
+                )
                 return results, False
+        log_event(
+            "native_filter_batch_finished", batch_number=batch_number, pid=pid,
+            evaluated_count=len(results),
+        )
         return results, True
+    except BaseException as exc:
+        log_event(
+            "native_filter_batch_failed", batch_number=batch_number, pid=pid,
+            evaluated_count=len(results),
+            exception_type=type(exc).__name__, exception=str(exc),
+        )
+        raise
     finally:
         if attached:
             if not stopped:
+                log_event("native_filter_batch_force_stopping", batch_number=batch_number, pid=pid)
                 os.kill(pid, signal.SIGSTOP)
                 forced_stop = True
                 try:
                     wait_stopped(pid, 5.0)
                     stopped = True
-                except (OSError, ProbeError, TimeoutError):
-                    pass
+                except (OSError, ProbeError, TimeoutError) as exc:
+                    log_event(
+                        "native_filter_batch_force_stop_failed", batch_number=batch_number,
+                        pid=pid, exception_type=type(exc).__name__, exception=str(exc),
+                    )
             if stopped:
                 if saved is not None:
                     ptrace(PTRACE_SETREGS, pid, ctypes.addressof(saved))

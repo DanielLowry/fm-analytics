@@ -29,6 +29,7 @@ from tools.fm20_cold_query_cache import (
 )
 from tools.fm20_linux_probe import ProbeError
 from tools.fm20_linux_probe_runtime import choose_pid
+from tools.fm20_native_call_log import log_event, next_call_number
 from tools.fm20_visibility_trace import DISPLAY_ATTRIBUTE_IDS
 
 
@@ -92,6 +93,32 @@ def write_int(fd: int, address: int, value: int, size: int = 8) -> None:
 
 
 def cold_query(pid: int, player_id: int, attribute: str) -> tuple[int, int]:
+    call_number = next_call_number()
+    started_at = time.monotonic()
+    log_event(
+        "cold_query_started", call_number=call_number, pid=pid,
+        player_id=player_id, attribute=attribute,
+    )
+    try:
+        result_bytes = _cold_query(pid, player_id, attribute, call_number)
+    except BaseException as exc:
+        log_event(
+            "cold_query_failed", call_number=call_number, pid=pid,
+            player_id=player_id, attribute=attribute,
+            duration_seconds=time.monotonic() - started_at,
+            exception_type=type(exc).__name__, exception=str(exc),
+        )
+        raise
+    log_event(
+        "cold_query_returned", call_number=call_number, pid=pid,
+        player_id=player_id, attribute=attribute,
+        duration_seconds=time.monotonic() - started_at,
+        lower=result_bytes[0], upper=result_bytes[1],
+    )
+    return result_bytes
+
+
+def _cold_query(pid: int, player_id: int, attribute: str, call_number: int) -> tuple[int, int]:
     module_base = verified_module_base(pid)
     identity_fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
     try:
@@ -110,6 +137,10 @@ def cold_query(pid: int, player_id: int, attribute: str) -> tuple[int, int]:
     forced_stop = False
     saved: UserRegs | None = None
     try:
+        log_event(
+            "cold_query_attaching", call_number=call_number, pid=pid,
+            module_base=hex(module_base), context=hex(context), player=hex(player),
+        )
         ptrace(PTRACE_ATTACH, pid)
         attached = True
         wait_stopped(pid, 5.0)
@@ -138,6 +169,12 @@ def cold_query(pid: int, player_id: int, attribute: str) -> tuple[int, int]:
         current.rsp = call_rsp
         current.rip = builder
         ptrace(PTRACE_SETREGS, pid, ctypes.addressof(current))
+        log_event(
+            "cold_query_dispatching", call_number=call_number, pid=pid,
+            builder=hex(builder), return_trap=hex(return_trap),
+            call_rsp=hex(call_rsp), attribute_id=DISPLAY_ATTRIBUTE_IDS[attribute],
+            original_rip=hex(saved.rip), original_rsp=hex(saved.rsp),
+        )
         ptrace(PTRACE_CONT, pid)
         stopped = False
         stop_signal = wait_stopped(pid, 10.0)
@@ -156,17 +193,24 @@ def cold_query(pid: int, player_id: int, attribute: str) -> tuple[int, int]:
     finally:
         if attached:
             if not stopped:
+                log_event(
+                    "cold_query_force_stopping", call_number=call_number, pid=pid,
+                )
                 os.kill(pid, signal.SIGSTOP)
                 forced_stop = True
                 try:
                     wait_stopped(pid, 5.0)
                     stopped = True
-                except (OSError, ProbeError, TimeoutError):
-                    pass
+                except (OSError, ProbeError, TimeoutError) as exc:
+                    log_event(
+                        "cold_query_force_stop_failed", call_number=call_number,
+                        pid=pid, exception_type=type(exc).__name__, exception=str(exc),
+                    )
             if stopped:
                 if saved is not None:
                     ptrace(PTRACE_SETREGS, pid, ctypes.addressof(saved))
                 ptrace(PTRACE_DETACH, pid)
+                log_event("cold_query_detached", call_number=call_number, pid=pid)
             if forced_stop:
                 os.kill(pid, signal.SIGCONT)
         if fd >= 0:

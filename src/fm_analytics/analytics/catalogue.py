@@ -10,7 +10,7 @@ from fm_analytics.analytics.role_scoring import (
 )
 
 
-CATALOGUE_VERSION = "fm20-mvp-v1"
+CATALOGUE_VERSION = "fm20-mvp-v2"
 
 
 @dataclass(frozen=True)
@@ -212,6 +212,34 @@ def _slot(key: str, position: str, role_key: str) -> TacticSlot:
 
 
 _TACTIC_LIST = (
+    TacticDefinition(
+        key="balanced_41212_diamond",
+        name="Balanced 4-1-2-1-2 Diamond",
+        formation="4-1-2-1-2 DM Narrow",
+        mentality="Balanced",
+        instructions=(
+            "Fairly Narrow",
+            "Shorter Passing",
+            "Counter",
+            "Regroup",
+            "Standard Line of Engagement",
+            "Standard Defensive Line",
+        ),
+        slots=(
+            _slot("GK", "GK", "gk_defend"),
+            _slot("DL", "DL", "fb_support"),
+            _slot("DCL", "DC", "cd_defend"),
+            _slot("DCR", "DC", "cd_defend"),
+            _slot("DR", "DR", "fb_support"),
+            _slot("DM", "DM", "dm_defend"),
+            _slot("MCL", "MC", "cm_support"),
+            _slot("MCR", "MC", "dlp_support"),
+            _slot("AMC", "AMC", "am_support"),
+            _slot("STL", "ST", "dlf_support"),
+            _slot("STR", "ST", "af_attack"),
+        ),
+        catalogue_version=CATALOGUE_VERSION,
+    ),
     TacticDefinition(
         key="balanced_442",
         name="Balanced 4-4-2",

@@ -40,6 +40,7 @@ from tools.fm20_discoverability_experiment import (
 )
 from tools.fm20_linux_probe import ProbeError, read_exact
 from tools.fm20_linux_probe_runtime import choose_pid, probe
+from tools.fm20_native_call_log import log_event, next_call_number
 
 BUILDER_RVA = 0x52778C0
 RETURN_TRAP_RVA = 0x52778BC  # four INT3 bytes before the builder
@@ -95,6 +96,11 @@ def cold_build(pid: int, module_base: int, arguments: tuple[int, int, int]) -> i
     source, filter_context, scope = arguments
     builder = module_base + BUILDER_RVA
     trap = module_base + RETURN_TRAP_RVA
+    call_number = next_call_number()
+    log_event(
+        "cold_build_started", call_number=call_number, pid=pid,
+        source=hex(source), filter_context=hex(filter_context), scope=hex(scope),
+    )
     fd = -1
     attached = False
     stopped = False
@@ -133,20 +139,31 @@ def cold_build(pid: int, module_base: int, arguments: tuple[int, int, int]) -> i
                 f"signal={stop_signal}, rip=0x{after.rip:x}"
             )
         return int(after.rax)
+    except BaseException as exc:
+        log_event(
+            "cold_build_failed", call_number=call_number, pid=pid,
+            exception_type=type(exc).__name__, exception=str(exc),
+        )
+        raise
     finally:
         if attached:
             if not stopped:
+                log_event("cold_build_force_stopping", call_number=call_number, pid=pid)
                 os.kill(pid, signal.SIGSTOP)
                 forced_stop = True
                 try:
                     wait_stopped(pid, 5.0)
                     stopped = True
-                except (OSError, ProbeError, TimeoutError):
-                    pass
+                except (OSError, ProbeError, TimeoutError) as exc:
+                    log_event(
+                        "cold_build_force_stop_failed", call_number=call_number,
+                        pid=pid, exception_type=type(exc).__name__, exception=str(exc),
+                    )
             if stopped:
                 if saved is not None:
                     ptrace(PTRACE_SETREGS, pid, ctypes.addressof(saved))
                 ptrace(PTRACE_DETACH, pid)
+                log_event("cold_build_detached", call_number=call_number, pid=pid)
             if forced_stop:
                 os.kill(pid, signal.SIGCONT)
         if fd >= 0:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from typing import Mapping, Sequence
 
 from fm_analytics.analytics.catalogue import (
@@ -63,6 +64,20 @@ class ReadinessPolicy:
 
 
 @dataclass(frozen=True)
+class TacticFitPolicy:
+    """Balance whole-XI quality against the weakest starting slot."""
+
+    version: str = "tactic-fit-v1"
+    weakest_slot_weight: float = 0.35
+
+    def __post_init__(self) -> None:
+        if not self.version:
+            raise ValueError("tactic-fit policy version is required")
+        if not isfinite(self.weakest_slot_weight) or not 0 <= self.weakest_slot_weight <= 1:
+            raise ValueError("weakest-slot weight must be finite and between 0 and 1")
+
+
+@dataclass(frozen=True)
 class SlotAssignment:
     slot: TacticSlot
     player_id: str
@@ -77,8 +92,12 @@ class SlotAssignment:
 class TacticEvaluation:
     tactic: TacticDefinition
     readiness_version: str
+    fit_version: str
     assignments: tuple[SlotAssignment, ...]
     unfilled_slots: tuple[TacticSlot, ...]
+    mean_score: ScoreBand
+    weakest_score: ScoreBand
+    weakest_slot_keys: tuple[str, ...]
     score: ScoreBand
 
     @property
@@ -114,6 +133,7 @@ def evaluate_tactic(
     catalogue: FootballCatalogue,
     *,
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
+    fit_policy: TacticFitPolicy = TacticFitPolicy(),
 ) -> TacticEvaluation:
     if tactic.key not in catalogue.tactics or catalogue.tactics[tactic.key] != tactic:
         raise ValueError("tactic must belong to the supplied football catalogue")
@@ -123,24 +143,7 @@ def evaluate_tactic(
 
     ordered_players = tuple(sorted(players, key=lambda item: (item.name.casefold(), item.id)))
     choices = _build_choices(tactic, ordered_players, catalogue, readiness_policy)
-    states: dict[int, _AssignmentState] = {0: _AssignmentState(0, ())}
-    for player_index in range(len(ordered_players)):
-        next_states = dict(states)
-        for mask, state in states.items():
-            for choice in choices[player_index]:
-                bit = 1 << choice.slot_index
-                if mask & bit:
-                    continue
-                candidate = _AssignmentState(
-                    total=round(state.total + choice.assignment.selection_score.central, 6),
-                    assignments=state.assignments + (choice,),
-                )
-                next_mask = mask | bit
-                current = next_states.get(next_mask)
-                if current is None or _state_is_better(candidate, current):
-                    next_states[next_mask] = candidate
-        states = next_states
-
+    states = _assignment_states(choices)
     best_mask, best = min(
         states.items(),
         key=lambda item: (
@@ -149,6 +152,9 @@ def evaluate_tactic(
             _state_signature(item[1]),
         ),
     )
+    full_mask = (1 << len(tactic.slots)) - 1
+    if best_mask == full_mask and fit_policy.weakest_slot_weight:
+        best = _best_fit_state(choices, full_mask, fit_policy, best)
     ordered_assignments = tuple(
         choice.assignment
         for choice in sorted(best.assignments, key=lambda item: item.slot_index)
@@ -158,12 +164,27 @@ def evaluate_tactic(
         for index, slot in enumerate(tactic.slots)
         if not best_mask & (1 << index)
     )
+    mean_score, weakest_score, fit_score = _tactic_fit(
+        ordered_assignments, len(tactic.slots), fit_policy
+    )
+    weakest_value = weakest_score.central
+    weakest_slot_keys = tuple(
+        slot.key for slot in unfilled
+    ) if unfilled else tuple(
+        assignment.slot.key
+        for assignment in ordered_assignments
+        if assignment.selection_score.central == weakest_value
+    )
     return TacticEvaluation(
         tactic=tactic,
         readiness_version=readiness_policy.version,
+        fit_version=fit_policy.version,
         assignments=ordered_assignments,
         unfilled_slots=unfilled,
-        score=_tactic_score(ordered_assignments),
+        mean_score=mean_score,
+        weakest_score=weakest_score,
+        weakest_slot_keys=weakest_slot_keys,
+        score=fit_score,
     )
 
 
@@ -172,6 +193,7 @@ def recommend_tactic(
     catalogue: FootballCatalogue,
     *,
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
+    fit_policy: TacticFitPolicy = TacticFitPolicy(),
 ) -> TacticRecommendation:
     evaluations = tuple(
         evaluate_tactic(
@@ -179,6 +201,7 @@ def recommend_tactic(
             players,
             catalogue,
             readiness_policy=readiness_policy,
+            fit_policy=fit_policy,
         )
         for tactic in catalogue.tactics.values()
     )
@@ -317,13 +340,101 @@ def _state_signature(state: _AssignmentState) -> tuple[tuple[int, str], ...]:
     )
 
 
-def _tactic_score(assignments: tuple[SlotAssignment, ...]) -> ScoreBand:
-    divisor = 11
-    return ScoreBand(
-        lower=round(sum(item.selection_score.lower for item in assignments) / divisor, 6),
-        central=round(
-            sum(item.selection_score.central for item in assignments) / divisor,
+def _assignment_states(
+    choices: tuple[tuple[_CandidateAssignment, ...], ...],
+    *,
+    minimum_score: float = 0,
+) -> dict[int, _AssignmentState]:
+    states: dict[int, _AssignmentState] = {0: _AssignmentState(0, ())}
+    for player_choices in choices:
+        next_states = dict(states)
+        for mask, state in states.items():
+            for choice in player_choices:
+                score = choice.assignment.selection_score.central
+                if score < minimum_score:
+                    continue
+                bit = 1 << choice.slot_index
+                if mask & bit:
+                    continue
+                candidate = _AssignmentState(
+                    total=round(state.total + score, 6),
+                    assignments=state.assignments + (choice,),
+                )
+                next_mask = mask | bit
+                current = next_states.get(next_mask)
+                if current is None or _state_is_better(candidate, current):
+                    next_states[next_mask] = candidate
+        states = next_states
+    return states
+
+
+def _best_fit_state(
+    choices: tuple[tuple[_CandidateAssignment, ...], ...],
+    full_mask: int,
+    policy: TacticFitPolicy,
+    mean_best: _AssignmentState,
+) -> _AssignmentState:
+    """Optimize the central mean/weakest blend over every feasible XI.
+
+    For each distinct candidate score as a possible minimum, the max-total
+    assignment under that floor dominates all other assignments with that
+    minimum or higher. This is exact for the linear mean/weakest objective.
+    """
+    best = mean_best
+    slot_count = full_mask.bit_count()
+
+    def key(state: _AssignmentState) -> tuple[float, float, tuple[tuple[int, str], ...]]:
+        weakest = min(
+            choice.assignment.selection_score.central for choice in state.assignments
+        )
+        fit = round(
+            (1 - policy.weakest_slot_weight) * state.total / slot_count
+            + policy.weakest_slot_weight * weakest,
             6,
-        ),
-        upper=round(sum(item.selection_score.upper for item in assignments) / divisor, 6),
-    )
+        )
+        return -fit, -state.total, _state_signature(state)
+
+    best_key = key(best)
+    thresholds = sorted({
+        choice.assignment.selection_score.central
+        for player_choices in choices
+        for choice in player_choices
+        if choice.assignment.selection_score.central > 0
+    })
+    for threshold in thresholds:
+        candidate = _assignment_states(choices, minimum_score=threshold).get(full_mask)
+        if candidate is None:
+            break
+        candidate_key = key(candidate)
+        if candidate_key < best_key:
+            best, best_key = candidate, candidate_key
+    return best
+
+
+def _tactic_fit(
+    assignments: tuple[SlotAssignment, ...],
+    slot_count: int,
+    policy: TacticFitPolicy,
+) -> tuple[ScoreBand, ScoreBand, ScoreBand]:
+    missing = slot_count - len(assignments)
+    if missing < 0:
+        raise ValueError("more assignments than tactic slots")
+
+    def component(field: str) -> tuple[float, float, float]:
+        values = [getattr(item.selection_score, field) for item in assignments]
+        mean = round(sum(values) / slot_count, 6)
+        weakest = min(values) if values and not missing else 0.0
+        fit = round(
+            (1 - policy.weakest_slot_weight) * mean
+            + policy.weakest_slot_weight * weakest,
+            6,
+        )
+        return mean, weakest, fit
+
+    lower = component("lower")
+    central = component("central")
+    upper = component("upper")
+    return tuple(
+        ScoreBand(lower[index], central[index], upper[index])
+        for index in range(3)
+    )  # type: ignore[return-value]

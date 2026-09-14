@@ -3,6 +3,7 @@ import unittest
 from fm_analytics.analytics import (
     AttributePriority,
     FootballCatalogue,
+    MVP_CATALOGUE,
     PlayerSelectionInput,
     RoleAttribute,
     RoleDefinition,
@@ -85,6 +86,39 @@ def legal_squad() -> list[PlayerSelectionInput]:
 
 
 class XiSelectionTests(unittest.TestCase):
+    def test_narrow_squad_gets_legal_diamond_instead_of_partial_wide_xi(self) -> None:
+        required = {
+            attribute.name
+            for role in MVP_CATALOGUE.roles.values()
+            for attribute in role.attributes
+        }
+        positions = (
+            "GK", "DL", "DC", "DC", "DR", "DM", "MC", "MC", "AMC", "ST", "ST", "MR"
+        )
+        squad = [
+            PlayerSelectionInput(
+                id=str(index),
+                name=f"Player {index:02}",
+                positions=(position,),
+                attributes={
+                    name: AttributeObservation(Visibility.KNOWN, value=10)
+                    for name in required
+                },
+                availability="available",
+                injured=False,
+                suspended=False,
+                condition_percent=100,
+                match_fitness_percent=100,
+            )
+            for index, position in enumerate(positions, 1)
+        ]
+
+        recommendation = recommend_tactic(squad, MVP_CATALOGUE)
+
+        self.assertEqual(recommendation.selected.tactic.key, "balanced_41212_diamond")
+        self.assertTrue(recommendation.selected.has_legal_xi)
+        self.assertEqual(len({item.player_id for item in recommendation.selected.assignments}), 11)
+
     def test_builds_legal_xi_with_unique_eligible_players(self) -> None:
         squad = legal_squad()
         evaluation = evaluate_tactic(TACTIC, squad, CATALOGUE)

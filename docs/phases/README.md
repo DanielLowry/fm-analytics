@@ -18,8 +18,8 @@ are hypotheses, not promises about implementation.
 | [01 — Extraction API](01-extraction-api/README.md) | Supply stable, observable inputs for the MVP | In progress | Execution-ready | 00 |
 | [02 — Persistence](02-persistence/README.md) | Retain the observations and provenance needed to reproduce decisions | In progress | Detailed | 01 |
 | [03 — Information visibility](03-information-visibility/README.md) | Enforce field knowledge and the discoverable-player boundary | In progress | Native off-screen attribute query validated; manager-rooted search source callable; exact discoverable set and bridge integration remain | 00–02 |
-| [04 — Squad model](04-squad-analytics/README.md) | Explain role suitability, baseline-tactic fit, depth, and weaknesses | In progress | Three tactics, role scoring, and weakness pass implemented | 02–03 |
-| [05 — Tactic and XI selection](05-xi-optimisation/README.md) | Recommend a valid baseline tactic and lineup jointly | In progress | Joint assignment, readiness, and explainable bench implemented | 04 |
+| [04 — Squad model](04-squad-analytics/README.md) | Explain role suitability, baseline-tactic fit, depth, and weaknesses | In progress | Four versioned tactics, role scoring, and weakness pass implemented; threshold review remains | 02–03 |
+| [05 — Tactic and XI selection](05-xi-optimisation/README.md) | Recommend a valid baseline tactic and lineup jointly | In progress | Direct live command produced legal narrow-diamond XI; football review remains | 04 |
 | [06 — Recruitment](06-recruitment/README.md) | Convert weaknesses into uncertainty-aware visible-player shortlists | In progress | Brief, bounded shortlist, and export-count gate implemented | 03–05 |
 | [07 — Match database](07-match-database/README.md) | Build a trustworthy history of matches and decisions | Planned | Provisional | 01–03 |
 | [08 — Opposition analysis](08-opposition-analysis/README.md) | Produce evidence-backed pre-match reports | Planned | Outline | 07 |

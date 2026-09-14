@@ -3,10 +3,14 @@ import json
 import tempfile
 import unittest
 from contextlib import redirect_stdout
+from dataclasses import replace
+from datetime import timedelta
 from pathlib import Path
+from unittest.mock import patch
 
-from fm_analytics.cli import main
+from fm_analytics.cli import load_fixture, main
 from fm_analytics.analytics import MVP_CATALOGUE
+from fm_analytics.domain import AttributeObservation, SourceHealth, Visibility
 
 
 HTML = """
@@ -20,6 +24,68 @@ HTML = """
 
 
 class RecommendationCliTests(unittest.TestCase):
+    def _complete_owned_snapshot(self):
+        fixture = Path(__file__).parent.parent / "src/fm_analytics/fixtures/sample-game.json"
+        game, squad = load_fixture(fixture)
+        original = squad.players[0]
+        required = {
+            attribute.name
+            for role in MVP_CATALOGUE.roles.values()
+            for attribute in role.attributes
+        }
+        players = tuple(
+            replace(
+                original,
+                id=f"player-{index}",
+                name=f"Player {index}",
+                positions=(slot.position,),
+                attributes={
+                    name: AttributeObservation(Visibility.KNOWN, value=10)
+                    for name in required
+                },
+            )
+            for index, slot in enumerate(
+                MVP_CATALOGUE.tactics["balanced_442"].slots, start=1
+            )
+        )
+        return game, replace(squad, players=players)
+
+    def test_direct_live_recommendation_needs_no_bridge_server_or_html(self) -> None:
+        game, squad = self._complete_owned_snapshot()
+        output = io.StringIO()
+        with (patch("fm_analytics.cli.LinuxProtonDataSource") as source_class,
+              patch("fm_analytics.cli.BridgeClient", side_effect=AssertionError(
+                  "HTTP bridge must not be used in direct mode"
+              )),
+              redirect_stdout(output)):
+            source = source_class.return_value
+            source.get_health.return_value = SourceHealth("ready", "linux-proton")
+            source.get_game.return_value = game
+            source.get_squad.return_value = squad
+            status = main(["--direct-live", "--recommend"])
+
+        self.assertEqual(status, 0)
+        self.assertIn("Starting XI", output.getvalue())
+        self.assertIn("Attribute coverage: complete", output.getvalue())
+        self.assertIn("Weak points", output.getvalue())
+        source.get_squad.assert_called_once_with()
+
+    def test_direct_live_refuses_mismatched_game_and_squad_dates(self) -> None:
+        game, squad = self._complete_owned_snapshot()
+        output = io.StringIO()
+        with (patch("fm_analytics.cli.LinuxProtonDataSource") as source_class,
+              redirect_stdout(output)):
+            source = source_class.return_value
+            source.get_health.return_value = SourceHealth("ready", "linux-proton")
+            source.get_game.return_value = replace(
+                game, game_date=game.game_date + timedelta(days=1)
+            )
+            source.get_squad.return_value = squad
+            status = main(["--direct-live", "--recommend"])
+
+        self.assertEqual(status, 1)
+        self.assertIn("different in-game dates", output.getvalue())
+
     def test_renders_safe_partial_recommendation_from_fixture_and_html(self) -> None:
         fixture = (
             Path(__file__).parent.parent

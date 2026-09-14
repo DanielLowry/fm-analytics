@@ -28,9 +28,11 @@ try:
     )
     from tools.fm20_discoverability_cold_query import run as discoverability_run
     from tools.fm20_player_visibility_query import query_visible_attributes
+    from tools.fm20_native_call_log import log_event
 except ModuleNotFoundError:  # Support `python3 tools/fm20_monitor.py`.
     from fm20_linux_probe import ProbeError, choose_pid, probe
     from fm20_attribute_page import ATTRIBUTE_PAGE
+    from fm20_native_call_log import log_event
     from fm20_owned_visible_source import (
         list_full_team_players,
         list_full_visibility_teams,
@@ -356,10 +358,16 @@ class MonitorHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
+        started_at = time.monotonic()
+        log_event("http_request_started", path=path, client=self.client_address[0])
         if path == "/api/attributes/query/team-stream":
             try:
                 payload = self._read_json_body()
             except ValueError as exc:
+                log_event(
+                    "http_request_failed", path=path, exception_type=type(exc).__name__,
+                    exception=str(exc), duration_seconds=time.monotonic() - started_at,
+                )
                 self._send(
                     json.dumps({"error": str(exc)}).encode(),
                     "application/json; charset=utf-8",
@@ -367,6 +375,10 @@ class MonitorHandler(BaseHTTPRequestHandler):
                 )
                 return
             self._send_ndjson_stream(self._attribute_query_team_stream(payload))
+            log_event(
+                "http_request_finished", path=path,
+                duration_seconds=time.monotonic() - started_at,
+            )
             return
         routes = {
             "/api/attributes/teams": self._full_team_search,
@@ -388,7 +400,15 @@ class MonitorHandler(BaseHTTPRequestHandler):
                 json.dumps(document, indent=2).encode(),
                 "application/json; charset=utf-8",
             )
+            log_event(
+                "http_request_finished", path=path,
+                duration_seconds=time.monotonic() - started_at,
+            )
         except (KeyError, TypeError, ValueError, OSError, ProbeError) as exc:
+            log_event(
+                "http_request_failed", path=path, exception_type=type(exc).__name__,
+                exception=str(exc), duration_seconds=time.monotonic() - started_at,
+            )
             self._send(
                 json.dumps({"error": str(exc)}).encode(),
                 "application/json; charset=utf-8",

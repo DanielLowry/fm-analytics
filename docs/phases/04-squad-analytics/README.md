@@ -35,11 +35,22 @@ definitions are provisional football hypotheses pending review against the
 real squad; changes create a new catalogue version rather than silently
 changing old recommendations.
 
+The first direct live owned-squad recommendation showed why that review matters:
+the managed 17-player Hungerford squad has no left-sided wide player, so all
+three `fm20-mvp-v1` templates produced partial XIs despite complete 32/32
+role-input coverage. `fm20-mvp-v2` adds a balanced 4-1-2-1-2 DM narrow diamond,
+using the squad's central midfield/attacking-midfield and two-forward depth.
+It produced a legal live XI on 24 June 2019; the original wide shapes remain
+in the comparison as incomplete alternatives. This is a verified structural
+fit, not yet an expert endorsement of the role weights or instructions.
+
 The first tactic-aware weakness pass now keeps starter quality, available
 backup quality, structural gaps, temporary availability gaps, and shared
 simultaneous cover as distinct findings. Thresholds are versioned independently
 from the role catalogue. This is sufficient to form the first traceable weak
-points; richer severity calibration and recruitment-brief generation remain.
+points; richer severity calibration remains. In this low-tier save, the
+current absolute 50/40 starter/backup cutoffs flag many players, so those
+rankings are provisional and should not be read as league-calibrated quality.
 
 ## Outcome
 

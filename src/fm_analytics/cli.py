@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Sequence
 
 from fm_analytics.api import BridgeClient, BridgeError
+from fm_analytics.bridge import LinuxProtonDataSource
 from fm_analytics.analytics import (
     BenchSelection,
     MVP_CATALOGUE,
@@ -47,6 +48,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--fixture",
         type=Path,
         help="read a combined game/squad fixture without running the bridge",
+    )
+    source.add_argument(
+        "--direct-live",
+        action="store_true",
+        help="read the managed FM20 squad directly, without starting the HTTP bridge",
     )
     parser.add_argument(
         "--fm-html",
@@ -216,6 +222,7 @@ def render_recommendation(
         "",
         "Tactic comparison",
         "-----------------",
+        "Fit: 65% XI mean + 35% weakest slot, after readiness; an unfilled slot scores 0.",
         )
     )
     for evaluation in recommendation.evaluations:
@@ -224,7 +231,10 @@ def render_recommendation(
         )
         lines.append(
             f"{evaluation.tactic.name:<26} "
-            f"{_band(evaluation.score):<22} {status}"
+            f"fit {_band(evaluation.score):<22} "
+            f"mean {evaluation.mean_score.central:.1f}, "
+            f"weakest {evaluation.weakest_score.central:.1f} "
+            f"({', '.join(evaluation.weakest_slot_keys)}); {status}"
         )
     lines.extend(
         (
@@ -279,7 +289,8 @@ def render_recommendation(
         lines.append("Bench coverage gaps: " + ", ".join(bench.uncovered_slots))
     lines.append(
         f"Versions: catalogue {selected.tactic.catalogue_version}; "
-        f"readiness {selected.readiness_version}; bench {bench.policy_version}"
+        f"readiness {selected.readiness_version}; fit {selected.fit_version}; "
+        f"bench {bench.policy_version}"
     )
     lines.extend(("", "Weak points", "-----------"))
     if weakness_report.weaknesses:
@@ -354,6 +365,15 @@ def _contract_summary(player: Player, squad: Squad) -> str:
     return ""
 
 
+def _validate_recommendation_snapshot(game: GameState, squad: Squad) -> None:
+    if game.game_date != squad.as_of_date:
+        raise ValueError("game and squad observations have different in-game dates")
+    if game.controlled_club is None or squad.club is None:
+        raise ValueError("recommendation requires an active managed club")
+    if game.controlled_club.id != squad.club.id:
+        raise ValueError("game and squad observations have different managed clubs")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
@@ -380,11 +400,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                 game, squad = load_fixture(args.fixture)
                 source_name = "fixture"
             else:
-                client = BridgeClient(args.base_url)
-                health = client.get_health()
+                live_source = (
+                    LinuxProtonDataSource() if args.direct_live
+                    else BridgeClient(args.base_url)
+                )
+                health = live_source.get_health()
                 if not health.is_ready:
                     raise BridgeError(health.detail or health.status)
-                game, squad = client.get_game(), client.get_squad()
+                game, squad = live_source.get_game(), live_source.get_squad()
                 source_name = health.source
             recommendation = None
             bench = None
@@ -392,6 +415,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             briefs = ()
             shortlists = ()
             if args.recommend:
+                _validate_recommendation_snapshot(game, squad)
                 if args.fm_html:
                     squad_export = load_squad_html_import(args.fm_html)
                     if args.fm_html_player_count is not None:

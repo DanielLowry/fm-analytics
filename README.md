@@ -42,8 +42,18 @@ uv run python -m unittest discover -s tests -v
 
 ## Automated current-squad recommendation
 
-With FM20 running and a save loaded, start the live bridge and request a
-recommendation in another terminal:
+With FM20 running and a save loaded, one command now reads the managed squad
+and recommends a tactic, starting XI, substitutes, weaknesses, and recruitment
+briefs. No HTML export, open player screen, or HTTP server is required:
+
+```bash
+uv run fm-analytics --direct-live --recommend \
+  --snapshot-db data/fm-analytics.sqlite3
+```
+
+The existing bridge-server route remains available when an HTTP client needs
+the same owned-squad data. Start the bridge and request a recommendation in
+another terminal:
 
 ```bash
 FM_BRIDGE_SOURCE=linux-proton uv run fm-bridge
@@ -58,8 +68,13 @@ restricts attribute reads to the active manager's verified first-team roster,
 requires all 41 allowlisted attributes per player, and rejects a mismatched
 manager, club, date, or player set. It supplies exact owned-player attributes
 alongside live readiness for tactic, XI, bench, weakness, and recruitment-brief
-analysis. The end-to-end bridge wiring has automated tests; a fresh live run
-through the bridge is still needed to validate this integration against FM.
+analysis. The CLI additionally rejects game/squad date or club mismatches. A
+direct live run on the 24 June 2019 Hungerford save supplied all 32 role
+inputs and selected a legal XI in the versioned narrow diamond; the three
+wide templates could not fill a left-sided wide slot. The role weights and
+weakness thresholds remain provisional football judgments, not league-
+calibrated assessments. A fresh live run through the HTTP bridge is still
+needed to validate that separate transport path against FM.
 
 External-player discovery and range/unknown queries are not yet automated or
 production-ready. The passive render hook remains research evidence only; it
