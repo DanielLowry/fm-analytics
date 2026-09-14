@@ -5,6 +5,8 @@
 - [Early-game MVP](mvp.md) defines the first useful product outcome and its
   acceptance criteria.
 - [Architecture](architecture.md) describes the current Python HTTP boundary.
+- [Field-acquisition workbench](field-acquisition-workbench.md) explains how
+  visible FM facts become screen-independent, validated sources.
 - [FMBridge contract v1](contracts/v1.md) defines the current versioned resource
   and error semantics.
 - [Delivery roadmap](phases/README.md) is the working plan, with phase gates,

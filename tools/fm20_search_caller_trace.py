@@ -18,7 +18,7 @@ import subprocess
 import sys
 from pathlib import Path
 from time import monotonic
-from typing import Callable, Sequence
+from typing import Callable, Mapping, Sequence
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -86,6 +86,7 @@ def trace_callers(
     pid: int,
     *,
     duration_seconds: float,
+    targets: Mapping[str, str] | None = None,
     candidate_only: bool = False,
     source_only: bool = False,
     combined_only: bool = False,
@@ -100,21 +101,38 @@ def trace_callers(
         raise CaptureError("capture modes are mutually exclusive")
     if settle_seconds < 0:
         raise CaptureError("settle_seconds cannot be negative")
+    if targets is not None:
+        if candidate_only or source_only or combined_only:
+            raise CaptureError("custom targets cannot use search-capture modes")
+        if not 1 <= len(targets) <= 16:
+            raise CaptureError("custom trace requires 1 to 16 targets")
+        for label, rva in targets.items():
+            try:
+                address = int(rva, 0)
+            except (TypeError, ValueError) as exc:
+                raise CaptureError(f"invalid trace RVA for {label!r}") from exc
+            if not label or not 0 < address < FM20_4_4_STEAM.expected_executable_size:
+                raise CaptureError(f"invalid trace target {label!r}")
     module_base = _validated_module_base(pid, proc_root)
     environment = dict(os.environ)
     environment["FMVIS_MODULE_BASE"] = hex(module_base)
     environment["FMVIS_MODULE_END"] = hex(
         module_base + FM20_4_4_STEAM.expected_executable_size
     )
-    environment["FMVIS_TRACE_TARGETS"] = json.dumps(
-        ({"large_field_switch": TRACE_TARGETS["large_field_switch"]}
-         if candidate_only else
-         {"search_filter_pass": TRACE_TARGETS["search_filter_pass"]}
-         if source_only else
-         {name: TRACE_TARGETS[name]
-          for name in ("large_field_switch", "search_filter_pass")}
-         if combined_only else TRACE_TARGETS)
-    )
+    if targets is not None:
+        active_targets = dict(targets)
+    elif candidate_only:
+        active_targets = {"large_field_switch": TRACE_TARGETS["large_field_switch"]}
+    elif source_only:
+        active_targets = {"search_filter_pass": TRACE_TARGETS["search_filter_pass"]}
+    elif combined_only:
+        active_targets = {
+            name: TRACE_TARGETS[name]
+            for name in ("large_field_switch", "search_filter_pass")
+        }
+    else:
+        active_targets = TRACE_TARGETS
+    environment["FMVIS_TRACE_TARGETS"] = json.dumps(active_targets)
     environment["FMVIS_CAPTURE_CANDIDATES"] = "1" if candidate_only or combined_only else "0"
     environment["FMVIS_CAPTURE_SOURCE"] = "1" if source_only or combined_only else "0"
     command = [
