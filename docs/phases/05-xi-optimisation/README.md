@@ -6,13 +6,35 @@ In progress. A deterministic joint assignment engine now evaluates each
 versioned tactic against the available squad. Exact constraint weights still
 need review against the first visibility-safe squad capture.
 
-The initial engine assigns each eligible player to at most one of the eleven
-tactic slots and maximizes the total central selection score. Injury,
-suspension, explicit availability, and minimum readiness thresholds are hard
-constraints. Condition and match fitness apply a separately versioned,
-separately reported penalty; they never alter intrinsic role quality. Unknown
+The engine assigns each eligible player to at most one of the eleven tactic
+slots. For a legal XI it maximizes the versioned tactic-fit objective below;
+for an incomplete XI it fills as many slots as possible and then maximizes
+their total central selection score. Injury, suspension, explicit availability,
+and minimum readiness thresholds are hard constraints. Condition and match
+fitness apply a separately versioned, separately reported penalty; they never
+alter intrinsic role quality. Unknown
 readiness is penalized and explained. An incomplete shape reports its unfilled
 slots and ranks behind any shape with a legal eleven.
+
+The current opponent-neutral fit policy (`tactic-fit-v1`) scores each possible
+XI from its eleven post-readiness player/role selection scores:
+
+```text
+tactic fit = 0.65 × mean(XI slots) + 0.35 × minimum(XI slots)
+```
+
+An unfilled slot contributes zero, so a partial XI cannot look strong just
+because it omits a hard-to-fill position. The 35% weakest-slot weight is a
+provisional preference, not a measured win-probability coefficient. It makes
+one glaring mismatch more costly than a small increase in average quality:
+ten slots scoring about 58 and one scoring 0 have a higher mean than eleven
+slots scoring about 47, but a lower tactic fit. The selector optimizes this
+same objective when assigning players, rather than choosing a mean-optimal XI
+and only then penalizing its weakest slot. It checks each attainable minimum
+score as a floor and finds the best total under that floor. Lower and upper
+fit bounds use the same formula on the selected XI's score bounds; they express
+attribute uncertainty, not uncertainty over which XI would be selected. The
+CLI reports the mean, weakest slot, fit range, and policy version separately.
 
 The selected shape now also receives an explainable seven-player bench. Only
 selectable non-starters are considered; greedy selection prioritizes new
@@ -47,8 +69,8 @@ validation.
 Recommend an opponent-neutral tactical template, legal starting XI, and
 substitutes by evaluating the supported tactics and player assignments jointly.
 The result accounts for role suitability and today's availability, condition,
-match sharpness, and positional familiarity. It remains an explainable decision
-aid, not an automatic team-submission system.
+match sharpness, and binary position eligibility. It remains an explainable
+decision aid, not an automatic team-submission system.
 
 ## Prerequisites
 
@@ -77,6 +99,15 @@ versioned, comparable team objective. Keep tactical fit, intrinsic role quality,
 current readiness, and hard constraints as separately explainable components.
 Do not claim that a small score difference proves one football philosophy is
 universally superior.
+
+Tactic familiarity is a distinct future input, not a hidden part of current
+role or readiness scores. Before adding it, obtain a manager-visible and
+reproducible observation of the squad's/player's familiarity with each tactic,
+including its source, in-game date, and unknown/stale state. Then define a
+separately versioned adjustment, rerun XI/tactic comparisons, and test how it
+changes choices without allowing an unavailable familiarity value to become
+an assumed advantage. Until then, every tactic is compared on squad fit only;
+the output must not claim that the squad already knows the selected shape.
 
 ### 05.4 — Constrained optimiser
 
@@ -116,4 +147,6 @@ input changes.
 - Opposition-specific tactic selection or adjustments
 - Automatic application of a lineup or tactic inside FM
 - Learned player-performance objectives
+- Tactic-familiarity adjustment until a trustworthy visible input and
+  calibrated, separately versioned policy exist
 - Complex promises/happiness modelling until trustworthy data exists

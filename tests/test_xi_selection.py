@@ -1,4 +1,5 @@
 import unittest
+from dataclasses import replace
 
 from fm_analytics.analytics import (
     AttributePriority,
@@ -8,6 +9,7 @@ from fm_analytics.analytics import (
     RoleAttribute,
     RoleDefinition,
     TacticDefinition,
+    TacticFitPolicy,
     TacticSlot,
     evaluate_tactic,
     recommend_tactic,
@@ -86,6 +88,158 @@ def legal_squad() -> list[PlayerSelectionInput]:
 
 
 class XiSelectionTests(unittest.TestCase):
+    def test_one_weak_slot_outweighs_a_better_average(self) -> None:
+        uneven = legal_squad()
+        uneven[0] = player(1, "GK", 1)
+        steady = [
+            replace(
+                item,
+                attributes={"quality": AttributeObservation(Visibility.KNOWN, value=10)},
+            )
+            for item in legal_squad()
+        ]
+
+        uneven_result = evaluate_tactic(TACTIC, uneven, CATALOGUE)
+        steady_result = evaluate_tactic(TACTIC, steady, CATALOGUE)
+
+        self.assertGreater(
+            uneven_result.mean_score.central,
+            steady_result.mean_score.central,
+        )
+        self.assertLess(uneven_result.score.central, steady_result.score.central)
+        self.assertEqual(uneven_result.weakest_slot_keys, ("slot-0",))
+        self.assertEqual(
+            steady_result.weakest_score.central,
+            steady_result.mean_score.central,
+        )
+
+    def test_tactic_ranking_prefers_steady_shape_over_higher_mean_weak_shape(self) -> None:
+        weak_role = RoleDefinition(
+            key="weak",
+            name="Weak",
+            eligible_positions=("GK",),
+            attributes=(RoleAttribute("weak", 1, AttributePriority.REQUIRED),),
+            catalogue_version=VERSION,
+        )
+        steady_role = RoleDefinition(
+            key="steady",
+            name="Steady",
+            eligible_positions=ROLE.eligible_positions,
+            attributes=(RoleAttribute("steady", 1, AttributePriority.REQUIRED),),
+            catalogue_version=VERSION,
+        )
+        uneven_tactic = replace(
+            TACTIC,
+            key="uneven",
+            slots=(TacticSlot("slot-0", "GK", "weak"),) + TACTIC.slots[1:],
+        )
+        steady_tactic = replace(
+            TACTIC,
+            key="steady",
+            slots=tuple(replace(slot, role_key="steady") for slot in TACTIC.slots),
+        )
+        catalogue = FootballCatalogue(
+            version=VERSION,
+            roles={role.key: role for role in (ROLE, weak_role, steady_role)},
+            tactics={item.key: item for item in (uneven_tactic, steady_tactic)},
+        )
+        squad = [
+            replace(item, attributes={
+                "quality": AttributeObservation(Visibility.KNOWN, value=12),
+                "steady": AttributeObservation(Visibility.KNOWN, value=10),
+                "weak": AttributeObservation(Visibility.KNOWN, value=1),
+            })
+            for item in legal_squad()
+        ]
+
+        recommendation = recommend_tactic(squad, catalogue)
+        by_key = {item.tactic.key: item for item in recommendation.evaluations}
+
+        self.assertEqual(recommendation.selected.tactic.key, "steady")
+        self.assertGreater(
+            by_key["uneven"].mean_score.central,
+            by_key["steady"].mean_score.central,
+        )
+        self.assertLess(
+            by_key["uneven"].score.central,
+            by_key["steady"].score.central,
+        )
+
+    def test_fit_optimizer_can_prefer_a_balanced_xi_over_the_highest_mean(self) -> None:
+        role_a = RoleDefinition(
+            key="role-a",
+            name="Role A",
+            eligible_positions=("ST",),
+            attributes=(RoleAttribute("a", 1, AttributePriority.REQUIRED),),
+            catalogue_version=VERSION,
+        )
+        role_b = RoleDefinition(
+            key="role-b",
+            name="Role B",
+            eligible_positions=("ST",),
+            attributes=(RoleAttribute("b", 1, AttributePriority.REQUIRED),),
+            catalogue_version=VERSION,
+        )
+        shaped = replace(
+            TACTIC,
+            slots=TACTIC.slots[:-2] + (
+                TacticSlot("slot-9", "ST", "role-a"),
+                TacticSlot("slot-10", "ST", "role-b"),
+            ),
+        )
+        catalogue = FootballCatalogue(
+            version=VERSION,
+            roles={role.key: role for role in (ROLE, role_a, role_b)},
+            tactics={shaped.key: shaped},
+        )
+        squad = legal_squad()[:9] + [
+            replace(player(10, "ST", 12), attributes={
+                "a": AttributeObservation(Visibility.KNOWN, value=20),
+                "b": AttributeObservation(Visibility.KNOWN, value=9),
+            }),
+            replace(player(11, "ST", 12), attributes={
+                "a": AttributeObservation(Visibility.KNOWN, value=11),
+                "b": AttributeObservation(Visibility.KNOWN, value=3),
+            }),
+        ]
+
+        mean_best = evaluate_tactic(
+            shaped, squad, catalogue,
+            fit_policy=TacticFitPolicy(weakest_slot_weight=0),
+        )
+        balanced = evaluate_tactic(shaped, squad, catalogue)
+
+        mean_ids = {item.slot.key: item.player_id for item in mean_best.assignments}
+        balanced_ids = {item.slot.key: item.player_id for item in balanced.assignments}
+        self.assertEqual((mean_ids["slot-9"], mean_ids["slot-10"]), ("10", "11"))
+        self.assertEqual(
+            (balanced_ids["slot-9"], balanced_ids["slot-10"]),
+            ("11", "10"),
+        )
+        self.assertLess(balanced.mean_score.central, mean_best.mean_score.central)
+        self.assertGreater(balanced.weakest_score.central, mean_best.weakest_score.central)
+        self.assertEqual(balanced.fit_weakest_weight, 0.35)
+
+    def test_missing_slot_has_zero_weakest_score(self) -> None:
+        evaluation = evaluate_tactic(TACTIC, legal_squad()[:-1], CATALOGUE)
+
+        self.assertFalse(evaluation.has_legal_xi)
+        self.assertEqual(evaluation.weakest_score.central, 0)
+        self.assertEqual(
+            evaluation.weakest_slot_keys,
+            tuple(slot.key for slot in evaluation.unfilled_slots),
+        )
+        self.assertEqual(len(evaluation.weakest_slot_keys), 1)
+        self.assertEqual(
+            evaluation.score.central,
+            round(0.65 * evaluation.mean_score.central, 6),
+        )
+
+    def test_fit_policy_rejects_invalid_weight(self) -> None:
+        for weight in (-0.1, 1.1, float("nan"), float("inf")):
+            with self.subTest(weight=weight), self.assertRaises(ValueError):
+                TacticFitPolicy(weakest_slot_weight=weight)
+
     def test_narrow_squad_gets_legal_diamond_instead_of_partial_wide_xi(self) -> None:
         required = {
             attribute.name

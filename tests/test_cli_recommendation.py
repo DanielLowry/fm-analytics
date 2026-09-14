@@ -67,6 +67,7 @@ class RecommendationCliTests(unittest.TestCase):
         self.assertEqual(status, 0)
         self.assertIn("Starting XI", output.getvalue())
         self.assertIn("Attribute coverage: complete", output.getvalue())
+        self.assertIn("Fit: 65% XI mean + 35% weakest slot", output.getvalue())
         self.assertIn("Weak points", output.getvalue())
         source.get_squad.assert_called_once_with()
 

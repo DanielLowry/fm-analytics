@@ -222,7 +222,9 @@ def render_recommendation(
         "",
         "Tactic comparison",
         "-----------------",
-        "Fit: 65% XI mean + 35% weakest slot, after readiness; an unfilled slot scores 0.",
+        f"Fit: {(1 - selected.fit_weakest_weight) * 100:.0f}% XI mean + "
+        f"{selected.fit_weakest_weight * 100:.0f}% weakest slot, after readiness; "
+        "an unfilled slot scores 0.",
         )
     )
     for evaluation in recommendation.evaluations:

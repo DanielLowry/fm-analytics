@@ -93,6 +93,7 @@ class TacticEvaluation:
     tactic: TacticDefinition
     readiness_version: str
     fit_version: str
+    fit_weakest_weight: float
     assignments: tuple[SlotAssignment, ...]
     unfilled_slots: tuple[TacticSlot, ...]
     mean_score: ScoreBand
@@ -179,6 +180,7 @@ def evaluate_tactic(
         tactic=tactic,
         readiness_version=readiness_policy.version,
         fit_version=fit_policy.version,
+        fit_weakest_weight=fit_policy.weakest_slot_weight,
         assignments=ordered_assignments,
         unfilled_slots=unfilled,
         mean_score=mean_score,
@@ -434,7 +436,7 @@ def _tactic_fit(
     lower = component("lower")
     central = component("central")
     upper = component("upper")
-    return tuple(
-        ScoreBand(lower[index], central[index], upper[index])
-        for index in range(3)
-    )  # type: ignore[return-value]
+    mean = ScoreBand(lower[0], central[0], upper[0])
+    weakest = ScoreBand(lower[1], central[1], upper[1])
+    fit = ScoreBand(lower[2], central[2], upper[2])
+    return mean, weakest, fit

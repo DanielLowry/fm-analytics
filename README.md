@@ -76,6 +76,13 @@ weakness thresholds remain provisional football judgments, not league-
 calibrated assessments. A fresh live run through the HTTP bridge is still
 needed to validate that separate transport path against FM.
 
+Tactics are ranked by a versioned fit score: 65% of the XI's mean role/readiness
+score plus 35% of its weakest slot. This penalizes a shape that strands one
+player in a poor fit, and the XI is optimized for that same objective. The
+weight is provisional. Tactic familiarity is not yet included; it needs a
+trustworthy manager-visible input and a separate policy before it can affect
+recommendations.
+
 External-player discovery and range/unknown queries are not yet automated or
 production-ready. The passive render hook remains research evidence only; it
 is not used by the bridge.
