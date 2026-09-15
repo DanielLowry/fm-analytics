@@ -9,11 +9,9 @@ filter, and this probe currently reuses a previously observed search object.
 from __future__ import annotations
 
 import argparse
-import ctypes
 import hashlib
 import json
 import os
-import signal
 import struct
 import sys
 from pathlib import Path
@@ -23,17 +21,8 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tools.fm20_cold_visibility_call import EXPECTED_SHA256
-from tools.fm20_cold_visibility_ptrace import (
-    PTRACE_ATTACH,
-    PTRACE_CONT,
-    PTRACE_DETACH,
-    PTRACE_GETREGS,
-    PTRACE_SETREGS,
-    UserRegs,
-    ptrace,
-    wait_stopped,
-    write_int,
-)
+from tools.fm20_cold_visibility_ptrace import UserRegs
+from tools.fm20_guarded_native_call import guarded_native_call
 from tools.fm20_discoverability_experiment import (
     _write_report,
     resolve_source_vector_ids,
@@ -101,71 +90,29 @@ def cold_build(pid: int, module_base: int, arguments: tuple[int, int, int]) -> i
         "cold_build_started", call_number=call_number, pid=pid,
         source=hex(source), filter_context=hex(filter_context), scope=hex(scope),
     )
-    fd = -1
-    attached = False
-    stopped = False
-    forced_stop = False
-    saved: UserRegs | None = None
     try:
-        ptrace(PTRACE_ATTACH, pid)
-        attached = True
-        wait_stopped(pid, 5.0)
-        stopped = True
-        current = UserRegs()
-        ptrace(PTRACE_GETREGS, pid, ctypes.addressof(current))
-        saved = UserRegs.from_buffer_copy(bytes(current))
-        fd = os.open(f"/proc/{pid}/mem", os.O_RDWR | os.O_CLOEXEC)
-        if read_exact(fd, trap, 4) != b"\xcc" * 4:
-            raise ProbeError("native builder return trap bytes differ from pinned build")
-        call_rsp = ((current.rsp - 0x600) & ~0xF) | 8
-        write_int(fd, call_rsp, trap)
-        current.orig_rax = 0xFFFFFFFFFFFFFFFF
-        current.rax = 0
-        current.rcx = source
-        current.rdx = filter_context
-        current.r8 = scope
-        current.rsp = call_rsp
-        current.rip = builder
-        ptrace(PTRACE_SETREGS, pid, ctypes.addressof(current))
-        ptrace(PTRACE_CONT, pid)
-        stopped = False
-        stop_signal = wait_stopped(pid, 60.0)
-        stopped = True
-        after = UserRegs()
-        ptrace(PTRACE_GETREGS, pid, ctypes.addressof(after))
-        if stop_signal != signal.SIGTRAP or after.rip != trap + 1:
+        def configure(memory_fd: int, call_regs: UserRegs, call_rsp: int) -> None:
+            call_regs.rcx = source
+            call_regs.rdx = filter_context
+            call_regs.r8 = scope
+            call_regs.rip = builder
+
+        result = guarded_native_call(
+            pid, trap, configure, timeout_seconds=60.0, stack_reserve=0x600
+        )
+        if not result.succeeded:
             raise ProbeError(
                 "native source builder stopped before its return trap: "
-                f"signal={stop_signal}, rip=0x{after.rip:x}"
+                f"signal={result.fault_signal}, rip=0x{result.fault_rip:x}"
             )
-        return int(after.rax)
+        log_event("cold_build_returned", call_number=call_number, pid=pid)
+        return int(result.return_value)
     except BaseException as exc:
         log_event(
             "cold_build_failed", call_number=call_number, pid=pid,
             exception_type=type(exc).__name__, exception=str(exc),
         )
         raise
-    finally:
-        if attached:
-            if not stopped:
-                log_event("cold_build_force_stopping", call_number=call_number, pid=pid)
-                os.kill(pid, signal.SIGSTOP)
-                forced_stop = True
-                try:
-                    wait_stopped(pid, 5.0)
-                    stopped = True
-                except (OSError, ProbeError, TimeoutError) as exc:
-                    log_event(
-                        "cold_build_force_stop_failed", call_number=call_number,
-                        pid=pid, exception_type=type(exc).__name__, exception=str(exc),
-                    )
-            if stopped:
-                if saved is not None:
-                    ptrace(PTRACE_SETREGS, pid, ctypes.addressof(saved))
-                ptrace(PTRACE_DETACH, pid)
-                log_event("cold_build_detached", call_number=call_number, pid=pid)
-            if forced_stop:
-                os.kill(pid, signal.SIGCONT)
         if fd >= 0:
             os.close(fd)
         if forced_stop:

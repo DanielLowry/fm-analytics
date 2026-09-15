@@ -31,6 +31,7 @@ from tools.fm20_discoverability_cold_filter import (
     _source_records,
     native_filter_batch,
     resolve_full_filter,
+    resolve_knowledge_context,
 )
 from tools.fm20_discoverability_experiment import _write_report
 from tools.fm20_discoverability_manager_builder import _live_context
@@ -203,6 +204,7 @@ def run(
         reader = lambda address, size: read_exact(fd, address, size)
         filter_object = resolve_full_filter(reader, module_base, source)
         records = _source_records(reader, source)
+        knowledge_context = resolve_knowledge_context(reader, module_base, manager.id)
     finally:
         os.close(fd)
     if sorted(records) != sorted(source_ids):
@@ -211,7 +213,7 @@ def run(
     evaluations, complete = native_filter_batch(
         pid, module_base, filter_object, FILTER_EVALUATOR_RVA,
         FILTER_RETURN_TRAP_RVA, manager_interface, team, records,
-        expected_exclusions,
+        expected_exclusions, knowledge_context,
     )
     after = _live_context(pid)[0]
     report.update(summarize(list(records), evaluations, complete, own_ids))

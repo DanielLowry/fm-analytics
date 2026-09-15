@@ -21,6 +21,7 @@ from typing import Any, Sequence
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from tools.fm20_cold_visibility_call import CONTEXT_ROOT_RVA
 from tools.fm20_cold_visibility_ptrace import (
     PTRACE_ATTACH, PTRACE_CONT, PTRACE_DETACH, PTRACE_GETREGS, PTRACE_SETREGS,
     UserRegs, ptrace, wait_stopped, write_int,
@@ -42,6 +43,37 @@ FILTER_RETURN_TRAP_RVA = 0x5337003
 FILTER_CONTEXT_VTABLE_RVA = 0x6591BF8
 RECORD_WRAPPER_VTABLE_RVA = 0x6591C38
 MAX_COLD_RULE_CALLS = 6000
+
+
+def resolve_knowledge_context(
+    read_bytes, module_base: int, active_manager_id: str
+) -> int:
+    """The active manager's own knowledge-context object, read-only.
+
+    Same context-root object already used for attribute cold-calls
+    (CONTEXT_ROOT_RVA), but resolved by walking straight from the root and
+    checking the owner against the manager id the caller already trusts,
+    rather than FM20_4_4_STEAM.active_object_offset -- that fast field can
+    read stale while a search/knowledge screen is open, which is exactly
+    when this context is needed. Fails closed if more than one context
+    exists or its owner is not the expected manager.
+    """
+    root = struct.unpack("<Q", read_bytes(module_base + CONTEXT_ROOT_RVA, 8))[0]
+    if not root:
+        raise ProbeError("manager-knowledge context root is missing")
+    start, end = struct.unpack("<QQ", read_bytes(root + 0x18, 16))
+    if not start or end - start != 8:
+        raise ProbeError("expected exactly one manager-knowledge context")
+    context = struct.unpack("<Q", read_bytes(start, 8))[0]
+    if not context:
+        raise ProbeError("manager-knowledge context is null")
+    manager_person = struct.unpack("<Q", read_bytes(context + 0x18, 8))[0]
+    if not manager_person:
+        raise ProbeError("manager-knowledge context has no owner")
+    owner_id = struct.unpack("<i", read_bytes(manager_person + 0xC, 4))[0]
+    if str(owner_id) != str(active_manager_id):
+        raise ProbeError("knowledge-context owner is not the active manager")
+    return context
 
 
 def resolve_native_rule(
@@ -113,8 +145,19 @@ def native_filter_batch(
     scope: int,
     records: dict[int, int],
     known_own_excluded: set[int],
+    knowledge_context: int = 0,
 ) -> tuple[dict[int, bool], bool]:
-    """Call one FM predicate for samples, then all source members if samples pass."""
+    """Call one FM predicate for samples, then all source members if samples pass.
+
+    `knowledge_context` fills filter-context offset +0x20, a field the
+    simpler tag-scan rules (include-own, transfer-listed, scouted) never
+    read but PERSON_INTERESTED_FILTER_RULE and its siblings do -- left as
+    uninitialized stack scratch, it previously caused an intermittent
+    segfault deep in a full-filter batch (whatever garbage happened to be
+    there was dereferenced as an object and called through). Populate it
+    with the active manager's own knowledge-context object (the same one
+    resolved for attribute cold-calls) whenever the full filter runs.
+    """
     excluded_sample = sorted(known_own_excluded)[:3]
     included_sample = sorted(set(records) - known_own_excluded)[:3]
     sample = excluded_sample + included_sample
@@ -152,6 +195,7 @@ def native_filter_batch(
         write_int(fd, context + 8, filter_context)
         write_int(fd, context + 0x10, 0)
         write_int(fd, context + 0x18, scope)
+        write_int(fd, context + 0x20, knowledge_context)
         write_int(fd, record, module_base + RECORD_WRAPPER_VTABLE_RVA)
         for index, player_id in enumerate(ordering):
             write_int(fd, record + 8, records[player_id])
