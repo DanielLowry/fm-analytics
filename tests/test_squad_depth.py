@@ -129,10 +129,10 @@ def squad() -> list[PlayerSelectionInput]:
         player(11, "ST2", quality=15),
         # DM: same two players score oppositely depending on which tactic's
         # role is asking. TACTIC_1's role_c scores flair: player 20 starts
-        # (flair 18), player 21 is a weak backup (flair 5). TACTIC_2's
-        # role_a scores quality: player 21 starts (quality 15), player 20 is
-        # an adequate backup (quality 10) -> weak in TACTIC_1 only.
-        player(20, "DM", quality=10, flair=18),
+        # (flair 18), player 21 is cover that drops off sharply (flair 5).
+        # TACTIC_2's role_a scores quality: player 21 starts (quality 15),
+        # player 20 is close enough behind (quality 13) -> weak in TACTIC_1 only.
+        player(20, "DM", quality=13, flair=18),
         player(21, "DM", quality=15, flair=5),
         # AMC: fielded only by TACTIC_2, one weak starter with no backup.
         player(30, "AMC", quality=10),

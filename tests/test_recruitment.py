@@ -10,36 +10,32 @@ from fm_analytics.analytics import (
     shortlist_candidates,
 )
 from fm_analytics.imports import parse_fm_html_export
-from tests.test_xi_selection import CATALOGUE, TACTIC, legal_squad
+from tests.test_xi_selection import CATALOGUE, TACTIC, legal_squad, player
 
 
 class RecruitmentTests(unittest.TestCase):
-    def test_briefs_retain_the_thresholds_that_created_the_weaknesses(self) -> None:
+    def test_briefs_carry_the_squad_relative_bar_that_created_each_weakness(self) -> None:
         squad = legal_squad()
+        squad[0] = player(1, "GK", 6)
         evaluation = evaluate_tactic(TACTIC, squad, CATALOGUE)
-        policy = WeaknessPolicy(
-            version="custom-thresholds",
-            starter_score_threshold=60,
-            backup_score_threshold=45,
-        )
-        report = assess_weaknesses(
-            evaluation,
-            squad,
-            CATALOGUE,
-            policy=policy,
-        )
+        policy = WeaknessPolicy(version="custom-ratios", starter_ratio=0.9, backup_ratio=0.75)
+        report = assess_weaknesses(evaluation, squad, CATALOGUE, policy=policy)
 
         briefs = build_recruitment_briefs(report, CATALOGUE)
 
-        self.assertTrue(any(brief.need == "starter" for brief in briefs))
-        self.assertTrue(any(brief.need == "depth" for brief in briefs))
+        starter_briefs = [brief for brief in briefs if brief.need == "starter"]
+        self.assertEqual([brief.slot_keys for brief in starter_briefs], [("slot-0",)])
         self.assertEqual(
-            {brief.minimum_role_score for brief in briefs if brief.need == "starter"},
-            {60},
+            starter_briefs[0].minimum_role_score,
+            round(report.reference_score * 0.9, 6),
+        )
+        keeper = next(a for a in evaluation.assignments if a.slot.key == "slot-0")
+        gk_depth = next(
+            brief for brief in briefs if brief.need == "depth" and brief.slot_keys == ("slot-0",)
         )
         self.assertEqual(
-            {brief.minimum_role_score for brief in briefs if brief.need == "depth"},
-            {45},
+            gk_depth.minimum_role_score,
+            round(keeper.intrinsic_role_score.score.central * 0.75, 6),
         )
 
     def test_shortlist_separates_proven_and_possible_candidates(self) -> None:

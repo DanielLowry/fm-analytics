@@ -74,13 +74,17 @@ alongside live readiness for tactic, XI, bench, weakness, and recruitment-brief
 analysis. The CLI additionally rejects game/squad date or club mismatches. A
 direct live run on the 24 June 2019 Hungerford save supplied all 32 role
 inputs and selected a legal XI in the versioned narrow diamond; the three
-wide templates could not fill a left-sided wide slot. The role weights and
-weakness thresholds remain provisional football judgments, not league-
-calibrated assessments. A fresh live run through the HTTP bridge is still
+wide templates could not fill a left-sided wide slot. The role weights remain
+provisional football judgments. Weaknesses are judged relative to the squad
+itself rather than against fixed scores (`weakness-v2`): a starter is a weak
+link when well below the XI's median role fit, and cover is weak when it drops
+off sharply from the starter it replaces. The same analysis therefore applies
+to any club; comparison against rival squads needs other clubs' data and is
+separate work. A fresh live run through the HTTP bridge is still
 needed to validate that separate transport path against FM.
 
 The tactic and role catalogue has since grown past what that run exercised: it
-now covers 7 tactics and 28 roles (`fm20-mvp-v3`, defined as data in
+now covers 12 tactics and 28 roles (`fm20-mvp-v4`, defined as data in
 `src/fm_analytics/analytics/data/catalogue.json` rather than Python literals),
 so a fresh live run would compare more shapes than the four described above.
 

@@ -13,18 +13,45 @@ from tests.test_xi_selection import CATALOGUE, TACTIC, legal_squad, player
 class WeaknessTests(unittest.TestCase):
     def test_reports_weak_starters_and_absent_backups_separately(self) -> None:
         squad = legal_squad()
+        squad[0] = player(1, "GK", 6)
         evaluation = evaluate_tactic(TACTIC, squad, CATALOGUE)
 
-        report = assess_weaknesses(
-            evaluation,
-            squad,
-            CATALOGUE,
-            policy=WeaknessPolicy(starter_score_threshold=60),
-        )
+        report = assess_weaknesses(evaluation, squad, CATALOGUE)
 
         kinds = [weakness.kind for weakness in report.weaknesses]
-        self.assertEqual(kinds.count(WeaknessKind.WEAK_STARTER), 11)
+        weak = [w for w in report.weaknesses if w.kind is WeaknessKind.WEAK_STARTER]
+        self.assertEqual([w.player_id for w in weak], ["1"])
         self.assertEqual(kinds.count(WeaknessKind.NO_BACKUP), 11)
+
+    def test_an_evenly_matched_squad_has_no_weak_links(self) -> None:
+        # Relative, not absolute: a uniformly modest XI has no weak starter.
+        squad = legal_squad()
+        evaluation = evaluate_tactic(TACTIC, squad, CATALOGUE)
+
+        report = assess_weaknesses(evaluation, squad, CATALOGUE)
+
+        self.assertNotIn(
+            WeaknessKind.WEAK_STARTER, {weakness.kind for weakness in report.weaknesses}
+        )
+
+    def test_backup_is_weak_only_when_it_drops_off_sharply_from_the_starter(self) -> None:
+        close = legal_squad() + [player(40, "GK", 11)]
+        far = legal_squad() + [player(40, "GK", 4)]
+
+        def gk_kinds(squad):
+            report = assess_weaknesses(
+                evaluate_tactic(TACTIC, squad, CATALOGUE), squad, CATALOGUE
+            )
+            return {w.kind for w in report.weaknesses if w.slot_keys == ("slot-0",)}
+
+        self.assertNotIn(WeaknessKind.WEAK_BACKUP, gk_kinds(close))
+        self.assertIn(WeaknessKind.WEAK_BACKUP, gk_kinds(far))
+
+    def test_policy_rejects_out_of_range_ratios(self) -> None:
+        with self.assertRaises(ValueError):
+            WeaknessPolicy(starter_ratio=0)
+        with self.assertRaises(ValueError):
+            WeaknessPolicy(backup_ratio=1.5)
 
     def test_reports_shared_cover_for_simultaneous_slots(self) -> None:
         squad = legal_squad()

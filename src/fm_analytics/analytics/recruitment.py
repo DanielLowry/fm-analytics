@@ -58,12 +58,8 @@ def build_recruitment_briefs(
     for weakness in report.weaknesses:
         if weakness.kind is WeaknessKind.TEMPORARY_GAP:
             continue
-        if weakness.kind is WeaknessKind.WEAK_STARTER:
-            need = "starter"
-            threshold = report.starter_score_threshold
-        else:
-            need = "depth"
-            threshold = report.backup_score_threshold
+        need = "starter" if weakness.kind is WeaknessKind.WEAK_STARTER else "depth"
+        threshold = weakness.target_score if weakness.target_score is not None else 0.0
         relevant_slots = tuple(slots[key] for key in weakness.slot_keys)
         grouped: dict[tuple[str, str], list[str]] = {}
         for slot in relevant_slots:

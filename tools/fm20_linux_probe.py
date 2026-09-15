@@ -428,13 +428,27 @@ def read_club_from_team(memory_fd: int, team_address: int) -> ClubResult | None:
     )
 
 
+# The eligibility cut for "can this player be considered for this position at
+# all". Below this, FM's own UI would call the player Ineffectual there and
+# analytics should not offer them as an option. From 15 September 2026 this is
+# 10, not 15: 15 excluded FM's whole "Unconvincing" band (9-11) and part of
+# "Competent" (12-14), players FM itself would let a manager select, just
+# poorly. 10 keeps out true last-resort cases while admitting anyone FM
+# considers a plausible if uncomfortable option. The remaining discount for
+# a low rating is analytics.FamiliarityPolicy's job (a continuous multiplier
+# on role score), not this cut's -- this only decides "considered at all".
+POSITION_ELIGIBILITY_MINIMUM = 10
+
+
 def decode_positions(ratings: bytes) -> tuple[str, ...]:
     if len(ratings) != len(POSITION_CODES):
         raise ProbeError(
             f"position data requires {len(POSITION_CODES)} bytes, got {len(ratings)}"
         )
     positions = tuple(
-        code for code, rating in zip(POSITION_CODES, ratings) if rating >= 15
+        code
+        for code, rating in zip(POSITION_CODES, ratings)
+        if rating >= POSITION_ELIGIBILITY_MINIMUM
     )
     if positions:
         return positions
@@ -445,15 +459,16 @@ def decode_positions(ratings: bytes) -> tuple[str, ...]:
 def position_familiarity_map(ratings: bytes) -> dict[str, int]:
     """Return every position's raw 1-20 rating byte, keyed by FM position code.
 
-    `decode_positions` above collapses this same array to a >=15 boolean list
-    and discards the rest. This function keeps the full-resolution reading so
-    the analytics layer can use it as a continuous suitability signal instead
-    of a hard eligibility cut. It intentionally does not map raw values onto
-    FM's in-game familiarity labels (Natural/Accomplished/.../Ineffectual);
-    those labels are themselves believed to be a projection of this same
-    number, so the raw byte is used directly rather than manufacturing label
-    boundaries that have not been independently confirmed for every value.
-    See tools/fm20_position_familiarity.py for that label mapping, kept
+    `decode_positions` above collapses this same array to a
+    `>= POSITION_ELIGIBILITY_MINIMUM` boolean list and discards the rest.
+    This function keeps the full-resolution reading so the analytics layer
+    can use it as a continuous suitability signal instead of a hard
+    eligibility cut. It intentionally does not map raw values onto FM's
+    in-game familiarity labels (Natural/Accomplished/.../Ineffectual); those
+    labels are themselves believed to be a projection of this same number, so
+    the raw byte is used directly rather than manufacturing label boundaries
+    that have not been independently confirmed for every value. See
+    tools/fm20_position_familiarity.py for that label mapping, kept
     standalone as it is not required for this reading.
     """
     if len(ratings) != len(POSITION_CODES):

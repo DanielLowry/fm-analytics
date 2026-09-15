@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from statistics import median
 from typing import Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue, TacticSlot
@@ -27,16 +28,27 @@ class WeaknessKind(StrEnum):
 
 @dataclass(frozen=True)
 class WeaknessPolicy:
-    version: str = "weakness-v1"
-    starter_score_threshold: float = 50
-    backup_score_threshold: float = 40
+    """Flag weak links relative to this squad, not against fixed cut-offs.
+
+    The question this answers is "how do I get the most out of the players I
+    have", so a weakness is defined against the team itself: a starter is a
+    weak link when their role fit falls well below the XI's median, and cover
+    is weak when it drops off sharply from the starter it would replace. The
+    same policy therefore means the same thing for a non-league squad and an
+    elite one. Comparison against rival squads is a separate, later question
+    that needs other clubs' data.
+    """
+
+    version: str = "weakness-v2"
+    starter_ratio: float = 0.85
+    backup_ratio: float = 0.80
 
     def __post_init__(self) -> None:
         if not self.version:
             raise ValueError("weakness policy version is required")
-        for value in (self.starter_score_threshold, self.backup_score_threshold):
-            if not 0 <= value <= 100:
-                raise ValueError("weakness score thresholds must be between 0 and 100")
+        for value in (self.starter_ratio, self.backup_ratio):
+            if not 0 < value <= 1:
+                raise ValueError("weakness ratios must be greater than 0 and at most 1")
 
 
 @dataclass(frozen=True)
@@ -61,14 +73,18 @@ class Weakness:
     slot_keys: tuple[str, ...]
     player_id: str | None
     message: str
+    # The role score that would clear this weakness, so a recruitment brief
+    # can state a concrete bar. Relative to this squad; see WeaknessPolicy.
+    target_score: float | None = None
 
 
 @dataclass(frozen=True)
 class WeaknessReport:
     tactic_key: str
     policy_version: str
-    starter_score_threshold: float
-    backup_score_threshold: float
+    reference_score: float
+    starter_ratio: float
+    backup_ratio: float
     depth: tuple[SlotDepth, ...]
     weaknesses: tuple[Weakness, ...]
 
@@ -85,6 +101,16 @@ def assess_weaknesses(
         raise ValueError("evaluation tactic does not belong to the catalogue")
     starters = {assignment.slot.key: assignment for assignment in evaluation.assignments}
     starter_ids = {assignment.player_id for assignment in evaluation.assignments}
+    reference = round(
+        median(
+            assignment.intrinsic_role_score.score.central
+            for assignment in evaluation.assignments
+        )
+        if evaluation.assignments
+        else 0.0,
+        6,
+    )
+    starter_bar = round(reference * policy.starter_ratio, 6)
     depth: list[SlotDepth] = []
     weaknesses: list[Weakness] = []
 
@@ -122,16 +148,22 @@ def assess_weaknesses(
                 kind = WeaknessKind.STRUCTURAL_GAP
                 reason = "no position-eligible player exists"
             weaknesses.append(
-                Weakness(kind, (slot.key,), None, f"{slot.key} is unfilled: {reason}")
+                Weakness(
+                    kind, (slot.key,), None, f"{slot.key} is unfilled: {reason}", starter_bar
+                )
             )
             continue
-        if starter.intrinsic_role_score.score.central < policy.starter_score_threshold:
+        starter_score = starter.intrinsic_role_score.score.central
+        backup_bar = round(starter_score * policy.backup_ratio, 6)
+        if starter_score < starter_bar:
             weaknesses.append(
                 Weakness(
                     WeaknessKind.WEAK_STARTER,
                     (slot.key,),
                     starter.player_id,
-                    f"{starter.player_name} is below the starter role-fit threshold at {slot.key}",
+                    f"{starter.player_name} is a weak link at {slot.key} "
+                    f"({starter_score:.0f} vs XI median {reference:.0f})",
+                    starter_bar,
                 )
             )
         if not available:
@@ -144,15 +176,18 @@ def assess_weaknesses(
                     (slot.key,),
                     None,
                     f"{slot.key} has no {detail} backup",
+                    backup_bar,
                 )
             )
-        elif available[0].role_score.score.central < policy.backup_score_threshold:
+        elif available[0].role_score.score.central < backup_bar:
             weaknesses.append(
                 Weakness(
                     WeaknessKind.WEAK_BACKUP,
                     (slot.key,),
                     available[0].player_id,
-                    f"best available cover is below the backup threshold at {slot.key}",
+                    f"cover at {slot.key} drops off sharply "
+                    f"({available[0].role_score.score.central:.0f} vs starter {starter_score:.0f})",
+                    backup_bar,
                 )
             )
 
@@ -171,14 +206,24 @@ def assess_weaknesses(
                     tuple(slot_keys),
                     player_id,
                     f"{cover_names[player_id]} is first cover for multiple simultaneous slots",
+                    round(
+                        max(
+                            starters[key].intrinsic_role_score.score.central
+                            for key in slot_keys
+                            if key in starters
+                        )
+                        * policy.backup_ratio,
+                        6,
+                    ),
                 )
             )
 
     return WeaknessReport(
         tactic_key=evaluation.tactic.key,
         policy_version=policy.version,
-        starter_score_threshold=policy.starter_score_threshold,
-        backup_score_threshold=policy.backup_score_threshold,
+        reference_score=reference,
+        starter_ratio=policy.starter_ratio,
+        backup_ratio=policy.backup_ratio,
         depth=tuple(depth),
         weaknesses=tuple(weaknesses),
     )

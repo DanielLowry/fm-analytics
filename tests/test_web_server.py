@@ -145,7 +145,9 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("Injury risk", body)
         self.assertIn("65%", body)
-        self.assertIn("low / best estimate / high", body)
+        self.assertIn("<ul class='legend'>", body)
+        # Owned players' attributes are exact, so scores collapse to one number.
+        self.assertNotIn(" / ", body.split("Tactic comparison")[1].split("</table>")[0])
 
     def test_tactics_page_lists_roles_for_every_tactic_not_just_the_selected_one(self) -> None:
         status, body = self._get("/tactics")

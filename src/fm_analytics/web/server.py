@@ -80,6 +80,7 @@ _STYLE = """
   details { margin: 0.4rem 0; border: 1px solid #e5e5e5; border-radius: 0.3rem; padding: 0.3rem 0.6rem; }
   details summary { cursor: pointer; font-weight: 600; }
   details table { margin-top: 0.5rem; }
+  ul.legend { color: #555; font-size: 0.85rem; margin: 0.25rem 0 0.75rem; padding-left: 1.2rem; }
 </style>
 """
 
@@ -103,7 +104,10 @@ def _error_page(title: str, message: str, active_path: str = "/") -> str:
 
 
 def _band(value) -> str:
-    return f"{value.lower:.1f} / {value.central:.1f} / {value.upper:.1f}"
+    """One number when attributes are fully known; low–expected–high otherwise."""
+    if value.lower == value.upper:
+        return f"{value.central:.1f}"
+    return f"{value.central:.1f} ({value.lower:.1f}–{value.upper:.1f})"
 
 
 def _injury_risk_count(report: WeaknessReport) -> int:
@@ -220,8 +224,8 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         )
         body = (
             "<h2>Best player per role</h2>"
-            "<p class='muted'>Lower / central / upper score band; 'uncertain' means another "
-            "candidate's upper bound still beats the leader's lower bound.</p>"
+            "<ul class='legend'><li><b>Uncertain</b>: a rival could still overtake "
+            "once scouted</li></ul>"
             "<table><tr><th>Role</th><th>Best player</th><th>Score</th>"
             "<th>Eligible candidates</th><th>Decision</th></tr>"
             + "".join(rows)
@@ -239,9 +243,9 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         for evaluation in bundle.recommendation.evaluations:
             tactic_key = evaluation.tactic.key
             status = (
-                "legal XI"
+                "✓"
                 if evaluation.has_legal_xi
-                else "missing " + ", ".join(slot.key for slot in evaluation.unfilled_slots)
+                else "✗ " + ", ".join(slot.key for slot in evaluation.unfilled_slots)
             )
             risk = _injury_risk_count(bundle.squad_depth.per_tactic[tactic_key])
             risk_class = "badge-persistent" if risk else "badge-ok"
@@ -251,7 +255,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 f"<td>{html.escape(evaluation.tactic.formation)}</td>"
                 f"<td>{_band(evaluation.score)}</td>"
                 f"<td>{status}</td>"
-                f"<td><span class='badge {risk_class}'>{risk} slot(s)</span></td>"
+                f"<td><span class='badge {risk_class}'>{risk}</span></td>"
                 "</tr>"
             )
             assignment_rows = "".join(
@@ -295,35 +299,26 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         targets_body = (
             (
                 "<h2>Training targets</h2>"
-                "<p class='muted'>Tactics worth training towards: potential fit once position "
-                "familiarity stops being the limiting factor.</p>"
-                "<table><tr><th>Tactic</th><th>Effective</th><th>Potential</th><th>Gap</th></tr>"
+                "<table><tr><th>Tactic</th><th>Now</th><th>Once trained</th><th>Gap</th></tr>"
                 + targets_rows
                 + "</table>"
             )
             if bundle.training_targets
-            else "<h2>Training targets</h2><p class='muted'>None clear a material margin.</p>"
+            else "<h2>Training targets</h2><p class='muted'>None — familiarity isn't holding any tactic back.</p>"
         )
         body = (
             "<h2>Tactic comparison</h2>"
-            "<p class='muted'>"
-            "<strong>Fit</strong> blends two numbers -- 65% the XI's average role fit plus "
-            "35% its weakest starting slot -- so a tactic that strands one player in a poor "
-            "fit scores lower even if the rest are strong. Each score shows three numbers, "
-            "<strong>low / best estimate / high</strong>: how much is actually known about "
-            "the relevant attributes: a tight band means we're confident, a wide one means "
-            "more scouting could move the answer. <strong>Injury risk</strong> counts "
-            "starting slots with no adequate, unshared backup in that tactic -- higher means "
-            "more exposure if a starter becomes unavailable."
-            "</p>"
-            "<table><tr><th>Tactic</th><th>Formation</th><th>Fit</th><th>Status</th>"
+            "<ul class='legend'>"
+            "<li><b>Fit</b>: 65% XI average + 35% weakest slot</li>"
+            "<li><b>XI</b>: ✓ full XI available, ✗ lists unfillable slots</li>"
+            "<li><b>Injury risk</b>: starting slots without adequate cover</li>"
+            "</ul>"
+            "<table><tr><th>Tactic</th><th>Formation</th><th>Fit</th><th>XI</th>"
             "<th>Injury risk</th></tr>"
             + "".join(rows)
             + "</table>"
             + targets_body
-            + "<h2>Roles per tactic</h2>"
-            "<p class='muted'>Expand a tactic to see its actual role assignment and whether "
-            "the squad can currently fill it.</p>"
+            + "<h2>XI by tactic</h2>"
             + "".join(details)
         )
         self._send(_layout("Tactics", path, body))
@@ -373,10 +368,12 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         body = (
             "<h2>Conclusions</h2><ul>" + "".join(conclusions) + "</ul>"
             "<h2>By position</h2>"
-            "<p class='muted'>Across every tactic evaluated in Tactics, not the selected "
-            "one alone. 'Weak in' counts how many of the tactics fielding that position "
-            "flagged a problem there.</p>"
-            "<table><tr><th>Position</th><th>Status</th><th>Weak in (of tactics using it)</th>"
+            "<ul class='legend'>"
+            "<li>Relative to your own squad: weak link = well below the XI median; "
+            "weak cover = sharp drop-off from the starter</li>"
+            "<li><b>Weak in</b>: tactics flagging it / tactics using the position</li>"
+            "</ul>"
+            "<table><tr><th>Position</th><th>Status</th><th>Weak in</th>"
             "<th>Reasons</th></tr>"
             + rows
             + "</table>"
