@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-09-15",
+  "runtime_artifact_root": "data/research",
+  "build": "fm20-20.4.4-1442341",
+  "save": "research-save",
+  "entries": [
+    {
+      "id": "player-search-senior-vanarama-ui-source",
+      "state": "player-search-senior-vanarama",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "screens": ["player-search"],
+      "captures": [
+        {
+          "id": "senior-vanarama-source",
+          "kind": "gdb-trace-report",
+          "path": "data/research/discoverability/senior-vanarama-source-20260913T155000Z.json",
+          "sha256": "44cdac712275fc8cc95b17f15ac8b8e5584cd4ea84a4111e0fa7f90253c32767",
+          "outcome": "passed"
+        }
+      ],
+      "verified_facts": ["The player-search source was observed for the labelled UI state."],
+      "reusable_for": ["player-search source call timing", "source vector structure"],
+      "limitations": ["Search package evidence is operator-declared, not natively decoded."],
+      "known_contrasts": ["player-search-package-comparison"]
+    },
+    {
+      "id": "player-search-package-comparison",
+      "state": "player-search-package-a-b",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "screens": ["player-search"],
+      "captures": [
+        {
+          "id": "package-study",
+          "kind": "comparison-report",
+          "path": "data/research/discoverability/package-study-20260913T170215Z.json",
+          "sha256": "9acf6ac7ac1ccd4b42e238103015aa7c629ba04aa93b24af2fd517a0d1e575d4",
+          "outcome": "failed-decision-rule"
+        }
+      ],
+      "verified_facts": ["A durable candidate-set contrast exists between two labelled search states."],
+      "reusable_for": ["offline candidate-set differential analysis"],
+      "limitations": ["The study did not prove the complete package/discoverability predicate."],
+      "known_contrasts": ["player-search-senior-vanarama-ui-source", "offscreen-player-search-source"]
+    },
+    {
+      "id": "offscreen-player-search-source",
+      "state": "unrelated-screen-with-populated-search-source",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "screens": ["operator-declared-unrelated-screen"],
+      "captures": [
+        {
+          "id": "offscreen-search-source",
+          "kind": "cold-query-report",
+          "path": "data/research/discoverability/cold-source-builder-20260913T181806Z.json",
+          "sha256": "ca7cb81e6c4b4a006613ad30835fd51735764cea3cf02e3273e80759eb39e9ca",
+          "outcome": "passed"
+        }
+      ],
+      "verified_facts": ["The known search-source builder preserved the saved 4,953-player source while off the Player Search screen."],
+      "reusable_for": ["offscreen source rebuilding", "builder ABI comparison"],
+      "limitations": ["No screenshot was captured."],
+      "known_contrasts": ["player-search-senior-vanarama-ui-source"]
+    },
+    {
+      "id": "manager-rooted-player-search-source",
+      "state": "manager-rooted-search-source",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "screens": [],
+      "captures": [
+        {
+          "id": "manager-rooted-search-source",
+          "kind": "cold-query-report",
+          "path": "data/research/discoverability/manager-rooted-source-20260913T184158Z.json",
+          "sha256": "cddfaf8113cd4ac7eef8f274edde248519453950144df366264d089e649e6847",
+          "outcome": "passed"
+        }
+      ],
+      "verified_facts": ["The active manager roots a stable kind-1 player-search source."],
+      "reusable_for": ["manager-rooted object resolution", "cold player-source queries"],
+      "limitations": ["This capture alone does not prove final discoverability semantics."],
+      "known_contrasts": ["fresh-process-empty-player-search-source"]
+    },
+    {
+      "id": "fresh-process-empty-player-search-source",
+      "state": "fresh-process-before-player-search",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "screens": ["operator-declared-unrelated-screen"],
+      "captures": [
+        {
+          "id": "fresh-process-source-transition",
+          "kind": "comparison-report",
+          "path": "data/research/discoverability/manager-rooted-source-20260913T185503Z.json",
+          "sha256": "ce746b24ea9f3178dbb87ce916aadeb0538d9c7f1520d75193d46ed729a62066",
+          "outcome": "failed-decision-rule"
+        }
+      ],
+      "verified_facts": ["A fresh FM process exposed an available, empty manager-rooted player source before the labelled Player Search action."],
+      "reusable_for": ["empty-to-populated source transition analysis", "fresh-process precondition testing"],
+      "limitations": ["The later package phase did not match its exact-ID oracle.", "UI state was operator-declared."],
+      "known_contrasts": ["manager-rooted-player-search-source"]
+    },
+    {
+      "id": "include-own-rule",
+      "state": "player-search-source-with-owned-first-team",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "screens": [],
+      "captures": [
+        {
+          "id": "include-own-rule-query",
+          "kind": "guarded-native-call-report",
+          "path": "data/research/discoverability/cold-include-own-rule-20260913T180239Z.json",
+          "sha256": "bb07acd99a368d636236ed1d2e89121a5cc6716c8ab28b16c37c34e26747510f",
+          "outcome": "passed"
+        }
+      ],
+      "verified_facts": ["The include-own rule excludes all 16 known contracted first-team players in this state."],
+      "reusable_for": ["include-own filter ABI", "owned-player exclusion comparison"],
+      "limitations": ["One additional source player did not match the saved exclusion set."],
+      "known_contrasts": ["cold-discoverability-repeat"]
+    },
+    {
+      "id": "cold-discoverability-repeat",
+      "state": "manager-rooted-cold-player-search",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "screens": [],
+      "captures": [
+        {
+          "id": "cold-discoverability-1",
+          "kind": "guarded-native-call-report",
+          "path": "data/research/discoverability/cold-discoverability-query-20260913T195732Z.json",
+          "sha256": "9db599a88a142cd49044090383a0c81081f95dcd615fe43ca16cc2c6a3b5bef5",
+          "outcome": "passed"
+        },
+        {
+          "id": "cold-discoverability-2",
+          "kind": "guarded-native-call-report",
+          "path": "data/research/discoverability/cold-discoverability-query-20260914T200419Z.json",
+          "sha256": "ae53fc87ad8673ba58d13f13a9afeb34957c4cbe20468e547458fa23e2a429cf",
+          "outcome": "passed"
+        }
+      ],
+      "verified_facts": ["Two runs rebuilt 4,340 source players and returned the same 4,313-player experimental result."],
+      "reusable_for": ["repeatability checks", "offline result-set analysis", "full-filter ABI research"],
+      "limitations": ["Package evidence is not natively decoded, so the result is research-only."],
+      "known_contrasts": ["include-own-rule", "player-search-package-comparison"]
+    },
+    {
+      "id": "owned-field-survey",
+      "state": "owned-first-team-diverse-position-sample",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "entity": {
+        "kind": "player-set",
+        "ids": ["95034574", "89054310", "29172172", "8608084", "61084413", "29175396"]
+      },
+      "screens": [],
+      "captures": [
+        {
+          "id": "owned-field-survey-report",
+          "kind": "live-survey-report",
+          "path": "data/research/fields/field-workbench-20260914T195827290288Z.json",
+          "sha256": "383a91d3441a3fcb298a5f84fb64a39fcfb3156a6d8827c3f9284368d8d1bc75",
+          "outcome": "complete"
+        }
+      ],
+      "verified_facts": ["The active manager/date and 17-player squad were stable; six diverse positional samples were recorded."],
+      "reusable_for": ["owned-player sample selection", "footedness research", "position-proficiency research"],
+      "limitations": ["No UI screen evidence was captured."],
+      "known_contrasts": ["owned-foot-position-trace"]
+    },
+    {
+      "id": "owned-foot-position-trace",
+      "state": "owned-player-foot-and-position-ui-tour",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "entity": {
+        "kind": "player-set",
+        "ids": ["95034574", "89054310", "29172172", "8608084", "61084413", "29175396"]
+      },
+      "screens": ["player-profile", "positions-view"],
+      "captures": [
+        {
+          "id": "owned-foot-position-trace-report",
+          "kind": "gdb-call-count-report",
+          "path": "data/research/fields/field-workbench-20260914T200147643859Z.json",
+          "sha256": "d5572bb6285bdf0cfada8539aab63f917d159c78ae8e6f8889202edf835df32e",
+          "outcome": "observed"
+        }
+      ],
+      "verified_facts": ["Three candidate functions were hit during the declared UI tour while manager/date/squad identity remained stable."],
+      "reusable_for": ["Frida known-hook comparison", "call-frequency baseline", "footedness and position differential research"],
+      "limitations": ["UI state is operator-declared; no pixels were captured.", "No property getter or result ABI was resolved."],
+      "known_contrasts": ["owned-field-survey"]
+    },
+    {
+      "id": "interested-filter-fault",
+      "state": "manager-rooted-interested-filter-probe",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "screens": [],
+      "captures": [
+        {
+          "id": "interested-filter-probe",
+          "kind": "failed-guarded-native-call-report",
+          "path": "data/research/discoverability/interested-filter-probe-20260915T060356Z.json",
+          "sha256": "af4b3c70997718671862db937adef59c4c424b9213a86f9a55fa434ebd22e73e",
+          "outcome": "faulted-fm-survived"
+        }
+      ],
+      "verified_facts": ["The attempted batch faulted at RIP 0 for the first player and FM survived."],
+      "reusable_for": ["negative ABI evidence", "guarded-call failure regression"],
+      "limitations": ["It supplies no valid interested-player classification."],
+      "known_contrasts": []
+    }
+  ]
+}

@@ -312,7 +312,7 @@ snapshots      label, selected object graph/pages, screenshot and hashes
 conclusions    outcome, confidence, limitations, supporting artifacts
 ```
 
-Raw hidden values must not be copied into this database merely because the
+Raw hidden values must not be copied into this artifact store merely because the
 instrumentation could read them. Each experiment declares its permitted event
 and value fields before attachment.
 
@@ -501,8 +501,8 @@ arbitrary call sequence safe.
 
 | Order | ID | Deliverable | Gate | Status |
 | --- | --- | --- | --- | --- |
-| 1 | RA.3 | Minimal semantic registry plus research corpus manifest, seeded from proven discoveries | Existing attribute/source facts and reports are indexed without reinterpretation | Next |
-| 2 | RA.4 | One-recipe controller skeleton using JSON/JSONL | One existing passive experiment runs, reports, and detaches through it | Planned |
+| 1 | RA.3 | Minimal semantic registry plus research corpus manifest, seeded from proven discoveries | Existing attribute/source facts and reports are indexed without reinterpretation | Initial seed complete |
+| 2 | RA.4 | One-recipe controller skeleton using JSON/JSONL | One existing passive experiment runs, reports, and detaches through it | Next |
 | 3 | RA.2 | Frida attach-and-one-hook prototype | Event agrees with known GDB evidence; clean detach | Planned |
 | 4 | RA.7 | Minimal state-capsule capture and lookup | One human-created state is reanalysed without help | Planned |
 | 5 | RA.5 | Differential analyser over real flat-file traces | Ranks a known call path from labelled states | Planned |
@@ -516,7 +516,9 @@ becomes part of the permanent toolkit only if it succeeds convincingly.
 
 ## First checkpoint: RA.3 and RA.4
 
-The immediate work is deliberately small:
+The immediate work is deliberately small. RA.3 now has its initial checked-in
+implementation in [`research/registry.json`](../research/registry.json) and
+[`research/corpus.json`](../research/corpus.json):
 
 1. define the minimal checked-in registry representation;
 2. seed it from the build profile, known object resolvers, visible-attribute
