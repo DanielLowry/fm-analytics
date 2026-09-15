@@ -243,10 +243,13 @@ Research tooling can now call FM's manager-visible attribute logic off-screen
 and resolve the player-search source builder directly from the active manager,
 without saved UI trace pointers. The manager-rooted builder returned the exact
 4,953-player Senior-package *source* in the current process; this is not the
-final 4,933-player search result or a bridge endpoint. A scripted fresh-process
-package A/B test is the next gate. See the
-[Phase 03 status](docs/phases/03-information-visibility/README.md) and
-[guided experiment protocol](docs/phases/03-information-visibility/discoverability-experiment-protocol.md).
+final 4,933-player search result or a bridge endpoint. The old guided
+package/search workflow is historical evidence rather than an instruction to
+run another operator-led experiment. New data-discovery work starts through
+the single recipe controller, `tools/fm20_research.py`; its
+[automation strategy](docs/research-automation.md) defines the next gate. See
+the [Phase 03 status](docs/phases/03-information-visibility/README.md) for the
+underlying visibility boundary.
 
 Hidden FM values should never cross the HTTP boundary. See
 [the architecture notes](docs/architecture.md) for the design and the next

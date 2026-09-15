@@ -6,6 +6,13 @@ Each phase has a useful outcome of its own; later work should not begin merely
 because code for the previous phase exists. Its exit criteria must be met and
 the important findings recorded.
 
+The [decision-support design](../decision-support-design.md) cuts across these
+phases from the other direction: it starts from the five decisions the manager
+wants help with and identifies which phase each is really waiting on. Read it
+alongside this table when deciding what to do next. Its main finding is that
+four of those five questions are limited by football-catalogue breadth and by
+already-extracted data that is being discarded, rather than by extraction work.
+
 The roadmap is detailed where decisions are imminent and intentionally lighter
 where experiments in earlier phases will change the design. Later phase plans
 are hypotheses, not promises about implementation.

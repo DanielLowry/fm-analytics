@@ -59,6 +59,20 @@ If recurring use justifies it, add a browser UI over Python application APIs.
 Show capture freshness, recommendation version/confidence, explanations, and
 source health. Keep analytics logic outside view/controller code.
 
+The [decision-support design](../../decision-support-design.md) proposes a page
+structure for this, one page per manager question, plus a data page showing
+per-field coverage, provenance, and staleness — the page that makes the
+extraction backlog self-prioritising. It also proposes the mechanism for the
+"analytics logic outside view code" rule above: plain report objects between
+analysis and presentation, rendered by both the CLI and the browser UI, so the
+view layer cannot grow private analytics and report shapes stay testable
+without a browser.
+
+That design argues for building a thin version of this earlier than Phase 11,
+on the grounds that an engine which is tedious to consult does not get
+consulted. That is a sequencing proposal, not a settled change to this
+roadmap; the 11.5 gate ("if recurring use justifies it") still applies.
+
 ### 11.6 — Operational hardening
 
 Add startup configuration, graceful shutdown, local access controls if needed,

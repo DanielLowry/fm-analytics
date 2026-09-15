@@ -83,6 +83,57 @@ class PlayerTests(unittest.TestCase):
         with self.assertRaisesRegex(TypeError, "id must be a string"):
             Player.from_dict(raw)
 
+    @staticmethod
+    def _raw(**overrides):
+        base = {
+            "id": "1",
+            "name": "Player",
+            "dateOfBirth": None,
+            "age": 22,
+            "positions": ["MC"],
+            "clubId": "2",
+            "conditionPercent": None,
+            "matchFitnessPercent": None,
+            "availability": "available",
+            "injured": False,
+            "suspended": False,
+            "contract": None,
+            "attributes": {},
+        }
+        base.update(overrides)
+        return base
+
+    def test_position_familiarity_defaults_to_empty_when_absent(self) -> None:
+        player = Player.from_dict(self._raw())
+
+        self.assertEqual(player.position_familiarity, {})
+        self.assertEqual(player.to_dict()["positionFamiliarity"], {})
+
+    def test_position_familiarity_defaults_to_empty_when_null(self) -> None:
+        player = Player.from_dict(self._raw(positionFamiliarity=None))
+
+        self.assertEqual(player.position_familiarity, {})
+
+    def test_position_familiarity_round_trips(self) -> None:
+        raw = self._raw(positionFamiliarity={"MC": 17, "DM": 9})
+
+        player = Player.from_dict(raw)
+
+        self.assertEqual(player.position_familiarity, {"MC": 17, "DM": 9})
+        self.assertEqual(player.to_dict()["positionFamiliarity"], {"MC": 17, "DM": 9})
+
+    def test_position_familiarity_rejects_out_of_range_rating(self) -> None:
+        raw = self._raw(positionFamiliarity={"MC": 21})
+
+        with self.assertRaisesRegex(ValueError, "positionFamiliarity"):
+            Player.from_dict(raw)
+
+    def test_position_familiarity_rejects_non_integer_rating(self) -> None:
+        raw = self._raw(positionFamiliarity={"MC": "17"})
+
+        with self.assertRaisesRegex(ValueError, "positionFamiliarity"):
+            Player.from_dict(raw)
+
 
 if __name__ == "__main__":
     unittest.main()

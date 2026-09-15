@@ -16,11 +16,12 @@ from fm_analytics.analytics import (
     RecruitmentShortlist,
     ScoreBand,
     TacticRecommendation,
+    TrainingTarget,
     WeaknessReport,
     assess_weaknesses,
     build_recruitment_briefs,
     overlay_squad_export,
-    recommend_tactic,
+    recommend_tactic_effective_and_potential,
     select_bench,
     shortlist_candidates,
 )
@@ -188,6 +189,7 @@ def render_recommendation(
     weakness_report: WeaknessReport,
     briefs: tuple[RecruitmentBrief, ...],
     shortlists: tuple[RecruitmentShortlist, ...],
+    training_targets: tuple[TrainingTarget, ...] = (),
 ) -> str:
     selected = recommendation.selected
     club_name = squad.club.name if squad.club else "No controlled club"
@@ -238,6 +240,23 @@ def render_recommendation(
             f"weakest {evaluation.weakest_score.central:.1f} "
             f"({', '.join(evaluation.weakest_slot_keys)}); {status}"
         )
+    lines.extend(("", "Training targets", "-----------------"))
+    if training_targets:
+        lines.append(
+            "Tactics worth training towards, ranked by potential fit once "
+            "position familiarity is no longer the limiting factor:"
+        )
+        for target in training_targets:
+            lines.append(
+                f"{target.tactic_name:<26} "
+                f"effective {target.effective_score.central:.1f} -> "
+                f"potential {target.potential_score.central:.1f} "
+                f"(+{target.score_gap:.1f})"
+            )
+    else:
+        lines.append(
+            "No tactic's potential fit clears its effective fit by a material margin."
+        )
     lines.extend(
         (
             "",
@@ -250,16 +269,14 @@ def render_recommendation(
         )
     )
     for assignment in selected.assignments:
-        warnings = (
-            f"; {', '.join(assignment.readiness_warnings)}"
-            if assignment.readiness_warnings
-            else ""
-        )
+        all_warnings = assignment.readiness_warnings + assignment.familiarity_warnings
+        warnings = f"; {', '.join(all_warnings)}" if all_warnings else ""
         lines.append(
             f"{assignment.slot.key:<5} {assignment.player_name:<28} "
             f"{assignment.intrinsic_role_score.role_name:<34} "
             f"role {_band(assignment.intrinsic_role_score.score)}, "
             f"readiness -{assignment.readiness_penalty:.1f}, "
+            f"familiarity -{assignment.familiarity_penalty:.1f}, "
             f"selection {assignment.selection_score.central:.1f}{warnings}"
         )
     if selected.unfilled_slots:
@@ -412,6 +429,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 game, squad = live_source.get_game(), live_source.get_squad()
                 source_name = health.source
             recommendation = None
+            training_targets = ()
             bench = None
             weakness_report = None
             briefs = ()
@@ -433,17 +451,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "--recommend requires complete manager-visible squad attributes; "
                         "the current source is incomplete"
                     )
-                recommendation = recommend_tactic(
-                    tuple(
-                        PlayerSelectionInput.from_player(player)
-                        for player in squad.players
-                    ),
-                    MVP_CATALOGUE,
-                )
                 selection_players = tuple(
                     PlayerSelectionInput.from_player(player)
                     for player in squad.players
                 )
+                effective_and_potential = recommend_tactic_effective_and_potential(
+                    selection_players,
+                    MVP_CATALOGUE,
+                )
+                recommendation = effective_and_potential.effective
+                training_targets = effective_and_potential.training_targets()
                 bench = select_bench(
                     recommendation.selected,
                     selection_players,
@@ -513,6 +530,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 weakness_report,
                 briefs,
                 shortlists,
+                training_targets,
             )
         )
     else:

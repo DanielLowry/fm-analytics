@@ -1,4 +1,9 @@
-# Discoverability experiment protocol (FM20 20.4.4)
+# Archived discoverability experiment protocol (FM20 20.4.4)
+
+> Archived on 15 September 2026. This records the former operator-led workflow
+> for provenance; its commands are not current instructions. New research is
+> launched only through `tools/fm20_research.py`, with the automation strategy
+> in `docs/research-automation.md` as the current plan.
 
 This is a research runbook, not an application data source. The target remains
 a cold, screen-independent FM query for the manager's discoverable players.

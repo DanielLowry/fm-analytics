@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "frida-visible-attribute-hook",
+  "purpose": "known-hook-comparison",
+  "question": "Can Frida observe FM's already-verified visible-attribute builder with evidence equivalent to the existing GDB path?",
+  "adapter": "fm20-frida-trace",
+  "targets": ["visible-attribute-builder"],
+  "duration_seconds": 30,
+  "max_events": 500,
+  "capture_backtraces": true,
+  "build": "fm20-20.4.4-1442341",
+  "safety": "passive-live",
+  "operator_interaction": "one-short-batched-ui-tour",
+  "requires_live_process": true,
+  "timeout_seconds": 45,
+  "required_registry_facts": [
+    "visible-attribute-builder",
+    "player-interface-from-person",
+    "player.visible-attributes"
+  ],
+  "reusable_corpus_states": ["owned-foot-position-trace"],
+  "decision": {
+    "adapter_exit_codes": [0],
+    "adapter_statuses": ["complete"],
+    "require_attached": true,
+    "require_agent_ready": true,
+    "require_detached": true,
+    "require_process_alive": true,
+    "minimum_entry_events": 1
+  },
+  "limitations": [
+    "Register values are pointer/selector metadata; pointed-to player data is not read.",
+    "A passing hook validates the backend but does not itself discover a new property."
+  ]
+}
+

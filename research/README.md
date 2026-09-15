@@ -22,19 +22,34 @@ python3 tools/validate_research_catalog.py
 Plan the first controller recipe without touching FM:
 
 ```bash
-python3 tools/fm20_research.py run owned-footedness-survey --dry-run --json
-```
-
-With FM20 and the disposable research save running, execute it with:
-
-```bash
-python3 tools/fm20_research.py run owned-footedness-survey
+uv run --extra research python tools/fm20_research.py run owned-footedness-survey --dry-run --json
 ```
 
 The controller performs catalogue, process, and exact-build preflight; invokes
 the allowlisted passive adapter with a timeout; and writes a session envelope
 plus the adapter evidence under `data/research/sessions/`. This first recipe
-does not attach GDB and requires no FM interaction.
+does not attach GDB and requires no FM interaction. It is a controller smoke
+test, not evidence of improved field discovery, so do not ask the operator to
+start FM solely to run it. The first requested FM session belongs to the Frida
+new-property trial.
+
+Frida 17.18.0 is pinned in the optional `research` dependency group. The host
+attach/load/event/unload/detach smoke test passes. Three Frida recipes are now
+available:
+
+- `frida-attach-smoke` checks FM/Proton lifecycle compatibility without UI
+  activity;
+- `frida-visible-attribute-hook` compares one known hook with existing GDB
+  evidence;
+- `frida-footedness-candidates` is the first-value trial, arming all three
+  existing candidates for one bounded player tour and ranking the resulting
+  events automatically.
+
+Run a recipe through the same entry point:
+
+```bash
+uv run --extra research python tools/fm20_research.py run RECIPE
+```
 
 The validator checks catalogue structure, cross-references, duplicate IDs, and
 the path/hash of any runtime artifact that is present locally. Missing runtime

@@ -105,6 +105,7 @@ class SquadPlayerResult:
     date_of_birth: str | None
     age: int | None
     positions: tuple[str, ...]
+    position_familiarity: dict[str, int]
     condition_percent: int | None
     match_fitness_percent: int | None
     availability: str
@@ -417,6 +418,27 @@ def decode_positions(ratings: bytes) -> tuple[str, ...]:
     return (POSITION_CODES[highest],)
 
 
+def position_familiarity_map(ratings: bytes) -> dict[str, int]:
+    """Return every position's raw 1-20 rating byte, keyed by FM position code.
+
+    `decode_positions` above collapses this same array to a >=15 boolean list
+    and discards the rest. This function keeps the full-resolution reading so
+    the analytics layer can use it as a continuous suitability signal instead
+    of a hard eligibility cut. It intentionally does not map raw values onto
+    FM's in-game familiarity labels (Natural/Accomplished/.../Ineffectual);
+    those labels are themselves believed to be a projection of this same
+    number, so the raw byte is used directly rather than manufacturing label
+    boundaries that have not been independently confirmed for every value.
+    See tools/fm20_position_familiarity.py for that label mapping, kept
+    standalone as it is not required for this reading.
+    """
+    if len(ratings) != len(POSITION_CODES):
+        raise ProbeError(
+            f"position data requires {len(POSITION_CODES)} bytes, got {len(ratings)}"
+        )
+    return {code: rating for code, rating in zip(POSITION_CODES, ratings)}
+
+
 def calculate_age(date_of_birth: date, as_of_date: date) -> int:
     before_birthday = (as_of_date.month, as_of_date.day) < (
         date_of_birth.month,
@@ -561,6 +583,7 @@ def read_first_team_squad(
                 date_of_birth=date_of_birth_text,
                 age=age,
                 positions=decode_positions(ratings),
+                position_familiarity=position_familiarity_map(ratings),
                 condition_percent=condition_percent,
                 match_fitness_percent=match_fitness_percent,
                 availability=availability,

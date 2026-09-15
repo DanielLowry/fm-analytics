@@ -246,6 +246,39 @@ class RecommendationCliTests(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertIn("requires --candidate-player-count", output.getvalue())
 
+    def test_recommendation_reports_a_training_target_when_familiarity_is_the_limiter(
+        self,
+    ) -> None:
+        game, squad = self._complete_owned_snapshot()
+        # Zero out every player's familiarity with their own assigned slot so
+        # the effective run is penalized uniformly and the potential run,
+        # which ignores that penalty, must show a strictly better fit.
+        squad = replace(
+            squad,
+            players=tuple(
+                replace(player, position_familiarity={position: 1})
+                for player, position in zip(
+                    squad.players, (player.positions[0] for player in squad.players)
+                )
+            ),
+        )
+        output = io.StringIO()
+        with (patch("fm_analytics.cli.LinuxProtonDataSource") as source_class,
+              redirect_stdout(output)):
+            source = source_class.return_value
+            source.get_health.return_value = SourceHealth("ready", "linux-proton")
+            source.get_game.return_value = game
+            source.get_squad.return_value = squad
+            status = main(["--direct-live", "--recommend"])
+
+        self.assertEqual(status, 0)
+        self.assertIn("Training targets", output.getvalue())
+        self.assertIn("effective", output.getvalue())
+        self.assertIn("potential", output.getvalue())
+        self.assertNotIn(
+            "No tactic's potential fit clears its effective fit", output.getvalue()
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -29,8 +29,8 @@ comparison captured 4,320 versus 4,933 unique player IDs: the smaller set
 is wholly contained in the larger, with exactly 613 added. This validates
 package-sensitive search membership but does not yet expose the package-aware
 candidate producer as a screen-independent query.
-The [discoverability experiment protocol](discoverability-experiment-protocol.md)
-now has a single guided `study` command. In one terminal session it captures
+The [archived discoverability experiment protocol](../../archive/research/discoverability-experiment-protocol.md)
+records the former guided `study` command. In one terminal session it captured
 both the FM search source vector and result IDs for No Package and the Senior
 Vanarama package, prompts for each in-game action, validates exact membership,
 and saves a diagnostic JSON report. A subsequent direct native call rebuilt
@@ -219,6 +219,25 @@ but it is render-dependent and is not itself a source. Next: locate the
 in-memory result collection behind an open search and the code that builds
 it. Details are in [03.2](03.2-fm-representation-research.md), "Discoverability
 investigation, first results".
+
+**Position familiarity is already extracted and then discarded, 15 September
+2026.** Recorded here because it is easy to mistake for unfinished extraction
+work. `decode_positions` in `tools/fm20_linux_probe.py` receives the full array
+of raw position-rating bytes and collapses it to a `>= 15` boolean list, losing
+every gradation. `tools/fm20_position_familiarity.py` independently maps those
+same bytes onto FM's UI categories, fail-closed, validated against the in-game
+position diagram — and is wired into nothing. The extraction is therefore done;
+only the plumbing and two band gaps (raw 2–8 and 17–18) remain.
+
+Two caveats before this is promoted. First, the `>= 15` cut is an approximation
+of FM's eligibility rule, not the rule, so changing it changes selection
+results and needs its own validation. Second, and squarely a Phase 03 question:
+whether position familiarity is gated by manager knowledge the way attributes
+are, or is always visible, is **not established for this build**. The module's
+own docstring flags this. For the owned first team it is moot, since owned
+facts are visible exactly; for external players it is a visibility gate that
+must be answered before any discoverability work consumes it, and it must not
+be assumed from the owned-squad case.
 
 ## Prerequisites
 

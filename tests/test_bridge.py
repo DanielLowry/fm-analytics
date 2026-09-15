@@ -101,6 +101,40 @@ class BridgeSourceTests(unittest.TestCase):
         self.assertEqual(squad.players[0].attributes["passing"].visibility.value, "known")
         self.assertEqual(len(squad.players[0].attributes), 41)
 
+    def test_linux_source_carries_position_familiarity_when_the_probe_sends_it(self) -> None:
+        source = LinuxProtonDataSource(__file__)
+        probe = self.probe_document("2019-06-24", ("player-1",))
+        probe["first_team_squad"][0]["position_familiarity"] = {"MC": 17, "DM": 9}
+        with (
+            patch.object(source, "_run_probe", return_value=probe),
+            patch.object(source, "_run_owned_source", return_value=self.owned_document(probe)),
+        ):
+            squad = source.get_squad()
+
+        self.assertEqual(
+            squad.players[0].position_familiarity, {"MC": 17, "DM": 9}
+        )
+
+    def test_linux_source_defaults_position_familiarity_when_the_probe_omits_it(self) -> None:
+        source = LinuxProtonDataSource(__file__)
+        probe = self.probe_document("2019-06-24", ("player-1",))
+        with (
+            patch.object(source, "_run_probe", return_value=probe),
+            patch.object(source, "_run_owned_source", return_value=self.owned_document(probe)),
+        ):
+            squad = source.get_squad()
+
+        self.assertEqual(squad.players[0].position_familiarity, {})
+
+    def test_linux_source_rejects_out_of_range_position_familiarity(self) -> None:
+        source = LinuxProtonDataSource(__file__)
+        probe = self.probe_document("2019-06-24", ("player-1",))
+        probe["first_team_squad"][0]["position_familiarity"] = {"MC": 21}
+        with patch.object(source, "_run_probe", return_value=probe):
+            with self.assertRaises(BridgeSourceError) as error:
+                source.get_game()
+        self.assertEqual(error.exception.status, "invalid_payload")
+
     def test_linux_source_rejects_unverified_owned_observations(self) -> None:
         source = LinuxProtonDataSource(__file__)
         probe = self.probe_document("2019-06-24", ("player-1",))

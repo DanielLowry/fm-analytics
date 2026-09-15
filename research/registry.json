@@ -18,6 +18,18 @@
     "hidden-diagnostic",
     "prohibited"
   ],
+  "instrumentation_backends": [
+    {
+      "id": "frida",
+      "version": "17.18.0",
+      "installation": "optional research dependency",
+      "host_attach_smoke": "passed-2026-09-15",
+      "fm_proton_attach": "pending",
+      "safety": "passive-live",
+      "confidence": "observed",
+      "implementation": "tools/fm20_frida_trace.py"
+    }
+  ],
   "builds": [
     {
       "id": "fm20-20.4.4-1442341",
@@ -179,6 +191,33 @@
         "The complete discoverability predicate is not production-approved."
       ],
       "evidence": ["cold-discoverability-repeat"]
+    },
+    {
+      "id": "footedness-candidate-a",
+      "build": "fm20-20.4.4-1442341",
+      "rva": "0x3dd6940",
+      "safety": "passive-live",
+      "confidence": "observed",
+      "semantic": "unclassified footedness-related candidate",
+      "evidence": ["owned-foot-position-trace"]
+    },
+    {
+      "id": "footedness-candidate-b",
+      "build": "fm20-20.4.4-1442341",
+      "rva": "0x5551cc0",
+      "safety": "passive-live",
+      "confidence": "observed",
+      "semantic": "unclassified footedness-related candidate",
+      "evidence": ["owned-foot-position-trace"]
+    },
+    {
+      "id": "footedness-candidate-c",
+      "build": "fm20-20.4.4-1442341",
+      "rva": "0x5551cd0",
+      "safety": "passive-live",
+      "confidence": "observed",
+      "semantic": "unclassified footedness-related candidate",
+      "evidence": ["owned-foot-position-trace"]
     }
   ],
   "properties": [
@@ -313,4 +352,3 @@
     }
   ]
 }
-

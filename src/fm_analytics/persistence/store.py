@@ -13,7 +13,7 @@ from fm_analytics.contract import CONTRACT_VERSION
 from fm_analytics.domain import GameState, Player, Squad
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA = """
 CREATE TABLE captures (
@@ -70,6 +70,16 @@ CREATE TABLE player_positions (
     ordinal INTEGER NOT NULL,
     position TEXT NOT NULL,
     PRIMARY KEY (capture_id, player_id, ordinal),
+    FOREIGN KEY (capture_id, player_id)
+        REFERENCES squad_players(capture_id, player_id) ON DELETE CASCADE
+);
+
+CREATE TABLE player_position_familiarity (
+    capture_id INTEGER NOT NULL,
+    player_id TEXT NOT NULL,
+    position TEXT NOT NULL,
+    rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 20),
+    PRIMARY KEY (capture_id, player_id, position),
     FOREIGN KEY (capture_id, player_id)
         REFERENCES squad_players(capture_id, player_id) ON DELETE CASCADE
 );
@@ -329,6 +339,17 @@ class SnapshotStore:
         )
         connection.executemany(
             """
+            INSERT INTO player_position_familiarity (
+                capture_id, player_id, position, rating
+            ) VALUES (?, ?, ?, ?)
+            """,
+            (
+                (capture_id, player.id, position, rating)
+                for position, rating in player.position_familiarity.items()
+            ),
+        )
+        connection.executemany(
+            """
             INSERT INTO player_attributes (
                 capture_id, player_id, name, visibility, value, minimum, maximum
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -367,6 +388,13 @@ class SnapshotStore:
             """,
             (capture_id, row["player_id"]),
         ).fetchall()
+        familiarity = connection.execute(
+            """
+            SELECT position, rating FROM player_position_familiarity
+            WHERE capture_id = ? AND player_id = ? ORDER BY position
+            """,
+            (capture_id, row["player_id"]),
+        ).fetchall()
         contract = None
         if row["contract_present"]:
             contract = {
@@ -393,6 +421,9 @@ class SnapshotStore:
             "injured": _optional_bool(row["injured"]),
             "suspended": _optional_bool(row["suspended"]),
             "contract": contract,
+            "positionFamiliarity": {
+                item["position"]: item["rating"] for item in familiarity
+            },
             "attributes": {
                 attribute["name"]: _attribute(attribute) for attribute in attributes
             },

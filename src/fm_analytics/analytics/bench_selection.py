@@ -5,6 +5,7 @@ from typing import Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.xi_selection import (
+    FamiliarityPolicy,
     PlayerSelectionInput,
     ReadinessPolicy,
     SlotAssignment,
@@ -43,6 +44,7 @@ def select_bench(
     *,
     bench_size: int = 7,
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
+    familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
 ) -> BenchSelection:
     """Choose selectable non-starters for slot coverage, then playing quality."""
     if bench_size < 0:
@@ -70,6 +72,7 @@ def select_bench(
                     slot,
                     catalogue,
                     readiness_policy=readiness_policy,
+                    familiarity_policy=familiarity_policy,
                 )
             )
             is not None

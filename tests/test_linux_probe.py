@@ -2,6 +2,7 @@ import unittest
 from datetime import date
 
 from tools.fm20_linux_probe import (
+    POSITION_CODES,
     ClubResult,
     HumanManagerResult,
     ProbeError,
@@ -10,6 +11,7 @@ from tools.fm20_linux_probe import (
     decode_positions,
     display_percent,
     parse_module_mapping,
+    position_familiarity_map,
     read_fm_string,
     read_optional_contract_date,
     read_pointer_collection,
@@ -132,6 +134,20 @@ class LinuxFm20ProbeTests(unittest.TestCase):
         ratings = bytes([1, 1, 12, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
 
         self.assertEqual(decode_positions(ratings), ("DL",))
+
+    def test_position_familiarity_map_keeps_every_raw_rating(self) -> None:
+        ratings = bytes([1, 1, 14, 20, 16, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+
+        familiarity = position_familiarity_map(ratings)
+
+        self.assertEqual(familiarity, dict(zip(POSITION_CODES, ratings)))
+        self.assertEqual(familiarity["DL"], 14)
+        self.assertEqual(familiarity["DC"], 20)
+        self.assertEqual(familiarity["DR"], 16)
+
+    def test_position_familiarity_map_rejects_wrong_length(self) -> None:
+        with self.assertRaises(ProbeError):
+            position_familiarity_map(bytes([1, 2, 3]))
 
     class memory_file:
         def __init__(self, data: bytearray):

@@ -307,6 +307,9 @@ def _validate_document(document: Mapping[str, Any]) -> None:
             raise BridgeSourceError(
                 "invalid_payload", f"Player '{player.get('id')}' has no positions."
             )
+        _validate_position_familiarity(
+            player.get("position_familiarity"), player.get("id")
+        )
 
 
 def _active_manager(document: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -325,6 +328,7 @@ def _map_player(raw: Mapping[str, Any], club_id: str) -> Player:
         date_of_birth=_optional_date(raw.get("date_of_birth")),
         age=raw.get("age"),
         positions=tuple(raw["positions"]),
+        position_familiarity=dict(raw.get("position_familiarity") or {}),
         club_id=club_id,
         condition_percent=raw.get("condition_percent"),
         match_fitness_percent=raw.get("match_fitness_percent"),
@@ -361,6 +365,34 @@ def _parse_date(value: Any) -> date:
 
 def _optional_date(value: Any) -> date | None:
     return _parse_date(value) if value is not None else None
+
+
+def _validate_position_familiarity(value: Any, player_id: Any) -> None:
+    """Validate the optional raw 1-20 position-rating map, if the probe sent one.
+
+    Absent is accepted for backward compatibility with an older probe; the
+    field is additive per the v1 contract. Present must be a complete, well
+    formed rating map so a partial or malformed reading fails closed rather
+    than silently degrading an analytics input.
+    """
+    if value is None:
+        return
+    if not isinstance(value, dict) or not value:
+        raise BridgeSourceError(
+            "invalid_payload",
+            f"Player '{player_id}' has an invalid position-familiarity map.",
+        )
+    for position, rating in value.items():
+        if not isinstance(position, str) or not position:
+            raise BridgeSourceError(
+                "invalid_payload",
+                f"Player '{player_id}' has a non-string position-familiarity key.",
+            )
+        if not isinstance(rating, int) or isinstance(rating, bool) or not 1 <= rating <= 20:
+            raise BridgeSourceError(
+                "invalid_payload",
+                f"Player '{player_id}' has an out-of-range position-familiarity rating.",
+            )
 
 
 def _validate_percent(value: Any, player_id: Any, field: str) -> None:

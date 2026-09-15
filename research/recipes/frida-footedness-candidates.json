@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "id": "frida-footedness-candidates",
+  "purpose": "first-value-property-trial",
+  "question": "Which observed call boundary carries the manager-visible footedness label or selector for a player?",
+  "adapter": "fm20-frida-trace",
+  "targets": [
+    "footedness-candidate-a",
+    "footedness-candidate-b",
+    "footedness-candidate-c"
+  ],
+  "duration_seconds": 45,
+  "max_events": 3000,
+  "capture_backtraces": true,
+  "build": "fm20-20.4.4-1442341",
+  "safety": "passive-live",
+  "operator_interaction": "one-short-batched-ui-tour",
+  "requires_live_process": true,
+  "timeout_seconds": 60,
+  "required_registry_facts": [
+    "player.footedness",
+    "footedness-candidate-a",
+    "footedness-candidate-b",
+    "footedness-candidate-c"
+  ],
+  "reusable_corpus_states": ["owned-field-survey", "owned-foot-position-trace"],
+  "operator_actions": {
+    "starting_state": "Open the disposable research save on the owned first-team squad; do not navigate yet.",
+    "after_armed": "Open the Profile and Positions views for the six preselected owned players, then stop. No terminal response or debugger handling is needed.",
+    "batch_players": [
+      {"id": "95034574", "name": "Louis McGrory"},
+      {"id": "89054310", "name": "James Rusby"},
+      {"id": "29172172", "name": "Joe Tomlinson"},
+      {"id": "8608084", "name": "Yan Klukowski"},
+      {"id": "61084413", "name": "ZIdan Akers"},
+      {"id": "29175396", "name": "Adam Siviter"}
+    ]
+  },
+  "decision": {
+    "adapter_exit_codes": [0],
+    "adapter_statuses": ["complete"],
+    "require_attached": true,
+    "require_agent_ready": true,
+    "require_detached": true,
+    "require_process_alive": true,
+    "minimum_entry_events": 1
+  },
+  "limitations": [
+    "This ranks candidate boundaries; a visible result contract still requires repeatable player-labelled evidence.",
+    "Only register values, return values, and bounded module-relative backtraces are captured; pointed-to player memory is not read."
+  ]
+}

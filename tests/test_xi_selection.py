@@ -3,6 +3,7 @@ from dataclasses import replace
 
 from fm_analytics.analytics import (
     AttributePriority,
+    FamiliarityPolicy,
     FootballCatalogue,
     MVP_CATALOGUE,
     PlayerSelectionInput,
@@ -13,11 +14,17 @@ from fm_analytics.analytics import (
     TacticSlot,
     evaluate_tactic,
     recommend_tactic,
+    recommend_tactic_effective_and_potential,
+    score_player_for_slot,
 )
 from fm_analytics.domain import AttributeObservation, Visibility
 
 
 VERSION = "selection-test-v1"
+# Most tests below exercise readiness/fit behaviour and were written before
+# position familiarity existed; pin its penalty to zero so they keep testing
+# exactly what they intended. Familiarity has its own tests further down.
+NO_FAMILIARITY_PENALTY = FamiliarityPolicy(penalty_weight=0)
 ROLE = RoleDefinition(
     key="generic",
     name="Generic",
@@ -61,6 +68,7 @@ def player(
     availability: str = "available",
     condition: int | None = 100,
     match_fitness: int | None = 100,
+    position_familiarity: dict[str, int] | None = None,
 ) -> PlayerSelectionInput:
     return PlayerSelectionInput(
         id=str(number),
@@ -74,6 +82,7 @@ def player(
         suspended=False,
         condition_percent=condition,
         match_fitness_percent=match_fitness,
+        position_familiarity=position_familiarity or {},
     )
 
 
@@ -99,8 +108,8 @@ class XiSelectionTests(unittest.TestCase):
             for item in legal_squad()
         ]
 
-        uneven_result = evaluate_tactic(TACTIC, uneven, CATALOGUE)
-        steady_result = evaluate_tactic(TACTIC, steady, CATALOGUE)
+        uneven_result = evaluate_tactic(TACTIC, uneven, CATALOGUE, familiarity_policy=NO_FAMILIARITY_PENALTY)
+        steady_result = evaluate_tactic(TACTIC, steady, CATALOGUE, familiarity_policy=NO_FAMILIARITY_PENALTY)
 
         self.assertGreater(
             uneven_result.mean_score.central,
@@ -152,7 +161,7 @@ class XiSelectionTests(unittest.TestCase):
             for item in legal_squad()
         ]
 
-        recommendation = recommend_tactic(squad, catalogue)
+        recommendation = recommend_tactic(squad, catalogue, familiarity_policy=NO_FAMILIARITY_PENALTY)
         by_key = {item.tactic.key: item for item in recommendation.evaluations}
 
         self.assertEqual(recommendation.selected.tactic.key, "steady")
@@ -204,10 +213,12 @@ class XiSelectionTests(unittest.TestCase):
         ]
 
         mean_best = evaluate_tactic(
-            shaped, squad, catalogue,
+            shaped, squad, catalogue, familiarity_policy=NO_FAMILIARITY_PENALTY,
             fit_policy=TacticFitPolicy(weakest_slot_weight=0),
         )
-        balanced = evaluate_tactic(shaped, squad, catalogue)
+        balanced = evaluate_tactic(
+            shaped, squad, catalogue, familiarity_policy=NO_FAMILIARITY_PENALTY
+        )
 
         mean_ids = {item.slot.key: item.player_id for item in mean_best.assignments}
         balanced_ids = {item.slot.key: item.player_id for item in balanced.assignments}
@@ -221,7 +232,7 @@ class XiSelectionTests(unittest.TestCase):
         self.assertEqual(balanced.fit_weakest_weight, 0.35)
 
     def test_missing_slot_has_zero_weakest_score(self) -> None:
-        evaluation = evaluate_tactic(TACTIC, legal_squad()[:-1], CATALOGUE)
+        evaluation = evaluate_tactic(TACTIC, legal_squad()[:-1], CATALOGUE, familiarity_policy=NO_FAMILIARITY_PENALTY)
 
         self.assertFalse(evaluation.has_legal_xi)
         self.assertEqual(evaluation.weakest_score.central, 0)
@@ -267,7 +278,7 @@ class XiSelectionTests(unittest.TestCase):
             for index, position in enumerate(positions, 1)
         ]
 
-        recommendation = recommend_tactic(squad, MVP_CATALOGUE)
+        recommendation = recommend_tactic(squad, MVP_CATALOGUE, familiarity_policy=NO_FAMILIARITY_PENALTY)
 
         self.assertEqual(recommendation.selected.tactic.key, "balanced_41212_diamond")
         self.assertTrue(recommendation.selected.has_legal_xi)
@@ -275,7 +286,7 @@ class XiSelectionTests(unittest.TestCase):
 
     def test_builds_legal_xi_with_unique_eligible_players(self) -> None:
         squad = legal_squad()
-        evaluation = evaluate_tactic(TACTIC, squad, CATALOGUE)
+        evaluation = evaluate_tactic(TACTIC, squad, CATALOGUE, familiarity_policy=NO_FAMILIARITY_PENALTY)
 
         self.assertTrue(evaluation.has_legal_xi)
         self.assertEqual(len(evaluation.assignments), 11)
@@ -298,7 +309,7 @@ class XiSelectionTests(unittest.TestCase):
             )
         )
 
-        evaluation = evaluate_tactic(TACTIC, squad, CATALOGUE)
+        evaluation = evaluate_tactic(TACTIC, squad, CATALOGUE, familiarity_policy=NO_FAMILIARITY_PENALTY)
 
         selected_ids = {item.player_id for item in evaluation.assignments}
         self.assertIn("21", selected_ids)
@@ -315,7 +326,7 @@ class XiSelectionTests(unittest.TestCase):
         squad[0] = player(1, "GK", 20, availability="suspended")
         squad.append(player(30, "GK", 15, condition=64))
 
-        evaluation = evaluate_tactic(TACTIC, squad, CATALOGUE)
+        evaluation = evaluate_tactic(TACTIC, squad, CATALOGUE, familiarity_policy=NO_FAMILIARITY_PENALTY)
 
         self.assertFalse(evaluation.has_legal_xi)
         self.assertEqual([slot.position for slot in evaluation.unfilled_slots], ["GK"])
@@ -324,7 +335,7 @@ class XiSelectionTests(unittest.TestCase):
         squad = legal_squad()
         squad.append(player(20, "ST", 20, condition=None, match_fitness=None))
 
-        evaluation = evaluate_tactic(TACTIC, squad, CATALOGUE)
+        evaluation = evaluate_tactic(TACTIC, squad, CATALOGUE, familiarity_policy=NO_FAMILIARITY_PENALTY)
 
         assignment = next(item for item in evaluation.assignments if item.player_id == "20")
         self.assertEqual(
@@ -352,7 +363,7 @@ class XiSelectionTests(unittest.TestCase):
             tactics={impossible.key: impossible, TACTIC.key: TACTIC},
         )
 
-        recommendation = recommend_tactic(legal_squad(), catalogue)
+        recommendation = recommend_tactic(legal_squad(), catalogue, familiarity_policy=NO_FAMILIARITY_PENALTY)
 
         self.assertEqual(recommendation.selected.tactic.key, "test")
         self.assertTrue(recommendation.selected.has_legal_xi)
@@ -362,7 +373,121 @@ class XiSelectionTests(unittest.TestCase):
         squad.append(player(1, "ST", 20))
 
         with self.assertRaisesRegex(ValueError, "unique"):
-            evaluate_tactic(TACTIC, squad, CATALOGUE)
+            evaluate_tactic(TACTIC, squad, CATALOGUE, familiarity_policy=NO_FAMILIARITY_PENALTY)
+
+
+class FamiliarityTests(unittest.TestCase):
+    def test_known_rating_penalizes_by_the_gap_to_maximum(self) -> None:
+        policy = FamiliarityPolicy(penalty_weight=1.0)
+        natural = player(1, "ST", 20, position_familiarity={"ST": 20})
+        unconvincing = player(2, "ST", 20, position_familiarity={"ST": 9})
+
+        natural_fit = score_player_for_slot(
+            natural, TACTIC.slots[9], CATALOGUE, familiarity_policy=policy
+        )
+        unconvincing_fit = score_player_for_slot(
+            unconvincing, TACTIC.slots[9], CATALOGUE, familiarity_policy=policy
+        )
+
+        self.assertEqual(natural_fit.familiarity_penalty, 0)
+        self.assertEqual(unconvincing_fit.familiarity_penalty, 11)
+        self.assertEqual(natural_fit.familiarity_warnings, ())
+        self.assertEqual(unconvincing_fit.familiarity_warnings, ())
+        self.assertLess(
+            unconvincing_fit.selection_score.central, natural_fit.selection_score.central
+        )
+
+    def test_missing_reading_falls_back_to_the_eligibility_threshold_and_warns(self) -> None:
+        policy = FamiliarityPolicy(penalty_weight=1.0)
+        unread = player(1, "ST", 20)
+
+        fit = score_player_for_slot(unread, TACTIC.slots[9], CATALOGUE, familiarity_policy=policy)
+
+        self.assertEqual(fit.familiarity_penalty, 20 - 15)
+        self.assertEqual(fit.familiarity_warnings, ("ST familiarity unknown",))
+
+    def test_potential_disables_the_penalty(self) -> None:
+        policy = FamiliarityPolicy(penalty_weight=1.0)
+        unconvincing = player(1, "ST", 20, position_familiarity={"ST": 9})
+
+        effective = score_player_for_slot(
+            unconvincing, TACTIC.slots[9], CATALOGUE, familiarity_policy=policy
+        )
+        potential = score_player_for_slot(
+            unconvincing, TACTIC.slots[9], CATALOGUE, familiarity_policy=policy.potential()
+        )
+
+        self.assertGreater(effective.familiarity_penalty, 0)
+        self.assertEqual(potential.familiarity_penalty, 0)
+        self.assertEqual(
+            potential.selection_score.central, potential.intrinsic_role_score.score.central
+        )
+
+    def test_familiarity_policy_rejects_invalid_values(self) -> None:
+        with self.assertRaisesRegex(ValueError, "below maximum"):
+            FamiliarityPolicy(scale_minimum=20, scale_maximum=1)
+        with self.assertRaisesRegex(ValueError, "within the familiarity scale"):
+            FamiliarityPolicy(unknown_rating=0)
+        with self.assertRaisesRegex(ValueError, "cannot be negative"):
+            FamiliarityPolicy(penalty_weight=-0.1)
+
+    def test_effective_and_potential_recommendation_shares_every_other_input(self) -> None:
+        squad = [
+            player(index, position, 15, position_familiarity={position: 9})
+            for index, position in enumerate(
+                ("GK", "DC", "DC", "DC", "DC", "MC", "MC", "MC", "MC", "ST", "ST"), 1
+            )
+        ]
+
+        result = recommend_tactic_effective_and_potential(
+            squad, CATALOGUE, familiarity_policy=FamiliarityPolicy(penalty_weight=1.0)
+        )
+
+        effective = result.effective.by_tactic_key("test")
+        potential = result.potential.by_tactic_key("test")
+        self.assertLess(effective.score.central, potential.score.central)
+        # Every player is Unconvincing (9) at their own listed position, so
+        # readiness and intrinsic role quality are identical between runs;
+        # only the familiarity penalty differs, uniformly, by design.
+        self.assertEqual(
+            round(potential.score.central - effective.score.central, 6),
+            round((20 - 9) * 1.0, 6),
+        )
+
+    def test_training_targets_reports_tactics_with_a_material_potential_gap(self) -> None:
+        squad = [
+            player(index, position, 15, position_familiarity={position: 9})
+            for index, position in enumerate(
+                ("GK", "DC", "DC", "DC", "DC", "MC", "MC", "MC", "MC", "ST", "ST"), 1
+            )
+        ]
+        result = recommend_tactic_effective_and_potential(
+            squad, CATALOGUE, familiarity_policy=FamiliarityPolicy(penalty_weight=1.0)
+        )
+
+        targets = result.training_targets(minimum_gap=1.0)
+
+        self.assertEqual(len(targets), 1)
+        self.assertEqual(targets[0].tactic_key, "test")
+        self.assertGreater(targets[0].score_gap, 0)
+        self.assertEqual(
+            targets[0].score_gap,
+            round(targets[0].potential_score.central - targets[0].effective_score.central, 6),
+        )
+
+    def test_training_targets_excludes_gaps_below_the_minimum(self) -> None:
+        # Every player is already Natural (20) at their own listed position,
+        # so the familiarity penalty -- and therefore the potential gap -- is
+        # zero regardless of policy weight.
+        squad = [
+            player(index, position, 15, position_familiarity={position: 20})
+            for index, position in enumerate(
+                ("GK", "DC", "DC", "DC", "DC", "MC", "MC", "MC", "MC", "ST", "ST"), 1
+            )
+        ]
+        result = recommend_tactic_effective_and_potential(squad, CATALOGUE)
+
+        self.assertEqual(result.training_targets(minimum_gap=1.0), ())
 
 
 if __name__ == "__main__":

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Guided, single-round-trip probe of PERSON_INTERESTED_FILTER_RULE.
+"""ARCHIVED failed probe of PERSON_INTERESTED_FILTER_RULE.
+
+This one-off experiment faulted at its first native filter call. Its report and
+the semantic registry retain the useful negative ABI evidence. It is kept here
+for provenance and must not be presented as a current research entry point.
 
 Earlier native-call testing of the full discoverability filter found that
 this rule's real per-player computation -- only engaged once Player
@@ -14,10 +18,10 @@ answer -- without needing anything read off FM's own screen and reported
 back: every check here is either a memory read or a native call whose
 result (or fault) is captured directly.
 
-Usage: with FM running, open Player Search and set "Interested in
+Historical usage (do not run): with FM running, open Player Search and set "Interested in
 Transfer" on (leave everything else at Any), then run
 
-    python3 -m tools.fm20_interested_filter_probe
+    python3 -m tools.archive.fm20_interested_filter_probe
 
 and press Enter once when ready. Everything after that -- rebuilding the
 source, partitioning by contract status, running the batch, and (if it

@@ -15,6 +15,8 @@
   registry programme intended to remove repeated operator-led FM sessions.
 - [Research catalogue](../research/README.md) is the machine-queryable semantic
   registry and reusable-capture inventory used by that programme.
+- [Documentation archive](archive/README.md) preserves superseded research
+  runbooks that are no longer instructions to execute.
 - [FMBridge contract v1](contracts/v1.md) defines the current versioned resource
   and error semantics.
 - [Delivery roadmap](phases/README.md) is the working plan, with phase gates,

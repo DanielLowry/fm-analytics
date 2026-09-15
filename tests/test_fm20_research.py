@@ -12,6 +12,19 @@ from tools.fm20_research import ControllerError, load_recipe, main, plan_recipe,
 
 
 class ResearchControllerTests(unittest.TestCase):
+    @staticmethod
+    def snapshot():
+        manager = SimpleNamespace(id="manager-1", active=True, club=SimpleNamespace(id="club-1"))
+        return SimpleNamespace(
+            pid=123,
+            executable="/games/fm.exe",
+            module_base="0x140000000",
+            profile="FM20 20.4.4 Steam/Windows executable",
+            game_date="2019-06-24",
+            human_managers=(manager,),
+            first_team_squad=(SimpleNamespace(id="player-1"),),
+        )
+
     def test_recipe_plan_resolves_registry_and_corpus(self) -> None:
         recipe, plan = plan_recipe("owned-footedness-survey")
 
@@ -41,16 +54,7 @@ class ResearchControllerTests(unittest.TestCase):
         probe.assert_not_called()
 
     def test_run_wraps_adapter_report_and_records_release(self) -> None:
-        manager = SimpleNamespace(id="manager-1", active=True, club=SimpleNamespace(id="club-1"))
-        snapshot = SimpleNamespace(
-            pid=123,
-            executable="/games/fm.exe",
-            module_base="0x140000000",
-            profile="FM20 20.4.4 Steam/Windows executable",
-            game_date="2019-06-24",
-            human_managers=(manager,),
-            first_team_squad=(SimpleNamespace(id="player-1"),),
-        )
+        snapshot = self.snapshot()
 
         def fake_runner(command, **kwargs):
             report = Path(command[command.index("--report") + 1])
@@ -84,6 +88,51 @@ class ResearchControllerTests(unittest.TestCase):
         self.assertIn("reportSha256", saved["execution"])
         self.assertNotIn("name", saved["process"])
 
+    def test_frida_recipe_is_allowlisted_and_checks_clean_detach(self) -> None:
+        snapshot = self.snapshot()
+
+        def fake_runner(command, **kwargs):
+            report = Path(command[command.index("--report") + 1])
+            report.write_text(json.dumps({
+                "researchOnly": True,
+                "status": "complete",
+                "processAliveAfterDetach": True,
+                "capture": {
+                    "attached": True,
+                    "agentReady": True,
+                    "detached": True,
+                    "entryEventCount": 0,
+                },
+            }) + "\n", encoding="utf-8")
+            self.assertIn("fm20_frida_trace.py", command[1])
+            self.assertNotIn("--target", command)
+            self.assertTrue(kwargs["capture_output"])
+            return subprocess.CompletedProcess(command, 0, "adapter result\n", "")
+
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "session.json"
+            with (
+                patch("tools.fm20_research.choose_pid", return_value=123),
+                patch("tools.fm20_research.probe", return_value=snapshot),
+                patch("tools.fm20_research.verified_executable_digest", return_value="pinned"),
+            ):
+                status, _, report = run_recipe(
+                    "frida-attach-smoke", report_path=target, runner=fake_runner
+                )
+
+        self.assertEqual(status, 0)
+        self.assertTrue(report["decision"]["attached"])
+        self.assertTrue(report["decision"]["detached"])
+        self.assertTrue(all(report["invariants"].values()))
+
+    def test_first_value_recipe_batches_one_operator_tour(self) -> None:
+        recipe, plan = plan_recipe("frida-footedness-candidates")
+
+        self.assertEqual(recipe["purpose"], "first-value-property-trial")
+        self.assertEqual(plan["operator_interaction"], "one-short-batched-ui-tour")
+        self.assertEqual(len(recipe["targets"]), 3)
+        self.assertEqual(len(plan["operator_actions"]["batch_players"]), 6)
+
     def test_preflight_failure_still_writes_a_controller_report(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "failed.json"
@@ -99,4 +148,3 @@ class ResearchControllerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

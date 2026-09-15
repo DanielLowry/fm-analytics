@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "id": "owned-footedness-survey",
+  "purpose": "controller-smoke-test",
   "question": "Which existing static footedness leads and diverse owned-player samples are available for the first-value experiment?",
   "adapter": "fm20-field-workbench",
   "adapter_mode": "run",
@@ -26,7 +27,7 @@
   },
   "limitations": [
     "This recipe inventories leads and samples; it does not discover or expose a footedness value.",
-    "The adapter uses bounded read-only process memory and does not attach a debugger."
+    "The adapter uses bounded read-only process memory and does not attach a debugger.",
+    "Do not request an operator session solely to run this recipe; run it opportunistically or as part of the Frida value trial."
   ]
 }
-

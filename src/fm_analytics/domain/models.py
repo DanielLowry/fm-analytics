@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from enum import StrEnum
 from typing import Any, Mapping
@@ -228,8 +228,18 @@ class Player:
     suspended: bool | None
     contract: PlayerContract | None
     attributes: Mapping[str, AttributeObservation]
+    # Additive per the v1 contract's field-versioning rule, so it defaults to
+    # empty rather than requiring every existing construction site to supply
+    # it. Empty means "no reading available", not "unfamiliar with every
+    # position" -- callers must not treat a missing entry as a low rating.
+    position_familiarity: Mapping[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        for position, rating in self.position_familiarity.items():
+            if not isinstance(position, str) or not position:
+                raise ValueError("positionFamiliarity keys must be non-empty strings")
+            if not _is_int(rating) or not 1 <= rating <= 20:
+                raise ValueError("positionFamiliarity ratings must be integers from 1 to 20")
         for name, value in (
             ("conditionPercent", self.condition_percent),
             ("matchFitnessPercent", self.match_fitness_percent),
@@ -271,6 +281,7 @@ class Player:
                 )
                 for name, value in attributes.items()
             },
+            position_familiarity=_nullable_position_familiarity(raw, "positionFamiliarity"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -287,6 +298,7 @@ class Player:
             "injured": self.injured,
             "suspended": self.suspended,
             "contract": self.contract.to_dict() if self.contract else None,
+            "positionFamiliarity": dict(self.position_familiarity),
             "attributes": {
                 name: observation.to_dict()
                 for name, observation in self.attributes.items()
@@ -373,6 +385,28 @@ def _nullable_bool(raw: Mapping[str, Any], name: str) -> bool | None:
     if value is not None and not isinstance(value, bool):
         raise TypeError(f"{name} must be a boolean or null")
     return value
+
+
+def _nullable_position_familiarity(
+    raw: Mapping[str, Any], name: str
+) -> dict[str, int]:
+    """Decode the optional raw position-rating map.
+
+    Absent or null means no reading is available for this player, not that
+    every position is unfamiliar; it decodes to an empty mapping rather than
+    a mapping of zeros so callers cannot mistake "no data" for "known bad".
+    """
+    if name not in raw or raw[name] is None:
+        return {}
+    value = _mapping(raw[name], name)
+    result: dict[str, int] = {}
+    for position, rating in value.items():
+        if not isinstance(position, str) or not position:
+            raise TypeError(f"{name} keys must be non-empty strings")
+        if not _is_int(rating) or not 1 <= rating <= 20:
+            raise ValueError(f"{name} values must be integers from 1 to 20")
+        result[position] = rating
+    return result
 
 
 def _required_date(raw: Mapping[str, Any], name: str) -> date:

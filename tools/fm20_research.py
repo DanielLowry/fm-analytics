@@ -59,16 +59,32 @@ def load_recipe(recipe_id: str) -> dict[str, Any]:
     recipe = load_json(path)
     if recipe.get("schema_version") != 1 or recipe.get("id") != recipe_id:
         raise ControllerError(f"{path}: invalid recipe schema or ID")
-    if recipe.get("adapter") != "fm20-field-workbench" or recipe.get("adapter_mode") != "run":
-        raise ControllerError("the thin controller only permits the fm20-field-workbench run adapter")
-    if recipe.get("safety") != "passive-live" or recipe.get("operator_interaction") != "none":
-        raise ControllerError("the first recipe must be passive-live and non-interactive")
+    adapter = recipe.get("adapter")
+    if adapter not in {"fm20-field-workbench", "fm20-frida-trace"}:
+        raise ControllerError(f"recipe uses unsupported adapter {adapter!r}")
+    if recipe.get("safety") != "passive-live":
+        raise ControllerError("controller recipes must currently be passive-live")
+    if recipe.get("operator_interaction") not in {"none", "one-short-batched-ui-tour"}:
+        raise ControllerError("recipe has an unsupported operator-interaction contract")
     timeout = recipe.get("timeout_seconds")
     if not isinstance(timeout, int) or not 5 <= timeout <= 300:
         raise ControllerError("recipe timeout_seconds must be an integer from 5 to 300")
-    fields = recipe.get("fields")
-    if not isinstance(fields, list) or not fields or any(field not in {"footedness", "position_proficiency"} for field in fields):
-        raise ControllerError("recipe contains no supported field")
+    if adapter == "fm20-field-workbench":
+        if recipe.get("adapter_mode") != "run":
+            raise ControllerError("field-workbench recipes may use only non-interactive run mode")
+        fields = recipe.get("fields")
+        if not isinstance(fields, list) or not fields or any(field not in {"footedness", "position_proficiency"} for field in fields):
+            raise ControllerError("recipe contains no supported field")
+    else:
+        targets = recipe.get("targets")
+        if not isinstance(targets, list) or any(not isinstance(target, str) for target in targets):
+            raise ControllerError("Frida recipe targets must be a list of registry function IDs")
+        duration = recipe.get("duration_seconds")
+        event_limit = recipe.get("max_events")
+        if not isinstance(duration, (int, float)) or not 0.25 <= duration <= 300:
+            raise ControllerError("Frida duration_seconds must be from 0.25 to 300")
+        if not isinstance(event_limit, int) or not 1 <= event_limit <= 10_000:
+            raise ControllerError("Frida max_events must be from 1 to 10000")
     return recipe
 
 
@@ -76,6 +92,7 @@ def _registry_ids(registry: dict[str, Any]) -> set[str]:
     identifiers: set[str] = set()
     for section in (
         "types",
+        "instrumentation_backends",
         "object_resolvers",
         "functions",
         "properties",
@@ -125,6 +142,7 @@ def plan_recipe(recipe_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
         "corpus_state_coverage": state_coverage,
         "requires_live_process": recipe["requires_live_process"],
         "timeout_seconds": recipe["timeout_seconds"],
+        "operator_actions": recipe.get("operator_actions", {}),
     }
     return recipe, plan
 
@@ -166,19 +184,81 @@ def _snapshot_summary(snapshot: Any) -> dict[str, Any]:
     }
 
 
-def _adapter_command(recipe: dict[str, Any], pid: int, executable: Path, report: Path) -> list[str]:
+def _adapter_command(
+    recipe: dict[str, Any],
+    pid: int,
+    executable: Path,
+    module_base: str,
+    report: Path,
+) -> list[str]:
+    if recipe["adapter"] == "fm20-field-workbench":
+        command = [
+            sys.executable,
+            str(ROOT / "tools" / "fm20_field_workbench.py"),
+            recipe["adapter_mode"],
+            "--pid", str(pid),
+            "--executable", str(executable),
+            "--require-live",
+            "--report", str(report),
+        ]
+        for field in recipe["fields"]:
+            command.extend(("--field", field))
+        return command
+
+    registry = load_json(REGISTRY_PATH)
+    functions = {item["id"]: item for item in registry["functions"]}
     command = [
         sys.executable,
-        str(ROOT / "tools" / "fm20_field_workbench.py"),
-        recipe["adapter_mode"],
+        str(ROOT / "tools" / "fm20_frida_trace.py"),
         "--pid", str(pid),
-        "--executable", str(executable),
-        "--require-live",
+        "--module-base", module_base,
+        "--duration", str(recipe["duration_seconds"]),
+        "--max-events", str(recipe["max_events"]),
         "--report", str(report),
     ]
-    for field in recipe["fields"]:
-        command.extend(("--field", field))
+    for target_id in recipe["targets"]:
+        function = functions.get(target_id)
+        if function is None or "rva" not in function:
+            raise ControllerError(f"Frida target {target_id!r} has no registered function RVA")
+        command.extend(("--target", f"{target_id}={function['rva']}"))
+    if recipe.get("capture_backtraces"):
+        command.append("--backtraces")
     return command
+
+
+def _adapter_passed(
+    recipe: dict[str, Any], completed: subprocess.CompletedProcess[str], adapter_report: dict[str, Any]
+) -> tuple[bool, dict[str, Any]]:
+    decision = recipe["decision"]
+    summary: dict[str, Any] = {
+        "adapter_status": adapter_report.get("status"),
+        "exit_code": completed.returncode,
+    }
+    passed = (
+        completed.returncode in decision["adapter_exit_codes"]
+        and adapter_report.get("status") in decision["adapter_statuses"]
+    )
+    if recipe["adapter"] == "fm20-field-workbench":
+        summary["live_status"] = adapter_report.get("liveStatus")
+        passed = passed and adapter_report.get("liveStatus") == decision["require_live_status"]
+        return passed, summary
+
+    capture_result = adapter_report.get("capture", {})
+    summary.update({
+        "attached": capture_result.get("attached"),
+        "agent_ready": capture_result.get("agentReady"),
+        "detached": capture_result.get("detached"),
+        "process_alive": adapter_report.get("processAliveAfterDetach"),
+        "entry_events": capture_result.get("entryEventCount", 0),
+    })
+    passed = passed and all((
+        not decision.get("require_attached") or summary["attached"] is True,
+        not decision.get("require_agent_ready") or summary["agent_ready"] is True,
+        not decision.get("require_detached") or summary["detached"] is True,
+        not decision.get("require_process_alive") or summary["process_alive"] is True,
+        summary["entry_events"] >= decision.get("minimum_entry_events", 0),
+    ))
+    return passed, summary
 
 
 def _bounded(value: str) -> str:
@@ -225,6 +305,11 @@ def run_recipe(
             raise ControllerError("controller or adapter report path already exists")
         recipe, plan = plan_recipe(recipe_id)
         report["plan"] = plan
+        report["lifecycle"]["attachment"] = (
+            "Frida injected agent; adapter owns unload and detach"
+            if recipe["adapter"] == "fm20-frida-trace"
+            else "adapter-owned bounded read-only /proc access"
+        )
         pid = choose_pid(requested_pid)
         report["lifecycle"]["processDiscovery"] = "complete"
         snapshot = probe(pid)
@@ -234,11 +319,16 @@ def run_recipe(
         report["process"] = process
         report["lifecycle"]["buildValidation"] = "complete"
 
-        command = _adapter_command(recipe, pid, executable, adapter_target)
+        command = _adapter_command(recipe, pid, executable, process["module_base"], adapter_target)
+        guided = recipe["operator_interaction"] != "none"
+        if guided:
+            actions = recipe.get("operator_actions", {})
+            print(f"PREPARE: {actions.get('starting_state', 'use the declared recipe start state')}", flush=True)
+            print(f"WHEN ARMED: {actions.get('after_armed', 'perform the declared bounded action batch')}", flush=True)
         completed = runner(
             command,
             check=False,
-            capture_output=True,
+            capture_output=not guided,
             text=True,
             timeout=recipe["timeout_seconds"],
             cwd=ROOT,
@@ -247,8 +337,8 @@ def run_recipe(
         execution: dict[str, Any] = {
             "adapter": recipe["adapter"],
             "exitCode": completed.returncode,
-            "stdout": _bounded(completed.stdout),
-            "stderr": _bounded(completed.stderr),
+            "stdout": _bounded(completed.stdout or "") if not guided else "streamed to operator",
+            "stderr": _bounded(completed.stderr or "") if not guided else "streamed to operator",
             "report": _report_name(adapter_target),
         }
         report["execution"] = execution
@@ -259,17 +349,16 @@ def run_recipe(
         execution["adapterStatus"] = adapter_report.get("status")
         if adapter_report.get("researchOnly") is not True:
             raise ControllerError("adapter report is not marked research-only")
-        decision = recipe["decision"]
-        passed = (
-            completed.returncode in decision["adapter_exit_codes"]
-            and adapter_report.get("status") in decision["adapter_statuses"]
-            and adapter_report.get("liveStatus") == decision["require_live_status"]
-        )
-        report["decision"] = {
-            "passed": passed,
-            "adapter_status": adapter_report.get("status"),
-            "live_status": adapter_report.get("liveStatus"),
+        postflight = _snapshot_summary(probe(pid))
+        report["postflight"] = postflight
+        invariant_keys = ("pid", "module_base", "profile", "game_date", "manager_id", "club_id", "squad_id_hash")
+        report["invariants"] = {
+            key: process[key] == postflight[key] for key in invariant_keys
         }
+        if not all(report["invariants"].values()):
+            raise ControllerError("FM process identity or managed game state changed during experiment")
+        passed, decision_summary = _adapter_passed(recipe, completed, adapter_report)
+        report["decision"] = {"passed": passed, **decision_summary}
         if not passed:
             raise ControllerError("adapter evidence did not satisfy the recipe decision rule")
         report["status"] = "complete"

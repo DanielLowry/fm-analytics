@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
-from typing import Mapping
+from pathlib import Path
+from typing import Any, Mapping
 
 from fm_analytics.analytics.role_scoring import (
     AttributePriority,
@@ -10,7 +12,15 @@ from fm_analytics.analytics.role_scoring import (
 )
 
 
-CATALOGUE_VERSION = "fm20-mvp-v2"
+CATALOGUE_VERSION = "fm20-mvp-v3"
+
+# The role and tactic definitions themselves live in versioned JSON data
+# (data/catalogue.json) rather than as Python literals here, per the Phase 04
+# decision that "the catalogue should be data/config, not hard-coded across
+# the scoring implementation". This module owns loading that data into the
+# same validated dataclasses below; every invariant that previously lived in
+# hand-written Python construction still runs, just against loaded data.
+_DATA_PATH = Path(__file__).with_name("data") / "catalogue.json"
 
 
 @dataclass(frozen=True)
@@ -89,248 +99,84 @@ def _attributes(
     )
 
 
-def _role(
-    key: str,
-    name: str,
-    positions: tuple[str, ...],
-    *,
-    required: tuple[str, ...],
-    desirable: tuple[str, ...],
-) -> RoleDefinition:
+def _role_from_json(raw: Mapping[str, Any], *, version: str) -> RoleDefinition:
     return RoleDefinition(
-        key=key,
-        name=name,
-        eligible_positions=positions,
-        attributes=_attributes(required=required, desirable=desirable),
-        catalogue_version=CATALOGUE_VERSION,
+        key=_str(raw, "key"),
+        name=_str(raw, "name"),
+        eligible_positions=_str_tuple(raw, "positions"),
+        attributes=_attributes(
+            required=_str_tuple(raw, "required"),
+            desirable=_str_tuple(raw, "desirable"),
+        ),
+        catalogue_version=version,
     )
 
 
-_ROLE_LIST = (
-    _role(
-        "gk_defend",
-        "Goalkeeper (Defend)",
-        ("GK",),
-        required=("aerialReach", "handling", "oneOnOnes", "reflexes"),
-        desirable=("commandOfArea", "communication", "kicking", "throwing"),
-    ),
-    _role(
-        "cd_defend",
-        "Central Defender (Defend)",
-        ("DC",),
-        required=("heading", "marking", "tackling", "positioning"),
-        desirable=(
-            "anticipation",
-            "concentration",
-            "decisions",
-            "jumpingReach",
-            "strength",
-        ),
-    ),
-    _role(
-        "fb_support",
-        "Full-Back (Support)",
-        ("DL", "DR"),
-        required=("marking", "tackling", "positioning", "workRate"),
-        desirable=("crossing", "pace", "stamina", "teamwork"),
-    ),
-    _role(
-        "dm_defend",
-        "Defensive Midfielder (Defend)",
-        ("DM",),
-        required=("tackling", "positioning", "anticipation", "decisions"),
-        desirable=("marking", "passing", "teamwork", "workRate"),
-    ),
-    _role(
-        "cm_defend",
-        "Central Midfielder (Defend)",
-        ("MC",),
-        required=("positioning", "tackling", "decisions", "teamwork"),
-        desirable=("marking", "passing", "stamina", "workRate"),
-    ),
-    _role(
-        "cm_support",
-        "Central Midfielder (Support)",
-        ("MC",),
-        required=("passing", "firstTouch", "decisions", "teamwork"),
-        desirable=("offTheBall", "stamina", "technique", "workRate"),
-    ),
-    _role(
-        "dlp_support",
-        "Deep-Lying Playmaker (Support)",
-        ("DM", "MC"),
-        required=("passing", "vision", "firstTouch", "decisions"),
-        desirable=("composure", "positioning", "teamwork", "technique"),
-    ),
-    _role(
-        "winger_support",
-        "Winger (Support)",
-        ("ML", "MR", "AML", "AMR"),
-        required=("crossing", "dribbling", "acceleration", "pace"),
-        desirable=("offTheBall", "technique", "teamwork", "workRate"),
-    ),
-    _role(
-        "winger_attack",
-        "Winger (Attack)",
-        ("AML", "AMR"),
-        required=("crossing", "dribbling", "acceleration", "pace"),
-        desirable=("offTheBall", "technique", "flair", "finishing"),
-    ),
-    _role(
-        "if_attack",
-        "Inside Forward (Attack)",
-        ("AML", "AMR"),
-        required=("dribbling", "finishing", "offTheBall", "acceleration"),
-        desirable=("composure", "firstTouch", "pace", "technique"),
-    ),
-    _role(
-        "am_support",
-        "Attacking Midfielder (Support)",
-        ("AMC",),
-        required=("passing", "vision", "firstTouch", "decisions"),
-        desirable=("flair", "offTheBall", "teamwork", "technique"),
-    ),
-    _role(
-        "dlf_support",
-        "Deep-Lying Forward (Support)",
-        ("ST",),
-        required=("firstTouch", "passing", "offTheBall", "teamwork"),
-        desirable=("anticipation", "composure", "finishing", "strength"),
-    ),
-    _role(
-        "af_attack",
-        "Advanced Forward (Attack)",
-        ("ST",),
-        required=("finishing", "offTheBall", "acceleration", "pace"),
-        desirable=("anticipation", "composure", "dribbling", "firstTouch"),
-    ),
-)
+def _slot_from_json(raw: Mapping[str, Any]) -> TacticSlot:
+    return TacticSlot(
+        key=_str(raw, "key"), position=_str(raw, "position"), role_key=_str(raw, "role")
+    )
 
 
-def _slot(key: str, position: str, role_key: str) -> TacticSlot:
-    return TacticSlot(key=key, position=position, role_key=role_key)
+def _tactic_from_json(raw: Mapping[str, Any], *, version: str) -> TacticDefinition:
+    slots_raw = raw.get("slots")
+    if not isinstance(slots_raw, list):
+        raise ValueError(f"tactic {raw.get('key')!r} is missing its slots list")
+    return TacticDefinition(
+        key=_str(raw, "key"),
+        name=_str(raw, "name"),
+        formation=_str(raw, "formation"),
+        mentality=_str(raw, "mentality"),
+        instructions=_str_tuple(raw, "instructions"),
+        slots=tuple(_slot_from_json(slot) for slot in slots_raw),
+        catalogue_version=version,
+    )
 
 
-_TACTIC_LIST = (
-    TacticDefinition(
-        key="balanced_41212_diamond",
-        name="Balanced 4-1-2-1-2 Diamond",
-        formation="4-1-2-1-2 DM Narrow",
-        mentality="Balanced",
-        instructions=(
-            "Fairly Narrow",
-            "Shorter Passing",
-            "Counter",
-            "Regroup",
-            "Standard Line of Engagement",
-            "Standard Defensive Line",
-        ),
-        slots=(
-            _slot("GK", "GK", "gk_defend"),
-            _slot("DL", "DL", "fb_support"),
-            _slot("DCL", "DC", "cd_defend"),
-            _slot("DCR", "DC", "cd_defend"),
-            _slot("DR", "DR", "fb_support"),
-            _slot("DM", "DM", "dm_defend"),
-            _slot("MCL", "MC", "cm_support"),
-            _slot("MCR", "MC", "dlp_support"),
-            _slot("AMC", "AMC", "am_support"),
-            _slot("STL", "ST", "dlf_support"),
-            _slot("STR", "ST", "af_attack"),
-        ),
-        catalogue_version=CATALOGUE_VERSION,
-    ),
-    TacticDefinition(
-        key="balanced_442",
-        name="Balanced 4-4-2",
-        formation="4-4-2",
-        mentality="Balanced",
-        instructions=(
-            "Fairly Wide",
-            "Slightly More Direct Passing",
-            "Counter",
-            "Regroup",
-            "Standard Line of Engagement",
-            "Standard Defensive Line",
-        ),
-        slots=(
-            _slot("GK", "GK", "gk_defend"),
-            _slot("DL", "DL", "fb_support"),
-            _slot("DCL", "DC", "cd_defend"),
-            _slot("DCR", "DC", "cd_defend"),
-            _slot("DR", "DR", "fb_support"),
-            _slot("ML", "ML", "winger_support"),
-            _slot("MCL", "MC", "cm_defend"),
-            _slot("MCR", "MC", "cm_support"),
-            _slot("MR", "MR", "winger_support"),
-            _slot("STL", "ST", "dlf_support"),
-            _slot("STR", "ST", "af_attack"),
-        ),
-        catalogue_version=CATALOGUE_VERSION,
-    ),
-    TacticDefinition(
-        key="positive_4231",
-        name="Positive 4-2-3-1 Wide",
-        formation="4-2-3-1 DM AM Wide",
-        mentality="Positive",
-        instructions=(
-            "Shorter Passing",
-            "Play Out Of Defence",
-            "Higher Tempo",
-            "Counter-Press",
-            "Counter",
-            "Higher Line of Engagement",
-            "Standard Defensive Line",
-        ),
-        slots=(
-            _slot("GK", "GK", "gk_defend"),
-            _slot("DL", "DL", "fb_support"),
-            _slot("DCL", "DC", "cd_defend"),
-            _slot("DCR", "DC", "cd_defend"),
-            _slot("DR", "DR", "fb_support"),
-            _slot("DMCL", "DM", "dm_defend"),
-            _slot("DMCR", "DM", "dlp_support"),
-            _slot("AML", "AML", "if_attack"),
-            _slot("AMC", "AMC", "am_support"),
-            _slot("AMR", "AMR", "winger_attack"),
-            _slot("ST", "ST", "af_attack"),
-        ),
-        catalogue_version=CATALOGUE_VERSION,
-    ),
-    TacticDefinition(
-        key="positive_433dm",
-        name="Positive 4-3-3 DM Wide",
-        formation="4-3-3 DM Wide",
-        mentality="Positive",
-        instructions=(
-            "Shorter Passing",
-            "Play Out Of Defence",
-            "Work Ball Into Box",
-            "Counter-Press",
-            "Counter",
-            "Higher Line of Engagement",
-            "Standard Defensive Line",
-        ),
-        slots=(
-            _slot("GK", "GK", "gk_defend"),
-            _slot("DL", "DL", "fb_support"),
-            _slot("DCL", "DC", "cd_defend"),
-            _slot("DCR", "DC", "cd_defend"),
-            _slot("DR", "DR", "fb_support"),
-            _slot("DM", "DM", "dm_defend"),
-            _slot("MCL", "MC", "dlp_support"),
-            _slot("MCR", "MC", "cm_support"),
-            _slot("AML", "AML", "if_attack"),
-            _slot("AMR", "AMR", "winger_attack"),
-            _slot("ST", "ST", "af_attack"),
-        ),
-        catalogue_version=CATALOGUE_VERSION,
-    ),
-)
+def load_catalogue(path: Path = _DATA_PATH) -> FootballCatalogue:
+    """Load and validate a versioned football catalogue from JSON.
+
+    Every structural rule (eleven unique slots, roles that exist, slots whose
+    position the assigned role can actually play) is enforced by the
+    dataclasses above exactly as it was when this data was Python literals;
+    this function only does the JSON -> dataclass translation, so a malformed
+    catalogue file still fails closed at import time rather than producing a
+    silently broken recommendation later.
+    """
+    with path.open(encoding="utf-8") as data_file:
+        document = json.load(data_file)
+    version = _str(document, "version")
+    roles_raw = document.get("roles")
+    tactics_raw = document.get("tactics")
+    if not isinstance(roles_raw, list) or not isinstance(tactics_raw, list):
+        raise ValueError(f"catalogue file {path} must define roles and tactics arrays")
+    roles = {
+        role.key: role
+        for role in (_role_from_json(entry, version=version) for entry in roles_raw)
+    }
+    if len(roles) != len(roles_raw):
+        raise ValueError(f"catalogue file {path} has duplicate role keys")
+    tactics = {
+        tactic.key: tactic
+        for tactic in (_tactic_from_json(entry, version=version) for entry in tactics_raw)
+    }
+    if len(tactics) != len(tactics_raw):
+        raise ValueError(f"catalogue file {path} has duplicate tactic keys")
+    return FootballCatalogue(version=version, roles=roles, tactics=tactics)
 
 
-MVP_CATALOGUE = FootballCatalogue(
-    version=CATALOGUE_VERSION,
-    roles={role.key: role for role in _ROLE_LIST},
-    tactics={tactic.key: tactic for tactic in _TACTIC_LIST},
-)
+def _str(raw: Mapping[str, Any], name: str) -> str:
+    value = raw.get(name)
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{name!r} must be a non-empty string, got {value!r}")
+    return value
+
+
+def _str_tuple(raw: Mapping[str, Any], name: str) -> tuple[str, ...]:
+    value = raw.get(name)
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise ValueError(f"{name!r} must be an array of strings")
+    return tuple(value)
+
+
+MVP_CATALOGUE = load_catalogue()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import isfinite
 from typing import Mapping, Sequence
 
@@ -24,6 +24,7 @@ class PlayerSelectionInput:
     suspended: bool | None
     condition_percent: int | None
     match_fitness_percent: int | None
+    position_familiarity: Mapping[str, int] = field(default_factory=dict)
 
     @classmethod
     def from_player(cls, player: Player) -> PlayerSelectionInput:
@@ -37,6 +38,7 @@ class PlayerSelectionInput:
             suspended=player.suspended,
             condition_percent=player.condition_percent,
             match_fitness_percent=player.match_fitness_percent,
+            position_familiarity=player.position_familiarity,
         )
 
 
@@ -64,6 +66,62 @@ class ReadinessPolicy:
 
 
 @dataclass(frozen=True)
+class FamiliarityPolicy:
+    """Penalize a slot by how familiar the player is with that position.
+
+    Uses FM's own raw 1-20 position rating directly as a continuous signal
+    rather than mapping it onto the game's Natural/Accomplished/.../
+    Ineffectual labels first: those labels are themselves believed to be a
+    projection of this same number, so reproducing them exactly is not
+    required to use the information, only to describe it the way the UI does.
+
+    `unknown_rating` is the value assumed when no reading exists for a
+    position a player is otherwise eligible for -- for example a squad
+    assembled from HTML import, which cannot supply this field. It defaults
+    to 15 because that is the same threshold `decode_positions` already uses
+    to decide whether a position appears in `positions` at all; treating a
+    missing reading as anything below that would penalize an eligible player
+    beyond what the rest of this codebase already assumes about them.
+
+    A `penalty_weight` of 0 disables the penalty entirely without deleting
+    the policy, which is what distinguishes an *effective* recommendation
+    (this weight as configured) from a *potential* one (weight forced to 0)
+    -- see `recommend_tactic_effective_and_potential`.
+    """
+
+    version: str = "familiarity-v1"
+    scale_minimum: int = 1
+    scale_maximum: int = 20
+    unknown_rating: int = 15
+    penalty_weight: float = 0.6
+
+    def __post_init__(self) -> None:
+        if not self.version:
+            raise ValueError("familiarity policy version is required")
+        if self.scale_minimum >= self.scale_maximum:
+            raise ValueError("familiarity scale minimum must be below maximum")
+        if not self.scale_minimum <= self.unknown_rating <= self.scale_maximum:
+            raise ValueError("unknown rating must be within the familiarity scale")
+        if self.penalty_weight < 0:
+            raise ValueError("familiarity penalty weight cannot be negative")
+
+    def potential(self) -> FamiliarityPolicy:
+        """Return the same policy with its penalty disabled.
+
+        Evaluating with this instead of `self` answers "what could this
+        tactic be, once the squad is trained into position", rather than
+        "what is safe to play today".
+        """
+        return FamiliarityPolicy(
+            version=self.version,
+            scale_minimum=self.scale_minimum,
+            scale_maximum=self.scale_maximum,
+            unknown_rating=self.unknown_rating,
+            penalty_weight=0.0,
+        )
+
+
+@dataclass(frozen=True)
 class TacticFitPolicy:
     """Balance whole-XI quality against the weakest starting slot."""
 
@@ -85,6 +143,8 @@ class SlotAssignment:
     intrinsic_role_score: RoleScore
     readiness_penalty: float
     readiness_warnings: tuple[str, ...]
+    familiarity_penalty: float
+    familiarity_warnings: tuple[str, ...]
     selection_score: ScoreBand
 
 
@@ -92,6 +152,8 @@ class SlotAssignment:
 class TacticEvaluation:
     tactic: TacticDefinition
     readiness_version: str
+    familiarity_version: str
+    familiarity_weight: float
     fit_version: str
     fit_weakest_weight: float
     assignments: tuple[SlotAssignment, ...]
@@ -114,6 +176,64 @@ class TacticRecommendation:
     def selected(self) -> TacticEvaluation:
         return self.evaluations[0]
 
+    def by_tactic_key(self, tactic_key: str) -> TacticEvaluation:
+        return next(
+            evaluation
+            for evaluation in self.evaluations
+            if evaluation.tactic.key == tactic_key
+        )
+
+
+@dataclass(frozen=True)
+class TrainingTarget:
+    """A tactic worth training towards: its potential materially beats today.
+
+    `score_gap` is the potential fit score's central estimate minus the
+    effective one, for the same tactic; it is the retraining upside, not a
+    prediction of when the squad will realize it.
+    """
+
+    tactic_key: str
+    tactic_name: str
+    effective_score: ScoreBand
+    potential_score: ScoreBand
+    score_gap: float
+
+
+@dataclass(frozen=True)
+class EffectiveAndPotentialRecommendation:
+    effective: TacticRecommendation
+    potential: TacticRecommendation
+
+    def training_targets(self, *, minimum_gap: float = 5.0) -> tuple[TrainingTarget, ...]:
+        """Tactics whose potential fit clears its effective fit by a margin.
+
+        Ordered by the largest gap first, since that is the tactic where
+        training individual players into position would move the needle
+        the most. `minimum_gap` filters out noise from tactics that are
+        already close to their ceiling.
+        """
+        targets = []
+        for potential_evaluation in self.potential.evaluations:
+            effective_evaluation = self.effective.by_tactic_key(
+                potential_evaluation.tactic.key
+            )
+            gap = round(
+                potential_evaluation.score.central - effective_evaluation.score.central,
+                6,
+            )
+            if gap >= minimum_gap:
+                targets.append(
+                    TrainingTarget(
+                        tactic_key=potential_evaluation.tactic.key,
+                        tactic_name=potential_evaluation.tactic.name,
+                        effective_score=effective_evaluation.score,
+                        potential_score=potential_evaluation.score,
+                        score_gap=gap,
+                    )
+                )
+        return tuple(sorted(targets, key=lambda item: (-item.score_gap, item.tactic_key)))
+
 
 @dataclass(frozen=True)
 class _CandidateAssignment:
@@ -134,6 +254,7 @@ def evaluate_tactic(
     catalogue: FootballCatalogue,
     *,
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
+    familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
 ) -> TacticEvaluation:
     if tactic.key not in catalogue.tactics or catalogue.tactics[tactic.key] != tactic:
@@ -143,7 +264,9 @@ def evaluate_tactic(
         raise ValueError("selection player ids must be unique")
 
     ordered_players = tuple(sorted(players, key=lambda item: (item.name.casefold(), item.id)))
-    choices = _build_choices(tactic, ordered_players, catalogue, readiness_policy)
+    choices = _build_choices(
+        tactic, ordered_players, catalogue, readiness_policy, familiarity_policy
+    )
     states = _assignment_states(choices)
     best_mask, best = min(
         states.items(),
@@ -179,6 +302,8 @@ def evaluate_tactic(
     return TacticEvaluation(
         tactic=tactic,
         readiness_version=readiness_policy.version,
+        familiarity_version=familiarity_policy.version,
+        familiarity_weight=familiarity_policy.penalty_weight,
         fit_version=fit_policy.version,
         fit_weakest_weight=fit_policy.weakest_slot_weight,
         assignments=ordered_assignments,
@@ -195,6 +320,7 @@ def recommend_tactic(
     catalogue: FootballCatalogue,
     *,
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
+    familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
 ) -> TacticRecommendation:
     evaluations = tuple(
@@ -203,6 +329,7 @@ def recommend_tactic(
             players,
             catalogue,
             readiness_policy=readiness_policy,
+            familiarity_policy=familiarity_policy,
             fit_policy=fit_policy,
         )
         for tactic in catalogue.tactics.values()
@@ -223,6 +350,46 @@ def recommend_tactic(
     )
 
 
+def recommend_tactic_effective_and_potential(
+    players: Sequence[PlayerSelectionInput],
+    catalogue: FootballCatalogue,
+    *,
+    readiness_policy: ReadinessPolicy = ReadinessPolicy(),
+    familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
+    fit_policy: TacticFitPolicy = TacticFitPolicy(),
+) -> EffectiveAndPotentialRecommendation:
+    """Answer both "what to play now" and "what to aim for" from one call.
+
+    *Effective* applies the familiarity penalty as configured -- what the
+    squad can safely play this weekend. *Potential* forces that same
+    policy's penalty to zero -- what the squad could be if fully retrained
+    into position, with every other input unchanged. The two runs share
+    every other policy, so a difference in ranking or score is attributable
+    to position familiarity and nothing else.
+
+    This says nothing about *tactic* familiarity (the squad's fluency with a
+    shape as a whole), which is a distinct, currently unavailable input --
+    see Phase 05. A tactic ranked far higher in potential than in effective
+    is one where retraining individual players into their slots would help;
+    it is not evidence the squad already knows how to play that shape.
+    """
+    effective = recommend_tactic(
+        players,
+        catalogue,
+        readiness_policy=readiness_policy,
+        familiarity_policy=familiarity_policy,
+        fit_policy=fit_policy,
+    )
+    potential = recommend_tactic(
+        players,
+        catalogue,
+        readiness_policy=readiness_policy,
+        familiarity_policy=familiarity_policy.potential(),
+        fit_policy=fit_policy,
+    )
+    return EffectiveAndPotentialRecommendation(effective=effective, potential=potential)
+
+
 def is_player_selectable(
     player: PlayerSelectionInput,
     *,
@@ -237,6 +404,7 @@ def score_player_for_slot(
     catalogue: FootballCatalogue,
     *,
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
+    familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
 ) -> SlotAssignment | None:
     """Score one legal, selectable player/slot pairing."""
     if slot.role_key not in catalogue.roles:
@@ -246,14 +414,20 @@ def score_player_for_slot(
     if slot.position not in player.positions:
         return None
     intrinsic = score_role(catalogue.roles[slot.role_key], player.attributes)
-    penalty, warnings = _readiness(player, readiness_policy)
+    readiness_penalty, readiness_warnings = _readiness(player, readiness_policy)
+    familiarity_penalty, familiarity_warnings = _familiarity(
+        player, slot, familiarity_policy
+    )
+    penalty = readiness_penalty + familiarity_penalty
     return SlotAssignment(
         slot=slot,
         player_id=player.id,
         player_name=player.name,
         intrinsic_role_score=intrinsic,
-        readiness_penalty=penalty,
-        readiness_warnings=warnings,
+        readiness_penalty=readiness_penalty,
+        readiness_warnings=readiness_warnings,
+        familiarity_penalty=familiarity_penalty,
+        familiarity_warnings=familiarity_warnings,
         selection_score=ScoreBand(
             lower=max(0, round(intrinsic.score.lower - penalty, 6)),
             central=max(0, round(intrinsic.score.central - penalty, 6)),
@@ -267,6 +441,7 @@ def _build_choices(
     players: tuple[PlayerSelectionInput, ...],
     catalogue: FootballCatalogue,
     policy: ReadinessPolicy,
+    familiarity_policy: FamiliarityPolicy,
 ) -> tuple[tuple[_CandidateAssignment, ...], ...]:
     choices: list[tuple[_CandidateAssignment, ...]] = []
     for player_index, player in enumerate(players):
@@ -280,6 +455,7 @@ def _build_choices(
                 slot,
                 catalogue,
                 readiness_policy=policy,
+                familiarity_policy=familiarity_policy,
             )
             if assignment is None:
                 continue
@@ -326,6 +502,18 @@ def _readiness(
         (100 - condition) * policy.condition_penalty_weight
         + (100 - match_fitness) * policy.match_fitness_penalty_weight
     )
+    return round(penalty, 6), tuple(warnings)
+
+
+def _familiarity(
+    player: PlayerSelectionInput, slot: TacticSlot, policy: FamiliarityPolicy
+) -> tuple[float, tuple[str, ...]]:
+    warnings: list[str] = []
+    rating = player.position_familiarity.get(slot.position)
+    if rating is None:
+        rating = policy.unknown_rating
+        warnings.append(f"{slot.position} familiarity unknown")
+    penalty = (policy.scale_maximum - rating) * policy.penalty_weight
     return round(penalty, 6), tuple(warnings)
 
 

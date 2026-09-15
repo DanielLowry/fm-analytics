@@ -109,7 +109,35 @@ changes choices without allowing an unavailable familiarity value to become
 an assumed advantage. Until then, every tactic is compared on squad fit only;
 the output must not claim that the squad already knows the selected shape.
 
+*Position* familiarity is a separate and much nearer input; see
+[Phase 04](../04-squad-analytics/README.md) and Phase 03's 15 September note.
+Once it lands, the [decision-support design](../../decision-support-design.md)
+gets "best tactic now versus the one to aim for" from this subphase unchanged,
+by running the comparison twice — once with the familiarity penalty applied
+(**effective**) and once ignoring it (**potential**) — and reporting the gap as
+a retraining cost. That is a reporting distinction over existing machinery, and
+it must not be confused with the tactic-familiarity input deferred above: it
+says nothing about whether the squad knows the *shape*, only whether players
+are playing in positions they are suited to.
+
 ### 05.4 — Constrained optimiser
+
+Note a cost characteristic, now measured after the catalogue grew to seven
+tactics and twenty-eight roles (15 September 2026). `_assignment_states` is
+acceptable on its own, but `_best_fit_state` re-runs that whole search once
+per distinct candidate score threshold, and thresholds scale with players
+times slots. A synthetic `recommend_tactic_effective_and_potential` run (seven
+tactics, two familiarity modes) measured 0.19s at 17 players, 2.1s at 25, and
+3.0s at 30, all on ordinary development hardware with no attempt at
+optimisation. That is a fine cost for a one-shot CLI command; it is not a cost
+a web page should pay synchronously on every request once
+[Phase 11](../11-automation-and-ui/README.md) exists -- that page should cache
+the recommendation and recompute on demand, not on every view. It also means
+the catalogue can keep growing for now without this becoming the blocking
+concern, but a much larger squad or catalogue should re-measure rather than
+assume the trend stays linear. Known remedies if it does bite: binary search
+over thresholds, or sharing the search across thresholds, instead of the
+current full re-run per threshold.
 
 Maximize the versioned team objective subject to eleven unique players, filled
 slots, eligibility, and configured readiness rules. Add bench coverage,

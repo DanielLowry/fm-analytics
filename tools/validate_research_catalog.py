@@ -87,6 +87,7 @@ def validate() -> list[str]:
     evidence_references: set[str] = set()
     for section in (
         "types",
+        "instrumentation_backends",
         "object_resolvers",
         "functions",
         "properties",
@@ -126,4 +127,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -502,8 +502,8 @@ arbitrary call sequence safe.
 | Order | ID | Deliverable | Gate | Status |
 | --- | --- | --- | --- | --- |
 | 1 | RA.3 | Minimal semantic registry plus research corpus manifest, seeded from proven discoveries | Existing attribute/source facts and reports are indexed without reinterpretation | Initial seed complete |
-| 2 | RA.4 | One-recipe controller skeleton using JSON/JSONL | One existing passive experiment runs, reports, and releases process resources through it | Implemented; live acceptance pending |
-| 3 | RA.2 | Frida attach-and-one-hook prototype | Event agrees with known GDB evidence; clean detach | Planned |
+| 2 | RA.4 | One-recipe controller skeleton using JSON/JSONL | Automated planning, success, failure, evidence, and resource-release paths pass; a live smoke run is not treated as value evidence | Complete |
+| 3 | RA.2 | Frida attach-and-one-hook prototype | Event agrees with known GDB evidence; clean detach | Host passed; FM/Proton live gate pending |
 | 4 | RA.7 | Minimal state-capsule capture and lookup | One human-created state is reanalysed without help | Planned |
 | 5 | RA.5 | Differential analyser over real flat-file traces | Ranks a known call path from labelled states | Planned |
 | 6 | RA.8 | Generic person-property dispatcher campaign and first-value thin slice | One property absent from the bridge is obtained with no interactive GDB and at most one short FM interaction | Planned |
@@ -534,17 +534,18 @@ contains a requested state, run the selected existing experiment, and produce a
 report linked back to the relevant registry facts. It should be small enough to
 discard or reshape after the new-property thin slice.
 
-The first useful pause is after RA.4's live acceptance run. Review whether one
-command really performed preflight, reused corpus knowledge, captured evidence,
-and finished without interactive GDB or an FM action. If that lifecycle is
-awkward, reshape it before adding Frida.
+RA.4's automated tests prove only controller plumbing. Do not request an FM
+session merely to repeat the old passive survey through a new wrapper; that
+would not test the programme's goal.
 
-The decisive value checkpoint is after RA.2 is used for the first-value thin
-slice, before RA.7 or RA.5. Pause there and apply the acceptance criterion at the
-top of this document. If the framework has not discovered one bridge-absent
+The first useful operator-facing pause is after RA.2 has attached Frida, matched
+one known GDB observation, detached cleanly, and converted that backend into a
+controller recipe aimed at the first new property. Run the Frida property trial
+then—not before—and apply the acceptance criterion at the top of this document
+before starting RA.7 or RA.5. If it has not discovered one bridge-absent
 property with no interactive GDB and at most one short FM interaction, do not
 build capsules, differential infrastructure, a dispatcher campaign, or UI
-automation yet; redesign the controller/instrumentation loop first.
+automation; redesign the controller/instrumentation loop first.
 
 ## Optional RA.1 report contract
 
