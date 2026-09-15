@@ -1,7 +1,15 @@
 import argparse
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
-from tools.fm20_frida_trace import build_agent_source, capture, parse_target, summarize_events
+from tools.fm20_frida_trace import (
+    build_agent_source,
+    capture,
+    parse_target,
+    process_alive,
+    summarize_events,
+)
 
 
 class FakeScript:
@@ -127,6 +135,21 @@ class FridaTraceTests(unittest.TestCase):
         self.assertFalse(result["detached"])
         self.assertEqual(result["agentErrors"][0]["kind"], "capture-error")
         self.assertIn("ptrace pokedata", result["agentErrors"][0]["description"])
+
+    def test_process_health_requires_live_fm_mapping(self):
+        with TemporaryDirectory() as directory:
+            proc_root = Path(directory)
+            process = proc_root / "123"
+            process.mkdir()
+            (process / "maps").write_text(
+                "140000000-140001000 r--p 00000000 00:00 1 "
+                "/games/Football Manager 2020/fm.exe\n",
+                encoding="utf-8",
+            )
+            self.assertTrue(process_alive(123, proc_root))
+
+            (process / "maps").write_text("", encoding="utf-8")
+            self.assertFalse(process_alive(123, proc_root))
 
     def test_event_summary_pairs_calls_and_ranks_active_candidates(self):
         events = [

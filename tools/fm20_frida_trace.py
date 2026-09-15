@@ -250,8 +250,14 @@ def capture(
     }
 
 
-def process_alive(pid: int) -> bool:
-    return (Path("/proc") / str(pid)).exists()
+def process_alive(pid: int, proc_root: Path = Path("/proc")) -> bool:
+    """Require the pinned FM mapping, not merely a transient PID directory."""
+    try:
+        with (proc_root / str(pid) / "maps").open(encoding="utf-8") as mappings:
+            parse_module_mapping(mappings)
+    except (OSError, UnicodeError, ProbeError):
+        return False
+    return True
 
 
 def summarize_events(events: Sequence[dict[str, Any]]) -> dict[str, Any]:

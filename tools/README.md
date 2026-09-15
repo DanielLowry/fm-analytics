@@ -24,9 +24,10 @@ its agent; detaches; and produces an automatically ranked summary.
 Live FM discovery must have host process visibility. An ordinary Codex sandbox
 has an isolated `/proc` and cannot see the desktop process; the probe detects
 that condition and fails as “visibility unavailable” rather than “FM absent.”
-The first FM/Proton Frida injection failed with `ptrace pokedata: EIO` and may
-have terminated FM, so further FM attachment is paused pending an isolated
-Wine/Proton reproduction.
+Two FM/Proton Frida injections failed before agent readiness. The second
+reported a bootstrapper signal 11 and FM then exited, so Frida is rejected as a
+routine backend on the current stack. The controller-backed GDB path is the
+active fallback.
 
 The many `fm20_*` modules at this directory's top level are currently internal
 adapters and libraries. They remain in place because the controller, bridge,

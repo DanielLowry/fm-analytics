@@ -233,11 +233,25 @@
           "path": "data/research/sessions/frida-attach-smoke-20260915T201229666192Z.json",
           "sha256": "f17a9cdc8ca8b2c33a2f53af9397c76d61126e651f979c191e765d6b313f8322",
           "outcome": "injection-failed-possible-process-exit"
+        },
+        {
+          "id": "frida-attach-smoke-reproduction",
+          "kind": "controller-session-report",
+          "path": "data/research/sessions/frida-attach-smoke-20260915T202514206418Z.json",
+          "sha256": "4ddc90e465a17d650ee3337bdc6cc0781c8238127671819002a9193c28559472",
+          "outcome": "bootstrap-sigsegv-fm-exited"
+        },
+        {
+          "id": "frida-attach-adapter-reproduction",
+          "kind": "frida-adapter-report",
+          "path": "data/research/sessions/frida-attach-smoke-20260915T202514206418Z.adapter.json",
+          "sha256": "7ce3f36e16e6c961bfe7e621cd7503e3409e5f40d03cf24560c3ce53961baa07",
+          "outcome": "bootstrap-sigsegv-before-agent-ready"
         }
       ],
-      "verified_facts": ["Host-visible discovery found FM as PID 7187 and exact-build preflight succeeded before Frida returned ptrace pokedata EIO."],
+      "verified_facts": ["Host-visible discovery found FM and exact-build preflight succeeded in both attempts.", "The second attempt preserved a Frida NotSupportedError reporting bootstrapper signal 11 before agent readiness, after which the FM mapping disappeared."],
       "reusable_for": ["Frida/Proton negative compatibility evidence", "injection failure regression"],
-      "limitations": ["The original adapter did not preserve its own report after the binding exception.", "FM disappeared afterward, but the evidence does not prove that Frida caused the exit."],
+      "limitations": ["The original adapter did not preserve its own report after the binding exception.", "The second attempt strongly associates injection with the exit but does not identify the incompatible bootstrap instruction or Proton component."],
       "known_contrasts": []
     }
   ]

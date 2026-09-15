@@ -24,7 +24,7 @@
       "version": "17.18.0",
       "installation": "optional research dependency",
       "host_attach_smoke": "passed-2026-09-15",
-      "fm_proton_attach": "failed-2026-09-15-ptrace-pokedata-eio-possible-process-exit",
+      "fm_proton_attach": "rejected-2026-09-15-two-injection-failures-second-bootstrap-sigsegv-and-fm-exit",
       "safety": "passive-live",
       "confidence": "observed",
       "implementation": "tools/fm20_frida_trace.py"

@@ -40,9 +40,11 @@ What is genuinely solid and should not be rewritten:
   gaps. That taxonomy is the right one and question 4 builds directly on it.
 - `compare_role_scores` already refuses to claim certainty when intervals
   overlap. That honesty is worth preserving as the catalogue grows.
-- The visibility boundary is enforced consistently, with 254 passing tests.
+- The visibility boundary is enforced consistently, with 254 passing tests
+  at the time this was written (324 as of the 15 September implementation
+  pass below).
 
-What is actually holding the product back:
+What was actually holding the product back, as first written:
 
 1. **The football catalogue is far too small.** Thirteen roles and four tactics.
    Questions 1–3 are search problems, and the search space is currently a
@@ -55,6 +57,11 @@ What is actually holding the product back:
    "research-only" and "not the product workflow", yet it is the only path that
    can supply facts the probe cannot yet reach. That framing fights the
    near-term need.
+
+All four are addressed in code as of 15 September 2026 -- see the status note
+at the top of [Recommended sequence](#recommended-sequence) below for what
+changed and, just as importantly, what still has not been run against a live
+FM20 process.
 
 ## The unlock we already own
 
@@ -239,38 +246,82 @@ analytics, and report shapes become testable without a browser.
 ## Recommended sequence
 
 Ordered by value per unit of effort, with the research-blocked work last.
+**Status as of 15 September 2026: steps 1–6 and 8 are implemented** --
+probe/bridge/domain/persistence/CLI/web code, all with unit tests against
+synthetic and fixture data. None of it has been run against a live FM20
+process yet; that remains outstanding for every item below, including the
+raw position-rating values the whole familiarity feature rests on. Steps 7
+and 9 remain undone for the reasons already in the roadmap (new FM research;
+Phase 03 gate).
 
 **A — unblocks questions 1 and 3, needs no new FM research**
 
-1. Wire position familiarity end to end: emit raw ratings from the probe, map
-   through `position_familiarity`, add additively to contract v1, carry into
-   `PlayerSelectionInput`. Fail closed on the unconfirmed bands; fill the 2–8
-   and 17–18 gaps by checking a few position diagrams in FM.
-2. Move the catalogue to data files, then expand the role set.
-3. Add the role fit matrix.
+1. **Done.** Position familiarity is wired end to end: the probe emits the
+   full raw 1-20 rating per position (`position_familiarity_map`, previously
+   discarded after the `>= 15` eligibility check), the bridge validates and
+   carries it, the domain `Player` and `PlayerSelectionInput` models hold it
+   as an additive `positionFamiliarity` field, and `persistence/store.py` has
+   a matching table. One simplification from the original plan, at the
+   user's direction: it is used as a **continuous raw number**, not mapped
+   onto FM's Natural/Accomplished/.../Ineffectual labels first, on the
+   reasoning that those labels are themselves believed to be a projection of
+   this same number. That sidesteps `fm20_position_familiarity.py`'s
+   unconfirmed raw-value bands (2-8, 17-18) for scoring purposes; they would
+   still matter if something later wants to *display* FM's own label.
+2. **Done.** The catalogue moved from Python literals to versioned JSON
+   (`analytics/data/catalogue.json`, loaded and validated by
+   `catalogue.load_catalogue`), and grew from 13 roles / 4 tactics
+   (`fm20-mvp-v2`) to 28 roles / 7 tactics (`fm20-mvp-v3`). Still well short
+   of every FM20 role by design -- Phase 04 treats that as a non-goal.
+3. **Done.** `analytics/role_matrix.py` answers both directions from one
+   pass: `RoleMatrix.best_for_role` and `.best_role_for_player`, reusing
+   `score_role`/`compare_role_scores` unchanged.
 
 **B — makes the app real**
 
-4. Report objects, then a thin web app over the pages above. Worth doing before
-   the rest of the analytics work, because it is what turns this from a script
-   into something used every in-game week — and it will immediately show which
-   catalogue gaps hurt most.
+4. **Done, in reduced form.** Rather than a full report-object hierarchy
+   across every analysis, `reporting.build_recommendation_bundle` is the one
+   shared computation the CLI and a new stdlib-`http.server` web app
+   (`fm_analytics.web`, `fm-web`) both call, so a number on a page and a
+   number the CLI prints are the same number computed the same way. Pages:
+   `/squad`, `/roles`, `/tactics` (with training targets), `/depth`, and
+   `/data` for field coverage -- the last one deliberately still renders on
+   an incomplete squad, since showing the gap is its whole purpose. Sources
+   are composable functions (`fixture_provider`, `snapshot_provider`,
+   `live_provider`, `html_overlay_provider`) rather than server special
+   cases, which is the concrete form the "manual now, automated later" seam
+   takes.
 
 **C — questions 2 and 3 properly**
 
-5. `FamiliarityPolicy` and dual effective/potential evaluation.
-6. Measure the assignment-search cost, then expand the tactic library.
-7. Tactic familiarity through the workbench; manual provider in the meantime.
+5. **Done.** `FamiliarityPolicy` plus
+   `recommend_tactic_effective_and_potential`: the same tactic comparison run
+   twice, once with the familiarity penalty applied and once with it forced
+   to zero via `.potential()`. The gap between the two is surfaced as a
+   `TrainingTarget` in both the CLI and `/tactics`.
+6. **Measured, not yet acted on.** A synthetic benchmark (7 tactics, 28
+   roles, dual effective/potential) measured 0.19s at 17 players, 2.1s at 25,
+   3.0s at 30 on ordinary development hardware -- fine for a CLI command, a
+   real constraint for a web page computing synchronously per request. See
+   [Phase 05](phases/05-xi-optimisation/README.md#05.4). No optimisation has
+   been attempted; the catalogue can keep growing for now.
+7. Tactic familiarity through the workbench remains undone; it needs new FM
+   research this session had no game access to perform.
 
 **D — question 4, then 5**
 
-8. Squad-wide depth aggregation across the candidate tactic set.
-9. Recruitment, when Phase 03 opens the discoverable-player gate.
+8. **Done.** `analytics/squad_depth.py` aggregates `assess_weaknesses` across
+   several tactics by *position* (not slot key, which is tactic-specific),
+   distinguishing a position weak in every evaluated tactic from one weak in
+   only some. Wired into both the CLI (`--recommend`) and `/depth`.
+9. Recruitment stays blocked on the Phase 03 discoverable-player gate, as
+   before.
 
-Step 4's placement is a judgment call. Strictly, more analytics before any UI
-would yield a better engine; but an engine that is tedious to consult does not
-get consulted, and the `/data` page is what makes the extraction backlog
-self-prioritising.
+Step 4's placement was a judgment call, not a settled roadmap change; see
+[Phase 11](phases/11-automation-and-ui/README.md)'s note on it. Building it
+early paid off in one concrete way already: `/data` immediately made the
+`positionFamiliarity`-was-being-discarded gap (item 1) the obvious next thing
+to fix, which is exactly the self-prioritising effect it was meant to have.
 
 ## Deliberately not now
 

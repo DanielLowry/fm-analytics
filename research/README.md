@@ -34,10 +34,12 @@ start FM solely to run it. The first requested FM session belongs to the Frida
 new-property trial.
 
 Frida 17.18.0 is pinned in the optional `research` dependency group. The host
-attach/load/event/unload/detach smoke test passes, but the first FM/Proton gate
-failed during injection with `ptrace pokedata: EIO` and FM may then have exited.
-Do not retry Frida against FM until that failure is isolated with a disposable
-Wine/Proton child. Three Frida recipes remain available for that investigation:
+attach/load/event/unload/detach smoke test passes, but both FM/Proton attempts
+failed before agent readiness. The reproducible attempt reported a bootstrapper
+signal 11 and FM then exited. Frida attachment is therefore rejected as a
+routine backend on the current stack; do not retry it against FM without a
+materially different injector/runtime and a new explicit gate. The recipes are
+retained as bounded diagnostics, not the active research path:
 
 - `frida-attach-smoke` checks FM/Proton lifecycle compatibility without UI
   activity;
