@@ -34,8 +34,10 @@ start FM solely to run it. The first requested FM session belongs to the Frida
 new-property trial.
 
 Frida 17.18.0 is pinned in the optional `research` dependency group. The host
-attach/load/event/unload/detach smoke test passes. Three Frida recipes are now
-available:
+attach/load/event/unload/detach smoke test passes, but the first FM/Proton gate
+failed during injection with `ptrace pokedata: EIO` and FM may then have exited.
+Do not retry Frida against FM until that failure is isolated with a disposable
+Wine/Proton child. Three Frida recipes remain available for that investigation:
 
 - `frida-attach-smoke` checks FM/Proton lifecycle compatibility without UI
   activity;
@@ -50,6 +52,10 @@ Run a recipe through the same entry point:
 ```bash
 uv run --extra research python tools/fm20_research.py run RECIPE
 ```
+
+Live-process commands run by a sandboxed coding agent require host process
+visibility. The detector now rejects the Codex PID namespace explicitly instead
+of turning its incomplete `/proc` view into a false “FM is not running” result.
 
 The validator checks catalogue structure, cross-references, duplicate IDs, and
 the path/hash of any runtime artifact that is present locally. Missing runtime

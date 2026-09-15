@@ -13,6 +13,7 @@ dependencies = []
 [project.scripts]
 fm-analytics = "fm_analytics.cli:main"
 fm-bridge = "fm_analytics.bridge.server:main"
+fm-web = "fm_analytics.web.server:main"
 
 [project.optional-dependencies]
 research = [

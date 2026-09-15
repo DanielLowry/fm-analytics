@@ -187,6 +187,26 @@ def parse_module_mapping(lines: Iterable[str]) -> tuple[int, str]:
     return min(candidates)
 
 
+def process_visibility_warning(proc_root: Path = Path("/proc")) -> str | None:
+    """Explain a known process-namespace view that cannot see desktop FM.
+
+    Codex workspace commands normally run in a PID namespace whose PID 1 is
+    ``codex-linux-sandbox``. An empty FM scan in that namespace says nothing
+    about whether FM is running on the host, so callers must fail explicitly
+    instead of reporting a false absence.
+    """
+    try:
+        pid_one_command = (proc_root / "1" / "cmdline").read_bytes().replace(b"\0", b" ")
+    except OSError:
+        return None
+    if b"codex-linux-sandbox" in pid_one_command:
+        return (
+            "FM process visibility is unavailable inside the Codex PID sandbox; "
+            "rerun the live-process command with host process visibility"
+        )
+    return None
+
+
 def find_fm20_processes(proc_root: Path = Path("/proc")) -> list[int]:
     matches: list[int] = []
     for entry in proc_root.iterdir():
@@ -198,6 +218,10 @@ def find_fm20_processes(proc_root: Path = Path("/proc")) -> list[int]:
         except (OSError, UnicodeError, ProbeError):
             continue
         matches.append(int(entry.name))
+    if not matches:
+        warning = process_visibility_warning(proc_root)
+        if warning is not None:
+            raise ProbeError(warning)
     return sorted(matches)
 
 

@@ -349,7 +349,22 @@ def run_recipe(
         execution["adapterStatus"] = adapter_report.get("status")
         if adapter_report.get("researchOnly") is not True:
             raise ControllerError("adapter report is not marked research-only")
-        postflight = _snapshot_summary(probe(pid))
+        if recipe["adapter"] == "fm20-frida-trace":
+            capture = adapter_report.get("capture", {})
+            report["lifecycle"]["resourceRelease"] = (
+                "confirmed-by-adapter"
+                if capture.get("detached") and capture.get("scriptUnloaded")
+                else "not-confirmed-after-injection-failure"
+            )
+        try:
+            postflight = _snapshot_summary(probe(pid))
+        except ProbeError as error:
+            report["postflight"] = {"available": False, "error": str(error)}
+            if adapter_report.get("processAliveAfterDetach") is False:
+                raise ControllerError(
+                    "FM exited during the experiment; instrumentation is unsafe to retry"
+                ) from error
+            raise
         report["postflight"] = postflight
         invariant_keys = ("pid", "module_base", "profile", "game_date", "manager_id", "club_id", "squad_id_hash")
         report["invariants"] = {

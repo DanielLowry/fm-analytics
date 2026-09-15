@@ -59,6 +59,18 @@ class FakeDevice:
         return self.session
 
 
+class FailingDevice:
+    def attach(self, pid):
+        raise RuntimeError("unable to perform ptrace pokedata: Input/output error")
+
+
+class FailingFrida:
+    __version__ = "test"
+
+    def get_local_device(self):
+        return FailingDevice()
+
+
 class FakeFrida:
     __version__ = "test"
 
@@ -103,6 +115,18 @@ class FridaTraceTests(unittest.TestCase):
         self.assertTrue(api.device.session.script.unloaded)
         self.assertTrue(api.device.session.detached)
         self.assertEqual(result["agentErrors"], [])
+
+    def test_capture_preserves_injection_failure_as_evidence(self):
+        result = capture(
+            123, "0x140000000", [], duration_seconds=0, max_events=20,
+            capture_backtraces=False, frida_api=FailingFrida(),
+            wait=lambda _seconds: None,
+        )
+
+        self.assertFalse(result["attached"])
+        self.assertFalse(result["detached"])
+        self.assertEqual(result["agentErrors"][0]["kind"], "capture-error")
+        self.assertIn("ptrace pokedata", result["agentErrors"][0]["description"])
 
     def test_event_summary_pairs_calls_and_ranks_active_candidates(self):
         events = [

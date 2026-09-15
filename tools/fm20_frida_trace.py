@@ -212,6 +212,12 @@ def capture(
         if ready_callback is not None:
             ready_callback()
         wait(duration_seconds)
+    except Exception as error:  # Frida exposes binding-specific exception classes.
+        agent_errors.append({
+            "kind": "capture-error",
+            "exceptionType": type(error).__name__,
+            "description": str(error),
+        })
     finally:
         if script is not None:
             try:
@@ -369,7 +375,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             and not capture_result["agentErrors"]
             and report["processAliveAfterDetach"]
         ):
-            raise FridaTraceError("Frida lifecycle did not complete cleanly")
+            detail = next(
+                (
+                    item.get("description")
+                    for item in capture_result["agentErrors"]
+                    if item.get("description")
+                ),
+                "unknown lifecycle failure",
+            )
+            raise FridaTraceError(f"Frida lifecycle did not complete cleanly: {detail}")
         report["status"] = "complete"
         status = 0
     except (FridaTraceError, ProbeError, OSError, ValueError) as error:

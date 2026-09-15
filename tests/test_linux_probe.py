@@ -1,5 +1,7 @@
 import unittest
 from datetime import date
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from tools.fm20_linux_probe import (
     POSITION_CODES,
@@ -10,8 +12,10 @@ from tools.fm20_linux_probe import (
     decode_fm_date,
     decode_positions,
     display_percent,
+    find_fm20_processes,
     parse_module_mapping,
     position_familiarity_map,
+    process_visibility_warning,
     read_fm_string,
     read_optional_contract_date,
     read_pointer_collection,
@@ -21,6 +25,16 @@ from tools.fm20_linux_probe import (
 
 
 class LinuxFm20ProbeTests(unittest.TestCase):
+    def test_rejects_false_absence_inside_codex_pid_namespace(self) -> None:
+        with TemporaryDirectory() as directory:
+            proc_root = Path(directory)
+            (proc_root / "1").mkdir()
+            (proc_root / "1" / "cmdline").write_bytes(b"codex-linux-sandbox\0--flag\0")
+
+            self.assertIn("host process visibility", process_visibility_warning(proc_root))
+            with self.assertRaisesRegex(ProbeError, "visibility is unavailable"):
+                find_fm20_processes(proc_root)
+
     def test_selects_unique_managed_human_when_active_object_moves(self) -> None:
         managers = (
             HumanManagerResult("1", "Placeholder", None, False),

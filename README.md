@@ -25,10 +25,13 @@ deliberately later work.
 ## Repository layout
 
 ```text
-src/fm_analytics/   Python bridge, client, domain objects, and CLI
-tools/              Low-level FM20 probe and monitor utilities
-tests/              Python contract, source, and client tests
-docs/               Architecture and delivery notes
+src/fm_analytics/          Python bridge, client, domain objects, and CLI
+src/fm_analytics/analytics/ Role/tactic scoring, catalogue (data/catalogue.json), depth
+src/fm_analytics/reporting.py Shared "compute a squad recommendation" path (CLI + web)
+src/fm_analytics/web/      Read-only browser view over the same reporting path
+tools/                     Low-level FM20 probe and monitor utilities
+tests/                     Python contract, source, and client tests
+docs/                      Architecture and delivery notes
 ```
 
 ## Tests and fixture mode
@@ -76,16 +79,63 @@ weakness thresholds remain provisional football judgments, not league-
 calibrated assessments. A fresh live run through the HTTP bridge is still
 needed to validate that separate transport path against FM.
 
+The tactic and role catalogue has since grown past what that run exercised: it
+now covers 7 tactics and 28 roles (`fm20-mvp-v3`, defined as data in
+`src/fm_analytics/analytics/data/catalogue.json` rather than Python literals),
+so a fresh live run would compare more shapes than the four described above.
+
 Tactics are ranked by a versioned fit score: 65% of the XI's mean role/readiness
 score plus 35% of its weakest slot. This penalizes a shape that strands one
 player in a poor fit, and the XI is optimized for that same objective. The
-weight is provisional. Tactic familiarity is not yet included; it needs a
-trustworthy manager-visible input and a separate policy before it can affect
-recommendations.
+weight is provisional. Team *tactic* familiarity (fluency with a shape as a
+whole) is not yet included; it needs a trustworthy manager-visible input and a
+separate policy before it can affect recommendations.
+
+*Position* familiarity is included: the recommendation output now also shows
+**training targets** -- tactics whose fit would improve materially once
+players are no longer penalized for playing out of position, compared against
+today's *effective* fit. This is a reporting split over the existing scoring,
+not a new input the bridge lacks; it uses the same raw 1-20 position rating
+the probe already read for eligibility, previously discarded after that
+threshold check. It says nothing about tactic familiarity above.
+
+`--recommend` also reports **squad depth across every evaluated tactic**, not
+just the selected one: a position weak in every tactic considered is flagged
+separately from one weak in only some, since the latter may just reflect a
+shape you would not actually play.
 
 External-player discovery and range/unknown queries are not yet automated or
 production-ready. The passive render hook remains research evidence only; it
 is not used by the bridge.
+
+## Web view
+
+A read-only browser view renders the same recommendation the CLI does, from
+the same computation (`fm_analytics.reporting.build_recommendation_bundle`),
+with pages for the squad roster, best player per role, tactic comparison and
+training targets, and squad-wide depth, plus a data-coverage page that works
+even when the rest can't score an incomplete squad:
+
+```bash
+uv run fm-web --fixture src/fm_analytics/fixtures/sample-game.json
+```
+
+Open `http://127.0.0.1:8766`. The default source is the bundled fixture; use
+`--snapshot-db data/fm-analytics.sqlite3` (optionally `--capture-id`) to serve
+a captured observation, `--direct-live` or `--base-url` for the running game
+or its HTTP bridge, and `--fm-html squad-general.html ...` to overlay a manual
+FM20 Squad HTML export onto any of those, exactly like the CLI's `--fm-html`
+flag:
+
+```bash
+uv run fm-web --direct-live --fm-html squad-general.html squad-physical.html \
+  --fm-html-player-count 17
+```
+
+These sources are composable functions in `fm_analytics.web.providers`
+(`fixture_provider`, `snapshot_provider`, `live_provider`,
+`html_overlay_provider`), not special cases baked into the server, so a manual
+source and an automated one are interchangeable without changing the view.
 
 ## Research-only HTML verification
 
@@ -106,8 +156,9 @@ the live bridge IDs; duplicate names fail closed. Supplying the count shown in
 the unchanged FM view requires that exact number of unique players after
 merging, so a missing or extra row fails the import.
 
-The CLI reports how many of the 32 role-model inputs are present. A partial
-export can exercise tests, but its football scores are labelled provisional.
+The CLI reports how many of the catalogue's role-model inputs are present. A
+partial export can exercise tests, but its football scores are labelled
+provisional.
 
 ### Standalone live owned-squad proof
 

@@ -503,7 +503,7 @@ arbitrary call sequence safe.
 | --- | --- | --- | --- | --- |
 | 1 | RA.3 | Minimal semantic registry plus research corpus manifest, seeded from proven discoveries | Existing attribute/source facts and reports are indexed without reinterpretation | Initial seed complete |
 | 2 | RA.4 | One-recipe controller skeleton using JSON/JSONL | Automated planning, success, failure, evidence, and resource-release paths pass; a live smoke run is not treated as value evidence | Complete |
-| 3 | RA.2 | Frida attach-and-one-hook prototype | Event agrees with known GDB evidence; clean detach | Host passed; FM/Proton live gate pending |
+| 3 | RA.2 | Frida attach-and-one-hook prototype | Event agrees with known GDB evidence; clean detach | Host passed; FM/Proton injection failed (`ptrace pokedata: EIO`) and may have exited FM; unsafe to retry until isolated |
 | 4 | RA.7 | Minimal state-capsule capture and lookup | One human-created state is reanalysed without help | Planned |
 | 5 | RA.5 | Differential analyser over real flat-file traces | Ranks a known call path from labelled states | Planned |
 | 6 | RA.8 | Generic person-property dispatcher campaign and first-value thin slice | One property absent from the bridge is obtained with no interactive GDB and at most one short FM interaction | Planned |

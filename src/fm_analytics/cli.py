@@ -11,18 +11,14 @@ from fm_analytics.bridge import LinuxProtonDataSource
 from fm_analytics.analytics import (
     BenchSelection,
     MVP_CATALOGUE,
-    PlayerSelectionInput,
     RecruitmentBrief,
     RecruitmentShortlist,
     ScoreBand,
+    SquadDepthReport,
     TacticRecommendation,
     TrainingTarget,
     WeaknessReport,
-    assess_weaknesses,
-    build_recruitment_briefs,
     overlay_squad_export,
-    recommend_tactic_effective_and_potential,
-    select_bench,
     shortlist_candidates,
 )
 from fm_analytics.domain import GameState, Player, Squad
@@ -35,6 +31,12 @@ from fm_analytics.imports import (
     verify_export_completeness,
 )
 from fm_analytics.persistence import SnapshotStore
+from fm_analytics.reporting import (
+    build_recommendation_bundle,
+    has_complete_role_attributes,
+    required_role_attributes,
+    validate_recommendation_snapshot,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -190,13 +192,14 @@ def render_recommendation(
     briefs: tuple[RecruitmentBrief, ...],
     shortlists: tuple[RecruitmentShortlist, ...],
     training_targets: tuple[TrainingTarget, ...] = (),
+    squad_depth: SquadDepthReport | None = None,
 ) -> str:
     selected = recommendation.selected
     club_name = squad.club.name if squad.club else "No controlled club"
     lines = [
         f"MVP recommendation for {club_name} on {game.game_date.isoformat()}",
     ]
-    required_attributes = _required_role_attributes()
+    required_attributes = required_role_attributes()
     missing_attributes = tuple(
         sorted(
             {
@@ -319,6 +322,32 @@ def render_recommendation(
         )
     else:
         lines.append("No threshold weakness identified.")
+    if squad_depth is not None:
+        lines.extend(
+            (
+                "",
+                "Squad depth across evaluated tactics",
+                "-------------------------------------",
+                "A position is 'persistent' when it is weak in every evaluated "
+                "tactic that fields it, and 'occasional' when only some.",
+            )
+        )
+        if squad_depth.persistent_weaknesses:
+            lines.append("Persistent:")
+            lines.extend(
+                f"  {depth.position}: weak in all {len(depth.tactics_with_this_position)} "
+                f"tactic(s) that use it"
+                for depth in squad_depth.persistent_weaknesses
+            )
+        if squad_depth.occasional_weaknesses:
+            lines.append("Occasional:")
+            lines.extend(
+                f"  {depth.position}: weak in {len(depth.tactics_with_a_weakness)} of "
+                f"{len(depth.tactics_with_this_position)} tactic(s) that use it"
+                for depth in squad_depth.occasional_weaknesses
+            )
+        if not squad_depth.persistent_weaknesses and not squad_depth.occasional_weaknesses:
+            lines.append("No position is weak across the evaluated tactics.")
     lines.extend(("", "Recruitment briefs", "------------------"))
     if briefs:
         lines.extend(
@@ -357,21 +386,6 @@ def _band(value: ScoreBand) -> str:
     return f"{value.lower:.1f}/{value.central:.1f}/{value.upper:.1f}"
 
 
-def _required_role_attributes() -> frozenset[str]:
-    return frozenset(
-        attribute.name
-        for role in MVP_CATALOGUE.roles.values()
-        for attribute in role.attributes
-    )
-
-
-def _has_complete_role_attributes(squad: Squad) -> bool:
-    required = _required_role_attributes()
-    return bool(squad.players) and all(
-        required.issubset(player.attributes) for player in squad.players
-    )
-
-
 def _percent(value: int | None) -> str:
     return f"{value}%" if value is not None else "?"
 
@@ -384,13 +398,6 @@ def _contract_summary(player: Player, squad: Squad) -> str:
     return ""
 
 
-def _validate_recommendation_snapshot(game: GameState, squad: Squad) -> None:
-    if game.game_date != squad.as_of_date:
-        raise ValueError("game and squad observations have different in-game dates")
-    if game.controlled_club is None or squad.club is None:
-        raise ValueError("recommendation requires an active managed club")
-    if game.controlled_club.id != squad.club.id:
-        raise ValueError("game and squad observations have different managed clubs")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -432,10 +439,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             training_targets = ()
             bench = None
             weakness_report = None
+            squad_depth = None
             briefs = ()
             shortlists = ()
             if args.recommend:
-                _validate_recommendation_snapshot(game, squad)
+                validate_recommendation_snapshot(game, squad)
                 if args.fm_html:
                     squad_export = load_squad_html_import(args.fm_html)
                     if args.fm_html_player_count is not None:
@@ -446,35 +454,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                     merged = overlay_squad_export(squad, squad_export)
                     squad = merged.squad
                     source_name = f"{source_name}+fm20-ui-html"
-                elif not _has_complete_role_attributes(squad):
+                elif not has_complete_role_attributes(squad):
                     raise ValueError(
                         "--recommend requires complete manager-visible squad attributes; "
                         "the current source is incomplete"
                     )
-                selection_players = tuple(
-                    PlayerSelectionInput.from_player(player)
-                    for player in squad.players
-                )
-                effective_and_potential = recommend_tactic_effective_and_potential(
-                    selection_players,
-                    MVP_CATALOGUE,
-                )
-                recommendation = effective_and_potential.effective
-                training_targets = effective_and_potential.training_targets()
-                bench = select_bench(
-                    recommendation.selected,
-                    selection_players,
-                    MVP_CATALOGUE,
-                )
-                weakness_report = assess_weaknesses(
-                    recommendation.selected,
-                    selection_players,
-                    MVP_CATALOGUE,
-                )
-                briefs = build_recruitment_briefs(
-                    weakness_report,
-                    MVP_CATALOGUE,
-                )
+                bundle = build_recommendation_bundle(game, squad, catalogue=MVP_CATALOGUE)
+                recommendation = bundle.recommendation
+                training_targets = bundle.training_targets
+                bench = bundle.bench
+                weakness_report = bundle.weakness_report
+                squad_depth = bundle.squad_depth
+                briefs = bundle.briefs
                 if args.candidate_html:
                     candidate_export = load_html_import(args.candidate_html)
                     verify_export_completeness(
@@ -531,6 +522,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 briefs,
                 shortlists,
                 training_targets,
+                squad_depth,
             )
         )
     else:

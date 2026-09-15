@@ -219,6 +219,26 @@
       "reusable_for": ["negative ABI evidence", "guarded-call failure regression"],
       "limitations": ["It supplies no valid interested-player classification."],
       "known_contrasts": []
+    },
+    {
+      "id": "frida-fm-proton-attach-failure",
+      "state": "fm-proton-stable-before-frida-attach",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "screens": [],
+      "captures": [
+        {
+          "id": "frida-attach-smoke-failure",
+          "kind": "controller-session-report",
+          "path": "data/research/sessions/frida-attach-smoke-20260915T201229666192Z.json",
+          "sha256": "f17a9cdc8ca8b2c33a2f53af9397c76d61126e651f979c191e765d6b313f8322",
+          "outcome": "injection-failed-possible-process-exit"
+        }
+      ],
+      "verified_facts": ["Host-visible discovery found FM as PID 7187 and exact-build preflight succeeded before Frida returned ptrace pokedata EIO."],
+      "reusable_for": ["Frida/Proton negative compatibility evidence", "injection failure regression"],
+      "limitations": ["The original adapter did not preserve its own report after the binding exception.", "FM disappeared afterward, but the evidence does not prove that Frida caused the exit."],
+      "known_contrasts": []
     }
   ]
 }

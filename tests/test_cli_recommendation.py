@@ -69,6 +69,7 @@ class RecommendationCliTests(unittest.TestCase):
         self.assertIn("Attribute coverage: complete", output.getvalue())
         self.assertIn("Fit: 65% XI mean + 35% weakest slot", output.getvalue())
         self.assertIn("Weak points", output.getvalue())
+        self.assertIn("Squad depth across evaluated tactics", output.getvalue())
         source.get_squad.assert_called_once_with()
 
     def test_direct_live_refuses_mismatched_game_and_squad_dates(self) -> None:

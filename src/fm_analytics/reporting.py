@@ -1,0 +1,108 @@
+"""Shared "compute everything for a squad recommendation" path.
+
+The CLI and the read-only web view (`fm_analytics.web`) both need the same
+answer to "given this squad, what should the manager do", and they must
+compute it the same way or their numbers can silently disagree. This module
+is that one computation; each surface is responsible only for turning its
+result into text or HTML. It does not read game memory, bridge JSON, or FM
+screens -- it consumes the same domain objects analytics always has.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from fm_analytics.analytics import (
+    BenchSelection,
+    MVP_CATALOGUE,
+    FootballCatalogue,
+    PlayerSelectionInput,
+    RecruitmentBrief,
+    RoleMatrix,
+    SquadDepthReport,
+    TacticRecommendation,
+    TrainingTarget,
+    WeaknessReport,
+    assess_squad_depth,
+    assess_weaknesses,
+    build_recruitment_briefs,
+    build_role_matrix,
+    recommend_tactic_effective_and_potential,
+    select_bench,
+)
+from fm_analytics.domain import GameState, Squad
+
+
+@dataclass(frozen=True)
+class RecommendationBundle:
+    game: GameState
+    squad: Squad
+    recommendation: TacticRecommendation
+    training_targets: tuple[TrainingTarget, ...]
+    bench: BenchSelection
+    weakness_report: WeaknessReport
+    squad_depth: SquadDepthReport
+    role_matrix: RoleMatrix
+    briefs: tuple[RecruitmentBrief, ...]
+
+
+def required_role_attributes(catalogue: FootballCatalogue = MVP_CATALOGUE) -> frozenset[str]:
+    return frozenset(
+        attribute.name for role in catalogue.roles.values() for attribute in role.attributes
+    )
+
+
+def has_complete_role_attributes(
+    squad: Squad, catalogue: FootballCatalogue = MVP_CATALOGUE
+) -> bool:
+    required = required_role_attributes(catalogue)
+    return bool(squad.players) and all(
+        required.issubset(player.attributes) for player in squad.players
+    )
+
+
+def validate_recommendation_snapshot(game: GameState, squad: Squad) -> None:
+    if game.game_date != squad.as_of_date:
+        raise ValueError("game and squad observations have different in-game dates")
+    if game.controlled_club is None or squad.club is None:
+        raise ValueError("recommendation requires an active managed club")
+    if game.controlled_club.id != squad.club.id:
+        raise ValueError("game and squad observations have different managed clubs")
+
+
+def build_recommendation_bundle(
+    game: GameState,
+    squad: Squad,
+    *,
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+) -> RecommendationBundle:
+    """Run every analytics pass a squad recommendation needs, once.
+
+    Callers are responsible for resolving the squad's data source (live
+    probe, fixture, HTML overlay) and for `validate_recommendation_snapshot`
+    and completeness checks beforehand; this function assumes a squad that is
+    already coherent and attribute-complete enough to score.
+    """
+    selection_players = tuple(
+        PlayerSelectionInput.from_player(player) for player in squad.players
+    )
+    effective_and_potential = recommend_tactic_effective_and_potential(
+        selection_players, catalogue
+    )
+    recommendation = effective_and_potential.effective
+    bench = select_bench(recommendation.selected, selection_players, catalogue)
+    weakness_report = assess_weaknesses(recommendation.selected, selection_players, catalogue)
+    squad_depth = assess_squad_depth(recommendation.evaluations, selection_players, catalogue)
+    role_matrix = build_role_matrix(selection_players, catalogue)
+    briefs = build_recruitment_briefs(weakness_report, catalogue)
+    return RecommendationBundle(
+        game=game,
+        squad=squad,
+        recommendation=recommendation,
+        training_targets=effective_and_potential.training_targets(),
+        bench=bench,
+        weakness_report=weakness_report,
+        squad_depth=squad_depth,
+        role_matrix=role_matrix,
+        briefs=briefs,
+    )
