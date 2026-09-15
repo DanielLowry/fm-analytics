@@ -15,6 +15,10 @@ The workbench is a research tool under `tools/`, not an FMBridge source. It
 reuses the pinned executable profile and the existing live manager/squad probe.
 It never outputs raw position ratings, unverified foot bytes, CA/PA, or other
 hidden player facts. Its reports are git-ignored under `data/research/fields/`.
+The broader [research automation strategy](research-automation.md) defines how
+record/replay, persistent instrumentation, experiment recipes, a trace store,
+and a semantic registry should turn this evidence ladder into a mostly
+autonomous workflow.
 
 ## Evidence ladder for each field
 

@@ -7,6 +7,9 @@
 - [Architecture](architecture.md) describes the current Python HTTP boundary.
 - [Field-acquisition workbench](field-acquisition-workbench.md) explains how
   visible FM facts become screen-independent, validated sources.
+- [Research automation strategy](research-automation.md) defines the replay,
+  persistent-instrumentation, experiment, trace-store, UI-oracle, and semantic-
+  registry programme intended to remove repeated operator-led FM sessions.
 - [FMBridge contract v1](contracts/v1.md) defines the current versioned resource
   and error semantics.
 - [Delivery roadmap](phases/README.md) is the working plan, with phase gates,
