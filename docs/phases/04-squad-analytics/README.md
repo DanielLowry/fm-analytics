@@ -88,6 +88,13 @@ and an explanation of the intended style.
 These are opponent-neutral starting points. The catalogue should be data/config,
 not hard-coded across the scoring implementation.
 
+Still outstanding: `analytics/catalogue.py` currently holds these definitions as
+Python literals. The [decision-support design](../../decision-support-design.md)
+sequences the move to loaded data files, keeping `CATALOGUE_VERSION` and every
+existing `FootballCatalogue` invariant check, on the grounds that the remaining
+role and formation breadth is the binding constraint on squad and tactic
+analysis.
+
 ### 04.3 — Deterministic suitability scoring
 
 Implement normalized, configurable weighted role scores with tests for exact,
@@ -149,7 +156,14 @@ rationale. Establish simple baselines for later optimisation and learning.
 
 - The first three to five tactical templates and how different they must be to
   provide a meaningful comparison
-- How position familiarity constrains eligibility versus reducing suitability
+- How position familiarity constrains eligibility versus reducing suitability.
+  The [decision-support design](../../decision-support-design.md) proposes
+  *reducing suitability*: a separate, independently versioned penalty channel
+  beside `ReadinessPolicy`, never folded into intrinsic role quality. This
+  remains a proposal until validated against a real squad, but note that the
+  current `>= 15` position cut is an approximation of FM's own rule, not the
+  rule itself, so today an Unconvincing player is not merely penalised but
+  invisible to selection
 - How owned-player missing observations affect ranking and explanation
 - Whether condition and sharpness should be hard selection thresholds or
   versioned soft penalties in Phase 05

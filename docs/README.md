@@ -5,6 +5,9 @@
 - [Early-game MVP](mvp.md) defines the first useful product outcome and its
   acceptance criteria.
 - [Architecture](architecture.md) describes the current Python HTTP boundary.
+- [Decision-support design](decision-support-design.md) takes a whole-system
+  view of the five manager questions, the field-resolution seam, and the
+  sequence for getting there.
 - [Field-acquisition workbench](field-acquisition-workbench.md) explains how
   visible FM facts become screen-independent, validated sources.
 - [Research automation strategy](research-automation.md) defines the replay,

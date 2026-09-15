@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "id": "owned-footedness-survey",
+  "question": "Which existing static footedness leads and diverse owned-player samples are available for the first-value experiment?",
+  "adapter": "fm20-field-workbench",
+  "adapter_mode": "run",
+  "fields": ["footedness"],
+  "build": "fm20-20.4.4-1442341",
+  "safety": "passive-live",
+  "operator_interaction": "none",
+  "requires_live_process": true,
+  "timeout_seconds": 90,
+  "required_registry_facts": [
+    "active-object",
+    "main-database-collections",
+    "player.footedness"
+  ],
+  "reusable_corpus_states": [
+    "owned-field-survey",
+    "owned-foot-position-trace"
+  ],
+  "decision": {
+    "adapter_exit_codes": [0],
+    "adapter_statuses": ["complete"],
+    "require_live_status": "surveyed"
+  },
+  "limitations": [
+    "This recipe inventories leads and samples; it does not discover or expose a footedness value.",
+    "The adapter uses bounded read-only process memory and does not attach a debugger."
+  ]
+}
+
