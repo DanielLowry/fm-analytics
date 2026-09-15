@@ -119,6 +119,105 @@ class SquadWebServerTests(unittest.TestCase):
         self.assertIn("incomplete", body.lower())
 
 
+class TacticsAndDepthPageTests(unittest.TestCase):
+    def setUp(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.fixture_path = _write_complete_fixture(Path(directory.name))
+        server = SquadWebServer(("127.0.0.1", 0), fixture_provider(self.fixture_path))
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(server.shutdown)
+        self.addCleanup(server.server_close)
+        self.port = server.server_address[1]
+
+    def _get(self, path: str) -> tuple[int, str]:
+        connection = HTTPConnection("127.0.0.1", self.port)
+        connection.request("GET", path)
+        response = connection.getresponse()
+        body = response.read().decode("utf-8")
+        connection.close()
+        return response.status, body
+
+    def test_tactics_page_shows_the_fit_legend_and_injury_risk_column(self) -> None:
+        status, body = self._get("/tactics")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Injury risk", body)
+        self.assertIn("65%", body)
+        self.assertIn("low / best estimate / high", body)
+
+    def test_tactics_page_lists_roles_for_every_tactic_not_just_the_selected_one(self) -> None:
+        status, body = self._get("/tactics")
+
+        self.assertEqual(status, 200)
+        # There are twelve tactics in the current catalogue; each gets its
+        # own collapsible role/fill breakdown, not just the winner's.
+        self.assertGreaterEqual(body.count("<details>"), 12)
+
+    def test_depth_page_leads_with_conclusions_and_a_compact_table(self) -> None:
+        status, body = self._get("/depth")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Conclusions", body)
+        self.assertIn("By position", body)
+        # No per-weakness sentence dump: reasons are short kind codes.
+        self.assertNotIn("is below the starter role-fit threshold", body)
+
+
+class CachingTests(unittest.TestCase):
+    def test_repeated_reads_within_the_ttl_do_not_call_the_provider_again(self) -> None:
+        calls = {"count": 0}
+
+        def provider():
+            calls["count"] += 1
+            return load_fixture(FIXTURE)
+
+        server = SquadWebServer(("127.0.0.1", 0), provider, cache_ttl_seconds=60)
+        self.addCleanup(server.server_close)
+
+        server.read()
+        server.read()
+        server.read()
+
+        self.assertEqual(calls["count"], 1)
+
+    def test_read_is_recomputed_once_the_ttl_elapses(self) -> None:
+        calls = {"count": 0}
+
+        def provider():
+            calls["count"] += 1
+            return load_fixture(FIXTURE)
+
+        server = SquadWebServer(("127.0.0.1", 0), provider, cache_ttl_seconds=0.05)
+        self.addCleanup(server.server_close)
+
+        server.read()
+        import time
+
+        time.sleep(0.1)
+        server.read()
+
+        self.assertEqual(calls["count"], 2)
+
+    def test_a_provider_error_is_also_cached_within_the_ttl(self) -> None:
+        calls = {"count": 0}
+
+        def provider():
+            calls["count"] += 1
+            raise ValueError("boom")
+
+        server = SquadWebServer(("127.0.0.1", 0), provider, cache_ttl_seconds=60)
+        self.addCleanup(server.server_close)
+
+        with self.assertRaises(ValueError):
+            server.read()
+        with self.assertRaises(ValueError):
+            server.read()
+
+        self.assertEqual(calls["count"], 1)
+
+
 class BuildProviderTests(unittest.TestCase):
     def test_defaults_to_the_bundled_fixture(self) -> None:
         args = build_parser().parse_args([])

@@ -33,13 +33,15 @@ test, not evidence of improved field discovery, so do not ask the operator to
 start FM solely to run it. The first requested FM session belongs to the Frida
 new-property trial.
 
-Frida 17.18.0 is pinned in the optional `research` dependency group. The host
-attach/load/event/unload/detach smoke test passes, but both FM/Proton attempts
-failed before agent readiness. The reproducible attempt reported a bootstrapper
-signal 11 and FM then exited. Frida attachment is therefore rejected as a
-routine backend on the current stack; do not retry it against FM without a
-materially different injector/runtime and a new explicit gate. The recipes are
-retained as bounded diagnostics, not the active research path:
+Frida 17.18.0 is pinned in the optional `research` dependency group. Direct
+Linux injection into Wine is prohibited: it failed twice before agent readiness
+and the reproduced bootstrapper signal 11 was followed by FM exiting. The
+supported topology runs the checksum-pinned Windows Frida server inside the
+Proton prefix and connects over loopback. That route passed attach, script,
+Interceptor, detach, FM-state, and automatic server-cleanup gates. The
+controller owns this lifecycle; the operator does not start the server.
+
+Three recipes are available:
 
 - `frida-attach-smoke` checks FM/Proton lifecycle compatibility without UI
   activity;
@@ -58,6 +60,10 @@ uv run --extra research python tools/fm20_research.py run RECIPE
 Live-process commands run by a sandboxed coding agent require host process
 visibility. The detector now rejects the Codex PID namespace explicitly instead
 of turning its incomplete `/proc` view into a false “FM is not running” result.
+
+The ignored runtime dependency is
+`data/research/runtime/frida-server-17.18.0-windows-x86_64.exe`, verified against
+the pinned uncompressed SHA-256 in `tools/fm20_frida_server.py`.
 
 The validator checks catalogue structure, cross-references, duplicate IDs, and
 the path/hash of any runtime artifact that is present locally. Missing runtime

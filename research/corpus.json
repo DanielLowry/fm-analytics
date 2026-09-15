@@ -252,7 +252,38 @@
       "verified_facts": ["Host-visible discovery found FM and exact-build preflight succeeded in both attempts.", "The second attempt preserved a Frida NotSupportedError reporting bootstrapper signal 11 before agent readiness, after which the FM mapping disappeared."],
       "reusable_for": ["Frida/Proton negative compatibility evidence", "injection failure regression"],
       "limitations": ["The original adapter did not preserve its own report after the binding exception.", "The second attempt strongly associates injection with the exit but does not identify the incompatible bootstrap instruction or Proton component."],
-      "known_contrasts": []
+      "known_contrasts": ["frida-windows-server-fm-proof"]
+    },
+    {
+      "id": "frida-windows-server-fm-proof",
+      "state": "owned-player-labelled-profile-and-positions-tour",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "entity": {
+        "kind": "player-set",
+        "ids": ["95034574", "89054310", "29172172", "8608084", "61084413", "29175396"]
+      },
+      "screens": ["player-profile", "positions-view"],
+      "captures": [
+        {
+          "id": "windows-server-labelled-footedness-tour",
+          "kind": "frida-trace-report",
+          "path": "data/research/frida/windows-server-footedness-labelled-tour-20260915T204500Z.json",
+          "sha256": "42980f64b6273ef8bfd2e707c429b1db899a4c0a02bb61f3eea55d09ba69c6fb",
+          "outcome": "passed-1126-completed-calls"
+        },
+        {
+          "id": "controller-owned-windows-server-smoke",
+          "kind": "controller-session-report",
+          "path": "data/research/sessions/frida-attach-smoke-20260915T204357439233Z.json",
+          "sha256": "66d8f97dbccf648bfe46e2b86e0ad601bd78fc0b4ecbaf14fb25c855a20c7c8f",
+          "outcome": "passed-clean-lifecycle"
+        }
+      ],
+      "verified_facts": ["A Windows Frida server inside the FM Proton prefix attached, executed agents, installed Interceptor hooks, unloaded, and detached without changing FM manager/date/squad state.", "The labelled tour produced 1,126 completed calls and reproduced all three targets from the prior GDB trace; candidate B fired exactly six times."],
+      "reusable_for": ["offline footedness call differential analysis", "Windows-side Frida transport regression", "replacement of interactive GDB call-count traces"],
+      "limitations": ["The trace labels the tour and player order but does not yet associate each event with a decoded player identity or visible foot value."],
+      "known_contrasts": ["frida-fm-proton-attach-failure", "owned-foot-position-trace"]
     }
   ]
 }

@@ -155,6 +155,7 @@ def capture(
     max_events: int,
     capture_backtraces: bool,
     frida_api: Any,
+    device: Any | None = None,
     wait: Callable[[float], None] = time.sleep,
     ready_callback: Callable[[], None] | None = None,
 ) -> dict[str, Any]:
@@ -197,8 +198,8 @@ def capture(
         detached_events.append({"reason": str(reason), "crash": str(crash) if crash else None})
 
     try:
-        device = frida_api.get_local_device()
-        session = device.attach(pid)
+        active_device = device if device is not None else frida_api.get_local_device()
+        session = active_device.attach(pid)
         attached = True
         session.on("detached", on_detached)
         source = build_agent_source(module_base, targets, max_events, capture_backtraces)
@@ -323,6 +324,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pid", required=True, type=int)
     parser.add_argument("--module-base", required=True)
+    parser.add_argument(
+        "--remote-address",
+        help="Windows Frida server address for Wine/Proton instrumentation",
+    )
+    parser.add_argument("--remote-process", default="fm.exe")
     parser.add_argument("--target", action="append", type=parse_target, default=[])
     parser.add_argument("--duration", type=float, default=10)
     parser.add_argument("--max-events", type=int, default=500)
@@ -357,14 +363,45 @@ def main(argv: Sequence[str] | None = None) -> int:
             raise FridaTraceError(
                 "Frida is not installed; run with `uv run --extra research`"
             ) from error
+        device = None
+        target_pid = args.pid
+        if args.remote_address:
+            try:
+                device = frida_api.get_device_manager().add_remote_device(args.remote_address)
+                matches = [
+                    process
+                    for process in device.enumerate_processes()
+                    if process.name.casefold() == args.remote_process.casefold()
+                ]
+            except Exception as error:
+                raise FridaTraceError(
+                    f"cannot connect to Windows Frida server: {type(error).__name__}: {error}"
+                ) from error
+            if len(matches) != 1:
+                raise FridaTraceError(
+                    f"expected one remote {args.remote_process!r} process, found {len(matches)}"
+                )
+            target_pid = matches[0].pid
+            report["transport"] = {
+                "kind": "windows-frida-server",
+                "address": args.remote_address,
+                "process": args.remote_process,
+                "targetPid": target_pid,
+            }
+        else:
+            report["transport"] = {
+                "kind": "local-linux-injector",
+                "targetPid": target_pid,
+            }
         report["capture"] = capture(
-            args.pid,
+            target_pid,
             before["moduleBase"],
             args.target,
             duration_seconds=args.duration,
             max_events=args.max_events,
             capture_backtraces=args.backtraces,
             frida_api=frida_api,
+            device=device,
             ready_callback=lambda: print(
                 f"ARMED: Frida attached for {args.duration:g} seconds; perform only the recipe's batched FM actions.",
                 flush=True,

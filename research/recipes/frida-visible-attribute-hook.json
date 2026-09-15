@@ -4,6 +4,7 @@
   "purpose": "known-hook-comparison",
   "question": "Can Frida observe FM's already-verified visible-attribute builder with evidence equivalent to the existing GDB path?",
   "adapter": "fm20-frida-trace",
+  "transport": "windows-frida-server",
   "targets": ["visible-attribute-builder"],
   "duration_seconds": 30,
   "max_events": 500,
@@ -33,4 +34,3 @@
     "A passing hook validates the backend but does not itself discover a new property."
   ]
 }
-

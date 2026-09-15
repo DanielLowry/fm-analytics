@@ -24,7 +24,9 @@
       "version": "17.18.0",
       "installation": "optional research dependency",
       "host_attach_smoke": "passed-2026-09-15",
-      "fm_proton_attach": "rejected-2026-09-15-two-injection-failures-second-bootstrap-sigsegv-and-fm-exit",
+      "direct_linux_to_wine_attach": "rejected-2026-09-15-two-injection-failures-second-bootstrap-sigsegv-and-fm-exit",
+      "windows_server_transport": "passed-2026-09-15-attach-hook-detach-and-controller-cleanup",
+      "fm_proton_attach": "passed-via-windows-server-2026-09-15",
       "safety": "passive-live",
       "confidence": "observed",
       "implementation": "tools/fm20_frida_trace.py"

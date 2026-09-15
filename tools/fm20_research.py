@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import nullcontext
 import hashlib
 import json
 import subprocess
@@ -19,6 +20,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(project_root / "src"))
 
 from tools.fm20_field_workbench import verified_executable_digest
+from tools.fm20_frida_server import FridaServerError, frida_server_session
 from tools.fm20_linux_probe import ProbeError
 from tools.fm20_linux_probe_runtime import choose_pid, probe
 from tools.validate_research_catalog import CatalogueError, load_json, validate
@@ -76,6 +78,8 @@ def load_recipe(recipe_id: str) -> dict[str, Any]:
         if not isinstance(fields, list) or not fields or any(field not in {"footedness", "position_proficiency"} for field in fields):
             raise ControllerError("recipe contains no supported field")
     else:
+        if recipe.get("transport") != "windows-frida-server":
+            raise ControllerError("Frida recipes must use the Windows-side server transport")
         targets = recipe.get("targets")
         if not isinstance(targets, list) or any(not isinstance(target, str) for target in targets):
             raise ControllerError("Frida recipe targets must be a list of registry function IDs")
@@ -190,6 +194,7 @@ def _adapter_command(
     executable: Path,
     module_base: str,
     report: Path,
+    remote_address: str | None = None,
 ) -> list[str]:
     if recipe["adapter"] == "fm20-field-workbench":
         command = [
@@ -216,6 +221,9 @@ def _adapter_command(
         "--max-events", str(recipe["max_events"]),
         "--report", str(report),
     ]
+    if remote_address is None:
+        raise ControllerError("Frida recipes require a controller-owned Windows server")
+    command.extend(("--remote-address", remote_address, "--remote-process", "fm.exe"))
     for target_id in recipe["targets"]:
         function = functions.get(target_id)
         if function is None or "rva" not in function:
@@ -244,14 +252,16 @@ def _adapter_passed(
         return passed, summary
 
     capture_result = adapter_report.get("capture", {})
+    transport = adapter_report.get("transport", {}).get("kind")
     summary.update({
+        "transport": transport,
         "attached": capture_result.get("attached"),
         "agent_ready": capture_result.get("agentReady"),
         "detached": capture_result.get("detached"),
         "process_alive": adapter_report.get("processAliveAfterDetach"),
         "entry_events": capture_result.get("entryEventCount", 0),
     })
-    passed = passed and all((
+    passed = passed and transport == "windows-frida-server" and all((
         not decision.get("require_attached") or summary["attached"] is True,
         not decision.get("require_agent_ready") or summary["agent_ready"] is True,
         not decision.get("require_detached") or summary["detached"] is True,
@@ -280,6 +290,7 @@ def run_recipe(
     requested_pid: int | None = None,
     report_path: Path | None = None,
     runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+    frida_server_factory: Callable[[Path], Any] | None = None,
 ) -> tuple[int, Path, dict[str, Any]]:
     started = utc_now()
     stamp = started.strftime("%Y%m%dT%H%M%S%fZ")
@@ -306,7 +317,7 @@ def run_recipe(
         recipe, plan = plan_recipe(recipe_id)
         report["plan"] = plan
         report["lifecycle"]["attachment"] = (
-            "Frida injected agent; adapter owns unload and detach"
+            "controller-owned Windows Frida server; adapter owns agent unload and detach"
             if recipe["adapter"] == "fm20-frida-trace"
             else "adapter-owned bounded read-only /proc access"
         )
@@ -319,20 +330,32 @@ def run_recipe(
         report["process"] = process
         report["lifecycle"]["buildValidation"] = "complete"
 
-        command = _adapter_command(recipe, pid, executable, process["module_base"], adapter_target)
         guided = recipe["operator_interaction"] != "none"
         if guided:
             actions = recipe.get("operator_actions", {})
             print(f"PREPARE: {actions.get('starting_state', 'use the declared recipe start state')}", flush=True)
             print(f"WHEN ARMED: {actions.get('after_armed', 'perform the declared bounded action batch')}", flush=True)
-        completed = runner(
-            command,
-            check=False,
-            capture_output=not guided,
-            text=True,
-            timeout=recipe["timeout_seconds"],
-            cwd=ROOT,
-        )
+        server_context = nullcontext(None)
+        if recipe["adapter"] == "fm20-frida-trace":
+            server_factory = frida_server_factory or frida_server_session
+            server_context = server_factory(executable)
+        with server_context as remote_address:
+            command = _adapter_command(
+                recipe,
+                pid,
+                executable,
+                process["module_base"],
+                adapter_target,
+                remote_address=remote_address,
+            )
+            completed = runner(
+                command,
+                check=False,
+                capture_output=not guided,
+                text=True,
+                timeout=recipe["timeout_seconds"],
+                cwd=ROOT,
+            )
         report["lifecycle"]["resourceRelease"] = "confirmed-by-adapter-exit"
         execution: dict[str, Any] = {
             "adapter": recipe["adapter"],
@@ -352,7 +375,7 @@ def run_recipe(
         if recipe["adapter"] == "fm20-frida-trace":
             capture = adapter_report.get("capture", {})
             report["lifecycle"]["resourceRelease"] = (
-                "confirmed-by-adapter"
+                "confirmed-by-adapter-and-controller-server-exit"
                 if capture.get("detached") and capture.get("scriptUnloaded")
                 else "not-confirmed-after-injection-failure"
             )
@@ -378,7 +401,15 @@ def run_recipe(
             raise ControllerError("adapter evidence did not satisfy the recipe decision rule")
         report["status"] = "complete"
         status = 0
-    except (CatalogueError, ControllerError, ProbeError, OSError, ValueError, subprocess.SubprocessError) as error:
+    except (
+        CatalogueError,
+        ControllerError,
+        FridaServerError,
+        ProbeError,
+        OSError,
+        ValueError,
+        subprocess.SubprocessError,
+    ) as error:
         report["status"] = "failed"
         report["error"] = f"{type(error).__name__}: {error}"
         if report["lifecycle"]["resourceRelease"] == "pending":

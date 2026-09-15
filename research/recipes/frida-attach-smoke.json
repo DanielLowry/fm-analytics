@@ -4,6 +4,7 @@
   "purpose": "frida-compatibility-smoke-test",
   "question": "Can pinned Frida attach to FM20 under Proton, resolve the validated FM module, unload, and detach without harming the process?",
   "adapter": "fm20-frida-trace",
+  "transport": "windows-frida-server",
   "targets": [],
   "duration_seconds": 1,
   "max_events": 10,
@@ -26,4 +27,3 @@
   },
   "limitations": ["This proves Frida lifecycle compatibility, not a useful FM hook."]
 }
-

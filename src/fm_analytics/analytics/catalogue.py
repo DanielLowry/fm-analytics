@@ -12,8 +12,6 @@ from fm_analytics.analytics.role_scoring import (
 )
 
 
-CATALOGUE_VERSION = "fm20-mvp-v3"
-
 # The role and tactic definitions themselves live in versioned JSON data
 # (data/catalogue.json) rather than as Python literals here, per the Phase 04
 # decision that "the catalogue should be data/config, not hard-coded across
@@ -180,3 +178,7 @@ def _str_tuple(raw: Mapping[str, Any], name: str) -> tuple[str, ...]:
 
 
 MVP_CATALOGUE = load_catalogue()
+# The version string lives in the JSON data (single source of truth); this
+# alias exists only so code that wants "the current catalogue version" does
+# not need to import MVP_CATALOGUE just to read one field off it.
+CATALOGUE_VERSION = MVP_CATALOGUE.version

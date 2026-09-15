@@ -136,6 +136,20 @@ class FridaTraceTests(unittest.TestCase):
         self.assertEqual(result["agentErrors"][0]["kind"], "capture-error")
         self.assertIn("ptrace pokedata", result["agentErrors"][0]["description"])
 
+    def test_capture_uses_explicit_remote_device(self):
+        api = FakeFrida()
+        remote = FakeDevice()
+
+        result = capture(
+            456, "0x140000000", [{"label": "known", "rva": 0x123}],
+            duration_seconds=0, max_events=20, capture_backtraces=False,
+            frida_api=api, device=remote, wait=lambda _seconds: None,
+        )
+
+        self.assertTrue(result["attached"])
+        self.assertEqual(remote.pid, 456)
+        self.assertFalse(hasattr(api.device, "pid"))
+
     def test_process_health_requires_live_fm_mapping(self):
         with TemporaryDirectory() as directory:
             proc_root = Path(directory)

@@ -3,7 +3,7 @@ import json
 import subprocess
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import nullcontext, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -97,6 +97,7 @@ class ResearchControllerTests(unittest.TestCase):
                 "researchOnly": True,
                 "status": "complete",
                 "processAliveAfterDetach": True,
+                "transport": {"kind": "windows-frida-server"},
                 "capture": {
                     "attached": True,
                     "agentReady": True,
@@ -105,6 +106,7 @@ class ResearchControllerTests(unittest.TestCase):
                 },
             }) + "\n", encoding="utf-8")
             self.assertIn("fm20_frida_trace.py", command[1])
+            self.assertIn("--remote-address", command)
             self.assertNotIn("--target", command)
             self.assertTrue(kwargs["capture_output"])
             return subprocess.CompletedProcess(command, 0, "adapter result\n", "")
@@ -117,12 +119,16 @@ class ResearchControllerTests(unittest.TestCase):
                 patch("tools.fm20_research.verified_executable_digest", return_value="pinned"),
             ):
                 status, _, report = run_recipe(
-                    "frida-attach-smoke", report_path=target, runner=fake_runner
+                    "frida-attach-smoke",
+                    report_path=target,
+                    runner=fake_runner,
+                    frida_server_factory=lambda _executable: nullcontext("127.0.0.1:27044"),
                 )
 
         self.assertEqual(status, 0)
         self.assertTrue(report["decision"]["attached"])
         self.assertTrue(report["decision"]["detached"])
+        self.assertEqual(report["decision"]["transport"], "windows-frida-server")
         self.assertTrue(all(report["invariants"].values()))
 
     def test_first_value_recipe_batches_one_operator_tour(self) -> None:

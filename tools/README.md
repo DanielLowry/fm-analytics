@@ -24,10 +24,12 @@ its agent; detaches; and produces an automatically ranked summary.
 Live FM discovery must have host process visibility. An ordinary Codex sandbox
 has an isolated `/proc` and cannot see the desktop process; the probe detects
 that condition and fails as “visibility unavailable” rather than “FM absent.”
-Two FM/Proton Frida injections failed before agent readiness. The second
-reported a bootstrapper signal 11 and FM then exited, so Frida is rejected as a
-routine backend on the current stack. The controller-backed GDB path is the
-active fallback.
+Direct Linux-to-Wine Frida injection is prohibited after two pre-agent failures
+and an FM exit. `fm20_frida_server.py` instead starts a checksum-pinned Windows
+server inside FM's Proton prefix, binds it only to loopback, identifies the
+exact host process it created, and stops that process after the adapter exits.
+This topology passed real FM attach, hook, detach, state-invariant, and cleanup
+checks and is the active research backend.
 
 The many `fm20_*` modules at this directory's top level are currently internal
 adapters and libraries. They remain in place because the controller, bridge,

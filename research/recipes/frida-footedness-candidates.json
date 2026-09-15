@@ -4,6 +4,7 @@
   "purpose": "first-value-property-trial",
   "question": "Which observed call boundary carries the manager-visible footedness label or selector for a player?",
   "adapter": "fm20-frida-trace",
+  "transport": "windows-frida-server",
   "targets": [
     "footedness-candidate-a",
     "footedness-candidate-b",
