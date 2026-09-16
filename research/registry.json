@@ -212,6 +212,50 @@
       "evidence": ["include-own-rule-query"]
     },
     {
+      "id": "player-search-filter-wrapper",
+      "build": "fm20-20.4.4-1442341",
+      "rva": "0x5337010",
+      "tail_call_rva": "0x42c96a0",
+      "safety": "passive-live",
+      "confidence": "signature-mapped",
+      "note": "Thin wrapper: thread check plus bookkeeping, then an unconditional tail jump to the real composite evaluator at 0x42c96a0. Hooking this address observes the call; the decision is made downstream.",
+      "evidence": ["positive-control-filter-replay"]
+    },
+    {
+      "id": "player-search-filter-composite",
+      "build": "fm20-20.4.4-1442341",
+      "rva": "0x42c96a0",
+      "abi": "win64",
+      "arguments": ["filter", "record_wrapper", "search_context"],
+      "result": "bool; AND over every active sub-rule",
+      "rule_vector": "filter + 0x30 holds a vector of sub-rule pointers; mode byte at filter + 0x29, threshold byte at filter + 0x3a",
+      "rule_dispatch": "each rule is called through vtable slot 0x20, which is a thunk forwarding to the rule's real evaluator at vtable slot 0x88; activity is vtable slot 0x50",
+      "empty_vector_result": "true",
+      "safety": "guarded-native-call",
+      "confidence": "cold-query-proven",
+      "note": "This is the manager's current Player Search criteria, NOT a discoverability or visibility boundary. Its active rule set changes as the manager edits the search form, so its output is unstable between sessions and must never gate the candidate universe.",
+      "evidence": ["positive-control-filter-replay"]
+    },
+    {
+      "id": "player-search-filter-rules",
+      "build": "fm20-20.4.4-1442341",
+      "confidence": "signature-mapped",
+      "activity_gate": {"interested_family_and_transfer_listed": "rule + 0x28", "nation_family": "rule + 0x10", "include_own_and_national_pool": "hard-coded active"},
+      "rules": {
+        "0x6dab260": "PERSON_INCLUDE_OWN_FILTER_RULE",
+        "0x6db02f0": "PERSON_INTERESTED_FILTER_RULE",
+        "0x6daffc0": "PERSON_INTERESTED_LOAN_FILTER_RULE",
+        "0x6dafeb0": "PERSON_INTERESTED_DP_FILTER_RULE",
+        "0x6dafc90": "PERSON_INTERESTED_MQ_FILTER_RULE",
+        "0x6db0d18": "PERSON_IN_NATIONAL_POOL_RULE",
+        "0x6daedf0": "PERSON_VALID_FOR_NATION_RULE",
+        "0x6db0670": "PLAYER_WILLING_TO_CONSIDER_REPRESENTING_NATION_FILTER_RULE",
+        "0x6da3798": "PERSON_TRANSFER_LISTED_FILTER_RULE"
+      },
+      "note": "Resolved by RTTI from the live filter's rule vector. Several rules are national-team criteria irrelevant to club search; which are active depends entirely on the manager's current search form.",
+      "evidence": ["positive-control-filter-replay"]
+    },
+    {
       "id": "full-player-search-filter",
       "build": "fm20-20.4.4-1442341",
       "vtable_rva": "0x6d9c9b0",

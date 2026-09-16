@@ -74,6 +74,22 @@ takes a knowledge context and returns visible bounds regardless of scope, so
 the ABI generalises; requesting a broader population is a discoverability
 question, catalogued as unresolved, not a Frida limitation.
 
+## Player Search and Frida
+
+`frida-player-search-filter-observation` is a bounded, one-shot passive
+observer for a real Player Search rebuild. It records the runtime call shape
+needed to investigate discoverability, then detaches. The companion six-player
+replay recipe, `frida-discoverability-observed-context-smoke`, proves that
+Frida can call the full filter safely on the observed UI thread, but its
+results do not yet match the live list. It is diagnostic only, not a source of
+player membership.
+
+The near-term Frida design is to collect the IDs FM itself puts into a real
+Player Search result after one normal filter change. This is automated
+collection, not manual transcription or HTML import, but it is not the
+screen-independent query the application eventually needs. Full status and
+next steps: [Frida and player discoverability](../docs/frida-discoverability.md).
+
 ## First extracted field: footedness
 
 The method is documented in the

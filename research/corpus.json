@@ -390,6 +390,64 @@
         "Scope is the managed first team; a broader sweep needs the discoverability gate, not more Frida work."
       ],
       "known_contrasts": ["owned-field-survey"]
+    },
+    {
+      "id": "player-search-filter-positive-control",
+      "state": "player-search-criteria-with-transfer-listed-active",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "screens": ["player-search"],
+      "captures": [
+        {
+          "id": "positive-control-filter-replay",
+          "kind": "frida-filter-replay-report",
+          "path": "data/research/sessions/frida-filter-positive-control-20260916T144459518522Z.json",
+          "sha256": "2385bb58caa488c6afbc60a411bcfb552ae999bd0682421392250e7ee2aa7ac3",
+          "outcome": "passed-all-three-expectations"
+        }
+      ],
+      "verified_facts": [
+        "Replaying FM's full player-search filter against the observed Player Search context returned true for a transfer-listed external player, false for a non-transfer-listed external player, and false for an own first-team player, matching every expectation.",
+        "The filter's active rule set at the time included PERSON_TRANSFER_LISTED_FILTER_RULE, so a false verdict for a non-transfer-listed player is correct behaviour rather than a failed replay.",
+        "The cold replay is therefore not missing live state; an earlier conclusion to the contrary rested on a sample with no player expected to pass.",
+        "Manager, game date, search arguments, and source IDs were unchanged across the run."
+      ],
+      "reusable_for": ["filter replay regression", "positive-control discipline for predicate experiments"],
+      "limitations": [
+        "This proves the filter replays faithfully; it does not establish that the filter is the discoverability boundary. The rule set shows it is the manager's current search criteria.",
+        "The search source, not this filter, is the candidate for the discoverable universe, and that identification is still unverified against FM's displayed result count."
+      ],
+      "known_contrasts": ["cold-discoverability-repeat", "include-own-rule"]
+    },
+    {
+      "id": "cold-full-pool-filter-replay",
+      "state": "player-search-criteria-cleared-vanarama-package",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "screens": [],
+      "captures": [
+        {
+          "id": "cold-full-pool-replay",
+          "kind": "frida-filter-replay-report",
+          "path": "data/research/sessions/frida-full-pool-filter-20260916T162907073032Z.json",
+          "sha256": "c13bc747a43a34e2e61b01eb765a94d24b63aa713428ff0933b96a1679bb65aa",
+          "outcome": "4934-accepted-against-4933-displayed"
+        }
+      ],
+      "verified_facts": [
+        "FM's player-search filter was evaluated for all 4,953 pool players entirely cold: no Player Search observation, no captured runtime context, and no operator interaction. A synthetic context supplying only the manager interface and team pointers was sufficient once the manager's own search criteria were cleared.",
+        "Calling the composite evaluator at 0x42c96a0 directly, rather than the wrapper at 0x5337010, removes the wrapper's thread constraint and allows the batch to run on FM's busy UI thread.",
+        "The replay accepted 4,934 players against the 4,933 FM displays for the same package and cleared criteria, a single-player difference.",
+        "All 19 rejections were the manager's own club players, which is exactly how many of the club's 20 players are present in the pool.",
+        "The pool tracked a scouting-package change made in-game with no change on the reading side: it read 4,340 under no package and 4,953 under the Vanarama North/South package, against 4,320 and 4,933 displayed."
+      ],
+      "reusable_for": ["cold discoverability candidate set", "package-sensitivity evidence", "filter replay regression"],
+      "limitations": [
+        "One player accepted by the replay is not displayed by FM. The cause is unidentified and the difference is in the unsafe direction, so the set is a superset of FM's by one and must not be treated as an exact match.",
+        "The product owner accepted this tolerance on 16 September 2026 rather than blocking on it.",
+        "Verified for one manager, one save, and two package states only."
+      ],
+      "known_contrasts": ["player-search-filter-positive-control", "cold-discoverability-repeat"]
     }
   ]
 }

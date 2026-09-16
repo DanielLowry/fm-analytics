@@ -13,6 +13,9 @@
 - [Property-discovery playbook](property-discovery-playbook.md) is the worked
   method behind the first extracted field: read FM's own code to find its keyed
   property getter, then let Frida run it on FM's own thread.
+- [Frida and player discoverability](frida-discoverability.md) records the
+  current Player Search evidence, the distinction between observed and
+  screen-independent discovery, and the remaining validation gates.
 - [Research automation strategy](research-automation.md) defines the replay,
   persistent-instrumentation, experiment, trace-store, UI-oracle, and semantic-
   registry programme intended to remove repeated operator-led FM sessions.

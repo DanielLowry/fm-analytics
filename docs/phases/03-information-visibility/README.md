@@ -12,6 +12,15 @@ shape. It is the gate for analytics involving players outside our club.
 
 ## Current status
 
+**Update, 16 September 2026:** Frida passively observed a real Player Search
+rebuild and safely made a bounded six-player call into FM's full filter. The
+call returns, but does not yet reproduce expected live-search inclusions, so
+it is not a screen-independent discoverability query. The preferred next
+implementation is a passive Frida collector for the player IDs FM itself
+accepts during one normal Player Search rebuild; that is automated collection,
+but not a cold query. See [Frida and player discoverability](../../frida-discoverability.md)
+for the distinction, evidence, and safety gates.
+
 **Summary as of 13 September 2026:** the attribute-visibility half of this
 phase is effectively solved as a research capability -- a live, screen-
 independent, cache-independent call into FM's own visibility logic, validated

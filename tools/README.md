@@ -50,6 +50,13 @@ no player screen open. It reports only FM's visible footedness categories and
 verifies them against the text FM's label mapper returns; the underlying foot
 ratings are never read out of FM. Its recipe is `frida-owned-footedness-cold`.
 
+`fm20_frida_discoverability.py` is research-only. Its observed-context smoke
+recipe makes just six full-filter calls on the Player Search thread and does
+not establish player membership. `fm20_frida_trace.py` also supports a
+one-shot Player Search observation that detaches after the first rebuild call.
+The documented next step is a passive result-ID collector, not publishing
+replayed-filter results. See [Frida and player discoverability](../docs/frida-discoverability.md).
+
 The many `fm20_*` modules at this directory's top level are currently internal
 adapters and libraries. They remain in place because the controller, bridge,
 monitor, tests, or the next Frida comparison still imports them. Moving them
