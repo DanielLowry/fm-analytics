@@ -315,3 +315,5 @@ Hidden FM values should never cross the HTTP boundary. See
 [the architecture notes](docs/architecture.md) for the design and the next
 implementation step. The complete staged delivery plan starts at
 [the phase roadmap](docs/phases/README.md).
+For planned, deliberately deferred improvements to the player and tactical
+models, see [the tactical-system roadmap](docs/tactical-system-roadmap.md).
