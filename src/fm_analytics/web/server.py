@@ -85,12 +85,13 @@ _STYLE = """
 """
 
 
+def _nav_link(path: str, label: str, active_path: str) -> str:
+    active_class = ' class="active"' if path == active_path else ""
+    return f'<a href="{path}"{active_class}>{html.escape(label)}</a>'
+
+
 def _layout(title: str, active_path: str, body: str) -> str:
-    nav = "".join(
-        f'<a href="{path}"{" class=\"active\"" if path == active_path else ""}>'
-        f"{html.escape(label)}</a>"
-        for path, label in _NAV
-    )
+    nav = "".join(_nav_link(path, label, active_path) for path, label in _NAV)
     return (
         "<!doctype html><html><head><meta charset=\"utf-8\">"
         f"<title>{html.escape(title)} · FM Analytics</title>{_STYLE}</head>"
