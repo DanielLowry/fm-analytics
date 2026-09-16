@@ -78,12 +78,16 @@ def build_agent_source(
     targets: Sequence[dict[str, Any]],
     max_events: int,
     capture_backtraces: bool,
+    stop_after_first_entry: bool = False,
+    capture_stack_argument5: bool = False,
 ) -> str:
     config = json.dumps({
         "moduleBase": module_base,
         "targets": [{"label": item["label"], "rva": item["rva"]} for item in targets],
         "maxEvents": max_events,
         "captureBacktraces": capture_backtraces,
+        "stopAfterFirstEntry": stop_after_first_entry,
+        "captureStackArgument5": capture_stack_argument5,
     })
     return f"""
 'use strict';
@@ -126,7 +130,19 @@ for (const target of config.targets) {{
         event.backtrace = Thread.backtrace(this.context, Backtracer.ACCURATE)
           .slice(0, 8).map(relativeAddress);
       }}
+      if (config.captureStackArgument5) {{
+        // MS x64 places argument five above the return address and four
+        // register-argument home slots.  This is a search-context pointer,
+        // not a player object or an attribute field.
+        event.win64StackArgument5 = this.context.rsp.add(0x28).readPointer().toString();
+      }}
       send(event);
+      if (config.stopAfterFirstEntry && this.sequence === 1) {{
+        // A one-shot observation must leave no instrumentation behind while
+        // the screen continues rebuilding its list.
+        for (const listener of listeners) listener.detach();
+        send({{kind: 'one-shot-complete'}});
+      }}
     }},
     onLeave(retval) {{
       if (!this.recorded) return;
@@ -154,6 +170,8 @@ def capture(
     duration_seconds: float,
     max_events: int,
     capture_backtraces: bool,
+    stop_after_first_entry: bool = False,
+    capture_stack_argument5: bool = False,
     frida_api: Any,
     device: Any | None = None,
     wait: Callable[[float], None] = time.sleep,
@@ -202,7 +220,10 @@ def capture(
         session = active_device.attach(pid)
         attached = True
         session.on("detached", on_detached)
-        source = build_agent_source(module_base, targets, max_events, capture_backtraces)
+        source = build_agent_source(
+            module_base, targets, max_events, capture_backtraces,
+            stop_after_first_entry, capture_stack_argument5,
+        )
         script = session.create_script(source, name="fm20-bounded-trace")
         script.on("message", on_message)
         script.load()
@@ -333,6 +354,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--duration", type=float, default=10)
     parser.add_argument("--max-events", type=int, default=500)
     parser.add_argument("--backtraces", action="store_true")
+    parser.add_argument("--stop-after-first-entry", action="store_true")
+    parser.add_argument("--capture-stack-argument5", action="store_true")
     parser.add_argument("--report", type=Path, required=True)
     return parser
 
@@ -400,6 +423,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             duration_seconds=args.duration,
             max_events=args.max_events,
             capture_backtraces=args.backtraces,
+            stop_after_first_entry=args.stop_after_first_entry,
+            capture_stack_argument5=args.capture_stack_argument5,
             frida_api=frida_api,
             device=device,
             ready_callback=lambda: print(

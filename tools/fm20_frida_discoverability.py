@@ -58,6 +58,7 @@ MAX_SOURCE_PLAYERS = MAX_COLD_RULE_CALLS
 DEFAULT_CHUNK_SIZE = 25
 MAX_CHUNK_SIZE = 100
 AGENT_TIMEOUT_SECONDS = 300.0
+OBSERVATION_REPORT_GLOB = "frida-player-search-filter-observation-*.adapter.json"
 FILTER_THREAD_MODE_RVA = 0x7594438
 FILTER_THREAD_A_RVA = 0x7594440
 FILTER_THREAD_B_RVA = 0x7593598
@@ -165,6 +166,8 @@ def filter_agent_source(
     sample_count: int,
     chunk_size: int,
     thread_id: int,
+    runtime_context: int | None = None,
+    enforce_sample: bool = True,
 ) -> str:
     """Build a chunked FM-UI-thread batch of the proven full-filter callback."""
     for value, label in (
@@ -182,6 +185,8 @@ def filter_agent_source(
         raise DiscoverabilityError(f"chunk size must be from 1 to {MAX_CHUNK_SIZE}")
     if not isinstance(thread_id, int) or thread_id <= 0:
         raise DiscoverabilityError("full-filter thread ID must be positive")
+    if runtime_context is not None:
+        _positive_address(runtime_context, "observed Player Search context")
     ids = [item.get("id") for item in rows]
     addresses = [item.get("address") for item in rows]
     if len(set(ids)) != len(ids) or any(not isinstance(item, str) or not item.isdigit() for item in ids):
@@ -201,6 +206,8 @@ def filter_agent_source(
         "sampleCount": sample_count,
         "chunkSize": chunk_size,
         "threadId": thread_id,
+        "runtimeContext": hex(runtime_context) if runtime_context is not None else None,
+        "enforceSample": enforce_sample,
         "threadSampleMs": 1000,
     })
     return f"""
@@ -212,6 +219,7 @@ const evaluator = new NativeFunction(fm.base.add(config.filterRva), 'uint8', ['p
 const included = [];
 let cursor = 0;
 let sampleChecked = false;
+const sampleMismatches = [];
 let frameReported = false;
 function fail(message) {{ send({{kind: 'error', error: message}}); }}
 function makeCallFrame(stackPointer) {{
@@ -219,12 +227,15 @@ function makeCallFrame(stackPointer) {{
   // reserve leaves room for Frida's NativeFunction call frame below the QPC
   // frame, so that wrapper cannot overwrite our context/record objects.
   const scratch = stackPointer.sub(0x4000);
-  const filterContext = scratch.add(0x80);
-  filterContext.writePointer(fm.base.add(config.filterContextVtableRva));
-  filterContext.add(8).writePointer(ptr(config.managerInterface));
-  filterContext.add(0x10).writePointer(ptr(0));
-  filterContext.add(0x18).writePointer(ptr(config.team));
-  filterContext.add(0x20).writePointer(ptr(config.knowledgeContext));
+  const filterContext = config.runtimeContext === null
+    ? scratch.add(0x80) : ptr(config.runtimeContext);
+  if (config.runtimeContext === null) {{
+    filterContext.writePointer(fm.base.add(config.filterContextVtableRva));
+    filterContext.add(8).writePointer(ptr(config.managerInterface));
+    filterContext.add(0x10).writePointer(ptr(0));
+    filterContext.add(0x18).writePointer(ptr(config.team));
+    filterContext.add(0x20).writePointer(ptr(config.knowledgeContext));
+  }}
   const record = scratch.add(0xc0);
   record.writePointer(fm.base.add(config.recordWrapperVtableRva));
   return {{filterContext, record}};
@@ -241,7 +252,7 @@ function runChunk(stackPointer) {{
       frameReported = true;
       send({{kind: 'filter-frame', filter: ptr(config.filter).toString(), record: record.toString(),
         person: row.address, personVtable: ptr(row.address).readPointer().toString(),
-        context: filterContext.toString(), contextVtable: filterContext.readPointer().toString()}});
+        context: filterContext.toString(), contextVtable: config.runtimeContext === null ? filterContext.readPointer().toString() : null}});
     }}
     const visible = evaluator(ptr(config.filter), record, filterContext) !== 0;
     if (visible) included.push(row.id);
@@ -249,7 +260,10 @@ function runChunk(stackPointer) {{
       for (let index = 0; index < config.sampleCount; index++) {{
         const expected = config.rows[index].expected;
         const actual = included.indexOf(config.rows[index].id) !== -1;
-        if (actual !== expected) throw new Error('native full-filter sample disagrees at player ' + config.rows[index].id);
+        if (actual !== expected) sampleMismatches.push(config.rows[index].id);
+      }}
+      if (config.enforceSample && sampleMismatches.length !== 0) {{
+        throw new Error('native full-filter sample disagrees at player ' + sampleMismatches[0]);
       }}
       sampleChecked = true;
     }}
@@ -278,7 +292,7 @@ setTimeout(() => {{
     try {{
       if (runChunk(this.context.rsp)) {{
         state = 'done';
-        send({{kind: 'filter-result', includedPlayerIds: included, evaluatedCount: cursor, sampleChecked}});
+        send({{kind: 'filter-result', includedPlayerIds: included, evaluatedCount: cursor, sampleChecked, sampleMismatches}});
         setTimeout(() => {{ runner.detach(); send({{kind: 'finished'}}); }}, 0);
         return;
       }}
@@ -308,6 +322,7 @@ def extract(
         "attached": False, "agentReady": False, "thread": None,
         "builderReturnValue": None, "includedPlayerIds": None,
         "evaluatedCount": None, "sampleChecked": False, "progress": [],
+        "sampleMismatches": [],
         "filterFrame": None,
         "agentErrors": [], "scriptUnloaded": False, "detached": False,
         "detachEvents": [],
@@ -337,6 +352,7 @@ def extract(
             result["includedPlayerIds"] = payload.get("includedPlayerIds")
             result["evaluatedCount"] = payload.get("evaluatedCount")
             result["sampleChecked"] = payload.get("sampleChecked") is True
+            result["sampleMismatches"] = payload.get("sampleMismatches", [])
         elif kind == "error":
             result["agentErrors"].append({
                 "kind": "agent-error", "description": payload.get("error"),
@@ -411,6 +427,42 @@ def _record_context(pid: int, module_base: int, source: int, manager_id: str) ->
         os.close(fd)
 
 
+def latest_observed_context(pid: int, module_base: int, source: int) -> tuple[int, int, Path]:
+    """Accept only a clean, same-session one-shot Player Search observation."""
+    reports = sorted((Path("data/research/sessions")).glob(OBSERVATION_REPORT_GLOB), key=lambda path: path.stat().st_mtime, reverse=True)
+    if not reports:
+        raise DiscoverabilityError("no Player Search one-shot observation report is available")
+    for report_path in reports:
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            preflight = report["preflight"]
+            capture = report["capture"]
+            events = capture["events"]
+            event = events[0]
+            if not (
+                report.get("status") == "complete"
+                and preflight.get("pid") == pid
+                and int(preflight.get("moduleBase"), 0) == module_base
+                and capture.get("attached") and capture.get("agentReady")
+                and capture.get("scriptUnloaded") and capture.get("detached")
+                and not capture.get("agentErrors")
+                and len(events) == 1
+                and event.get("kind") == "enter"
+                and event.get("target") == "player-search-filter-pass"
+                and int(event["win64Arguments"]["rcx"], 0) == source
+            ):
+                continue
+            context = int(event["win64StackArgument5"], 0)
+            thread = int(event["threadId"])
+            _positive_address(context, "observed Player Search context")
+            if thread <= 0:
+                continue
+            return context, thread, report_path
+        except (KeyError, TypeError, ValueError, OSError, json.JSONDecodeError):
+            continue
+    raise DiscoverabilityError("no clean Player Search observation matches the current FM session and source")
+
+
 def resolve_filter_thread(pid: int, module_base: int) -> tuple[int, dict[str, int]]:
     """Choose the non-current thread for the filter wrapper's special branch.
 
@@ -444,6 +496,7 @@ def run(
     frida_api: Any | None = None,
     remote_address: str | None = None,
     remote_process: str = "fm.exe",
+    use_latest_observed_context: bool = False,
 ) -> dict[str, Any]:
     """Execute the source-builder then full-filter Frida experiment."""
     before, arguments, before_ids = _live_context(pid)
@@ -478,19 +531,31 @@ def run(
         raise DiscoverabilityError(f"expected one remote {remote_process!r} process, found {len(matches)}")
     report["transport"] = {"kind": "windows-frida-server", "address": remote_address, "process": remote_process, "targetPid": matches[0].pid}
 
-    builder_capture = extract(device, matches[0].pid, builder_agent_source(before.module_base, arguments), script_name="fm20-discoverability-builder")
-    report["builderCapture"] = builder_capture
-    if not (
-        builder_capture["attached"] and builder_capture["agentReady"] and builder_capture["builderReturnValue"] is not None
-        and builder_capture["scriptUnloaded"] and builder_capture["detached"] and not builder_capture["agentErrors"]
-    ):
-        _raise_with_report(report, "Frida search-source builder did not complete cleanly")
-
-    rebuilt, rebuilt_arguments, source_ids = _live_context(pid)
-    if rebuilt_arguments != arguments:
-        raise DiscoverabilityError("manager-rooted search arguments changed after Frida builder")
+    runtime_context = runtime_thread = None
+    if use_latest_observed_context:
+        runtime_context, runtime_thread, observation_path = latest_observed_context(pid, module_base, source)
+        report["observedPlayerSearchContext"] = hex(runtime_context)
+        report["observedPlayerSearchThread"] = runtime_thread
+        report["observedPlayerSearchReport"] = str(observation_path)
+        report["builderCapture"] = {"skipped": "using current Player Search source and observed runtime context"}
+        rebuilt, rebuilt_arguments, source_ids = before, arguments, before_ids
+    else:
+        builder_capture = extract(device, matches[0].pid, builder_agent_source(before.module_base, arguments), script_name="fm20-discoverability-builder")
+        report["builderCapture"] = builder_capture
+        if not (
+            builder_capture["attached"] and builder_capture["agentReady"] and builder_capture["builderReturnValue"] is not None
+            and builder_capture["scriptUnloaded"] and builder_capture["detached"] and not builder_capture["agentErrors"]
+        ):
+            _raise_with_report(report, "Frida search-source builder did not complete cleanly")
+        rebuilt, rebuilt_arguments, source_ids = _live_context(pid)
+        if rebuilt_arguments != arguments:
+            raise DiscoverabilityError("manager-rooted search arguments changed after Frida builder")
     filter_object, records, knowledge_context = _record_context(pid, module_base, source, manager.id)
-    filter_thread, filter_thread_state = resolve_filter_thread(pid, module_base)
+    if runtime_context is not None and runtime_thread is not None:
+        filter_thread = runtime_thread
+        filter_thread_state = {"selection": "observed-player-search-thread", "selectedThread": filter_thread}
+    else:
+        filter_thread, filter_thread_state = resolve_filter_thread(pid, module_base)
     if sorted(records) != sorted(source_ids):
         raise DiscoverabilityError("source records disagree with manager-rooted source IDs")
     squad = [
@@ -505,7 +570,9 @@ def run(
         device, matches[0].pid,
         filter_agent_source(before.module_base, filter_object=filter_object, manager_interface=manager_interface,
                             team=team, knowledge_context=knowledge_context, rows=rows,
-                            sample_count=sample_count, chunk_size=chunk_size, thread_id=filter_thread),
+                            sample_count=sample_count, chunk_size=chunk_size, thread_id=filter_thread,
+                            runtime_context=runtime_context,
+                            enforce_sample=not use_latest_observed_context),
         script_name="fm20-discoverability-filter",
     )
     report["filterCapture"] = filter_capture
@@ -531,6 +598,7 @@ def run(
     })
     if sample_only:
         report["sampleResults"] = {str(player_id): evaluations[player_id] for player_id in sorted(evaluations)}
+        report["sampleMismatches"] = filter_capture.get("sampleMismatches", [])
         report["passed"] = all((report["sameActiveManager"], report["sameGameDate"], report["sameNativeArguments"], report["sameSourceIdsAfterFilter"], report["processAliveAfterDetach"]))
     else:
         report.update(summarize(list(records), evaluations, True, own_ids))
@@ -551,6 +619,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
     parser.add_argument("--sample-only", action="store_true")
     parser.add_argument("--with-names", action="store_true")
+    parser.add_argument("--use-latest-observed-context", action="store_true")
     parser.add_argument("--report", type=Path, required=True)
     args = parser.parse_args(argv)
     report: dict[str, Any]
@@ -563,12 +632,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             raise DiscoverabilityError("controller and adapter module bases differ")
         report = run(pid, chunk_size=args.chunk_size, sample_only=args.sample_only,
                      with_names=args.with_names, remote_address=args.remote_address,
-                     remote_process=args.remote_process)
+                     remote_process=args.remote_process,
+                     use_latest_observed_context=args.use_latest_observed_context)
+        phases = [report.get("filterCapture", {})] if args.use_latest_observed_context else [report.get("builderCapture", {}), report.get("filterCapture", {})]
         report["capture"] = {
-            "attached": report.get("builderCapture", {}).get("attached") and report.get("filterCapture", {}).get("attached"),
-            "agentReady": report.get("builderCapture", {}).get("agentReady") and report.get("filterCapture", {}).get("agentReady"),
-            "scriptUnloaded": report.get("builderCapture", {}).get("scriptUnloaded") and report.get("filterCapture", {}).get("scriptUnloaded"),
-            "detached": report.get("builderCapture", {}).get("detached") and report.get("filterCapture", {}).get("detached"),
+            "attached": all(phase.get("attached") for phase in phases),
+            "agentReady": all(phase.get("agentReady") for phase in phases),
+            "scriptUnloaded": all(phase.get("scriptUnloaded") for phase in phases),
+            "detached": all(phase.get("detached") for phase in phases),
         }
         report["capture"]["fridaVersion"] = str(importlib.import_module("frida").__version__)
         status = 0 if report["status"] == "complete" else 1

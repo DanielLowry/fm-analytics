@@ -108,6 +108,8 @@ def load_recipe(recipe_id: str) -> dict[str, Any]:
             raise ControllerError("discoverability chunk_size must be an integer from 1 to 100")
         if "sample_only" in recipe and not isinstance(recipe["sample_only"], bool):
             raise ControllerError("discoverability sample_only must be boolean when supplied")
+        if "use_latest_observed_context" in recipe and not isinstance(recipe["use_latest_observed_context"], bool):
+            raise ControllerError("discoverability use_latest_observed_context must be boolean when supplied")
     else:
         if recipe.get("transport") != "windows-frida-server":
             raise ControllerError("Frida recipes must use the Windows-side server transport")
@@ -120,6 +122,10 @@ def load_recipe(recipe_id: str) -> dict[str, Any]:
             raise ControllerError("Frida duration_seconds must be from 0.25 to 300")
         if not isinstance(event_limit, int) or not 1 <= event_limit <= 10_000:
             raise ControllerError("Frida max_events must be from 1 to 10000")
+        if "stop_after_first_entry" in recipe and not isinstance(recipe["stop_after_first_entry"], bool):
+            raise ControllerError("Frida stop_after_first_entry must be boolean when supplied")
+        if "capture_stack_argument5" in recipe and not isinstance(recipe["capture_stack_argument5"], bool):
+            raise ControllerError("Frida capture_stack_argument5 must be boolean when supplied")
     return recipe
 
 
@@ -288,6 +294,8 @@ def _adapter_command(
         ]
         if recipe.get("sample_only"):
             command.append("--sample-only")
+        if recipe.get("use_latest_observed_context"):
+            command.append("--use-latest-observed-context")
         return command
 
     registry = load_json(REGISTRY_PATH)
@@ -306,11 +314,20 @@ def _adapter_command(
     command.extend(("--remote-address", remote_address, "--remote-process", "fm.exe"))
     for target_id in recipe["targets"]:
         function = functions.get(target_id)
-        if function is None or "rva" not in function:
+        if function is None:
             raise ControllerError(f"Frida target {target_id!r} has no registered function RVA")
-        command.extend(("--target", f"{target_id}={function['rva']}"))
+        # Some native callbacks are registered as evaluators rather than plain
+        # functions.  A passive trace treats both forms identically.
+        target_rva = function.get("rva", function.get("evaluator_rva"))
+        if target_rva is None:
+            raise ControllerError(f"Frida target {target_id!r} has no registered function RVA")
+        command.extend(("--target", f"{target_id}={target_rva}"))
     if recipe.get("capture_backtraces"):
         command.append("--backtraces")
+    if recipe.get("stop_after_first_entry"):
+        command.append("--stop-after-first-entry")
+    if recipe.get("capture_stack_argument5"):
+        command.append("--capture-stack-argument5")
     return command
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 import sqlite3
 from contextlib import closing
@@ -13,7 +14,7 @@ from fm_analytics.contract import CONTRACT_VERSION
 from fm_analytics.domain import GameState, Player, Squad
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 SCHEMA = """
 CREATE TABLE captures (
@@ -37,6 +38,10 @@ CREATE TABLE squad_players (
     capture_id INTEGER NOT NULL REFERENCES captures(id) ON DELETE CASCADE,
     player_id TEXT NOT NULL,
     ordinal INTEGER NOT NULL,
+    -- NULL is the first team (Squad.players); any other value is FM's own
+    -- raw team-type marker for one of the club's other squads
+    -- (Squad.other_teams), never 0, which is reserved for the first team.
+    team_marker INTEGER CHECK (team_marker IS NULL OR team_marker <> 0),
     name TEXT NOT NULL,
     date_of_birth TEXT,
     age INTEGER CHECK (age IS NULL OR age >= 0),
@@ -193,8 +198,16 @@ class SnapshotStore:
                 ),
             )
             capture_id = int(cursor.lastrowid)
-            for ordinal, player in enumerate(squad.players):
-                self._insert_player(connection, capture_id, ordinal, player)
+            ordinal = 0
+            for player in squad.players:
+                self._insert_player(connection, capture_id, ordinal, player, team_marker=None)
+                ordinal += 1
+            for team in squad.other_teams:
+                for player in team.players:
+                    self._insert_player(
+                        connection, capture_id, ordinal, player, team_marker=team.marker
+                    )
+                    ordinal += 1
 
         return CaptureRecord(
             id=capture_id,
@@ -220,6 +233,8 @@ class SnapshotStore:
                 """,
                 (capture_id,),
             ).fetchall()
+            first_team = [player for player in players if player["team_marker"] is None]
+            other_team_players = [player for player in players if player["team_marker"] is not None]
             game_raw = {
                 "gameDate": capture["game_date"],
                 "humanManager": {
@@ -238,7 +253,23 @@ class SnapshotStore:
                 "asOfDate": capture["game_date"],
                 "players": [
                     self._load_player(connection, capture_id, player)
-                    for player in players
+                    for player in first_team
+                ],
+                "otherTeams": [
+                    {
+                        "marker": marker,
+                        "players": [
+                            self._load_player(connection, capture_id, player)
+                            for player in group
+                        ],
+                    }
+                    # `other_team_players` is already ordinal-ordered, and
+                    # ordinal insertion groups each team's players together
+                    # (see `capture` above), so a plain groupby needs no
+                    # re-sort to recover each team intact and in marker order.
+                    for marker, group in itertools.groupby(
+                        other_team_players, key=lambda player: player["team_marker"]
+                    )
                 ],
             }
         return GameState.from_dict(game_raw), Squad.from_dict(squad_raw)
@@ -266,7 +297,7 @@ class SnapshotStore:
         if game.controlled_club and squad.club:
             if game.controlled_club.id != squad.club.id:
                 raise ValueError("game and squad observations must have the same club")
-        player_ids = [player.id for player in squad.players]
+        player_ids = [player.id for player in squad.all_players()]
         if len(player_ids) != len(set(player_ids)):
             raise ValueError("squad observations must contain unique player IDs")
 
@@ -289,24 +320,27 @@ class SnapshotStore:
         capture_id: int,
         ordinal: int,
         player: Player,
+        *,
+        team_marker: int | None = None,
     ) -> None:
         contract = player.contract
         contracted_club = contract.contracted_club if contract else None
         connection.execute(
             """
             INSERT INTO squad_players (
-                capture_id, player_id, ordinal, name, date_of_birth, age,
+                capture_id, player_id, ordinal, team_marker, name, date_of_birth, age,
                 club_id, condition_percent, match_fitness_percent, availability,
                 injured, suspended, contract_present, contract_type,
                 contract_start_date, contract_end_date, contract_joined_date,
                 squad_status, transfer_status, contracted_club_id,
                 contracted_club_name
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 capture_id,
                 player.id,
                 ordinal,
+                team_marker,
                 player.name,
                 player.date_of_birth.isoformat() if player.date_of_birth else None,
                 player.age,

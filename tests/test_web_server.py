@@ -82,6 +82,48 @@ class SquadWebServerTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn("Goalkeeper", body)
 
+    def test_squad_page_lists_other_teams_without_scoring_them(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture_path = _write_complete_fixture(Path(directory))
+            document = json.loads(fixture_path.read_text(encoding="utf-8"))
+            document["squad"]["otherTeams"] = [{
+                "marker": 9,
+                "players": [{
+                    **document["squad"]["players"][0],
+                    "id": "youth-1",
+                    "name": "Yusuf Youth",
+                }],
+            }]
+            fixture_path.write_text(json.dumps(document), encoding="utf-8")
+            port = self._serve(fixture_path)
+
+            status, body = self._get(port, "/squad")
+
+            self.assertEqual(status, 200)
+            self.assertIn("Yusuf Youth", body)
+            self.assertIn("team marker 9", body)
+            self.assertIn("not included in role or tactic selection", body)
+
+    def test_data_page_reports_other_team_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture_path = _write_complete_fixture(Path(directory))
+            document = json.loads(fixture_path.read_text(encoding="utf-8"))
+            document["squad"]["otherTeams"] = [{
+                "marker": 9,
+                "players": [{
+                    **document["squad"]["players"][0],
+                    "id": "youth-1",
+                    "name": "Yusuf Youth",
+                }],
+            }]
+            fixture_path.write_text(json.dumps(document), encoding="utf-8")
+            port = self._serve(fixture_path)
+
+            status, body = self._get(port, "/data")
+
+            self.assertEqual(status, 200)
+            self.assertIn("Other club squads: 1 player(s) across 1 team(s)", body)
+
     def test_tactics_page_names_the_selected_tactic(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             fixture_path = _write_complete_fixture(Path(directory))

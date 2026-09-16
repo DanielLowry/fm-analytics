@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "id": "frida-discoverability-observed-context-smoke",
+  "purpose": "player-search-runtime-context-frida-smoke",
+  "question": "Can Frida use the current Player Search runtime context to evaluate the six-player discoverability guard on the observed Player Search thread?",
+  "adapter": "fm20-frida-discoverability",
+  "transport": "windows-frida-server",
+  "build": "fm20-20.4.4-1442341",
+  "safety": "guarded-native-call",
+  "operator_interaction": "none",
+  "requires_live_process": true,
+  "timeout_seconds": 90,
+  "chunk_size": 6,
+  "sample_only": true,
+  "use_latest_observed_context": true,
+  "required_registry_facts": [
+    "manager-search-sources",
+    "full-player-search-filter",
+    "player-search-filter-pass"
+  ],
+  "decision": {
+    "adapter_exit_codes": [0],
+    "adapter_statuses": ["complete"],
+    "minimum_players": 6,
+    "minimum_evaluated": 6
+  },
+  "limitations": [
+    "This uses only six calls and does not publish a discoverable player set; it records, but does not enforce, old own-club sample assumptions.",
+    "It accepts only a clean Player Search observation from the same FM process and current search source."
+  ]
+}

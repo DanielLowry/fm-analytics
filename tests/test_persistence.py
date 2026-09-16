@@ -42,6 +42,42 @@ class SnapshotStoreTests(unittest.TestCase):
         self.assertEqual(squad.to_dict(), self.squad.to_dict())
         self.assertEqual(self.store.latest_capture_id(), capture.id)
 
+    def test_round_trips_other_teams_alongside_the_first_team(self) -> None:
+        raw = self.squad.to_dict()
+        raw["otherTeams"] = [
+            {
+                "marker": 9,
+                "players": [
+                    {**raw["players"][0], "id": "youth-1", "name": "Youth One"},
+                    {**raw["players"][0], "id": "youth-2", "name": "Youth Two"},
+                ],
+            },
+            {"marker": 12, "players": [{**raw["players"][0], "id": "youth-3", "name": "Youth Three"}]},
+        ]
+        squad = Squad.from_dict(raw)
+
+        capture = self.store.capture(
+            self.game, squad, source="fixture", captured_at=self.observed_at
+        )
+        _, loaded = self.store.load(capture.id)
+
+        self.assertEqual(loaded.to_dict(), squad.to_dict())
+        self.assertEqual([team.marker for team in loaded.other_teams], [9, 12])
+        self.assertEqual(
+            [player.id for player in loaded.other_teams[0].players], ["youth-1", "youth-2"]
+        )
+        self.assertEqual(len(loaded.all_players()), len(squad.all_players()))
+
+    def test_rejects_duplicate_player_id_across_first_team_and_other_teams(self) -> None:
+        raw = self.squad.to_dict()
+        duplicate_id = raw["players"][0]["id"]
+        raw["otherTeams"] = [
+            {"marker": 9, "players": [{**raw["players"][0], "id": duplicate_id}]},
+        ]
+
+        with self.assertRaisesRegex(ValueError, "unique player IDs"):
+            self.store.capture(self.game, Squad.from_dict(raw), source="fixture")
+
     def test_repeated_identical_observation_is_idempotent(self) -> None:
         first = self.store.capture(self.game, self.squad, source="fixture")
         second = self.store.capture(self.game, self.squad, source="fixture")

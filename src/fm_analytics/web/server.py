@@ -23,6 +23,7 @@ from urllib.parse import urlparse
 
 from fm_analytics.analytics import WeaknessKind, WeaknessReport
 from fm_analytics.bridge.errors import BridgeSourceError
+from fm_analytics.domain import Squad
 from fm_analytics.reporting import (
     RecommendationBundle,
     build_recommendation_bundle,
@@ -193,8 +194,44 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "<th>Match fitness</th><th>Availability</th><th>Best eligible role</th></tr>"
             + "".join(rows)
             + "</table>"
+            + self._other_teams_section(bundle.squad)
         )
         self._send(_layout("Squad", path, body))
+
+    @staticmethod
+    def _other_teams_section(squad: Squad) -> str:
+        """The club's other squads (youth, reserves, ...), listed but not scored.
+
+        These players are deliberately outside role/tactic/XI selection here:
+        that machinery was designed and tuned for senior first-team selection,
+        and folding in youth players without a considered policy (age-adjusted
+        expectations, development context) would be a football judgement call
+        this page should not make silently. FM's own name for each squad is
+        not decoded yet -- see docs/property-discovery-playbook.md -- so each
+        is labelled by FM's own raw marker rather than a guessed name.
+        """
+        if not squad.other_teams:
+            return ""
+        sections = []
+        for team in squad.other_teams:
+            rows = [
+                "<tr>"
+                f"<td>{html.escape(player.name)}</td>"
+                f"<td>{player.age if player.age is not None else '?'}</td>"
+                f"<td>{', '.join(player.positions)}</td>"
+                f"<td>{html.escape(player.availability)}</td>"
+                "</tr>"
+                for player in team.players
+            ]
+            sections.append(
+                f"<h3>Other squad (FM team marker {team.marker})</h3>"
+                "<table><tr><th>Player</th><th>Age</th><th>Positions</th>"
+                "<th>Availability</th></tr>" + "".join(rows) + "</table>"
+            )
+        return (
+            "<p class='muted'>Other squads are listed for visibility only; they are "
+            "not included in role or tactic selection.</p>" + "".join(sections)
+        )
 
     def _roles_page(self, path: str) -> None:
         bundle = self._bundle_or_error(path, "Roles")
@@ -408,6 +445,16 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 + ("" if familiarity_count else " <span class='muted'>(none read yet)</span>")
                 + "</td></tr>"
             )
+        other_team_players = [player for team in squad.other_teams for player in team.players]
+        other_coverage = (
+            f"<p>Other club squads: {len(other_team_players)} player(s) across "
+            f"{len(squad.other_teams)} team(s), "
+            f"{sum(1 for player in other_team_players if not required.difference(player.attributes))} "
+            "with complete role-scoring attribute coverage. Not shown per-player here or "
+            "included in role/tactic selection -- see the Squad page.</p>"
+            if squad.other_teams
+            else "<p class='muted'>No other club squads (youth, reserves, ...) were read.</p>"
+        )
         body = (
             f"<p>Required role-scoring attributes: {len(required)}. "
             f"<code>positionFamiliarity</code> is additive and optional -- absence means "
@@ -416,6 +463,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "<th>Missing attributes</th><th>Position familiarity</th></tr>"
             + "".join(rows)
             + "</table>"
+            + other_coverage
         )
         self._send(_layout("Data", path, body))
 

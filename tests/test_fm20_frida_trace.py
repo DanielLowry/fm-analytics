@@ -107,6 +107,23 @@ class FridaTraceTests(unittest.TestCase):
         self.assertNotIn("Memory.read", source)
         self.assertNotIn("Interceptor.replace", source)
 
+    def test_one_shot_agent_detaches_after_its_first_entry(self):
+        source = build_agent_source(
+            "0x140000000", [{"label": "known", "rva": 0x123}], 1, False, True
+        )
+        self.assertIn("stopAfterFirstEntry", source)
+        self.assertIn("one-shot-complete", source)
+        self.assertIn("listener.detach()", source)
+
+    def test_agent_can_capture_only_the_fifth_win64_stack_argument(self):
+        source = build_agent_source(
+            "0x140000000", [{"label": "known", "rva": 0x123}], 1, False,
+            True, True,
+        )
+        self.assertIn("captureStackArgument5", source)
+        self.assertIn("win64StackArgument5", source)
+        self.assertIn("rsp.add(0x28).readPointer()", source)
+
     def test_capture_attaches_reports_events_unloads_and_detaches(self):
         api = FakeFrida()
         result = capture(

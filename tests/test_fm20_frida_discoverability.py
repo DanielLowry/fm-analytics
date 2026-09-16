@@ -91,6 +91,7 @@ class FridaDiscoverabilityTests(unittest.TestCase):
         self.assertIn("stackPointer.sub(0x4000)", source)
         self.assertIn("config.chunkSize", source)
         self.assertIn("native full-filter sample disagrees", source)
+        self.assertIn("sampleMismatches", source)
         self.assertIn('"threadId": 356', source)
         self.assertNotIn("readByteArray", source)
 

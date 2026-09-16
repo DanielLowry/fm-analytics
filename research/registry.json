@@ -190,6 +190,17 @@
       ]
     },
     {
+      "id": "player-search-filter-pass",
+      "build": "fm20-20.4.4-1442341",
+      "rva": "0x52769e0",
+      "safety": "passive-live",
+      "confidence": "observed",
+      "implementation": "tools/fm20_search_caller_trace.py",
+      "limitations": [
+        "This coordinates the UI list rebuild; it is not safe to invoke cold."
+      ]
+    },
+    {
       "id": "include-own-player-rule",
       "build": "fm20-20.4.4-1442341",
       "vtable_rva": "0x6dab260",

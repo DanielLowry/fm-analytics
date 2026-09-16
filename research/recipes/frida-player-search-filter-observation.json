@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "frida-player-search-filter-observation",
+  "purpose": "discoverability-filter-context-observation",
+  "question": "While Player Search is already open, what arguments does FM pass to its own full player-search filter?",
+  "adapter": "fm20-frida-trace",
+  "transport": "windows-frida-server",
+  "targets": ["player-search-filter-pass"],
+  "duration_seconds": 60,
+  "max_events": 1,
+  "stop_after_first_entry": true,
+  "capture_stack_argument5": true,
+  "build": "fm20-20.4.4-1442341",
+  "safety": "passive-live",
+  "operator_interaction": "one-short-batched-ui-tour",
+  "operator_actions": {
+    "starting_state": "Player Search is open and its player list has loaded.",
+    "after_armed": "Make one temporary Player Search filter change, then immediately restore it. This deliberately asks FM to rebuild the list; do not change the player-search package."
+  },
+  "requires_live_process": true,
+  "timeout_seconds": 90,
+  "required_registry_facts": ["player-search-filter-pass"],
+  "decision": {
+    "adapter_exit_codes": [0],
+    "adapter_statuses": ["complete"],
+    "require_attached": true,
+    "require_agent_ready": true,
+    "require_detached": true,
+    "require_process_alive": true,
+    "minimum_entry_events": 1
+  },
+  "limitations": [
+    "The capture records only the first call's metadata, argument pointers, and fifth stack argument (the search-context pointer); it does not read player fields or alter Player Search.",
+    "This is diagnostic evidence, not a discoverability result."
+  ]
+}
