@@ -240,13 +240,55 @@ only the plumbing and two band gaps (raw 2–8 and 17–18) remain.
 
 Two caveats before this is promoted. First, the `>= 15` cut is an approximation
 of FM's eligibility rule, not the rule, so changing it changes selection
-results and needs its own validation. Second, and squarely a Phase 03 question:
-whether position familiarity is gated by manager knowledge the way attributes
-are, or is always visible, is **not established for this build**. The module's
-own docstring flags this. For the owned first team it is moot, since owned
-facts are visible exactly; for external players it is a visibility gate that
-must be answered before any discoverability work consumes it, and it must not
-be assumed from the owned-squad case.
+results and needs its own validation. Second, the question below is now
+answered rather than open.
+
+### Position familiarity: accepted short-term gap
+
+**16 September 2026.** The gating question above is resolved: position
+familiarity is gated by manager knowledge, confirmed rather than assumed. The
+product owner picked a real external, partially-scouted player (Adam Mann of
+Bath City, identified via the discoverability work above) and checked FM's own
+position diagram against the raw bytes:
+
+| Position | Raw byte predicts | FM's diagram shows |
+| --- | --- | --- |
+| AML | Natural | Natural — match |
+| ST | Natural | Natural — match |
+| AMC | Accomplished | Ineffectual — **mismatch** |
+| AMR | Accomplished | Ineffectual — **mismatch** |
+
+His two primary positions were shown accurately; his two secondary positions
+were not merely underrepresented but shown as the worst possible category.
+Full evidence, including a second independent memory read that ruled out a
+staleness or offset bug on the reading side, is in
+`research/corpus.json`'s `position-knowledge-gate-check` entry.
+
+This settles what the module docstrings in `tools/fm20_linux_probe.py`
+(`decode_positions`, `position_familiarity_map`) and
+`tools/fm20_position_familiarity.py` used to leave open, and they have been
+updated to state it as fact rather than a suspicion.
+
+Two decisions follow from this, made by the product owner on 16 September
+2026 rather than left implicit:
+
+1. **Short term, the application accepts more visibility than FM itself
+   grants.** Nothing in this codebase currently reads raw position data for
+   any player other than the owned squad, so there is no live violation
+   today, but the raw reader must not be reused for external players without
+   the fix below. This gap is a known, accepted, and documented limitation,
+   not an oversight.
+2. **Long term, the plan is to retrieve FM's own knowledge-filtered
+   familiarity category for an external player**, the same way footedness and
+   attributes were solved: find the FM function that actually applies the
+   knowledge gate (a strong static lead already exists — the position-level
+   label's value handler reads a pre-populated field at a fixed offset on a
+   wrapper object rather than computing anything itself, so the gate almost
+   certainly lives in whatever populates that field, not in the label
+   formatter checked so far) and call it cold, the way the attribute builder
+   and the footedness getter already are. Until that lands, the raw reader
+   stays scoped to the owned squad, where full knowledge makes it safe by
+   definition.
 
 ## Prerequisites
 

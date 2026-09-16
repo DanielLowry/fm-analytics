@@ -456,6 +456,20 @@ POSITION_ELIGIBILITY_MINIMUM = 10
 
 
 def decode_positions(ratings: bytes) -> tuple[str, ...]:
+    """Turn raw 1-20 position-rating bytes into an eligible-position list.
+
+    SAFE ONLY for the owned squad. `ratings` is FM's underlying truth, read
+    directly with no knowledge check, and confirmed on 16 September 2026 to
+    differ from what FM actually shows the manager for another club's player:
+    a partially-scouted external player's position diagram showed Ineffectual
+    at two positions where this raw data says Accomplished. For the owned
+    squad that gap does not exist, since the manager's knowledge of their own
+    players is exact by definition. Do not call this (or
+    `position_familiarity_map` below) for any player who is not confirmed
+    fully known -- see tools/fm20_position_familiarity.py's module docstring
+    and docs/phases/03-information-visibility/README.md, "Position
+    familiarity: accepted short-term gap".
+    """
     if len(ratings) != len(POSITION_CODES):
         raise ProbeError(
             f"position data requires {len(POSITION_CODES)} bytes, got {len(ratings)}"
@@ -473,6 +487,13 @@ def decode_positions(ratings: bytes) -> tuple[str, ...]:
 
 def position_familiarity_map(ratings: bytes) -> dict[str, int]:
     """Return every position's raw 1-20 rating byte, keyed by FM position code.
+
+    SAFE ONLY for the owned squad -- see `decode_positions` above, which
+    carries the full warning. This is the same underlying truth, at full
+    resolution rather than collapsed to an eligibility cut, which makes it
+    more informative for scoring but no more visibility-safe: reading it for
+    any player other than the manager's own is proven, not merely suspected,
+    to expose more than FM itself would show.
 
     `decode_positions` above collapses this same array to a
     `>= POSITION_ELIGIBILITY_MINIMUM` boolean list and discards the rest.

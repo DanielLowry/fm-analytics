@@ -448,6 +448,35 @@
         "Verified for one manager, one save, and two package states only."
       ],
       "known_contrasts": ["player-search-filter-positive-control", "cold-discoverability-repeat"]
+    },
+    {
+      "id": "position-knowledge-gate-check",
+      "state": "external-player-partial-scouting",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "entity": {"kind": "player-set", "ids": ["29037034"]},
+      "screens": ["player-search", "player-position-diagram"],
+      "captures": [
+        {
+          "id": "adam-mann-position-knowledge-gate",
+          "kind": "operator-declared-ui-comparison-report",
+          "path": "data/research/visibility/adam-mann-position-knowledge-gate.json",
+          "sha256": "4e913b46e379f14dcab50f4d5bacf86d2323a26083ba372dec1a159175e2f621",
+          "outcome": "2-of-4-positions-mismatched"
+        }
+      ],
+      "verified_facts": [
+        "Raw position-rating bytes for a partially-scouted external player (Adam Mann) predicted Natural at AML and ST and Accomplished at AMC and AMR.",
+        "FM's own position diagram, checked directly rather than the compact Player Search letter list, matched the Natural predictions at AML and ST but showed Ineffectual, not Accomplished, at AMC and AMR.",
+        "This confirms position familiarity is gated by manager knowledge for at least a player's non-primary positions, resolving what tools/fm20_position_familiarity.py had left as an open question."
+      ],
+      "reusable_for": ["position-visibility gate design", "regression check once a knowledge-aware position getter exists"],
+      "limitations": [
+        "One player, one save, one scouting state.",
+        "The UI observation is operator-declared, not independently captured.",
+        "Whether primary/Natural positions can themselves ever be gated is untested; both observed here were fully known."
+      ],
+      "known_contrasts": ["owned-foot-position-trace"]
     }
   ]
 }

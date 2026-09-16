@@ -13,9 +13,10 @@ than a single coarse "has anything changed" signal:
 
 - the build hash is checked once per process ID and never again -- a
   running process's backing executable cannot change;
-- the active manager's identity comes from a single O(1) memory read (the
-  same field FM's own code already treats as "who is active"), replacing a
-  full scan that existed only to obtain that one value;
+- the active manager's identity is normally confirmed by a single O(1)
+  memory read; a genuine mismatch (the field tracks UI selection, not just
+  the manager -- see `resolve_context_and_manager`) falls back to one full
+  scan instead of failing outright;
 - a player's resolved interface address is cached per (pid, player_id) and
   re-verified with three O(1) reads on every reuse; a full scan runs only
   the first time a given player is requested in this process, or if that
@@ -37,9 +38,11 @@ from tools.fm20_linux_probe import (
     FM20_4_4_STEAM,
     ProbeError,
     parse_module_mapping,
+    read_human_managers,
     read_i32,
     read_pointer_collection,
     read_u64,
+    select_active_manager_id,
     validate_executable,
 )
 
@@ -66,16 +69,22 @@ def verified_module_base(pid: int, proc_root: Path = Path("/proc")) -> int:
 
 
 def resolve_context_and_manager(memory_fd: int, module_base: int) -> tuple[int, int]:
-    """(knowledge context, manager interface) via one O(1) identity check.
+    """(knowledge context, manager interface), usually via one O(1) identity check.
 
-    Uses FM's own "active object" field directly instead of scanning every
-    loaded person to reconstruct the same value. The context-root traversal
-    was already O(1) in the original implementation; only the "who is the
-    active manager" lookup is replaced here. Fails closed exactly as before
-    if the context's actual owner does not match.
+    FM's "active object" field reflects whatever the UI currently has
+    selected -- a viewed player, a search result -- not reliably the active
+    manager. It happens to equal the manager right after a save loads or on
+    a manager-facing screen, which is why a direct comparison worked in
+    earlier testing, but it silently stops matching as soon as the operator
+    looks at anything else, such as Player Search. `select_active_manager_id`
+    in `fm20_linux_probe` already treats this same field as a hint rather
+    than ground truth for exactly this reason; this function used to skip
+    that safeguard for speed. It no longer does: the O(1) comparison is
+    tried first, and only a genuine mismatch falls back to the one full
+    person-collection scan the rest of the codebase already pays for this
+    resolution. A wrong context owner still fails closed either way.
     """
 
-    active_manager_id = read_i32(memory_fd, module_base + FM20_4_4_STEAM.active_object_offset)
     root = read_u64(memory_fd, module_base + CONTEXT_ROOT_RVA)
     if not root:
         raise ProbeError("manager-knowledge context root is missing")
@@ -89,8 +98,16 @@ def resolve_context_and_manager(memory_fd: int, module_base: int) -> tuple[int, 
     manager_person = read_u64(memory_fd, context + 0x18)
     if read_u64(memory_fd, manager_person) != module_base + FM20_4_4_STEAM.human_manager_type_offset:
         raise ProbeError("knowledge-context owner is not a human manager")
-    if active_manager_id != read_i32(memory_fd, manager_person + 0xC):
-        raise ProbeError("knowledge-context owner is not the active manager")
+    context_owner_id = read_i32(memory_fd, manager_person + 0xC)
+    active_object_id = read_i32(memory_fd, module_base + FM20_4_4_STEAM.active_object_offset)
+    if context_owner_id != active_object_id:
+        try:
+            managers = read_human_managers(memory_fd, module_base)
+            resolved_id = select_active_manager_id(managers, active_object_id)
+        except (OSError, ProbeError):
+            resolved_id = None
+        if resolved_id is None or int(resolved_id) != context_owner_id:
+            raise ProbeError("knowledge-context owner is not the active manager")
     manager_interface = manager_person - 0x480
     manager_table = read_u64(memory_fd, manager_interface + 8)
     if manager_interface + 8 + read_i32(memory_fd, manager_table + 4) != manager_person:

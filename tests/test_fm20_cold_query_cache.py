@@ -93,6 +93,38 @@ class ResolveContextAndManagerTests(unittest.TestCase):
             with self.assertRaisesRegex(ProbeError, "not the active manager"):
                 resolve_context_and_manager(fd, MODULE_BASE)
 
+    def test_resolves_via_fallback_scan_when_active_object_is_something_else(self) -> None:
+        """The active-object field tracks UI selection, not just the manager.
+
+        Regression test: with a live save, browsing a player (Player Search,
+        a profile, ...) sets ActiveObject to that player, not the manager, and
+        the old direct comparison raised even though the manager is easily and
+        unambiguously resolvable. The fallback must still succeed here.
+        """
+        memory = _valid_context()
+        # Something else is selected in the UI -- not the manager, not a
+        # collection miss, just an ordinary browsing state.
+        memory.i32(MODULE_BASE + FM20_4_4_STEAM.active_object_offset, 4321)
+        # A minimal but valid person collection containing only the manager,
+        # so the fallback scan can resolve them as the sole employed manager.
+        # Offsets mirror read_human_manager_contexts exactly: contract at
+        # person+0xC8, team at contract+0x10, club at team+0x18, club id at
+        # club+0xC.
+        memory.u64(PEOPLE_ROOT_FIELD, 0x7000)
+        memory.u64(0x7000 + FM20_4_4_STEAM.collection_indirection_offset, 0x8000)
+        memory.u64(0x8000, 0x9000)
+        memory.u64(0x8000 + 8, 0x9008)
+        memory.u64(0x9000, MANAGER_PERSON)
+        memory.u64(MANAGER_PERSON + 0xC8, 0xA000)  # actual_person + 0xA0 contract
+        memory.u64(0xA000 + 0x10, 0xA100)  # contract -> team
+        memory.u64(0xA100 + 0x18, 0xA200)  # team -> club
+        memory.i32(0xA200 + 0xC, 55)  # club id
+        with memory as fd:
+            context, manager_interface = resolve_context_and_manager(fd, MODULE_BASE)
+
+        self.assertEqual(context, CONTEXT)
+        self.assertEqual(manager_interface, MANAGER_INTERFACE)
+
     def test_fails_closed_when_context_root_is_missing(self) -> None:
         memory = _valid_context()
         memory.u64(CONTEXT_ROOT_ADDRESS, 0)

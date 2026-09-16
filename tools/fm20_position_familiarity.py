@@ -10,13 +10,28 @@ fails closed for any raw value outside the confirmed bands rather than
 guessing a boundary -- when that happens, check that exact player's
 position diagram in FM and extend the confirmed table below.
 
-Standalone and deliberately not wired into the domain model or scoring
-yet. Whether position familiarity is gated by manager knowledge the same
-way attributes are, or always visible regardless of scouting (which is
-the user's own experience of FM, not yet independently verified against
-this build), is still open -- see the same doc section. This module only
-turns a raw byte into a label; it makes no claim about when reading that
-byte for an external, unscouted player is appropriate.
+Standalone and deliberately not wired into the domain model or scoring yet.
+
+CONFIRMED 16 September 2026, not merely suspected: position familiarity is
+gated by manager knowledge, at least for a player's non-primary positions.
+Adam Mann (Bath City, part-time, partially scouted -- see
+docs/frida-discoverability.md for how he was identified) has raw bytes of
+20 (AML), 20 (ST), 16 (AMC), 16 (AMR), and 1 everywhere else. FM's own
+position diagram, checked directly rather than the compact Player Search
+letter list, showed Natural at AML and ST -- matching the raw data -- but
+Ineffectual at AMC and AMR, where the raw bytes say Accomplished. FM was
+hiding two of his four playable positions.
+
+This settles the question this module's docstring used to leave open, and
+it means `decode_positions` / `position_familiarity_map` in
+`fm20_linux_probe.py` read a value that is safe for the owned squad (full
+knowledge is truth there) but is proven **not** safe to expose for any
+other player. See the "Position familiarity: accepted short-term gap"
+section of docs/phases/03-information-visibility/README.md for the accepted
+short-term consequence and the plan to close it.
+
+This module itself only turns a raw byte into a label; it still makes no
+claim about when reading that byte is appropriate.
 """
 
 from __future__ import annotations

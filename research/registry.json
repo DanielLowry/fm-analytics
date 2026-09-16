@@ -439,12 +439,12 @@
     {
       "id": "player.position-proficiency",
       "build": "fm20-20.4.4-1442341",
-      "scope": "graded manager-visible positional familiarity",
+      "scope": "graded positional familiarity",
       "confidence": "observed",
-      "status": "unresolved",
+      "status": "confirmed-knowledge-gated-not-yet-resolved",
       "observed_function_rvas": ["0x3e1d7e0", "0x3eab490", "0x3eab4a0"],
-      "evidence": ["owned-foot-position-trace"],
-      "note": "Natural positions are available; graded familiarity is not resolved."
+      "evidence": ["owned-foot-position-trace", "position-knowledge-gate-check"],
+      "note": "16 September 2026: confirmed, not merely suspected, that FM gates this by manager knowledge for at least a player's non-primary positions. Adam Mann's raw bytes (AML 20, ST 20, AMC 16, AMR 16) matched FM's position diagram at AML/ST (both Natural) but not at AMC/AMR, which FM showed as Ineffectual against a raw value that should be Accomplished. Reading tools/fm20_linux_probe.decode_positions/position_familiarity_map is safe only for the owned squad; using it for any other player is a proven visibility violation, not a theoretical one. See docs/phases/03-information-visibility/README.md, \"Position familiarity: accepted short-term gap\"."
     },
     {
       "id": "external-player.contract-expiry",
