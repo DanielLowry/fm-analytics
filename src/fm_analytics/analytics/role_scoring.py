@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from math import isfinite
 from typing import Mapping
@@ -34,6 +34,12 @@ class RoleDefinition:
     eligible_positions: tuple[str, ...]
     attributes: tuple[RoleAttribute, ...]
     catalogue_version: str
+    # A compact, explainable description of what the role contributes to a
+    # team system (width, cover, progression, ...).  The first catalogue uses
+    # a POC fallback profile for its existing roles, but keeping this on the
+    # role model lets future catalogue versions declare the contribution as
+    # data rather than burying tactical judgement in the optimiser.
+    system_traits: Mapping[str, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.key or not self.name or not self.catalogue_version:
@@ -45,6 +51,11 @@ class RoleDefinition:
         attribute_names = [attribute.name for attribute in self.attributes]
         if len(attribute_names) != len(set(attribute_names)):
             raise ValueError("role attribute names must be unique")
+        for name, value in self.system_traits.items():
+            if not isinstance(name, str) or not name:
+                raise ValueError("system trait names must be non-empty strings")
+            if not isfinite(value) or value < 0:
+                raise ValueError("system trait values must be finite and non-negative")
 
 
 @dataclass(frozen=True)

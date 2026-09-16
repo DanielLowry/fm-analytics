@@ -228,8 +228,9 @@ def render_recommendation(
         "Tactic comparison",
         "-----------------",
         f"Fit: {(1 - selected.fit_weakest_weight) * 100:.0f}% XI mean + "
-        f"{selected.fit_weakest_weight * 100:.0f}% weakest slot, after readiness; "
-        "an unfilled slot scores 0.",
+        f"{selected.fit_weakest_weight * 100:.0f}% weakest slot (XI suitability). "
+        "Overall fit also includes tactical coherence and team-instruction suitability; "
+        "opponent suitability is not yet scored.",
         )
     )
     for evaluation in recommendation.evaluations:
@@ -239,8 +240,10 @@ def render_recommendation(
         lines.append(
             f"{evaluation.tactic.name:<26} "
             f"fit {_band(evaluation.score):<22} "
-            f"mean {evaluation.mean_score.central:.1f}, "
-            f"weakest {evaluation.weakest_score.central:.1f} "
+            f"XI {evaluation.xi_score.central:.1f}, "
+            f"system {evaluation.coherence.score:.1f}, "
+            f"instructions {evaluation.instruction_suitability.score:.1f}; "
+            f"mean {evaluation.mean_score.central:.1f}, weakest {evaluation.weakest_score.central:.1f} "
             f"({', '.join(evaluation.weakest_slot_keys)}); {status}"
         )
     lines.extend(("", "Training targets", "-----------------"))
@@ -312,6 +315,7 @@ def render_recommendation(
     lines.append(
         f"Versions: catalogue {selected.tactic.catalogue_version}; "
         f"readiness {selected.readiness_version}; fit {selected.fit_version}; "
+        f"system {selected.system_version}; "
         f"bench {bench.policy_version}"
     )
     lines.extend(("", "Weak points", "-----------"))

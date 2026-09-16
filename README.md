@@ -84,16 +84,21 @@ separate work. A fresh live run through the HTTP bridge is still
 needed to validate that separate transport path against FM.
 
 The tactic and role catalogue has since grown past what that run exercised: it
-now covers 12 tactics and 28 roles (`fm20-mvp-v4`, defined as data in
+now covers 12 tactics and 28 roles (`fm20-mvp-v5`, defined as data in
 `src/fm_analytics/analytics/data/catalogue.json` rather than Python literals),
 so a fresh live run would compare more shapes than the four described above.
 
-Tactics are ranked by a versioned fit score: 65% of the XI's mean role/readiness
-score plus 35% of its weakest slot. This penalizes a shape that strands one
-player in a poor fit, and the XI is optimized for that same objective. The
-weight is provisional. Team *tactic* familiarity (fluency with a shape as a
-whole) is not yet included; it needs a trustworthy manager-visible input and a
-separate policy before it can affect recommendations.
+Each formation slot now has a small permissible family of role/duty choices.
+The selector jointly chooses player, role, and slot, then reports three
+separate components: **XI suitability** (65% mean selection score plus 35%
+weakest slot), **tactical coherence** (width, defensive cover, progression,
+runners, penetration, box presence, rest defence, and redundancy limits), and
+**instruction suitability**. The overall score combines the active components
+and penalizes its weakest one, so an individually strong but lopsided XI cannot
+win merely on player fit. These system profiles and weights are transparent POC
+hypotheses, not a reproduction of FM's hidden match engine. Team *tactic*
+familiarity (fluency with a shape as a whole) and opponent suitability are not
+yet included; each needs a trustworthy, separately sourced policy.
 
 *Position* familiarity is included: the recommendation output now also shows
 **training targets** -- tactics whose fit would improve materially once

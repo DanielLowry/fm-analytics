@@ -37,7 +37,7 @@ Start with a deliberately small, versioned catalogue rather than trying to
 encode every FM20 choice:
 
 - three to five common formations that cover materially different squad shapes;
-- one coherent role/duty set for each formation;
+- a coherent, constrained set of permissible roles/duties for each formation;
 - a small set of compatible team instructions and mentality choices;
 - explicit role eligibility and required/desirable attribute weights.
 

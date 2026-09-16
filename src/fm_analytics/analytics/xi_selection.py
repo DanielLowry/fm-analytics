@@ -10,6 +10,11 @@ from fm_analytics.analytics.catalogue import (
     TacticSlot,
 )
 from fm_analytics.analytics.role_scoring import RoleScore, ScoreBand, score_role
+from fm_analytics.analytics.tactical_system import (
+    SystemAssessment,
+    assess_coherence,
+    assess_instruction_suitability,
+)
 from fm_analytics.domain import AttributeObservation, Player
 
 
@@ -159,6 +164,35 @@ class TacticFitPolicy:
 
 
 @dataclass(frozen=True)
+class SystemFitPolicy:
+    """Combine XI suitability with role-system and instruction suitability.
+
+    The weakest-component term prevents a formation with excellent individual
+    fits from ranking highly when its selected roles make a visibly lopsided
+    football system.  Opponent suitability is intentionally absent: the app
+    does not yet hold opponent evidence good enough to score it.
+    """
+
+    version: str = "system-fit-v1"
+    xi_weight: float = 0.60
+    coherence_weight: float = 0.25
+    instruction_weight: float = 0.15
+    weakest_component_weight: float = 0.20
+    role_assignment_beam_width: int = 512
+
+    def __post_init__(self) -> None:
+        if not self.version:
+            raise ValueError("system-fit policy version is required")
+        weights = (self.xi_weight, self.coherence_weight, self.instruction_weight)
+        if not all(isfinite(weight) and weight >= 0 for weight in weights) or not any(weights):
+            raise ValueError("system-fit component weights must be finite and total above zero")
+        if not isfinite(self.weakest_component_weight) or not 0 <= self.weakest_component_weight <= 1:
+            raise ValueError("weakest component weight must be finite and between 0 and 1")
+        if not isinstance(self.role_assignment_beam_width, int) or self.role_assignment_beam_width < 1:
+            raise ValueError("role assignment beam width must be a positive integer")
+
+
+@dataclass(frozen=True)
 class SlotAssignment:
     slot: TacticSlot
     player_id: str
@@ -179,11 +213,16 @@ class TacticEvaluation:
     familiarity_floor: float
     fit_version: str
     fit_weakest_weight: float
+    system_version: str
+    system_weakest_component_weight: float
     assignments: tuple[SlotAssignment, ...]
     unfilled_slots: tuple[TacticSlot, ...]
     mean_score: ScoreBand
     weakest_score: ScoreBand
     weakest_slot_keys: tuple[str, ...]
+    xi_score: ScoreBand
+    coherence: SystemAssessment
+    instruction_suitability: SystemAssessment
     score: ScoreBand
 
     @property
@@ -279,6 +318,13 @@ class _AssignmentState:
     assignments: tuple[_CandidateAssignment, ...]
 
 
+@dataclass(frozen=True)
+class _JointAssignmentState:
+    total: float
+    player_indexes: frozenset[int]
+    assignments: tuple[_CandidateAssignment, ...]
+
+
 def evaluate_tactic(
     tactic: TacticDefinition,
     players: Sequence[PlayerSelectionInput],
@@ -287,6 +333,7 @@ def evaluate_tactic(
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
+    system_policy: SystemFitPolicy = SystemFitPolicy(),
 ) -> TacticEvaluation:
     if tactic.key not in catalogue.tactics or catalogue.tactics[tactic.key] != tactic:
         raise ValueError("tactic must belong to the supplied football catalogue")
@@ -298,18 +345,27 @@ def evaluate_tactic(
     choices = _build_choices(
         tactic, ordered_players, catalogue, readiness_policy, familiarity_policy
     )
-    states = _assignment_states(choices)
-    best_mask, best = min(
-        states.items(),
-        key=lambda item: (
-            -item[0].bit_count(),
-            -item[1].total,
-            _state_signature(item[1]),
-        ),
-    )
     full_mask = (1 << len(tactic.slots)) - 1
-    if best_mask == full_mask and fit_policy.weakest_slot_weight:
-        best = _best_fit_state(choices, full_mask, fit_policy, best)
+    has_role_choices = any(
+        len(catalogue.role_keys_for_slot(slot)) > 1 for slot in tactic.slots
+    )
+    if has_role_choices:
+        best = _best_joint_role_state(
+            tactic, choices, catalogue, fit_policy, system_policy
+        )
+        best_mask = sum(1 << choice.slot_index for choice in best.assignments)
+    else:
+        states = _assignment_states(choices)
+        best_mask, best = min(
+            states.items(),
+            key=lambda item: (
+                -item[0].bit_count(),
+                -item[1].total,
+                _state_signature(item[1]),
+            ),
+        )
+        if best_mask == full_mask and fit_policy.weakest_slot_weight:
+            best = _best_fit_state(choices, full_mask, fit_policy, best)
     ordered_assignments = tuple(
         choice.assignment
         for choice in sorted(best.assignments, key=lambda item: item.slot_index)
@@ -319,8 +375,11 @@ def evaluate_tactic(
         for index, slot in enumerate(tactic.slots)
         if not best_mask & (1 << index)
     )
-    mean_score, weakest_score, fit_score = _tactic_fit(
+    mean_score, weakest_score, xi_score = _tactic_fit(
         ordered_assignments, len(tactic.slots), fit_policy
+    )
+    coherence, instruction_suitability, fit_score = _system_fit(
+        tactic, ordered_assignments, catalogue, xi_score, system_policy
     )
     weakest_value = weakest_score.central
     weakest_slot_keys = tuple(
@@ -337,11 +396,16 @@ def evaluate_tactic(
         familiarity_floor=familiarity_policy.floor_multiplier,
         fit_version=fit_policy.version,
         fit_weakest_weight=fit_policy.weakest_slot_weight,
+        system_version=system_policy.version,
+        system_weakest_component_weight=system_policy.weakest_component_weight,
         assignments=ordered_assignments,
         unfilled_slots=unfilled,
         mean_score=mean_score,
         weakest_score=weakest_score,
         weakest_slot_keys=weakest_slot_keys,
+        xi_score=xi_score,
+        coherence=coherence,
+        instruction_suitability=instruction_suitability,
         score=fit_score,
     )
 
@@ -353,6 +417,7 @@ def recommend_tactic(
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
+    system_policy: SystemFitPolicy = SystemFitPolicy(),
 ) -> TacticRecommendation:
     evaluations = tuple(
         evaluate_tactic(
@@ -362,6 +427,7 @@ def recommend_tactic(
             readiness_policy=readiness_policy,
             familiarity_policy=familiarity_policy,
             fit_policy=fit_policy,
+            system_policy=system_policy,
         )
         for tactic in catalogue.tactics.values()
     )
@@ -388,6 +454,7 @@ def recommend_tactic_effective_and_potential(
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
+    system_policy: SystemFitPolicy = SystemFitPolicy(),
 ) -> EffectiveAndPotentialRecommendation:
     """Answer both "what to play now" and "what to aim for" from one call.
 
@@ -410,6 +477,7 @@ def recommend_tactic_effective_and_potential(
         readiness_policy=readiness_policy,
         familiarity_policy=familiarity_policy,
         fit_policy=fit_policy,
+        system_policy=system_policy,
     )
     potential = recommend_tactic(
         players,
@@ -417,6 +485,7 @@ def recommend_tactic_effective_and_potential(
         readiness_policy=readiness_policy,
         familiarity_policy=familiarity_policy.potential(),
         fit_policy=fit_policy,
+        system_policy=system_policy,
     )
     return EffectiveAndPotentialRecommendation(effective=effective, potential=potential)
 
@@ -436,15 +505,27 @@ def score_player_for_slot(
     *,
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
+    role_key: str | None = None,
 ) -> SlotAssignment | None:
-    """Score one legal, selectable player/slot pairing."""
-    if slot.role_key not in catalogue.roles:
-        raise ValueError(f"unknown role {slot.role_key!r}")
+    """Score a legal player/slot pairing for one allowed role.
+
+    With no `role_key`, return the player's strongest permitted role for this
+    slot.  The joint optimiser passes every permitted role explicitly so it
+    can trade a little individual quality for a materially better XI system.
+    """
     if not _is_available(player, readiness_policy):
         return None
     if slot.position not in player.positions:
         return None
-    intrinsic = score_role(catalogue.roles[slot.role_key], player.attributes)
+    candidate_roles = (
+        (role_key,)
+        if role_key is not None
+        else catalogue.role_keys_for_slot(slot)
+    )
+    if not candidate_roles:
+        raise ValueError(f"slot {slot.key!r} has no known compatible roles")
+    if any(candidate not in catalogue.role_keys_for_slot(slot) for candidate in candidate_roles):
+        raise ValueError(f"role {role_key!r} is not allowed for slot {slot.key!r}")
     readiness_penalty, readiness_warnings = _readiness(player, readiness_policy)
     familiarity_multiplier, familiarity_warnings = _familiarity(
         player, slot, familiarity_policy
@@ -453,19 +534,32 @@ def score_player_for_slot(
     def _adjust(raw: float) -> float:
         return round(max(0, round(raw - readiness_penalty, 6)) * familiarity_multiplier, 6)
 
-    return SlotAssignment(
-        slot=slot,
-        player_id=player.id,
-        player_name=player.name,
-        intrinsic_role_score=intrinsic,
-        readiness_penalty=readiness_penalty,
-        readiness_warnings=readiness_warnings,
-        familiarity_multiplier=familiarity_multiplier,
-        familiarity_warnings=familiarity_warnings,
-        selection_score=ScoreBand(
-            lower=_adjust(intrinsic.score.lower),
-            central=_adjust(intrinsic.score.central),
-            upper=_adjust(intrinsic.score.upper),
+    assignments = []
+    for candidate_role in candidate_roles:
+        intrinsic = score_role(catalogue.roles[candidate_role], player.attributes)
+        assignments.append(
+            SlotAssignment(
+                slot=slot,
+                player_id=player.id,
+                player_name=player.name,
+                intrinsic_role_score=intrinsic,
+                readiness_penalty=readiness_penalty,
+                readiness_warnings=readiness_warnings,
+                familiarity_multiplier=familiarity_multiplier,
+                familiarity_warnings=familiarity_warnings,
+                selection_score=ScoreBand(
+                    lower=_adjust(intrinsic.score.lower),
+                    central=_adjust(intrinsic.score.central),
+                    upper=_adjust(intrinsic.score.upper),
+                ),
+            )
+        )
+    return min(
+        assignments,
+        key=lambda item: (
+            -item.selection_score.central,
+            -item.selection_score.lower,
+            item.intrinsic_role_score.role_key,
         ),
     )
 
@@ -484,22 +578,24 @@ def _build_choices(
             continue
         player_choices: list[_CandidateAssignment] = []
         for slot_index, slot in enumerate(tactic.slots):
-            assignment = score_player_for_slot(
-                player,
-                slot,
-                catalogue,
-                readiness_policy=policy,
-                familiarity_policy=familiarity_policy,
-            )
-            if assignment is None:
-                continue
-            player_choices.append(
-                _CandidateAssignment(
-                    slot_index=slot_index,
-                    player_index=player_index,
-                    assignment=assignment,
+            for role_key in catalogue.role_keys_for_slot(slot):
+                assignment = score_player_for_slot(
+                    player,
+                    slot,
+                    catalogue,
+                    readiness_policy=policy,
+                    familiarity_policy=familiarity_policy,
+                    role_key=role_key,
                 )
-            )
+                if assignment is None:
+                    continue
+                player_choices.append(
+                    _CandidateAssignment(
+                        slot_index=slot_index,
+                        player_index=player_index,
+                        assignment=assignment,
+                    )
+                )
         choices.append(tuple(player_choices))
     return tuple(choices)
 
@@ -556,9 +652,13 @@ def _state_is_better(candidate: _AssignmentState, current: _AssignmentState) -> 
     return _state_signature(candidate) < _state_signature(current)
 
 
-def _state_signature(state: _AssignmentState) -> tuple[tuple[int, str], ...]:
+def _state_signature(state: _AssignmentState) -> tuple[tuple[int, str, str], ...]:
     return tuple(
-        (choice.slot_index, choice.assignment.player_id)
+        (
+            choice.slot_index,
+            choice.assignment.player_id,
+            choice.assignment.intrinsic_role_score.role_key,
+        )
         for choice in sorted(state.assignments, key=lambda item: item.slot_index)
     )
 
@@ -606,7 +706,7 @@ def _best_fit_state(
     best = mean_best
     slot_count = full_mask.bit_count()
 
-    def key(state: _AssignmentState) -> tuple[float, float, tuple[tuple[int, str], ...]]:
+    def key(state: _AssignmentState) -> tuple[float, float, tuple[tuple[int, str, str], ...]]:
         weakest = min(
             choice.assignment.selection_score.central for choice in state.assignments
         )
@@ -632,6 +732,135 @@ def _best_fit_state(
         if candidate_key < best_key:
             best, best_key = candidate, candidate_key
     return best
+
+
+def _best_joint_role_state(
+    tactic: TacticDefinition,
+    choices: tuple[tuple[_CandidateAssignment, ...], ...],
+    catalogue: FootballCatalogue,
+    fit_policy: TacticFitPolicy,
+    system_policy: SystemFitPolicy,
+) -> _AssignmentState:
+    """Bounded joint search across slots, players, and allowed roles.
+
+    The old dynamic programme could retain only one state for a slot mask,
+    which is valid when every slot has one role but throws away meaningful
+    alternatives once role interactions matter.  This deterministic beam
+    keeps complete player/role combinations alive until their system score can
+    be evaluated.  The bound is explicit in the policy and should be measured
+    again before catalogue breadth grows materially.
+    """
+
+    by_slot: list[tuple[_CandidateAssignment, ...]] = []
+    for slot_index in range(len(tactic.slots)):
+        candidates = tuple(
+            choice
+            for player_choices in choices
+            for choice in player_choices
+            if choice.slot_index == slot_index
+        )
+        by_slot.append(candidates)
+    slot_order = tuple(sorted(range(len(tactic.slots)), key=lambda index: (len(by_slot[index]), index)))
+    states = (_JointAssignmentState(0.0, frozenset(), ()),)
+    for step, slot_index in enumerate(slot_order):
+        expanded: list[_JointAssignmentState] = list(states)  # Allow an explainable partial XI.
+        for state in states:
+            for choice in by_slot[slot_index]:
+                if choice.player_index in state.player_indexes:
+                    continue
+                expanded.append(
+                    _JointAssignmentState(
+                        total=round(state.total + choice.assignment.selection_score.central, 6),
+                        player_indexes=state.player_indexes | {choice.player_index},
+                        assignments=state.assignments + (choice,),
+                    )
+                )
+        ranked = sorted(
+            expanded,
+            key=lambda state: (
+                -len(state.assignments),
+                -state.total,
+                -min(
+                    (choice.assignment.selection_score.central for choice in state.assignments),
+                    default=0.0,
+                ),
+                _joint_state_signature(state),
+            ),
+        )
+        # Score every completed candidate against coherence/instructions.  A
+        # final beam cut here would silently discard the lower local score
+        # that supplies the missing runner, cover, or width.
+        states = tuple(
+            ranked if step == len(slot_order) - 1
+            else ranked[:system_policy.role_assignment_beam_width]
+        )
+
+    def key(state: _JointAssignmentState) -> tuple[bool, int, float, float, tuple[tuple[int, str, str], ...]]:
+        assignments = tuple(
+            choice.assignment
+            for choice in sorted(state.assignments, key=lambda item: item.slot_index)
+        )
+        _, _, xi_score = _tactic_fit(assignments, len(tactic.slots), fit_policy)
+        _, _, overall = _system_fit(tactic, assignments, catalogue, xi_score, system_policy)
+        return (
+            len(assignments) != len(tactic.slots),
+            -len(assignments),
+            -overall.central,
+            -xi_score.central,
+            _joint_state_signature(state),
+        )
+
+    best = min(states, key=key)
+    return _AssignmentState(best.total, best.assignments)
+
+
+def _joint_state_signature(
+    state: _JointAssignmentState,
+) -> tuple[tuple[int, str, str], ...]:
+    return tuple(
+        (
+            choice.slot_index,
+            choice.assignment.player_id,
+            choice.assignment.intrinsic_role_score.role_key,
+        )
+        for choice in sorted(state.assignments, key=lambda item: item.slot_index)
+    )
+
+
+def _system_fit(
+    tactic: TacticDefinition,
+    assignments: tuple[SlotAssignment, ...],
+    catalogue: FootballCatalogue,
+    xi_score: ScoreBand,
+    policy: SystemFitPolicy,
+) -> tuple[SystemAssessment, SystemAssessment, ScoreBand]:
+    roles = tuple(
+        catalogue.roles[assignment.intrinsic_role_score.role_key]
+        for assignment in assignments
+    )
+    coherence = assess_coherence(tactic, roles)
+    instruction = assess_instruction_suitability(roles, tactic.instructions)
+
+    def component(xi_value: float) -> float:
+        weighted: list[tuple[float, float]] = [(xi_value, policy.xi_weight)]
+        if coherence.active:
+            weighted.append((coherence.score, policy.coherence_weight))
+        if instruction.active:
+            weighted.append((instruction.score, policy.instruction_weight))
+        total_weight = sum(weight for _, weight in weighted)
+        mean = sum(value * weight for value, weight in weighted) / total_weight
+        weakest = min(value for value, _ in weighted)
+        return round(
+            (1 - policy.weakest_component_weight) * mean
+            + policy.weakest_component_weight * weakest,
+            6,
+        )
+
+    return coherence, instruction, ScoreBand(
+        component(xi_score.lower),
+        component(xi_score.central),
+        component(xi_score.upper),
+    )
 
 
 def _tactic_fit(

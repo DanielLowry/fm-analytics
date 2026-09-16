@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from math import isfinite
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -21,15 +22,98 @@ from fm_analytics.analytics.role_scoring import (
 _DATA_PATH = Path(__file__).with_name("data") / "catalogue.json"
 
 
+# The existing catalogue supplied one role per slot.  During this POC we use
+# that role as a deliberately narrow family anchor, rather than opening every
+# position to every possible role.  A future catalogue can override this per
+# slot with its explicit `roles` array.
+_POC_ROLE_FAMILIES: Mapping[str, tuple[str, ...]] = {
+    "gk_defend": ("sk_defend",),
+    "sk_defend": ("gk_defend",),
+    "cd_defend": ("bpd_defend", "cd_cover"),
+    "bpd_defend": ("cd_defend", "cd_cover"),
+    "cd_cover": ("cd_defend", "bpd_defend"),
+    "fb_support": ("wb_support", "wb_attack"),
+    "wb_support": ("fb_support", "wb_attack"),
+    "wb_attack": ("wb_support", "fb_support"),
+    "dm_defend": ("dm_support", "bwm_support", "dlp_support"),
+    "dm_support": ("dm_defend", "bwm_support", "dlp_support"),
+    "bwm_support": ("dm_defend", "dm_support", "cm_defend", "cm_support"),
+    "cm_defend": ("cm_support", "bwm_support", "b2b_support", "dlp_support"),
+    "cm_support": ("cm_defend", "bwm_support", "b2b_support", "mez_attack", "dlp_support"),
+    "b2b_support": ("cm_defend", "cm_support", "bwm_support", "mez_attack", "dlp_support"),
+    "mez_attack": ("cm_support", "b2b_support", "dlp_support"),
+    "dlp_support": ("dm_defend", "dm_support", "cm_defend", "cm_support", "bwm_support", "b2b_support", "mez_attack"),
+    "wm_support": ("winger_support", "winger_attack", "if_attack"),
+    "winger_support": ("wm_support", "winger_attack", "if_attack"),
+    "winger_attack": ("winger_support", "wm_support", "if_attack"),
+    "if_attack": ("winger_support", "winger_attack", "wm_support"),
+    "am_support": ("ap_attack", "ss_attack"),
+    "ap_attack": ("am_support", "ss_attack"),
+    "ss_attack": ("am_support", "ap_attack"),
+    "dlf_support": ("cf_support", "af_attack", "p_attack", "tm_attack"),
+    "cf_support": ("dlf_support", "af_attack", "p_attack", "tm_attack"),
+    "af_attack": ("dlf_support", "cf_support", "p_attack", "tm_attack"),
+    "p_attack": ("af_attack", "dlf_support", "cf_support", "tm_attack"),
+    "tm_attack": ("af_attack", "dlf_support", "cf_support", "p_attack"),
+}
+
+
 @dataclass(frozen=True)
 class TacticSlot:
     key: str
     position: str
     role_key: str
+    alternate_role_keys: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.key or not self.position or not self.role_key:
             raise ValueError("tactic slot key, position, and role are required")
+        if self.role_key in self.alternate_role_keys:
+            raise ValueError("a slot's default role cannot also be an alternate")
+        if len(self.alternate_role_keys) != len(set(self.alternate_role_keys)):
+            raise ValueError("slot alternate role keys must be unique")
+
+    @property
+    def role_keys(self) -> tuple[str, ...]:
+        """Every role the optimiser may choose for this slot.
+
+        `role_key` is deliberately retained as the template's default: it is
+        useful as a readable starting hypothesis and for an unfilled-slot
+        explanation.  It is no longer a command to use that role.
+        """
+
+        return (self.role_key,) + self.alternate_role_keys
+
+
+@dataclass(frozen=True)
+class TacticSystemRequirements:
+    """Minimum system contributions and explicit redundancy limits.
+
+    Empty requirements mean that a synthetic/unit-test tactic has no system
+    model; its overall score remains its XI-suitability score.
+    """
+
+    minimums: Mapping[str, float] = field(default_factory=dict)
+    maximum_attack_duties: int | None = None
+    maximum_creators: int | None = None
+
+    def __post_init__(self) -> None:
+        for name, value in self.minimums.items():
+            if not isinstance(name, str) or not name:
+                raise ValueError("system minimum names must be non-empty strings")
+            if (
+                not isinstance(value, (int, float))
+                or isinstance(value, bool)
+                or not isfinite(value)
+                or value < 0
+            ):
+                raise ValueError("system minimums must be non-negative numbers")
+        for name, value in (
+            ("maximum_attack_duties", self.maximum_attack_duties),
+            ("maximum_creators", self.maximum_creators),
+        ):
+            if value is not None and (not isinstance(value, int) or isinstance(value, bool) or value < 1):
+                raise ValueError(f"{name} must be a positive integer when set")
 
 
 @dataclass(frozen=True)
@@ -41,6 +125,7 @@ class TacticDefinition:
     instructions: tuple[str, ...]
     slots: tuple[TacticSlot, ...]
     catalogue_version: str
+    system_requirements: TacticSystemRequirements = TacticSystemRequirements()
 
     def __post_init__(self) -> None:
         if not all(
@@ -70,7 +155,10 @@ class FootballCatalogue:
             if key != tactic.key or tactic.catalogue_version != self.version:
                 raise ValueError("tactic keys and versions must match their catalogue")
             unknown_roles = {
-                slot.role_key for slot in tactic.slots if slot.role_key not in self.roles
+                role_key
+                for slot in tactic.slots
+                for role_key in slot.role_keys
+                if role_key not in self.roles
             }
             if unknown_roles:
                 raise ValueError(
@@ -79,12 +167,36 @@ class FootballCatalogue:
             incompatible_slots = [
                 slot.key
                 for slot in tactic.slots
-                if slot.position not in self.roles[slot.role_key].eligible_positions
+                if any(
+                    slot.position not in self.roles[role_key].eligible_positions
+                    for role_key in slot.role_keys
+                )
             ]
             if incompatible_slots:
                 raise ValueError(
                     f"tactic {key!r} has role-incompatible slots {incompatible_slots!r}"
                 )
+
+    def role_keys_for_slot(self, slot: TacticSlot) -> tuple[str, ...]:
+        """Return the slot's permitted roles after position compatibility.
+
+        Explicit slot alternatives are authoritative.  Legacy templates with
+        one role use the POC family above, which turns their old fixed role
+        into a small, coherent role-choice set without making a centre-back
+        slot consider unrelated roles from across the whole catalogue.
+        """
+
+        candidates = (
+            slot.role_keys
+            if slot.alternate_role_keys
+            else (slot.role_key,) + _POC_ROLE_FAMILIES.get(slot.role_key, ())
+        )
+        return tuple(
+            role_key
+            for role_key in candidates
+            if role_key in self.roles
+            and slot.position in self.roles[role_key].eligible_positions
+        )
 
 
 def _attributes(
@@ -107,12 +219,19 @@ def _role_from_json(raw: Mapping[str, Any], *, version: str) -> RoleDefinition:
             desirable=_str_tuple(raw, "desirable"),
         ),
         catalogue_version=version,
+        system_traits=_number_mapping(raw.get("system"), "role system"),
     )
 
 
 def _slot_from_json(raw: Mapping[str, Any]) -> TacticSlot:
+    role_keys = _str_tuple(raw, "roles") if "roles" in raw else (_str(raw, "role"),)
+    if not role_keys:
+        raise ValueError("a tactic slot needs at least one allowed role")
     return TacticSlot(
-        key=_str(raw, "key"), position=_str(raw, "position"), role_key=_str(raw, "role")
+        key=_str(raw, "key"),
+        position=_str(raw, "position"),
+        role_key=role_keys[0],
+        alternate_role_keys=role_keys[1:],
     )
 
 
@@ -120,14 +239,20 @@ def _tactic_from_json(raw: Mapping[str, Any], *, version: str) -> TacticDefiniti
     slots_raw = raw.get("slots")
     if not isinstance(slots_raw, list):
         raise ValueError(f"tactic {raw.get('key')!r} is missing its slots list")
+    slots = tuple(_slot_from_json(slot) for slot in slots_raw)
     return TacticDefinition(
         key=_str(raw, "key"),
         name=_str(raw, "name"),
         formation=_str(raw, "formation"),
         mentality=_str(raw, "mentality"),
         instructions=_str_tuple(raw, "instructions"),
-        slots=tuple(_slot_from_json(slot) for slot in slots_raw),
+        slots=slots,
         catalogue_version=version,
+        system_requirements=(
+            _system_requirements(raw["system"])
+            if "system" in raw
+            else _inferred_system_requirements(raw, slots)
+        ),
     )
 
 
@@ -175,6 +300,65 @@ def _str_tuple(raw: Mapping[str, Any], name: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise ValueError(f"{name!r} must be an array of strings")
     return tuple(value)
+
+
+def _number_mapping(value: Any, name: str) -> Mapping[str, float]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError(f"{name!r} must be an object")
+    result: dict[str, float] = {}
+    for key, item in value.items():
+        if not isinstance(key, str) or not key:
+            raise ValueError(f"{name!r} keys must be non-empty strings")
+        if not isinstance(item, (int, float)) or isinstance(item, bool):
+            raise ValueError(f"{name!r} values must be numbers")
+        result[key] = float(item)
+    return result
+
+
+def _system_requirements(value: Any) -> TacticSystemRequirements:
+    if value is None:
+        return TacticSystemRequirements()
+    if not isinstance(value, dict):
+        raise ValueError("tactic system must be an object")
+    return TacticSystemRequirements(
+        minimums=_number_mapping(value.get("minimums"), "tactic system minimums"),
+        maximum_attack_duties=value.get("maximumAttackDuties"),
+        maximum_creators=value.get("maximumCreators"),
+    )
+
+
+def _inferred_system_requirements(
+    raw: Mapping[str, Any], slots: tuple[TacticSlot, ...]
+) -> TacticSystemRequirements:
+    """Give the legacy MVP templates a visible, replaceable POC system model."""
+
+    wide_slots = sum(
+        slot.position in {"ML", "MR", "AML", "AMR", "WBL", "WBR"}
+        for slot in slots
+    )
+    mentality = _str(raw, "mentality")
+    attack_limit = {
+        "Defensive": 3,
+        "Balanced": 4,
+        "Positive": 5,
+        "Attacking": 6,
+        "Counter": 4,
+    }.get(mentality, 4)
+    return TacticSystemRequirements(
+        minimums={
+            "width": 2.0 if wide_slots else 1.5,
+            "defensiveCover": 3.0,
+            "ballProgression": 2.0,
+            "runners": 1.0,
+            "penetration": 1.0,
+            "boxPresence": 1.0,
+            "restDefence": 3.0,
+        },
+        maximum_attack_duties=attack_limit,
+        maximum_creators=3,
+    )
 
 
 MVP_CATALOGUE = load_catalogue()

@@ -116,8 +116,16 @@ def assess_weaknesses(
 
     for slot in evaluation.tactic.slots:
         starter = starters.get(slot.key)
+        # Depth is assessed against the role the joint optimiser actually
+        # selected, rather than the template's former default role.
+        role_key = (
+            starter.intrinsic_role_score.role_key
+            if starter is not None
+            else slot.role_key
+        )
         available, unavailable = _backups_for_slot(
             slot,
+            role_key,
             players,
             starter_ids,
             catalogue,
@@ -125,6 +133,7 @@ def assess_weaknesses(
         )
         occupied = _occupied_starter_cover(
             slot,
+            role_key,
             players,
             starter_ids,
             catalogue,
@@ -231,12 +240,13 @@ def assess_weaknesses(
 
 def _backups_for_slot(
     slot: TacticSlot,
+    role_key: str,
     players: Sequence[PlayerSelectionInput],
     starter_ids: set[str],
     catalogue: FootballCatalogue,
     readiness_policy: ReadinessPolicy,
 ) -> tuple[tuple[DepthCandidate, ...], tuple[DepthCandidate, ...]]:
-    role = catalogue.roles[slot.role_key]
+    role = catalogue.roles[role_key]
     available: list[DepthCandidate] = []
     unavailable: list[DepthCandidate] = []
     for player in players:
@@ -264,11 +274,12 @@ def _backups_for_slot(
 
 def _occupied_starter_cover(
     slot: TacticSlot,
+    role_key: str,
     players: Sequence[PlayerSelectionInput],
     starter_ids: set[str],
     catalogue: FootballCatalogue,
 ) -> tuple[DepthCandidate, ...]:
-    role = catalogue.roles[slot.role_key]
+    role = catalogue.roles[role_key]
     candidates = (
         DepthCandidate(
             player_id=player.id,

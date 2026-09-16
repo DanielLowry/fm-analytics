@@ -34,6 +34,10 @@ uv run --extra research python tools/fm20_scouting_feed.py \
 fm-web --direct-live --scouting-json data/scouting-capture.json
 ```
 
+When either `data/scouting-capture.json` or the richer
+`data/scouting-capture-hydrated.json` exists in this project, `fm-web` loads it
+automatically. `--scouting-json` still overrides that choice.
+
 The feed builder does not reproduce the filters currently open in FM. It asks
 FM only for the manager's Player Search pool, removes the managed club's own
 contracted players, and leaves all remaining filtering to this page.
@@ -43,6 +47,19 @@ as **Scout first** and have no position match until external position and
 attribute visibility have been proven. This is intentional: it is useful for
 building the manager's true discovery queue, without pretending to know more
 than FM has safely supplied.
+
+To hydrate a small set of known candidates with all of FM's manager-visible
+attribute values and footedness, repeat `--hydrate-player-id` (up to 64 players). This is
+bounded deliberately while the external-player route is validated:
+
+```bash
+uv run --extra research python tools/fm20_scouting_feed.py \
+  --hydrate-player-id 9214 \
+  --output data/scouting-capture-hydrated.json
+```
+
+Use `--base-feed` to retain previously captured visible fields. To update that
+same known capture, pair it with `--replace` and name the exact output file.
 
 The Scouting page can also start with a separately captured, manager-visible
 JSON feed:

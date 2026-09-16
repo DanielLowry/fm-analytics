@@ -53,6 +53,11 @@ def build_recruitment_briefs(
         raise ValueError("weakness report tactic does not belong to the catalogue")
     tactic = catalogue.tactics[report.tactic_key]
     slots = {slot.key: slot for slot in tactic.slots}
+    selected_roles = {
+        item.slot.key: item.intrinsic_role_score.role_key
+        for item in (depth.starter for depth in report.depth)
+        if item is not None
+    }
     briefs: list[RecruitmentBrief] = []
     seen: set[tuple[str, str, str]] = set()
     for weakness in report.weaknesses:
@@ -63,7 +68,9 @@ def build_recruitment_briefs(
         relevant_slots = tuple(slots[key] for key in weakness.slot_keys)
         grouped: dict[tuple[str, str], list[str]] = {}
         for slot in relevant_slots:
-            grouped.setdefault((slot.position, slot.role_key), []).append(slot.key)
+            grouped.setdefault(
+                (slot.position, selected_roles.get(slot.key, slot.role_key)), []
+            ).append(slot.key)
         for (position, role_key), slot_keys in grouped.items():
             identity = (position, role_key, need)
             if identity in seen:

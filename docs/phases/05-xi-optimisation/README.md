@@ -2,22 +2,23 @@
 
 ## Planning status
 
-In progress. A deterministic joint assignment engine now evaluates each
-versioned tactic against the available squad. Exact constraint weights still
-need review against the first visibility-safe squad capture.
+In progress. A deterministic bounded joint role/player assignment engine now
+evaluates each versioned tactic against the available squad. Exact constraint
+weights and the role-system profiles still need football review against a
+visibility-safe squad capture.
 
 The engine assigns each eligible player to at most one of the eleven tactic
-slots. For a legal XI it maximizes the versioned tactic-fit objective below;
-for an incomplete XI it fills as many slots as possible and then maximizes
-their total central selection score. Injury, suspension, explicit availability,
-and minimum readiness thresholds are hard constraints. Condition and match
-fitness apply a separately versioned, separately reported penalty; they never
-alter intrinsic role quality. Unknown
-readiness is penalized and explained. An incomplete shape reports its unfilled
-slots and ranks behind any shape with a legal eleven.
+slots and chooses one permitted role/duty for that player/slot pairing. A
+legacy template's fixed role is now its default member of a deliberately small
+role family; future catalogue entries may declare their exact `roles` list per
+slot. The bounded search is necessary because different role choices can have
+the same local player score but materially different team effects. Injury,
+suspension, explicit availability, and minimum readiness thresholds are hard
+constraints. Condition and match fitness apply a separately versioned,
+separately reported penalty; they never alter intrinsic role quality.
 
-The current opponent-neutral fit policy (`tactic-fit-v1`) scores each possible
-XI from its eleven post-readiness player/role selection scores:
+The current opponent-neutral **XI suitability** policy (`tactic-fit-v1`) scores
+each possible XI from its eleven post-readiness player/role selection scores:
 
 ```text
 tactic fit = 0.65 × mean(XI slots) + 0.35 × minimum(XI slots)
@@ -28,13 +29,17 @@ because it omits a hard-to-fill position. The 35% weakest-slot weight is a
 provisional preference, not a measured win-probability coefficient. It makes
 one glaring mismatch more costly than a small increase in average quality:
 ten slots scoring about 58 and one scoring 0 have a higher mean than eleven
-slots scoring about 47, but a lower tactic fit. The selector optimizes this
-same objective when assigning players, rather than choosing a mean-optimal XI
-and only then penalizing its weakest slot. It checks each attainable minimum
-score as a floor and finds the best total under that floor. Lower and upper
-fit bounds use the same formula on the selected XI's score bounds; they express
-attribute uncertainty, not uncertainty over which XI would be selected. The
-CLI reports the mean, weakest slot, fit range, and policy version separately.
+slots scoring about 47, but a lower tactic fit. The selector uses that component
+together with `system-fit-v1`: 60% XI suitability, 25% tactical coherence, and
+15% instruction suitability, with a 20% weakest-component penalty. Coherence
+scores explicit role contributions (width, cover, progression, creators,
+runners, penetration, aerial outlet, box presence, rest defence, and pressing)
+against the formation's requirements and caps redundant attack duties and
+creators. Instruction suitability tests the same selected system against demands
+such as counter-pressing, playing out, or counter-attacking. The role profiles
+and weights are transparent POC hypotheses, not calibrated claims about FM's
+hidden match engine. Lower and upper overall bounds use the selected XI's score
+bounds; they do not express uncertainty over which XI would be selected.
 
 The selected shape now also receives an explainable seven-player bench. Only
 selectable non-starters are considered; greedy selection prioritizes new
@@ -66,11 +71,12 @@ validation.
 
 ## Outcome
 
-Recommend an opponent-neutral tactical template, legal starting XI, and
-substitutes by evaluating the supported tactics and player assignments jointly.
-The result accounts for role suitability and today's availability, condition,
-match sharpness, and binary position eligibility. It remains an explainable
-decision aid, not an automatic team-submission system.
+Recommend an opponent-neutral formation, coherent role system, legal starting
+XI, and substitutes by evaluating permitted roles and player assignments
+jointly. The result separately reports role suitability, XI suitability,
+tactical coherence, instruction suitability, and today's availability,
+condition, match sharpness, and binary position eligibility. It remains an
+explainable decision aid, not an automatic team-submission system.
 
 ## Prerequisites
 

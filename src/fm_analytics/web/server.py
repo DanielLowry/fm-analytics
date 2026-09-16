@@ -68,6 +68,7 @@ _NAV: tuple[tuple[str, str], ...] = (
 _INJURY_RISK_KINDS = frozenset(
     {WeaknessKind.NO_BACKUP, WeaknessKind.WEAK_BACKUP, WeaknessKind.SHARED_COVER}
 )
+_MAX_SCOUTING_ROWS = 100
 
 _STYLE = """
 <style>
@@ -372,6 +373,8 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 f"<td>{html.escape(evaluation.tactic.name)}</td>"
                 f"<td>{html.escape(evaluation.tactic.formation)}</td>"
                 f"<td>{_band(evaluation.score)}</td>"
+                f"<td>XI {evaluation.xi_score.central:.1f}; system {evaluation.coherence.score:.1f}; "
+                f"instructions {evaluation.instruction_suitability.score:.1f}</td>"
                 f"<td>{status}</td>"
                 f"<td><span class='badge {risk_class}'>{risk}</span></td>"
                 "</tr>"
@@ -427,11 +430,12 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         body = (
             "<h2>Tactic comparison</h2>"
             "<ul class='legend'>"
-            "<li><b>Fit</b>: 65% XI average + 35% weakest slot</li>"
+            "<li><b>XI suitability</b>: 65% XI average + 35% weakest slot</li>"
+            "<li><b>Overall fit</b>: XI suitability plus role-system coherence and instruction suitability; opponent suitability is not yet scored.</li>"
             "<li><b>XI</b>: ✓ full XI available, ✗ lists unfillable slots</li>"
             "<li><b>Injury risk</b>: starting slots without adequate cover</li>"
             "</ul>"
-            "<table><tr><th>Tactic</th><th>Formation</th><th>Fit</th><th>XI</th>"
+            "<table><tr><th>Tactic</th><th>Formation</th><th>Overall fit</th><th>Score breakdown</th><th>XI</th>"
             "<th>Injury risk</th></tr>"
             + "".join(rows)
             + "</table>"
@@ -584,6 +588,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 + ("No manager-visible scouting candidates have been loaded yet. Supply a verified scouting capture with <code>--scouting-json</code>." if total_candidates == 0 else "No candidates match these filters.")
                 + "</p>"
             )
+        displayed = assessments[:_MAX_SCOUTING_ROWS]
         rows: list[str] = []
         details: list[str] = []
         labels = {
@@ -592,7 +597,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             ScoutRecommendation.SCOUT_TO_DECIDE: ("Scout to decide", "badge-scout", "Ranges or unknowns can still change this decision."),
             ScoutRecommendation.UNLIKELY: ("Unlikely", "badge-unlikely", "Even the visible ceiling misses your filter."),
         }
-        for item in assessments:
+        for item in displayed:
             label, badge, reason = labels[item.recommendation]
             candidate = item.candidate
             rows.append(
@@ -625,7 +630,12 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         role_name = MVP_CATALOGUE.roles[role_key].name if role_key in MVP_CATALOGUE.roles else "selected role"
         return (
             f"<h2>Targets for {html.escape(role_name)} ({len(assessments)})</h2>"
-            "<ul class='legend'><li><b>Scout first</b>: no relevant attributes are known.</li>"
+            + (
+                f"<p class='muted'>Showing the first {len(displayed)} targets. "
+                "More precise position and visibility filters will narrow this list.</p>"
+                if len(assessments) > len(displayed) else ""
+            )
+            + "<ul class='legend'><li><b>Scout first</b>: no relevant attributes are known.</li>"
             "<li><b>Scout to decide</b>: ranges or unknown values could still change the role fit.</li>"
             "<li><b>Floor / estimate / ceiling</b>: the best and worst role score supported by visible information.</li></ul>"
             "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions</th><th>Role score</th><th>Visibility</th><th>Recommendation</th></tr>"
@@ -851,9 +861,11 @@ def _build_provider(args: argparse.Namespace) -> GameSquadProvider:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     provider = _build_provider(args)
+    default_scouting_path = _default_scouting_path()
+    scouting_path = args.scouting_json or default_scouting_path
     server = SquadWebServer(
         (args.host, args.port), provider,
-        scouting_provider=(scouting_json_provider(args.scouting_json) if args.scouting_json else None),
+        scouting_provider=(scouting_json_provider(scouting_path) if scouting_path else None),
         cache_ttl_seconds=args.cache_ttl_seconds,
     )
     print(f"FM Analytics web view listening on http://{args.host}:{args.port}")
@@ -872,6 +884,21 @@ def _default_fixture_path() -> str:
     return str(
         Path(__file__).resolve().parents[1] / "fixtures" / "sample-game.json"
     )
+
+
+def _default_scouting_path():
+    from pathlib import Path
+
+    data_dir = Path(__file__).resolve().parents[3] / "data"
+    for filename in (
+        "scouting-capture-enriched.json",
+        "scouting-capture-hydrated.json",
+        "scouting-capture.json",
+    ):
+        candidate = data_dir / filename
+        if candidate.exists():
+            return candidate
+    return None
 
 
 if __name__ == "__main__":

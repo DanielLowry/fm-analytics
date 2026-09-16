@@ -20,6 +20,7 @@ from fm_analytics.analytics.catalogue import (
     FootballCatalogue,
     TacticDefinition,
     TacticSlot,
+    TacticSystemRequirements,
 )
 from fm_analytics.analytics.xi_selection import (
     EffectiveAndPotentialRecommendation,
@@ -29,6 +30,7 @@ from fm_analytics.analytics.xi_selection import (
     SlotAssignment,
     TacticEvaluation,
     TacticFitPolicy,
+    SystemFitPolicy,
     TacticRecommendation,
     TrainingTarget,
     evaluate_tactic,
@@ -123,8 +125,10 @@ __all__ = [
     "TacticDefinition",
     "TacticEvaluation",
     "TacticFitPolicy",
+    "SystemFitPolicy",
     "TacticRecommendation",
     "TacticSlot",
+    "TacticSystemRequirements",
     "TaggedWeakness",
     "TrainingTarget",
     "Weakness",
