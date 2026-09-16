@@ -1,6 +1,5 @@
 from fm_analytics.analytics.role_scoring import (
     AttributeContribution,
-    AttributePriority,
     RoleAttribute,
     RoleDefinition,
     RoleScore,
@@ -88,7 +87,6 @@ from fm_analytics.analytics.scouting import (
 
 __all__ = [
     "AttributeContribution",
-    "AttributePriority",
     "BenchEntry",
     "BenchSelection",
     "CandidateRoleScore",

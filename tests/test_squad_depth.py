@@ -1,7 +1,6 @@
 import unittest
 
 from fm_analytics.analytics import (
-    AttributePriority,
     FamiliarityPolicy,
     FootballCatalogue,
     PlayerSelectionInput,
@@ -28,14 +27,14 @@ ROLE_A = RoleDefinition(
     key="role_a",
     name="Role A",
     eligible_positions=("GK", "DL", "DR", "DC", "MC1", "MC2", "AML", "AMR", "ST1", "ST2", "DM"),
-    attributes=(RoleAttribute("quality", 1, AttributePriority.REQUIRED),),
+    attributes=(RoleAttribute("quality", 1),),
     catalogue_version=VERSION,
 )
 ROLE_B = RoleDefinition(
     key="role_b",
     name="Role B",
     eligible_positions=("AMC",),
-    attributes=(RoleAttribute("quality", 1, AttributePriority.REQUIRED),),
+    attributes=(RoleAttribute("quality", 1),),
     catalogue_version=VERSION,
 )
 # A distinct scoring attribute at the same DM position: a player can be a
@@ -45,7 +44,7 @@ ROLE_C = RoleDefinition(
     key="role_c",
     name="Role C",
     eligible_positions=("DM",),
-    attributes=(RoleAttribute("flair", 1, AttributePriority.REQUIRED),),
+    attributes=(RoleAttribute("flair", 1),),
     catalogue_version=VERSION,
 )
 

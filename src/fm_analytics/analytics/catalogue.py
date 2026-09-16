@@ -7,9 +7,12 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from fm_analytics.analytics.role_scoring import (
-    AttributePriority,
     RoleAttribute,
     RoleDefinition,
+)
+from fm_analytics.analytics.role_weights import (
+    RoleWeightsCatalogue,
+    load_role_weights,
 )
 
 
@@ -199,24 +202,47 @@ class FootballCatalogue:
         )
 
 
-def _attributes(
-    *, required: tuple[str, ...], desirable: tuple[str, ...]
+def _attributes_from_weights(
+    *,
+    catalogue_key: str,
+    required: tuple[str, ...],
+    desirable: tuple[str, ...],
+    weight_catalogue: RoleWeightsCatalogue | None,
 ) -> tuple[RoleAttribute, ...]:
+    """Build RoleAttribute tuple using CSV-derived weights when available."""
+    if weight_catalogue is not None and catalogue_key in weight_catalogue.roles:
+        entry = weight_catalogue.roles[catalogue_key]
+        return tuple(
+            RoleAttribute(name=name, weight=cfg.effective_weight)
+            for name, cfg in entry.attributes.items()
+            if cfg.effective_weight > 0
+        )
+    # Fallback for roles not in the weight config (shouldn't happen with current data)
     return tuple(
-        RoleAttribute(name, 2, AttributePriority.REQUIRED) for name in required
+        RoleAttribute(name=name, weight=2.0)
+        for name in required
     ) + tuple(
-        RoleAttribute(name, 1, AttributePriority.DESIRABLE) for name in desirable
+        RoleAttribute(name=name, weight=1.0)
+        for name in desirable
     )
 
 
-def _role_from_json(raw: Mapping[str, Any], *, version: str) -> RoleDefinition:
+def _role_from_json(
+    raw: Mapping[str, Any],
+    *,
+    version: str,
+    weight_catalogue: RoleWeightsCatalogue | None = None,
+) -> RoleDefinition:
+    key = _str(raw, "key")
     return RoleDefinition(
-        key=_str(raw, "key"),
+        key=key,
         name=_str(raw, "name"),
         eligible_positions=_str_tuple(raw, "positions"),
-        attributes=_attributes(
+        attributes=_attributes_from_weights(
+            catalogue_key=key,
             required=_str_tuple(raw, "required"),
             desirable=_str_tuple(raw, "desirable"),
+            weight_catalogue=weight_catalogue,
         ),
         catalogue_version=version,
         system_traits=_number_mapping(raw.get("system"), "role system"),
@@ -256,7 +282,10 @@ def _tactic_from_json(raw: Mapping[str, Any], *, version: str) -> TacticDefiniti
     )
 
 
-def load_catalogue(path: Path = _DATA_PATH) -> FootballCatalogue:
+def load_catalogue(
+    path: Path = _DATA_PATH,
+    weight_catalogue: RoleWeightsCatalogue | None = None,
+) -> FootballCatalogue:
     """Load and validate a versioned football catalogue from JSON.
 
     Every structural rule (eleven unique slots, roles that exist, slots whose
@@ -275,7 +304,10 @@ def load_catalogue(path: Path = _DATA_PATH) -> FootballCatalogue:
         raise ValueError(f"catalogue file {path} must define roles and tactics arrays")
     roles = {
         role.key: role
-        for role in (_role_from_json(entry, version=version) for entry in roles_raw)
+        for role in (
+            _role_from_json(entry, version=version, weight_catalogue=weight_catalogue)
+            for entry in roles_raw
+        )
     }
     if len(roles) != len(roles_raw):
         raise ValueError(f"catalogue file {path} has duplicate role keys")
@@ -361,7 +393,8 @@ def _inferred_system_requirements(
     )
 
 
-MVP_CATALOGUE = load_catalogue()
+_WEIGHT_CATALOGUE = load_role_weights()
+MVP_CATALOGUE = load_catalogue(weight_catalogue=_WEIGHT_CATALOGUE)
 # The version string lives in the JSON data (single source of truth); this
 # alias exists only so code that wants "the current catalogue version" does
 # not need to import MVP_CATALOGUE just to read one field off it.

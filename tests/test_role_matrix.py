@@ -1,7 +1,6 @@
 import unittest
 
 from fm_analytics.analytics import (
-    AttributePriority,
     FootballCatalogue,
     PlayerSelectionInput,
     RoleAttribute,
@@ -18,21 +17,21 @@ STRIKER = RoleDefinition(
     key="striker",
     name="Striker",
     eligible_positions=("ST",),
-    attributes=(RoleAttribute("finishing", 2, AttributePriority.REQUIRED),),
+    attributes=(RoleAttribute("finishing", 2),),
     catalogue_version=VERSION,
 )
 KEEPER = RoleDefinition(
     key="keeper",
     name="Keeper",
     eligible_positions=("GK",),
-    attributes=(RoleAttribute("reflexes", 2, AttributePriority.REQUIRED),),
+    attributes=(RoleAttribute("reflexes", 2),),
     catalogue_version=VERSION,
 )
 DEFENDER = RoleDefinition(
     key="defender",
     name="Defender",
     eligible_positions=("DC",),
-    attributes=(RoleAttribute("marking", 2, AttributePriority.REQUIRED),),
+    attributes=(RoleAttribute("marking", 2),),
     catalogue_version=VERSION,
 )
 # FootballCatalogue requires at least one complete tactic even though this

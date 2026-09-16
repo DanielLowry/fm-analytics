@@ -2,7 +2,6 @@ import unittest
 from dataclasses import replace
 
 from fm_analytics.analytics import (
-    AttributePriority,
     FamiliarityPolicy,
     FootballCatalogue,
     MVP_CATALOGUE,
@@ -29,7 +28,7 @@ ROLE = RoleDefinition(
     key="generic",
     name="Generic",
     eligible_positions=("GK", "SW", "DC", "MC", "ST"),
-    attributes=(RoleAttribute("quality", 1, AttributePriority.REQUIRED),),
+    attributes=(RoleAttribute("quality", 1),),
     catalogue_version=VERSION,
 )
 
@@ -127,14 +126,14 @@ class XiSelectionTests(unittest.TestCase):
             key="weak",
             name="Weak",
             eligible_positions=("GK",),
-            attributes=(RoleAttribute("weak", 1, AttributePriority.REQUIRED),),
+            attributes=(RoleAttribute("weak", 1),),
             catalogue_version=VERSION,
         )
         steady_role = RoleDefinition(
             key="steady",
             name="Steady",
             eligible_positions=ROLE.eligible_positions,
-            attributes=(RoleAttribute("steady", 1, AttributePriority.REQUIRED),),
+            attributes=(RoleAttribute("steady", 1),),
             catalogue_version=VERSION,
         )
         uneven_tactic = replace(
@@ -179,14 +178,14 @@ class XiSelectionTests(unittest.TestCase):
             key="role-a",
             name="Role A",
             eligible_positions=("ST",),
-            attributes=(RoleAttribute("a", 1, AttributePriority.REQUIRED),),
+            attributes=(RoleAttribute("a", 1),),
             catalogue_version=VERSION,
         )
         role_b = RoleDefinition(
             key="role-b",
             name="Role B",
             eligible_positions=("ST",),
-            attributes=(RoleAttribute("b", 1, AttributePriority.REQUIRED),),
+            attributes=(RoleAttribute("b", 1),),
             catalogue_version=VERSION,
         )
         shaped = replace(

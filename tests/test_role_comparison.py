@@ -1,7 +1,6 @@
 import unittest
 
 from fm_analytics.analytics import (
-    AttributePriority,
     CandidateRoleScore,
     RoleAttribute,
     RoleDefinition,
@@ -16,8 +15,8 @@ ROLE = RoleDefinition(
     name="Goalkeeper (Defend)",
     eligible_positions=("GK",),
     attributes=(
-        RoleAttribute("reflexes", 2, AttributePriority.REQUIRED),
-        RoleAttribute("aerialReach", 1, AttributePriority.DESIRABLE),
+        RoleAttribute("reflexes", 2),
+        RoleAttribute("aerialReach", 1),
     ),
     catalogue_version="test-v1",
 )

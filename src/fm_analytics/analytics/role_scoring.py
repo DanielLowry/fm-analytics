@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import StrEnum
 from math import isfinite
 from typing import Mapping
 
@@ -9,22 +8,16 @@ from fm_analytics.domain import AttributeObservation
 from fm_analytics.domain.models import Visibility
 
 
-class AttributePriority(StrEnum):
-    REQUIRED = "required"
-    DESIRABLE = "desirable"
-
-
 @dataclass(frozen=True)
 class RoleAttribute:
     name: str
     weight: float
-    priority: AttributePriority
 
     def __post_init__(self) -> None:
         if not self.name:
             raise ValueError("role attribute name must not be empty")
-        if not isfinite(self.weight) or self.weight <= 0:
-            raise ValueError("role attribute weight must be finite and positive")
+        if not isfinite(self.weight) or self.weight < 0:
+            raise ValueError("role attribute weight must be finite and non-negative")
 
 
 @dataclass(frozen=True)
@@ -88,7 +81,6 @@ class ScoreBand:
 @dataclass(frozen=True)
 class AttributeContribution:
     attribute: str
-    priority: AttributePriority
     weight: float
     supplied: bool
     observation: AttributeObservation
@@ -168,7 +160,6 @@ def score_role(
         contributions.append(
             AttributeContribution(
                 attribute=weighted_attribute.name,
-                priority=weighted_attribute.priority,
                 weight=weighted_attribute.weight,
                 supplied=supplied,
                 observation=observation,

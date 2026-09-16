@@ -1,7 +1,6 @@
 import unittest
 
 from fm_analytics.analytics import (
-    AttributePriority,
     RoleAttribute,
     RoleDefinition,
     ScoringPolicy,
@@ -29,8 +28,8 @@ def role() -> RoleDefinition:
         name="Central Midfielder (Support)",
         eligible_positions=("MC",),
         attributes=(
-            RoleAttribute("passing", 2, AttributePriority.REQUIRED),
-            RoleAttribute("vision", 1, AttributePriority.DESIRABLE),
+            RoleAttribute("passing", 2),
+            RoleAttribute("vision", 1),
         ),
         catalogue_version="test-v1",
     )
@@ -116,8 +115,8 @@ class RoleScoringTests(unittest.TestCase):
                 name="Duplicate",
                 eligible_positions=("MC",),
                 attributes=(
-                    RoleAttribute("passing", 1, AttributePriority.REQUIRED),
-                    RoleAttribute("passing", 2, AttributePriority.DESIRABLE),
+                    RoleAttribute("passing", 1),
+                    RoleAttribute("passing", 2),
                 ),
                 catalogue_version="test-v1",
             )

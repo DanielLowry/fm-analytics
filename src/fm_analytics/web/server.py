@@ -432,6 +432,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "<ul class='legend'>"
             "<li><b>XI suitability</b>: 65% XI average + 35% weakest slot</li>"
             "<li><b>Overall fit</b>: XI suitability plus role-system coherence and instruction suitability; opponent suitability is not yet scored.</li>"
+            "<li><b>Once trained</b>: the same tactic with positional-familiarity discounts removed (equivalent to every eligible selected player being 20/20 familiar). It does not project attribute growth, hidden potential, or whole-tactic familiarity.</li>"
             "<li><b>XI</b>: ✓ full XI available, ✗ lists unfillable slots</li>"
             "<li><b>Injury risk</b>: starting slots without adequate cover</li>"
             "</ul>"

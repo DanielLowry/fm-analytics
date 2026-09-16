@@ -208,6 +208,8 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("Injury risk", body)
         self.assertIn("65%", body)
+        self.assertIn("Once trained", body)
+        self.assertIn("does not project attribute growth", body)
         self.assertIn("<ul class='legend'>", body)
         # Owned players' attributes are exact, so scores collapse to one number.
         self.assertNotIn(" / ", body.split("Tactic comparison")[1].split("</table>")[0])

@@ -1,7 +1,6 @@
 import unittest
 
 from fm_analytics.analytics import (
-    AttributePriority,
     FootballCatalogue,
     PlayerSelectionInput,
     RoleAttribute,
@@ -27,14 +26,14 @@ GENERIC = RoleDefinition(
     key="generic",
     name="Generic",
     eligible_positions=tuple(sorted(set(POSITIONS))),
-    attributes=(RoleAttribute("quality", 1, AttributePriority.REQUIRED),),
+    attributes=(RoleAttribute("quality", 1),),
     catalogue_version=VERSION,
 )
 CREATOR = RoleDefinition(
     key="creator",
     name="Creator",
     eligible_positions=("ST",),
-    attributes=(RoleAttribute("creator", 1, AttributePriority.REQUIRED),),
+    attributes=(RoleAttribute("creator", 1),),
     catalogue_version=VERSION,
     system_traits={"creativity": 2.0},
 )
@@ -42,7 +41,7 @@ RUNNER = RoleDefinition(
     key="runner",
     name="Runner",
     eligible_positions=("ST",),
-    attributes=(RoleAttribute("runner", 1, AttributePriority.REQUIRED),),
+    attributes=(RoleAttribute("runner", 1),),
     catalogue_version=VERSION,
     system_traits={"runners": 1.0, "penetration": 1.0},
 )
