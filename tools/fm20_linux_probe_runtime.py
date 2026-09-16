@@ -25,6 +25,7 @@ parse_module_mapping = _probe_module.parse_module_mapping
 read_exact = _probe_module.read_exact
 read_first_team_squad = _probe_module.read_first_team_squad
 read_human_manager_contexts = _probe_module.read_human_manager_contexts
+read_other_club_teams = _probe_module.read_other_club_teams
 validate_executable = _probe_module.validate_executable
 
 
@@ -84,6 +85,12 @@ def probe(pid: int, proc_root: Path = Path("/proc")) -> ProbeResult:
             if active_context and active_context.team_address
             else ()
         )
+        active_club = active_context.manager.club if active_context else None
+        other_club_teams = (
+            read_other_club_teams(memory_fd, module_base, active_club.id, game_date)
+            if active_club is not None
+            else ()
+        )
     finally:
         os.close(memory_fd)
     return ProbeResult(
@@ -95,6 +102,7 @@ def probe(pid: int, proc_root: Path = Path("/proc")) -> ProbeResult:
         game_date=game_date.isoformat(),
         human_managers=tuple(context.manager for context in manager_contexts),
         first_team_squad=first_team_squad,
+        other_club_teams=other_club_teams,
     )
 
 

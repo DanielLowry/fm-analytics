@@ -294,10 +294,17 @@ def source_owned_visible_data(
             f"only the managed team {active.club.name!r} is supported; "
             f"requested {team_name!r}"
         )
+    # Every managed player, first team and every other club team (youth,
+    # reserves, ...) alike: knowledge is manager-wide, not team-wide, so the
+    # same exact-value guarantee that holds for the first team holds here too.
+    all_managed_players = before.first_team_squad + tuple(
+        player for team in before.other_club_teams for player in team.players
+    )
     selected = select_players(
-        before.first_team_squad,
+        all_managed_players,
         player_id=player_id,
         player_name=player_name,
+        scope_label="active manager's club (first team and other squads)",
     )
     selected_attributes = tuple(attributes) or tuple(
         sorted(ATTRIBUTE_OFFSETS, key=DISPLAY_ATTRIBUTE_IDS.__getitem__)
@@ -329,11 +336,13 @@ def source_owned_visible_data(
     finally:
         os.close(memory_fd)
     after = probe(pid, proc_root)
-    if (
-        after.game_date != before.game_date
-        or {player.id for player in after.first_team_squad}
-        != {player.id for player in before.first_team_squad}
-    ):
+
+    def _all_ids(result: object) -> set[str]:
+        return {player.id for player in result.first_team_squad} | {
+            player.id for team in result.other_club_teams for player in team.players
+        }
+
+    if after.game_date != before.game_date or _all_ids(after) != _all_ids(before):
         raise ProbeError("FM20 changed during the read; discard this snapshot")
     return {
         "source": "live-owned-squad",

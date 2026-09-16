@@ -307,21 +307,79 @@ class Player:
 
 
 @dataclass(frozen=True)
+class SquadTeam:
+    """One non-first-team squad at the managed club: youth, reserves, and so on.
+
+    `marker` is FM's own raw team-type value for this squad (never 0, which
+    identifies the first team and lives in `Squad.players` instead, never
+    here, so a player is never counted twice). FM's human-readable name for
+    each marker has not been decoded yet -- see
+    docs/property-discovery-playbook.md -- so only the raw marker is exposed;
+    inventing a label such as "Under 18s" here would misrepresent FM's data.
+    """
+
+    marker: int
+    players: tuple[Player, ...]
+
+    def __post_init__(self) -> None:
+        if not _is_int(self.marker) or self.marker == 0:
+            raise ValueError("a squad team marker must be a non-zero integer")
+
+    @classmethod
+    def from_dict(cls, raw: Mapping[str, Any]) -> SquadTeam:
+        raw = _mapping(raw, "squad team")
+        players = _required_list(raw, "players")
+        return cls(
+            marker=_required_int(raw, "marker"),
+            players=tuple(
+                Player.from_dict(_mapping(player, "players item")) for player in players
+            ),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "marker": self.marker,
+            "players": [player.to_dict() for player in self.players],
+        }
+
+
+@dataclass(frozen=True)
 class Squad:
     club: Club | None
     as_of_date: date
     players: tuple[Player, ...]
+    # Additive per the v1 contract's field-versioning rule, so it defaults to
+    # empty rather than requiring every existing construction site to supply
+    # it. `players` keeps meaning "the first team" exactly as before; this is
+    # every other squad at the club. Use `all_players()` for everyone at once.
+    other_teams: tuple[SquadTeam, ...] = field(default_factory=tuple)
+
+    def all_players(self) -> tuple[Player, ...]:
+        """The whole club: the first team plus every other team's players.
+
+        `players` alone remains "filtered back to the first team"; this adds
+        youth, reserve, and any other squad FM reports for the same club.
+        """
+        return self.players + tuple(
+            player for team in self.other_teams for player in team.players
+        )
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> Squad:
         raw = _mapping(raw, "squad")
         club = _nullable_mapping(raw, "club")
         players = _required_list(raw, "players")
+        other_teams = raw.get("otherTeams", [])
+        if not isinstance(other_teams, list):
+            raise TypeError("otherTeams must be an array")
         return cls(
             club=Club.from_dict(club) if club is not None else None,
             as_of_date=_required_date(raw, "asOfDate"),
             players=tuple(
                 Player.from_dict(_mapping(player, "players item")) for player in players
+            ),
+            other_teams=tuple(
+                SquadTeam.from_dict(_mapping(team, "otherTeams item")) for team in other_teams
             ),
         )
 
@@ -330,6 +388,7 @@ class Squad:
             "club": self.club.to_dict() if self.club else None,
             "asOfDate": self.as_of_date.isoformat(),
             "players": [player.to_dict() for player in self.players],
+            "otherTeams": [team.to_dict() for team in self.other_teams],
         }
 
 

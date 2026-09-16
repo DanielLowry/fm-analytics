@@ -213,6 +213,89 @@ class BridgeSourceTests(unittest.TestCase):
                         source.get_squad()
                 self.assertEqual(error.exception.status, "invalid_payload")
 
+    def test_linux_source_builds_other_teams_alongside_the_first_team(self) -> None:
+        source = LinuxProtonDataSource(__file__)
+        probe = self.probe_document(
+            "2019-06-24", ("player-1",),
+            other_teams=((9, ("player-2", "player-3")), (12, ("player-4",))),
+        )
+        with (
+            patch.object(source, "_run_probe", return_value=probe),
+            patch.object(source, "_run_owned_source", return_value=self.owned_document(probe)),
+        ):
+            squad = source.get_squad()
+
+        self.assertEqual([player.id for player in squad.players], ["player-1"])
+        self.assertEqual([team.marker for team in squad.other_teams], [9, 12])
+        self.assertEqual(
+            [player.id for player in squad.other_teams[0].players], ["player-2", "player-3"]
+        )
+        self.assertEqual(squad.other_teams[1].players[0].attributes["passing"].value, 12)
+        self.assertEqual(
+            [player.id for player in squad.all_players()],
+            ["player-1", "player-2", "player-3", "player-4"],
+        )
+
+    def test_linux_source_defaults_other_teams_to_empty_for_an_older_probe(self) -> None:
+        source = LinuxProtonDataSource(__file__)
+        probe = self.probe_document("2019-06-24", ("player-1",))
+        self.assertNotIn("other_club_teams", probe)
+        with (
+            patch.object(source, "_run_probe", return_value=probe),
+            patch.object(source, "_run_owned_source", return_value=self.owned_document(probe)),
+        ):
+            squad = source.get_squad()
+
+        self.assertEqual(squad.other_teams, ())
+
+    def test_linux_source_rejects_malformed_club_teams(self) -> None:
+        source = LinuxProtonDataSource(__file__)
+        probe = self.probe_document("2019-06-24", ("player-1",), other_teams=((9, ("player-2",)),))
+        cases = (
+            ("marker zero", {"other_club_teams": [{"marker": 0, "players": []}]}),
+            (
+                "duplicate marker",
+                {"other_club_teams": [
+                    {"marker": 9, "players": []}, {"marker": 9, "players": []},
+                ]},
+            ),
+            ("not a list", {"other_club_teams": "nope"}),
+            ("team not an object", {"other_club_teams": ["nope"]}),
+            ("team missing players", {"other_club_teams": [{"marker": 9}]}),
+            (
+                "duplicate player id across squads",
+                {
+                    "first_team_squad": probe["first_team_squad"],
+                    "other_club_teams": [{
+                        "marker": 9,
+                        "players": [{**probe["first_team_squad"][0], "id": "player-1"}],
+                    }],
+                },
+            ),
+        )
+        for label, change in cases:
+            with self.subTest(label=label):
+                broken = {**probe, **change}
+                with patch.object(source, "_run_probe", return_value=broken):
+                    with self.assertRaises(BridgeSourceError) as error:
+                        source.get_game()
+                self.assertEqual(error.exception.status, "invalid_payload")
+
+    def test_linux_source_rejects_owned_attributes_missing_for_a_youth_player(self) -> None:
+        source = LinuxProtonDataSource(__file__)
+        probe = self.probe_document("2019-06-24", ("player-1",), other_teams=((9, ("player-2",)),))
+        owned = self.owned_document(probe)
+        owned["players"] = [
+            player for player in owned["players"] if player["id"] != "player-2"
+        ]
+        with (
+            patch.object(source, "_run_probe", return_value=probe),
+            patch.object(source, "_run_owned_source", return_value=owned),
+        ):
+            with self.assertRaises(BridgeSourceError) as error:
+                source.get_squad()
+        self.assertEqual(error.exception.status, "invalid_payload")
+
     def test_linux_source_does_not_cache_failure(self) -> None:
         source = LinuxProtonDataSource(__file__)
         recovered = self.probe_document("2019-06-24", ("player-1",))
@@ -239,8 +322,24 @@ class BridgeSourceTests(unittest.TestCase):
         self.assertEqual(run.call_count, 2)
 
     @staticmethod
-    def probe_document(game_date: str, player_ids: tuple[str, ...]) -> dict:
-        return {
+    def probe_document(
+        game_date: str,
+        player_ids: tuple[str, ...],
+        other_teams: tuple[tuple[int, tuple[str, ...]], ...] = (),
+    ) -> dict:
+        def player_row(player_id: str) -> dict:
+            return {
+                "id": player_id,
+                "name": f"Player {player_id}",
+                "positions": ["MC"],
+                "condition_percent": 95,
+                "match_fitness_percent": 90,
+                "availability": "available",
+                "injured": False,
+                "suspended": False,
+            }
+
+        document = {
             "game_date": game_date,
             "human_managers": [
                 {
@@ -250,23 +349,22 @@ class BridgeSourceTests(unittest.TestCase):
                     "club": {"id": "club-1", "name": "Club"},
                 }
             ],
-            "first_team_squad": [
-                {
-                    "id": player_id,
-                    "name": f"Player {player_id}",
-                    "positions": ["MC"],
-                    "condition_percent": 95,
-                    "match_fitness_percent": 90,
-                    "availability": "available",
-                    "injured": False,
-                    "suspended": False,
-                }
-                for player_id in player_ids
-            ],
+            "first_team_squad": [player_row(player_id) for player_id in player_ids],
         }
+        if other_teams:
+            document["other_club_teams"] = [
+                {"marker": marker, "players": [player_row(player_id) for player_id in ids]}
+                for marker, ids in other_teams
+            ]
+        return document
 
     @staticmethod
     def owned_document(probe: dict) -> dict:
+        all_players = list(probe["first_team_squad"]) + [
+            player
+            for team in probe.get("other_club_teams", [])
+            for player in team["players"]
+        ]
         return {
             "source": "live-owned-squad",
             "visibilityGuarantee": "managed-player-exact",
@@ -285,7 +383,7 @@ class BridgeSourceTests(unittest.TestCase):
                         for name in OWNED_ATTRIBUTE_ALLOWLIST
                     },
                 }
-                for player in probe["first_team_squad"]
+                for player in all_players
             ],
         }
 

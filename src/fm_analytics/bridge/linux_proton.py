@@ -19,6 +19,7 @@ from fm_analytics.domain import (
     PlayerContract,
     SourceHealth,
     Squad,
+    SquadTeam,
 )
 
 from .errors import BridgeSourceError
@@ -120,17 +121,26 @@ class LinuxProtonDataSource:
             raise BridgeSourceError("save_not_ready", "Active manager has no club.")
         owned = self._run_owned_source()
         observations = _validate_owned_source(owned, document, club.id)
-        players = tuple(
-            replace(
+
+        def _mapped(player: Mapping[str, Any]) -> Player:
+            return replace(
                 _map_player(player, club.id),
                 attributes=observations[str(player["id"])],
             )
-            for player in document["first_team_squad"]
+
+        players = tuple(_mapped(player) for player in document["first_team_squad"])
+        other_teams = tuple(
+            SquadTeam(
+                marker=int(team["marker"]),
+                players=tuple(_mapped(player) for player in team["players"]),
+            )
+            for team in document.get("other_club_teams", [])
         )
         return Squad(
             club=club,
             as_of_date=_parse_date(document["game_date"]),
             players=players,
+            other_teams=other_teams,
         )
 
     def _read_probe(self) -> dict[str, Any]:
@@ -263,6 +273,9 @@ def _validate_owned_source(
         str(player["id"]): str(player["name"])
         for player in probe["first_team_squad"]
     }
+    for team in probe.get("other_club_teams", []):
+        for player in team.get("players", []):
+            expected[str(player["id"])] = str(player["name"])
     observations: dict[str, dict[str, AttributeObservation]] = {}
     for player in raw_players:
         if not isinstance(player, dict):
@@ -326,17 +339,52 @@ def _validate_document(document: Mapping[str, Any]) -> None:
             "invalid_payload", f"Duplicate player ID '{duplicate}' in first-team squad."
         )
     for player in players:
-        _validate_percent(player.get("condition_percent"), player.get("id"), "condition")
-        _validate_percent(
-            player.get("match_fitness_percent"), player.get("id"), "match fitness"
+        _validate_squad_player(player)
+    # Absent is accepted for backward compatibility with an older probe that
+    # predates other-club-team support; present but empty is a normal club
+    # with no youth/reserve squads FM tracks, not a validation failure.
+    other_teams = document.get("other_club_teams", [])
+    if not isinstance(other_teams, list):
+        raise BridgeSourceError("invalid_payload", "Probe's other-club-teams was not a list.")
+    seen_markers: set[int] = set()
+    for team in other_teams:
+        if not isinstance(team, dict):
+            raise BridgeSourceError("invalid_payload", "A club team entry was not an object.")
+        marker = team.get("marker")
+        if not isinstance(marker, int) or isinstance(marker, bool) or marker == 0:
+            raise BridgeSourceError("invalid_payload", "A club team had an invalid marker.")
+        if marker in seen_markers:
+            raise BridgeSourceError("invalid_payload", f"Duplicate club team marker '{marker}'.")
+        seen_markers.add(marker)
+        team_players = team.get("players")
+        if not isinstance(team_players, list):
+            raise BridgeSourceError("invalid_payload", f"Club team '{marker}' omitted players.")
+        for player in team_players:
+            _validate_squad_player(player)
+    all_ids = ids + [
+        str(player.get("id")) for team in other_teams for player in team.get("players", [])
+    ]
+    duplicate = next((item for item in all_ids if all_ids.count(item) > 1), None)
+    if duplicate is not None:
+        raise BridgeSourceError(
+            "invalid_payload", f"Duplicate player ID '{duplicate}' across the club's squads."
         )
-        if not isinstance(player.get("positions"), list) or not player["positions"]:
-            raise BridgeSourceError(
-                "invalid_payload", f"Player '{player.get('id')}' has no positions."
-            )
-        _validate_position_familiarity(
-            player.get("position_familiarity"), player.get("id")
+
+
+def _validate_squad_player(player: Any) -> None:
+    if not isinstance(player, dict):
+        raise BridgeSourceError("invalid_payload", "A squad player was not an object.")
+    _validate_percent(player.get("condition_percent"), player.get("id"), "condition")
+    _validate_percent(
+        player.get("match_fitness_percent"), player.get("id"), "match fitness"
+    )
+    if not isinstance(player.get("positions"), list) or not player["positions"]:
+        raise BridgeSourceError(
+            "invalid_payload", f"Player '{player.get('id')}' has no positions."
         )
+    _validate_position_familiarity(
+        player.get("position_familiarity"), player.get("id")
+    )
 
 
 def _active_manager(document: Mapping[str, Any]) -> Mapping[str, Any]:

@@ -71,6 +71,9 @@ class ProbeResult:
     game_date: str
     human_managers: tuple[HumanManagerResult, ...]
     first_team_squad: tuple[SquadPlayerResult, ...]
+    # Additive: defaults to empty so every existing construction site (and
+    # every consumer that only ever asked for the first team) is unaffected.
+    other_club_teams: tuple[ClubTeamResult, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -112,6 +115,18 @@ class SquadPlayerResult:
     injured: bool | None
     suspended: bool | None
     contract: PlayerContractResult | None
+
+
+@dataclass(frozen=True)
+class ClubTeamResult:
+    """One non-first-team squad at the managed club: youth, reserves, and so on.
+
+    `marker` is FM's own raw team-type byte; see `read_other_club_teams` for
+    why it is not decoded into a name yet.
+    """
+
+    marker: int
+    players: tuple[SquadPlayerResult, ...]
 
 
 @dataclass(frozen=True)
@@ -548,21 +563,26 @@ def read_availability(memory_fd: int, player_address: int) -> tuple[str, bool, b
     return availability, injured, suspended
 
 
-def read_first_team_squad(
+def _read_team_squad_players(
     memory_fd: int,
     module_base: int,
-    team_address: int,
+    start: int,
+    end: int,
     as_of_date: date,
+    *,
+    squad_label: str,
 ) -> tuple[SquadPlayerResult, ...]:
-    if read_exact(memory_fd, team_address + 0x30, 1) != b"\x00":
-        raise ProbeError("active manager contract does not point to a first team")
-    start = read_u64(memory_fd, team_address + 0x38)
-    end = read_u64(memory_fd, team_address + 0x40)
+    """The player-reading loop shared by every team, first or otherwise.
+
+    Identical for any FM team object: only the caller decides which team's
+    slot vector bounds to pass in, and only for error messages does it matter
+    whether that team is the first team or another squad at the same club.
+    """
     if start == 0 or end < start or (end - start) % 8 != 0:
         raise ProbeError(f"invalid squad bounds 0x{start:x}-0x{end:x}")
     count = (end - start) // 8
     if count > 200:
-        raise ProbeError(f"implausible first-team squad size {count}")
+        raise ProbeError(f"implausible {squad_label} size {count}")
 
     expected_type = module_base + FM20_4_4_STEAM.player_type_offset
     players: list[SquadPlayerResult] = []
@@ -633,10 +653,79 @@ def read_first_team_squad(
         except (OSError, ProbeError):
             continue
         if player_id in player_ids:
-            raise ProbeError(f"duplicate player ID {player_id} in first-team squad")
+            raise ProbeError(f"duplicate player ID {player_id} in {squad_label}")
         player_ids.add(player_id)
         players.append(player)
     return tuple(sorted(players, key=lambda player: player.name.casefold()))
+
+
+def read_first_team_squad(
+    memory_fd: int,
+    module_base: int,
+    team_address: int,
+    as_of_date: date,
+) -> tuple[SquadPlayerResult, ...]:
+    if read_exact(memory_fd, team_address + 0x30, 1) != b"\x00":
+        raise ProbeError("active manager contract does not point to a first team")
+    start = read_u64(memory_fd, team_address + 0x38)
+    end = read_u64(memory_fd, team_address + 0x40)
+    return _read_team_squad_players(
+        memory_fd, module_base, start, end, as_of_date, squad_label="first-team squad"
+    )
+
+
+MAX_CLUB_TEAMS = 24
+# FM identifies each of a club's teams with a single byte at team + 0x30: 0
+# is always the first team (read_first_team_squad above), and every other
+# observed value (a small non-league club showed 9 and 12 for its two thin
+# youth squads) is some other team at the same club. FM's own human-readable
+# name for each marker has not been decoded yet -- see
+# docs/property-discovery-playbook.md -- so only the raw marker is exposed;
+# inventing a label such as "Under 18s" here would misrepresent FM's data.
+
+
+def read_other_club_teams(
+    memory_fd: int,
+    module_base: int,
+    club_id: str,
+    as_of_date: date,
+) -> tuple[ClubTeamResult, ...]:
+    """Every non-first-team squad at the managed club: youth, reserves, and so on.
+
+    Walks the same global team collection `find_managed_club` already uses,
+    keeping only teams whose club matches and whose marker is not the first
+    team's 0 (that team is `read_first_team_squad`'s job, not this one's, so
+    a player is never returned by both).
+    """
+    teams = read_pointer_collection(
+        memory_fd,
+        module_base,
+        FM20_4_4_STEAM.main_address_offset,
+        FM20_4_4_STEAM.team_collection_offset,
+        FM20_4_4_STEAM.collection_indirection_offset,
+    )
+    found: list[ClubTeamResult] = []
+    for team_address in teams:
+        if team_address == 0 or len(found) >= MAX_CLUB_TEAMS:
+            continue
+        try:
+            marker = read_exact(memory_fd, team_address + 0x30, 1)[0]
+            if marker == 0:
+                continue
+            club = read_club_from_team(memory_fd, team_address)
+            if club is None or club.id != club_id:
+                continue
+            start = read_u64(memory_fd, team_address + 0x38)
+            end = read_u64(memory_fd, team_address + 0x40)
+            players = _read_team_squad_players(
+                memory_fd, module_base, start, end, as_of_date,
+                squad_label=f"club team (marker {marker})",
+            )
+        except (OSError, ProbeError):
+            continue
+        if players:
+            found.append(ClubTeamResult(marker=marker, players=players))
+    return tuple(sorted(found, key=lambda team: team.marker))
 
 
 def find_managed_club(

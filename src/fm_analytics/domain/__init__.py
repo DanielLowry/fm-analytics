@@ -7,6 +7,7 @@ from fm_analytics.domain.models import (
     PlayerContract,
     SourceHealth,
     Squad,
+    SquadTeam,
     Visibility,
 )
 
@@ -19,5 +20,6 @@ __all__ = [
     "PlayerContract",
     "SourceHealth",
     "Squad",
+    "SquadTeam",
     "Visibility",
 ]
