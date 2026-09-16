@@ -10,6 +10,9 @@
   sequence for getting there.
 - [Field-acquisition workbench](field-acquisition-workbench.md) explains how
   visible FM facts become screen-independent, validated sources.
+- [Property-discovery playbook](property-discovery-playbook.md) is the worked
+  method behind the first extracted field: read FM's own code to find its keyed
+  property getter, then let Frida run it on FM's own thread.
 - [Research automation strategy](research-automation.md) defines the replay,
   persistent-instrumentation, experiment, trace-store, UI-oracle, and semantic-
   registry programme intended to remove repeated operator-led FM sessions.

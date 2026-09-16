@@ -93,7 +93,8 @@ the strongest existing static leads when the controller is ready. This keeps
 the intended contracts example without pretending the owned-squad field is new.
 
 Footedness met this criterion on 15 September 2026, and needed no FM
-interaction at all. The decisive step was offline: reading FM's own code to
+interaction at all. The method is written up as the
+[property-discovery playbook](property-discovery-playbook.md). The decisive step was offline: reading FM's own code to
 find the keyed person-property getter behind the foot label, rather than
 running more instrumented UI tours. The generic-dispatcher objective below is
 therefore no longer speculative, and external-player visibility now has a

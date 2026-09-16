@@ -154,6 +154,10 @@ was removed rather than promoted into this workflow.
 
 ## Resolved: footedness comes from FM's own property getter
 
+The repeatable method behind this result, including the commands and the two
+missteps worth avoiding, is written up in the
+[property-discovery playbook](property-discovery-playbook.md).
+
 The provider leads were correct. FM's person objects answer a keyed property
 getter, and the `FOOT_LABEL` handler asks it for `tofP`, a record holding the
 `GflP` and `GfrP` values, then groups them into five visible categories using

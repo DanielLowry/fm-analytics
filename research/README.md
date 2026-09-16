@@ -55,6 +55,10 @@ Four recipes are available:
 
 ## First extracted field: footedness
 
+The method is documented in the
+[property-discovery playbook](../docs/property-discovery-playbook.md), and its
+offline half is `tools/fm20_pe_symbols.py`.
+
 FM asks a person object for the property key `tofP`, which returns a record
 holding `GflP` and `GfrP`. The label handler turns that pair into one of five
 categories using boundaries at 8 and 15. The cold path calls the same getter
