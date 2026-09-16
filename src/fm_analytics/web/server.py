@@ -19,9 +19,17 @@ import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Sequence
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
-from fm_analytics.analytics import WeaknessKind, WeaknessReport
+from fm_analytics.analytics import (
+    MVP_CATALOGUE,
+    ScoutRecommendation,
+    ScoutingFilters,
+    WeaknessKind,
+    WeaknessReport,
+    assess_scouting_candidates,
+    available_fact_values,
+)
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.domain import Squad
 from fm_analytics.reporting import (
@@ -36,7 +44,9 @@ from fm_analytics.web.providers import (
     fixture_provider,
     html_overlay_provider,
     live_provider,
+    empty_scouting_provider,
     snapshot_provider,
+    scouting_json_provider,
 )
 
 
@@ -46,6 +56,7 @@ _NAV: tuple[tuple[str, str], ...] = (
     ("/roles", "Roles"),
     ("/tactics", "Tactics"),
     ("/depth", "Depth"),
+    ("/scouting", "Scouting"),
     ("/data", "Data"),
 )
 
@@ -82,6 +93,17 @@ _STYLE = """
   details summary { cursor: pointer; font-weight: 600; }
   details table { margin-top: 0.5rem; }
   ul.legend { color: #555; font-size: 0.85rem; margin: 0.25rem 0 0.75rem; padding-left: 1.2rem; }
+  form.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 0.65rem; padding: 1rem; background: #f0f2f5; border-radius: 0.4rem; }
+  form.filters label { display: grid; gap: 0.2rem; font-size: 0.78rem; color: #455; }
+  form.filters input, form.filters select { min-width: 0; padding: 0.35rem; border: 1px solid #bbc3cc; border-radius: 0.25rem; background: white; }
+  form.filters .check { display: flex; align-items: end; gap: 0.35rem; color: #1a1a1a; }
+  form.filters button { align-self: end; padding: 0.45rem 0.65rem; border: 0; border-radius: 0.25rem; background: #1a2b3c; color: white; cursor: pointer; }
+  .badge-scout { background: #fff2d6; color: #805400; }
+  .badge-proven { background: #e3f3e1; color: #1e6b1e; }
+  .badge-unlikely { background: #eee; color: #555; }
+  .attribute-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.35rem; }
+  .attribute-grid div { border: 1px solid #e5e5e5; padding: 0.35rem; border-radius: 0.25rem; }
+  .attribute-grid b { display: block; font-size: 0.75rem; color: #667; }
 </style>
 """
 
@@ -116,15 +138,73 @@ def _injury_risk_count(report: WeaknessReport) -> int:
     return sum(1 for weakness in report.weaknesses if weakness.kind in _INJURY_RISK_KINDS)
 
 
+def _query_first(query: dict[str, list[str]], name: str) -> str | None:
+    values = query.get(name, [])
+    return values[0].strip() if values and values[0].strip() else None
+
+
+def _query_number(query: dict[str, list[str]], name: str, *, integer: bool = False):
+    raw = _query_first(query, name)
+    if raw is None:
+        return None
+    try:
+        value = int(raw) if integer else float(raw)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a number") from exc
+    if value < 0:
+        raise ValueError(f"{name} cannot be negative")
+    return value
+
+
+def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
+    visibility = _query_first(query, "visibility") or "any"
+    if visibility not in {"any", "known", "partial", "unknown"}:
+        raise ValueError("visibility filter is invalid")
+    facts = {
+        key.removeprefix("fact."): value[0]
+        for key, value in query.items()
+        if key.startswith("fact.") and value and value[0]
+    }
+    return ScoutingFilters(
+        position=_query_first(query, "position"), role_key=_query_first(query, "role"),
+        minimum_age=_query_number(query, "minAge", integer=True),
+        maximum_age=_query_number(query, "maxAge", integer=True),
+        club_contains=_query_first(query, "club"), nationality=_query_first(query, "nationality"),
+        footedness=_query_first(query, "footedness"),
+        transfer_status=_query_first(query, "transferStatus"), availability=_query_first(query, "availability"),
+        visibility=visibility, minimum_floor=_query_number(query, "minFloor"),
+        minimum_ceiling=_query_number(query, "minCeiling"),
+        include_unlikely=_query_first(query, "includeUnlikely") == "1", facts=facts,
+    )
+
+
+def _options(items, selected: str | None, blank: str) -> str:
+    output = f"<option value=''>{html.escape(blank)}</option>" if blank else ""
+    for value, label in items:
+        selected_text = " selected" if value == selected else ""
+        output += f"<option value='{html.escape(value, quote=True)}'{selected_text}>{html.escape(label)}</option>"
+    return output
+
+
+def _input_value(value: object) -> str:
+    return "" if value is None else html.escape(str(value), quote=True)
+
+
+def _label(value: str) -> str:
+    return value.replace("_", " ").replace("-", " ").capitalize()
+
+
 class SquadWebHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
         routes = {
             "/": self._dashboard,
             "/squad": self._squad_page,
             "/roles": self._roles_page,
             "/tactics": self._tactics_page,
             "/depth": self._depth_page,
+            "/scouting": self._scouting_page,
             "/data": self._data_page,
         }
         handler = routes.get(path)
@@ -134,9 +214,9 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 HTTPStatus.NOT_FOUND,
             )
             return
-        handler(path)
+        handler(path, parse_qs(parsed.query))
 
-    def _dashboard(self, path: str) -> None:
+    def _dashboard(self, path: str, _query: dict[str, list[str]]) -> None:
         try:
             game, squad = self.server.read()  # type: ignore[attr-defined]
         except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
@@ -165,7 +245,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             self._send(_error_page(title, str(exc), path), HTTPStatus.SERVICE_UNAVAILABLE)
             return None
 
-    def _squad_page(self, path: str) -> None:
+    def _squad_page(self, path: str, _query: dict[str, list[str]]) -> None:
         bundle = self._bundle_or_error(path, "Squad")
         if bundle is None:
             return
@@ -233,7 +313,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "not included in role or tactic selection.</p>" + "".join(sections)
         )
 
-    def _roles_page(self, path: str) -> None:
+    def _roles_page(self, path: str, _query: dict[str, list[str]]) -> None:
         bundle = self._bundle_or_error(path, "Roles")
         if bundle is None:
             return
@@ -272,7 +352,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         )
         self._send(_layout("Roles", path, body))
 
-    def _tactics_page(self, path: str) -> None:
+    def _tactics_page(self, path: str, _query: dict[str, list[str]]) -> None:
         bundle = self._bundle_or_error(path, "Tactics")
         if bundle is None:
             return
@@ -361,7 +441,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         )
         self._send(_layout("Tactics", path, body))
 
-    def _depth_page(self, path: str) -> None:
+    def _depth_page(self, path: str, _query: dict[str, list[str]]) -> None:
         bundle = self._bundle_or_error(path, "Depth")
         if bundle is None:
             return
@@ -418,7 +498,141 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         )
         self._send(_layout("Depth", path, body))
 
-    def _data_page(self, path: str) -> None:
+    def _scouting_page(self, path: str, query: dict[str, list[str]]) -> None:
+        """A separate external-player workspace that retains uncertainty.
+
+        This page intentionally does not call ``bundle()``: scouting remains
+        useful while the owned squad is incomplete, and its candidate feed is
+        evidence-bounded separately from the squad source.
+        """
+        try:
+            candidates = self.server.scouting()  # type: ignore[attr-defined]
+            filters = _scouting_filters(query)
+            if filters.role_key is None:
+                filters = ScoutingFilters(**{**filters.__dict__, "role_key": "af_attack"})
+            assessments = assess_scouting_candidates(candidates, MVP_CATALOGUE, filters)
+        except (OSError, ValueError, KeyError) as exc:
+            self._send(_error_page("Scouting", str(exc), path), HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+
+        facts = available_fact_values(candidates)
+        positions = sorted({position for role in MVP_CATALOGUE.roles.values() for position in role.eligible_positions})
+        selected_role = filters.role_key or ""
+        role_options = _options(
+            ((key, role.name) for key, role in sorted(MVP_CATALOGUE.roles.items())), selected_role,
+            "Choose a role",
+        )
+        position_options = _options(((item, item) for item in positions), filters.position, "Any position")
+        fact_controls = "".join(
+            "<label>" + html.escape(_label(key))
+            + "<select name='fact." + html.escape(key, quote=True) + "'>"
+            + _options(((value, value) for value in values), (filters.facts or {}).get(key), "Any")
+            + "</select></label>"
+            for key, values in facts.items()
+        )
+        body = (
+            "<p>Only players in the manager-visible discovery feed are shown. "
+            "Scores preserve their <b>floor / estimate / ceiling</b>; a player with "
+            "no known role attributes is a reason to scout, not a claim that they are good.</p>"
+            + self._scouting_filters_form(filters, role_options, position_options, candidates, fact_controls)
+            + self._scouting_results(assessments, selected_role, len(candidates))
+        )
+        self._send(_layout("Scouting", path, body))
+
+    @staticmethod
+    def _scouting_filters_form(
+        filters: ScoutingFilters,
+        role_options: str,
+        position_options: str,
+        candidates: Sequence[object],
+        fact_controls: str,
+    ) -> str:
+        def values(name: str) -> tuple[str, ...]:
+            return tuple(sorted({str(getattr(item, name)) for item in candidates if getattr(item, name) is not None}))
+
+        return (
+            "<h2>Find a target</h2><form class='filters' method='get' action='/scouting'>"
+            f"<label>Position<select name='position'>{position_options}</select></label>"
+            f"<label>Role<select name='role'>{role_options}</select></label>"
+            f"<label>Minimum age<input name='minAge' type='number' min='0' value='{_input_value(filters.minimum_age)}'></label>"
+            f"<label>Maximum age<input name='maxAge' type='number' min='0' value='{_input_value(filters.maximum_age)}'></label>"
+            f"<label>Club contains<input name='club' value='{html.escape(filters.club_contains or '', quote=True)}'></label>"
+            "<label>Nationality<select name='nationality'>"
+            + _options(((value, value) for value in values("nationality")), filters.nationality, "Any")
+            + "</select></label><label>Footedness<select name='footedness'>"
+            + _options(((value, value) for value in values("footedness")), filters.footedness, "Any")
+            + "</select></label><label>Transfer status<select name='transferStatus'>"
+            + _options(((value, value) for value in values("transfer_status")), filters.transfer_status, "Any")
+            + "</select></label><label>Availability<select name='availability'>"
+            + _options(((value, value) for value in values("availability")), filters.availability, "Any")
+            + "</select></label><label>Visibility<select name='visibility'>"
+            + _options(((key, label) for key, label in (("any", "Any"), ("known", "Fully known"), ("partial", "Has a range"), ("unknown", "Nothing known"))), filters.visibility, "")
+            + "</select></label>"
+            f"<label>Minimum floor<input name='minFloor' type='number' min='0' max='100' step='0.1' value='{_input_value(filters.minimum_floor)}'></label>"
+            f"<label>Minimum ceiling<input name='minCeiling' type='number' min='0' max='100' step='0.1' value='{_input_value(filters.minimum_ceiling)}'></label>"
+            + fact_controls
+            + "<label class='check'><input name='includeUnlikely' type='checkbox' value='1'"
+            + (" checked" if filters.include_unlikely else "")
+            + "> Include players below the ceiling</label><button type='submit'>Apply filters</button></form>"
+        )
+
+    @staticmethod
+    def _scouting_results(assessments, role_key: str, total_candidates: int) -> str:
+        if not assessments:
+            return (
+                "<h2>Targets</h2><p class='muted'>"
+                + ("No manager-visible scouting candidates have been loaded yet. Supply a verified scouting capture with <code>--scouting-json</code>." if total_candidates == 0 else "No candidates match these filters.")
+                + "</p>"
+            )
+        rows: list[str] = []
+        details: list[str] = []
+        labels = {
+            ScoutRecommendation.PROVEN_FIT: ("Proven fit", "badge-proven", "All role inputs are known."),
+            ScoutRecommendation.SCOUT_FIRST: ("Scout first", "badge-scout", "No role attributes are known yet."),
+            ScoutRecommendation.SCOUT_TO_DECIDE: ("Scout to decide", "badge-scout", "Ranges or unknowns can still change this decision."),
+            ScoutRecommendation.UNLIKELY: ("Unlikely", "badge-unlikely", "Even the visible ceiling misses your filter."),
+        }
+        for item in assessments:
+            label, badge, reason = labels[item.recommendation]
+            candidate = item.candidate
+            rows.append(
+                "<tr>"
+                f"<td>{html.escape(candidate.name)}<br><span class='muted'>{html.escape(candidate.nationality or 'Nationality not known')}</span></td>"
+                f"<td>{html.escape(candidate.club or '—')}</td><td>{candidate.age if candidate.age is not None else '—'}</td>"
+                f"<td>{html.escape(', '.join(candidate.positions) or 'Not yet captured')}</td>"
+                f"<td>{_band(item.role_score.score)}</td>"
+                f"<td>{html.escape(item.visibility_summary)}</td>"
+                f"<td><span class='badge {badge}'>{label}</span><br><span class='muted'>{html.escape(reason)}</span></td></tr>"
+            )
+            attribute_cells = "".join(
+                "<div><b>" + html.escape(contribution.attribute) + "</b>"
+                + html.escape(contribution.observation.display()) + "</div>"
+                for contribution in item.role_score.contributions
+            )
+            meta = [
+                ("Club", candidate.club), ("Nationality", candidate.nationality),
+                ("Footedness", candidate.footedness), ("Transfer status", candidate.transfer_status),
+                ("Availability", candidate.availability),
+            ]
+            meta_text = " · ".join(f"{name}: {value}" for name, value in meta if value)
+            next_scout = ", ".join(item.scout_next) if item.scout_next else "Nothing role-critical is unknown."
+            details.append(
+                f"<details><summary>{html.escape(candidate.name)} — {label}; score {_band(item.role_score.score)}</summary>"
+                f"<p>{html.escape(meta_text or 'No additional manager-visible facts captured.')}<br>"
+                f"<b>Scout next:</b> {html.escape(next_scout)}</p>"
+                "<div class='attribute-grid'>" + attribute_cells + "</div></details>"
+            )
+        role_name = MVP_CATALOGUE.roles[role_key].name if role_key in MVP_CATALOGUE.roles else "selected role"
+        return (
+            f"<h2>Targets for {html.escape(role_name)} ({len(assessments)})</h2>"
+            "<ul class='legend'><li><b>Scout first</b>: no relevant attributes are known.</li>"
+            "<li><b>Scout to decide</b>: ranges or unknown values could still change the role fit.</li>"
+            "<li><b>Floor / estimate / ceiling</b>: the best and worst role score supported by visible information.</li></ul>"
+            "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions</th><th>Role score</th><th>Visibility</th><th>Recommendation</th></tr>"
+            + "".join(rows) + "</table><h2>Visible role data</h2>" + "".join(details)
+        )
+
+    def _data_page(self, path: str, _query: dict[str, list[str]]) -> None:
         """Field coverage and provenance -- works even on an incomplete squad.
 
         This is deliberately the one page that does not require a complete,
@@ -504,9 +718,11 @@ class SquadWebServer(ThreadingHTTPServer):
         address: tuple[str, int],
         provider: GameSquadProvider,
         *,
+        scouting_provider=None,
         cache_ttl_seconds: float = 8.0,
     ):
         self.provider = provider
+        self.scouting_provider = scouting_provider or empty_scouting_provider()
         self.cache_ttl_seconds = cache_ttl_seconds
         self._lock = threading.Lock()
         self._read_at = 0.0
@@ -516,6 +732,9 @@ class SquadWebServer(ThreadingHTTPServer):
         self._bundle_result: RecommendationBundle | None = None
         self._bundle_error: Exception | None = None
         super().__init__(address, SquadWebHandler)
+
+    def scouting(self):
+        return self.scouting_provider()
 
     def read(self):
         with self._lock:
@@ -604,6 +823,10 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         help="required unique-player count shown by FM for --fm-html completeness",
     )
+    parser.add_argument(
+        "--scouting-json",
+        help="manager-visible discoverability/scouting capture JSON for the Scouting page",
+    )
     return parser
 
 
@@ -629,7 +852,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     provider = _build_provider(args)
     server = SquadWebServer(
-        (args.host, args.port), provider, cache_ttl_seconds=args.cache_ttl_seconds
+        (args.host, args.port), provider,
+        scouting_provider=(scouting_json_provider(args.scouting_json) if args.scouting_json else None),
+        cache_ttl_seconds=args.cache_ttl_seconds,
     )
     print(f"FM Analytics web view listening on http://{args.host}:{args.port}")
     try:

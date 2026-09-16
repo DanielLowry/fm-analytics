@@ -75,6 +75,14 @@ from fm_analytics.analytics.squad_depth import (
     TaggedWeakness,
     assess_squad_depth,
 )
+from fm_analytics.analytics.scouting import (
+    ScoutRecommendation,
+    ScoutingAssessment,
+    ScoutingCandidate,
+    ScoutingFilters,
+    assess_scouting_candidates,
+    available_fact_values,
+)
 
 __all__ = [
     "AttributeContribution",
@@ -103,6 +111,10 @@ __all__ = [
     "RoleComparison",
     "ScoreBand",
     "ScoringPolicy",
+    "ScoutRecommendation",
+    "ScoutingAssessment",
+    "ScoutingCandidate",
+    "ScoutingFilters",
     "ScoutingPriority",
     "SlotAssignment",
     "SlotDepth",
@@ -120,6 +132,8 @@ __all__ = [
     "WeaknessPolicy",
     "WeaknessReport",
     "assess_squad_depth",
+    "assess_scouting_candidates",
+    "available_fact_values",
     "assess_weaknesses",
     "build_recruitment_briefs",
     "build_role_matrix",

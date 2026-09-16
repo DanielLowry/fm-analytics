@@ -10,6 +10,7 @@ from fm_analytics.web.providers import (
     fixture_provider,
     html_overlay_provider,
     live_provider,
+    scouting_json_provider,
     snapshot_provider,
 )
 
@@ -103,6 +104,36 @@ class LiveProviderTests(unittest.TestCase):
 
         with self.assertRaises((BridgeError, OSError)):
             provide()
+
+
+class ScoutingJsonProviderTests(unittest.TestCase):
+    def test_reads_a_manager_visible_candidate_feed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "scouting.json"
+            path.write_text(
+                '{"players": [{"id": "p1", "name": "Example", "positions": ["ST"], '
+                '"attributes": {"finishing": {"visibility": "range", "minimum": 8, "maximum": 14}}, '
+                '"facts": {"contract": "Full-time"}}]}',
+                encoding="utf-8",
+            )
+
+            candidates = scouting_json_provider(path)()
+
+            self.assertEqual(candidates[0].name, "Example")
+            self.assertEqual(candidates[0].attributes["finishing"].maximum, 14)
+            self.assertEqual(candidates[0].facts, {"contract": "Full-time"})
+
+    def test_rejects_duplicate_candidate_ids(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "scouting.json"
+            path.write_text(
+                '[{"id": "p1", "name": "One", "positions": ["ST"]}, '
+                '{"id": "p1", "name": "Two", "positions": ["ST"]}]',
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "duplicate"):
+                scouting_json_provider(path)()
 
 
 if __name__ == "__main__":

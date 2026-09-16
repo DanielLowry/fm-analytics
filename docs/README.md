@@ -16,6 +16,9 @@
 - [Frida and player discoverability](frida-discoverability.md) records the
   current Player Search evidence, the distinction between observed and
   screen-independent discovery, and the remaining validation gates.
+- [Scouting workspace](scouting-workspace.md) documents the visibility-aware
+  recruitment page, its score bands, and the manager-visible candidate-feed
+  contract.
 - [Research automation strategy](research-automation.md) defines the replay,
   persistent-instrumentation, experiment, trace-store, UI-oracle, and semantic-
   registry programme intended to remove repeated operator-led FM sessions.

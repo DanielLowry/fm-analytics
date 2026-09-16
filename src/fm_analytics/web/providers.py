@@ -17,11 +17,42 @@ from fm_analytics.analytics import overlay_squad_export
 from fm_analytics.api import BridgeClient
 from fm_analytics.bridge import LinuxProtonDataSource
 from fm_analytics.bridge.errors import BridgeSourceError
+from fm_analytics.analytics.scouting import ScoutingCandidate
 from fm_analytics.domain import GameState, Squad
 from fm_analytics.imports import merge_fm_squad_html_exports, parse_fm_squad_html_export
 from fm_analytics.persistence import SnapshotStore
 
 GameSquadProvider = Callable[[], tuple[GameState, Squad]]
+ScoutingProvider = Callable[[], tuple[ScoutingCandidate, ...]]
+
+
+def empty_scouting_provider() -> ScoutingProvider:
+    """Use until a manager-visible discoverability capture has been supplied."""
+    return lambda: ()
+
+
+def scouting_json_provider(path: str | Path) -> ScoutingProvider:
+    """Read a manager-visible scouting capture without coupling web UI to tools.
+
+    The JSON document is either a list of candidate objects or an object with
+    a ``players`` list. It is deliberately a separate feed from the owned
+    squad provider: external-player discovery has its own evidence boundary.
+    """
+    resolved = Path(path)
+
+    def provide() -> tuple[ScoutingCandidate, ...]:
+        with resolved.open(encoding="utf-8") as scouting_file:
+            raw = json.load(scouting_file)
+        rows = raw.get("players") if isinstance(raw, dict) else raw
+        if not isinstance(rows, list):
+            raise ValueError("scouting JSON must be a player list or an object with players")
+        candidates = tuple(ScoutingCandidate.from_dict(row) for row in rows)
+        ids = [candidate.id for candidate in candidates]
+        if len(ids) != len(set(ids)):
+            raise ValueError("scouting JSON contains duplicate player IDs")
+        return candidates
+
+    return provide
 
 
 def fixture_provider(path: str | Path) -> GameSquadProvider:

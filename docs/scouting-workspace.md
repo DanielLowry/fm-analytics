@@ -1,0 +1,101 @@
+# Scouting workspace
+
+`/scouting` is the external-player workspace. It intentionally consumes a
+separate manager-visible candidate feed, rather than treating the owned squad
+or FM's raw player structures as a recruitment universe.
+
+## What it does
+
+- filters candidates by position and role, then scores the selected role;
+- shows a score **floor / estimate / ceiling** whenever the manager sees a
+  range rather than an exact attribute;
+- marks an eligible player with no known role attributes as **Scout first**;
+- lists the highest-impact role attributes to scout next for partial profiles;
+- keeps an exactly-known profile distinct from a range and an unknown value;
+- filters safely supplied age, club, nationality, footedness, transfer status,
+  availability, and any additional captured Player Search facts.
+
+“Scout first” is an information recommendation, not a prediction that an
+unknown player is good. Unknown attributes receive a conservative central score
+while retaining their possible ceiling, so they neither leapfrog known players
+on an invented rating nor disappear from the shortlist.
+
+## Candidate-feed contract
+
+Capture a manager-rooted Player Search pool through Frida, then start the web
+app with that JSON feed:
+
+```bash
+uv run --extra research python tools/fm20_scouting_feed.py \
+  --output data/scouting-capture.json
+```
+
+```bash
+fm-web --direct-live --scouting-json data/scouting-capture.json
+```
+
+The feed builder does not reproduce the filters currently open in FM. It asks
+FM only for the manager's Player Search pool, removes the managed club's own
+contracted players, and leaves all remaining filtering to this page.
+
+The first automatic feed has identity coverage only. Its candidates are shown
+as **Scout first** and have no position match until external position and
+attribute visibility have been proven. This is intentional: it is useful for
+building the manager's true discovery queue, without pretending to know more
+than FM has safely supplied.
+
+The Scouting page can also start with a separately captured, manager-visible
+JSON feed:
+
+```bash
+fm-web --direct-live --scouting-json data/scouting-capture.json
+```
+
+The document is either a player array or an object with a `players` array.
+Each player must have an ID, name, positions, and an optional `attributes`
+object using the normal visibility contract:
+
+```json
+{
+  "players": [
+    {
+      "id": "12345",
+      "name": "Example Striker",
+      "positions": ["ST"],
+      "age": 22,
+      "club": "Example FC",
+      "nationality": "England",
+      "footedness": "Right",
+      "transferStatus": "Listed",
+      "availability": "available",
+      "attributes": {
+        "finishing": {"visibility": "range", "minimum": 11, "maximum": 15},
+        "pace": {"visibility": "unknown"}
+      },
+      "facts": {
+        "contract": "Full-time",
+        "division": "Vanarama National League"
+      }
+    }
+  ]
+}
+```
+
+`facts` is the extension point for the wider FM Player Search filter set. Each
+proven, manager-visible field is displayed as a filter automatically when it
+appears in a capture. This avoids pretending a field is known before its
+extractor is verified, while allowing the page to gain the full in-game filter
+set without a UI redesign.
+
+## Visibility boundary
+
+The feed must be derived from a verified discoverability capture and must carry
+only manager-visible values. Position familiarity is deliberately absent until
+there is an external-player, manager-visible extractor; the owned-squad raw
+byte reader is not valid for this page. Footedness is also displayed only when
+its external-player visibility route is verified.
+
+The page is ready for the Frida Player Search result-ID collector described in
+[Frida and player discoverability](frida-discoverability.md). That collector
+will become the candidate-feed producer; it must first prove exact agreement
+with FM's visible Player Search results.

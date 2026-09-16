@@ -11,6 +11,7 @@ from fm_analytics.cli import load_fixture
 from fm_analytics.domain import AttributeObservation, Visibility
 from fm_analytics.reporting import required_role_attributes
 from fm_analytics.persistence import SnapshotStore
+from fm_analytics.analytics import ScoutingCandidate
 from fm_analytics.web.providers import fixture_provider
 from fm_analytics.web.server import SquadWebServer, _build_provider, build_parser
 
@@ -45,8 +46,11 @@ def _write_complete_fixture(directory: Path) -> Path:
 
 
 class SquadWebServerTests(unittest.TestCase):
-    def _serve(self, fixture_path: Path):
-        server = SquadWebServer(("127.0.0.1", 0), fixture_provider(fixture_path))
+    def _serve(self, fixture_path: Path, scouting_provider=None):
+        server = SquadWebServer(
+            ("127.0.0.1", 0), fixture_provider(fixture_path),
+            scouting_provider=scouting_provider,
+        )
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         self.addCleanup(server.shutdown)
@@ -66,7 +70,7 @@ class SquadWebServerTests(unittest.TestCase):
             fixture_path = _write_complete_fixture(Path(directory))
             port = self._serve(fixture_path)
 
-            for path in ("/", "/squad", "/roles", "/tactics", "/depth", "/data"):
+            for path in ("/", "/squad", "/roles", "/tactics", "/depth", "/scouting", "/data"):
                 with self.subTest(path=path):
                     status, body = self._get(port, path)
                     self.assertEqual(status, 200)
@@ -142,6 +146,23 @@ class SquadWebServerTests(unittest.TestCase):
             status, _body = self._get(port, "/nonexistent")
 
             self.assertEqual(status, 404)
+
+    def test_scouting_page_makes_unknown_profiles_a_reason_to_scout(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="external-1", name="Unknown Striker", positions=("ST",),
+                    attributes={}, age=19, club="Example FC", footedness="Right",
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        status, body = self._get(port, "/scouting?role=af_attack&position=ST")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Unknown Striker", body)
+        self.assertIn("Scout first", body)
+        self.assertIn("floor / estimate / ceiling", body)
 
     def test_incomplete_squad_fails_closed_on_scored_pages_but_not_on_data(self) -> None:
         port = self._serve(FIXTURE)
