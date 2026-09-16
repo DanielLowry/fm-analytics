@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "id": "frida-owned-footedness-cold",
+  "purpose": "first-value-cold-property-read",
+  "question": "Which footedness label does FM show for each managed first-team player, obtained from FM's own property getter with no player screen open?",
+  "adapter": "fm20-frida-property",
+  "transport": "windows-frida-server",
+  "fields": ["footedness"],
+  "build": "fm20-20.4.4-1442341",
+  "safety": "guarded-native-call",
+  "operator_interaction": "none",
+  "requires_live_process": true,
+  "timeout_seconds": 60,
+  "required_registry_facts": [
+    "person-property-getter",
+    "player-property-producer",
+    "foot-category-label-mapper",
+    "player.footedness",
+    "footedness-category-only"
+  ],
+  "reusable_corpus_states": ["owned-squad-cold-footedness"],
+  "decision": {
+    "adapter_exit_codes": [0],
+    "adapter_statuses": ["complete"],
+    "minimum_players": 1
+  },
+  "limitations": [
+    "Scope is the managed first team, where the manager has full knowledge; external players need the scouted-person path and are not supported.",
+    "FM code is executed on its UI thread inside a QueryPerformanceCounter hook; use the disposable research save.",
+    "Only FM's five visible footedness categories are reported; the underlying foot ratings never leave FM."
+  ]
+}

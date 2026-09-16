@@ -31,6 +31,14 @@ exact host process it created, and stops that process after the adapter exits.
 This topology passed real FM attach, hook, detach, state-invariant, and cleanup
 checks and is the active research backend.
 
+`fm20_frida_property.py` is the cold property-read adapter and the first tool
+that extracts a new field rather than counting calls. It resolves the managed
+first-team squad from read-only memory, then calls FM's own person property
+getter for each player through the Windows server, on FM's own UI thread, with
+no player screen open. It reports only FM's visible footedness categories and
+verifies them against the text FM's label mapper returns; the underlying foot
+ratings are never read out of FM. Its recipe is `frida-owned-footedness-cold`.
+
 The many `fm20_*` modules at this directory's top level are currently internal
 adapters and libraries. They remain in place because the controller, bridge,
 monitor, tests, or the next Frida comparison still imports them. Moving them

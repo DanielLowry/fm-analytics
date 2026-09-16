@@ -33,6 +33,7 @@ CORPUS_PATH = ROOT / "research" / "corpus.json"
 DEFAULT_REPORT_DIR = ROOT / "data" / "research" / "sessions"
 SCHEMA_VERSION = 1
 MAX_CAPTURED_OUTPUT = 16_384
+FRIDA_ADAPTERS = frozenset({"fm20-frida-trace", "fm20-frida-property"})
 
 
 class ControllerError(RuntimeError):
@@ -62,10 +63,11 @@ def load_recipe(recipe_id: str) -> dict[str, Any]:
     if recipe.get("schema_version") != 1 or recipe.get("id") != recipe_id:
         raise ControllerError(f"{path}: invalid recipe schema or ID")
     adapter = recipe.get("adapter")
-    if adapter not in {"fm20-field-workbench", "fm20-frida-trace"}:
+    if adapter not in {"fm20-field-workbench", *FRIDA_ADAPTERS}:
         raise ControllerError(f"recipe uses unsupported adapter {adapter!r}")
-    if recipe.get("safety") != "passive-live":
-        raise ControllerError("controller recipes must currently be passive-live")
+    allowed_safety = {"passive-live", "guarded-native-call"} if adapter == "fm20-frida-property" else {"passive-live"}
+    if recipe.get("safety") not in allowed_safety:
+        raise ControllerError("recipe safety class is not permitted for its adapter")
     if recipe.get("operator_interaction") not in {"none", "one-short-batched-ui-tour"}:
         raise ControllerError("recipe has an unsupported operator-interaction contract")
     timeout = recipe.get("timeout_seconds")
@@ -77,6 +79,14 @@ def load_recipe(recipe_id: str) -> dict[str, Any]:
         fields = recipe.get("fields")
         if not isinstance(fields, list) or not fields or any(field not in {"footedness", "position_proficiency"} for field in fields):
             raise ControllerError("recipe contains no supported field")
+    elif adapter == "fm20-frida-property":
+        if recipe.get("transport") != "windows-frida-server":
+            raise ControllerError("Frida recipes must use the Windows-side server transport")
+        if recipe.get("operator_interaction") != "none":
+            raise ControllerError("cold property reads must not require operator interaction")
+        fields = recipe.get("fields")
+        if not isinstance(fields, list) or not fields or any(field not in {"footedness"} for field in fields):
+            raise ControllerError("property recipe contains no supported field")
     else:
         if recipe.get("transport") != "windows-frida-server":
             raise ControllerError("Frida recipes must use the Windows-side server transport")
@@ -210,6 +220,22 @@ def _adapter_command(
             command.extend(("--field", field))
         return command
 
+    if recipe["adapter"] == "fm20-frida-property":
+        if remote_address is None:
+            raise ControllerError("Frida recipes require a controller-owned Windows server")
+        command = [
+            sys.executable,
+            str(ROOT / "tools" / "fm20_frida_property.py"),
+            "--pid", str(pid),
+            "--module-base", module_base,
+            "--remote-address", remote_address,
+            "--remote-process", "fm.exe",
+            "--report", str(report),
+        ]
+        for field in recipe["fields"]:
+            command.extend(("--field", field))
+        return command
+
     registry = load_json(REGISTRY_PATH)
     functions = {item["id"]: item for item in registry["functions"]}
     command = [
@@ -249,6 +275,29 @@ def _adapter_passed(
     if recipe["adapter"] == "fm20-field-workbench":
         summary["live_status"] = adapter_report.get("liveStatus")
         passed = passed and adapter_report.get("liveStatus") == decision["require_live_status"]
+        return passed, summary
+
+    if recipe["adapter"] == "fm20-frida-property":
+        capture_result = adapter_report.get("capture", {})
+        extraction = adapter_report.get("extraction", {})
+        summary.update({
+            "transport": adapter_report.get("transport", {}).get("kind"),
+            "attached": capture_result.get("attached"),
+            "detached": capture_result.get("detached"),
+            "process_alive": adapter_report.get("processAliveAfterDetach"),
+            "players_requested": extraction.get("requestedCount", 0),
+            "players_resolved": extraction.get("resolvedCount", 0),
+            "labels_verified": extraction.get("labelsVerified"),
+        })
+        passed = passed and summary["transport"] == "windows-frida-server" and all((
+            summary["attached"] is True,
+            summary["detached"] is True,
+            summary["process_alive"] is True,
+            summary["labels_verified"] is True,
+            summary["players_requested"] > 0,
+            summary["players_resolved"] == summary["players_requested"],
+            summary["players_resolved"] >= decision.get("minimum_players", 1),
+        ))
         return passed, summary
 
     capture_result = adapter_report.get("capture", {})
@@ -318,7 +367,7 @@ def run_recipe(
         report["plan"] = plan
         report["lifecycle"]["attachment"] = (
             "controller-owned Windows Frida server; adapter owns agent unload and detach"
-            if recipe["adapter"] == "fm20-frida-trace"
+            if recipe["adapter"] in FRIDA_ADAPTERS
             else "adapter-owned bounded read-only /proc access"
         )
         pid = choose_pid(requested_pid)
@@ -336,7 +385,7 @@ def run_recipe(
             print(f"PREPARE: {actions.get('starting_state', 'use the declared recipe start state')}", flush=True)
             print(f"WHEN ARMED: {actions.get('after_armed', 'perform the declared bounded action batch')}", flush=True)
         server_context = nullcontext(None)
-        if recipe["adapter"] == "fm20-frida-trace":
+        if recipe["adapter"] in FRIDA_ADAPTERS:
             server_factory = frida_server_factory or frida_server_session
             server_context = server_factory(executable)
         with server_context as remote_address:
@@ -372,7 +421,7 @@ def run_recipe(
         execution["adapterStatus"] = adapter_report.get("status")
         if adapter_report.get("researchOnly") is not True:
             raise ControllerError("adapter report is not marked research-only")
-        if recipe["adapter"] == "fm20-frida-trace":
+        if recipe["adapter"] in FRIDA_ADAPTERS:
             capture = adapter_report.get("capture", {})
             report["lifecycle"]["resourceRelease"] = (
                 "confirmed-by-adapter-and-controller-server-exit"

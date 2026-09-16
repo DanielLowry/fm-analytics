@@ -139,13 +139,22 @@ class LinuxFm20ProbeTests(unittest.TestCase):
         self.assertEqual(club, "Club")
         self.assertEqual(player, "Player")
 
-    def test_positions_include_accomplished_or_natural_roles(self) -> None:
+    def test_positions_include_competent_accomplished_or_natural_roles(self) -> None:
+        # DL=14 (Competent) now clears the eligibility cut alongside
+        # DC=20 (Natural) and DR=16 (Accomplished); only below the cut is
+        # excluded, per POSITION_ELIGIBILITY_MINIMUM.
         ratings = bytes([1, 1, 14, 20, 16, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
 
-        self.assertEqual(decode_positions(ratings), ("DC", "DR"))
+        self.assertEqual(decode_positions(ratings), ("DL", "DC", "DR"))
+
+    def test_positions_exclude_ratings_below_the_eligibility_minimum(self) -> None:
+        # DL=9 (just below the cut) must not appear alongside DC=14, which does.
+        ratings = bytes([1, 1, 9, 14, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+
+        self.assertEqual(decode_positions(ratings), ("DC",))
 
     def test_positions_fall_back_to_the_strongest_role(self) -> None:
-        ratings = bytes([1, 1, 12, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        ratings = bytes([1, 1, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
 
         self.assertEqual(decode_positions(ratings), ("DL",))
 

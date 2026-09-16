@@ -92,6 +92,13 @@ its knowledge/visibility semantics) or **footedness**, depending on which has
 the strongest existing static leads when the controller is ready. This keeps
 the intended contracts example without pretending the owned-squad field is new.
 
+Footedness met this criterion on 15 September 2026, and needed no FM
+interaction at all. The decisive step was offline: reading FM's own code to
+find the keyed person-property getter behind the foot label, rather than
+running more instrumented UI tours. The generic-dispatcher objective below is
+therefore no longer speculative, and external-player visibility now has a
+named target in `GAME_SCOUTED_PERSON`.
+
 The minimum machinery permitted before this result is:
 
 - a small registry seeded with facts the repository already relies upon;
@@ -506,7 +513,7 @@ arbitrary call sequence safe.
 | 3 | RA.2 | Frida attach-and-one-hook prototype | Event agrees with known GDB evidence; clean detach | Windows-side server passed: 1,126 calls reproduced all three GDB targets; controller-owned attach/detach/server cleanup and FM invariants passed. Direct Linux injection is prohibited. |
 | 4 | RA.7 | Minimal state-capsule capture and lookup | One human-created state is reanalysed without help | Planned |
 | 5 | RA.5 | Differential analyser over real flat-file traces | Ranks a known call path from labelled states | Planned |
-| 6 | RA.8 | Generic person-property dispatcher campaign and first-value thin slice | One property absent from the bridge is obtained with no interactive GDB and at most one short FM interaction | Planned |
+| 6 | RA.8 | Generic person-property dispatcher campaign and first-value thin slice | One property absent from the bridge is obtained with no interactive GDB and at most one short FM interaction | Acceptance met for footedness with zero FM interaction: FM's own keyed person-property getter was called cold for all 17 managed players, repeatably across an FM restart. A UI comparison is still owed before promotion. |
 | 7 | RA.6 | Checkpointed research UI driver, only for missing corpus states | Completes and verifies one necessary bounded route | Conditional |
 | parallel, strictly bounded | RA.1 | `rr` environment and FM/Proton feasibility report | Adopt only after repeatable FM replay; otherwise reject quickly | Optional spike |
 | after proven value | RA.9 | Field promotion workflow | Verified field reaches bridge through an auditable gate | Deferred |

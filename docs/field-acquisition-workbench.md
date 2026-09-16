@@ -152,24 +152,26 @@ the provider's ownership, visibility semantics, and off-screen invocation
 have **not** been verified. An attempted X11 screen driver was unreliable and
 was removed rather than promoted into this workflow.
 
-## Next experiment, batched rather than chat-led
+## Resolved: footedness comes from FM's own property getter
 
-The first `trace` run answered which selected property leads execute. The
-next experiment must start from a loaded player interface and stay off-screen:
+The provider leads were correct. FM's person objects answer a keyed property
+getter, and the `FOOT_LABEL` handler asks it for `tofP`, a record holding the
+`GflP` and `GfrP` values, then groups them into five visible categories using
+boundaries at 8 and 15. The chain is: person interface virtual slot `0x10`,
+an adjustor stub, the `ACTUAL_PLAYER` override, then the `db::PLAYER`
+producer, which answers each sub-key through the same getter.
 
-1. Map the `GflP`/`GfrP` provider interface and the position-level provider
-   from the pinned executable, using the already-proven cold player resolver.
-   Record the exact object, virtual slot, arguments, ownership, and result
-   contract before calling anything; the presence of raw foot/position bytes
-   is not a visibility proof.
-2. Make one bounded native-call experiment with no player page open. Require
-   stable manager/player identity and classify exact/category/unknown without
-   exposing hidden ratings. Only then compare the cold result with the UI.
+`tools/fm20_frida_property.py` now calls that getter cold for the managed
+first team, with no player screen open and no operator action, on FM's own UI
+thread. It reports only FM's five categories and checks them against the text
+FM's own label mapper returns. Four runs, one of them after FM was restarted,
+agreed for all 17 players. Registry facts and evidence are catalogued, and the
+raw foot ratings are never reported.
 
-The UI is a final verification oracle, never the acquisition path. A
-footedness or proficiency value enters the recommender only after the
-cold-query and visibility gates pass. Further manual page visits are not the
-default experiment and must have a new, specific hypothesis.
+Two things remain. Footedness is `cold-query-proven` but not `ui-verified`,
+so the values still need one comparison against FM's player screens before
+promotion. Position proficiency is unresolved; the same getter is the obvious
+place to look, since the position-label path uses the same property mechanism.
 
 ## Acceptance for a reusable acquisition workflow
 

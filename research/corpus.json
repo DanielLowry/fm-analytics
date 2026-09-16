@@ -284,6 +284,74 @@
       "reusable_for": ["offline footedness call differential analysis", "Windows-side Frida transport regression", "replacement of interactive GDB call-count traces"],
       "limitations": ["The trace labels the tour and player order but does not yet associate each event with a decoded player identity or visible foot value."],
       "known_contrasts": ["frida-fm-proton-attach-failure", "owned-foot-position-trace"]
+    },
+    {
+      "id": "owned-squad-cold-footedness",
+      "state": "owned-first-team-no-player-screen-open",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "entity": {
+        "kind": "player-set",
+        "ids": ["212559", "8608084", "29090252", "29158145", "29172172", "29176690", "31039582", "31050744", "31050748", "31050977", "31052962", "61084413", "89039573", "89054310", "89066081", "95034574", "29175396"]
+      },
+      "screens": [],
+      "captures": [
+        {
+          "id": "cold-footedness-getter",
+          "kind": "frida-property-read-report",
+          "path": "data/research/frida/foot-extract-getter-20260915T210535Z.json",
+          "sha256": "5abba2bc66d5d3da78ffe7746ca19edad27ab9bf5fe2b69ee2a3acd65be82b00",
+          "outcome": "passed-17-of-17-categories"
+        },
+        {
+          "id": "cold-footedness-labels",
+          "kind": "frida-property-read-report",
+          "path": "data/research/frida/foot-extract-labels-20260915T210619Z.json",
+          "sha256": "52777bce61908b8901d1489bc6fef216393113e5707bd4e5b0e2e3603288c57b",
+          "outcome": "passed-identical-categories-and-fm-label-text"
+        },
+        {
+          "id": "controller-cold-footedness-1",
+          "kind": "controller-session-report",
+          "path": "data/research/sessions/frida-owned-footedness-cold-20260915T211334439489Z.json",
+          "sha256": "e351ff558adf984e471a02fadcdf9edbcb5df74e7a36f50df8d14cde59b960d9",
+          "outcome": "passed-17-of-17-first-process"
+        },
+        {
+          "id": "adapter-cold-footedness-1",
+          "kind": "frida-property-read-report",
+          "path": "data/research/sessions/frida-owned-footedness-cold-20260915T211334439489Z.adapter.json",
+          "sha256": "88efff36d17d2fe8b3e3ee67729f60cd23079bd7aa6a96437ffee1757b9bcb21",
+          "outcome": "passed-17-of-17-first-process"
+        },
+        {
+          "id": "controller-cold-footedness-2",
+          "kind": "controller-session-report",
+          "path": "data/research/sessions/frida-owned-footedness-cold-20260916T054936358637Z.json",
+          "sha256": "8c55b9db0c0b4b9f235ce426b8a2ae48d1a44ed6d6b17b3f1d0348b7d2c4d812",
+          "outcome": "passed-17-of-17-after-fm-restart"
+        },
+        {
+          "id": "adapter-cold-footedness-2",
+          "kind": "frida-property-read-report",
+          "path": "data/research/sessions/frida-owned-footedness-cold-20260916T054936358637Z.adapter.json",
+          "sha256": "639372a465f15fd9ccec34e6d05ddc2cdc0a1107c90099eb8f04bb286bd49825",
+          "outcome": "passed-17-of-17-after-fm-restart"
+        }
+      ],
+      "verified_facts": [
+        "FM's person property getter returned the tofP foot record for all 17 managed first-team players with no player screen open, on FM's UI thread, with manager, date, club, and squad unchanged.",
+        "Two runs produced identical categories, and FM's label mapper returned Left Only, Left, Right Only, Right, and Either for categories 0 to 4.",
+        "Four runs in total, including one after FM was restarted into a different process with a different UI thread, produced identical footedness for all 17 players, so the result does not depend on one process or one set of addresses.",
+        "Every run left FM alive with its process identity, module base, manager, date, club, and squad hash unchanged, and released the Windows Frida server."
+      ],
+      "reusable_for": ["cold footedness regression", "person property getter ABI", "UI-thread native-call safety baseline"],
+      "limitations": [
+        "The two prototype reports do not embed manager or date identity; the controller session reports do.",
+        "Values have not yet been compared with FM's player screens, so footedness is cold-query-proven but not ui-verified.",
+        "Scope is the managed first team only; external players need the scouted-person path."
+      ],
+      "known_contrasts": ["owned-foot-position-trace", "frida-windows-server-fm-proof"]
     }
   ]
 }

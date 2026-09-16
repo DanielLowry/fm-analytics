@@ -16,7 +16,7 @@ from fm_analytics.domain import AttributeObservation, Visibility
 
 
 VERSION = "squad-depth-test-v1"
-NO_FAMILIARITY_PENALTY = FamiliarityPolicy(penalty_weight=0)
+NO_FAMILIARITY_DISCOUNT = FamiliarityPolicy(floor_multiplier=1.0)
 
 # Every position below appears at most once per tactic. `assess_weaknesses`
 # flags a single shared backup covering several simultaneous starting slots
@@ -142,8 +142,8 @@ def squad() -> list[PlayerSelectionInput]:
 def evaluations():
     players = squad()
     return [
-        evaluate_tactic(TACTIC_1, players, CATALOGUE, familiarity_policy=NO_FAMILIARITY_PENALTY),
-        evaluate_tactic(TACTIC_2, players, CATALOGUE, familiarity_policy=NO_FAMILIARITY_PENALTY),
+        evaluate_tactic(TACTIC_1, players, CATALOGUE, familiarity_policy=NO_FAMILIARITY_DISCOUNT),
+        evaluate_tactic(TACTIC_2, players, CATALOGUE, familiarity_policy=NO_FAMILIARITY_DISCOUNT),
     ], players
 
 

@@ -41,15 +41,34 @@ Proton prefix and connects over loopback. That route passed attach, script,
 Interceptor, detach, FM-state, and automatic server-cleanup gates. The
 controller owns this lifecycle; the operator does not start the server.
 
-Three recipes are available:
+Four recipes are available:
 
 - `frida-attach-smoke` checks FM/Proton lifecycle compatibility without UI
   activity;
 - `frida-visible-attribute-hook` compares one known hook with existing GDB
   evidence;
-- `frida-footedness-candidates` is the first-value trial, arming all three
-  existing candidates for one bounded player tour and ranking the resulting
-  events automatically.
+- `frida-footedness-candidates` arms all three existing candidates for one
+  bounded player tour and ranks the resulting events automatically;
+- `frida-owned-footedness-cold` reads footedness for the managed first team by
+  calling FM's own property getter, with no player screen and no operator
+  action.
+
+## First extracted field: footedness
+
+FM asks a person object for the property key `tofP`, which returns a record
+holding `GflP` and `GfrP`. The label handler turns that pair into one of five
+categories using boundaries at 8 and 15. The cold path calls the same getter
+FM calls, through virtual slot `0x10` on the person interface the probe already
+resolves, and runs it on FM's own UI thread inside a QueryPerformanceCounter
+hook so FM executes its own code at an idle point.
+
+Four runs, including one after FM was restarted into a different process,
+returned the same footedness for all 17 managed players, and FM's own label
+mapper supplied the category text. Only those five categories are reported;
+the underlying foot ratings are never read out of FM. Footedness is therefore
+`cold-query-proven`, not `ui-verified`: the values have not yet been compared
+with FM's player screens, and nothing may reach FMBridge before that gate and
+promotion pass.
 
 Run a recipe through the same entry point:
 

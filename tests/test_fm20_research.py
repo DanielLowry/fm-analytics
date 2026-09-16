@@ -139,6 +139,65 @@ class ResearchControllerTests(unittest.TestCase):
         self.assertEqual(len(recipe["targets"]), 3)
         self.assertEqual(len(plan["operator_actions"]["batch_players"]), 6)
 
+    def test_cold_property_recipe_requires_every_player_resolved(self) -> None:
+        snapshot = self.snapshot()
+
+        def make_runner(resolved):
+            def fake_runner(command, **kwargs):
+                report = Path(command[command.index("--report") + 1])
+                report.write_text(json.dumps({
+                    "researchOnly": True,
+                    "status": "complete",
+                    "processAliveAfterDetach": True,
+                    "transport": {"kind": "windows-frida-server"},
+                    "capture": {"attached": True, "agentReady": True, "scriptUnloaded": True, "detached": True},
+                    "extraction": {"requestedCount": 2, "resolvedCount": resolved, "labelsVerified": True},
+                }) + "\n", encoding="utf-8")
+                self.assertIn("fm20_frida_property.py", command[1])
+                self.assertEqual(command[command.index("--field") + 1], "footedness")
+                self.assertIn("--remote-address", command)
+                self.assertTrue(kwargs["capture_output"])
+                return subprocess.CompletedProcess(command, 0, "adapter result\n", "")
+            return fake_runner
+
+        outcomes = {}
+        for resolved in (2, 1):
+            with tempfile.TemporaryDirectory() as directory:
+                target = Path(directory) / "session.json"
+                with (
+                    patch("tools.fm20_research.choose_pid", return_value=123),
+                    patch("tools.fm20_research.probe", return_value=snapshot),
+                    patch("tools.fm20_research.verified_executable_digest", return_value="pinned"),
+                ):
+                    outcomes[resolved] = run_recipe(
+                        "frida-owned-footedness-cold",
+                        report_path=target,
+                        runner=make_runner(resolved),
+                        frida_server_factory=lambda _executable: nullcontext("127.0.0.1:27044"),
+                    )
+
+        complete_status, _, complete = outcomes[2]
+        partial_status, _, partial = outcomes[1]
+        self.assertEqual(complete_status, 0)
+        self.assertTrue(complete["decision"]["labels_verified"])
+        self.assertEqual(complete["lifecycle"]["resourceRelease"], "confirmed-by-adapter-and-controller-server-exit")
+        self.assertEqual(partial_status, 1)
+        self.assertFalse(partial["decision"]["passed"])
+
+    def test_guarded_calls_are_limited_to_the_property_adapter(self) -> None:
+        recipe, plan = plan_recipe("frida-owned-footedness-cold")
+        self.assertEqual(recipe["safety"], "guarded-native-call")
+        self.assertEqual(plan["operator_interaction"], "none")
+        with (
+            patch("tools.fm20_research.load_json", return_value={
+                "schema_version": 1, "id": "frida-attach-smoke", "adapter": "fm20-frida-trace",
+                "safety": "guarded-native-call", "operator_interaction": "none", "timeout_seconds": 20,
+            }),
+            patch("pathlib.Path.is_file", return_value=True),
+            self.assertRaisesRegex(ControllerError, "safety class"),
+        ):
+            load_recipe("frida-attach-smoke")
+
     def test_preflight_failure_still_writes_a_controller_report(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "failed.json"

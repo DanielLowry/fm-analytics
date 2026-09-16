@@ -27,6 +27,7 @@
       "direct_linux_to_wine_attach": "rejected-2026-09-15-two-injection-failures-second-bootstrap-sigsegv-and-fm-exit",
       "windows_server_transport": "passed-2026-09-15-attach-hook-detach-and-controller-cleanup",
       "fm_proton_attach": "passed-via-windows-server-2026-09-15",
+      "ui_thread_native_call": "passed-2026-09-15-owned-squad-property-getter-and-label-mapper",
       "safety": "passive-live",
       "confidence": "observed",
       "implementation": "tools/fm20_frida_trace.py"
@@ -66,6 +67,28 @@
       "id": "team",
       "build": "fm20-20.4.4-1442341",
       "vtable_rva": "0x6d8dbc0",
+      "confidence": "cold-query-proven"
+    },
+    {
+      "id": "actual-player-person-interface",
+      "build": "fm20-20.4.4-1442341",
+      "rtti": ".?AVACTUAL_PLAYER@db@@",
+      "vtable_rva": "0x6d92778",
+      "relationship": "person interface = complete ACTUAL_PLAYER object + 0x1c8 = squad slot + 0x1c8; this is the probe's person address",
+      "confidence": "cold-query-proven"
+    },
+    {
+      "id": "property-variant",
+      "build": "fm20-20.4.4-1442341",
+      "layout": "16 bytes: type object pointer, payload; methods are type->vtable[n](type, &variant)",
+      "type_table_rva": "0x3f628f0",
+      "slots": {
+        "empty_type": "type table + 0x8",
+        "destroy": "0x8",
+        "as_int8": "0x30",
+        "as_int32": "0x38",
+        "as_record": "0x78 (returns vector of 16-byte {u32 key, variant*} entries)"
+      },
       "confidence": "cold-query-proven"
     }
   ],
@@ -217,9 +240,63 @@
       "build": "fm20-20.4.4-1442341",
       "rva": "0x5551cd0",
       "safety": "passive-live",
-      "confidence": "observed",
-      "semantic": "unclassified footedness-related candidate",
+      "confidence": "signature-mapped",
+      "semantic": "FOOT_LABEL 'valu' property handler (vtable 0x6db4188 slot 0x18); maps GflP/GfrP to five visible label categories",
       "evidence": ["owned-foot-position-trace"]
+    },
+    {
+      "id": "person-property-getter",
+      "build": "fm20-20.4.4-1442341",
+      "vtable_rva": "0x6d92778",
+      "slot": "0x10",
+      "thunk_rva": "0x517de44",
+      "rva": "0x5164d70",
+      "abi": "win64",
+      "arguments": ["person_interface", "u32 four-character property key", "property_variant_out"],
+      "result": "bool found; value written to the variant",
+      "safety": "guarded-native-call",
+      "confidence": "cold-query-proven",
+      "implementation": "tools/fm20_frida_property.py",
+      "note": "ACTUAL_PLAYER override; unhandled keys fall through to player-property-producer.",
+      "evidence": ["cold-footedness-getter", "cold-footedness-labels"]
+    },
+    {
+      "id": "player-property-producer",
+      "build": "fm20-20.4.4-1442341",
+      "rtti": ".?AVPLAYER@db@@",
+      "vtable_rva": "0x6d92f68",
+      "slot": "0x10",
+      "rva": "0x5231a30",
+      "abi": "win64",
+      "arguments": ["player_property_interface", "u32 four-character property key", "property_variant_out"],
+      "safety": "guarded-native-call",
+      "confidence": "signature-mapped",
+      "known_keys": {"tofP": "record of GflP and GfrP, built at 0x5235054"},
+      "evidence": ["cold-footedness-getter"]
+    },
+    {
+      "id": "scouted-person-property-dispatcher",
+      "build": "fm20-20.4.4-1442341",
+      "rtti": ".?AVGAME_SCOUTED_PERSON@@",
+      "vtable_rva": "0x676f138",
+      "slot": "0x20",
+      "rva": "0x1da87d0",
+      "safety": "passive-live",
+      "confidence": "signature-mapped",
+      "note": "Manager-knowledge view; its tofP case returns category 5 (unknown) when neither foot is known. Lead for external-player visibility."
+    },
+    {
+      "id": "foot-category-label-mapper",
+      "build": "fm20-20.4.4-1442341",
+      "rva": "0x522e720",
+      "abi": "win64",
+      "arguments": ["fm_string_out", "int32 category 0..5", "bool long_form"],
+      "result": "0 Left Only, 1 Left, 2 Right Only, 3 Right, 4 Either",
+      "string_release_rva": "0x3f5d4e0",
+      "safety": "guarded-native-call",
+      "confidence": "cold-query-proven",
+      "implementation": "tools/fm20_frida_property.py",
+      "evidence": ["cold-footedness-labels"]
     }
   ],
   "properties": [
@@ -293,12 +370,16 @@
       "id": "player.footedness",
       "build": "fm20-20.4.4-1442341",
       "scope": "manager-visible player footedness",
-      "confidence": "observed",
-      "status": "unresolved",
+      "confidence": "cold-query-proven",
+      "status": "resolved-for-managed-first-team",
+      "property_key": "tofP",
+      "sub_keys": {"left": "GflP", "right": "GfrP"},
+      "visible_categories": ["Left Only", "Left", "Right Only", "Right", "Either"],
       "static_anchors": ["FOOTEDNESS_LABEL", "FOOT_LABEL", "preferred_foot"],
       "observed_function_rvas": ["0x3dd6940", "0x5551cc0", "0x5551cd0"],
-      "evidence": ["owned-foot-position-trace"],
-      "note": "Calls were observed, but no getter, result contract, or cold query is proven."
+      "implementation": "tools/fm20_frida_property.py",
+      "evidence": ["owned-foot-position-trace", "cold-footedness-getter", "cold-footedness-labels"],
+      "note": "Cold getter results for all 17 managed players and FM's own label text are proven; comparison with the player screens is pending, so this is not ui-verified."
     },
     {
       "id": "player.position-proficiency",
@@ -326,6 +407,13 @@
       "rule": "Consume only the two visible result-bound bytes. Never consume the concealed raw third byte.",
       "confidence": "production-approved",
       "implementation": "tools/fm20_visibility_capture.gdb"
+    },
+    {
+      "id": "footedness-category-only",
+      "build": "fm20-20.4.4-1442341",
+      "rule": "Report only FM's five FOOT_LABEL categories for managed first-team players. Never send, log, or persist the GflP/GfrP ratings. External players require the scouted-person path.",
+      "confidence": "cold-query-proven",
+      "implementation": "tools/fm20_frida_property.py"
     }
   ],
   "discoverability_rules": [
@@ -350,7 +438,7 @@
       "id": "first-value-thin-slice",
       "property_candidates": ["external-player.contract-expiry", "player.footedness"],
       "acceptance": "Discover one bridge-absent property with no interactive GDB and at most one short FM interaction.",
-      "status": "planned"
+      "status": "footedness-cold-query-proven-ui-check-pending"
     }
   ]
 }

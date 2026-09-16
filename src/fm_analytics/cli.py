@@ -279,7 +279,7 @@ def render_recommendation(
             f"{assignment.intrinsic_role_score.role_name:<34} "
             f"role {_band(assignment.intrinsic_role_score.score)}, "
             f"readiness -{assignment.readiness_penalty:.1f}, "
-            f"familiarity -{assignment.familiarity_penalty:.1f}, "
+            f"familiarity x{assignment.familiarity_multiplier:.2f}, "
             f"selection {assignment.selection_score.central:.1f}{warnings}"
         )
     if selected.unfilled_slots:

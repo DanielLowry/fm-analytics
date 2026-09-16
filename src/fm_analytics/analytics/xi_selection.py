@@ -67,7 +67,7 @@ class ReadinessPolicy:
 
 @dataclass(frozen=True)
 class FamiliarityPolicy:
-    """Penalize a slot by how familiar the player is with that position.
+    """Scale a slot's role score by how familiar the player is with the position.
 
     Uses FM's own raw 1-20 position rating directly as a continuous signal
     rather than mapping it onto the game's Natural/Accomplished/.../
@@ -75,25 +75,40 @@ class FamiliarityPolicy:
     projection of this same number, so reproducing them exactly is not
     required to use the information, only to describe it the way the UI does.
 
+    The rating maps onto a *multiplier* applied to the role score, not a
+    flat points deduction: `floor_multiplier` at the worst rating (1), 1.0
+    at the best (20), linear in between. Multiplying keeps the discount
+    proportionate to the player's underlying quality -- an excellent player
+    playing out of position still loses a fixed *fraction* of a large score,
+    rather than the same handful of points as a mediocre one -- and it makes
+    the single `selection_score` a fair one-number comparison across
+    players, which an additive penalty on wildly different base scores does
+    not. `floor_multiplier` exists (rather than letting a rating of 1 zero a
+    player out) because attributes like decisions, strength, or passing
+    still count for something in an unfamiliar position; it is a judgment
+    call, not a measured constant.
+
     `unknown_rating` is the value assumed when no reading exists for a
     position a player is otherwise eligible for -- for example a squad
     assembled from HTML import, which cannot supply this field. It defaults
-    to 15 because that is the same threshold `decode_positions` already uses
-    to decide whether a position appears in `positions` at all; treating a
-    missing reading as anything below that would penalize an eligible player
-    beyond what the rest of this codebase already assumes about them.
+    to `tools/fm20_linux_probe.POSITION_ELIGIBILITY_MINIMUM` (10) because
+    that is the same threshold used to decide whether a position appears in
+    `positions` at all; treating a missing reading as anything below that
+    would penalize an eligible player beyond what the rest of this codebase
+    already assumes about them. The two are duplicated rather than imported
+    across the tools/src boundary; keep them in step if either changes.
 
-    A `penalty_weight` of 0 disables the penalty entirely without deleting
-    the policy, which is what distinguishes an *effective* recommendation
-    (this weight as configured) from a *potential* one (weight forced to 0)
-    -- see `recommend_tactic_effective_and_potential`.
+    A `floor_multiplier` of 1.0 disables the discount entirely without
+    deleting the policy, which is what distinguishes an *effective*
+    recommendation (this policy as configured) from a *potential* one
+    (multiplier forced to 1.0) -- see `recommend_tactic_effective_and_potential`.
     """
 
-    version: str = "familiarity-v1"
+    version: str = "familiarity-v2"
     scale_minimum: int = 1
     scale_maximum: int = 20
-    unknown_rating: int = 15
-    penalty_weight: float = 0.6
+    unknown_rating: int = 10
+    floor_multiplier: float = 0.5
 
     def __post_init__(self) -> None:
         if not self.version:
@@ -102,11 +117,19 @@ class FamiliarityPolicy:
             raise ValueError("familiarity scale minimum must be below maximum")
         if not self.scale_minimum <= self.unknown_rating <= self.scale_maximum:
             raise ValueError("unknown rating must be within the familiarity scale")
-        if self.penalty_weight < 0:
-            raise ValueError("familiarity penalty weight cannot be negative")
+        if not 0 <= self.floor_multiplier <= 1:
+            raise ValueError("familiarity floor multiplier must be between 0 and 1")
+
+    def multiplier(self, rating: int) -> float:
+        """The fraction of role score retained at this raw 1-20 rating."""
+        span = self.scale_maximum - self.scale_minimum
+        normalized = (rating - self.scale_minimum) / span
+        return round(
+            self.floor_multiplier + normalized * (1 - self.floor_multiplier), 6
+        )
 
     def potential(self) -> FamiliarityPolicy:
-        """Return the same policy with its penalty disabled.
+        """Return the same policy with its discount disabled.
 
         Evaluating with this instead of `self` answers "what could this
         tactic be, once the squad is trained into position", rather than
@@ -117,7 +140,7 @@ class FamiliarityPolicy:
             scale_minimum=self.scale_minimum,
             scale_maximum=self.scale_maximum,
             unknown_rating=self.unknown_rating,
-            penalty_weight=0.0,
+            floor_multiplier=1.0,
         )
 
 
@@ -143,7 +166,7 @@ class SlotAssignment:
     intrinsic_role_score: RoleScore
     readiness_penalty: float
     readiness_warnings: tuple[str, ...]
-    familiarity_penalty: float
+    familiarity_multiplier: float
     familiarity_warnings: tuple[str, ...]
     selection_score: ScoreBand
 
@@ -153,7 +176,7 @@ class TacticEvaluation:
     tactic: TacticDefinition
     readiness_version: str
     familiarity_version: str
-    familiarity_weight: float
+    familiarity_floor: float
     fit_version: str
     fit_weakest_weight: float
     assignments: tuple[SlotAssignment, ...]
@@ -205,13 +228,19 @@ class EffectiveAndPotentialRecommendation:
     effective: TacticRecommendation
     potential: TacticRecommendation
 
-    def training_targets(self, *, minimum_gap: float = 5.0) -> tuple[TrainingTarget, ...]:
+    def training_targets(self, *, minimum_gap_ratio: float = 0.08) -> tuple[TrainingTarget, ...]:
         """Tactics whose potential fit clears its effective fit by a margin.
 
         Ordered by the largest gap first, since that is the tactic where
         training individual players into position would move the needle
-        the most. `minimum_gap` filters out noise from tactics that are
-        already close to their ceiling.
+        the most. The bar is a *fraction* of the tactic's effective fit
+        (default 8%) rather than a fixed number of points: fit magnitudes
+        move with the catalogue and scoring policy in use -- multiplicative
+        familiarity discounts produce smaller absolute gaps than the old
+        additive penalty did, and a fixed points threshold tuned for one
+        would quietly stop firing under the other. A tactic with no legal
+        XI today (effective fit of 0 or less) counts any positive gap as
+        material, since a relative comparison is meaningless there.
         """
         targets = []
         for potential_evaluation in self.potential.evaluations:
@@ -222,7 +251,9 @@ class EffectiveAndPotentialRecommendation:
                 potential_evaluation.score.central - effective_evaluation.score.central,
                 6,
             )
-            if gap >= minimum_gap:
+            baseline = effective_evaluation.score.central
+            material = gap > 0 and (baseline <= 0 or gap / baseline >= minimum_gap_ratio)
+            if material:
                 targets.append(
                     TrainingTarget(
                         tactic_key=potential_evaluation.tactic.key,
@@ -303,7 +334,7 @@ def evaluate_tactic(
         tactic=tactic,
         readiness_version=readiness_policy.version,
         familiarity_version=familiarity_policy.version,
-        familiarity_weight=familiarity_policy.penalty_weight,
+        familiarity_floor=familiarity_policy.floor_multiplier,
         fit_version=fit_policy.version,
         fit_weakest_weight=fit_policy.weakest_slot_weight,
         assignments=ordered_assignments,
@@ -415,10 +446,13 @@ def score_player_for_slot(
         return None
     intrinsic = score_role(catalogue.roles[slot.role_key], player.attributes)
     readiness_penalty, readiness_warnings = _readiness(player, readiness_policy)
-    familiarity_penalty, familiarity_warnings = _familiarity(
+    familiarity_multiplier, familiarity_warnings = _familiarity(
         player, slot, familiarity_policy
     )
-    penalty = readiness_penalty + familiarity_penalty
+
+    def _adjust(raw: float) -> float:
+        return round(max(0, round(raw - readiness_penalty, 6)) * familiarity_multiplier, 6)
+
     return SlotAssignment(
         slot=slot,
         player_id=player.id,
@@ -426,12 +460,12 @@ def score_player_for_slot(
         intrinsic_role_score=intrinsic,
         readiness_penalty=readiness_penalty,
         readiness_warnings=readiness_warnings,
-        familiarity_penalty=familiarity_penalty,
+        familiarity_multiplier=familiarity_multiplier,
         familiarity_warnings=familiarity_warnings,
         selection_score=ScoreBand(
-            lower=max(0, round(intrinsic.score.lower - penalty, 6)),
-            central=max(0, round(intrinsic.score.central - penalty, 6)),
-            upper=max(0, round(intrinsic.score.upper - penalty, 6)),
+            lower=_adjust(intrinsic.score.lower),
+            central=_adjust(intrinsic.score.central),
+            upper=_adjust(intrinsic.score.upper),
         ),
     )
 
@@ -513,8 +547,7 @@ def _familiarity(
     if rating is None:
         rating = policy.unknown_rating
         warnings.append(f"{slot.position} familiarity unknown")
-    penalty = (policy.scale_maximum - rating) * policy.penalty_weight
-    return round(penalty, 6), tuple(warnings)
+    return policy.multiplier(rating), tuple(warnings)
 
 
 def _state_is_better(candidate: _AssignmentState, current: _AssignmentState) -> bool:
