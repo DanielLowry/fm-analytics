@@ -33,8 +33,8 @@ CORPUS_PATH = ROOT / "research" / "corpus.json"
 DEFAULT_REPORT_DIR = ROOT / "data" / "research" / "sessions"
 SCHEMA_VERSION = 1
 MAX_CAPTURED_OUTPUT = 16_384
-FRIDA_ADAPTERS = frozenset({"fm20-frida-trace", "fm20-frida-property", "fm20-frida-attribute-sweep"})
-COLD_PROPERTY_ADAPTERS = frozenset({"fm20-frida-property", "fm20-frida-attribute-sweep"})
+FRIDA_ADAPTERS = frozenset({"fm20-frida-trace", "fm20-frida-property", "fm20-frida-attribute-sweep", "fm20-frida-discoverability"})
+COLD_PROPERTY_ADAPTERS = frozenset({"fm20-frida-property", "fm20-frida-attribute-sweep", "fm20-frida-discoverability"})
 
 
 class ControllerError(RuntimeError):
@@ -98,6 +98,16 @@ def load_recipe(recipe_id: str) -> dict[str, Any]:
         attributes = recipe.get("attributes")
         if attributes is not None and (not isinstance(attributes, list) or not attributes):
             raise ControllerError("attribute sweep recipe attributes must be a non-empty list or omitted")
+    elif adapter == "fm20-frida-discoverability":
+        if recipe.get("transport") != "windows-frida-server":
+            raise ControllerError("Frida recipes must use the Windows-side server transport")
+        if recipe.get("operator_interaction") != "none":
+            raise ControllerError("cold discoverability must not require operator interaction")
+        chunk_size = recipe.get("chunk_size", 25)
+        if not isinstance(chunk_size, int) or not 1 <= chunk_size <= 100:
+            raise ControllerError("discoverability chunk_size must be an integer from 1 to 100")
+        if "sample_only" in recipe and not isinstance(recipe["sample_only"], bool):
+            raise ControllerError("discoverability sample_only must be boolean when supplied")
     else:
         if recipe.get("transport") != "windows-frida-server":
             raise ControllerError("Frida recipes must use the Windows-side server transport")
@@ -263,6 +273,23 @@ def _adapter_command(
             command.extend(("--attribute", attribute))
         return command
 
+    if recipe["adapter"] == "fm20-frida-discoverability":
+        if remote_address is None:
+            raise ControllerError("Frida recipes require a controller-owned Windows server")
+        command = [
+            sys.executable,
+            str(ROOT / "tools" / "fm20_frida_discoverability.py"),
+            "--pid", str(pid),
+            "--module-base", module_base,
+            "--remote-address", remote_address,
+            "--remote-process", "fm.exe",
+            "--chunk-size", str(recipe.get("chunk_size", 25)),
+            "--report", str(report),
+        ]
+        if recipe.get("sample_only"):
+            command.append("--sample-only")
+        return command
+
     registry = load_json(REGISTRY_PATH)
     functions = {item["id"]: item for item in registry["functions"]}
     command = [
@@ -345,6 +372,31 @@ def _adapter_passed(
             summary["players_requested"] > 0,
             summary["players_resolved"] == summary["players_requested"],
             summary["players_resolved"] >= decision.get("minimum_players", 1),
+        ))
+        return passed, summary
+
+    if recipe["adapter"] == "fm20-frida-discoverability":
+        capture_result = adapter_report.get("capture", {})
+        summary.update({
+            "transport": adapter_report.get("transport", {}).get("kind"),
+            "attached": capture_result.get("attached"),
+            "detached": capture_result.get("detached"),
+            "process_alive": adapter_report.get("processAliveAfterDetach"),
+            "source_count": adapter_report.get("sourceCount", 0),
+            "evaluated_count": adapter_report.get("filterCapture", {}).get("evaluatedCount"),
+            "sample_checked": adapter_report.get("filterCapture", {}).get("sampleChecked"),
+        })
+        required_evaluations = (
+            decision.get("minimum_evaluated", 6)
+            if recipe.get("sample_only") else summary["source_count"]
+        )
+        passed = passed and summary["transport"] == "windows-frida-server" and all((
+            summary["attached"] is True,
+            summary["detached"] is True,
+            summary["process_alive"] is True,
+            summary["source_count"] >= decision.get("minimum_players", 1),
+            summary["evaluated_count"] == required_evaluations,
+            summary["sample_checked"] is True,
         ))
         return passed, summary
 

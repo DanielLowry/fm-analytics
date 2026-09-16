@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "id": "frida-discoverability",
+  "purpose": "manager-rooted-player-search-through-frida",
+  "question": "Can Frida invoke FM's manager-rooted Player Search source builder and active full filter on FM's UI thread, yielding a complete bounded discoverability result without opening Player Search?",
+  "adapter": "fm20-frida-discoverability",
+  "transport": "windows-frida-server",
+  "build": "fm20-20.4.4-1442341",
+  "safety": "guarded-native-call",
+  "operator_interaction": "none",
+  "requires_live_process": true,
+  "timeout_seconds": 300,
+  "chunk_size": 25,
+  "required_registry_facts": [
+    "manager-search-sources",
+    "player-search-source-builder",
+    "full-player-search-filter",
+    "visibility-context-root",
+    "manager-rooted-player-search"
+  ],
+  "reusable_corpus_states": ["cold-discoverability-repeat"],
+  "decision": {
+    "adapter_exit_codes": [0],
+    "adapter_statuses": ["complete"],
+    "minimum_players": 1
+  },
+  "limitations": [
+    "This is a guarded research adapter, not a production discoverability source.",
+    "It must be compared with FM Player Search after a run; the current native predicate is known to be conservative in one recorded package state.",
+    "Package state is not yet decoded natively."
+  ]
+}

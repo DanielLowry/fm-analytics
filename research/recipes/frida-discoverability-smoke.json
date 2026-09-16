@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "frida-discoverability-smoke",
+  "purpose": "manager-rooted-player-search-through-frida-smoke",
+  "question": "Can Frida invoke FM's manager-rooted Player Search builder and verify the six-record full-filter behavioural guard on FM's UI thread?",
+  "adapter": "fm20-frida-discoverability",
+  "transport": "windows-frida-server",
+  "build": "fm20-20.4.4-1442341",
+  "safety": "guarded-native-call",
+  "operator_interaction": "none",
+  "requires_live_process": true,
+  "timeout_seconds": 90,
+  "chunk_size": 6,
+  "sample_only": true,
+  "required_registry_facts": [
+    "manager-search-sources",
+    "player-search-source-builder",
+    "full-player-search-filter",
+    "visibility-context-root",
+    "manager-rooted-player-search"
+  ],
+  "reusable_corpus_states": ["cold-discoverability-repeat"],
+  "decision": {
+    "adapter_exit_codes": [0],
+    "adapter_statuses": ["complete"],
+    "minimum_players": 6,
+    "minimum_evaluated": 6
+  },
+  "limitations": [
+    "This runs only the builder plus the six-record guard; it does not publish a discoverable player set.",
+    "The full Frida batch is run only after this adapter completes cleanly."
+  ]
+}
