@@ -33,7 +33,8 @@ CORPUS_PATH = ROOT / "research" / "corpus.json"
 DEFAULT_REPORT_DIR = ROOT / "data" / "research" / "sessions"
 SCHEMA_VERSION = 1
 MAX_CAPTURED_OUTPUT = 16_384
-FRIDA_ADAPTERS = frozenset({"fm20-frida-trace", "fm20-frida-property"})
+FRIDA_ADAPTERS = frozenset({"fm20-frida-trace", "fm20-frida-property", "fm20-frida-attribute-sweep"})
+COLD_PROPERTY_ADAPTERS = frozenset({"fm20-frida-property", "fm20-frida-attribute-sweep"})
 
 
 class ControllerError(RuntimeError):
@@ -65,7 +66,9 @@ def load_recipe(recipe_id: str) -> dict[str, Any]:
     adapter = recipe.get("adapter")
     if adapter not in {"fm20-field-workbench", *FRIDA_ADAPTERS}:
         raise ControllerError(f"recipe uses unsupported adapter {adapter!r}")
-    allowed_safety = {"passive-live", "guarded-native-call"} if adapter == "fm20-frida-property" else {"passive-live"}
+    allowed_safety = (
+        {"passive-live", "guarded-native-call"} if adapter in COLD_PROPERTY_ADAPTERS else {"passive-live"}
+    )
     if recipe.get("safety") not in allowed_safety:
         raise ControllerError("recipe safety class is not permitted for its adapter")
     if recipe.get("operator_interaction") not in {"none", "one-short-batched-ui-tour"}:
@@ -87,6 +90,14 @@ def load_recipe(recipe_id: str) -> dict[str, Any]:
         fields = recipe.get("fields")
         if not isinstance(fields, list) or not fields or any(field not in {"footedness"} for field in fields):
             raise ControllerError("property recipe contains no supported field")
+    elif adapter == "fm20-frida-attribute-sweep":
+        if recipe.get("transport") != "windows-frida-server":
+            raise ControllerError("Frida recipes must use the Windows-side server transport")
+        if recipe.get("operator_interaction") != "none":
+            raise ControllerError("cold attribute sweeps must not require operator interaction")
+        attributes = recipe.get("attributes")
+        if attributes is not None and (not isinstance(attributes, list) or not attributes):
+            raise ControllerError("attribute sweep recipe attributes must be a non-empty list or omitted")
     else:
         if recipe.get("transport") != "windows-frida-server":
             raise ControllerError("Frida recipes must use the Windows-side server transport")
@@ -236,6 +247,22 @@ def _adapter_command(
             command.extend(("--field", field))
         return command
 
+    if recipe["adapter"] == "fm20-frida-attribute-sweep":
+        if remote_address is None:
+            raise ControllerError("Frida recipes require a controller-owned Windows server")
+        command = [
+            sys.executable,
+            str(ROOT / "tools" / "fm20_frida_attribute_sweep.py"),
+            "--pid", str(pid),
+            "--module-base", module_base,
+            "--remote-address", remote_address,
+            "--remote-process", "fm.exe",
+            "--report", str(report),
+        ]
+        for attribute in recipe.get("attributes") or ():
+            command.extend(("--attribute", attribute))
+        return command
+
     registry = load_json(REGISTRY_PATH)
     functions = {item["id"]: item for item in registry["functions"]}
     command = [
@@ -294,6 +321,27 @@ def _adapter_passed(
             summary["detached"] is True,
             summary["process_alive"] is True,
             summary["labels_verified"] is True,
+            summary["players_requested"] > 0,
+            summary["players_resolved"] == summary["players_requested"],
+            summary["players_resolved"] >= decision.get("minimum_players", 1),
+        ))
+        return passed, summary
+
+    if recipe["adapter"] == "fm20-frida-attribute-sweep":
+        capture_result = adapter_report.get("capture", {})
+        extraction = adapter_report.get("extraction", {})
+        summary.update({
+            "transport": adapter_report.get("transport", {}).get("kind"),
+            "attached": capture_result.get("attached"),
+            "detached": capture_result.get("detached"),
+            "process_alive": adapter_report.get("processAliveAfterDetach"),
+            "players_requested": extraction.get("requestedCount", 0),
+            "players_resolved": extraction.get("resolvedCount", 0),
+        })
+        passed = passed and summary["transport"] == "windows-frida-server" and all((
+            summary["attached"] is True,
+            summary["detached"] is True,
+            summary["process_alive"] is True,
             summary["players_requested"] > 0,
             summary["players_resolved"] == summary["players_requested"],
             summary["players_resolved"] >= decision.get("minimum_players", 1),

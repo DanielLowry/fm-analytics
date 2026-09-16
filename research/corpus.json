@@ -352,6 +352,44 @@
         "Scope is the managed first team only; external players need the scouted-person path."
       ],
       "known_contrasts": ["owned-foot-position-trace", "frida-windows-server-fm-proof"]
+    },
+    {
+      "id": "owned-attribute-sweep-cross-check",
+      "state": "owned-first-team-no-player-screen-open",
+      "game_date": "2019-06-24",
+      "manager_id": "1915435127",
+      "entity": {
+        "kind": "player-set",
+        "ids": ["212559", "8608084", "29090252", "29158145", "29172172", "29176690", "31039582", "31050744", "31050748", "31050977", "31052962", "61084413", "89039573", "89054310", "89066081", "95034574", "29175396"]
+      },
+      "screens": [],
+      "captures": [
+        {
+          "id": "attribute-sweep-1",
+          "kind": "controller-session-report",
+          "path": "data/research/sessions/frida-owned-attributes-cold-20260916T062241302873Z.json",
+          "sha256": "9a3cf782af47fe88df7eacd61fc159669baff4366bc9379e3f1bbbad3310bcad",
+          "outcome": "passed-697-of-697-cross-checked"
+        },
+        {
+          "id": "attribute-sweep-adapter-1",
+          "kind": "frida-attribute-sweep-report",
+          "path": "data/research/sessions/frida-owned-attributes-cold-20260916T062241302873Z.adapter.json",
+          "sha256": "4fd65e4b22ca735a5b4aefe1a80ff58b73480f0310cd414f4ace79a64296ab6d",
+          "outcome": "passed-697-of-697-cross-checked"
+        }
+      ],
+      "verified_facts": [
+        "Calling FM's proven visible-attribute builder in-process, via Frida, for all 17 managed players and all 41 display attributes in one session produced 697 observations, all visibility=known, with no player screen open.",
+        "Every one of those 697 values matched tools/fm20_owned_visible_source.py's independent raw-byte production reader exactly, with zero mismatches.",
+        "The run left FM's manager, date, club, and squad hash unchanged and released the Windows Frida server."
+      ],
+      "reusable_for": ["bulk cold attribute regression", "builder-call ABI in-process reproduction", "scale baseline for a squad-wide sweep"],
+      "limitations": [
+        "This confirms the builder path for a fully-known squad; it does not exercise range or unknown outcomes, which only external/partially-scouted players would produce.",
+        "Scope is the managed first team; a broader sweep needs the discoverability gate, not more Frida work."
+      ],
+      "known_contrasts": ["owned-field-survey"]
     }
   ]
 }

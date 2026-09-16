@@ -51,7 +51,28 @@ Four recipes are available:
   bounded player tour and ranks the resulting events automatically;
 - `frida-owned-footedness-cold` reads footedness for the managed first team by
   calling FM's own property getter, with no player screen and no operator
-  action.
+  action;
+- `frida-owned-attributes-cold` reads every display attribute for the managed
+  first team by calling FM's own proven visible-attribute builder in-process,
+  in one session instead of one guarded ptrace call per attribute.
+
+## Scaling the proven attribute builder
+
+`tools/fm20_cold_visibility_ptrace.py` proved the visible-attribute builder is
+safe and correct, one player/attribute pair per ptrace attach and detach.
+`tools/fm20_frida_attribute_sweep.py` calls the same builder, with the same
+ABI, in-process through Frida, for a whole squad and every attribute in one
+session: 697 calls for the managed first team. Every one of those 697 values
+matched the existing production owned-squad reader (`fm20_owned_visible_source.py`,
+which reads the raw bytes directly, since the manager fully knows their own
+squad) exactly. This is the mechanism the app's "extract all attributes"
+capability is meant to use once it needs more than the owned squad, where
+range and unknown outcomes will actually occur.
+
+Scope today is still the managed first team. FM's builder itself already
+takes a knowledge context and returns visible bounds regardless of scope, so
+the ABI generalises; requesting a broader population is a discoverability
+question, catalogued as unresolved, not a Frida limitation.
 
 ## First extracted field: footedness
 

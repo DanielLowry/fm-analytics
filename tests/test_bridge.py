@@ -26,6 +26,19 @@ class BridgeSourceTests(unittest.TestCase):
     def test_owned_bridge_allowlist_matches_supported_reader(self) -> None:
         self.assertEqual(OWNED_ATTRIBUTE_ALLOWLIST, set(ATTRIBUTE_OFFSETS))
 
+    def test_default_attribute_visibility_is_visible(self) -> None:
+        source = LinuxProtonDataSource("/does/not/exist")
+
+        self.assertEqual(source.attribute_visibility, "visible")
+
+    def test_true_attribute_visibility_is_not_implemented_yet(self) -> None:
+        with self.assertRaises(NotImplementedError):
+            LinuxProtonDataSource("/does/not/exist", attribute_visibility="true")
+
+    def test_unsupported_attribute_visibility_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "attribute_visibility"):
+            LinuxProtonDataSource("/does/not/exist", attribute_visibility="everything")
+
     def test_fixture_source_maps_the_python_domain_contract(self) -> None:
         source = FixtureDataSource(ROOT / "src/fm_analytics/fixtures/sample-game.json")
 

@@ -428,6 +428,15 @@
   ],
   "experiments": [
     {
+      "id": "attribute-sweep-cross-check",
+      "adapter": "fm20-frida-attribute-sweep",
+      "safety": "guarded-native-call",
+      "confidence": "cold-query-proven",
+      "implementation": "tools/fm20_frida_attribute_sweep.py",
+      "note": "In-process Frida calls to the proven visible-attribute builder, for all 17 managed players and all 41 attributes in one session (697 calls), matched byte-for-byte against tools/fm20_owned_visible_source.py's independent raw-byte production reader.",
+      "evidence": ["owned-attribute-sweep-cross-check"]
+    },
+    {
       "id": "existing-field-workbench",
       "implementation": "tools/fm20_field_workbench.py",
       "safety": "passive-live",

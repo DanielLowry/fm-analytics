@@ -38,6 +38,20 @@ OWNED_ATTRIBUTE_ALLOWLIST = frozenset({
 })
 
 
+# The two attribute-scope modes the app is expected to offer as a user-facing
+# toggle. "visible" is the default and, by a wide margin, the expected common
+# case: exactly what the manager sees in FM, with unknown/range values kept
+# as such rather than resolved. "true" -- every player's real underlying
+# attribute regardless of the manager's knowledge -- is a deliberate,
+# separately-gated mode this source does not implement yet. It fails at
+# construction, not at first query, so a caller cannot silently build a page
+# around a mode that does not exist. Building it requires its own decision
+# about where hidden truth may flow (analytics/scoring must never see it
+# implicitly): see docs/property-discovery-playbook.md and the safety model
+# in docs/research-automation.md.
+ATTRIBUTE_VISIBILITY_MODES = frozenset({"visible", "true"})
+
+
 class LinuxProtonDataSource:
     """Adapt the read-only Python FM20 probe to the bridge contract."""
 
@@ -49,6 +63,7 @@ class LinuxProtonDataSource:
         python_executable: str | None = None,
         timeout_seconds: int | str | None = None,
         owned_source_path: str | Path | None = None,
+        attribute_visibility: str = "visible",
     ):
         self.probe_path = Path(probe_path) if probe_path else _default_probe_path()
         self.owned_source_path = (
@@ -60,6 +75,18 @@ class LinuxProtonDataSource:
         except (TypeError, ValueError):
             configured_timeout = 10
         self.timeout_seconds = max(1, min(60, configured_timeout))
+        if attribute_visibility not in ATTRIBUTE_VISIBILITY_MODES:
+            raise ValueError(
+                f"attribute_visibility must be one of {sorted(ATTRIBUTE_VISIBILITY_MODES)}, "
+                f"got {attribute_visibility!r}"
+            )
+        if attribute_visibility == "true":
+            raise NotImplementedError(
+                "attribute_visibility='true' is not implemented: this source only ever "
+                "reads what the manager can see. A true-value mode needs its own gate "
+                "so hidden attributes cannot reach analytics/scoring by accident."
+            )
+        self.attribute_visibility = attribute_visibility
         self._lock = threading.Lock()
         self._cached_document: dict[str, Any] | None = None
         self._cached_at = 0.0

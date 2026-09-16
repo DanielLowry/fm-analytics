@@ -36,6 +36,12 @@ which function contains an address, which vtable slot and class own a function,
 and where a four-character property key appears. It reads only the executable
 file, so it is safe to run at any time and needs no FM process.
 
+`fm20_frida_attribute_sweep.py` calls FM's proven, UI-verified visible-attribute
+builder in-process for many players and every display attribute in one Frida
+session, instead of one guarded ptrace call per attribute. Its recipe is
+`frida-owned-attributes-cold`; its results are cross-checked against
+`fm20_owned_visible_source.py`'s independent raw-byte reader.
+
 `fm20_frida_property.py` is the cold property-read adapter and the first tool
 that extracts a new field rather than counting calls. It resolves the managed
 first-team squad from read-only memory, then calls FM's own person property

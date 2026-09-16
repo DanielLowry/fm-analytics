@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "frida-owned-attributes-cold",
+  "purpose": "bulk-cold-attribute-read",
+  "question": "What does FM's own visible-attribute builder return for every display attribute of every managed first-team player, with no player screen open?",
+  "adapter": "fm20-frida-attribute-sweep",
+  "transport": "windows-frida-server",
+  "build": "fm20-20.4.4-1442341",
+  "safety": "guarded-native-call",
+  "operator_interaction": "none",
+  "requires_live_process": true,
+  "timeout_seconds": 60,
+  "required_registry_facts": [
+    "visible-attribute-builder",
+    "player-interface-from-person",
+    "player.visible-attributes"
+  ],
+  "reusable_corpus_states": ["owned-field-survey"],
+  "decision": {
+    "adapter_exit_codes": [0],
+    "adapter_statuses": ["complete"],
+    "minimum_players": 1
+  },
+  "limitations": [
+    "Scope is the managed first team; the manager has full knowledge there, so no attribute is expected to come back as range or unknown in practice.",
+    "This calls the same proven, ui-verified builder used by the one-call-at-a-time cold-visibility tool, in-process, for every player and attribute in one session.",
+    "Broader population is a discoverability question, not a Frida limitation, and is out of scope for this recipe."
+  ]
+}
