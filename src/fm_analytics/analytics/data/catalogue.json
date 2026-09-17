@@ -1,5 +1,5 @@
 {
-  "version": "fm20-mvp-v5",
+  "version": "fm20-expanded-tactics-v1",
   "roles": [
     {
       "key": "gk_defend",
@@ -578,12 +578,20 @@
         {
           "key": "DCL",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DCR",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DR",
@@ -613,13 +621,35 @@
         {
           "key": "STL",
           "position": "ST",
-          "role": "dlf_support"
+          "role": "dlf_support",
+          "roles": [
+            "dlf_support",
+            "cf_support"
+          ]
         },
         {
           "key": "STR",
           "position": "ST",
-          "role": "af_attack"
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
         }
+      ],
+      "style": "Balanced Narrow Diamond",
+      "description": "A compact narrow 4-1-2-1-2 built around central combinations, two strikers and full-backs supplying most of the width.",
+      "whyGood": "It creates central numerical superiority and strong links between DM, midfield, AMC and two forwards.",
+      "keyRequirements": [
+        "Full-backs with stamina/crossing",
+        "Disciplined DM",
+        "Creative AMC",
+        "Complementary strikers"
+      ],
+      "tags": [
+        "narrow",
+        "balanced",
+        "two-strikers"
       ]
     },
     {
@@ -649,12 +679,20 @@
         {
           "key": "DCL",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DCR",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DR",
@@ -684,13 +722,35 @@
         {
           "key": "STL",
           "position": "ST",
-          "role": "dlf_support"
+          "role": "dlf_support",
+          "roles": [
+            "dlf_support",
+            "cf_support"
+          ]
         },
         {
           "key": "STR",
           "position": "ST",
-          "role": "af_attack"
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
         }
+      ],
+      "style": "Balanced 4-4-2",
+      "description": "A simple two-banks-of-four structure with natural width and two complementary forwards.",
+      "whyGood": "It is easy to recruit for, tactically clear and gives a useful baseline against more specialised systems.",
+      "keyRequirements": [
+        "Hard-working wide midfielders",
+        "Balanced CM pair",
+        "Complementary strikers",
+        "Disciplined full-backs"
+      ],
+      "tags": [
+        "balanced",
+        "442",
+        "lower-league-friendly"
       ]
     },
     {
@@ -721,12 +781,20 @@
         {
           "key": "DCL",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DCR",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DR",
@@ -761,8 +829,26 @@
         {
           "key": "ST",
           "position": "ST",
-          "role": "af_attack"
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
         }
+      ],
+      "style": "Positive 4-2-3-1",
+      "description": "A proactive 4-2-3-1 using a double pivot behind three attacking midfielders and one striker.",
+      "whyGood": "The pivot stabilises build-up while the front four occupy several attacking lines.",
+      "keyRequirements": [
+        "Secure double pivot",
+        "Quality AMC",
+        "Complementary wide attackers",
+        "Mobile striker"
+      ],
+      "tags": [
+        "positive",
+        "4231",
+        "front-four"
       ]
     },
     {
@@ -793,12 +879,20 @@
         {
           "key": "DCL",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DCR",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DR",
@@ -833,8 +927,26 @@
         {
           "key": "ST",
           "position": "ST",
-          "role": "af_attack"
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
         }
+      ],
+      "style": "Positive 4-3-3 DM",
+      "description": "A modern 4-3-3 with a holder, two eights and complementary wide forwards.",
+      "whyGood": "It offers strong pitch coverage, good rest defence and multiple progression routes.",
+      "keyRequirements": [
+        "Reliable DM",
+        "Progressive midfielders",
+        "Wide forwards with end product",
+        "Mobile striker"
+      ],
+      "tags": [
+        "positive",
+        "433",
+        "dm"
       ]
     },
     {
@@ -858,7 +970,11 @@
         {
           "key": "DCL",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DCC",
@@ -868,7 +984,11 @@
         {
           "key": "DCR",
           "position": "DC",
-          "role": "cd_cover"
+          "role": "cd_cover",
+          "roles": [
+            "cd_cover",
+            "cd_defend"
+          ]
         },
         {
           "key": "WBL",
@@ -898,13 +1018,35 @@
         {
           "key": "STL",
           "position": "ST",
-          "role": "cf_support"
+          "role": "cf_support",
+          "roles": [
+            "cf_support",
+            "dlf_support"
+          ]
         },
         {
           "key": "STR",
           "position": "ST",
-          "role": "p_attack"
+          "role": "p_attack",
+          "roles": [
+            "p_attack",
+            "af_attack"
+          ]
         }
+      ],
+      "style": "3-5-2 Counter",
+      "description": "A back-three counter system using wing-backs for width and two forwards as immediate outlets.",
+      "whyGood": "Three centre-backs protect the box while two forwards keep counter-attacking threat high.",
+      "keyRequirements": [
+        "Three dependable centre-backs",
+        "High-stamina wing-backs",
+        "Transition runners",
+        "Complementary forwards"
+      ],
+      "tags": [
+        "counter",
+        "352",
+        "back-three"
       ]
     },
     {
@@ -938,7 +1080,11 @@
         {
           "key": "DCR",
           "position": "DC",
-          "role": "cd_cover"
+          "role": "cd_cover",
+          "roles": [
+            "cd_cover",
+            "cd_defend"
+          ]
         },
         {
           "key": "DR",
@@ -975,6 +1121,20 @@
           "position": "ST",
           "role": "tm_attack"
         }
+      ],
+      "style": "High-Press 4-3-3",
+      "description": "An aggressive 4-3-3 designed to regain possession high and sustain pressure in the opposition half.",
+      "whyGood": "The front three, energetic midfield and compressed defensive line make it easier to surround the ball.",
+      "keyRequirements": [
+        "High work rate/stamina",
+        "Fast centre-backs",
+        "Sweeper keeper",
+        "Squad depth"
+      ],
+      "tags": [
+        "gegenpress",
+        "433",
+        "high-line"
       ]
     },
     {
@@ -1002,7 +1162,11 @@
         {
           "key": "DCL",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DCR",
@@ -1042,8 +1206,26 @@
         {
           "key": "ST",
           "position": "ST",
-          "role": "p_attack"
+          "role": "p_attack",
+          "roles": [
+            "p_attack",
+            "af_attack"
+          ]
         }
+      ],
+      "style": "Balanced 4-1-4-1",
+      "description": "A compact 4-1-4-1 with a dedicated screen behind a four-man midfield.",
+      "whyGood": "It gives strong defensive spacing and central control while retaining wide outlets.",
+      "keyRequirements": [
+        "Disciplined DM",
+        "Hard-working wide players",
+        "CM support for lone striker",
+        "Self-sufficient striker"
+      ],
+      "tags": [
+        "balanced",
+        "4141",
+        "compact"
       ]
     },
     {
@@ -1068,12 +1250,20 @@
         {
           "key": "DCL",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DCC",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DCR",
@@ -1108,13 +1298,31 @@
         {
           "key": "ST1",
           "position": "ST",
-          "role": "dlf_support"
+          "role": "dlf_support",
+          "roles": [
+            "dlf_support",
+            "cf_support"
+          ]
         },
         {
           "key": "ST2",
           "position": "ST",
           "role": "tm_attack"
         }
+      ],
+      "style": "Defensive 5-3-2",
+      "description": "A deep five-defender system prioritising central protection and counter-attacking through two forwards.",
+      "whyGood": "It packs the box while still keeping two outlets available after regains.",
+      "keyRequirements": [
+        "Aerially strong centre-backs",
+        "High-stamina wing-backs",
+        "Defensive midfield discipline",
+        "Direct-capable forwards"
+      ],
+      "tags": [
+        "defensive",
+        "532",
+        "low-block"
       ]
     },
     {
@@ -1143,12 +1351,20 @@
         {
           "key": "DCL",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DCR",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DR",
@@ -1185,6 +1401,19 @@
           "position": "ST",
           "role": "tm_attack"
         }
+      ],
+      "style": "Defensive 4-5-1",
+      "description": "A conservative five-man midfield shape designed to deny central space and protect a result.",
+      "whyGood": "The dense midfield makes progression difficult and keeps defensive responsibilities simple.",
+      "keyRequirements": [
+        "Hard-working midfield",
+        "Disciplined wide midfielders",
+        "Lone striker able to compete alone"
+      ],
+      "tags": [
+        "defensive",
+        "451",
+        "protect-lead"
       ]
     },
     {
@@ -1213,7 +1442,11 @@
         {
           "key": "DCL",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DCR",
@@ -1253,8 +1486,26 @@
         {
           "key": "ST",
           "position": "ST",
-          "role": "af_attack"
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
         }
+      ],
+      "style": "Attacking 4-3-3",
+      "description": "An aggressive 4-3-3 committing full-backs, midfield runners and wide forwards to attack.",
+      "whyGood": "It creates several simultaneous attacking lanes and is useful when the team must force the game.",
+      "keyRequirements": [
+        "Fast recovery defenders",
+        "Attacking full-backs",
+        "Midfield legs",
+        "Wide forwards with end product"
+      ],
+      "tags": [
+        "attacking",
+        "433",
+        "overload"
       ]
     },
     {
@@ -1278,7 +1529,11 @@
         {
           "key": "DCL",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DCC",
@@ -1288,7 +1543,11 @@
         {
           "key": "DCR",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "WBL",
@@ -1323,8 +1582,26 @@
         {
           "key": "ST",
           "position": "ST",
-          "role": "af_attack"
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
         }
+      ],
+      "style": "Attacking 3-4-3",
+      "description": "A front-foot back-three system with wing-backs stretching the pitch and a front three occupying the back line.",
+      "whyGood": "Three defenders permit aggressive wing-back positions and five-lane attacking occupation.",
+      "keyRequirements": [
+        "Mobile outside centre-backs",
+        "Elite wing-back stamina",
+        "Midfield pair with defensive range",
+        "Fast front three"
+      ],
+      "tags": [
+        "positive",
+        "343",
+        "wing-backs"
       ]
     },
     {
@@ -1354,12 +1631,20 @@
         {
           "key": "DCL",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DCR",
           "position": "DC",
-          "role": "cd_defend"
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
         },
         {
           "key": "DR",
@@ -1389,14 +1674,1310 @@
         {
           "key": "ST1",
           "position": "ST",
-          "role": "dlf_support"
+          "role": "dlf_support",
+          "roles": [
+            "dlf_support",
+            "cf_support"
+          ]
         },
         {
           "key": "ST2",
           "position": "ST",
           "role": "tm_attack"
         }
+      ],
+      "style": "Low-Block 4-4-2",
+      "description": "Two compact banks of four with two forwards retained as direct counter outlets.",
+      "whyGood": "It keeps defensive jobs simple while preserving an immediate route out after regains.",
+      "keyRequirements": [
+        "Disciplined block",
+        "Wide midfield recovery",
+        "One hold-up forward",
+        "One runner"
+      ],
+      "tags": [
+        "defensive",
+        "442",
+        "direct-counter"
+      ]
+    },
+    {
+      "key": "control_possession_4231",
+      "name": "Control Possession 4-2-3-1",
+      "formation": "4-2-3-1 DM AM Wide",
+      "mentality": "Positive",
+      "instructions": [
+        "Shorter Passing",
+        "Lower Tempo",
+        "Play Out Of Defence",
+        "Work Ball Into Box",
+        "Hold Shape",
+        "Standard Line of Engagement",
+        "Higher Defensive Line"
+      ],
+      "slots": [
+        {
+          "key": "GK",
+          "position": "GK",
+          "role": "sk_defend"
+        },
+        {
+          "key": "DL",
+          "position": "DL",
+          "role": "fb_support"
+        },
+        {
+          "key": "DCL",
+          "position": "DC",
+          "role": "bpd_defend"
+        },
+        {
+          "key": "DCR",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DR",
+          "position": "DR",
+          "role": "fb_support"
+        },
+        {
+          "key": "DMCL",
+          "position": "DM",
+          "role": "dm_defend"
+        },
+        {
+          "key": "DMCR",
+          "position": "DM",
+          "role": "dlp_support"
+        },
+        {
+          "key": "AML",
+          "position": "AML",
+          "role": "if_attack"
+        },
+        {
+          "key": "AMC",
+          "position": "AMC",
+          "role": "ap_attack"
+        },
+        {
+          "key": "AMR",
+          "position": "AMR",
+          "role": "winger_support"
+        },
+        {
+          "key": "ST",
+          "position": "ST",
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
+        }
+      ],
+      "style": "Control Possession",
+      "description": "A patient 4-2-3-1 that controls territory and circulates until space opens between or outside the opposition lines.",
+      "whyGood": "The double pivot gives secure circulation while the AP and wide attackers provide several receiving lines ahead of the ball.",
+      "keyRequirements": [
+        "Technically secure defenders/midfielders",
+        "High-quality distributor",
+        "Intelligent AMC",
+        "Good first touch and decisions"
+      ],
+      "tags": [
+        "possession",
+        "4231",
+        "technical"
+      ]
+    },
+    {
+      "key": "vertical_tikitaka_433dm",
+      "name": "Vertical Tiki-Taka 4-3-3 DM",
+      "formation": "4-3-3 DM Wide",
+      "mentality": "Positive",
+      "instructions": [
+        "Shorter Passing",
+        "Play Out Of Defence",
+        "Higher Tempo",
+        "Pass Into Space",
+        "Counter-Press",
+        "Counter",
+        "Higher Line of Engagement",
+        "Higher Defensive Line"
+      ],
+      "slots": [
+        {
+          "key": "GK",
+          "position": "GK",
+          "role": "sk_defend"
+        },
+        {
+          "key": "DL",
+          "position": "DL",
+          "role": "wb_support"
+        },
+        {
+          "key": "DCL",
+          "position": "DC",
+          "role": "bpd_defend"
+        },
+        {
+          "key": "DCR",
+          "position": "DC",
+          "role": "cd_cover",
+          "roles": [
+            "cd_cover",
+            "cd_defend"
+          ]
+        },
+        {
+          "key": "DR",
+          "position": "DR",
+          "role": "fb_support"
+        },
+        {
+          "key": "DM",
+          "position": "DM",
+          "role": "dlp_support"
+        },
+        {
+          "key": "MCL",
+          "position": "MC",
+          "role": "b2b_support"
+        },
+        {
+          "key": "MCR",
+          "position": "MC",
+          "role": "mez_attack"
+        },
+        {
+          "key": "AML",
+          "position": "AML",
+          "role": "if_attack"
+        },
+        {
+          "key": "AMR",
+          "position": "AMR",
+          "role": "winger_support"
+        },
+        {
+          "key": "ST",
+          "position": "ST",
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
+        }
+      ],
+      "style": "Vertical Tiki-Taka",
+      "description": "Short combinations are used to progress quickly rather than simply retain possession, with runners attacking spaces created by circulation.",
+      "whyGood": "The playmaking DM anchors build-up while the eights and front three provide vertical movement and penetration.",
+      "keyRequirements": [
+        "Excellent first touch/passing",
+        "Mobile midfield",
+        "Fast attacking movement",
+        "Quick defenders"
+      ],
+      "tags": [
+        "vertical-tiki-taka",
+        "433",
+        "counterpress"
+      ]
+    },
+    {
+      "key": "gegenpress_4231",
+      "name": "Gegenpress 4-2-3-1",
+      "formation": "4-2-3-1 DM AM Wide",
+      "mentality": "Positive",
+      "instructions": [
+        "Shorter Passing",
+        "Higher Tempo",
+        "Counter-Press",
+        "Counter",
+        "Much Higher Line of Engagement",
+        "Higher Defensive Line",
+        "Much More Urgent Pressing",
+        "Prevent Short GK Distribution"
+      ],
+      "slots": [
+        {
+          "key": "GK",
+          "position": "GK",
+          "role": "sk_defend"
+        },
+        {
+          "key": "DL",
+          "position": "DL",
+          "role": "wb_support"
+        },
+        {
+          "key": "DCL",
+          "position": "DC",
+          "role": "bpd_defend"
+        },
+        {
+          "key": "DCR",
+          "position": "DC",
+          "role": "cd_cover",
+          "roles": [
+            "cd_cover",
+            "cd_defend"
+          ]
+        },
+        {
+          "key": "DR",
+          "position": "DR",
+          "role": "wb_support"
+        },
+        {
+          "key": "DMCL",
+          "position": "DM",
+          "role": "bwm_support"
+        },
+        {
+          "key": "DMCR",
+          "position": "DM",
+          "role": "dlp_support"
+        },
+        {
+          "key": "AML",
+          "position": "AML",
+          "role": "if_attack"
+        },
+        {
+          "key": "AMC",
+          "position": "AMC",
+          "role": "ss_attack"
+        },
+        {
+          "key": "AMR",
+          "position": "AMR",
+          "role": "winger_attack"
+        },
+        {
+          "key": "ST",
+          "position": "ST",
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
+        }
+      ],
+      "style": "Gegenpress",
+      "description": "An intense 4-2-3-1 intended to regain the ball immediately after losing it and attack before the opponent reorganises.",
+      "whyGood": "Four aggressive attackers lead the press while the pivot balances ball winning and distribution behind them.",
+      "keyRequirements": [
+        "High work rate/stamina",
+        "Fast defenders",
+        "Sweeper keeper",
+        "Squad depth"
+      ],
+      "tags": [
+        "gegenpress",
+        "4231",
+        "high-intensity"
+      ]
+    },
+    {
+      "key": "direct_counter_442",
+      "name": "Direct Counter 4-4-2",
+      "formation": "4-4-2",
+      "mentality": "Cautious",
+      "instructions": [
+        "Slightly More Direct Passing",
+        "Higher Tempo",
+        "Pass Into Space",
+        "Counter",
+        "Regroup",
+        "Lower Line of Engagement",
+        "Standard Defensive Line"
+      ],
+      "slots": [
+        {
+          "key": "GK",
+          "position": "GK",
+          "role": "gk_defend"
+        },
+        {
+          "key": "DL",
+          "position": "DL",
+          "role": "fb_support"
+        },
+        {
+          "key": "DCL",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DCR",
+          "position": "DC",
+          "role": "cd_cover",
+          "roles": [
+            "cd_cover",
+            "cd_defend"
+          ]
+        },
+        {
+          "key": "DR",
+          "position": "DR",
+          "role": "fb_support"
+        },
+        {
+          "key": "ML",
+          "position": "ML",
+          "role": "winger_support"
+        },
+        {
+          "key": "MCL",
+          "position": "MC",
+          "role": "cm_defend"
+        },
+        {
+          "key": "MCR",
+          "position": "MC",
+          "role": "b2b_support"
+        },
+        {
+          "key": "MR",
+          "position": "MR",
+          "role": "winger_support"
+        },
+        {
+          "key": "STL",
+          "position": "ST",
+          "role": "dlf_support",
+          "roles": [
+            "dlf_support",
+            "cf_support"
+          ]
+        },
+        {
+          "key": "STR",
+          "position": "ST",
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
+        }
+      ],
+      "style": "Direct Counter-Attack",
+      "description": "A compact 4-4-2 that accepts periods without the ball and attacks space quickly after regaining possession.",
+      "whyGood": "The DLF provides an outlet while the AF and wide runners attack the space left by an advanced opponent.",
+      "keyRequirements": [
+        "Pace in attack",
+        "Hold-up forward",
+        "Disciplined two banks of four",
+        "Midfield runners"
+      ],
+      "tags": [
+        "counter",
+        "442",
+        "direct"
+      ]
+    },
+    {
+      "key": "route_one_442",
+      "name": "Route One 4-4-2",
+      "formation": "4-4-2",
+      "mentality": "Balanced",
+      "instructions": [
+        "Much More Direct Passing",
+        "Higher Tempo",
+        "Pass Into Space",
+        "Hit Early Crosses",
+        "Counter",
+        "Regroup"
+      ],
+      "slots": [
+        {
+          "key": "GK",
+          "position": "GK",
+          "role": "gk_defend"
+        },
+        {
+          "key": "DL",
+          "position": "DL",
+          "role": "fb_support"
+        },
+        {
+          "key": "DCL",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DCR",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DR",
+          "position": "DR",
+          "role": "fb_support"
+        },
+        {
+          "key": "ML",
+          "position": "ML",
+          "role": "winger_support"
+        },
+        {
+          "key": "MCL",
+          "position": "MC",
+          "role": "cm_defend"
+        },
+        {
+          "key": "MCR",
+          "position": "MC",
+          "role": "bwm_support"
+        },
+        {
+          "key": "MR",
+          "position": "MR",
+          "role": "winger_support"
+        },
+        {
+          "key": "STL",
+          "position": "ST",
+          "role": "tm_attack"
+        },
+        {
+          "key": "STR",
+          "position": "ST",
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
+        }
+      ],
+      "style": "Route One",
+      "description": "A deliberately direct system that moves the ball forward early toward a physical target and runners attacking second balls.",
+      "whyGood": "The Target Man gives long passes a destination while the AF, wide players and midfield compete for territory and knockdowns.",
+      "keyRequirements": [
+        "Dominant aerial striker",
+        "Fast strike partner",
+        "Strong midfield",
+        "Reliable crossing"
+      ],
+      "tags": [
+        "route-one",
+        "442",
+        "physical"
+      ]
+    },
+    {
+      "key": "wing_play_442",
+      "name": "Wing Play 4-4-2",
+      "formation": "4-4-2",
+      "mentality": "Positive",
+      "instructions": [
+        "Fairly Wide",
+        "Slightly More Direct Passing",
+        "Hit Early Crosses",
+        "Overlap Left",
+        "Overlap Right",
+        "Higher Tempo",
+        "Counter"
+      ],
+      "slots": [
+        {
+          "key": "GK",
+          "position": "GK",
+          "role": "gk_defend"
+        },
+        {
+          "key": "DL",
+          "position": "DL",
+          "role": "fb_support"
+        },
+        {
+          "key": "DCL",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DCR",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DR",
+          "position": "DR",
+          "role": "fb_support"
+        },
+        {
+          "key": "ML",
+          "position": "ML",
+          "role": "winger_support"
+        },
+        {
+          "key": "MCL",
+          "position": "MC",
+          "role": "cm_defend"
+        },
+        {
+          "key": "MCR",
+          "position": "MC",
+          "role": "dlp_support"
+        },
+        {
+          "key": "MR",
+          "position": "MR",
+          "role": "winger_support"
+        },
+        {
+          "key": "STL",
+          "position": "ST",
+          "role": "tm_attack"
+        },
+        {
+          "key": "STR",
+          "position": "ST",
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
+        }
+      ],
+      "style": "Wing Play",
+      "description": "A width-first 4-4-2 designed to stretch the opponent and generate repeated crossing opportunities for two forwards.",
+      "whyGood": "Wide midfielders and overlapping full-backs create outside overloads, with a Target Man giving crosses a clear focal point.",
+      "keyRequirements": [
+        "Good crossing",
+        "Fast wide players",
+        "Stamina at full-back",
+        "Aerially strong striker"
+      ],
+      "tags": [
+        "wing-play",
+        "442",
+        "crossing"
+      ]
+    },
+    {
+      "key": "fluid_counter_4141",
+      "name": "Fluid Counter 4-1-4-1",
+      "formation": "4-1-4-1",
+      "mentality": "Cautious",
+      "instructions": [
+        "Slightly Shorter Passing",
+        "Pass Into Space",
+        "Counter",
+        "Regroup",
+        "Lower Line of Engagement",
+        "Standard Defensive Line"
+      ],
+      "slots": [
+        {
+          "key": "GK",
+          "position": "GK",
+          "role": "gk_defend"
+        },
+        {
+          "key": "DL",
+          "position": "DL",
+          "role": "fb_support"
+        },
+        {
+          "key": "DCL",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DCR",
+          "position": "DC",
+          "role": "cd_cover",
+          "roles": [
+            "cd_cover",
+            "cd_defend"
+          ]
+        },
+        {
+          "key": "DR",
+          "position": "DR",
+          "role": "fb_support"
+        },
+        {
+          "key": "DM",
+          "position": "DM",
+          "role": "dm_defend"
+        },
+        {
+          "key": "ML",
+          "position": "ML",
+          "role": "winger_support"
+        },
+        {
+          "key": "MCL",
+          "position": "MC",
+          "role": "b2b_support"
+        },
+        {
+          "key": "MCR",
+          "position": "MC",
+          "role": "cm_support"
+        },
+        {
+          "key": "MR",
+          "position": "MR",
+          "role": "winger_support"
+        },
+        {
+          "key": "ST",
+          "position": "ST",
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
+        }
+      ],
+      "style": "Fluid Counter-Attack",
+      "description": "A compact 4-1-4-1 that counters through short combinations and supporting runs rather than immediately launching long balls.",
+      "whyGood": "The DM stabilises the block while the Box-to-Box midfielder and wide players quickly join the AF after regains.",
+      "keyRequirements": [
+        "Mobile midfield",
+        "Pacy striker",
+        "Reliable DM",
+        "Good transition decisions"
+      ],
+      "tags": [
+        "fluid-counter",
+        "4141",
+        "transition"
+      ]
+    },
+    {
+      "key": "possession_4141",
+      "name": "Possession 4-1-4-1",
+      "formation": "4-1-4-1",
+      "mentality": "Positive",
+      "instructions": [
+        "Shorter Passing",
+        "Lower Tempo",
+        "Play Out Of Defence",
+        "Work Ball Into Box",
+        "Hold Shape",
+        "Standard Line of Engagement",
+        "Standard Defensive Line"
+      ],
+      "slots": [
+        {
+          "key": "GK",
+          "position": "GK",
+          "role": "sk_defend"
+        },
+        {
+          "key": "DL",
+          "position": "DL",
+          "role": "fb_support"
+        },
+        {
+          "key": "DCL",
+          "position": "DC",
+          "role": "bpd_defend"
+        },
+        {
+          "key": "DCR",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DR",
+          "position": "DR",
+          "role": "fb_support"
+        },
+        {
+          "key": "DM",
+          "position": "DM",
+          "role": "dlp_support"
+        },
+        {
+          "key": "ML",
+          "position": "ML",
+          "role": "wm_support"
+        },
+        {
+          "key": "MCL",
+          "position": "MC",
+          "role": "cm_support"
+        },
+        {
+          "key": "MCR",
+          "position": "MC",
+          "role": "b2b_support"
+        },
+        {
+          "key": "MR",
+          "position": "MR",
+          "role": "winger_support"
+        },
+        {
+          "key": "ST",
+          "position": "ST",
+          "role": "dlf_support",
+          "roles": [
+            "dlf_support",
+            "cf_support"
+          ]
+        }
+      ],
+      "style": "Possession",
+      "description": "A lower-risk possession structure with a playmaker at the base and four midfielders offering short passing options ahead.",
+      "whyGood": "The DM acts as a circulation hub and the compact midfield keeps support distances short.",
+      "keyRequirements": [
+        "Technically reliable midfield",
+        "Linking striker",
+        "Ball-playing defender",
+        "Good first touch/decisions"
+      ],
+      "tags": [
+        "possession",
+        "4141",
+        "control"
+      ]
+    },
+    {
+      "key": "positive_4312_narrow",
+      "name": "Positive 4-3-1-2 Narrow",
+      "formation": "4-3-1-2",
+      "mentality": "Positive",
+      "instructions": [
+        "Fairly Narrow",
+        "Shorter Passing",
+        "Work Ball Into Box",
+        "Overlap Left",
+        "Overlap Right",
+        "Counter-Press",
+        "Standard Line of Engagement",
+        "Standard Defensive Line"
+      ],
+      "slots": [
+        {
+          "key": "GK",
+          "position": "GK",
+          "role": "gk_defend"
+        },
+        {
+          "key": "DL",
+          "position": "DL",
+          "role": "wb_attack"
+        },
+        {
+          "key": "DCL",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DCR",
+          "position": "DC",
+          "role": "bpd_defend"
+        },
+        {
+          "key": "DR",
+          "position": "DR",
+          "role": "wb_support"
+        },
+        {
+          "key": "MCL",
+          "position": "MC",
+          "role": "cm_defend"
+        },
+        {
+          "key": "MCC",
+          "position": "MC",
+          "role": "dlp_support"
+        },
+        {
+          "key": "MCR",
+          "position": "MC",
+          "role": "b2b_support"
+        },
+        {
+          "key": "AMC",
+          "position": "AMC",
+          "role": "ap_attack"
+        },
+        {
+          "key": "STL",
+          "position": "ST",
+          "role": "dlf_support",
+          "roles": [
+            "dlf_support",
+            "cf_support"
+          ]
+        },
+        {
+          "key": "STR",
+          "position": "ST",
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
+        }
+      ],
+      "style": "Narrow Combination Play",
+      "description": "A narrow 4-3-1-2 using three central midfielders and an advanced playmaker behind two complementary forwards.",
+      "whyGood": "It overloads central zones while the wing-backs provide the width that the midfield shape lacks.",
+      "keyRequirements": [
+        "Excellent attacking full-backs",
+        "Three capable central midfielders",
+        "Creative AMC",
+        "Complementary strikers"
+      ],
+      "tags": [
+        "narrow",
+        "4312",
+        "central-overload"
+      ]
+    },
+    {
+      "key": "balanced_4411",
+      "name": "Balanced 4-4-1-1",
+      "formation": "4-4-1-1",
+      "mentality": "Balanced",
+      "instructions": [
+        "Fairly Wide",
+        "Slightly More Direct Passing",
+        "Counter",
+        "Regroup",
+        "Standard Line of Engagement",
+        "Standard Defensive Line"
+      ],
+      "slots": [
+        {
+          "key": "GK",
+          "position": "GK",
+          "role": "gk_defend"
+        },
+        {
+          "key": "DL",
+          "position": "DL",
+          "role": "fb_support"
+        },
+        {
+          "key": "DCL",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DCR",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DR",
+          "position": "DR",
+          "role": "fb_support"
+        },
+        {
+          "key": "ML",
+          "position": "ML",
+          "role": "wm_support"
+        },
+        {
+          "key": "MCL",
+          "position": "MC",
+          "role": "cm_defend"
+        },
+        {
+          "key": "MCR",
+          "position": "MC",
+          "role": "cm_support"
+        },
+        {
+          "key": "MR",
+          "position": "MR",
+          "role": "winger_support"
+        },
+        {
+          "key": "AMC",
+          "position": "AMC",
+          "role": "am_support"
+        },
+        {
+          "key": "ST",
+          "position": "ST",
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
+        }
+      ],
+      "style": "Balanced 4-4-1-1",
+      "description": "A conventional 4-4-2 defensive shell with one attacker dropping into the number-ten line to connect midfield and the lone striker.",
+      "whyGood": "The AMC reduces striker isolation while preserving two clear banks of four without the ball.",
+      "keyRequirements": [
+        "Intelligent AMC",
+        "Mobile striker",
+        "Hard-working wide midfielders",
+        "Balanced CM pair"
+      ],
+      "tags": [
+        "balanced",
+        "4411",
+        "compact"
+      ]
+    },
+    {
+      "key": "counter_3412",
+      "name": "Counter 3-4-1-2",
+      "formation": "3-4-1-2",
+      "mentality": "Cautious",
+      "instructions": [
+        "Slightly More Direct Passing",
+        "Pass Into Space",
+        "Counter",
+        "Regroup",
+        "Lower Line of Engagement",
+        "Standard Defensive Line"
+      ],
+      "slots": [
+        {
+          "key": "GK",
+          "position": "GK",
+          "role": "gk_defend"
+        },
+        {
+          "key": "DCL",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DCC",
+          "position": "DC",
+          "role": "bpd_defend"
+        },
+        {
+          "key": "DCR",
+          "position": "DC",
+          "role": "cd_cover",
+          "roles": [
+            "cd_cover",
+            "cd_defend"
+          ]
+        },
+        {
+          "key": "WBL",
+          "position": "WBL",
+          "role": "wb_support"
+        },
+        {
+          "key": "WBR",
+          "position": "WBR",
+          "role": "wb_attack"
+        },
+        {
+          "key": "MCL",
+          "position": "MC",
+          "role": "cm_defend"
+        },
+        {
+          "key": "MCR",
+          "position": "MC",
+          "role": "b2b_support"
+        },
+        {
+          "key": "AMC",
+          "position": "AMC",
+          "role": "am_support"
+        },
+        {
+          "key": "STL",
+          "position": "ST",
+          "role": "dlf_support",
+          "roles": [
+            "dlf_support",
+            "cf_support"
+          ]
+        },
+        {
+          "key": "STR",
+          "position": "ST",
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
+        }
+      ],
+      "style": "Back-Three Counter",
+      "description": "A cautious back-three system retaining an AMC and two strikers so regains can become attacks without waiting for many players to advance.",
+      "whyGood": "The AMC, DLF and AF form an immediate counter-attacking triangle while the back three protect against turnovers.",
+      "keyRequirements": [
+        "Three reliable centre-backs",
+        "High-stamina wing-backs",
+        "Strong AMC",
+        "Complementary strikers"
+      ],
+      "tags": [
+        "counter",
+        "3412",
+        "back-three"
+      ]
+    },
+    {
+      "key": "positive_3421",
+      "name": "Positive 3-4-2-1",
+      "formation": "3-4-2-1",
+      "mentality": "Positive",
+      "instructions": [
+        "Shorter Passing",
+        "Play Out Of Defence",
+        "Counter-Press",
+        "Higher Line of Engagement",
+        "Standard Defensive Line",
+        "Work Ball Into Box"
+      ],
+      "slots": [
+        {
+          "key": "GK",
+          "position": "GK",
+          "role": "sk_defend"
+        },
+        {
+          "key": "DCL",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DCC",
+          "position": "DC",
+          "role": "bpd_defend"
+        },
+        {
+          "key": "DCR",
+          "position": "DC",
+          "role": "cd_cover",
+          "roles": [
+            "cd_cover",
+            "cd_defend"
+          ]
+        },
+        {
+          "key": "WBL",
+          "position": "WBL",
+          "role": "wb_support"
+        },
+        {
+          "key": "WBR",
+          "position": "WBR",
+          "role": "wb_attack"
+        },
+        {
+          "key": "MCL",
+          "position": "MC",
+          "role": "cm_defend"
+        },
+        {
+          "key": "MCR",
+          "position": "MC",
+          "role": "dlp_support"
+        },
+        {
+          "key": "AMCL",
+          "position": "AMC",
+          "role": "ap_attack"
+        },
+        {
+          "key": "AMCR",
+          "position": "AMC",
+          "role": "ss_attack"
+        },
+        {
+          "key": "ST",
+          "position": "ST",
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
+        }
+      ],
+      "style": "3-4-2-1 Half-Space Attack",
+      "description": "A modern back-three system using two central attacking midfielders to occupy the half-spaces behind a single striker.",
+      "whyGood": "Two number tens work between the lines while wing-backs hold width, creating five distinct attacking lanes.",
+      "keyRequirements": [
+        "Mobile centre-backs",
+        "Very strong wing-backs",
+        "Two quality AMCs",
+        "Midfield pair with defensive range"
+      ],
+      "tags": [
+        "positive",
+        "3421",
+        "half-spaces"
+      ]
+    },
+    {
+      "key": "attacking_424",
+      "name": "Attacking 4-2-4",
+      "formation": "4-2-4",
+      "mentality": "Attacking",
+      "instructions": [
+        "Fairly Wide",
+        "More Direct Passing",
+        "Higher Tempo",
+        "Pass Into Space",
+        "Counter-Press",
+        "Counter",
+        "Higher Line of Engagement",
+        "Higher Defensive Line"
+      ],
+      "slots": [
+        {
+          "key": "GK",
+          "position": "GK",
+          "role": "sk_defend"
+        },
+        {
+          "key": "DL",
+          "position": "DL",
+          "role": "fb_support"
+        },
+        {
+          "key": "DCL",
+          "position": "DC",
+          "role": "cd_defend",
+          "roles": [
+            "cd_defend",
+            "cd_cover"
+          ]
+        },
+        {
+          "key": "DCR",
+          "position": "DC",
+          "role": "cd_cover",
+          "roles": [
+            "cd_cover",
+            "cd_defend"
+          ]
+        },
+        {
+          "key": "DR",
+          "position": "DR",
+          "role": "fb_support"
+        },
+        {
+          "key": "MCL",
+          "position": "MC",
+          "role": "cm_defend"
+        },
+        {
+          "key": "MCR",
+          "position": "MC",
+          "role": "dlp_support"
+        },
+        {
+          "key": "AML",
+          "position": "AML",
+          "role": "if_attack"
+        },
+        {
+          "key": "AMR",
+          "position": "AMR",
+          "role": "winger_attack"
+        },
+        {
+          "key": "STL",
+          "position": "ST",
+          "role": "dlf_support",
+          "roles": [
+            "dlf_support",
+            "cf_support"
+          ]
+        },
+        {
+          "key": "STR",
+          "position": "ST",
+          "role": "af_attack",
+          "roles": [
+            "af_attack",
+            "p_attack"
+          ]
+        }
+      ],
+      "style": "Attacking 4-2-4",
+      "description": "A high-risk structure that immediately puts four players against the opposition back line and is intended to force the game.",
+      "whyGood": "The DLF supplies some connection while the other three attackers threaten depth and width around the box.",
+      "keyRequirements": [
+        "Two midfielders able to cover huge spaces",
+        "Fast defenders",
+        "Four dangerous attackers",
+        "High fitness"
+      ],
+      "tags": [
+        "attacking",
+        "424",
+        "overload"
       ]
     }
-  ]
+  ],
+  "tacticResearchNotes": {
+    "purpose": "Broad baseline template set for squad-fit and tactical comparison; not claimed to be a set of optimal FM20 meta tactics.",
+    "design": [
+      "Templates cover genuinely different structures/styles rather than many near-duplicates.",
+      "Every added tactic uses only role keys already present in the supplied catalogue.",
+      "Descriptions and requirements are intended to support later tactical-coherence scoring and UI explanation.",
+      "Long-term design should allow role/duty optimisation within formations instead of treating templates as immutable."
+    ]
+  }
 }

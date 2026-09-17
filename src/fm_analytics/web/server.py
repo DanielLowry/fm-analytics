@@ -28,6 +28,7 @@ from fm_analytics.analytics import (
     MVP_CATALOGUE,
     ScoutRecommendation,
     ScoutingFilters,
+    TacticDefinition,
     WeaknessKind,
     WeaknessReport,
     assess_scouting_candidates,
@@ -108,6 +109,7 @@ _STYLE = """
   .badge-persistent { background: #fde2e2; color: #8a1f1f; }
   .badge-occasional { background: #fff2d6; color: #8a5a00; }
   .badge-ok { background: #e3f3e1; color: #1e6b1e; }
+  .tag { display: inline-block; padding: 0.1rem 0.5rem; margin: 0 0.25rem 0.25rem 0; border-radius: 0.75rem; font-size: 0.75rem; background: #eef1f4; color: #445; }
   code { background: #eef1f4; padding: 0.05rem 0.3rem; border-radius: 0.25rem; }
   details { margin: 0.4rem 0; border: 1px solid #e5e5e5; border-radius: 0.3rem; padding: 0.3rem 0.6rem; }
   details summary { cursor: pointer; font-weight: 600; }
@@ -145,6 +147,40 @@ def _tactical_shortfalls(shortfalls: Sequence[str]) -> str:
     remainder = len(labels) - len(displayed)
     suffix = f" +{remainder} more" if remainder else ""
     return ", ".join(displayed) + suffix
+
+
+def _tactic_notes(tactic: TacticDefinition) -> str:
+    """Render the catalogue author's own explanation of a tactic, if given.
+
+    These fields (style/description/whyGood/keyRequirements/tags) are
+    manager-facing commentary carried alongside the tactic in the catalogue
+    data, not scoring input -- a tactic with none of them still renders
+    correctly, since older catalogue entries may not define any.
+    """
+    if not any(
+        (tactic.style, tactic.description, tactic.why_good, tactic.key_requirements, tactic.tags)
+    ):
+        return ""
+    parts = []
+    if tactic.style:
+        parts.append(f"<p><b>{html.escape(tactic.style)}</b></p>")
+    if tactic.description:
+        parts.append(f"<p>{html.escape(tactic.description)}</p>")
+    if tactic.why_good:
+        parts.append(f"<p class='muted'><b>Why it works:</b> {html.escape(tactic.why_good)}</p>")
+    if tactic.key_requirements:
+        parts.append(
+            "<p class='muted'><b>Needs:</b> "
+            + ", ".join(html.escape(item) for item in tactic.key_requirements)
+            + "</p>"
+        )
+    if tactic.tags:
+        parts.append(
+            "<p>"
+            + " ".join(f"<span class='tag'>{html.escape(tag)}</span>" for tag in tactic.tags)
+            + "</p>"
+        )
+    return "".join(parts)
 
 
 def _raw_position_notice(candidates: Sequence[object]) -> str:
@@ -529,7 +565,8 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             details.append(
                 f"<details><summary>{html.escape(evaluation.tactic.name)} "
                 f"({html.escape(evaluation.tactic.formation)})</summary>"
-                "<p><b>Play now:</b> "
+                + _tactic_notes(evaluation.tactic)
+                + "<p><b>Play now:</b> "
                 f"{_band(evaluation.score)}. <b>Player-role fit:</b> "
                 f"{evaluation.xi_score.central:.1f}. <b>Team balance:</b> "
                 f"{evaluation.coherence.score:.1f}. <b>Game-plan support:</b> "

@@ -25,42 +25,6 @@ from fm_analytics.analytics.role_weights import (
 _DATA_PATH = Path(__file__).with_name("data") / "catalogue.json"
 
 
-# The existing catalogue supplied one role per slot.  During this POC we use
-# that role as a deliberately narrow family anchor, rather than opening every
-# position to every possible role.  A future catalogue can override this per
-# slot with its explicit `roles` array.
-_POC_ROLE_FAMILIES: Mapping[str, tuple[str, ...]] = {
-    "gk_defend": ("sk_defend",),
-    "sk_defend": ("gk_defend",),
-    "cd_defend": ("bpd_defend", "cd_cover"),
-    "bpd_defend": ("cd_defend", "cd_cover"),
-    "cd_cover": ("cd_defend", "bpd_defend"),
-    "fb_support": ("wb_support", "wb_attack"),
-    "wb_support": ("fb_support", "wb_attack"),
-    "wb_attack": ("wb_support", "fb_support"),
-    "dm_defend": ("dm_support", "bwm_support", "dlp_support"),
-    "dm_support": ("dm_defend", "bwm_support", "dlp_support"),
-    "bwm_support": ("dm_defend", "dm_support", "cm_defend", "cm_support"),
-    "cm_defend": ("cm_support", "bwm_support", "b2b_support", "dlp_support"),
-    "cm_support": ("cm_defend", "bwm_support", "b2b_support", "mez_attack", "dlp_support"),
-    "b2b_support": ("cm_defend", "cm_support", "bwm_support", "mez_attack", "dlp_support"),
-    "mez_attack": ("cm_support", "b2b_support", "dlp_support"),
-    "dlp_support": ("dm_defend", "dm_support", "cm_defend", "cm_support", "bwm_support", "b2b_support", "mez_attack"),
-    "wm_support": ("winger_support", "winger_attack", "if_attack"),
-    "winger_support": ("wm_support", "winger_attack", "if_attack"),
-    "winger_attack": ("winger_support", "wm_support", "if_attack"),
-    "if_attack": ("winger_support", "winger_attack", "wm_support"),
-    "am_support": ("ap_attack", "ss_attack"),
-    "ap_attack": ("am_support", "ss_attack"),
-    "ss_attack": ("am_support", "ap_attack"),
-    "dlf_support": ("cf_support", "af_attack", "p_attack", "tm_attack"),
-    "cf_support": ("dlf_support", "af_attack", "p_attack", "tm_attack"),
-    "af_attack": ("dlf_support", "cf_support", "p_attack", "tm_attack"),
-    "p_attack": ("af_attack", "dlf_support", "cf_support", "tm_attack"),
-    "tm_attack": ("af_attack", "dlf_support", "cf_support", "p_attack"),
-}
-
-
 @dataclass(frozen=True)
 class TacticSlot:
     key: str
@@ -129,6 +93,13 @@ class TacticDefinition:
     slots: tuple[TacticSlot, ...]
     catalogue_version: str
     system_requirements: TacticSystemRequirements = TacticSystemRequirements()
+    # Manager-facing explanation, not scoring input. Optional so catalogues
+    # (and tests) that predate this field still load unchanged.
+    style: str = ""
+    description: str = ""
+    why_good: str = ""
+    key_requirements: tuple[str, ...] = ()
+    tags: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not all(
@@ -183,17 +154,16 @@ class FootballCatalogue:
     def role_keys_for_slot(self, slot: TacticSlot) -> tuple[str, ...]:
         """Return the slot's permitted roles after position compatibility.
 
-        Explicit slot alternatives are authoritative.  Legacy templates with
-        one role use the POC family above, which turns their old fixed role
-        into a small, coherent role-choice set without making a centre-back
-        slot consider unrelated roles from across the whole catalogue.
+        Only a slot's own declared `role` plus its explicit `roles`
+        alternatives are ever tried. A slot with no alternatives is pinned:
+        the optimiser will not substitute a different role into it, because
+        that specific role is what makes this tactic the tactic it is
+        (its own identity), not an interchangeable filler. Give a slot
+        alternatives only when the tactic's author has deliberately decided
+        that position can flex without changing what the system is.
         """
 
-        candidates = (
-            slot.role_keys
-            if slot.alternate_role_keys
-            else (slot.role_key,) + _POC_ROLE_FAMILIES.get(slot.role_key, ())
-        )
+        candidates = slot.role_keys
         return tuple(
             role_key
             for role_key in candidates
@@ -279,6 +249,11 @@ def _tactic_from_json(raw: Mapping[str, Any], *, version: str) -> TacticDefiniti
             if "system" in raw
             else _inferred_system_requirements(raw, slots)
         ),
+        style=raw.get("style") or "",
+        description=raw.get("description") or "",
+        why_good=raw.get("whyGood") or "",
+        key_requirements=_str_tuple(raw, "keyRequirements") if "keyRequirements" in raw else (),
+        tags=_str_tuple(raw, "tags") if "tags" in raw else (),
     )
 
 

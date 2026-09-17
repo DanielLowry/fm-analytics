@@ -10,12 +10,19 @@ from fm_analytics.imports import FM20_ATTRIBUTE_HEADERS
 
 class MvpCatalogueTests(unittest.TestCase):
     def test_has_several_materially_different_complete_tactics(self) -> None:
-        # "Materially different" is enforced structurally: every tactic uses
-        # a distinct formation label, rather than pinning an exact roster of
-        # formations that would need editing each time the catalogue grows.
+        # "Materially different" is enforced structurally: every tactic asks
+        # its eleven slots to do a distinct set of jobs, rather than pinning
+        # an exact roster that would need editing each time the catalogue
+        # grows. Several tactics deliberately share a formation shape (e.g.
+        # more than one 4-4-2) while differing in role identity, mentality,
+        # and instructions, so formation label alone is not a valid proxy —
+        # role composition is.
         self.assertGreaterEqual(len(MVP_CATALOGUE.tactics), 7)
-        formations = [tactic.formation for tactic in MVP_CATALOGUE.tactics.values()]
-        self.assertEqual(len(formations), len(set(formations)))
+        role_profiles = [
+            tuple(sorted(slot.role_key for slot in tactic.slots))
+            for tactic in MVP_CATALOGUE.tactics.values()
+        ]
+        self.assertEqual(len(role_profiles), len(set(role_profiles)))
         self.assertTrue(
             all(len(tactic.slots) == 11 for tactic in MVP_CATALOGUE.tactics.values())
         )

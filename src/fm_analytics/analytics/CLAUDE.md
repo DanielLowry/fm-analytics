@@ -18,15 +18,27 @@ hand.
 
 ## Where role choice actually happens
 
-A tactic slot's role isn't fixed. `TacticDefinition.slots` name a default
-`role_key`, but `FootballCatalogue.role_keys_for_slot`
-(`catalogue.py:183`) expands that into a family of roles the optimiser is
-allowed to try instead — either an explicit `alternate_role_keys` on the
-slot, or, for the common case where a tactic doesn't declare any, an
-automatic fallback family from `_POC_ROLE_FAMILIES` (`catalogue.py`, top of
-file). That fallback is why nearly every tactic in the catalogue triggers
-the joint role-and-player search below, even tactics that look like they
-have one role per slot.
+A tactic slot's role is pinned by default. `TacticDefinition.slots` name a
+`role_key`, and `FootballCatalogue.role_keys_for_slot` (`catalogue.py:183`)
+only ever tries that role plus whatever a slot's own `roles` array in
+`catalogue.json` explicitly lists as alternatives — there is no automatic
+fallback that opens a slot up on its own. This is deliberate: which role a
+slot plays is usually what makes a tactic *that* tactic (a deep playmaker
+vs. a ball-winner as the DM defines two different systems), so a slot stays
+single-role unless a human decided otherwise for it specifically.
+
+The catalogue currently declares alternatives for exactly three role pairs
+— `cd_defend`/`cd_cover`, `af_attack`/`p_attack`, `dlf_support`/`cf_support`
+— chosen because their `tactical_system.py` trait contributions are nearly
+identical (see `_DEFAULT_ROLE_TRAITS`): swapping one for the other changes
+which specific player profile fits the slot, not what the team's system
+does. Contrast `dm_defend`/`dm_support`, which looks like a similar swap
+but trades off primary `defensiveCover`/`ballProgression` contribution by a
+large margin — a genuine screen-vs-distributor identity choice, correctly
+left pinned. Before adding a new alternate pair anywhere in the catalogue,
+check the trait distance the same way rather than by eye; it's an easy
+mistake to make a system-identity role "flexible" because two roles sound
+similar in name.
 
 ## `_best_joint_role_state` (`xi_selection.py:737`) — read before editing
 
