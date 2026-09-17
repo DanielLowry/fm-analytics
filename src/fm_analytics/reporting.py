@@ -20,6 +20,7 @@ from fm_analytics.analytics import (
     RecruitmentBrief,
     RoleMatrix,
     SquadDepthReport,
+    SubstitutionBoard,
     TacticRecommendation,
     TrainingTarget,
     WeaknessReport,
@@ -27,6 +28,7 @@ from fm_analytics.analytics import (
     assess_weaknesses,
     build_recruitment_briefs,
     build_role_matrix,
+    build_substitution_board,
     recommend_tactic_effective_and_potential,
     select_bench,
 )
@@ -40,6 +42,7 @@ class RecommendationBundle:
     recommendation: TacticRecommendation
     training_targets: tuple[TrainingTarget, ...]
     bench: BenchSelection
+    substitution_board: SubstitutionBoard
     weakness_report: WeaknessReport
     squad_depth: SquadDepthReport
     role_matrix: RoleMatrix
@@ -91,6 +94,9 @@ def build_recommendation_bundle(
     )
     recommendation = effective_and_potential.effective
     bench = select_bench(recommendation.selected, selection_players, catalogue)
+    substitution_board = build_substitution_board(
+        recommendation.selected, bench, selection_players, catalogue
+    )
     weakness_report = assess_weaknesses(recommendation.selected, selection_players, catalogue)
     squad_depth = assess_squad_depth(recommendation.evaluations, selection_players, catalogue)
     role_matrix = build_role_matrix(selection_players, catalogue)
@@ -101,6 +107,7 @@ def build_recommendation_bundle(
         recommendation=recommendation,
         training_targets=effective_and_potential.training_targets(),
         bench=bench,
+        substitution_board=substitution_board,
         weakness_report=weakness_report,
         squad_depth=squad_depth,
         role_matrix=role_matrix,

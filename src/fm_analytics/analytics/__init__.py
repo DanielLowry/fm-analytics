@@ -43,6 +43,12 @@ from fm_analytics.analytics.bench_selection import (
     BenchSelection,
     select_bench,
 )
+from fm_analytics.analytics.substitution_board import (
+    ReplacementOption,
+    SubstitutionBoard,
+    SubstitutionTarget,
+    build_substitution_board,
+)
 from fm_analytics.analytics.weaknesses import (
     DepthCandidate,
     SlotDepth,
@@ -105,6 +111,7 @@ __all__ = [
     "RecruitmentBrief",
     "RecruitmentCandidate",
     "RecruitmentShortlist",
+    "ReplacementOption",
     "RoleAttribute",
     "RoleDefinition",
     "RoleMatrix",
@@ -125,6 +132,8 @@ __all__ = [
     "TacticEvaluation",
     "TacticFitPolicy",
     "SystemFitPolicy",
+    "SubstitutionBoard",
+    "SubstitutionTarget",
     "TacticRecommendation",
     "TacticSlot",
     "TacticSystemRequirements",
@@ -140,6 +149,7 @@ __all__ = [
     "filter_scouting_candidates",
     "assess_weaknesses",
     "build_recruitment_briefs",
+    "build_substitution_board",
     "build_role_matrix",
     "compare_role_scores",
     "evaluate_tactic",

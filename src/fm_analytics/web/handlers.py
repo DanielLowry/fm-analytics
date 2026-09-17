@@ -26,6 +26,7 @@ from fm_analytics.reporting import (
 )
 from fm_analytics.web.rendering import (
     _MAX_SCOUTING_ROWS,
+    ScoutingPoolNotBuilt,
     _band,
     _error_page,
     _injury_risk_count,
@@ -36,6 +37,8 @@ from fm_analytics.web.rendering import (
     _position_display,
     _query_first,
     _raw_position_notice,
+    _pool_not_built_page,
+    _refresh_notice,
     _scouting_filters,
     _tactic_notes,
     _tactical_shortfalls,
@@ -72,8 +75,17 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 HTTPStatus.NOT_FOUND,
             )
             return
+        form = self._read_form()
+        allow_rebuild = form.get("allow_rebuild", [""])[0] == "1"
         try:
-            self.server.refresh_scouting()  # type: ignore[attr-defined]
+            self.server.refresh_scouting(  # type: ignore[attr-defined]
+                allow_rebuild=allow_rebuild
+            )
+        except ScoutingPoolNotBuilt:
+            # Nothing was written to FM. Let the manager pick between the
+            # read-only route and the one that runs FM's code in the live save.
+            self._send(_pool_not_built_page(), HTTPStatus.CONFLICT)
+            return
         except (OSError, RuntimeError, ValueError) as exc:
             self._send(
                 _error_page("Scouting refresh", str(exc), "/scouting"),
@@ -81,8 +93,21 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             )
             return
         self.send_response(HTTPStatus.SEE_OTHER)
-        self.send_header("Location", "/scouting?refreshed=1")
+        self.send_header(
+            "Location",
+            "/scouting?refreshed=" + ("rebuilt" if allow_rebuild else "1"),
+        )
         self.end_headers()
+
+    def _read_form(self) -> dict[str, list[str]]:
+        """Parse a bounded form body; an unreadable body is simply no consent."""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return {}
+        if not 0 < length <= 4096:
+            return {}
+        return parse_qs(self.rfile.read(length).decode("utf-8", "replace"))
 
     def _dashboard(self, path: str, _query: dict[str, list[str]]) -> None:
         try:
@@ -345,6 +370,49 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             if bundle.training_targets
             else "<h2>Training targets</h2><p class='muted'>None — familiarity isn't holding any tactic back.</p>"
         )
+        substitution_rows = []
+        for target in bundle.substitution_board.targets:
+            starter = target.starter
+            starter_label = (
+                f"{starter.slot.key} — {starter.player_name} "
+                f"({starter.intrinsic_role_score.role_name})"
+            )
+            if not target.options:
+                replacement_body = "<span class='warn'>No named substitute covers this role.</span>"
+            else:
+                replacement_body = "<br>".join(
+                    f"<b>{html.escape(option.player_name)}</b> — "
+                    f"{html.escape(option.assignment.intrinsic_role_score.role_name)} "
+                    f"({_band(option.assignment.selection_score)})"
+                    for option in target.options
+                )
+            warning_lines = [
+                f"<b>{html.escape(option.player_name)}</b>: no named bench cover for "
+                f"{html.escape(', '.join(option.sole_cover_slot_keys))} after this change."
+                for option in target.options
+                if option.sole_cover_slot_keys
+            ]
+            warning_body = (
+                "<span class='warn'>" + "<br>".join(warning_lines) + "</span>"
+                if warning_lines
+                else "—"
+            )
+            substitution_rows.append(
+                "<tr>"
+                f"<td>{html.escape(starter_label)}</td>"
+                f"<td>{replacement_body}</td>"
+                f"<td>{warning_body}</td>"
+                "</tr>"
+            )
+        substitutions_body = (
+            "<h2>Matchday substitutions</h2>"
+            "<p class='muted'>For the selected tactic only: named substitutes who can "
+            "take each starter's exact role, ordered by current suitability. This is a "
+            "replacement board, not a recommendation about timing or a player's live match rating.</p>"
+            "<table><tr><th>Take off</th><th>Bring on (best first)</th><th>Cover after the change</th></tr>"
+            + "".join(substitution_rows)
+            + "</table>"
+        )
         body = (
             "<h2>What can this squad play now?</h2>"
             "<p class='muted'>The score is a squad-fit estimate, not a match prediction "
@@ -373,6 +441,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             + "".join(rows)
             + "</table>"
             + targets_body
+            + substitutions_body
             + "<h2>XI by tactic</h2>"
             + "".join(details)
         )
@@ -478,12 +547,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "<p>Only players in the manager-visible discovery feed are shown. "
             "Scores preserve their <b>floor / estimate / ceiling</b>; a player with "
             "no known role attributes is a reason to scout, not a claim that they are good.</p>"
-            + (
-                "<p class='muted'>Scouting data refreshed. The current capture is now "
-                "being used.</p>"
-                if _query_first(query, "refreshed") == "1"
-                else ""
-            )
+            + _refresh_notice(_query_first(query, "refreshed"))
             + "<form class='refresh' method='post' action='/scouting/refresh'>"
             "<button type='submit'>Refresh scouting data</button>"
             "<span class='muted'>Reads the current FM Player Search pool; this can take "

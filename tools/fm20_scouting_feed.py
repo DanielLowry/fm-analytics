@@ -69,6 +69,15 @@ class ScoutingFeedError(RuntimeError):
     """A scouting feed could not be captured without crossing a safety boundary."""
 
 
+class PoolNotBuiltError(ScoutingFeedError):
+    """FM has not built this manager's Player Search pool in this process yet.
+
+    Separate from its base class because it is the one failure a caller can
+    offer a choice about: open Player Search in FM (no native call), or
+    approve asking FM to build the pool.  Everything else is fail-closed.
+    """
+
+
 def feed_document(
     player_ids: Iterable[int],
     names: dict[int, str],
@@ -80,6 +89,7 @@ def feed_document(
     attributes_by_id: dict[int, dict[str, Any]] | None = None,
     footedness_by_id: dict[int, str] | None = None,
     raw_positions_by_id: dict[int, tuple[str, ...]] | None = None,
+    rebuilt: bool = False,
 ) -> dict[str, Any]:
     """Build the stable JSON contract consumed by ``fm-web --scouting-json``."""
     ids = tuple(sorted(set(player_ids)))
@@ -98,7 +108,8 @@ def feed_document(
         "gameDate": game_date,
         "source": {
             "kind": "manager-rooted-player-search-pool",
-            "transport": "windows-frida-server",
+            "transport": "windows-frida-server" if rebuilt else "read-only-process-memory",
+            "poolRebuiltByCapture": rebuilt,
             "sourceCount": source_count,
             "excludedOwnContractedCount": len(excluded),
             "managedClub": managed_club,
@@ -344,23 +355,8 @@ def hydrate_visible_footedness(
     }
 
 
-def capture_pool(
-    pid: int,
-    *,
-    remote_address: str,
-    hydrate_player_ids: Sequence[int] = (),
-    prior_game_date: str | None = None,
-    prior_attributes_by_id: Mapping[int, dict[str, Any]] | None = None,
-    prior_footedness_by_id: Mapping[int, str] | None = None,
-) -> dict[str, Any]:
-    """Use Frida only for FM's builder, then read the rebuilt manager pool."""
-    before, arguments, _before_ids = _live_context(pid)
-    manager = _active_manager(before)
-    if manager.club is None:
-        raise ScoutingFeedError("the active manager has no controlled club")
-    expected_base = int(preflight(pid)["moduleBase"], 0)
-    if expected_base != int(before.module_base, 0):
-        raise ScoutingFeedError("probe and Frida preflight module bases differ")
+def connect_to_fm(remote_address: str) -> tuple[Any, int]:
+    """Attach to the Windows Frida server and resolve the single FM process."""
     try:
         frida_api = importlib.import_module("frida")
         device = frida_api.get_device_manager().add_remote_device(remote_address)
@@ -372,38 +368,92 @@ def capture_pool(
         raise ScoutingFeedError(f"cannot connect to the Windows Frida server: {error}") from error
     if len(matches) != 1:
         raise ScoutingFeedError(f"expected one remote 'fm.exe' process, found {len(matches)}")
+    return device, matches[0].pid
 
-    builder = extract(
-        device,
-        matches[0].pid,
-        builder_agent_source(before.module_base, arguments),
-        script_name="fm20-scouting-pool-builder",
-    )
-    if not (
-        builder["attached"]
-        and builder["agentReady"]
-        and builder["builderReturnValue"] is not None
-        and builder["scriptUnloaded"]
-        and builder["detached"]
-        and not builder["agentErrors"]
-    ):
-        detail = next(
-            (item.get("description") for item in builder["agentErrors"] if item.get("description")),
-            "unknown Frida lifecycle failure",
+
+def capture_pool(
+    pid: int,
+    *,
+    remote_address: str | None = None,
+    allow_rebuild: bool = False,
+    hydrate_player_ids: Sequence[int] = (),
+    prior_game_date: str | None = None,
+    prior_attributes_by_id: Mapping[int, dict[str, Any]] | None = None,
+    prior_footedness_by_id: Mapping[int, str] | None = None,
+) -> dict[str, Any]:
+    """Read the manager's Player Search pool, asking FM to build it only if needed.
+
+    FM keeps this pool in process memory, so a session that has already used
+    Player Search can be read with no native call at all -- the same read-only
+    footing as the rest of the bridge.  That is the normal case and it is what
+    this function tries first.
+
+    A freshly started FM has an empty pool: research report
+    ``manager-rooted-source-20260913T185503Z.json`` recorded 0 players before
+    the builder and 4340 after, on a new PID for the same manager and the same
+    in-game date that read 4953 cold in the previous process.  Only then is
+    running FM's own builder worth considering, because that executes FM code
+    inside the live game and can leave a save that will not reload.  It
+    therefore needs an explicit ``allow_rebuild``; without it an empty pool
+    raises ``PoolNotBuiltError`` so the caller can offer the safer choice of
+    opening Player Search in FM instead.
+    """
+    before, arguments, before_ids = _live_context(pid)
+    manager = _active_manager(before)
+    if manager.club is None:
+        raise ScoutingFeedError("the active manager has no controlled club")
+    expected_base = int(preflight(pid)["moduleBase"], 0)
+    if expected_base != int(before.module_base, 0):
+        raise ScoutingFeedError("probe and Frida preflight module bases differ")
+
+    device: Any | None = None
+    target_pid: int | None = None
+    if before_ids:
+        after, pool_ids, rebuilt = before, before_ids, False
+    else:
+        if not allow_rebuild:
+            raise PoolNotBuiltError(
+                "FM has not built this manager's Player Search pool in this process yet. "
+                "Open Player Search in FM once and retry, or approve asking FM to build it."
+            )
+        if remote_address is None:
+            raise ScoutingFeedError("a Frida server address is required to rebuild the pool")
+        device, target_pid = connect_to_fm(remote_address)
+        builder = extract(
+            device,
+            target_pid,
+            builder_agent_source(before.module_base, arguments),
+            script_name="fm20-scouting-pool-builder",
         )
-        raise ScoutingFeedError(f"Frida Player Search pool builder did not complete cleanly: {detail}")
-
-    after, after_arguments, pool_ids = _live_context(pid)
-    if after_arguments != arguments:
-        raise ScoutingFeedError("manager-rooted search arguments changed during pool capture")
-    if _active_manager(after).id != manager.id:
-        raise ScoutingFeedError("the active manager changed during pool capture")
-    if after.game_date != before.game_date:
-        raise ScoutingFeedError("the game date changed during pool capture")
+        if not (
+            builder["attached"]
+            and builder["agentReady"]
+            and builder["builderReturnValue"] is not None
+            and builder["scriptUnloaded"]
+            and builder["detached"]
+            and not builder["agentErrors"]
+        ):
+            detail = next(
+                (item.get("description") for item in builder["agentErrors"] if item.get("description")),
+                "unknown Frida lifecycle failure",
+            )
+            raise ScoutingFeedError(
+                f"Frida Player Search pool builder did not complete cleanly: {detail}"
+            )
+        after, after_arguments, pool_ids = _live_context(pid)
+        if after_arguments != arguments:
+            raise ScoutingFeedError("manager-rooted search arguments changed during pool capture")
+        if _active_manager(after).id != manager.id:
+            raise ScoutingFeedError("the active manager changed during pool capture")
+        if after.game_date != before.game_date:
+            raise ScoutingFeedError("the game date changed during pool capture")
+        if not pool_ids:
+            raise ScoutingFeedError("FM's builder returned an empty Player Search pool")
+        rebuilt = True
     if prior_game_date is not None and after.game_date != prior_game_date:
         raise ScoutingFeedError("prior scouting feed is from a different game date")
     if not process_alive(pid):
-        raise ScoutingFeedError("FM is not healthy after Frida detached")
+        raise ScoutingFeedError("FM is not healthy after its Player Search pool was read")
 
     fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
     try:
@@ -434,13 +484,21 @@ def capture_pool(
         pid,
         {player_id: records[player_id] for player_id in external_ids},
     )
+    if requested_hydration and device is None:
+        # Only the hydration paths still need Frida once the pool is warm, so
+        # a plain refresh never attaches to FM at all.
+        if remote_address is None:
+            raise ScoutingFeedError(
+                "a Frida server address is required to hydrate visible attributes"
+            )
+        device, target_pid = connect_to_fm(remote_address)
     attributes_by_id = dict(prior_attributes_by_id or {})
     attributes_by_id.update(hydrate_visible_attributes(
         pid,
         module_base=before.module_base,
         player_ids=requested_hydration,
         device=device,
-        target_pid=matches[0].pid,
+        target_pid=target_pid,
     ))
     footedness_by_id = dict(prior_footedness_by_id or {})
     footedness_by_id.update(hydrate_visible_footedness(
@@ -450,7 +508,7 @@ def capture_pool(
         names=names,
         records=records,
         device=device,
-        target_pid=matches[0].pid,
+        target_pid=target_pid,
     ))
     attributes_by_id = {
         player_id: value for player_id, value in attributes_by_id.items()
@@ -483,6 +541,7 @@ def capture_pool(
         attributes_by_id=attributes_by_id,
         footedness_by_id=footedness_by_id,
         raw_positions_by_id=raw_positions_by_id,
+        rebuilt=rebuilt,
     )
 
 
@@ -499,6 +558,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"(repeat up to {MAX_HYDRATED_PLAYERS} times)"
         ),
     )
+    parser.add_argument(
+        "--allow-rebuild", action="store_true",
+        help=(
+            "if FM has not built its Player Search pool yet, run FM's own builder "
+            "inside the live game to build it. This executes FM code in your "
+            "running save and has been observed to be the risky step; opening "
+            "Player Search in FM once achieves the same thing without it. "
+            "Without this flag an unbuilt pool exits 3 and changes nothing."
+        ),
+    )
     args = parser.parse_args(argv)
     if args.output.exists() and not args.replace:
         parser.error(f"output already exists: {args.output}")
@@ -510,18 +579,30 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.base_feed else (None, {}, {}, {})
         )
         pid = choose_pid(args.pid)
-        executable = Path(preflight(pid)["executable"])
-        with frida_server_session(executable) as address:
-            document = capture_pool(
-                pid, remote_address=address, hydrate_player_ids=args.hydrate_player_id,
-                prior_game_date=prior_game_date,
-                prior_attributes_by_id=prior_attributes,
-                prior_footedness_by_id=prior_footedness,
-            )
+        capture = dict(
+            hydrate_player_ids=args.hydrate_player_id,
+            allow_rebuild=args.allow_rebuild,
+            prior_game_date=prior_game_date,
+            prior_attributes_by_id=prior_attributes,
+            prior_footedness_by_id=prior_footedness,
+        )
+        # Reading a pool FM has already built needs no Frida server at all, so
+        # decide that up front rather than starting one we will not use. The
+        # check is an ordinary read-only probe.
+        _state, _arguments, pool_ids = _live_context(pid)
+        if pool_ids and not args.hydrate_player_id:
+            document = capture_pool(pid, **capture)
+        else:
+            executable = Path(preflight(pid)["executable"])
+            with frida_server_session(executable) as address:
+                document = capture_pool(pid, remote_address=address, **capture)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with args.output.open("w" if args.replace else "x", encoding="utf-8") as stream:
             json.dump(document, stream, indent=2)
             stream.write("\n")
+    except PoolNotBuiltError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 3
     except (
         DiscoverabilityError,
         FridaServerError,
@@ -536,7 +617,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     print(
         f"Captured {len(document['players'])} manager-discoverable players to {args.output}. "
-        f"Visible attributes hydrated for {len(args.hydrate_player_id)} player(s); "
+        + (
+            "FM's own builder was run inside the live game to build the pool."
+            if document["source"]["poolRebuiltByCapture"]
+            else "Read from the pool FM had already built; nothing was written to FM."
+        )
+        + f" Visible attributes hydrated for {len(args.hydrate_player_id)} player(s); "
         "raw external positions captured under the accepted visibility gap.",
         flush=True,
     )

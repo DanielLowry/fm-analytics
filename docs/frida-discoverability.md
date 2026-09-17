@@ -3,9 +3,19 @@
 ## Current answer
 
 Discoverability is solvable cold. The candidate universe is the **pool** of
-players FM lets this manager know about, and it can be read without opening
-Player Search, without an observed runtime context, and without any operator
-interaction.
+players FM lets this manager know about, and it can be read without an observed
+runtime context and without any operator interaction.
+
+**Qualification added 17 September 2026.** "Without opening Player Search" holds
+only for an FM process that has already built the pool. The pool is process
+memory, not save data, so it starts empty at every launch. Every reading in the
+table below came from PID 53593, a session already in use. The one run on a
+fresh process, `manager-rooted-source-20260913T185503Z.json`, was testing
+exactly this hypothesis and read **0** before its builder call and 4,340 after,
+for the same manager and the same in-game date. That report is marked
+`passed: false`. So: read the pool first and use it if it is populated; treat an
+empty pool as "FM has not built it in this process yet", not as "the cold read
+does not work".
 
 | Measurement | No package | Vanarama North/South |
 | --- | --- | --- |

@@ -13,6 +13,7 @@ from fm_analytics.reporting import required_role_attributes
 from fm_analytics.persistence import SnapshotStore
 from fm_analytics.analytics import ScoutingCandidate
 from fm_analytics.web.providers import fixture_provider
+from fm_analytics.web.rendering import ScoutingPoolNotBuilt
 from fm_analytics.web.server import SquadWebServer, _build_provider, build_parser
 
 
@@ -66,9 +67,12 @@ class SquadWebServerTests(unittest.TestCase):
         connection.close()
         return response.status, body
 
-    def _post(self, port: int, path: str) -> tuple[int, str | None, str]:
+    def _post(self, port: int, path: str, body: str = "") -> tuple[int, str | None, str]:
         connection = HTTPConnection("127.0.0.1", port)
-        connection.request("POST", path)
+        connection.request(
+            "POST", path, body,
+            {"Content-Type": "application/x-www-form-urlencoded"} if body else {},
+        )
         response = connection.getresponse()
         location = response.getheader("Location")
         body = response.read().decode("utf-8")
@@ -148,6 +152,17 @@ class SquadWebServerTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn("Balanced 4-4-2", body)
 
+    def test_tactics_page_has_a_matchday_substitution_board(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture_path = _write_complete_fixture(Path(directory))
+            port = self._serve(fixture_path)
+
+            status, body = self._get(port, "/tactics")
+
+            self.assertEqual(status, 200)
+            self.assertIn("Matchday substitutions", body)
+            self.assertIn("Bring on (best first)", body)
+
     def test_unknown_path_is_not_found(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             fixture_path = _write_complete_fixture(Path(directory))
@@ -175,10 +190,10 @@ class SquadWebServerTests(unittest.TestCase):
         self.assertIn("floor / estimate / ceiling", body)
 
     def test_scouting_refresh_button_runs_the_configured_capture(self) -> None:
-        calls = {"count": 0}
+        calls = []
 
-        def refresh():
-            calls["count"] += 1
+        def refresh(*, allow_rebuild=False):
+            calls.append(allow_rebuild)
             return "Captured scouting data"
 
         port = self._serve(FIXTURE, scouting_refresh=refresh)
@@ -187,10 +202,53 @@ class SquadWebServerTests(unittest.TestCase):
 
         self.assertEqual(status, 303)
         self.assertEqual(location, "/scouting?refreshed=1")
-        self.assertEqual(calls["count"], 1)
+        self.assertEqual(calls, [False])
         self.assertEqual(refreshed_status, 200)
         self.assertIn("Refresh scouting data", refreshed_body)
         self.assertIn("Scouting data refreshed", refreshed_body)
+
+    def test_refresh_defaults_to_no_rebuild_and_says_nothing_was_written(self) -> None:
+        """The plain button must never carry consent to run FM's code."""
+        def refresh(*, allow_rebuild=False):
+            self.assertFalse(allow_rebuild)
+            return "Captured scouting data"
+
+        port = self._serve(FIXTURE, scouting_refresh=refresh)
+        _status, location, _body = self._post(port, "/scouting/refresh")
+        _refreshed_status, refreshed_body = self._get(port, location)
+
+        self.assertIn("Nothing was written to FM", refreshed_body)
+
+    def test_unbuilt_pool_offers_a_choice_instead_of_rebuilding(self) -> None:
+        def refresh(*, allow_rebuild=False):
+            self.assertFalse(allow_rebuild)
+            raise ScoutingPoolNotBuilt("FM has not built this manager's pool yet.")
+
+        port = self._serve(FIXTURE, scouting_refresh=refresh)
+        status, _location, body = self._post(port, "/scouting/refresh")
+
+        self.assertEqual(status, 409)
+        self.assertIn("Player Search", body)
+        self.assertIn("Nothing has been sent to FM", body)
+        self.assertIn("allow_rebuild", body)
+
+    def test_rebuild_happens_only_when_the_form_carries_consent(self) -> None:
+        calls = []
+
+        def refresh(*, allow_rebuild=False):
+            calls.append(allow_rebuild)
+            return "Captured scouting data"
+
+        port = self._serve(FIXTURE, scouting_refresh=refresh)
+        status, location, _body = self._post(
+            port, "/scouting/refresh", "allow_rebuild=1"
+        )
+        _refreshed_status, refreshed_body = self._get(port, location)
+
+        self.assertEqual(status, 303)
+        self.assertEqual(calls, [True])
+        self.assertEqual(location, "/scouting?refreshed=rebuilt")
+        self.assertIn("inside the running game", refreshed_body)
 
     def test_scouting_page_requires_opt_in_for_raw_external_positions(self) -> None:
         def scouting_provider():

@@ -82,6 +82,7 @@ _STYLE = """
   form.filters button { align-self: end; padding: 0.45rem 0.65rem; border: 0; border-radius: 0.25rem; background: #1a2b3c; color: white; cursor: pointer; }
   form.refresh { margin: 0.75rem 0; display: flex; align-items: center; gap: 0.65rem; }
   form.refresh button { padding: 0.45rem 0.65rem; border: 0; border-radius: 0.25rem; background: #1a2b3c; color: white; cursor: pointer; }
+  form.refresh button.danger { background: #8a2b12; }
   .badge-scout { background: #fff2d6; color: #805400; }
   .badge-proven { background: #e3f3e1; color: #1e6b1e; }
   .badge-unlikely { background: #eee; color: #555; }
@@ -249,13 +250,82 @@ def _label(value: str) -> str:
     return value.replace("_", " ").replace("-", " ").capitalize()
 
 
-def _scouting_refresh_command(path: Path) -> Callable[[], str]:
+class ScoutingPoolNotBuilt(RuntimeError):
+    """FM has not built its Player Search pool, so a refresh needs a decision.
+
+    The capture tool exits 3 for exactly this case and changes nothing, which
+    lets the Scouting page offer the safe route (open Player Search in FM)
+    alongside the one that runs FM's code inside the live save.
+    """
+
+
+POOL_NOT_BUILT_EXIT_CODE = 3
+
+
+def _refresh_notice(refreshed: str | None) -> str:
+    """Say which route produced the capture, so the risky one is never silent."""
+    if refreshed == "1":
+        return (
+            "<p class='muted'>Scouting data refreshed by reading the list FM had "
+            "already built. Nothing was written to FM.</p>"
+        )
+    if refreshed == "rebuilt":
+        return (
+            "<p class='warn'>Scouting data refreshed by asking FM to build its "
+            "player list inside the running game. If this save later fails to "
+            "load, this is the step to suspect.</p>"
+        )
+    return ""
+
+
+def _pool_not_built_page() -> str:
+    """Offer the safe route first, and state plainly what the other one does.
+
+    Reached only when FM has not built its Player Search pool in this process
+    and nothing has been written to FM. Opening Player Search in FM is listed
+    first and styled as the primary action because it gets the same data with
+    no native call at all.
+    """
+    body = (
+        "<h2>FM has not built its player list yet</h2>"
+        "<p>This app normally reads the list of players you are allowed to know "
+        "about straight out of FM's memory, without touching the game. FM builds "
+        "that list while you play, and it starts empty each time you launch FM. "
+        "It is empty right now, so there is nothing to read.</p>"
+        "<p class='muted'>Nothing has been sent to FM. Your save has not been "
+        "touched.</p>"
+        "<h3>Recommended: build it in FM yourself</h3>"
+        "<p>Switch to FM, open <b>Scouting &rarr; Players &rarr; Player Search</b> "
+        "once, then come back and refresh. FM builds the list as part of its "
+        "normal work, and this app goes back to only reading. You need to do this "
+        "once per FM session, not once per refresh.</p>"
+        "<form class='refresh' method='post' action='/scouting/refresh'>"
+        "<button type='submit'>I have opened Player Search &mdash; refresh</button>"
+        "</form>"
+        "<h3 class='warn'>Or: let this app ask FM to build it</h3>"
+        "<p>This runs FM's own code inside your running game to build the list. "
+        "It usually works, and it is how this page behaved until now. But it "
+        "interrupts FM at a moment FM did not choose, and that is the step "
+        "suspected of producing saves that write successfully and then fail to "
+        "load.</p>"
+        "<p><b>Only do this on a save you would not mind losing</b>, or after "
+        "taking a copy of your save file.</p>"
+        "<form class='refresh' method='post' action='/scouting/refresh'>"
+        "<input type='hidden' name='allow_rebuild' value='1'>"
+        "<button type='submit' class='danger'>Ask FM to build the list "
+        "(risks this save)</button>"
+        "</form>"
+    )
+    return _layout("Scouting", "/scouting", body)
+
+
+def _scouting_refresh_command(path: Path) -> Callable[..., str]:
     """Build the bounded local command used by the Scouting-page refresh button."""
     project_root = Path(__file__).resolve().parents[3]
     capture_tool = project_root / "tools" / "fm20_scouting_feed.py"
     target = path.resolve()
 
-    def refresh() -> str:
+    def refresh(*, allow_rebuild: bool = False) -> str:
         command = [
             "uv",
             "run",
@@ -266,6 +336,8 @@ def _scouting_refresh_command(path: Path) -> Callable[[], str]:
             "--output",
             str(target),
         ]
+        if allow_rebuild:
+            command.append("--allow-rebuild")
         if target.exists():
             command.extend(("--base-feed", str(target), "--replace"))
         try:
@@ -279,6 +351,10 @@ def _scouting_refresh_command(path: Path) -> Callable[[], str]:
             )
         except subprocess.TimeoutExpired as exc:
             raise RuntimeError("Scouting refresh timed out after three minutes.") from exc
+        if result.returncode == POOL_NOT_BUILT_EXIT_CODE:
+            raise ScoutingPoolNotBuilt(
+                (result.stderr or result.stdout or "").strip()[-2_000:]
+            )
         if result.returncode != 0:
             detail = (result.stderr or result.stdout or "unknown capture failure").strip()
             raise RuntimeError(f"Scouting refresh failed: {detail[-2_000:]}")

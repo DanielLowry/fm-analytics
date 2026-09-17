@@ -97,9 +97,20 @@ other visible fields.
 another agent.
 
 - **Run FM's code on FM's thread.** Sample `QueryPerformanceCounter` calls per
-  thread for a second, take the dominant thread, and do the work inside a hook
-  on it. That is FM's UI thread at an idle point, so no foreign thread touches
-  the database.
+  thread for a second and take the dominant thread. That is FM's UI thread, so
+  no foreign thread touches the database.
+- **Do the work at a resting point, not at any timing call.** This page used to
+  say the timing hook was "FM's UI thread at an idle point". That does not
+  follow, and it is the likeliest cause of saves that write and then fail to
+  load. Being the dominant caller of `QueryPerformanceCounter` identifies the
+  UI thread; it says nothing about what that thread is in the middle of, and FM
+  times things precisely *because* it is doing them. Hook the message pump
+  (`GetMessageW`/`PeekMessageW`) instead: the UI thread returns there between
+  units of work, so the call lands at a boundary FM itself chose.
+  `fm20_frida_discoverability.builder_agent_source` prefers the pump, falls
+  back to the timing export only when no pump export is reachable, and reports
+  which it used in its `thread` message. A capture whose `restingPoint` is
+  false was timed the old way.
 - **Refuse to proceed if the thread is ambiguous.** No dominant thread means
   stop, not guess.
 - **Validate before calling.** Check the module base against preflight, check

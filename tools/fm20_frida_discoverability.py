@@ -79,8 +79,26 @@ def _positive_address(value: int, label: str) -> None:
         raise DiscoverabilityError(f"{label} must be a positive address")
 
 
+# Windows message-pump exports, in preference order. FM's UI thread returns to
+# its message loop between units of work, so a hook here runs the builder at a
+# resting point FM itself chose. `QueryPerformanceCounter` is a timing call FM
+# makes *while* doing work -- it identifies the UI thread well but says nothing
+# about what that thread is in the middle of, which is the assumption
+# `docs/property-discovery-playbook.md` records as "at an idle point" and which
+# does not follow. Kept last as a fallback, and always reported.
+RESTING_POINT_EXPORTS = ("GetMessageW", "GetMessageA", "PeekMessageW", "PeekMessageA")
+THREAD_SAMPLE_EXPORT = "QueryPerformanceCounter"
+
+
 def builder_agent_source(module_base: str, arguments: tuple[int, int, int]) -> str:
-    """Build one UI-thread invocation of the proven search-source builder."""
+    """Build one UI-thread invocation of the proven search-source builder.
+
+    The invocation is timed to FM's message loop where one is reachable, so
+    the builder runs between frames rather than wherever FM last happened to
+    check a timer. The agent reports which hook it used in its ``thread``
+    message, so a run that fell back to the timing hook is visible in the
+    capture rather than silent.
+    """
     source, manager_interface, team = arguments
     for value, label in ((source, "source"), (manager_interface, "manager interface"), (team, "team")):
         _positive_address(value, label)
@@ -91,6 +109,8 @@ def builder_agent_source(module_base: str, arguments: tuple[int, int, int]) -> s
         "managerInterface": hex(manager_interface),
         "team": hex(team),
         "threadSampleMs": 1000,
+        "restingPointExports": list(RESTING_POINT_EXPORTS),
+        "threadSampleExport": THREAD_SAMPLE_EXPORT,
     })
     return f"""
 'use strict';
@@ -98,11 +118,18 @@ const config = {config};
 const fm = Process.getModuleByName('fm.exe');
 if (!fm.base.equals(ptr(config.moduleBase))) throw new Error('FM module base differs from preflight');
 const builder = new NativeFunction(fm.base.add(config.builderRva), 'uint64', ['pointer', 'pointer', 'pointer']);
+function findRestingPoint() {{
+  for (const name of config.restingPointExports) {{
+    const address = Module.findGlobalExportByName(name);
+    if (address !== null) return {{name, address}};
+  }}
+  return null;
+}}
 function selectUiThread(run) {{
-  const qpc = Module.findGlobalExportByName('QueryPerformanceCounter');
-  if (qpc === null) throw new Error('QueryPerformanceCounter export not found');
+  const timing = Module.findGlobalExportByName(config.threadSampleExport);
+  if (timing === null) throw new Error(config.threadSampleExport + ' export not found');
   const sample = {{}};
-  const sampler = Interceptor.attach(qpc, {{onEnter() {{
+  const sampler = Interceptor.attach(timing, {{onEnter() {{
     const id = Process.getCurrentThreadId(); sample[id] = (sample[id] || 0) + 1;
   }}}});
   setTimeout(() => {{
@@ -112,9 +139,15 @@ function selectUiThread(run) {{
       send({{kind: 'error', error: 'no dominant FM UI thread was found'}}); return;
     }}
     const thread = Number(ranked[0][0]);
-    send({{kind: 'thread', thread, sample}});
+    // Prefer the message loop. Fall back to the timing export only if FM
+    // exposes no message pump at all, and say which one was used either way.
+    const resting = findRestingPoint();
+    const hook = resting === null
+      ? {{name: config.threadSampleExport, address: timing}} : resting;
+    send({{kind: 'thread', thread, sample, hook: hook.name,
+      restingPoint: resting !== null}});
     let state = 'armed';
-    const runner = Interceptor.attach(qpc, {{onEnter() {{
+    const runner = Interceptor.attach(hook.address, {{onEnter() {{
       if (state !== 'armed' || Process.getCurrentThreadId() !== thread) return;
       state = 'running';
       try {{ run(); }} catch (error) {{ send({{kind: 'error', error: String(error)}}); }}
@@ -341,7 +374,12 @@ def extract(
         if kind == "ready":
             result["agentReady"] = True
         elif kind == "thread":
-            result["thread"] = {"id": payload.get("thread"), "qpcSample": payload.get("sample")}
+            result["thread"] = {
+                "id": payload.get("thread"),
+                "qpcSample": payload.get("sample"),
+                "hook": payload.get("hook"),
+                "restingPoint": payload.get("restingPoint"),
+            }
         elif kind == "builder-result":
             result["builderReturnValue"] = payload.get("returnValue")
         elif kind == "progress":

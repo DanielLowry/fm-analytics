@@ -100,7 +100,7 @@ class SquadWebServer(ThreadingHTTPServer):
         provider: GameSquadProvider,
         *,
         scouting_provider=None,
-        scouting_refresh: Callable[[], str] | None = None,
+        scouting_refresh: Callable[..., str] | None = None,
         cache_ttl_seconds: float = 8.0,
     ):
         self.provider = provider
@@ -123,13 +123,13 @@ class SquadWebServer(ThreadingHTTPServer):
         with self._scouting_refresh_lock:
             return self.scouting_provider()
 
-    def refresh_scouting(self) -> str:
+    def refresh_scouting(self, *, allow_rebuild: bool = False) -> str:
         if self.scouting_refresh is None:
             raise ValueError("Scouting refresh is not configured for this server.")
         if not self._scouting_refresh_lock.acquire(blocking=False):
             raise ValueError("A scouting refresh is already running.")
         try:
-            return self.scouting_refresh()
+            return self.scouting_refresh(allow_rebuild=allow_rebuild)
         finally:
             self._scouting_refresh_lock.release()
 

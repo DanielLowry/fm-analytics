@@ -38,9 +38,33 @@ When either `data/scouting-capture.json` or the richer
 `data/scouting-capture-hydrated.json` exists in this project, `fm-web` loads it
 automatically. `--scouting-json` still overrides that choice.
 
-The feed builder does not reproduce the filters currently open in FM. It asks
-FM only for the manager's Player Search pool, removes the managed club's own
-contracted players, and leaves all remaining filtering to this page.
+The feed does not reproduce the filters currently open in FM. It takes the
+manager's Player Search pool, removes the managed club's own contracted
+players, and leaves all remaining filtering to this page.
+
+### How the pool is obtained, and why it is gated
+
+FM keeps this pool in process memory and builds it as you play, so the normal
+path reads it with no native call at all -- the same read-only footing as every
+other page. A capture taken this way records
+`source.transport: read-only-process-memory`.
+
+The pool is empty until FM builds it, which means it is empty after every FM
+launch. Running FM's own builder to fill it executes FM code inside the live
+game, and that is the step suspected of producing saves that write successfully
+and then fail to load. So the capture tool will not do it unless asked:
+
+- Without `--allow-rebuild`, an empty pool exits **3**, changes nothing, and
+  reports that Player Search has not been opened yet.
+- With `--allow-rebuild`, FM's builder runs and the capture records
+  `source.poolRebuiltByCapture: true`.
+
+On `/scouting`, the Refresh button never carries that consent. If the pool is
+empty the page returns 409 and offers two routes: open Player Search in FM once
+(recommended, no native call), or approve the rebuild with its warning. The
+resulting page states which route produced the data, so the risky one is never
+silent. Opening Player Search is needed once per FM session, not once per
+refresh.
 
 The first automatic feed has identity coverage only. Its candidates are shown
 as **Scout first** and have no position match until external position and
