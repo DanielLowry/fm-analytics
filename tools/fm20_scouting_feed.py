@@ -4,15 +4,18 @@
 This is the product-facing, bounded use of the proven Frida source builder.
 It asks FM to rebuild the manager's own Player Search pool, removes players
 contracted to the managed club, and writes ``--scouting-json`` input.  It does
-not replay FM's temporary search-form filters or read position-familiarity
-bytes. ``--hydrate-player-id`` may additionally read only FM's visible
-attribute bounds for a small, already-discoverable subset.
+not replay FM's temporary search-form filters. It records derived non-owned
+position labels under the product owner's documented accepted short-term
+visibility gap, separately from manager-visible positions.
+``--hydrate-player-id`` may additionally read only FM's visible attribute
+bounds for a small, already-discoverable subset.
 
 The resulting candidates intentionally have empty ``positions`` and
 ``attributes`` until their corresponding manager-visible extractors have been
-proved for external players.  The Scouting page renders these as "Scout first"
-instead of manufacturing values.  A position filter excludes candidates whose
-position has not yet been captured.
+proved for external players. The raw position capture stores its data as
+``rawPositions``, so the Scouting page can keep it off by default and require
+its own explicit accepted-gap checkbox before displaying or using it. The page
+renders all other unknowns as "Scout first" rather than manufacturing values.
 """
 
 from __future__ import annotations
@@ -53,7 +56,7 @@ from tools.fm20_frida_property import (
 )
 from tools.fm20_frida_server import FridaServerError, frida_server_session
 from tools.fm20_frida_trace import FridaTraceError, preflight, process_alive
-from tools.fm20_linux_probe import ProbeError, read_exact, read_fm_string
+from tools.fm20_linux_probe import ProbeError, decode_positions, read_exact, read_fm_string
 from tools.fm20_linux_probe_runtime import choose_pid
 from tools.fm20_cold_query_cache import resolve_context_and_manager, resolve_player_interfaces
 from tools.fm20_visibility_trace import DISPLAY_ATTRIBUTE_IDS
@@ -76,6 +79,7 @@ def feed_document(
     excluded_own_ids: Iterable[int],
     attributes_by_id: dict[int, dict[str, Any]] | None = None,
     footedness_by_id: dict[int, str] | None = None,
+    raw_positions_by_id: dict[int, tuple[str, ...]] | None = None,
 ) -> dict[str, Any]:
     """Build the stable JSON contract consumed by ``fm-web --scouting-json``."""
     ids = tuple(sorted(set(player_ids)))
@@ -87,6 +91,7 @@ def feed_document(
     excluded = tuple(sorted(set(excluded_own_ids)))
     attributes_by_id = attributes_by_id or {}
     footedness_by_id = footedness_by_id or {}
+    raw_positions_by_id = raw_positions_by_id or {}
     return {
         "schemaVersion": SCHEMA_VERSION,
         "capturedAt": datetime.now(UTC).replace(microsecond=0).isoformat(),
@@ -99,7 +104,11 @@ def feed_document(
             "managedClub": managed_club,
             "fieldCoverage": {
                 "identity": "manager-search-pool plus read-only identity lookup",
-                "positions": "not yet externally visibility-verified",
+                "positions": (
+                    "raw external position data accepted under the documented short-term "
+                    f"visibility gap for {len(raw_positions_by_id)}/{len(ids)} candidates"
+                    if raw_positions_by_id else "not yet externally visibility-verified"
+                ),
                 "attributes": (
                     f"manager-visible native builder for {len(attributes_by_id)}/{len(ids)} candidates"
                     if attributes_by_id else "not yet externally visibility-verified"
@@ -115,6 +124,8 @@ def feed_document(
                 "id": str(player_id),
                 "name": names[player_id],
                 "positions": [],
+                **({"rawPositions": list(raw_positions_by_id[player_id])}
+                   if player_id in raw_positions_by_id else {}),
                 "attributes": attributes_by_id.get(player_id, {}),
                 **({"footedness": footedness_by_id[player_id]} if player_id in footedness_by_id else {}),
             }
@@ -148,8 +159,35 @@ def resolve_source_player_names(pid: int, records: dict[int, int]) -> dict[int, 
         os.close(fd)
 
 
-def load_prior_visibility(path: Path) -> tuple[str, dict[int, dict[str, Any]], dict[int, str]]:
-    """Load only previously captured visible fields, rejecting an ambiguous file."""
+def read_raw_external_positions(pid: int, records: Mapping[int, int]) -> dict[int, tuple[str, ...]]:
+    """Read raw non-owned position labels for the explicitly accepted gap.
+
+    A search-source record is the Person structure. The matching player
+    interface begins 0x1C8 bytes earlier, and its 15 position bytes start at
+    +0x164 (therefore Person - 0x64). This deliberately does not read or
+    publish the individual familiarity ratings, only the existing eligibility
+    projection. Call it only for manager-discoverable players and only after
+    the user has explicitly opted into the accepted visibility gap.
+    """
+    fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
+    try:
+        positions: dict[int, tuple[str, ...]] = {}
+        for player_id, person in records.items():
+            try:
+                positions[player_id] = decode_positions(read_exact(fd, person - 0x64, 15))
+            except (OSError, ProbeError) as error:
+                raise ScoutingFeedError(
+                    f"could not read raw positions for discovered player {player_id}: {error}"
+                ) from error
+        return positions
+    finally:
+        os.close(fd)
+
+
+def load_prior_visibility(
+    path: Path,
+) -> tuple[str, dict[int, dict[str, Any]], dict[int, str], dict[int, tuple[str, ...]]]:
+    """Load prior captured fields, including explicitly accepted raw positions."""
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
         game_date = raw["gameDate"]
@@ -160,6 +198,7 @@ def load_prior_visibility(path: Path) -> tuple[str, dict[int, dict[str, Any]], d
         raise ScoutingFeedError("prior scouting feed has an invalid game date or player list")
     attributes: dict[int, dict[str, Any]] = {}
     footedness: dict[int, str] = {}
+    raw_positions: dict[int, tuple[str, ...]] = {}
     for row in rows:
         if not isinstance(row, Mapping):
             raise ScoutingFeedError("prior scouting feed contains an invalid player")
@@ -177,7 +216,17 @@ def load_prior_visibility(path: Path) -> tuple[str, dict[int, dict[str, Any]], d
             if not isinstance(observed_foot, str):
                 raise ScoutingFeedError("prior scouting feed contains an invalid footedness value")
             footedness[player_id] = observed_foot
-    return game_date, attributes, footedness
+        observed_raw_positions = row.get("rawPositions")
+        if observed_raw_positions is not None:
+            if not (
+                isinstance(observed_raw_positions, list)
+                and all(isinstance(position, str) and position for position in observed_raw_positions)
+            ):
+                raise ScoutingFeedError(
+                    "prior scouting feed contains an invalid raw position list"
+                )
+            raw_positions[player_id] = tuple(observed_raw_positions)
+    return game_date, attributes, footedness, raw_positions
 
 
 def hydrate_visible_attributes(
@@ -381,6 +430,10 @@ def capture_pool(
     names = resolve_source_player_names(
         pid, {player_id: records[player_id] for player_id in external_ids}
     )
+    raw_positions_by_id = read_raw_external_positions(
+        pid,
+        {player_id: records[player_id] for player_id in external_ids},
+    )
     attributes_by_id = dict(prior_attributes_by_id or {})
     attributes_by_id.update(hydrate_visible_attributes(
         pid,
@@ -407,6 +460,10 @@ def capture_pool(
         player_id: value for player_id, value in footedness_by_id.items()
         if player_id in set(external_ids)
     }
+    raw_positions_by_id = {
+        player_id: value for player_id, value in raw_positions_by_id.items()
+        if player_id in set(external_ids)
+    }
     final, final_arguments, final_pool_ids = _live_context(pid)
     if (
         final_arguments != arguments
@@ -425,6 +482,7 @@ def capture_pool(
         excluded_own_ids=set(pool_ids) & own_ids,
         attributes_by_id=attributes_by_id,
         footedness_by_id=footedness_by_id,
+        raw_positions_by_id=raw_positions_by_id,
     )
 
 
@@ -447,9 +505,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.replace and not args.output.exists():
         parser.error("--replace requires an existing --output file")
     try:
-        prior_game_date, prior_attributes, prior_footedness = (
+        prior_game_date, prior_attributes, prior_footedness, _prior_raw_positions = (
             load_prior_visibility(args.base_feed)
-            if args.base_feed else (None, {}, {})
+            if args.base_feed else (None, {}, {}, {})
         )
         pid = choose_pid(args.pid)
         executable = Path(preflight(pid)["executable"])
@@ -478,7 +536,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     print(
         f"Captured {len(document['players'])} manager-discoverable players to {args.output}. "
-        f"Visible attributes hydrated for {len(args.hydrate_player_id)} player(s); positions remain unknown.",
+        f"Visible attributes hydrated for {len(args.hydrate_player_id)} player(s); "
+        "raw external positions captured under the accepted visibility gap.",
         flush=True,
     )
     return 0

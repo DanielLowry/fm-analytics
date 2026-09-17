@@ -46,10 +46,11 @@ def _write_complete_fixture(directory: Path) -> Path:
 
 
 class SquadWebServerTests(unittest.TestCase):
-    def _serve(self, fixture_path: Path, scouting_provider=None):
+    def _serve(self, fixture_path: Path, scouting_provider=None, scouting_refresh=None):
         server = SquadWebServer(
             ("127.0.0.1", 0), fixture_provider(fixture_path),
             scouting_provider=scouting_provider,
+            scouting_refresh=scouting_refresh,
         )
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
@@ -64,6 +65,15 @@ class SquadWebServerTests(unittest.TestCase):
         body = response.read().decode("utf-8")
         connection.close()
         return response.status, body
+
+    def _post(self, port: int, path: str) -> tuple[int, str | None, str]:
+        connection = HTTPConnection("127.0.0.1", port)
+        connection.request("POST", path)
+        response = connection.getresponse()
+        location = response.getheader("Location")
+        body = response.read().decode("utf-8")
+        connection.close()
+        return response.status, location, body
 
     def test_every_page_renders_for_a_complete_squad(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -164,6 +174,68 @@ class SquadWebServerTests(unittest.TestCase):
         self.assertIn("Scout first", body)
         self.assertIn("floor / estimate / ceiling", body)
 
+    def test_scouting_refresh_button_runs_the_configured_capture(self) -> None:
+        calls = {"count": 0}
+
+        def refresh():
+            calls["count"] += 1
+            return "Captured scouting data"
+
+        port = self._serve(FIXTURE, scouting_refresh=refresh)
+        status, location, _body = self._post(port, "/scouting/refresh")
+        refreshed_status, refreshed_body = self._get(port, "/scouting?refreshed=1")
+
+        self.assertEqual(status, 303)
+        self.assertEqual(location, "/scouting?refreshed=1")
+        self.assertEqual(calls["count"], 1)
+        self.assertEqual(refreshed_status, 200)
+        self.assertIn("Refresh scouting data", refreshed_body)
+        self.assertIn("Scouting data refreshed", refreshed_body)
+
+    def test_scouting_page_requires_opt_in_for_raw_external_positions(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="external-raw",
+                    name="Raw Position Striker",
+                    positions=(),
+                    raw_positions=("ST",),
+                    attributes={},
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        hidden_status, hidden_body = self._get(port, "/scouting?position=ST")
+        shown_status, shown_body = self._get(
+            port,
+            "/scouting?position=ST&includeRawPositions=1",
+        )
+
+        self.assertEqual(hidden_status, 200)
+        self.assertNotIn("Raw Position Striker", hidden_body)
+        self.assertEqual(shown_status, 200)
+        self.assertIn("Raw Position Striker", shown_body)
+        self.assertIn("Raw external positions enabled", shown_body)
+        self.assertIn("raw external data", shown_body)
+        self.assertIn("This is position browsing", shown_body)
+
+    def test_scouting_page_explains_when_an_old_capture_has_no_raw_positions(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="external-no-raw",
+                    name="No Raw Position",
+                    positions=(),
+                    attributes={},
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        status, body = self._get(port, "/scouting?includeRawPositions=1")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Raw external positions enabled, but unavailable", body)
+
     def test_incomplete_squad_fails_closed_on_scored_pages_but_not_on_data(self) -> None:
         port = self._serve(FIXTURE)
 
@@ -202,17 +274,18 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         connection.close()
         return response.status, body
 
-    def test_tactics_page_shows_the_fit_legend_and_injury_risk_column(self) -> None:
+    def test_tactics_page_explains_play_now_and_positional_training(self) -> None:
         status, body = self._get("/tactics")
 
         self.assertEqual(status, 200)
-        self.assertIn("Injury risk", body)
-        self.assertIn("65%", body)
-        self.assertIn("Once trained", body)
+        self.assertIn("Cover risk", body)
+        self.assertIn("Team balance", body)
+        self.assertIn("Game-plan support", body)
+        self.assertIn("After positional training", body)
         self.assertIn("does not project attribute growth", body)
         self.assertIn("<ul class='legend'>", body)
         # Owned players' attributes are exact, so scores collapse to one number.
-        self.assertNotIn(" / ", body.split("Tactic comparison")[1].split("</table>")[0])
+        self.assertNotIn(" / ", body.split("What can this squad play now?")[1].split("</table>")[0])
 
     def test_tactics_page_lists_roles_for_every_tactic_not_just_the_selected_one(self) -> None:
         status, body = self._get("/tactics")

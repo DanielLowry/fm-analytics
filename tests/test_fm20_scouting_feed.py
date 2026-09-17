@@ -49,6 +49,20 @@ class ScoutingFeedTests(unittest.TestCase):
         self.assertNotIn("footedness", document["players"][1])
         self.assertIn("1/2", document["source"]["fieldCoverage"]["attributes"])
 
+    def test_marks_raw_external_positions_as_the_accepted_visibility_gap(self) -> None:
+        document = feed_document(
+            [10], {10: "One Player"},
+            game_date="2020-08-14",
+            managed_club={"id": "club-1", "name": "Hungerford Town"},
+            source_count=22,
+            excluded_own_ids=[],
+            raw_positions_by_id={10: ("ST", "AMC")},
+        )
+
+        self.assertEqual(document["players"][0]["positions"], [])
+        self.assertEqual(document["players"][0]["rawPositions"], ["ST", "AMC"])
+        self.assertIn("accepted", document["source"]["fieldCoverage"]["positions"])
+
     def test_loads_only_existing_visible_fields_from_a_prior_same_date_feed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "prior.json"
@@ -60,11 +74,12 @@ class ScoutingFeedTests(unittest.TestCase):
                 }],
             }), encoding="utf-8")
 
-            game_date, attributes, footedness = load_prior_visibility(path)
+            game_date, attributes, footedness, raw_positions = load_prior_visibility(path)
 
         self.assertEqual(game_date, "2020-08-14")
         self.assertEqual(attributes[10]["pace"]["visibility"], "unknown")
         self.assertEqual(footedness, {10: "Right"})
+        self.assertEqual(raw_positions, {})
 
 
 if __name__ == "__main__":

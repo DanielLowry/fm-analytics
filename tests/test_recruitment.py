@@ -95,7 +95,7 @@ class RecruitmentTests(unittest.TestCase):
             position="ST",
             role_key="af_attack",
             need="starter",
-            minimum_role_score=20,
+            minimum_role_score=30,
             reason="upgrade required",
         )
 

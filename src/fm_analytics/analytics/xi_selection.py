@@ -787,13 +787,32 @@ def _best_joint_role_state(
                 _joint_state_signature(state),
             ),
         )
-        # Score every completed candidate against coherence/instructions.  A
-        # final beam cut here would silently discard the lower local score
-        # that supplies the missing runner, cover, or width.
-        states = tuple(
-            ranked if step == len(slot_order) - 1
-            else ranked[:system_policy.role_assignment_beam_width]
-        )
+        if step == len(slot_order) - 1:
+            # A flat top-K cut here would keep only whichever role scores
+            # best on individual fit, discarding an alternate role for this
+            # same slot that a downstream coherence/instruction check might
+            # actually prefer (e.g. a "runner" over a "creator" up front).
+            # Keep the best few states for *each* role choice at this slot
+            # instead, so that trade-off is still visible when we score
+            # coherence below, without carrying forward every combination.
+            grouped: dict[str | None, list[_JointAssignmentState]] = {}
+            for state in ranked:
+                role_key = next(
+                    (
+                        choice.assignment.intrinsic_role_score.role_key
+                        for choice in state.assignments
+                        if choice.slot_index == slot_index
+                    ),
+                    None,
+                )
+                grouped.setdefault(role_key, []).append(state)
+            states = tuple(
+                state
+                for group in grouped.values()
+                for state in group[: system_policy.role_assignment_beam_width]
+            )
+        else:
+            states = tuple(ranked[: system_policy.role_assignment_beam_width])
 
     def key(state: _JointAssignmentState) -> tuple[bool, int, float, float, tuple[tuple[int, str, str], ...]]:
         assignments = tuple(

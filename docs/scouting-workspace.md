@@ -48,6 +48,24 @@ attribute visibility have been proven. This is intentional: it is useful for
 building the manager's true discovery queue, without pretending to know more
 than FM has safely supplied.
 
+### Accepted raw external-position gap
+
+The product owner has accepted a documented short-term exception for
+non-owned position data. Every scouting capture records the derived labels:
+
+```bash
+uv run --extra research python tools/fm20_scouting_feed.py \
+  --output data/scouting-capture.json
+```
+
+This derives position labels from raw non-owned familiarity data and stores
+them as `rawPositions`, separate from manager-visible `positions`. It does not
+store individual raw familiarity ratings. On `/scouting`, tick **Use raw
+external positions (accepted visibility gap)** to display and use those labels
+for role and position filtering. The page warns that the data can reveal
+secondary positions FM has not shown the manager. The checkbox does nothing
+until the feed has been recaptured with the command above.
+
 To hydrate a small set of known candidates with all of FM's manager-visible
 attribute values and footedness, repeat `--hydrate-player-id` (up to 64 players). This is
 bounded deliberately while the external-player route is validated:
@@ -106,11 +124,11 @@ set without a UI redesign.
 
 ## Visibility boundary
 
-The feed must be derived from a verified discoverability capture and must carry
-only manager-visible values. Position familiarity is deliberately absent until
-there is an external-player, manager-visible extractor; the owned-squad raw
-byte reader is not valid for this page. Footedness is also displayed only when
-its external-player visibility route is verified.
+The feed must be derived from a verified discoverability capture. Manager-
+visible values are the default. `rawPositions` is the sole current exception:
+it is permitted only through the explicit, documented accepted-gap path above,
+and stays opt-in in the page. Footedness is displayed only when its external-
+player visibility route is verified.
 
 The page is ready for the Frida Player Search result-ID collector described in
 [Frida and player discoverability](frida-discoverability.md). That collector

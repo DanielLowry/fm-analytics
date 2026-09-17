@@ -14,11 +14,14 @@ from __future__ import annotations
 
 import argparse
 import html
+import subprocess
+import sys
 import threading
 import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Sequence
+from pathlib import Path
+from typing import Callable, Sequence
 from urllib.parse import parse_qs, urlparse
 
 from fm_analytics.analytics import (
@@ -29,6 +32,7 @@ from fm_analytics.analytics import (
     WeaknessReport,
     assess_scouting_candidates,
     available_fact_values,
+    filter_scouting_candidates,
 )
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.domain import Squad
@@ -70,6 +74,21 @@ _INJURY_RISK_KINDS = frozenset(
 )
 _MAX_SCOUTING_ROWS = 100
 
+_TACTICAL_DIMENSION_LABELS = {
+    "aerialOutlet": "aerial outlet",
+    "attack duties": "attacking duties",
+    "ballProgression": "ball progression",
+    "boxPresence": "presence in the box",
+    "creativity": "creativity",
+    "creators": "creative roles",
+    "defensiveCover": "defensive cover",
+    "penetration": "penetration",
+    "pressing": "pressing",
+    "restDefence": "defensive security after losing the ball",
+    "runners": "forward runners",
+    "width": "width",
+}
+
 _STYLE = """
 <style>
   body { font-family: system-ui, sans-serif; margin: 0; color: #1a1a1a; background: #fafafa; }
@@ -99,6 +118,8 @@ _STYLE = """
   form.filters input, form.filters select { min-width: 0; padding: 0.35rem; border: 1px solid #bbc3cc; border-radius: 0.25rem; background: white; }
   form.filters .check { display: flex; align-items: end; gap: 0.35rem; color: #1a1a1a; }
   form.filters button { align-self: end; padding: 0.45rem 0.65rem; border: 0; border-radius: 0.25rem; background: #1a2b3c; color: white; cursor: pointer; }
+  form.refresh { margin: 0.75rem 0; display: flex; align-items: center; gap: 0.65rem; }
+  form.refresh button { padding: 0.45rem 0.65rem; border: 0; border-radius: 0.25rem; background: #1a2b3c; color: white; cursor: pointer; }
   .badge-scout { background: #fff2d6; color: #805400; }
   .badge-proven { background: #e3f3e1; color: #1e6b1e; }
   .badge-unlikely { background: #eee; color: #555; }
@@ -112,6 +133,41 @@ _STYLE = """
 def _nav_link(path: str, label: str, active_path: str) -> str:
     active_class = ' class="active"' if path == active_path else ""
     return f'<a href="{path}"{active_class}>{html.escape(label)}</a>'
+
+
+def _tactical_shortfalls(shortfalls: Sequence[str]) -> str:
+    """Turn compact model diagnostics into short manager-facing phrases."""
+    labels: list[str] = []
+    for shortfall in shortfalls:
+        dimension, _separator, _amounts = shortfall.rpartition(" ")
+        labels.append(_TACTICAL_DIMENSION_LABELS.get(dimension, dimension))
+    displayed = labels[:2]
+    remainder = len(labels) - len(displayed)
+    suffix = f" +{remainder} more" if remainder else ""
+    return ", ".join(displayed) + suffix
+
+
+def _raw_position_notice(candidates: Sequence[object]) -> str:
+    raw_count = sum(bool(getattr(candidate, "raw_positions", ())) for candidate in candidates)
+    if raw_count == 0:
+        return (
+            "<p class='warn'><b>Raw external positions enabled, but unavailable.</b> "
+            "This capture has no raw position labels yet. Recapture the scouting feed "
+            "and reload this page.</p>"
+        )
+    return (
+        "<p class='warn'><b>Raw external positions enabled.</b> These labels are "
+        "derived from non-owned players' raw position data under the accepted short-"
+        "term visibility gap. They can reveal secondary positions FM does not "
+        f"currently show the manager ({raw_count} captured).</p>"
+    )
+
+
+def _position_display(candidate, *, include_raw_external_positions: bool) -> str:
+    positions = candidate.positions_for(
+        include_raw_external_positions=include_raw_external_positions
+    )
+    return html.escape(", ".join(positions) or "Not yet captured")
 
 
 def _layout(title: str, active_path: str, body: str) -> str:
@@ -175,7 +231,9 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         transfer_status=_query_first(query, "transferStatus"), availability=_query_first(query, "availability"),
         visibility=visibility, minimum_floor=_query_number(query, "minFloor"),
         minimum_ceiling=_query_number(query, "minCeiling"),
-        include_unlikely=_query_first(query, "includeUnlikely") == "1", facts=facts,
+        include_unlikely=_query_first(query, "includeUnlikely") == "1",
+        include_raw_external_positions=_query_first(query, "includeRawPositions") == "1",
+        facts=facts,
     )
 
 
@@ -193,6 +251,44 @@ def _input_value(value: object) -> str:
 
 def _label(value: str) -> str:
     return value.replace("_", " ").replace("-", " ").capitalize()
+
+
+def _scouting_refresh_command(path: Path) -> Callable[[], str]:
+    """Build the bounded local command used by the Scouting-page refresh button."""
+    project_root = Path(__file__).resolve().parents[3]
+    capture_tool = project_root / "tools" / "fm20_scouting_feed.py"
+    target = path.resolve()
+
+    def refresh() -> str:
+        command = [
+            "uv",
+            "run",
+            "--extra",
+            "research",
+            "python",
+            str(capture_tool),
+            "--output",
+            str(target),
+        ]
+        if target.exists():
+            command.extend(("--base-feed", str(target), "--replace"))
+        try:
+            result = subprocess.run(
+                command,
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                timeout=180,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError("Scouting refresh timed out after three minutes.") from exc
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "unknown capture failure").strip()
+            raise RuntimeError(f"Scouting refresh failed: {detail[-2_000:]}")
+        return (result.stdout or "Scouting data refreshed.").strip()
+
+    return refresh
 
 
 class SquadWebHandler(BaseHTTPRequestHandler):
@@ -216,6 +312,26 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             )
             return
         handler(path, parse_qs(parsed.query))
+
+    def do_POST(self) -> None:  # noqa: N802
+        parsed = urlparse(self.path)
+        if parsed.path != "/scouting/refresh":
+            self._send(
+                _error_page("Not found", "No such action.", parsed.path),
+                HTTPStatus.NOT_FOUND,
+            )
+            return
+        try:
+            self.server.refresh_scouting()  # type: ignore[attr-defined]
+        except (OSError, RuntimeError, ValueError) as exc:
+            self._send(
+                _error_page("Scouting refresh", str(exc), "/scouting"),
+                HTTPStatus.SERVICE_UNAVAILABLE,
+            )
+            return
+        self.send_response(HTTPStatus.SEE_OTHER)
+        self.send_header("Location", "/scouting?refreshed=1")
+        self.end_headers()
 
     def _dashboard(self, path: str, _query: dict[str, list[str]]) -> None:
         try:
@@ -368,13 +484,25 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             )
             risk = _injury_risk_count(bundle.squad_depth.per_tactic[tactic_key])
             risk_class = "badge-persistent" if risk else "badge-ok"
+            concerns = []
+            if not evaluation.has_legal_xi:
+                concerns.append("cannot fill every position")
+            if evaluation.coherence.shortfalls:
+                concerns.append(
+                    "balance: " + _tactical_shortfalls(evaluation.coherence.shortfalls)
+                )
+            if evaluation.instruction_suitability.shortfalls:
+                concerns.append(
+                    "game plan: "
+                    + _tactical_shortfalls(evaluation.instruction_suitability.shortfalls)
+                )
+            summary = " · ".join(concerns) if concerns else "no structural warning"
             rows.append(
                 "<tr>"
                 f"<td>{html.escape(evaluation.tactic.name)}</td>"
                 f"<td>{html.escape(evaluation.tactic.formation)}</td>"
                 f"<td>{_band(evaluation.score)}</td>"
-                f"<td>XI {evaluation.xi_score.central:.1f}; system {evaluation.coherence.score:.1f}; "
-                f"instructions {evaluation.instruction_suitability.score:.1f}</td>"
+                f"<td>{html.escape(summary)}</td>"
                 f"<td>{status}</td>"
                 f"<td><span class='badge {risk_class}'>{risk}</span></td>"
                 "</tr>"
@@ -401,6 +529,37 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             details.append(
                 f"<details><summary>{html.escape(evaluation.tactic.name)} "
                 f"({html.escape(evaluation.tactic.formation)})</summary>"
+                "<p><b>Play now:</b> "
+                f"{_band(evaluation.score)}. <b>Player-role fit:</b> "
+                f"{evaluation.xi_score.central:.1f}. <b>Team balance:</b> "
+                f"{evaluation.coherence.score:.1f}. <b>Game-plan support:</b> "
+                f"{evaluation.instruction_suitability.score:.1f}.</p>"
+                "<p class='muted'><b>Team balance</b> asks whether the selected roles "
+                "cover the jobs a functioning XI needs — for example width, defensive "
+                "cover, progression and runners. <b>Game-plan support</b> asks whether "
+                "those roles suit this tactic's instructions, such as pressing, playing "
+                "out, or countering.</p>"
+                + (
+                    "<p class='warn'><b>Balance concerns:</b> "
+                    + html.escape(_tactical_shortfalls(evaluation.coherence.shortfalls))
+                    + ".</p>"
+                    if evaluation.coherence.shortfalls
+                    else ""
+                )
+                + (
+                    "<p class='warn'><b>Game-plan concerns:</b> "
+                    + html.escape(
+                        _tactical_shortfalls(evaluation.instruction_suitability.shortfalls)
+                    )
+                    + ".</p>"
+                    if evaluation.instruction_suitability.shortfalls
+                    else ""
+                )
+                + "<p><b>Instructions:</b> "
+                + html.escape(
+                    ", ".join(evaluation.tactic.instructions) or "No special instructions"
+                )
+                + ".</p>"
                 "<table><tr><th>Slot</th><th>Position</th><th>Role</th>"
                 "<th>Player</th><th>Score</th></tr>"
                 + assignment_rows
@@ -420,7 +579,10 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         targets_body = (
             (
                 "<h2>Training targets</h2>"
-                "<table><tr><th>Tactic</th><th>Now</th><th>Once trained</th><th>Gap</th></tr>"
+                "<p class='muted'>These are setups improved by positional training, "
+                "not predictions of player development.</p>"
+                "<table><tr><th>Tactic</th><th>Play now</th><th>After positional training</th>"
+                "<th>Gain</th></tr>"
                 + targets_rows
                 + "</table>"
             )
@@ -428,16 +590,24 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             else "<h2>Training targets</h2><p class='muted'>None — familiarity isn't holding any tactic back.</p>"
         )
         body = (
-            "<h2>Tactic comparison</h2>"
+            "<h2>What can this squad play now?</h2>"
+            "<p class='muted'>The score is a squad-fit estimate, not a match prediction "
+            "and not an opponent-specific recommendation.</p>"
             "<ul class='legend'>"
-            "<li><b>XI suitability</b>: 65% XI average + 35% weakest slot</li>"
-            "<li><b>Overall fit</b>: XI suitability plus role-system coherence and instruction suitability; opponent suitability is not yet scored.</li>"
-            "<li><b>Once trained</b>: the same tactic with positional-familiarity discounts removed (equivalent to every eligible selected player being 20/20 familiar). It does not project attribute growth, hidden potential, or whole-tactic familiarity.</li>"
+            "<li><b>Play now</b>: how well the available squad fits this setup today.</li>"
+            "<li><b>Team balance</b>: whether the chosen roles form a workable whole. "
+            "It is not a measure of player attributes.</li>"
+            "<li><b>Game-plan support</b>: whether the chosen roles support this tactic's "
+            "instructions. It is currently role-based; attribute-aware instruction "
+            "scoring is planned work.</li>"
+            "<li><b>After positional training</b>: the same recommendation with every "
+            "eligible selected player's positional familiarity treated as 20/20. It does "
+            "not project attribute growth, hidden potential, or whole-tactic familiarity.</li>"
             "<li><b>XI</b>: ✓ full XI available, ✗ lists unfillable slots</li>"
-            "<li><b>Injury risk</b>: starting slots without adequate cover</li>"
+            "<li><b>Cover risk</b>: starting slots without adequate cover</li>"
             "</ul>"
-            "<table><tr><th>Tactic</th><th>Formation</th><th>Overall fit</th><th>Score breakdown</th><th>XI</th>"
-            "<th>Injury risk</th></tr>"
+            "<table><tr><th>Tactic</th><th>Shape</th><th>Play now</th><th>What needs "
+            "attention</th><th>XI</th><th>Cover risk</th></tr>"
             + "".join(rows)
             + "</table>"
             + targets_body
@@ -513,9 +683,16 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         try:
             candidates = self.server.scouting()  # type: ignore[attr-defined]
             filters = _scouting_filters(query)
-            if filters.role_key is None:
-                filters = ScoutingFilters(**{**filters.__dict__, "role_key": "af_attack"})
-            assessments = assess_scouting_candidates(candidates, MVP_CATALOGUE, filters)
+            assessments = (
+                assess_scouting_candidates(candidates, MVP_CATALOGUE, filters)
+                if filters.role_key
+                else ()
+            )
+            position_candidates = (
+                ()
+                if filters.role_key
+                else filter_scouting_candidates(candidates, filters)
+            )
         except (OSError, ValueError, KeyError) as exc:
             self._send(_error_page("Scouting", str(exc), path), HTTPStatus.SERVICE_UNAVAILABLE)
             return
@@ -539,8 +716,35 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "<p>Only players in the manager-visible discovery feed are shown. "
             "Scores preserve their <b>floor / estimate / ceiling</b>; a player with "
             "no known role attributes is a reason to scout, not a claim that they are good.</p>"
+            + (
+                "<p class='muted'>Scouting data refreshed. The current capture is now "
+                "being used.</p>"
+                if _query_first(query, "refreshed") == "1"
+                else ""
+            )
+            + "<form class='refresh' method='post' action='/scouting/refresh'>"
+            "<button type='submit'>Refresh scouting data</button>"
+            "<span class='muted'>Reads the current FM Player Search pool; this can take "
+            "a little while.</span></form>"
             + self._scouting_filters_form(filters, role_options, position_options, candidates, fact_controls)
-            + self._scouting_results(assessments, selected_role, len(candidates))
+            + (
+                _raw_position_notice(candidates)
+                if filters.include_raw_external_positions
+                else ""
+            )
+            + (
+                self._scouting_results(
+                    assessments,
+                    selected_role,
+                    len(candidates),
+                    include_raw_external_positions=filters.include_raw_external_positions,
+                )
+                if filters.role_key
+                else self._scouting_position_results(
+                    position_candidates,
+                    include_raw_external_positions=filters.include_raw_external_positions,
+                )
+            )
         )
         self._send(_layout("Scouting", path, body))
 
@@ -558,7 +762,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         return (
             "<h2>Find a target</h2><form class='filters' method='get' action='/scouting'>"
             f"<label>Position<select name='position'>{position_options}</select></label>"
-            f"<label>Role<select name='role'>{role_options}</select></label>"
+            f"<label>Role (optional)<select name='role'>{role_options}</select></label>"
             f"<label>Minimum age<input name='minAge' type='number' min='0' value='{_input_value(filters.minimum_age)}'></label>"
             f"<label>Maximum age<input name='maxAge' type='number' min='0' value='{_input_value(filters.maximum_age)}'></label>"
             f"<label>Club contains<input name='club' value='{html.escape(filters.club_contains or '', quote=True)}'></label>"
@@ -578,11 +782,21 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             + fact_controls
             + "<label class='check'><input name='includeUnlikely' type='checkbox' value='1'"
             + (" checked" if filters.include_unlikely else "")
-            + "> Include players below the ceiling</label><button type='submit'>Apply filters</button></form>"
+            + "> Include players below the ceiling</label>"
+            + "<label class='check'><input name='includeRawPositions' type='checkbox' value='1'"
+            + (" checked" if filters.include_raw_external_positions else "")
+            + "> Use raw external positions (accepted visibility gap)</label>"
+            + "<button type='submit'>Apply filters</button></form>"
         )
 
     @staticmethod
-    def _scouting_results(assessments, role_key: str, total_candidates: int) -> str:
+    def _scouting_results(
+        assessments,
+        role_key: str,
+        total_candidates: int,
+        *,
+        include_raw_external_positions: bool,
+    ) -> str:
         if not assessments:
             return (
                 "<h2>Targets</h2><p class='muted'>"
@@ -601,11 +815,14 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         for item in displayed:
             label, badge, reason = labels[item.recommendation]
             candidate = item.candidate
+            positions = candidate.positions_for(
+                include_raw_external_positions=include_raw_external_positions
+            )
             rows.append(
                 "<tr>"
                 f"<td>{html.escape(candidate.name)}<br><span class='muted'>{html.escape(candidate.nationality or 'Nationality not known')}</span></td>"
                 f"<td>{html.escape(candidate.club or '—')}</td><td>{candidate.age if candidate.age is not None else '—'}</td>"
-                f"<td>{html.escape(', '.join(candidate.positions) or 'Not yet captured')}</td>"
+                f"<td>{html.escape(', '.join(positions) or 'Not yet captured')}</td>"
                 f"<td>{_band(item.role_score.score)}</td>"
                 f"<td>{html.escape(item.visibility_summary)}</td>"
                 f"<td><span class='badge {badge}'>{label}</span><br><span class='muted'>{html.escape(reason)}</span></td></tr>"
@@ -639,8 +856,49 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             + "<ul class='legend'><li><b>Scout first</b>: no relevant attributes are known.</li>"
             "<li><b>Scout to decide</b>: ranges or unknown values could still change the role fit.</li>"
             "<li><b>Floor / estimate / ceiling</b>: the best and worst role score supported by visible information.</li></ul>"
-            "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions</th><th>Role score</th><th>Visibility</th><th>Recommendation</th></tr>"
+            "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions"
+            + (" (raw external data)" if include_raw_external_positions else "")
+            + "</th><th>Role score</th><th>Visibility</th><th>Recommendation</th></tr>"
             + "".join(rows) + "</table><h2>Visible role data</h2>" + "".join(details)
+        )
+
+    @staticmethod
+    def _scouting_position_results(
+        candidates,
+        *,
+        include_raw_external_positions: bool,
+    ) -> str:
+        if not candidates:
+            return (
+                "<h2>Players matching filters</h2><p class='muted'>No candidates "
+                "match these position and factual filters.</p>"
+            )
+        displayed = candidates[:_MAX_SCOUTING_ROWS]
+        rows = "".join(
+            "<tr>"
+            f"<td>{html.escape(candidate.name)}</td>"
+            f"<td>{html.escape(candidate.club or '—')}</td>"
+            f"<td>{candidate.age if candidate.age is not None else '—'}</td>"
+            f"<td>{_position_display(candidate, include_raw_external_positions=include_raw_external_positions)}</td>"
+            f"<td>{html.escape(candidate.footedness or '—')}</td>"
+            "</tr>"
+            for candidate in displayed
+        )
+        return (
+            f"<h2>Players matching filters ({len(candidates)})</h2>"
+            "<p class='muted'>This is position browsing. Choose an optional role to "
+            "add role score, attribute uncertainty, and scouting priority. Role-score, "
+            "visibility, and ceiling filters are ignored until then.</p>"
+            + (
+                f"<p class='muted'>Showing the first {len(displayed)} players.</p>"
+                if len(candidates) > len(displayed)
+                else ""
+            )
+            + "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions"
+            + (" (raw external data)" if include_raw_external_positions else "")
+            + "</th><th>Footedness</th></tr>"
+            + rows
+            + "</table>"
         )
 
     def _data_page(self, path: str, _query: dict[str, list[str]]) -> None:
@@ -730,10 +988,13 @@ class SquadWebServer(ThreadingHTTPServer):
         provider: GameSquadProvider,
         *,
         scouting_provider=None,
+        scouting_refresh: Callable[[], str] | None = None,
         cache_ttl_seconds: float = 8.0,
     ):
         self.provider = provider
         self.scouting_provider = scouting_provider or empty_scouting_provider()
+        self.scouting_refresh = scouting_refresh
+        self._scouting_refresh_lock = threading.Lock()
         self.cache_ttl_seconds = cache_ttl_seconds
         self._lock = threading.Lock()
         self._read_at = 0.0
@@ -745,7 +1006,20 @@ class SquadWebServer(ThreadingHTTPServer):
         super().__init__(address, SquadWebHandler)
 
     def scouting(self):
-        return self.scouting_provider()
+        # A refresh overwrites the capture file. Do not let another request
+        # parse the JSON while that write is in progress.
+        with self._scouting_refresh_lock:
+            return self.scouting_provider()
+
+    def refresh_scouting(self) -> str:
+        if self.scouting_refresh is None:
+            raise ValueError("Scouting refresh is not configured for this server.")
+        if not self._scouting_refresh_lock.acquire(blocking=False):
+            raise ValueError("A scouting refresh is already running.")
+        try:
+            return self.scouting_refresh()
+        finally:
+            self._scouting_refresh_lock.release()
 
     def read(self):
         with self._lock:
@@ -864,9 +1138,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     provider = _build_provider(args)
     default_scouting_path = _default_scouting_path()
     scouting_path = args.scouting_json or default_scouting_path
+    refresh_path = (
+        Path(scouting_path)
+        if scouting_path is not None
+        else Path(__file__).resolve().parents[3] / "data" / "scouting-capture.json"
+    )
     server = SquadWebServer(
         (args.host, args.port), provider,
         scouting_provider=(scouting_json_provider(scouting_path) if scouting_path else None),
+        scouting_refresh=_scouting_refresh_command(refresh_path),
         cache_ttl_seconds=args.cache_ttl_seconds,
     )
     print(f"FM Analytics web view listening on http://{args.host}:{args.port}")

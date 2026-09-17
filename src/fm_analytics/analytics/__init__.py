@@ -83,6 +83,7 @@ from fm_analytics.analytics.scouting import (
     ScoutingFilters,
     assess_scouting_candidates,
     available_fact_values,
+    filter_scouting_candidates,
 )
 
 __all__ = [
@@ -136,6 +137,7 @@ __all__ = [
     "assess_squad_depth",
     "assess_scouting_candidates",
     "available_fact_values",
+    "filter_scouting_candidates",
     "assess_weaknesses",
     "build_recruitment_briefs",
     "build_role_matrix",

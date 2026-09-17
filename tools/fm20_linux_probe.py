@@ -458,17 +458,13 @@ POSITION_ELIGIBILITY_MINIMUM = 10
 def decode_positions(ratings: bytes) -> tuple[str, ...]:
     """Turn raw 1-20 position-rating bytes into an eligible-position list.
 
-    SAFE ONLY for the owned squad. `ratings` is FM's underlying truth, read
-    directly with no knowledge check, and confirmed on 16 September 2026 to
-    differ from what FM actually shows the manager for another club's player:
-    a partially-scouted external player's position diagram showed Ineffectual
-    at two positions where this raw data says Accomplished. For the owned
-    squad that gap does not exist, since the manager's knowledge of their own
-    players is exact by definition. Do not call this (or
-    `position_familiarity_map` below) for any player who is not confirmed
-    fully known -- see tools/fm20_position_familiarity.py's module docstring
-    and docs/phases/03-information-visibility/README.md, "Position
-    familiarity: accepted short-term gap".
+    The normal production use is the owned squad, where the manager's
+    knowledge is exact. For another club's player it may expose positions FM
+    has hidden through knowledge gating. Such use is permitted only by the
+    product owner's documented short-term visibility-gap decision and is kept
+    opt-in in the Scouting page UI. The capture publishes only this eligibility
+    projection and labels it as raw external data; it does not use
+    `position_familiarity_map` below.
     """
     if len(ratings) != len(POSITION_CODES):
         raise ProbeError(

@@ -7,6 +7,7 @@ from fm_analytics.analytics import (
     ScoutingFilters,
     assess_scouting_candidates,
     available_fact_values,
+    filter_scouting_candidates,
 )
 from fm_analytics.domain import AttributeObservation, Visibility
 
@@ -27,7 +28,7 @@ class ScoutingTests(unittest.TestCase):
 
         self.assertEqual(result[0].recommendation, ScoutRecommendation.SCOUT_FIRST)
         self.assertEqual(result[0].known_attributes, 0)
-        self.assertEqual(result[0].unknown_attributes, 8)
+        self.assertEqual(result[0].unknown_attributes, 11)
         self.assertTrue(result[0].scout_next)
 
     def test_ranges_keep_a_floor_and_ceiling_and_need_more_scouting(self) -> None:
@@ -89,6 +90,66 @@ class ScoutingTests(unittest.TestCase):
 
         self.assertEqual(general[0].recommendation, ScoutRecommendation.SCOUT_FIRST)
         self.assertEqual(striker_only, ())
+
+    def test_raw_external_positions_require_explicit_opt_in(self) -> None:
+        raw_only = ScoutingCandidate(
+            id="raw-only",
+            name="Raw Only",
+            positions=(),
+            raw_positions=("ST",),
+            attributes={},
+        )
+
+        hidden = assess_scouting_candidates(
+            [raw_only], MVP_CATALOGUE,
+            ScoutingFilters(role_key="af_attack", position="ST"),
+        )
+        accepted_gap = assess_scouting_candidates(
+            [raw_only], MVP_CATALOGUE,
+            ScoutingFilters(
+                role_key="af_attack",
+                position="ST",
+                include_raw_external_positions=True,
+            ),
+        )
+
+        self.assertEqual(hidden, ())
+        self.assertEqual([item.candidate.id for item in accepted_gap], ["raw-only"])
+
+    def test_raw_external_positions_round_trip_from_the_capture_contract(self) -> None:
+        candidate_from_capture = ScoutingCandidate.from_dict(
+            {
+                "id": "raw-contract",
+                "name": "Raw Contract",
+                "positions": [],
+                "rawPositions": ["ST", "AMC"],
+                "attributes": {},
+            }
+        )
+
+        self.assertEqual(candidate_from_capture.positions, ())
+        self.assertEqual(candidate_from_capture.raw_positions, ("ST", "AMC"))
+
+    def test_position_browse_needs_no_role_and_respects_raw_position_opt_in(self) -> None:
+        raw_right_back = ScoutingCandidate(
+            id="raw-dr",
+            name="Raw Right Back",
+            positions=(),
+            raw_positions=("DR",),
+            attributes={},
+        )
+
+        hidden = filter_scouting_candidates(
+            [raw_right_back],
+            ScoutingFilters(position="DR"),
+        )
+        visible = filter_scouting_candidates(
+            [raw_right_back],
+            ScoutingFilters(position="DR", include_raw_external_positions=True),
+        )
+
+        self.assertEqual(hidden, ())
+        self.assertEqual([candidate.id for candidate in visible], ["raw-dr"])
 
 
 if __name__ == "__main__":

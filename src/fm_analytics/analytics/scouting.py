@@ -1,7 +1,8 @@
 """Visibility-aware ranking and filtering for external scouting candidates.
 
-This module deliberately consumes only a candidate feed made of manager-visible
-observations.  It never falls back to a raw FM value when a field is unknown.
+Manager-visible observations are the default. The sole exception is an
+explicitly labelled raw external-position path, enabled only after the product
+owner accepted its documented short-term visibility gap.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ class ScoutingCandidate:
     name: str
     positions: tuple[str, ...]
     attributes: Mapping[str, AttributeObservation]
+    raw_positions: tuple[str, ...] = ()
     age: int | None = None
     club: str | None = None
     nationality: str | None = None
@@ -46,15 +48,20 @@ class ScoutingCandidate:
         if self.facts is not None and any(not key or not isinstance(value, str) for key, value in self.facts.items()):
             raise ValueError("scouting facts must have non-empty keys and string values")
 
+    def positions_for(self, *, include_raw_external_positions: bool) -> tuple[str, ...]:
+        """Return verified positions, plus accepted-gap raw positions if opted in."""
+        if not include_raw_external_positions:
+            return self.positions
+        return tuple(dict.fromkeys(self.positions + self.raw_positions))
+
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> "ScoutingCandidate":
         attributes_raw = raw.get("attributes", {})
         facts_raw = raw.get("facts", {})
         if not isinstance(attributes_raw, Mapping) or not isinstance(facts_raw, Mapping):
             raise TypeError("scouting attributes and facts must be objects")
-        positions = raw.get("positions")
-        if not isinstance(positions, list) or not all(isinstance(item, str) and item for item in positions):
-            raise TypeError("scouting candidate positions must be a string list")
+        positions = _string_list(raw, "positions")
+        raw_positions = _string_list(raw, "rawPositions", default=[])
         age = raw.get("age")
         if age is not None and (not isinstance(age, int) or isinstance(age, bool)):
             raise TypeError("scouting candidate age must be an integer or null")
@@ -71,7 +78,8 @@ class ScoutingCandidate:
             raise TypeError("scouting facts must map names to visible strings")
         return cls(
             id=_required_text(raw, "id"), name=_required_text(raw, "name"),
-            positions=tuple(positions), age=age, club=optional_text("club"),
+            positions=tuple(positions), raw_positions=tuple(raw_positions), age=age,
+            club=optional_text("club"),
             nationality=optional_text("nationality"), footedness=optional_text("footedness"),
             transfer_status=optional_text("transferStatus"), availability=optional_text("availability"),
             attributes={
@@ -97,6 +105,7 @@ class ScoutingFilters:
     minimum_floor: float | None = None
     minimum_ceiling: float | None = None
     include_unlikely: bool = False
+    include_raw_external_positions: bool = False
     facts: Mapping[str, str] | None = None
 
     def __post_init__(self) -> None:
@@ -139,12 +148,15 @@ def assess_scouting_candidates(
     role = catalogue.roles[filters.role_key]
     assessments: list[ScoutingAssessment] = []
     for candidate in candidates:
+        positions = candidate.positions_for(
+            include_raw_external_positions=filters.include_raw_external_positions
+        )
         # An unknown position is not a match for a position filter.  Without
         # that filter the player remains in the discovery queue: it is a
         # reason to scout, not permission to silently invent eligibility.
-        if filters.position and filters.position not in candidate.positions:
+        if filters.position and filters.position not in positions:
             continue
-        if candidate.positions and not set(role.eligible_positions).intersection(candidate.positions):
+        if positions and not set(role.eligible_positions).intersection(positions):
             continue
         if not _matches_visible_filters(candidate, filters):
             continue
@@ -176,6 +188,29 @@ def assess_scouting_candidates(
             )
         )
     return tuple(sorted(assessments, key=_sort_key))
+
+
+def filter_scouting_candidates(
+    candidates: Sequence[ScoutingCandidate],
+    filters: ScoutingFilters,
+) -> tuple[ScoutingCandidate, ...]:
+    """Browse candidates by position and visible factual filters, without a role.
+
+    Score, visibility, and ceiling filters intentionally require a role model,
+    so this function does not apply them. It exists for the valid first step of
+    recruitment: "who can play DR?" before deciding which DR role is wanted.
+    """
+    filtered: list[ScoutingCandidate] = []
+    for candidate in candidates:
+        positions = candidate.positions_for(
+            include_raw_external_positions=filters.include_raw_external_positions
+        )
+        if filters.position and filters.position not in positions:
+            continue
+        if not _matches_visible_filters(candidate, filters):
+            continue
+        filtered.append(candidate)
+    return tuple(sorted(filtered, key=lambda item: (item.name.casefold(), item.id)))
 
 
 def available_fact_values(candidates: Sequence[ScoutingCandidate]) -> dict[str, tuple[str, ...]]:
@@ -242,4 +277,13 @@ def _required_text(raw: Mapping[str, Any], name: str) -> str:
     value = raw.get(name)
     if not isinstance(value, str) or not value:
         raise ValueError(f"scouting candidate {name} is required")
+    return value
+
+
+def _string_list(
+    raw: Mapping[str, Any], name: str, *, default: list[str] | None = None
+) -> list[str]:
+    value = raw.get(name, default)
+    if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
+        raise TypeError(f"scouting candidate {name} must be a string list")
     return value
