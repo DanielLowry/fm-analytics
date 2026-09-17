@@ -19,7 +19,7 @@ hand.
 ## Where role choice actually happens
 
 A tactic slot's role is pinned by default. `TacticDefinition.slots` name a
-`role_key`, and `FootballCatalogue.role_keys_for_slot` (`catalogue.py:183`)
+`role_key`, and `FootballCatalogue.role_keys_for_slot` (`catalogue.py:154`)
 only ever tries that role plus whatever a slot's own `roles` array in
 `catalogue.json` explicitly lists as alternatives — there is no automatic
 fallback that opens a slot up on its own. This is deliberate: which role a
@@ -40,7 +40,7 @@ check the trait distance the same way rather than by eye; it's an easy
 mistake to make a system-identity role "flexible" because two roles sound
 similar in name.
 
-## `_best_joint_role_state` (`xi_selection.py:737`) — read before editing
+## `_best_joint_role_state` (`xi_selection.py:445`) — read before editing
 
 This is a beam search: it fills tactic slots one at a time (fewest
 candidates first), and after each slot keeps only the best
@@ -78,6 +78,11 @@ end).
   `data/role_weights_v2.json` (generated from a CSV via
   `tools/csv_to_role_weights.py`). Loaded once at import time into
   `catalogue.MVP_CATALOGUE`; don't call `load_role_weights` per-request.
+  Only `effective_weight` is actually consumed by scoring — the rest of
+  `AttributeWeightConfig` (soft floors, duty modifier) is validated but
+  inert data, reserved for `docs/tactical-system-roadmap.md` items 2-3.
+  Don't assume a nonlinear or soft-threshold effect is live because the
+  field exists; check whether `catalogue._attributes_from_weights` reads it.
 - `squad_depth.py` / `bench_selection.py` / `weaknesses.py` — all consume
   the XI evaluations `xi_selection.py` already produced. They shouldn't
   re-run tactic evaluation themselves.

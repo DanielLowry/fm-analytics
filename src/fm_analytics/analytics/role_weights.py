@@ -11,7 +11,21 @@ _DATA_PATH = Path(__file__).with_name("data") / "role_weights_v2.json"
 
 @dataclass(frozen=True)
 class AttributeWeightConfig:
-    """Per-attribute weight data from the role-weights CSV."""
+    """Per-attribute weight data from the role-weights CSV.
+
+    Only `effective_weight` is currently consumed by scoring (see
+    `catalogue._attributes_from_weights`, which reads nothing else off this
+    type). The rest -- `duty_modifier`, `weight_tier`,
+    `core_soft_floor_applies`, the `soft_floor_if_attr_lt_*` thresholds, and
+    `normal_multiplier_if_attr_ge_10` -- are loaded and validated here but
+    not yet applied anywhere: they are the data half of the nonlinear
+    attribute-contribution and soft-threshold model described in
+    docs/tactical-system-roadmap.md (#2 and #3), generated ahead of that
+    work so it doesn't need a second CSV pass later. Scoring today is
+    linear in `effective_weight` alone; a role scored as "51" is a plain
+    weighted average, not yet discounted for a catastrophically low core
+    attribute.
+    """
 
     effective_weight: int
     duty_modifier: int
@@ -37,7 +51,12 @@ class AttributeWeightConfig:
 
 @dataclass(frozen=True)
 class RoleWeightEntry:
-    """All attribute weights for a single role+duty combination."""
+    """All attribute weights for a single role+duty combination.
+
+    `position_group`, `csv_role`, and `duty` are traceability back to the
+    source spreadsheet row (`tools/csv_to_role_weights.py`), not scoring
+    input; only `attributes` is read by `catalogue._attributes_from_weights`.
+    """
 
     catalogue_key: str
     position_group: str

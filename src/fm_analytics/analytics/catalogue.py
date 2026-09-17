@@ -179,7 +179,13 @@ def _attributes_from_weights(
     desirable: tuple[str, ...],
     weight_catalogue: RoleWeightsCatalogue | None,
 ) -> tuple[RoleAttribute, ...]:
-    """Build RoleAttribute tuple using CSV-derived weights when available."""
+    """Build RoleAttribute tuple using CSV-derived weights when available.
+
+    Only `effective_weight` feeds scoring; every other field
+    `AttributeWeightConfig` carries (duty modifier, soft floors, ...) is
+    reserved data for the not-yet-implemented nonlinear contribution model
+    -- see that dataclass's docstring in `role_weights.py`.
+    """
     if weight_catalogue is not None and catalogue_key in weight_catalogue.roles:
         entry = weight_catalogue.roles[catalogue_key]
         return tuple(
@@ -220,14 +226,28 @@ def _role_from_json(
 
 
 def _slot_from_json(raw: Mapping[str, Any]) -> TacticSlot:
-    role_keys = _str_tuple(raw, "roles") if "roles" in raw else (_str(raw, "role"),)
-    if not role_keys:
-        raise ValueError("a tactic slot needs at least one allowed role")
+    """Build a slot from JSON.
+
+    `role` is always the slot's one canonical role -- it is never inferred
+    or overridden by anything else in the document. The optional `roles`
+    array lists *additional* roles the optimiser may substitute in instead;
+    it must not repeat `role` itself (that used to be silently accepted and
+    silently ignored -- `role` was overwritten by `roles[0]` whenever both
+    were present -- which made editing `role` on such a slot a no-op with
+    no warning).
+    """
+    role_key = _str(raw, "role")
+    alternate_role_keys = _str_tuple(raw, "roles") if "roles" in raw else ()
+    if role_key in alternate_role_keys:
+        raise ValueError(
+            f"slot {raw.get('key')!r} lists {role_key!r} in both 'role' and 'roles'; "
+            "'roles' should list only its additional alternatives"
+        )
     return TacticSlot(
         key=_str(raw, "key"),
         position=_str(raw, "position"),
-        role_key=role_keys[0],
-        alternate_role_keys=role_keys[1:],
+        role_key=role_key,
+        alternate_role_keys=alternate_role_keys,
     )
 
 

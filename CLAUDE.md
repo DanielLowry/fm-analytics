@@ -42,9 +42,11 @@ checking before assuming a change is done.
 
 ## Before editing
 
-- `src/fm_analytics/web/server.py` is a ~1,200-line file covering every page's
-  HTML plus the caching HTTP server plus CLI arg-parsing. Jump straight to the
-  relevant `_xxx_page` method rather than reading top-to-bottom.
+- `src/fm_analytics/web/` is split by concern: `server.py` (the caching
+  HTTP server + CLI arg-parsing), `handlers.py` (one `_xxx_page` method per
+  route), `rendering.py` (shared HTML helpers), `providers.py` (data
+  sources). Find the route you're changing in `handlers.py` first rather
+  than starting from `server.py`.
 - `src/fm_analytics/analytics/xi_selection.py` contains a beam search with a
   correctness property that looks like dead weight until you remove it — read
   `analytics/CLAUDE.md` before touching it.

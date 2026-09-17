@@ -14,36 +14,36 @@ and team-instruction components.
 
 The following remain intentionally provisional:
 
-- role attributes use `required = 2` and `desirable = 1` weights;
-- attributes contribute linearly;
+- attributes contribute linearly (see "Explicit role attribute weights"
+  below for what has changed here and what has not);
 - positional eligibility is a `>= 10` gate and familiarity is a linear
   multiplier;
 - team instructions are assessed from role capability tags, not the selected
   players' detailed attributes;
 - the XI component still uses the legacy mean/weakest-player objective;
-- opponent suitability and whole-tactic familiarity are not scored.
+- opponent suitability and whole-tactic familiarity are not scored;
+- role weighting is per role/duty only, not per tactic: a Deep-Lying
+  Playmaker is weighted identically in every tactic that selects one, even
+  where one tactic's build-up depends on that passing more than another's.
 
 ## Prioritised improvements
 
-### 1. Explicit role attribute weights
+### 1. Explicit role attribute weights — **implemented**
 
-Keep required and desirable attributes as useful labels, but stop treating the
-labels themselves as numerical weights.  Each role/duty should eventually own
-an explicit, versioned attribute model, for example a BPD-D might weight
-marking and positioning at `1.0`, tackling at `0.9`, heading at `0.8`, passing
-at `0.75`, and so on.
+Done. Every role/duty owns an explicit, versioned per-attribute weight
+(`effectiveWeight`, 0-5) in `src/fm_analytics/analytics/data/role_weights_v2.json`,
+generated from a source spreadsheet by `tools/csv_to_role_weights.py` and
+loaded by `role_weights.py` into the catalogue at import time
+(`catalogue._attributes_from_weights`). The old `required = 2` /
+`desirable = 1` label-as-weight behaviour only remains as a fallback for a
+role absent from that file, which should not happen with the current data.
 
-This remains **per role/duty, not per position**.  Position defines whether a
-player may occupy a slot; the role describes what quality means inside it.
+This is still **per role/duty, not per position, and not per tactic** — see
+"Attribute-aware team-instruction suitability" below and the new item
+this gap prompted, "Per-tactic role weighting", for what that still leaves
+out.
 
-Implementation considerations:
-
-- store weights in the catalogue rather than code;
-- retain the semantic labels for UI and explanation;
-- version every model so recommendations can be reproduced;
-- add role-specific tests for expected ranking changes.
-
-### 2. Nonlinear attribute contribution
+### 2. Nonlinear attribute contribution — **data present, not yet applied**
 
 Replace uniform linear scaling with functions that can depend on the role and
 tactical context:
@@ -59,7 +59,14 @@ returns.  Pace can become much more important under a high defensive line.
 Start with transparent piecewise curves and thresholds, not a black-box model.
 They should be inspectable in the catalogue and visible in explanations.
 
-### 3. Soft thresholds and weak-link penalties for core attributes
+The role-weights CSV already carries a `dutyModifier` per attribute, ahead of
+this work landing, so the generation pass doesn't need repeating later. It is
+loaded and validated (`role_weights.AttributeWeightConfig`) but not yet read
+by scoring, which still applies `effectiveWeight` alone, linearly. Implementing
+this item means consuming that field where `catalogue._attributes_from_weights`
+currently ignores it.
+
+### 3. Soft thresholds and weak-link penalties for core attributes — **data present, not yet applied**
 
 Some attributes must be allowed to dominate when they are catastrophically
 low.  A weighted average should not make a Finishing-3 striker look adequate
@@ -74,6 +81,29 @@ if key_attribute < role_threshold:
 
 Thresholds should be limited to genuinely core requirements and should explain
 the exact cause of the penalty in the UI.
+
+As with item 2, the thresholds themselves already exist per attribute in the
+role-weights data (`coreSoftFloorApplies`, `softFloorIfAttrLt6/8/10`,
+`normalMultiplierIfAttrGe10`), loaded and validated by `role_weights.py` and
+currently unread by scoring. This is the same implementation gap as item 2,
+not a separate data-collection task.
+
+### 1b. Per-tactic role weighting (new)
+
+Not part of the original numbered list, but raised directly by item 1's
+"per role/duty, not per tactic" limitation: two tactics can both select a
+Deep-Lying Playmaker while depending on that passing to very different
+degrees (a possession system's build-up hub vs. a counter-attacking
+system's occasional out-ball), and today they score that DLP identically.
+
+There is a low-cost workaround already available with no scoring-engine
+change: define a second catalogue role (e.g. `dlp_support_possession`) with
+its own `role_weights_v2.json` entry and point the relevant slot at it via
+`catalogue.json`'s per-slot `role`/`roles`. The catch: it must also get a
+`tactical_system._DEFAULT_ROLE_TRAITS` entry (or a `system` override in the
+catalogue), or it silently contributes nothing to that tactic's team-balance
+score. A proper fix folds tactical context into `f(attribute, role, duty,
+tactical context)` in item 2 instead of multiplying role variants by hand.
 
 ### 4. Attribute-aware team-instruction suitability
 
@@ -191,6 +221,13 @@ These are not separate football hypotheses, but make the model safer to evolve.
 
 - Move POC role-family alternatives and default tactical-system traits from
   code into explicit catalogue data, including side-specific role options.
+  **Partially done**: role alternatives are now per-slot catalogue data
+  (`catalogue.json`'s per-slot `roles`), replacing the old blanket
+  `_POC_ROLE_FAMILIES` code table that opened every slot to a fixed family
+  regardless of what the tactic needed — see `analytics/CLAUDE.md` for the
+  trait-distance method used to decide which pairs are safe to declare
+  interchangeable. Default tactical-system traits (`_DEFAULT_ROLE_TRAITS`)
+  are still in `tactical_system.py`, not catalogue data.
 - Treat role and duty as independently structured data where the source data
   permits it, rather than relying only on combined keys such as `BPD-D`.
 - Replace or benchmark the bounded role/player beam search with an exact or
@@ -203,7 +240,8 @@ These are not separate football hypotheses, but make the model safer to evolve.
 
 ## Recommended order
 
-1. Explicit weights, nonlinear curves and soft core-attribute thresholds.
+1. Nonlinear curves and soft core-attribute thresholds (explicit weights are
+   already in place — see item 1).
 2. Attribute-aware instruction suitability and replacement of the legacy XI
    objective.
 3. Validate positional familiarity behaviour and add decision-aware
