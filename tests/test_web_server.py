@@ -189,6 +189,58 @@ class SquadWebServerTests(unittest.TestCase):
         self.assertIn("Scout first", body)
         self.assertIn("floor / estimate / ceiling", body)
 
+    def test_scouting_page_has_a_name_box_and_a_live_results_container(self) -> None:
+        """The as-you-type behaviour depends on this exact id and input name."""
+        port = self._serve(FIXTURE)
+        status, body = self._get(port, "/scouting")
+
+        self.assertEqual(status, 200)
+        self.assertIn("name='name'", body)
+        self.assertIn("id='scouting-results'", body)
+        self.assertIn("fetch(", body)
+
+    def test_scouting_results_fragment_matches_the_full_page_for_the_same_filters(self) -> None:
+        """The live-filter endpoint must compute the same thing the full page does."""
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="external-1", name="Ashley Wells", positions=(), raw_positions=("DR",),
+                    attributes={}, age=19, club="Example FC", footedness="Right",
+                ),
+                ScoutingCandidate(
+                    id="external-2", name="Someone Else", positions=(), raw_positions=("DR",),
+                    attributes={}, age=19, club="Example FC", footedness="Right",
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        full_status, full_body = self._get(
+            port, "/scouting?position=DR&includeRawPositions=1&name=Wells"
+        )
+        fragment_status, fragment_body = self._get(
+            port, "/scouting/results?position=DR&includeRawPositions=1&name=Wells"
+        )
+
+        self.assertEqual(full_status, 200)
+        self.assertEqual(fragment_status, 200)
+        self.assertIn("Ashley Wells", full_body)
+        self.assertNotIn("Someone Else", full_body)
+        self.assertIn("Ashley Wells", fragment_body)
+        self.assertNotIn("Someone Else", fragment_body)
+        # The fragment is only the results half -- no filter form, no page shell.
+        self.assertNotIn("Find a target", fragment_body)
+        self.assertNotIn("<!doctype html>", fragment_body)
+
+    def test_scouting_results_fragment_reports_errors_without_the_page_shell(self) -> None:
+        def scouting_provider():
+            raise OSError("scouting capture is unreadable")
+
+        port = self._serve(FIXTURE, scouting_provider)
+        status, body = self._get(port, "/scouting/results")
+
+        self.assertEqual(status, 503)
+        self.assertIn("scouting capture is unreadable", body)
+
     def test_scouting_refresh_button_runs_the_configured_capture(self) -> None:
         calls = []
 

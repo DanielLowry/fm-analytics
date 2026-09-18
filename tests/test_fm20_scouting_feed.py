@@ -68,7 +68,7 @@ class ScoutingFeedTests(unittest.TestCase):
         self.assertEqual(document["players"][0]["rawPositions"], ["ST", "AMC"])
         self.assertIn("accepted", document["source"]["fieldCoverage"]["positions"])
 
-    def test_loads_only_existing_visible_fields_from_a_prior_same_date_feed(self) -> None:
+    def test_loads_only_existing_visible_fields_from_a_prior_feed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "prior.json"
             path.write_text(json.dumps({
@@ -79,12 +79,76 @@ class ScoutingFeedTests(unittest.TestCase):
                 }],
             }), encoding="utf-8")
 
-            game_date, attributes, footedness, raw_positions = load_prior_visibility(path)
+            prior = load_prior_visibility(path)
 
-        self.assertEqual(game_date, "2020-08-14")
-        self.assertEqual(attributes[10]["pace"]["visibility"], "unknown")
-        self.assertEqual(footedness, {10: "Right"})
-        self.assertEqual(raw_positions, {})
+        self.assertEqual(prior.game_date, "2020-08-14")
+        self.assertEqual(prior.attributes[10]["pace"]["visibility"], "unknown")
+        self.assertEqual(prior.footedness, {10: "Right"})
+        self.assertEqual(prior.raw_positions, {})
+
+    def test_observed_at_falls_back_to_the_capture_date_for_older_files(self) -> None:
+        """A file written before per-field dating existed has only the one date."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "prior.json"
+            path.write_text(json.dumps({
+                "gameDate": "2020-08-14",
+                "players": [{
+                    "id": "10", "attributes": {"pace": {"visibility": "unknown"}},
+                    "footedness": "Right",
+                }],
+            }), encoding="utf-8")
+
+            prior = load_prior_visibility(path)
+
+        self.assertEqual(prior.attributes_observed_at, {10: "2020-08-14"})
+        self.assertEqual(prior.footedness_observed_at, {10: "2020-08-14"})
+
+    def test_observed_at_is_read_when_present_and_older_than_the_capture(self) -> None:
+        """A newer file's per-field date survives even after the file itself refreshes."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "prior.json"
+            path.write_text(json.dumps({
+                "gameDate": "2020-09-01",
+                "players": [{
+                    "id": "10", "attributes": {"pace": {"visibility": "unknown"}},
+                    "attributesObservedAt": "2020-08-14",
+                    "footedness": "Right",
+                    "footednessObservedAt": "2020-08-20",
+                }],
+            }), encoding="utf-8")
+
+            prior = load_prior_visibility(path)
+
+        self.assertEqual(prior.game_date, "2020-09-01")
+        self.assertEqual(prior.attributes_observed_at, {10: "2020-08-14"})
+        self.assertEqual(prior.footedness_observed_at, {10: "2020-08-20"})
+
+    def test_feed_document_defaults_observed_at_to_the_capture_date(self) -> None:
+        document = feed_document(
+            [10], {10: "One Player"}, game_date="2020-09-01",
+            managed_club={"id": "club-1", "name": "Hungerford Town"},
+            source_count=1, excluded_own_ids=[],
+            attributes_by_id={10: {"pace": {"visibility": "unknown"}}},
+            footedness_by_id={10: "Right"},
+        )
+
+        self.assertEqual(document["players"][0]["attributesObservedAt"], "2020-09-01")
+        self.assertEqual(document["players"][0]["footednessObservedAt"], "2020-09-01")
+
+    def test_feed_document_keeps_an_older_observed_at_per_player(self) -> None:
+        document = feed_document(
+            [10], {10: "One Player"}, game_date="2020-09-01",
+            managed_club={"id": "club-1", "name": "Hungerford Town"},
+            source_count=1, excluded_own_ids=[],
+            attributes_by_id={10: {"pace": {"visibility": "unknown"}}},
+            attributes_observed_at={10: "2020-08-14"},
+            footedness_by_id={10: "Right"},
+            footedness_observed_at={10: "2020-08-20"},
+        )
+
+        self.assertEqual(document["gameDate"], "2020-09-01")
+        self.assertEqual(document["players"][0]["attributesObservedAt"], "2020-08-14")
+        self.assertEqual(document["players"][0]["footednessObservedAt"], "2020-08-20")
 
 
 if __name__ == "__main__":
@@ -124,6 +188,119 @@ class CapturePoolSafetyGateTests(unittest.TestCase):
     def test_pool_not_built_is_a_scouting_feed_error(self) -> None:
         """Existing callers that catch the base class keep failing closed."""
         self.assertTrue(issubclass(feed.PoolNotBuiltError, ScoutingFeedError))
+
+
+class RefreshLoggingTests(unittest.TestCase):
+    """Every decision point must land in the log without a live game to check."""
+
+    def _patch(self, pool_ids):
+        state = SimpleNamespace(module_base="0x140000000", game_date="2019-06-24")
+        manager = SimpleNamespace(id="m1", club=SimpleNamespace(id="c1", name="Example FC"))
+        return (
+            mock.patch.object(feed, "_live_context", return_value=(state, (1, 2, 3), pool_ids)),
+            mock.patch.object(feed, "_active_manager", return_value=manager),
+            mock.patch.object(feed, "preflight", return_value={"moduleBase": "0x140000000"}),
+            mock.patch.object(feed, "connect_to_fm", side_effect=AssertionError("must not attach to FM")),
+        )
+
+    def test_refused_pool_has_a_distinct_log_event_before_the_generic_failure(self) -> None:
+        with contextlib.ExitStack() as stack:
+            for patch in self._patch([]):
+                stack.enter_context(patch)
+            logged = stack.enter_context(mock.patch.object(feed, "log_event"))
+            with self.assertRaises(feed.PoolNotBuiltError):
+                feed.capture_pool(1234, remote_address="127.0.0.1:27042")
+
+        # The specific, diagnosable event fires, and the generic failure
+        # handler still fires around it too -- belt and suspenders, not
+        # either/or.
+        events = [call.args[0] for call in logged.call_args_list]
+        self.assertEqual(
+            events,
+            [
+                "scouting_refresh_started",
+                "scouting_pool_read",
+                "scouting_refresh_refused_pool_not_built",
+                "scouting_refresh_failed",
+            ],
+        )
+
+    def test_every_call_carries_the_same_call_number_for_correlation(self) -> None:
+        """A crash mid-refresh must be traceable to one call, like the ptrace log."""
+        with contextlib.ExitStack() as stack:
+            for patch in self._patch([]):
+                stack.enter_context(patch)
+            logged = stack.enter_context(mock.patch.object(feed, "log_event"))
+            with self.assertRaises(feed.PoolNotBuiltError):
+                feed.capture_pool(1234, remote_address="127.0.0.1:27042")
+
+        call_numbers = {call.kwargs["call_number"] for call in logged.call_args_list}
+        self.assertEqual(len(call_numbers), 1)
+
+
+class DateDriftTests(unittest.TestCase):
+    """Reproduces the reported failure: base feed older than the live game date."""
+
+    def test_refresh_succeeds_across_a_date_change_and_logs_the_drift(self) -> None:
+        import os
+
+        state = SimpleNamespace(
+            module_base="0x140000000", game_date="2019-07-04", first_team_squad=(),
+        )
+        manager = SimpleNamespace(id="m1", club=SimpleNamespace(id="c1", name="Example FC"))
+        pool_ids = [10, 20]
+        records = {10: 0x1000, 20: 0x2000}
+        names = {10: "A Player", 20: "B Player"}
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(
+                feed, "_live_context", return_value=(state, (1, 2, 3), pool_ids)
+            ))
+            stack.enter_context(mock.patch.object(feed, "_active_manager", return_value=manager))
+            stack.enter_context(mock.patch.object(
+                feed, "preflight", return_value={"moduleBase": "0x140000000"}
+            ))
+            stack.enter_context(mock.patch.object(feed, "process_alive", return_value=True))
+            stack.enter_context(mock.patch.object(feed, "_source_records", return_value=records))
+            stack.enter_context(mock.patch.object(feed, "resolve_source_player_names", return_value=names))
+            stack.enter_context(mock.patch.object(feed, "read_raw_external_positions", return_value={}))
+            stack.enter_context(mock.patch.object(
+                feed, "connect_to_fm", side_effect=AssertionError("must not attach to FM")
+            ))
+            logged = stack.enter_context(mock.patch.object(feed, "log_event"))
+
+            document = feed.capture_pool(
+                os.getpid(),  # a real /proc/<pid>/mem must be openable
+                remote_address=None,
+                allow_rebuild=False,
+                prior_game_date="2019-06-24",
+                prior_attributes_by_id={10: {"pace": {"visibility": "unknown"}}},
+                prior_attributes_observed_at={10: "2019-06-24"},
+                prior_footedness_by_id={10: "Right"},
+                prior_footedness_observed_at={10: "2019-06-24"},
+            )
+
+        # The refresh must succeed -- no more hard failure on date drift -- and
+        # the file's own date always advances to today's live read.
+        self.assertEqual(document["gameDate"], "2019-07-04")
+        by_id = {player["id"]: player for player in document["players"]}
+        self.assertEqual(by_id["10"]["attributes"]["pace"]["visibility"], "unknown")
+        # The carried-forward fact keeps the date it was actually observed,
+        # not today's date -- this is "keep the old dates" from the request.
+        self.assertEqual(by_id["10"]["attributesObservedAt"], "2019-06-24")
+        self.assertEqual(by_id["10"]["footednessObservedAt"], "2019-06-24")
+
+        # The drift must be visible in the log without needing to read the
+        # live game by hand to diagnose a future failure.
+        events = [call.args[0] for call in logged.call_args_list]
+        self.assertIn("scouting_refresh_date_drift", events)
+        drift_call = next(
+            call for call in logged.call_args_list if call.args[0] == "scouting_refresh_date_drift"
+        )
+        self.assertEqual(drift_call.kwargs["prior_game_date"], "2019-06-24")
+        self.assertEqual(drift_call.kwargs["live_game_date"], "2019-07-04")
+        self.assertIn("scouting_refresh_completed", events)
+        self.assertNotIn("scouting_refresh_failed", events)
 
 
 class FeedProvenanceTests(unittest.TestCase):

@@ -66,6 +66,50 @@ resulting page states which route produced the data, so the risky one is never
 silent. Opening Player Search is needed once per FM session, not once per
 refresh.
 
+### The game date always advances; older facts do not get thrown away
+
+A refresh reuses whatever `--base-feed` already has for a player (attributes,
+footedness) rather than re-hydrating them every time. Earlier this required
+the base feed's `gameDate` to match today's live read exactly, so playing on
+for even one in-game day made every refresh fail with "prior scouting feed is
+from a different game date" until the file was deleted by hand. That
+enforcement is gone (fixed 18 September 2026): the capture's own `gameDate`
+always advances to today's live read, and each carried-forward fact keeps the
+date it was actually observed in `attributesObservedAt` /
+`footednessObservedAt` alongside it, rather than being silently relabelled as
+current. A file written before those fields existed falls back to its own
+single `gameDate` for everything it carries. A drift between the base feed's
+date and today's is logged (see below), never enforced.
+
+This is deliberately the simple answer for now, not the final one. Tracking
+per-attribute observation dates (and match inputs/outputs) properly belongs in
+a database once one exists for this project; these JSON files are the
+ad-hoc stand-in until then.
+
+### Diagnosing a refresh without reading the live game by hand
+
+Every refresh -- from the CLI directly, or via the web page's Refresh button,
+which runs the same CLI as a subprocess -- logs structured events to
+`data/logs/fm20-native-calls.jsonl` (the same on-by-default log every native
+call in this project uses; see its own docstring). All events from one
+refresh share one `call_number`, so `grep` for that number pulls the whole
+attempt in order:
+
+| Event | Meaning |
+| --- | --- |
+| `scouting_refresh_started` | Refresh began; records `allow_rebuild`, hydrate count, base feed date |
+| `scouting_pool_read` | The cold read; records the pool size found and the live game date |
+| `scouting_refresh_refused_pool_not_built` | Pool was empty and `allow_rebuild` was false; nothing was written to FM |
+| `scouting_pool_rebuild_started` / `_completed` / `_failed` | The one step that runs FM's own code; `_completed`/`_failed` record which thread hook was used (`hook`) and whether it was the message-pump resting point or the timing-call fallback (`resting_point`) |
+| `scouting_refresh_date_drift` | Base feed's date differs from today's live read; informational only |
+| `scouting_hydration_started` / `_completed` | `--hydrate-player-id` requests, with counts |
+| `scouting_refresh_completed` | Success; records `rebuilt`, player count, total duration |
+| `scouting_refresh_failed` | Any exception, anywhere in the refresh, with its type, message, and duration so far |
+
+`scouting_refresh_failed` wraps the whole refresh, so every failure path logs
+something even if a future change adds a new one -- it does not depend on
+remembering to add a `log_event` call at each new raise site.
+
 The first automatic feed has identity coverage only. Its candidates are shown
 as **Scout first** and have no position match until external position and
 attribute visibility have been proven. This is intentional: it is useful for

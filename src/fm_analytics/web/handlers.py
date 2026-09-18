@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
 from typing import Sequence
@@ -26,6 +27,7 @@ from fm_analytics.reporting import (
 )
 from fm_analytics.web.rendering import (
     _MAX_SCOUTING_ROWS,
+    _SCOUTING_LIVE_FILTER_SCRIPT,
     ScoutingPoolNotBuilt,
     _band,
     _error_page,
@@ -56,6 +58,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "/tactics": self._tactics_page,
             "/depth": self._depth_page,
             "/scouting": self._scouting_page,
+            "/scouting/results": self._scouting_results_fragment,
             "/data": self._data_page,
         }
         handler = routes.get(path)
@@ -514,16 +517,6 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         try:
             candidates = self.server.scouting()  # type: ignore[attr-defined]
             filters = _scouting_filters(query)
-            assessments = (
-                assess_scouting_candidates(candidates, MVP_CATALOGUE, filters)
-                if filters.role_key
-                else ()
-            )
-            position_candidates = (
-                ()
-                if filters.role_key
-                else filter_scouting_candidates(candidates, filters)
-            )
         except (OSError, ValueError, KeyError) as exc:
             self._send(_error_page("Scouting", str(exc), path), HTTPStatus.SERVICE_UNAVAILABLE)
             return
@@ -536,6 +529,20 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "Choose a role",
         )
         position_options = _options(((item, item) for item in positions), filters.position, "Any position")
+        # Structural fact from the catalogue (which roles are eligible for
+        # which position) -- not a score, so embedding it for the client-side
+        # role-narrowing script does not duplicate any analytics computation.
+        position_role_options = {
+            position: sorted(
+                (
+                    (key, role.name)
+                    for key, role in MVP_CATALOGUE.roles.items()
+                    if position in role.eligible_positions
+                ),
+                key=lambda item: item[1],
+            )
+            for position in positions
+        }
         fact_controls = "".join(
             "<label>" + html.escape(_label(key))
             + "<select name='fact." + html.escape(key, quote=True) + "'>"
@@ -553,7 +560,46 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "<span class='muted'>Reads the current FM Player Search pool; this can take "
             "a little while.</span></form>"
             + self._scouting_filters_form(filters, role_options, position_options, candidates, fact_controls)
-            + (
+            + "<script id='position-roles-data' type='application/json'>"
+            + json.dumps(position_role_options).replace("</", "<\\/")
+            + "</script>"
+            + "<div id='scouting-results'>"
+            + self._scouting_results_block(candidates, filters)
+            + "</div>"
+            + _SCOUTING_LIVE_FILTER_SCRIPT
+        )
+        self._send(_layout("Scouting", path, body))
+
+    def _scouting_results_fragment(self, _path: str, query: dict[str, list[str]]) -> None:
+        """The results half of ``/scouting``, alone, for the page's own live filtering.
+
+        Computed by the exact same call as the full page -- ``_scouting_results_block``
+        -- so a number that updates as you type is never a second, divergent
+        computation from the one the full page shows on load.
+        """
+        try:
+            candidates = self.server.scouting()  # type: ignore[attr-defined]
+            filters = _scouting_filters(query)
+        except (OSError, ValueError, KeyError) as exc:
+            self._send(
+                f"<p class='warn'>{html.escape(str(exc))}</p>", HTTPStatus.SERVICE_UNAVAILABLE
+            )
+            return
+        self._send(self._scouting_results_block(candidates, filters))
+
+    def _scouting_results_block(self, candidates, filters: ScoutingFilters) -> str:
+        assessments = (
+            assess_scouting_candidates(candidates, MVP_CATALOGUE, filters)
+            if filters.role_key
+            else ()
+        )
+        position_candidates = (
+            ()
+            if filters.role_key
+            else filter_scouting_candidates(candidates, filters)
+        )
+        return (
+            (
                 _raw_position_notice(candidates)
                 if filters.include_raw_external_positions
                 else ""
@@ -561,7 +607,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             + (
                 self._scouting_results(
                     assessments,
-                    selected_role,
+                    filters.role_key or "",
                     len(candidates),
                     include_raw_external_positions=filters.include_raw_external_positions,
                 )
@@ -572,7 +618,6 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 )
             )
         )
-        self._send(_layout("Scouting", path, body))
 
     @staticmethod
     def _scouting_filters_form(
@@ -591,6 +636,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             f"<label>Role (optional)<select name='role'>{role_options}</select></label>"
             f"<label>Minimum age<input name='minAge' type='number' min='0' value='{_input_value(filters.minimum_age)}'></label>"
             f"<label>Maximum age<input name='maxAge' type='number' min='0' value='{_input_value(filters.maximum_age)}'></label>"
+            f"<label>Player name<input name='name' value='{html.escape(filters.name_contains or '', quote=True)}'></label>"
             f"<label>Club contains<input name='club' value='{html.escape(filters.club_contains or '', quote=True)}'></label>"
             "<label>Nationality<select name='nationality'>"
             + _options(((value, value) for value in values("nationality")), filters.nationality, "Any")

@@ -96,6 +96,7 @@ class ScoutingFilters:
     role_key: str | None = None
     minimum_age: int | None = None
     maximum_age: int | None = None
+    name_contains: str | None = None
     club_contains: str | None = None
     nationality: str | None = None
     footedness: str | None = None
@@ -227,6 +228,8 @@ def _matches_visible_filters(candidate: ScoutingCandidate, filters: ScoutingFilt
     if filters.minimum_age is not None and (candidate.age is None or candidate.age < filters.minimum_age):
         return False
     if filters.maximum_age is not None and (candidate.age is None or candidate.age > filters.maximum_age):
+        return False
+    if filters.name_contains and filters.name_contains.casefold() not in candidate.name.casefold():
         return False
     if filters.club_contains and filters.club_contains.casefold() not in (candidate.club or "").casefold():
         return False

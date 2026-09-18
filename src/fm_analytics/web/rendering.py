@@ -35,6 +35,94 @@ _INJURY_RISK_KINDS = frozenset(
 )
 _MAX_SCOUTING_ROWS = 100
 
+# Real-time re-filtering for the Scouting page. Server-side only: it fetches
+# the same `_scouting_results_block` computation `/scouting` itself renders
+# (see `SquadWebHandler._scouting_results_fragment`), just as a fragment, so
+# typing never invents a lighter-weight client-side filter that could disagree
+# with the page's own numbers. `form.filters`' fields already carry every
+# active filter, including the position/role selects and dynamic `fact.*`
+# selects, so serializing the whole form on each change keeps them all in
+# sync without hand-listing field names here. A no-JS browser falls back to
+# the form's ordinary GET submit, unaffected by this script.
+#
+# The role select is narrowed to the chosen position's eligible roles from
+# `#position-roles-data` (see `_scouting_page`) -- a structural fact from the
+# catalogue, not a score, so reading it here does not duplicate any analytics
+# computation. With no position chosen the role select is blanked and
+# disabled, since a role choice only means anything once eligibility can be
+# checked against a position. A no-JS browser instead sees every role,
+# unfiltered, exactly as before this existed.
+_SCOUTING_LIVE_FILTER_SCRIPT = """
+<script>
+(function () {
+  var form = document.querySelector('form.filters');
+  var results = document.getElementById('scouting-results');
+  if (!form || !results) return;
+
+  var positionSelect = form.querySelector("select[name='position']");
+  var roleSelect = form.querySelector("select[name='role']");
+  var roleDataElement = document.getElementById('position-roles-data');
+  var positionRoles = {};
+  if (roleDataElement) {
+    try { positionRoles = JSON.parse(roleDataElement.textContent); }
+    catch (error) { positionRoles = {}; }
+  }
+
+  function refreshRoleOptions() {
+    if (!positionSelect || !roleSelect) return;
+    var position = positionSelect.value;
+    var previousRole = roleSelect.value;
+    var roles = position ? (positionRoles[position] || []) : [];
+    roleSelect.innerHTML = '';
+    var blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = position ? 'Choose a role' : 'Choose a position first';
+    roleSelect.appendChild(blank);
+    roleSelect.disabled = !position;
+    var stillValid = false;
+    roles.forEach(function (pair) {
+      var option = document.createElement('option');
+      option.value = pair[0];
+      option.textContent = pair[1];
+      if (pair[0] === previousRole) { option.selected = true; stillValid = true; }
+      roleSelect.appendChild(option);
+    });
+    if (!stillValid) roleSelect.value = '';
+  }
+
+  var timer = null;
+  function apply() {
+    var params = new URLSearchParams(new FormData(form));
+    fetch('/scouting/results?' + params.toString())
+      .then(function (response) { return response.text(); })
+      .then(function (text) { results.innerHTML = text; })
+      .catch(function () { /* leave the last good results showing */ });
+    history.replaceState(null, '', '/scouting?' + params.toString());
+  }
+  if (positionSelect) {
+    // Runs on the target before the delegated 'change' below sees the event,
+    // so a reset/narrowed role is what actually gets sent to the server.
+    positionSelect.addEventListener('change', refreshRoleOptions);
+  }
+  refreshRoleOptions(); // narrow immediately on load, including on a fresh page
+  form.addEventListener('input', function (event) {
+    if (event.target.tagName === 'SELECT') return; // selects fire 'change' below
+    clearTimeout(timer);
+    timer = setTimeout(apply, 250);
+  });
+  form.addEventListener('change', function () {
+    clearTimeout(timer);
+    apply();
+  });
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+    clearTimeout(timer);
+    apply();
+  });
+})();
+</script>
+"""
+
 _TACTICAL_DIMENSION_LABELS = {
     "aerialOutlet": "aerial outlet",
     "attack duties": "attacking duties",
@@ -223,6 +311,7 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         position=_query_first(query, "position"), role_key=_query_first(query, "role"),
         minimum_age=_query_number(query, "minAge", integer=True),
         maximum_age=_query_number(query, "maxAge", integer=True),
+        name_contains=_query_first(query, "name"),
         club_contains=_query_first(query, "club"), nationality=_query_first(query, "nationality"),
         footedness=_query_first(query, "footedness"),
         transfer_status=_query_first(query, "transferStatus"), availability=_query_first(query, "availability"),

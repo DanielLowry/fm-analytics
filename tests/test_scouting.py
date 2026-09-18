@@ -151,6 +151,29 @@ class ScoutingTests(unittest.TestCase):
         self.assertEqual(hidden, ())
         self.assertEqual([candidate.id for candidate in visible], ["raw-dr"])
 
+    def test_name_filter_narrows_the_full_pool_not_just_a_displayed_page(self) -> None:
+        """The real-time name box must search every candidate, not a capped slice."""
+        candidates = [
+            candidate("wells", {}, name="Ashley Wells"),
+            candidate("other", {}, name="Someone Else"),
+        ]
+
+        matches = filter_scouting_candidates(candidates, ScoutingFilters(name_contains="wells"))
+
+        self.assertEqual([item.id for item in matches], ["wells"])
+
+    def test_name_filter_is_case_insensitive_and_matches_substrings(self) -> None:
+        candidates = [candidate("wells", {}, name="Ashley Wells")]
+
+        self.assertEqual(
+            len(filter_scouting_candidates(candidates, ScoutingFilters(name_contains="ASH"))),
+            1,
+        )
+        self.assertEqual(
+            filter_scouting_candidates(candidates, ScoutingFilters(name_contains="nobody")),
+            (),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
