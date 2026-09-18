@@ -26,7 +26,7 @@ import json
 import os
 import sys
 import time
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any, Iterable, Mapping, NamedTuple, Sequence
 
@@ -57,7 +57,15 @@ from tools.fm20_frida_property import (
 )
 from tools.fm20_frida_server import FridaServerError, frida_server_session
 from tools.fm20_frida_trace import FridaTraceError, preflight, process_alive
-from tools.fm20_linux_probe import ProbeError, decode_positions, read_exact, read_fm_string
+from tools.fm20_linux_probe import (
+    ProbeError,
+    calculate_age,
+    decode_fm_date,
+    decode_positions,
+    read_exact,
+    read_fm_string,
+    read_player_contract,
+)
 from tools.fm20_linux_probe_runtime import choose_pid
 from tools.fm20_cold_query_cache import resolve_context_and_manager, resolve_player_interfaces
 from tools.fm20_native_call_log import log_event, next_call_number
@@ -93,6 +101,7 @@ def feed_document(
     footedness_by_id: dict[int, str] | None = None,
     footedness_observed_at: dict[int, str] | None = None,
     raw_positions_by_id: dict[int, tuple[str, ...]] | None = None,
+    identity_facts_by_id: Mapping[int, dict[str, Any]] | None = None,
     rebuilt: bool = False,
 ) -> dict[str, Any]:
     """Build the stable JSON contract consumed by ``fm-web --scouting-json``.
@@ -117,6 +126,9 @@ def feed_document(
     footedness_by_id = footedness_by_id or {}
     footedness_observed_at = footedness_observed_at or {}
     raw_positions_by_id = raw_positions_by_id or {}
+    identity_facts_by_id = identity_facts_by_id or {}
+    with_age = sum(1 for player_id in ids if "age" in identity_facts_by_id.get(player_id, {}))
+    with_club = sum(1 for player_id in ids if "club" in identity_facts_by_id.get(player_id, {}))
     return {
         "schemaVersion": SCHEMA_VERSION,
         "capturedAt": datetime.now(UTC).replace(microsecond=0).isoformat(),
@@ -129,7 +141,12 @@ def feed_document(
             "excludedOwnContractedCount": len(excluded),
             "managedClub": managed_club,
             "fieldCoverage": {
-                "identity": "manager-search-pool plus read-only identity lookup",
+                "identity": (
+                    "manager-search-pool plus read-only identity lookup "
+                    f"(age {with_age}/{len(ids)}, club/transfer status {with_club}/{len(ids)}); "
+                    "availability is not captured yet -- its read is unreliable for some pool "
+                    "records (see resolve_source_identity_facts)"
+                ),
                 "positions": (
                     "raw external position data accepted under the documented short-term "
                     f"visibility gap for {len(raw_positions_by_id)}/{len(ids)} candidates"
@@ -150,6 +167,7 @@ def feed_document(
                 "id": str(player_id),
                 "name": names[player_id],
                 "positions": [],
+                **identity_facts_by_id.get(player_id, {}),
                 **({"rawPositions": list(raw_positions_by_id[player_id])}
                    if player_id in raw_positions_by_id else {}),
                 "attributes": attributes_by_id.get(player_id, {}),
@@ -189,6 +207,63 @@ def resolve_source_player_names(pid: int, records: dict[int, int]) -> dict[int, 
             if name:
                 names[player_id] = name
         return names
+    finally:
+        os.close(fd)
+
+
+def resolve_source_identity_facts(
+    pid: int, records: Mapping[int, int], game_date: str
+) -> dict[int, dict[str, Any]]:
+    """Read age, club, and transfer status -- basic facts, always visible.
+
+    Added 18 September 2026 in response to every scouted candidate showing no
+    club and no age, which every one of them plainly has in FM's own search
+    and scouting lists with no additional knowledge required. Unlike a
+    position eligibility projection or a football attribute, club, date of
+    birth, and transfer status are not gated behind any scouting-depth
+    concept in FM -- they are exactly what a manager sees for any player a
+    search surfaces -- so they need no opt-in checkbox, the same footing as
+    the identity resolver above.
+
+    Uses the same ``actual_person = person + 0x28`` relationship that
+    resolver already established and the proven, production owned-squad
+    reader (`fm20_linux_probe.read_first_team_squad`) already reads both
+    fields from. Sampling 800 live pool records found zero failures for
+    either field, so a single player's read failing is treated as a genuine
+    anomaly for that player, not swallowed as an expected gap: skip that one
+    player's identity facts rather than failing the whole capture, mirroring
+    the owned-squad reader's own per-field degrade-to-unknown behaviour.
+
+    Deliberately does not attempt availability/injury status: the same
+    sampling found its read failing for 222 of 800 players (its pointer sits
+    behind a different, less reliably populated field for pool records), so
+    it needs more research before it is safe to publish, not a guess shipped
+    alongside the two fields that are actually solid.
+    """
+    as_of = date.fromisoformat(game_date)
+    fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
+    try:
+        facts: dict[int, dict[str, Any]] = {}
+        for player_id, person in records.items():
+            actual_person = person + 0x28
+            entry: dict[str, Any] = {}
+            try:
+                dob = decode_fm_date(read_exact(fd, actual_person + 0x1C, 4), maximum_year=as_of.year)
+                entry["age"] = calculate_age(dob, as_of)
+            except (OSError, ProbeError):
+                pass
+            try:
+                contract = read_player_contract(fd, actual_person)
+            except (OSError, ProbeError):
+                contract = None
+            if contract is not None:
+                if contract.contracted_club is not None:
+                    entry["club"] = contract.contracted_club.name
+                if contract.transfer_status is not None:
+                    entry["transferStatus"] = contract.transfer_status
+            if entry:
+                facts[player_id] = entry
+        return facts
     finally:
         os.close(fd)
 
@@ -608,6 +683,11 @@ def capture_pool(
             pid,
             {player_id: records[player_id] for player_id in external_ids},
         )
+        identity_facts_by_id = resolve_source_identity_facts(
+            pid,
+            {player_id: records[player_id] for player_id in external_ids},
+            after.game_date,
+        )
         if requested_hydration and device is None:
             # Only the hydration paths still need Frida once the pool is warm, so
             # a plain refresh never attaches to FM at all.
@@ -693,6 +773,7 @@ def capture_pool(
             footedness_by_id=footedness_by_id,
             footedness_observed_at=footedness_observed_at,
             raw_positions_by_id=raw_positions_by_id,
+            identity_facts_by_id=identity_facts_by_id,
             rebuilt=rebuilt,
         )
     except BaseException as error:

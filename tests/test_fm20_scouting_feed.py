@@ -123,6 +123,26 @@ class ScoutingFeedTests(unittest.TestCase):
         self.assertEqual(prior.attributes_observed_at, {10: "2020-08-14"})
         self.assertEqual(prior.footedness_observed_at, {10: "2020-08-20"})
 
+    def test_feed_document_includes_age_and_club_when_resolved(self) -> None:
+        """Age/club are basic identity facts, visible with no scouting needed --
+        they must appear unconditionally, unlike attributes/raw positions."""
+        document = feed_document(
+            [10, 30], {10: "One Player", 30: "Two Player"},
+            game_date="2020-08-14",
+            managed_club={"id": "club-1", "name": "Hungerford Town"},
+            source_count=22,
+            excluded_own_ids=[],
+            identity_facts_by_id={10: {"age": 27, "club": "Weymouth", "transferStatus": "transfer_listed"}},
+        )
+
+        self.assertEqual(document["players"][0]["age"], 27)
+        self.assertEqual(document["players"][0]["club"], "Weymouth")
+        self.assertEqual(document["players"][0]["transferStatus"], "transfer_listed")
+        self.assertNotIn("age", document["players"][1])
+        self.assertNotIn("club", document["players"][1])
+        self.assertIn("age 1/2", document["source"]["fieldCoverage"]["identity"])
+        self.assertIn("club/transfer status 1/2", document["source"]["fieldCoverage"]["identity"])
+
     def test_feed_document_defaults_observed_at_to_the_capture_date(self) -> None:
         document = feed_document(
             [10], {10: "One Player"}, game_date="2020-09-01",
@@ -236,6 +256,66 @@ class RefreshLoggingTests(unittest.TestCase):
 
         call_numbers = {call.kwargs["call_number"] for call in logged.call_args_list}
         self.assertEqual(len(call_numbers), 1)
+
+
+class IdentityFactsTests(unittest.TestCase):
+    """Age/club/transfer status degrade per player and per field, never
+    fail the whole refresh -- mirrors the owned-squad reader's own
+    behaviour when one of these reads does not come back cleanly."""
+
+    def test_a_failed_field_for_one_player_does_not_lose_another_players_facts(self) -> None:
+        import os
+        from datetime import date
+
+        from fm_analytics.domain import Visibility  # noqa: F401  (import used only to confirm module loads)
+        from tools.fm20_linux_probe import PlayerContractResult, ClubResult, ProbeError
+
+        contract = PlayerContractResult(
+            contract_type="full_time", start_date=None, end_date=None, joined_date=None,
+            squad_status=None, transfer_status="transfer_listed",
+            contracted_club=ClubResult(id="5100145", name="Weymouth"),
+        )
+
+        def fake_read_exact(fd, address, size):
+            if address == 20 + 0x28 + 0x1C:  # player 2's DOB bytes
+                raise ProbeError("simulated bad DOB read")
+            return b"\x00\x00\x00\x00"
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(feed, "read_exact", side_effect=fake_read_exact))
+            stack.enter_context(mock.patch.object(
+                feed, "decode_fm_date", return_value=date(1991, 8, 8)
+            ))
+            stack.enter_context(mock.patch.object(feed, "calculate_age", return_value=27))
+            stack.enter_context(mock.patch.object(feed, "read_player_contract", return_value=contract))
+
+            facts = feed.resolve_source_identity_facts(
+                os.getpid(), {1: 10, 2: 20}, "2019-07-04"
+            )
+
+        # Player 1: everything resolved.
+        self.assertEqual(facts[1]["age"], 27)
+        self.assertEqual(facts[1]["club"], "Weymouth")
+        self.assertEqual(facts[1]["transferStatus"], "transfer_listed")
+        # Player 2: DOB read failed, but club/transfer status still made it in --
+        # a genuine per-field degrade, not an all-or-nothing loss.
+        self.assertNotIn("age", facts[2])
+        self.assertEqual(facts[2]["club"], "Weymouth")
+
+    def test_a_player_with_no_contract_and_no_dob_is_simply_absent(self) -> None:
+        import os
+
+        from tools.fm20_linux_probe import ProbeError
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(
+                feed, "read_exact", side_effect=ProbeError("no DOB")
+            ))
+            stack.enter_context(mock.patch.object(feed, "read_player_contract", return_value=None))
+
+            facts = feed.resolve_source_identity_facts(os.getpid(), {1: 10}, "2019-07-04")
+
+        self.assertNotIn(1, facts)
 
 
 class DateDriftTests(unittest.TestCase):
