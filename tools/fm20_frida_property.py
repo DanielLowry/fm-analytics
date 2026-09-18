@@ -5,9 +5,13 @@ Research-only adapter launched by ``tools/fm20_research.py``. It resolves the
 managed first-team squad from read-only process memory, then uses the
 controller-owned Windows Frida server to call FM's person property getter
 (virtual slot 0x10 on the ``ACTUAL_PLAYER`` person interface) for each player.
-The calls run on FM's busiest UI thread, from inside a QueryPerformanceCounter
-hook, so FM's own thread executes them. Only FM's visible category is reported;
-the underlying foot ratings are never sent out of FM.
+The calls run on FM's busiest UI thread. Corrected 18 September 2026: the hook
+now prefers FM's message pump (`GetMessageW`/`PeekMessageW`) over a
+`QueryPerformanceCounter` tick, so the call fires at a point FM chose to be
+between units of work rather than wherever a timing call happened to land --
+see `tools.fm20_frida_discoverability` for the fuller explanation and the
+evidence that prompted it. Only FM's visible category is reported; the
+underlying foot ratings are never sent out of FM.
 """
 
 from __future__ import annotations
@@ -42,6 +46,14 @@ from tools.fm20_linux_probe import (
 SCHEMA_VERSION = 1
 MAX_PEOPLE = 64
 AGENT_TIMEOUT_SECONDS = 20.0
+
+# See `tools.fm20_frida_discoverability.RESTING_POINT_EXPORTS` for why: this
+# call used to fire on the next `QueryPerformanceCounter` tick on FM's UI
+# thread, a moment FM did not choose to be between units of work, and had not
+# yet had the fix applied to the pool-rebuild agent after it was implicated in
+# a save that would no longer load.
+RESTING_POINT_EXPORTS = ("GetMessageW", "GetMessageA", "PeekMessageW", "PeekMessageA")
+THREAD_SAMPLE_EXPORT = "QueryPerformanceCounter"
 PERSON_PROPERTY_SLOT = 0x10
 TYPE_TABLE_RVA = 0x3F628F0
 LABEL_MAPPER_RVA = 0x522E720
@@ -187,14 +199,21 @@ function runOnce() {
   send({kind: 'labels', labels});
 }
 
-const qpc = Module.findGlobalExportByName('QueryPerformanceCounter');
-if (qpc === null) {
-  send({kind: 'error', error: 'QueryPerformanceCounter export not found'});
-  throw new Error('QueryPerformanceCounter export not found');
+function findRestingPoint() {
+  for (const name of config.restingPointExports) {
+    const address = Module.findGlobalExportByName(name);
+    if (address !== null) return {name, address};
+  }
+  return null;
+}
+const timing = Module.findGlobalExportByName(config.threadSampleExport);
+if (timing === null) {
+  send({kind: 'error', error: config.threadSampleExport + ' export not found'});
+  throw new Error(config.threadSampleExport + ' export not found');
 }
 send({kind: 'ready', moduleBase: fm.base.toString(), people: config.people.length});
 const sample = {};
-const sampler = Interceptor.attach(qpc, {onEnter() {
+const sampler = Interceptor.attach(timing, {onEnter() {
   const thread = Process.getCurrentThreadId();
   sample[thread] = (sample[thread] || 0) + 1;
 }});
@@ -206,9 +225,13 @@ setTimeout(() => {
     return;
   }
   const thread = Number(ranked[0][0]);
-  send({kind: 'thread', thread, sample});
+  // Prefer the message loop, the same fix as the pool builder's agent; fall
+  // back to the timing export only if FM exposes no message pump at all.
+  const resting = findRestingPoint();
+  const hook = resting === null ? {name: config.threadSampleExport, address: timing} : resting;
+  send({kind: 'thread', thread, sample, hook: hook.name, restingPoint: resting !== null});
   let state = 'armed';
-  const runner = Interceptor.attach(qpc, {onEnter() {
+  const runner = Interceptor.attach(hook.address, {onEnter() {
     if (state !== 'armed' || Process.getCurrentThreadId() !== thread) return;
     state = 'running';
     try {
@@ -242,6 +265,8 @@ def build_agent_source(module_base: str, people: Sequence[dict[str, str]]) -> st
         "labelIndexes": sorted(FOOTEDNESS_LABELS),
         "threadSampleMs": 1000,
         "people": [{"id": person["id"], "address": person["address"]} for person in people],
+        "restingPointExports": list(RESTING_POINT_EXPORTS),
+        "threadSampleExport": THREAD_SAMPLE_EXPORT,
     }
     return AGENT_TEMPLATE.replace("__CONFIG__", json.dumps(config))
 
@@ -277,7 +302,12 @@ def extract(device: Any, target_pid: int, source: str, *, timeout_seconds: float
         if kind == "ready":
             result["agentReady"] = True
         elif kind == "thread":
-            result["thread"] = {"id": payload.get("thread"), "qpcSample": payload.get("sample")}
+            result["thread"] = {
+                "id": payload.get("thread"),
+                "qpcSample": payload.get("sample"),
+                "hook": payload.get("hook"),
+                "restingPoint": payload.get("restingPoint"),
+            }
         elif kind == "players":
             result["players"] = payload.get("players", [])
         elif kind == "labels":

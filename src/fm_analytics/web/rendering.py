@@ -6,6 +6,7 @@ import html
 import subprocess
 from pathlib import Path
 from typing import Callable, Sequence
+from urllib.parse import urlencode
 
 from fm_analytics.analytics import (
     ScoutingFilters,
@@ -171,6 +172,10 @@ _STYLE = """
   form.refresh { margin: 0.75rem 0; display: flex; align-items: center; gap: 0.65rem; }
   form.refresh button { padding: 0.45rem 0.65rem; border: 0; border-radius: 0.25rem; background: #1a2b3c; color: white; cursor: pointer; }
   form.refresh button.danger { background: #8a2b12; }
+  nav.scouting-tabs { display: flex; gap: 0.5rem; margin: 0.5rem 0 1rem; }
+  nav.scouting-tabs a { padding: 0.4rem 0.8rem; border-radius: 0.25rem; text-decoration: none; color: #1a2b3c; background: #e8ecef; }
+  nav.scouting-tabs a.tab-active { background: #1a2b3c; color: white; }
+  .dropped-warning { color: #8a2b12; font-weight: bold; }
   .badge-scout { background: #fff2d6; color: #805400; }
   .badge-proven { background: #e3f3e1; color: #1e6b1e; }
   .badge-unlikely { background: #eee; color: #555; }
@@ -248,6 +253,27 @@ def _raw_position_notice(candidates: Sequence[object]) -> str:
     )
 
 
+# Requested verbatim: a dropped player's last-known scouting facts are still
+# shown (see fm20_scouting_feed.py's carry-forward), so this must read as a
+# flag on data still worth trusting, not as an error hiding the player.
+DROPPED_FROM_SCOUT_REPORTS_MESSAGE = (
+    "This player used to be in the scouted pool but can't be found in the "
+    "scout reports anymore."
+)
+
+
+def _scouting_knowledge_cell(candidate: object) -> str:
+    knowledge = getattr(candidate, "scouting_knowledge", None)
+    if knowledge is None:
+        return "—"
+    if getattr(candidate, "dropped_from_scout_reports", False):
+        return (
+            f"{knowledge}% <span class='muted'>(last known)</span><br>"
+            f"<span class='dropped-warning'>{html.escape(DROPPED_FROM_SCOUT_REPORTS_MESSAGE)}</span>"
+        )
+    return f"{knowledge}%"
+
+
 def _position_display(candidate, *, include_raw_external_positions: bool) -> str:
     positions = candidate.positions_for(
         include_raw_external_positions=include_raw_external_positions
@@ -319,7 +345,37 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         minimum_ceiling=_query_number(query, "minCeiling"),
         include_unlikely=_query_first(query, "includeUnlikely") == "1",
         include_raw_external_positions=_query_first(query, "includeRawPositions") == "1",
+        scouted_only=_scouting_view(query) == "scouted",
         facts=facts,
+    )
+
+
+def _scouting_view(query: dict[str, list[str]]) -> str:
+    """Which Scouting sub-tab is active. Defaults to 'all' -- role/position
+    browsing of an unscouted candidate is a real, existing use (assessing fit
+    before scouting anyone), not something a new default should silently
+    hide behind a tab switch."""
+    view = _query_first(query, "view")
+    return view if view in {"scouted", "all"} else "all"
+
+
+def _scouting_tab_nav(query: dict[str, list[str]]) -> str:
+    """Switch tabs while keeping every other filter in the URL intact."""
+    active = _scouting_view(query)
+    kept = {key: values for key, values in query.items() if key != "view" and values}
+
+    def link(view: str, label: str) -> str:
+        params = dict(kept)
+        params["view"] = [view]
+        query_string = urlencode([(key, value) for key, values in params.items() for value in values])
+        css_class = "tab-active" if view == active else "tab"
+        return f"<a class='{css_class}' href='/scouting?{query_string}'>{html.escape(label)}</a>"
+
+    return (
+        "<nav class='scouting-tabs'>"
+        + link("scouted", "Scouted players")
+        + link("all", "All players (Player Search)")
+        + "</nav>"
     )
 
 

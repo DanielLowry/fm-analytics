@@ -46,6 +46,7 @@ class ScoutingFeedTests(unittest.TestCase):
                 10: {"finishing": {"visibility": "range", "minimum": 8, "maximum": 14}}
             },
             footedness_by_id={10: "Right"},
+            hydrated_count=1,
         )
 
         self.assertEqual(document["players"][0]["attributes"]["finishing"]["maximum"], 14)
@@ -178,7 +179,7 @@ if __name__ == "__main__":
 class CapturePoolSafetyGateTests(unittest.TestCase):
     """The pool must be read, not rebuilt, unless rebuilding is explicitly allowed."""
 
-    def _patch(self, pool_ids):
+    def _patch(self, pool_ids, scouted_players=None):
         state = SimpleNamespace(module_base="0x140000000", game_date="2019-06-24")
         manager = SimpleNamespace(id="m1", club=SimpleNamespace(id="c1", name="Example FC"))
         return (
@@ -186,6 +187,10 @@ class CapturePoolSafetyGateTests(unittest.TestCase):
             mock.patch.object(feed, "_active_manager", return_value=manager),
             mock.patch.object(feed, "preflight", return_value={"moduleBase": "0x140000000"}),
             mock.patch.object(feed, "connect_to_fm", side_effect=AssertionError("must not attach to FM")),
+            mock.patch.object(feed, "_resolve_knowledge_context", return_value=0x999),
+            mock.patch.object(
+                feed, "capture_scouted_attributes", return_value=(scouted_players or {}, {})
+            ),
         )
 
     def test_unbuilt_pool_refuses_rather_than_calling_into_fm(self) -> None:
@@ -213,7 +218,7 @@ class CapturePoolSafetyGateTests(unittest.TestCase):
 class RefreshLoggingTests(unittest.TestCase):
     """Every decision point must land in the log without a live game to check."""
 
-    def _patch(self, pool_ids):
+    def _patch(self, pool_ids, scouted_players=None):
         state = SimpleNamespace(module_base="0x140000000", game_date="2019-06-24")
         manager = SimpleNamespace(id="m1", club=SimpleNamespace(id="c1", name="Example FC"))
         return (
@@ -221,6 +226,10 @@ class RefreshLoggingTests(unittest.TestCase):
             mock.patch.object(feed, "_active_manager", return_value=manager),
             mock.patch.object(feed, "preflight", return_value={"moduleBase": "0x140000000"}),
             mock.patch.object(feed, "connect_to_fm", side_effect=AssertionError("must not attach to FM")),
+            mock.patch.object(feed, "_resolve_knowledge_context", return_value=0x999),
+            mock.patch.object(
+                feed, "capture_scouted_attributes", return_value=(scouted_players or {}, {})
+            ),
         )
 
     def test_refused_pool_has_a_distinct_log_event_before_the_generic_failure(self) -> None:
@@ -240,6 +249,7 @@ class RefreshLoggingTests(unittest.TestCase):
             [
                 "scouting_refresh_started",
                 "scouting_pool_read",
+                "scouting_knowledge_read",
                 "scouting_refresh_refused_pool_not_built",
                 "scouting_refresh_failed",
             ],
@@ -347,6 +357,8 @@ class DateDriftTests(unittest.TestCase):
             stack.enter_context(mock.patch.object(
                 feed, "connect_to_fm", side_effect=AssertionError("must not attach to FM")
             ))
+            stack.enter_context(mock.patch.object(feed, "_resolve_knowledge_context", return_value=0x999))
+            stack.enter_context(mock.patch.object(feed, "capture_scouted_attributes", return_value=({}, {})))
             logged = stack.enter_context(mock.patch.object(feed, "log_event"))
 
             document = feed.capture_pool(

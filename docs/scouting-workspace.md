@@ -20,6 +20,86 @@ unknown player is good. Unknown attributes receive a conservative central score
 while retaining their possible ceiling, so they neither leapfrog known players
 on an invented rating nor disappear from the shortlist.
 
+## Two tabs: Scouted players, and All players
+
+Added 18 September 2026. `/scouting?view=scouted` (the nav's first link)
+shows every player the manager has a scouting-knowledge record for, with
+real, read-only-calculated visible attributes -- see "Scouted-player
+attributes" below. `/scouting?view=all` (the default, for URL and test
+compatibility with the position/role browsing this page already did) is the
+existing Player Search pool, unchanged. Both tabs read the same
+`ScoutingCandidate` list, so a player who is both scouted and in the pool
+never has two different answers depending which tab you're looking at --
+that is `ScoutingCandidate.is_scouted()` and `.scouting_knowledge`, not a
+second computation.
+
+A player whose knowledge record has since disappeared (retired, sold
+abroad, a database-only entry now -- FM's own reason for this is not
+observable from outside) stays in the Scouted tab with his last-known
+knowledge level and attributes, flagged rather than silently dropped:
+*"This player used to be in the scouted pool but can't be found in the
+scout reports anymore."* See `dropped_from_scout_reports_ids` in
+`fm20_scouting_feed.capture_pool`.
+
+## Scouted-player attributes: read-only, no Frida, no Player Search
+
+Added 18 September 2026, in `tools/fm20_scouted_attributes.py`. For every
+player on the manager's own scouting-knowledge list -- read as a plain
+`{RowID, level}` vector, itself entirely independent of Player Search --
+this reads that player's true attribute bytes, position, and age (the same
+proven offsets `tools/fm20_owned_visible_source.py` already uses for the
+owned squad) purely as *inputs* to FM's own visibility formula
+(`fm_analytics.bridge.fm20_visibility_algorithm`, independently recovered
+from the executable). The true value is never itself returned; only the
+formula's output -- exact, ranged, or unknown -- is. Verified against three
+real attributes for a live, heavily-scouted player (Pace, Determination,
+Passing all matched exactly, once a scout report was accounted for).
+
+Because this needs neither Frida nor an open Player Search, a plain,
+"safe" `Refresh scouting data` now works the instant a save loads, before
+Player Search has ever been opened this session -- `capture_pool` reads
+scouted attributes first, independently, and only then looks for the wider
+pool. If the wider pool isn't available yet, the capture still succeeds
+with scouted players alone; `source.poolAvailable: false` marks that the
+"All players" tab has nothing to show this time, not that the refresh
+failed.
+
+**Known gap: report quality.** FM widens a scouted attribute's precision
+when a scout report exists, via two quality fields whose location in
+memory has not been found -- see the "report-quality fields" discussion in
+`docs/phases/03-information-visibility/03.2-fm-representation-research.md`.
+Every attribute here is calculated as if no report exists, which the same
+research proved only ever *widens* a range relative to FM's true,
+report-informed one -- never narrower, never a value FM would hide. Ranges
+will look a little wider than FM's own until this is read properly; that is
+the deliberate, safe direction for an unfinished input to fail towards.
+
+**Known gap: players known only through reputation.** A manager can know
+something about a well-known player never explicitly scouted; that
+knowledge path is not yet implemented, so such a player still reads as
+entirely unknown here even though FM may show something. Not a regression
+-- this project's `positions`/attribute fields have always failed towards
+"unknown" rather than a guess.
+
+## Frida hydration still exists, now for a different purpose
+
+`--hydrate-player-id` (up to 64 players) still calls FM's own builder
+directly and still needs the same explicit approval as the pool rebuild.
+It is no longer the only way to get real attributes -- the read-only path
+above covers every scouted player automatically -- so its remaining use is
+narrower: getting FM's *exact* answer to spot-check the read-only
+calculation above, or covering a player who is discoverable but not yet
+scouted (where the read-only path has nothing to compute from). A player
+hydrated this way outranks the read-only calculation for that player in
+the merge order (prior capture, then this run's calculation, then this
+run's hydration, each layer overriding the last).
+
+Its own native-call timing was fixed alongside the pool-rebuild agent on
+18 September 2026 (`tools/fm20_frida_attribute_sweep.py`,
+`tools/fm20_frida_property.py`): the call now prefers FM's message pump
+over a `QueryPerformanceCounter` tick, for the same reason and the same
+evidence recorded in `docs/property-discovery-playbook.md`.
+
 ## Candidate-feed contract
 
 Capture a manager-rooted Player Search pool through Frida, then start the web

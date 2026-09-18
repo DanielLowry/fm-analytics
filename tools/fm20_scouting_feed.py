@@ -26,9 +26,9 @@ import json
 import os
 import sys
 import time
-from datetime import UTC, date, datetime
+from datetime import date
 from pathlib import Path
-from typing import Any, Iterable, Mapping, NamedTuple, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 if __package__ in {None, ""}:
     project_root = Path(__file__).resolve().parent.parent
@@ -67,123 +67,20 @@ from tools.fm20_linux_probe import (
     read_player_contract,
 )
 from tools.fm20_linux_probe_runtime import choose_pid
-from tools.fm20_cold_query_cache import resolve_context_and_manager, resolve_player_interfaces
+from tools.fm20_cold_query_cache import (
+    resolve_context_and_manager,
+    resolve_player_interfaces,
+)
 from tools.fm20_native_call_log import log_event, next_call_number
+from tools.fm20_scouted_attributes import capture_scouted_attributes
+from tools.fm20_scouting_feed_contract import (
+    PoolNotBuiltError,
+    PriorVisibility,
+    ScoutingFeedError,
+    feed_document,
+    load_prior_visibility,
+)
 from tools.fm20_visibility_trace import DISPLAY_ATTRIBUTE_IDS
-
-
-SCHEMA_VERSION = 1
-
-
-class ScoutingFeedError(RuntimeError):
-    """A scouting feed could not be captured without crossing a safety boundary."""
-
-
-class PoolNotBuiltError(ScoutingFeedError):
-    """FM has not built this manager's Player Search pool in this process yet.
-
-    Separate from its base class because it is the one failure a caller can
-    offer a choice about: open Player Search in FM (no native call), or
-    approve asking FM to build the pool.  Everything else is fail-closed.
-    """
-
-
-def feed_document(
-    player_ids: Iterable[int],
-    names: dict[int, str],
-    *,
-    game_date: str,
-    managed_club: dict[str, str],
-    source_count: int,
-    excluded_own_ids: Iterable[int],
-    attributes_by_id: dict[int, dict[str, Any]] | None = None,
-    attributes_observed_at: dict[int, str] | None = None,
-    footedness_by_id: dict[int, str] | None = None,
-    footedness_observed_at: dict[int, str] | None = None,
-    raw_positions_by_id: dict[int, tuple[str, ...]] | None = None,
-    identity_facts_by_id: Mapping[int, dict[str, Any]] | None = None,
-    rebuilt: bool = False,
-) -> dict[str, Any]:
-    """Build the stable JSON contract consumed by ``fm-web --scouting-json``.
-
-    ``gameDate`` is always the date this capture actually read live, even when
-    most players' facts were carried forward from an earlier capture rather
-    than re-observed today -- the file's own date always advances. Each
-    carried-forward attribute/footedness observation keeps the date it was
-    actually seen on in ``attributesObservedAt``/``footednessObservedAt``, so
-    a stale-looking value is visible as stale rather than silently relabelled
-    as current. A player hydrated in this run gets ``game_date`` for both.
-    """
-    ids = tuple(sorted(set(player_ids)))
-    missing_names = [player_id for player_id in ids if not names.get(player_id)]
-    if missing_names:
-        raise ScoutingFeedError(
-            f"identity lookup failed for {len(missing_names)} discovered player(s)"
-        )
-    excluded = tuple(sorted(set(excluded_own_ids)))
-    attributes_by_id = attributes_by_id or {}
-    attributes_observed_at = attributes_observed_at or {}
-    footedness_by_id = footedness_by_id or {}
-    footedness_observed_at = footedness_observed_at or {}
-    raw_positions_by_id = raw_positions_by_id or {}
-    identity_facts_by_id = identity_facts_by_id or {}
-    with_age = sum(1 for player_id in ids if "age" in identity_facts_by_id.get(player_id, {}))
-    with_club = sum(1 for player_id in ids if "club" in identity_facts_by_id.get(player_id, {}))
-    return {
-        "schemaVersion": SCHEMA_VERSION,
-        "capturedAt": datetime.now(UTC).replace(microsecond=0).isoformat(),
-        "gameDate": game_date,
-        "source": {
-            "kind": "manager-rooted-player-search-pool",
-            "transport": "windows-frida-server" if rebuilt else "read-only-process-memory",
-            "poolRebuiltByCapture": rebuilt,
-            "sourceCount": source_count,
-            "excludedOwnContractedCount": len(excluded),
-            "managedClub": managed_club,
-            "fieldCoverage": {
-                "identity": (
-                    "manager-search-pool plus read-only identity lookup "
-                    f"(age {with_age}/{len(ids)}, club/transfer status {with_club}/{len(ids)}); "
-                    "availability is not captured yet -- its read is unreliable for some pool "
-                    "records (see resolve_source_identity_facts)"
-                ),
-                "positions": (
-                    "raw external position data accepted under the documented short-term "
-                    f"visibility gap for {len(raw_positions_by_id)}/{len(ids)} candidates"
-                    if raw_positions_by_id else "not yet externally visibility-verified"
-                ),
-                "attributes": (
-                    f"manager-visible native builder for {len(attributes_by_id)}/{len(ids)} candidates"
-                    if attributes_by_id else "not yet externally visibility-verified"
-                ),
-                "footedness": (
-                    f"manager-visible property getter for {len(footedness_by_id)}/{len(ids)} candidates"
-                    if footedness_by_id else "not yet externally visibility-verified"
-                ),
-            },
-        },
-        "players": [
-            {
-                "id": str(player_id),
-                "name": names[player_id],
-                "positions": [],
-                **identity_facts_by_id.get(player_id, {}),
-                **({"rawPositions": list(raw_positions_by_id[player_id])}
-                   if player_id in raw_positions_by_id else {}),
-                "attributes": attributes_by_id.get(player_id, {}),
-                **(
-                    {"attributesObservedAt": attributes_observed_at.get(player_id, game_date)}
-                    if player_id in attributes_by_id else {}
-                ),
-                **({"footedness": footedness_by_id[player_id]} if player_id in footedness_by_id else {}),
-                **(
-                    {"footednessObservedAt": footedness_observed_at.get(player_id, game_date)}
-                    if player_id in footedness_by_id else {}
-                ),
-            }
-            for player_id in ids
-        ],
-    }
 
 
 def resolve_source_player_names(pid: int, records: dict[int, int]) -> dict[int, str]:
@@ -315,83 +212,6 @@ def read_raw_external_positions(pid: int, records: Mapping[int, int]) -> dict[in
         os.close(fd)
 
 
-class PriorVisibility(NamedTuple):
-    """Everything reusable from an earlier capture, dated per field.
-
-    ``game_date`` is that capture's own top-level date, kept only so a caller
-    can log how far it has drifted from today's live read -- it is no longer
-    used to refuse a refresh. Each attribute/footedness map's *_observed_at
-    counterpart records when that specific fact was actually seen, which for
-    a file written before this field existed falls back to the whole prior
-    capture's date (the best available answer at migration time).
-    """
-
-    game_date: str
-    attributes: dict[int, dict[str, Any]]
-    attributes_observed_at: dict[int, str]
-    footedness: dict[int, str]
-    footedness_observed_at: dict[int, str]
-    raw_positions: dict[int, tuple[str, ...]]
-
-
-def load_prior_visibility(path: Path) -> PriorVisibility:
-    """Load prior captured fields, including explicitly accepted raw positions."""
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        game_date = raw["gameDate"]
-        rows = raw["players"]
-    except (OSError, json.JSONDecodeError, KeyError, TypeError) as error:
-        raise ScoutingFeedError(f"cannot read prior scouting feed {path}: {error}") from error
-    if not isinstance(game_date, str) or not isinstance(rows, list):
-        raise ScoutingFeedError("prior scouting feed has an invalid game date or player list")
-    attributes: dict[int, dict[str, Any]] = {}
-    attributes_observed_at: dict[int, str] = {}
-    footedness: dict[int, str] = {}
-    footedness_observed_at: dict[int, str] = {}
-    raw_positions: dict[int, tuple[str, ...]] = {}
-
-    def observed_at(row: Mapping[str, Any], field: str) -> str:
-        value = row.get(field)
-        if value is None:
-            return game_date  # pre-dating field: the whole capture's date is all we have
-        if not isinstance(value, str):
-            raise ScoutingFeedError(f"prior scouting feed has an invalid {field}")
-        return value
-
-    for row in rows:
-        if not isinstance(row, Mapping):
-            raise ScoutingFeedError("prior scouting feed contains an invalid player")
-        try:
-            player_id = int(row["id"])
-        except (KeyError, TypeError, ValueError) as error:
-            raise ScoutingFeedError("prior scouting feed contains an invalid player ID") from error
-        observed_attributes = row.get("attributes", {})
-        if not isinstance(observed_attributes, Mapping):
-            raise ScoutingFeedError("prior scouting feed contains an invalid attribute map")
-        if observed_attributes:
-            attributes[player_id] = dict(observed_attributes)
-            attributes_observed_at[player_id] = observed_at(row, "attributesObservedAt")
-        observed_foot = row.get("footedness")
-        if observed_foot is not None:
-            if not isinstance(observed_foot, str):
-                raise ScoutingFeedError("prior scouting feed contains an invalid footedness value")
-            footedness[player_id] = observed_foot
-            footedness_observed_at[player_id] = observed_at(row, "footednessObservedAt")
-        observed_raw_positions = row.get("rawPositions")
-        if observed_raw_positions is not None:
-            if not (
-                isinstance(observed_raw_positions, list)
-                and all(isinstance(position, str) and position for position in observed_raw_positions)
-            ):
-                raise ScoutingFeedError(
-                    "prior scouting feed contains an invalid raw position list"
-                )
-            raw_positions[player_id] = tuple(observed_raw_positions)
-    return PriorVisibility(
-        game_date, attributes, attributes_observed_at, footedness, footedness_observed_at, raw_positions,
-    )
-
-
 def hydrate_visible_attributes(
     pid: int,
     *,
@@ -507,6 +327,43 @@ def hydrate_visible_footedness(
     }
 
 
+def _drop_future_dated(
+    values: Mapping[int, Any], observed_at: Mapping[int, str], live_game_date: str
+) -> tuple[dict[int, Any], dict[int, str]]:
+    """Discard anything observed after today's live date, keyed to it.
+
+    Reloading an earlier save moves the game date backwards. Without this, a
+    fact observed in an abandoned later timeline could carry forward and be
+    presented as current, even though that timeline no longer exists. Kept
+    strict (``>``, not ``>=``): a fact observed on today's own date is not
+    future-dated and must still carry forward normally.
+    """
+    kept_values = {
+        player_id: value for player_id, value in values.items()
+        if observed_at.get(player_id, live_game_date) <= live_game_date
+    }
+    kept_observed_at = {
+        player_id: date for player_id, date in observed_at.items()
+        if player_id in kept_values
+    }
+    return kept_values, kept_observed_at
+
+
+def _resolve_knowledge_context(pid: int, module_base: int) -> int:
+    """One short-lived, read-only attach just to find the knowledge context.
+
+    Kept as its own function so tests can mock this single seam rather than
+    ``os.open`` itself, which every other read-only pass in this module also
+    uses for its own, unrelated purpose.
+    """
+    fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
+    try:
+        context, _manager_interface = resolve_context_and_manager(fd, module_base)
+        return context
+    finally:
+        os.close(fd)
+
+
 def connect_to_fm(remote_address: str) -> tuple[Any, int]:
     """Attach to the Windows Frida server and resolve the single FM process."""
     try:
@@ -534,23 +391,37 @@ def capture_pool(
     prior_attributes_observed_at: Mapping[int, str] | None = None,
     prior_footedness_by_id: Mapping[int, str] | None = None,
     prior_footedness_observed_at: Mapping[int, str] | None = None,
+    prior_scouting_knowledge: Mapping[int, int] | None = None,
+    prior_names: Mapping[int, str] | None = None,
 ) -> dict[str, Any]:
-    """Read the manager's Player Search pool, asking FM to build it only if needed.
+    """Read the manager's scouted players and, if available, the wider pool.
 
-    FM keeps this pool in process memory, so a session that has already used
-    Player Search can be read with no native call at all -- the same read-only
-    footing as the rest of the bridge.  That is the normal case and it is what
-    this function tries first.
+    Two independent things happen here. **Scouted-player attributes** --
+    covered in full in ``tools.fm20_scouted_attributes`` -- never depend on
+    Player Search: they come from the manager's own scouting-knowledge list
+    and FM's own visibility formula, both read-only, and they work the
+    instant a save loads. **The wider discovery pool** (used for browsing by
+    position with no role chosen, and for anyone not yet scouted) still
+    depends on Player Search having been opened -- see below.
+
+    FM keeps the pool in process memory, so a session that has already used
+    Player Search can be read with no native call at all -- the same
+    read-only footing as the rest of the bridge. That is the normal case and
+    it is what this function tries first.
 
     A freshly started FM has an empty pool: research report
     ``manager-rooted-source-20260913T185503Z.json`` recorded 0 players before
     the builder and 4340 after, on a new PID for the same manager and the same
-    in-game date that read 4953 cold in the previous process.  Only then is
+    in-game date that read 4953 cold in the previous process. Only then is
     running FM's own builder worth considering, because that executes FM code
-    inside the live game and can leave a save that will not reload.  It
-    therefore needs an explicit ``allow_rebuild``; without it an empty pool
-    raises ``PoolNotBuiltError`` so the caller can offer the safer choice of
-    opening Player Search in FM instead.
+    inside the live game and can leave a save that will not reload. It
+    therefore needs an explicit ``allow_rebuild``. Without it, an empty pool
+    no longer refuses the whole refresh outright: if any player is currently
+    scouted, that read-only data is still worth returning, with
+    ``source.poolAvailable: false`` marking the wider pool as unread this time.
+    Only when there is neither a pool nor any scouted player does it raise
+    ``PoolNotBuiltError``, so the caller can offer the safer choice of opening
+    Player Search in FM instead of approving a rebuild.
 
     A base feed from an earlier in-game date no longer blocks the refresh --
     the game date always moves on and refusing here just left a stale file on
@@ -559,7 +430,11 @@ def capture_pool(
     actually observed (see ``feed_document``), and the returned document's own
     ``gameDate`` is always today's live read. A drift is only logged, not
     enforced -- diagnosing a bad refresh from ``data/logs/fm20-native-calls.jsonl``
-    should never require reading the live game by hand.
+    should never require reading the live game by hand. Anything carried
+    forward that was observed *after* today's live date is dropped rather than
+    kept: loading an earlier save moves the date backwards, and a fact from an
+    abandoned later timeline must not be presented as current (see
+    ``_drop_future_dated``).
     """
     call_number = next_call_number()
     started_at = time.monotonic()
@@ -577,25 +452,47 @@ def capture_pool(
         manager = _active_manager(before)
         if manager.club is None:
             raise ScoutingFeedError("the active manager has no controlled club")
+        module_base = int(before.module_base, 0)
         expected_base = int(preflight(pid)["moduleBase"], 0)
-        if expected_base != int(before.module_base, 0):
+        if expected_base != module_base:
             raise ScoutingFeedError("probe and Frida preflight module bases differ")
+
+        # Independent of the pool: the manager's own scouting knowledge.
+        context = _resolve_knowledge_context(pid, module_base)
+        scouted_players, scouted_issues = capture_scouted_attributes(
+            pid, module_base, context, before.game_date
+        )
+        log_event(
+            "scouting_knowledge_read", call_number=call_number, pid=pid,
+            scouted_count=len(scouted_players), issue_count=len(scouted_issues),
+            issues=scouted_issues,
+        )
 
         device: Any | None = None
         target_pid: int | None = None
+        pool_available = True
         if before_ids:
             after, pool_ids, rebuilt = before, before_ids, False
-        else:
-            if not allow_rebuild:
+        elif not allow_rebuild:
+            if scouted_players:
+                pool_available = False
+                after, pool_ids, rebuilt = before, [], False
+                log_event(
+                    "scouting_pool_unavailable_but_scouted_data_present",
+                    call_number=call_number, pid=pid, scouted_count=len(scouted_players),
+                )
+            else:
                 log_event(
                     "scouting_refresh_refused_pool_not_built",
                     call_number=call_number, pid=pid,
                     duration_seconds=time.monotonic() - started_at,
                 )
                 raise PoolNotBuiltError(
-                    "FM has not built this manager's Player Search pool in this process yet. "
-                    "Open Player Search in FM once and retry, or approve asking FM to build it."
+                    "FM has not built this manager's Player Search pool in this process yet, "
+                    "and no player is currently scouted either. Open Player Search in FM once "
+                    "and retry, or approve asking FM to build it."
                 )
+        else:
             if remote_address is None:
                 raise ScoutingFeedError("a Frida server address is required to rebuild the pool")
             log_event(
@@ -654,14 +551,6 @@ def capture_pool(
         if not process_alive(pid):
             raise ScoutingFeedError("FM is not healthy after its Player Search pool was read")
 
-        fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
-        try:
-            records = _source_records(lambda address, size: read_exact(fd, address, size), arguments[0])
-        finally:
-            os.close(fd)
-        if set(records) != set(pool_ids):
-            raise ScoutingFeedError("rebuilt Player Search source records do not match its ID set")
-
         own_ids = own_contracted_ids(
             (
                 (int(player.id), player.contract.contracted_club.id if player.contract and player.contract.contracted_club else None)
@@ -669,25 +558,53 @@ def capture_pool(
             ),
             manager.club.id,
         )
-        external_ids = sorted(set(pool_ids) - own_ids)
+        # A scouted player contracted to the manager's own club would be
+        # exact via the owned-squad path anyway; drop it here rather than
+        # publish a second, approximate answer for the same player.
+        scouted_players = {
+            player_id: player for player_id, player in scouted_players.items()
+            if player_id not in own_ids
+        }
+
         requested_hydration = tuple(dict.fromkeys(hydrate_player_ids))
-        non_candidates = sorted(set(requested_hydration) - set(external_ids))
-        if non_candidates:
-            raise ScoutingFeedError(
-                "requested attribute hydration includes a player outside the manager's discovery pool"
+        if pool_available:
+            fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
+            try:
+                records = _source_records(lambda address, size: read_exact(fd, address, size), arguments[0])
+            finally:
+                os.close(fd)
+            if set(records) != set(pool_ids):
+                raise ScoutingFeedError("rebuilt Player Search source records do not match its ID set")
+            external_ids = sorted(set(pool_ids) - own_ids)
+            non_candidates = sorted(set(requested_hydration) - set(external_ids))
+            if non_candidates:
+                raise ScoutingFeedError(
+                    "requested attribute hydration includes a player outside the manager's discovery pool"
+                )
+            names = resolve_source_player_names(
+                pid, {player_id: records[player_id] for player_id in external_ids}
             )
-        names = resolve_source_player_names(
-            pid, {player_id: records[player_id] for player_id in external_ids}
-        )
-        raw_positions_by_id = read_raw_external_positions(
-            pid,
-            {player_id: records[player_id] for player_id in external_ids},
-        )
-        identity_facts_by_id = resolve_source_identity_facts(
-            pid,
-            {player_id: records[player_id] for player_id in external_ids},
-            after.game_date,
-        )
+            raw_positions_by_id = read_raw_external_positions(
+                pid,
+                {player_id: records[player_id] for player_id in external_ids},
+            )
+            identity_facts_by_id = dict(resolve_source_identity_facts(
+                pid,
+                {player_id: records[player_id] for player_id in external_ids},
+                after.game_date,
+            ))
+        else:
+            records = {}
+            external_ids = []
+            if requested_hydration:
+                raise ScoutingFeedError(
+                    "cannot hydrate visible attributes while the Player Search pool is "
+                    "unavailable; open Player Search in FM, or approve a rebuild, first"
+                )
+            names, raw_positions_by_id, identity_facts_by_id = {}, {}, {}
+        for player_id, player in scouted_players.items():
+            names[player_id] = player.name
+            identity_facts_by_id.setdefault(player_id, {}).setdefault("age", player.age)
         if requested_hydration and device is None:
             # Only the hydration paths still need Frida once the pool is warm, so
             # a plain refresh never attaches to FM at all.
@@ -701,8 +618,23 @@ def capture_pool(
                 "scouting_hydration_started", call_number=call_number, pid=pid,
                 player_ids=list(requested_hydration),
             )
-        attributes_by_id = dict(prior_attributes_by_id or {})
-        attributes_observed_at = dict(prior_attributes_observed_at or {})
+        prior_attributes_by_id, prior_attributes_observed_at = _drop_future_dated(
+            dict(prior_attributes_by_id or {}), dict(prior_attributes_observed_at or {}), after.game_date,
+        )
+        prior_footedness_by_id, prior_footedness_observed_at = _drop_future_dated(
+            dict(prior_footedness_by_id or {}), dict(prior_footedness_observed_at or {}), after.game_date,
+        )
+        scouted_attributes_by_id = {
+            player_id: {name: obs.to_dict() for name, obs in player.observations.items()}
+            for player_id, player in scouted_players.items()
+        }
+        attributes_by_id = dict(prior_attributes_by_id)
+        attributes_observed_at = dict(prior_attributes_observed_at)
+        # Our own read-only calculation this refresh: safe, and newer than
+        # anything carried forward, but not as trusted as FM's own answer
+        # below if that was explicitly requested for this player too.
+        attributes_by_id.update(scouted_attributes_by_id)
+        attributes_observed_at.update(dict.fromkeys(scouted_attributes_by_id, after.game_date))
         newly_hydrated_attributes = hydrate_visible_attributes(
             pid,
             module_base=before.module_base,
@@ -712,8 +644,8 @@ def capture_pool(
         )
         attributes_by_id.update(newly_hydrated_attributes)
         attributes_observed_at.update(dict.fromkeys(newly_hydrated_attributes, after.game_date))
-        footedness_by_id = dict(prior_footedness_by_id or {})
-        footedness_observed_at = dict(prior_footedness_observed_at or {})
+        footedness_by_id = dict(prior_footedness_by_id)
+        footedness_observed_at = dict(prior_footedness_observed_at)
         newly_hydrated_footedness = hydrate_visible_footedness(
             pid,
             module_base=before.module_base,
@@ -731,38 +663,42 @@ def capture_pool(
                 attributes_hydrated=len(newly_hydrated_attributes),
                 footedness_hydrated=len(newly_hydrated_footedness),
             )
-        external_id_set = set(external_ids)
-        attributes_by_id = {
-            player_id: value for player_id, value in attributes_by_id.items()
-            if player_id in external_id_set
-        }
-        attributes_observed_at = {
-            player_id: value for player_id, value in attributes_observed_at.items()
-            if player_id in external_id_set
-        }
-        footedness_by_id = {
-            player_id: value for player_id, value in footedness_by_id.items()
-            if player_id in external_id_set
-        }
-        footedness_observed_at = {
-            player_id: value for player_id, value in footedness_observed_at.items()
-            if player_id in external_id_set
-        }
-        raw_positions_by_id = {
-            player_id: value for player_id, value in raw_positions_by_id.items()
-            if player_id in external_id_set
-        }
+        current_knowledge = {player_id: player.knowledge for player_id, player in scouted_players.items()}
+        # A player whose knowledge record has gone -- retired, sold abroad, a
+        # database-only entry now -- is exactly the case the user asked to
+        # see flagged rather than silently lost: he must stay in the feed
+        # with his last known facts, not just disappear from it.
+        dropped_from_scout_reports_ids = set(prior_scouting_knowledge or {}) - set(current_knowledge)
+        all_ids = set(external_ids) | set(scouted_players) | dropped_from_scout_reports_ids
+        missing_dropped_names = dropped_from_scout_reports_ids - set(names) - set(prior_names or {})
+        if missing_dropped_names:
+            raise ScoutingFeedError(
+                f"{len(missing_dropped_names)} player(s) dropped from scout reports have no "
+                "name on record from either this run or the base feed"
+            )
+        for player_id in dropped_from_scout_reports_ids - set(names):
+            names[player_id] = (prior_names or {})[player_id]
+
+        attributes_by_id = {k: v for k, v in attributes_by_id.items() if k in all_ids}
+        attributes_observed_at = {k: v for k, v in attributes_observed_at.items() if k in all_ids}
+        footedness_by_id = {k: v for k, v in footedness_by_id.items() if k in all_ids}
+        footedness_observed_at = {k: v for k, v in footedness_observed_at.items() if k in all_ids}
+        raw_positions_by_id = {k: v for k, v in raw_positions_by_id.items() if k in all_ids}
+
+        scouting_knowledge_by_id = dict(prior_scouting_knowledge or {})
+        scouting_knowledge_by_id.update(current_knowledge)
+        scouting_knowledge_by_id = {k: v for k, v in scouting_knowledge_by_id.items() if k in all_ids}
+
         final, final_arguments, final_pool_ids = _live_context(pid)
         if (
-            final_arguments != arguments
-            or _active_manager(final).id != manager.id
+            _active_manager(final).id != manager.id
             or final.game_date != before.game_date
-            or set(final_pool_ids) != set(pool_ids)
             or not process_alive(pid)
+            or (pool_available and (final_arguments != arguments or set(final_pool_ids) != set(pool_ids)))
         ):
             raise ScoutingFeedError("FM state changed while visible attributes were captured")
         document = feed_document(
-            external_ids,
+            all_ids,
             names,
             game_date=after.game_date,
             managed_club={"id": manager.club.id, "name": manager.club.name},
@@ -774,6 +710,10 @@ def capture_pool(
             footedness_observed_at=footedness_observed_at,
             raw_positions_by_id=raw_positions_by_id,
             identity_facts_by_id=identity_facts_by_id,
+            scouting_knowledge_by_id=scouting_knowledge_by_id,
+            dropped_from_scout_reports_ids=dropped_from_scout_reports_ids,
+            hydrated_count=len(newly_hydrated_attributes),
+            pool_available=pool_available,
             rebuilt=rebuilt,
         )
     except BaseException as error:
@@ -785,7 +725,9 @@ def capture_pool(
         raise
     log_event(
         "scouting_refresh_completed", call_number=call_number, pid=pid,
-        rebuilt=rebuilt, player_count=len(external_ids),
+        rebuilt=rebuilt, pool_available=pool_available,
+        player_count=len(document["players"]),
+        scouted_count=len(scouted_players),
         duration_seconds=time.monotonic() - started_at,
     )
     return document
@@ -836,17 +778,21 @@ def main(argv: Sequence[str] | None = None) -> int:
             prior_attributes_observed_at=prior.attributes_observed_at if prior else {},
             prior_footedness_by_id=prior.footedness if prior else {},
             prior_footedness_observed_at=prior.footedness_observed_at if prior else {},
+            prior_scouting_knowledge=prior.scouting_knowledge if prior else {},
+            prior_names=prior.names if prior else {},
         )
-        # Reading a pool FM has already built needs no Frida server at all, so
-        # decide that up front rather than starting one we will not use. The
-        # check is an ordinary read-only probe.
+        # Frida is only needed for hydration, or for a pool rebuild that will
+        # actually run. A plain refresh -- pool already warm, or scouted-only
+        # with no pool at all -- never starts a Frida server. The check
+        # itself is an ordinary read-only probe.
         _state, _arguments, pool_ids = _live_context(pid)
-        if pool_ids and not args.hydrate_player_id:
-            document = capture_pool(pid, **capture)
-        else:
+        needs_frida = bool(args.hydrate_player_id) or (not pool_ids and args.allow_rebuild)
+        if needs_frida:
             executable = Path(preflight(pid)["executable"])
             with frida_server_session(executable) as address:
                 document = capture_pool(pid, remote_address=address, **capture)
+        else:
+            document = capture_pool(pid, **capture)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with args.output.open("w" if args.replace else "x", encoding="utf-8") as stream:
             json.dump(document, stream, indent=2)
@@ -866,14 +812,28 @@ def main(argv: Sequence[str] | None = None) -> int:
     ) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
+    dropped_count = sum(1 for player in document["players"] if player.get("droppedFromScoutReports"))
+    currently_scouted_count = sum(
+        1 for player in document["players"]
+        if "scoutingKnowledge" in player and not player.get("droppedFromScoutReports")
+    )
     print(
         f"Captured {len(document['players'])} manager-discoverable players to {args.output}. "
         + (
             "FM's own builder was run inside the live game to build the pool."
             if document["source"]["poolRebuiltByCapture"]
-            else "Read from the pool FM had already built; nothing was written to FM."
+            else (
+                "Read from the pool FM had already built; nothing was written to FM."
+                if document["source"]["poolAvailable"]
+                else "The wider pool was not available this time; only scouted players were "
+                "read. Nothing was written to FM."
+            )
         )
-        + f" Visible attributes hydrated for {len(args.hydrate_player_id)} player(s); "
+        + f" {currently_scouted_count} currently scouted player(s) had visible attributes "
+        "calculated read-only"
+        + (f"; {dropped_count} previously-scouted player(s) no longer have a scout report and "
+           "are flagged as such" if dropped_count else "")
+        + f". Visible attributes hydrated via FM for {len(args.hydrate_player_id)} player(s); "
         "raw external positions captured under the accepted visibility gap.",
         flush=True,
     )

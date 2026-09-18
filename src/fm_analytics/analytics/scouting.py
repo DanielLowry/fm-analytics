@@ -39,6 +39,8 @@ class ScoutingCandidate:
     transfer_status: str | None = None
     availability: str | None = None
     facts: Mapping[str, str] | None = None
+    scouting_knowledge: int | None = None
+    dropped_from_scout_reports: bool = False
 
     def __post_init__(self) -> None:
         if not self.id or not self.name:
@@ -47,6 +49,20 @@ class ScoutingCandidate:
             raise ValueError("scouting candidate age cannot be negative")
         if self.facts is not None and any(not key or not isinstance(value, str) for key, value in self.facts.items()):
             raise ValueError("scouting facts must have non-empty keys and string values")
+        if self.scouting_knowledge is not None and not 0 <= self.scouting_knowledge <= 100:
+            raise ValueError("scouting knowledge must be between 0 and 100")
+        if self.dropped_from_scout_reports and self.scouting_knowledge is None:
+            raise ValueError("a player dropped from scout reports must still carry a last-known knowledge level")
+
+    def is_scouted(self) -> bool:
+        """True for any player with a current or last-known scouting-knowledge record.
+
+        This -- not a non-empty ``attributes`` -- is the correct test for
+        "belongs on the Scouted tab": a hydrated-but-never-scouted player has
+        attributes too, and a dropped player still belongs here with a
+        warning, not with the general browse list.
+        """
+        return self.scouting_knowledge is not None
 
     def positions_for(self, *, include_raw_external_positions: bool) -> tuple[str, ...]:
         """Return verified positions, plus accepted-gap raw positions if opted in."""
@@ -65,6 +81,14 @@ class ScoutingCandidate:
         age = raw.get("age")
         if age is not None and (not isinstance(age, int) or isinstance(age, bool)):
             raise TypeError("scouting candidate age must be an integer or null")
+        scouting_knowledge = raw.get("scoutingKnowledge")
+        if scouting_knowledge is not None and (
+            not isinstance(scouting_knowledge, int) or isinstance(scouting_knowledge, bool)
+        ):
+            raise TypeError("scouting candidate scoutingKnowledge must be an integer or null")
+        dropped = raw.get("droppedFromScoutReports", False)
+        if not isinstance(dropped, bool):
+            raise TypeError("scouting candidate droppedFromScoutReports must be a boolean")
 
         def optional_text(name: str) -> str | None:
             value = raw.get(name)
@@ -87,6 +111,8 @@ class ScoutingCandidate:
                 for name, value in attributes_raw.items()
             },
             facts=dict(facts_raw),
+            scouting_knowledge=scouting_knowledge,
+            dropped_from_scout_reports=dropped,
         )
 
 
@@ -107,6 +133,7 @@ class ScoutingFilters:
     minimum_ceiling: float | None = None
     include_unlikely: bool = False
     include_raw_external_positions: bool = False
+    scouted_only: bool = False
     facts: Mapping[str, str] | None = None
 
     def __post_init__(self) -> None:
@@ -225,6 +252,8 @@ def available_fact_values(candidates: Sequence[ScoutingCandidate]) -> dict[str, 
 
 
 def _matches_visible_filters(candidate: ScoutingCandidate, filters: ScoutingFilters) -> bool:
+    if filters.scouted_only and not candidate.is_scouted():
+        return False
     if filters.minimum_age is not None and (candidate.age is None or candidate.age < filters.minimum_age):
         return False
     if filters.maximum_age is not None and (candidate.age is None or candidate.age > filters.maximum_age):

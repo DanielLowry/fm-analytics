@@ -151,6 +151,34 @@ class ScoutingTests(unittest.TestCase):
         self.assertEqual(hidden, ())
         self.assertEqual([candidate.id for candidate in visible], ["raw-dr"])
 
+    def test_scouted_only_keeps_players_with_a_knowledge_record(self) -> None:
+        scouted = candidate("scouted", {}, name="Known Player", scouting_knowledge=27)
+        unscouted = candidate("plain", {}, name="Unknown Player")
+        hydrated_but_unscouted = candidate(
+            "hydrated", {"pace": AttributeObservation(Visibility.KNOWN, value=15)}, name="Hydrated Player",
+        )
+
+        result = filter_scouting_candidates(
+            [scouted, unscouted, hydrated_but_unscouted], ScoutingFilters(scouted_only=True)
+        )
+
+        # Having real attributes is not the same test as being scouted --
+        # a Frida-hydrated-but-never-scouted player must not leak in here.
+        self.assertEqual([item.id for item in result], ["scouted"])
+
+    def test_dropped_player_still_counts_as_scouted(self) -> None:
+        dropped = candidate(
+            "dropped", {}, name="Gone Player", scouting_knowledge=14, dropped_from_scout_reports=True,
+        )
+
+        result = filter_scouting_candidates([dropped], ScoutingFilters(scouted_only=True))
+
+        self.assertEqual([item.id for item in result], ["dropped"])
+
+    def test_a_dropped_flag_without_any_knowledge_level_is_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            candidate("bad", {}, name="Bad Player", dropped_from_scout_reports=True)
+
     def test_name_filter_narrows_the_full_pool_not_just_a_displayed_page(self) -> None:
         """The real-time name box must search every candidate, not a capped slice."""
         candidates = [

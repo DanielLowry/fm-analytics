@@ -20,6 +20,15 @@ own visibility builder still needs the knowledge context and returns "visible
 by this manager's knowledge" regardless of scope, but requesting a broader
 population raises the unresolved discoverability question, not a Frida
 limitation. See ``docs/research-automation.md`` for that gate.
+
+Corrected 18 September 2026: the call used to fire on the next
+``QueryPerformanceCounter`` tick on FM's UI thread, a moment FM did not choose
+to be between units of work. It now prefers FM's message pump
+(``GetMessageW``/``PeekMessageW``) instead -- see
+``tools.fm20_frida_discoverability`` for the evidence that prompted this fix
+in the Player Search pool rebuild agent, which this one shares the same risk
+with (`tools.fm20_scouting_feed.hydrate_visible_attributes` is this module's
+production caller).
 """
 
 from __future__ import annotations
@@ -56,6 +65,16 @@ SCHEMA_VERSION = 1
 MAX_PEOPLE = 64
 BUILDER_RVA = 0x15A4A90
 AGENT_TIMEOUT_SECONDS = 30.0
+
+# See `tools.fm20_frida_discoverability.RESTING_POINT_EXPORTS` -- the same
+# fix applies here: this agent's builder call is timed to whichever thread is
+# the dominant `QueryPerformanceCounter` caller, but *when* on that thread it
+# fires used to be "the next QPC call", not a point FM chose to be between
+# units of work. Preferring the message pump moved the same risk in the
+# Player Search pool rebuild; this hydration call carries the identical risk
+# and had not been fixed.
+RESTING_POINT_EXPORTS = ("GetMessageW", "GetMessageA", "PeekMessageW", "PeekMessageA")
+THREAD_SAMPLE_EXPORT = "QueryPerformanceCounter"
 
 
 class AttributeSweepError(RuntimeError):
@@ -166,13 +185,20 @@ function runOnce() {
 }
 
 send({kind: 'ready', moduleBase: fm.base.toString(), people: config.people.length});
-const qpc = Module.findGlobalExportByName('QueryPerformanceCounter');
-if (qpc === null) {
-  send({kind: 'error', error: 'QueryPerformanceCounter export not found'});
-  throw new Error('QueryPerformanceCounter export not found');
+function findRestingPoint() {
+  for (const name of config.restingPointExports) {
+    const address = Module.findGlobalExportByName(name);
+    if (address !== null) return {name, address};
+  }
+  return null;
+}
+const timing = Module.findGlobalExportByName(config.threadSampleExport);
+if (timing === null) {
+  send({kind: 'error', error: config.threadSampleExport + ' export not found'});
+  throw new Error(config.threadSampleExport + ' export not found');
 }
 const sample = {};
-const sampler = Interceptor.attach(qpc, {onEnter() {
+const sampler = Interceptor.attach(timing, {onEnter() {
   const thread = Process.getCurrentThreadId();
   sample[thread] = (sample[thread] || 0) + 1;
 }});
@@ -184,9 +210,13 @@ setTimeout(() => {
     return;
   }
   const thread = Number(ranked[0][0]);
-  send({kind: 'thread', thread, sample});
+  // Prefer the message loop, the same fix as the pool builder's agent; fall
+  // back to the timing export only if FM exposes no message pump at all.
+  const resting = findRestingPoint();
+  const hook = resting === null ? {name: config.threadSampleExport, address: timing} : resting;
+  send({kind: 'thread', thread, sample, hook: hook.name, restingPoint: resting !== null});
   let state = 'armed';
-  const runner = Interceptor.attach(qpc, {onEnter() {
+  const runner = Interceptor.attach(hook.address, {onEnter() {
     if (state !== 'armed' || Process.getCurrentThreadId() !== thread) return;
     state = 'running';
     try {
@@ -221,6 +251,8 @@ def build_agent_source(
         "threadSampleMs": 1000,
         "people": [{"id": person["id"], "address": person["interface"]} for person in people],
         "attributes": {name: DISPLAY_ATTRIBUTE_IDS[name] for name in attributes},
+        "restingPointExports": list(RESTING_POINT_EXPORTS),
+        "threadSampleExport": THREAD_SAMPLE_EXPORT,
     }
     return AGENT_TEMPLATE.replace("__CONFIG__", json.dumps(config))
 
@@ -256,7 +288,12 @@ def extract(device: Any, target_pid: int, source: str, *, timeout_seconds: float
         if kind == "ready":
             result["agentReady"] = True
         elif kind == "thread":
-            result["thread"] = {"id": payload.get("thread"), "qpcSample": payload.get("sample")}
+            result["thread"] = {
+                "id": payload.get("thread"),
+                "qpcSample": payload.get("sample"),
+                "hook": payload.get("hook"),
+                "restingPoint": payload.get("restingPoint"),
+            }
         elif kind == "players":
             result["players"] = payload.get("players", [])
         elif kind == "error":

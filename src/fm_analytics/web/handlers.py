@@ -41,6 +41,8 @@ from fm_analytics.web.rendering import (
     _raw_position_notice,
     _pool_not_built_page,
     _refresh_notice,
+    _scouting_knowledge_cell,
+    _scouting_tab_nav,
     _scouting_filters,
     _tactic_notes,
     _tactical_shortfalls,
@@ -551,7 +553,8 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             for key, values in facts.items()
         )
         body = (
-            "<p>Only players in the manager-visible discovery feed are shown. "
+            _scouting_tab_nav(query)
+            + "<p>Only players in the manager-visible discovery feed are shown. "
             "Scores preserve their <b>floor / estimate / ceiling</b>; a player with "
             "no known role attributes is a reason to scout, not a claim that they are good.</p>"
             + _refresh_notice(_query_first(query, "refreshed"))
@@ -632,6 +635,12 @@ class SquadWebHandler(BaseHTTPRequestHandler):
 
         return (
             "<h2>Find a target</h2><form class='filters' method='get' action='/scouting'>"
+            # A hidden field, not a JS special-case: FormData already reads
+            # every form field for the live-filter fetch, so this is what
+            # keeps the active tab from reverting to "all" on the very next
+            # keystroke -- "view" is otherwise carried by the tab link only,
+            # not by anything inside the form itself.
+            f"<input type='hidden' name='view' value='{'scouted' if filters.scouted_only else 'all'}'>"
             f"<label>Position<select name='position'>{position_options}</select></label>"
             f"<label>Role (optional)<select name='role'>{role_options}</select></label>"
             f"<label>Minimum age<input name='minAge' type='number' min='0' value='{_input_value(filters.minimum_age)}'></label>"
@@ -697,6 +706,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 f"<td>{html.escape(', '.join(positions) or 'Not yet captured')}</td>"
                 f"<td>{_band(item.role_score.score)}</td>"
                 f"<td>{html.escape(item.visibility_summary)}</td>"
+                f"<td>{_scouting_knowledge_cell(candidate)}</td>"
                 f"<td><span class='badge {badge}'>{label}</span><br><span class='muted'>{html.escape(reason)}</span></td></tr>"
             )
             attribute_cells = "".join(
@@ -730,7 +740,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "<li><b>Floor / estimate / ceiling</b>: the best and worst role score supported by visible information.</li></ul>"
             "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions"
             + (" (raw external data)" if include_raw_external_positions else "")
-            + "</th><th>Role score</th><th>Visibility</th><th>Recommendation</th></tr>"
+            + "</th><th>Role score</th><th>Visibility</th><th>Scouted</th><th>Recommendation</th></tr>"
             + "".join(rows) + "</table><h2>Visible role data</h2>" + "".join(details)
         )
 
@@ -753,6 +763,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             f"<td>{candidate.age if candidate.age is not None else '—'}</td>"
             f"<td>{_position_display(candidate, include_raw_external_positions=include_raw_external_positions)}</td>"
             f"<td>{html.escape(candidate.footedness or '—')}</td>"
+            f"<td>{_scouting_knowledge_cell(candidate)}</td>"
             "</tr>"
             for candidate in displayed
         )
@@ -768,7 +779,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             )
             + "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions"
             + (" (raw external data)" if include_raw_external_positions else "")
-            + "</th><th>Footedness</th></tr>"
+            + "</th><th>Footedness</th><th>Scouted</th></tr>"
             + rows
             + "</table>"
         )
