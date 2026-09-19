@@ -384,6 +384,7 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         market=_query_first(query, "market") or "any",
         expiring_months=_query_number(query, "expiringMonths", integer=True) or 6,
         maximum_value=_query_number(query, "maxValue", integer=True),
+        search_match=_query_first(query, "searchMatch") or "any",
         ranking_sort=_query_first(query, "sort") or "median",
         ranking_descending={"desc": True, "asc": False}.get(_query_first(query, "dir") or ""),
         facts=facts,

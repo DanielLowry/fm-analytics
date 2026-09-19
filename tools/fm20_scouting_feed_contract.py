@@ -50,6 +50,7 @@ def feed_document(
     position_familiarity_by_id: Mapping[int, Mapping[str, int]] | None = None,
     scouting_knowledge_by_id: Mapping[int, int] | None = None,
     dropped_from_scout_reports_ids: Iterable[int] = (),
+    active_search_match_ids: Iterable[int] | None = None,
     hydrated_count: int = 0,
     pool_available: bool = True,
     rebuilt: bool = False,
@@ -80,6 +81,9 @@ def feed_document(
     position_familiarity_by_id = position_familiarity_by_id or {}
     scouting_knowledge_by_id = scouting_knowledge_by_id or {}
     dropped_from_scout_reports = set(dropped_from_scout_reports_ids)
+    # None means no search was on screen, which is different from a search
+    # that matched nobody -- the first cannot answer the question at all.
+    search_matches = None if active_search_match_ids is None else set(active_search_match_ids)
     with_age = sum(1 for player_id in ids if "age" in identity_facts_by_id.get(player_id, {}))
     with_club = sum(1 for player_id in ids if "club" in identity_facts_by_id.get(player_id, {}))
     scouted_count = sum(
@@ -97,6 +101,10 @@ def feed_document(
             "poolAvailable": pool_available,
             "sourceCount": source_count,
             "excludedOwnContractedCount": len(excluded),
+            # Which players FM's own on-screen Player Search matched when this
+            # capture ran. The criteria are not readable, only the result, so
+            # nothing here may claim to know what was filtered on.
+            "activeSearchMatchCount": None if search_matches is None else len(search_matches),
             "managedClub": managed_club,
             "fieldCoverage": {
                 "identity": (
@@ -143,6 +151,10 @@ def feed_document(
                 **(
                     {"scoutingKnowledge": scouting_knowledge_by_id[player_id]}
                     if player_id in scouting_knowledge_by_id else {}
+                ),
+                **(
+                    {"matchedActiveSearch": player_id in search_matches}
+                    if search_matches is not None else {}
                 ),
                 **(
                     {"droppedFromScoutReports": True}

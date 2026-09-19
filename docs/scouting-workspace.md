@@ -405,3 +405,14 @@ exactly 1,929, and 16 of 17 independently labelled players fell on the expected
 side. Because the reader cannot see *which* criteria produced the list, anything
 built on it must describe the result as "matched the search open in FM" and let
 the manager say what that search was.
+
+### Using it
+
+Set the filter you want in FM's Player Search, leave the results on screen, then
+refresh the scouting data. The capture records `matchedActiveSearch` per player
+and `source.activeSearchMatchCount`; the page shows an **FM search** column and
+an **FM search match** filter. If no search is showing, or two are live at once,
+the field is absent rather than guessed, and the column reads "—".
+
+The sweep adds roughly a minute to a refresh, because finding the session means
+scanning writable memory for its vtable.

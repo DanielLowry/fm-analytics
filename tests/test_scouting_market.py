@@ -48,3 +48,37 @@ class MarketFilterTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ActiveSearchMatchTests(unittest.TestCase):
+    """The capture can read FM's on-screen result list, never its criteria."""
+
+    def setUp(self) -> None:
+        self.matched = player("matched", matched_active_search=True)
+        self.missed = player("missed", matched_active_search=False)
+        self.unknown = player("unknown")  # no search was showing at capture time
+        self.everyone = [self.matched, self.missed, self.unknown]
+
+    def names(self, **kwargs) -> set[str]:
+        found = filter_scouting_candidates(self.everyone, ScoutingFilters(**kwargs))
+        return {item.name for item in found}
+
+    def test_filters_both_ways_and_defaults_to_everyone(self) -> None:
+        self.assertEqual(self.names(search_match="matched"), {"matched"})
+        self.assertEqual(self.names(search_match="unmatched"), {"missed"})
+        self.assertEqual(self.names(), {"matched", "missed", "unknown"})
+
+    def test_a_player_with_no_reading_is_never_claimed_either_way(self) -> None:
+        for choice in ("matched", "unmatched"):
+            self.assertNotIn("unknown", self.names(search_match=choice))
+
+    def test_from_dict_rejects_a_non_boolean(self) -> None:
+        with self.assertRaises(TypeError):
+            ScoutingCandidate.from_dict(
+                {"id": "1", "name": "x", "positions": [], "attributes": {},
+                 "matchedActiveSearch": "yes"}
+            )
+
+    def test_invalid_choice_is_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            ScoutingFilters(search_match="bogus")

@@ -18,7 +18,11 @@ signature rather than by any fixed address:
 
   * scan writable memory for the session vtable (``VTABLE_RVA``)
   * read the results vector at ``RESULTS_VECTOR_OFFSET``
-  * keep the session whose entries are all Player Search pool wrappers
+  * keep the session whose entries all dereference to Player Search pool people
+
+A session allocates its own wrapper objects rather than reusing the pool's, so
+an entry is matched by the person it points at, never by wrapper identity --
+comparing the wrappers themselves matches nothing and silently loses the list.
 
 Verified 19 September 2026 against a live filter of "interested in transfer":
 FM reported 1929 of 4090 players, exactly one session held 1929 entries, and
@@ -59,8 +63,8 @@ def _writable_regions(pid: int) -> list[tuple[int, int]]:
     return regions
 
 
-def _session_results(memory_fd: int, session: int, wrappers: frozenset[int]) -> list[int] | None:
-    """The session's result wrappers, or None when it is empty or not a match."""
+def _session_results(memory_fd: int, session: int, people: frozenset[int]) -> list[int] | None:
+    """The session's result people, or None when it is empty or not a match."""
     try:
         begin, end = struct.unpack("<QQ", read_exact(memory_fd, session + RESULTS_VECTOR_OFFSET, 16))
     except (OSError, ProbeError):
@@ -72,25 +76,26 @@ def _session_results(memory_fd: int, session: int, wrappers: frozenset[int]) -> 
         return None
     try:
         entries = struct.unpack(f"<{count}Q", read_exact(memory_fd, begin, count * 8))
-    except (OSError, ProbeError):
+        resolved = [struct.unpack("<Q", read_exact(memory_fd, entry, 8))[0] for entry in entries]
+    except (OSError, ProbeError, struct.error):
         return None
-    # Every entry must be a pool wrapper. A partial match means this vector is
-    # something else that happens to hold pointers, so it is rejected whole.
-    return list(entries) if all(entry in wrappers for entry in entries) else None
+    # Every entry must resolve to someone in the pool. A partial match means
+    # this vector is something else holding pointers, so it is rejected whole.
+    return resolved if all(person in people for person in resolved) else None
 
 
 def read_active_search_results(
-    pid: int, module_base: int, pool_wrappers: Iterable[int]
+    pid: int, module_base: int, pool_people: Iterable[int]
 ) -> tuple[int, ...] | None:
-    """Wrappers for the players FM's on-screen search currently matches.
+    """Person addresses for the players FM's on-screen search currently matches.
 
     Returns None when no search is displaying results -- the ordinary case
     when the manager is not sitting on Player Search. Raises ``ProbeError``
     when more than one session holds results, because then there is no way to
     say which search the manager meant.
     """
-    wrappers = frozenset(pool_wrappers)
-    if not wrappers:
+    people = frozenset(pool_people)
+    if not people:
         raise ProbeError("a Player Search pool is required to identify a result list")
     pattern = struct.pack("<Q", module_base + VTABLE_RVA)
     matches: list[list[int]] = []
@@ -107,7 +112,7 @@ def read_active_search_results(
                     continue
                 found = buffer.find(pattern)
                 while found != -1:
-                    results = _session_results(memory_fd, address + found, wrappers)
+                    results = _session_results(memory_fd, address + found, people)
                     if results is not None:
                         matches.append(results)
                     found = buffer.find(pattern, found + 1)

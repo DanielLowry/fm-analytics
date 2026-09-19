@@ -56,6 +56,10 @@ class ScoutingCandidate:
     has_contract: bool | None = None
     # Transfer value in pounds, as FM's own Value column shows it.
     value: int | None = None
+    # True/False when the capture could read FM's on-screen Player Search result
+    # list, None when no search was showing. Which criteria produced it is not
+    # knowable, so this never means one specific filter.
+    matched_active_search: bool | None = None
     # The game date the capture was taken at; contract expiry is measured from it.
     captured_game_date: str | None = None
 
@@ -113,6 +117,9 @@ class ScoutingCandidate:
         dropped = raw.get("droppedFromScoutReports", False)
         if not isinstance(dropped, bool):
             raise TypeError("scouting candidate droppedFromScoutReports must be a boolean")
+        matched = raw.get("matchedActiveSearch")
+        if matched is not None and not isinstance(matched, bool):
+            raise TypeError("scouting candidate matchedActiveSearch must be a boolean")
         has_contract = raw.get("hasContract")
         if has_contract is not None and not isinstance(has_contract, bool):
             raise TypeError("scouting candidate hasContract must be a boolean")
@@ -146,7 +153,7 @@ class ScoutingCandidate:
             raw_position_familiarity=dict(familiarity) if familiarity is not None else None,
             contract_end=optional_text("contractEnd"), contract_type=optional_text("contractType"),
             has_contract=has_contract, captured_game_date=optional_text("capturedGameDate"),
-            value=raw.get("value"),
+            value=raw.get("value"), matched_active_search=matched,
         )
 
 
@@ -218,11 +225,15 @@ class ScoutingFilters:
     # listed as interested was valued under about GBP4,000 and every one it did
     # not was over. It is an estimate from one save, not FM's own rule.
     maximum_value: int | None = None
+    # "any" | "matched" | "unmatched" against FM's own on-screen search result.
+    search_match: str = "any"
     ranking_sort: str = "median"
     ranking_descending: bool | None = None
     facts: Mapping[str, str] | None = None
 
     def __post_init__(self) -> None:
+        if self.search_match not in {"any", "matched", "unmatched"}:
+            raise ValueError("search match filter is invalid")
         if self.market not in MARKET_FILTERS:
             raise ValueError("market filter is invalid")
         if self.expiring_months < 0:
@@ -546,6 +557,10 @@ def _matches_visible_filters(candidate: ScoutingCandidate, filters: ScoutingFilt
     if filters.scouted_only and not candidate.is_scouted():
         return False
     if not _matches_market(candidate, filters):
+        return False
+    if filters.search_match != "any" and (
+        candidate.matched_active_search is not (filters.search_match == "matched")
+    ):
         return False
     if filters.maximum_value is not None and (
         candidate.value is None or candidate.value > filters.maximum_value

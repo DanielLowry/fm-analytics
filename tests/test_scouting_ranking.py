@@ -305,3 +305,32 @@ class FamiliarityTests(unittest.TestCase):
         })
 
         self.assertEqual(parsed.raw_position_familiarity, {"DC": 17, "DR": 3})
+
+
+class KnowledgeCellTests(unittest.TestCase):
+    """The count covers the role's attributes, so the total must be visible."""
+
+    def ranking(self, visibilities):
+        from fm_analytics.web.scouting_render import _knowledge_cell
+
+        attributes = {
+            "finishing": AttributeObservation(visibility=Visibility.KNOWN, value=15),
+        }
+        item = rank_for_position(
+            [candidate("1", attributes)], MVP_CATALOGUE, "ST",
+            sort="median", descending=True, include_raw_external_positions=True,
+        )[0]
+        return _knowledge_cell(item), item
+
+    def test_a_fully_known_role_shows_the_denominator(self) -> None:
+        cell, item = self.ranking(None)
+        total = item.known_attributes + item.ranged_attributes + item.unknown_attributes
+        self.assertIn(f"of {total} known", cell)
+        self.assertGreater(total, 0)
+
+    def test_gaps_are_spelled_out_rather_than_left_as_bare_numbers(self) -> None:
+        cell, item = self.ranking(None)
+        if item.unknown_attributes:
+            self.assertIn("unknown", cell)
+        if item.ranged_attributes:
+            self.assertIn("ranged", cell)

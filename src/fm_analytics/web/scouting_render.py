@@ -337,8 +337,8 @@ def score_bar(minimum: float, median: float, maximum: float) -> str:
 # (heading, sort key). A key of None is not sortable.
 _COLUMNS: tuple[tuple[str, str | None], ...] = (
     ("#", None), ("Player", "name"), ("Age", "age"), ("Scouted", "scouted"),
-    ("Value", "value"), ("Contract", None), ("Best role", "role"), ("Min", "minimum"), ("Median", "median"), ("Max", "ceiling"),
-    ("Range", "upside"), ("Known / ranged / unknown", "known"), ("Attributes", None),
+    ("Value", "value"), ("FM search", None), ("Contract", None), ("Best role", "role"), ("Min", "minimum"), ("Median", "median"), ("Max", "ceiling"),
+    ("Range", "upside"), ("Role attributes known", "known"), ("Attributes", None),
 )
 
 
@@ -427,6 +427,25 @@ def _familiarity_cells(item: PositionRanking) -> str:
     )
 
 
+def _knowledge_cell(item: PositionRanking) -> str:
+    """How much of *this role's* attribute list is known for him.
+
+    The total is the number of attributes the role scores, not the 32 a player
+    has: reading "11 / 0 / 0" as "only 11 of his attributes are known" was the
+    obvious misreading, so the denominator is now shown.
+    """
+    total = item.known_attributes + item.ranged_attributes + item.unknown_attributes
+    headline = f"{item.known_attributes} of {total} known"
+    if not item.ranged_attributes and not item.unknown_attributes:
+        return f"<b>{headline}</b>"
+    parts = []
+    if item.ranged_attributes:
+        parts.append(f"{item.ranged_attributes} ranged")
+    if item.unknown_attributes:
+        parts.append(f"{item.unknown_attributes} unknown")
+    return f"{headline}<br><span class='muted'>{' &middot; '.join(parts)}</span>"
+
+
 def _value_cell(candidate: ScoutingCandidate) -> str:
     """FM's own Value figure. Also the best available proxy for whether he would
     join us: see ``docs/scouting-workspace.md`` on the interest estimate."""
@@ -435,6 +454,16 @@ def _value_cell(candidate: ScoutingCandidate) -> str:
     if candidate.value == 0:
         return "<span class='muted'>&pound;0</span>"
     return f"&pound;{candidate.value:,}"
+
+
+def _search_match_cell(candidate: ScoutingCandidate) -> str:
+    """Whether FM's own on-screen Player Search matched him when the capture ran.
+
+    Deliberately says nothing about *which* filter: the result list is readable,
+    the criteria that produced it are not."""
+    if candidate.matched_active_search is None:
+        return "<span class='muted'>—</span>"
+    return "<b>Match</b>" if candidate.matched_active_search else "<span class='muted'>no</span>"
 
 
 def _contract_cell(candidate: ScoutingCandidate) -> str:
@@ -461,12 +490,13 @@ def _ranking_row(rank: int, item: PositionRanking, show_familiarity: bool = Fals
         f"<td>{candidate.age if candidate.age is not None else '—'}</td>"
         f"<td>{_scouting_knowledge_cell(candidate)}</td>"
         f"<td>{_value_cell(candidate)}</td>"
+        f"<td>{_search_match_cell(candidate)}</td>"
         f"<td>{_contract_cell(candidate)}</td>"
         f"<td>{html.escape(item.role_name)}</td>"
         f"<td>{item.minimum:.1f}</td><td><b>{item.median:.1f}</b></td><td>{item.maximum:.1f}</td>"
         f"<td>{score_bar(item.minimum, item.median, item.maximum)}</td>"
         + (_familiarity_cells(item) if show_familiarity else "")
-        + f"<td>{item.known_attributes} / {item.ranged_attributes} / {item.unknown_attributes}</td>"
+        + f"<td>{_knowledge_cell(item)}</td>"
         f"<td>{attribute_sheet(candidate)}</td>"
         "</tr>"
     )

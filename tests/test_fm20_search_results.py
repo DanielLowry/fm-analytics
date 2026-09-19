@@ -13,9 +13,18 @@ SIZE = 0x4000
 
 
 def image(sessions):
-    """A fake memory image: each session is (address, result wrapper addresses)."""
+    """A fake memory image: each session is (address, the people it matched).
+
+    A session entry is a wrapper pointing at a person, not the person itself,
+    which is what the reader has to follow.
+    """
     buffer = bytearray(SIZE)
-    wrappers = {0x1000 + i * 8 for i in range(8)}
+    people = [0x1000 + i * 8 for i in range(8)]
+    wrapper_for = {}
+    for index, person in enumerate(people):
+        wrapper = 0x1400 + index * 8
+        struct.pack_into("<Q", buffer, wrapper, person)
+        wrapper_for[person] = wrapper
     for address, entries in sessions:
         struct.pack_into("<Q", buffer, address, BASE + results.VTABLE_RVA)
         if entries is None:  # an idle session: empty vector
@@ -23,12 +32,12 @@ def image(sessions):
             continue
         store = address + 0x100
         for index, entry in enumerate(entries):
-            struct.pack_into("<Q", buffer, store + index * 8, entry)
+            struct.pack_into("<Q", buffer, store + index * 8, wrapper_for.get(entry, entry))
         struct.pack_into(
             "<QQ", buffer, address + results.RESULTS_VECTOR_OFFSET,
             store, store + len(entries) * 8,
         )
-    return bytes(buffer), sorted(wrappers)
+    return bytes(buffer), people
 
 
 class ReadActiveSearchResultsTests(unittest.TestCase):
@@ -54,7 +63,7 @@ class ReadActiveSearchResultsTests(unittest.TestCase):
         self.assertIsNone(self.run_against(blob, wrappers))
 
     def test_a_vector_holding_anything_outside_the_pool_is_rejected_whole(self) -> None:
-        blob, wrappers = image([(0x800, [0x1000, 0xDEAD])])
+        blob, wrappers = image([(0x800, [0x1000, 0x2AD0])])
         self.assertIsNone(self.run_against(blob, wrappers))
 
     def test_two_live_searches_refuse_rather_than_guess(self) -> None:

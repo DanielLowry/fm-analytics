@@ -894,6 +894,10 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             + "</select></label>"
             f"<label>Running out within (months)<input name='expiringMonths' type='number' min='0' value='{filters.expiring_months}'></label>"
             f"<label>Max value (&pound;)<input name='maxValue' type='number' min='0' step='500' value='{_input_value(filters.maximum_value)}'></label>"
+            "<label>FM search match<select name='searchMatch'>"
+            + _options((("any", "Any"), ("matched", "Matched your FM search"),
+                        ("unmatched", "Did not match")), filters.search_match, "")
+            + "</select></label>"
             f"<label>Player name<input name='name' value='{html.escape(filters.name_contains or '', quote=True)}'></label>"
             f"<label>Club contains<input name='club' value='{html.escape(filters.club_contains or '', quote=True)}'></label>"
             "<label>Nationality<select name='nationality'>"

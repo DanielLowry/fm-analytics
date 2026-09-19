@@ -24,6 +24,7 @@ import argparse
 import importlib
 import json
 import os
+import struct
 import sys
 import time
 from pathlib import Path
@@ -35,6 +36,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(project_root / "src"))
 
 from tools.fm20_discoverability_cold_filter import _source_records
+from tools.fm20_search_results import read_active_search_results
 from tools.fm20_discoverability_cold_query import own_contracted_ids
 from tools.fm20_discoverability_manager_builder import _live_context
 from tools.fm20_frida_discoverability import (
@@ -56,7 +58,7 @@ from tools.fm20_frida_property import (
 )
 from tools.fm20_frida_server import FridaServerError, frida_server_session
 from tools.fm20_frida_trace import FridaTraceError, preflight, process_alive
-from tools.fm20_linux_probe import ProbeError, read_exact
+from tools.fm20_linux_probe import ProbeError, read_exact, read_u64
 from tools.fm20_linux_probe_runtime import choose_pid
 from tools.fm20_cold_query_cache import (
     resolve_context_and_manager,
@@ -435,12 +437,33 @@ def capture_pool(
         }
 
         requested_hydration = tuple(dict.fromkeys(hydrate_player_ids))
+        active_search_match_ids: list[int] | None = None
         if pool_available:
             fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
             try:
                 records = _source_records(lambda address, size: read_exact(fd, address, size), arguments[0])
+                # Whatever Player Search the manager left on screen, read as its
+                # result set only. Anything unreadable -- no search showing, two
+                # live searches, an unexpected layout -- degrades to "cannot
+                # answer", which is not the same as "matched nobody".
+                try:
+                    id_by_person = {person: player_id for player_id, person in records.items()}
+                    matched = read_active_search_results(pid, module_base, id_by_person)
+                    if matched is not None:
+                        active_search_match_ids = sorted(
+                            id_by_person[person] for person in matched if person in id_by_person
+                        )
+                except (OSError, ProbeError, struct.error) as error:
+                    log_event(
+                        "scouting_active_search_unreadable", call_number=call_number,
+                        pid=pid, reason=str(error),
+                    )
             finally:
                 os.close(fd)
+            log_event(
+                "scouting_active_search_read", call_number=call_number, pid=pid,
+                matched=None if active_search_match_ids is None else len(active_search_match_ids),
+            )
             if set(records) != set(pool_ids):
                 raise ScoutingFeedError("rebuilt Player Search source records do not match its ID set")
             external_ids = sorted(set(pool_ids) - own_ids)
@@ -603,6 +626,7 @@ def capture_pool(
             position_familiarity_by_id=position_familiarity_by_id,
             scouting_knowledge_by_id=scouting_knowledge_by_id,
             dropped_from_scout_reports_ids=dropped_from_scout_reports_ids,
+            active_search_match_ids=active_search_match_ids,
             hydrated_count=len(newly_hydrated_attributes),
             pool_available=pool_available,
             rebuilt=rebuilt,
