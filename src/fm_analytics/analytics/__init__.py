@@ -83,6 +83,8 @@ from fm_analytics.analytics.squad_depth import (
     assess_squad_depth,
 )
 from fm_analytics.analytics.scouting import (
+    PositionRanking,
+    RANKING_SORTS,
     ScoutRecommendation,
     ScoutingAssessment,
     ScoutingCandidate,
@@ -90,6 +92,17 @@ from fm_analytics.analytics.scouting import (
     assess_scouting_candidates,
     available_fact_values,
     filter_scouting_candidates,
+    rank_for_position,
+)
+from fm_analytics.analytics.set_pieces import (
+    SET_PIECE_SCORING_VERSION,
+    SET_PIECE_TASKS,
+    SetPieceCandidate,
+    SetPieceRecommendation,
+    SetPieceReport,
+    SetPieceTask,
+    is_set_piece_available,
+    recommend_set_pieces,
 )
 
 __all__ = [
@@ -119,7 +132,15 @@ __all__ = [
     "RoleComparison",
     "ScoreBand",
     "ScoringPolicy",
+    "SET_PIECE_SCORING_VERSION",
+    "SET_PIECE_TASKS",
+    "PositionRanking",
+    "RANKING_SORTS",
     "ScoutRecommendation",
+    "SetPieceCandidate",
+    "SetPieceRecommendation",
+    "SetPieceReport",
+    "SetPieceTask",
     "ScoutingAssessment",
     "ScoutingCandidate",
     "ScoutingFilters",
@@ -147,6 +168,7 @@ __all__ = [
     "assess_scouting_candidates",
     "available_fact_values",
     "filter_scouting_candidates",
+    "rank_for_position",
     "assess_weaknesses",
     "build_recruitment_briefs",
     "build_substitution_board",
@@ -154,10 +176,12 @@ __all__ = [
     "compare_role_scores",
     "evaluate_tactic",
     "is_position_eligible",
+    "is_set_piece_available",
     "is_player_selectable",
     "overlay_squad_export",
     "recommend_tactic",
     "recommend_tactic_effective_and_potential",
+    "recommend_set_pieces",
     "score_player_for_slot",
     "select_bench",
     "shortlist_candidates",

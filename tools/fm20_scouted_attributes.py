@@ -117,6 +117,7 @@ class ScoutedPlayer:
     player_id: int
     name: str
     age: int
+    person: int  # address in FM's memory, valid only for the run that read it
     knowledge: int
     observations: dict[str, AttributeObservation]
     # What the formula was actually given, kept for diagnosis: the effective
@@ -350,7 +351,7 @@ def capture_scouted_attributes(
                 issues[player_id] = "identity lookup failed for a scouted player"
                 continue
             players[player_id] = ScoutedPlayer(
-                row_id=row_id, player_id=player_id, name=name, age=age,
+                row_id=row_id, player_id=player_id, name=name, age=age, person=person,
                 knowledge=level, observations=observations,
                 effective_knowledge=effective, report_quality_sum=quality,
             )

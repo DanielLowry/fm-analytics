@@ -412,3 +412,64 @@ class FeedProvenanceTests(unittest.TestCase):
         self.assertEqual(read_only["source"]["transport"], "read-only-process-memory")
         self.assertTrue(rebuilt["source"]["poolRebuiltByCapture"])
         self.assertEqual(rebuilt["source"]["transport"], "windows-frida-server")
+
+
+class ScoutedOnlyIdentityTests(unittest.TestCase):
+    """The Scouted tab must have positions and a club without Player Search."""
+
+    def test_scouted_players_outside_the_pool_get_positions_and_club(self) -> None:
+        import os
+        from tools.fm20_scouted_attributes import ScoutedPlayer
+
+        state = SimpleNamespace(module_base="0x140000000", game_date="2019-07-04", first_team_squad=())
+        manager = SimpleNamespace(id="m1", club=SimpleNamespace(id="c1", name="Example FC"))
+        player = ScoutedPlayer(
+            row_id=7, player_id=42, name="Scouted Player", age=21, person=0x5000,
+            knowledge=15, observations={},
+        )
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(feed, "_live_context", return_value=(state, (1, 2, 3), [])))
+            stack.enter_context(mock.patch.object(feed, "_active_manager", return_value=manager))
+            stack.enter_context(mock.patch.object(feed, "preflight", return_value={"moduleBase": "0x140000000"}))
+            stack.enter_context(mock.patch.object(feed, "process_alive", return_value=True))
+            stack.enter_context(mock.patch.object(feed, "_resolve_knowledge_context", return_value=0x999))
+            stack.enter_context(mock.patch.object(feed, "capture_scouted_attributes", return_value=({42: player}, {})))
+            positions = stack.enter_context(mock.patch.object(
+                feed, "read_raw_external_positions", return_value={42: ("DR", "MR")}))
+            stack.enter_context(mock.patch.object(
+                feed, "resolve_source_identity_facts",
+                return_value={42: {"age": 21, "club": "Weymouth", "transferStatus": "transfer_listed"}}))
+            stack.enter_context(mock.patch.object(feed, "log_event"))
+
+            document = feed.capture_pool(os.getpid(), remote_address=None)
+
+        row = document["players"][0]
+        self.assertEqual(row["rawPositions"], ["DR", "MR"])
+        self.assertEqual(row["club"], "Weymouth")
+        self.assertEqual(row["transferStatus"], "transfer_listed")
+        self.assertFalse(document["source"]["poolAvailable"])
+        positions.assert_called_once()
+
+    def test_one_unreadable_scouted_player_does_not_fail_the_refresh(self) -> None:
+        import os
+        from tools.fm20_scouted_attributes import ScoutedPlayer
+
+        state = SimpleNamespace(module_base="0x140000000", game_date="2019-07-04", first_team_squad=())
+        manager = SimpleNamespace(id="m1", club=SimpleNamespace(id="c1", name="Example FC"))
+        player = ScoutedPlayer(row_id=7, player_id=42, name="P", age=21, person=0x5000, knowledge=15, observations={})
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(feed, "_live_context", return_value=(state, (1, 2, 3), [])))
+            stack.enter_context(mock.patch.object(feed, "_active_manager", return_value=manager))
+            stack.enter_context(mock.patch.object(feed, "preflight", return_value={"moduleBase": "0x140000000"}))
+            stack.enter_context(mock.patch.object(feed, "process_alive", return_value=True))
+            stack.enter_context(mock.patch.object(feed, "_resolve_knowledge_context", return_value=0x999))
+            stack.enter_context(mock.patch.object(feed, "capture_scouted_attributes", return_value=({42: player}, {})))
+            stack.enter_context(mock.patch.object(
+                feed, "read_raw_external_positions", side_effect=ScoutingFeedError("unreadable")))
+            stack.enter_context(mock.patch.object(feed, "resolve_source_identity_facts", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "log_event"))
+
+            document = feed.capture_pool(os.getpid(), remote_address=None)
+
+        self.assertEqual(document["players"][0]["name"], "P")
+        self.assertNotIn("rawPositions", document["players"][0])

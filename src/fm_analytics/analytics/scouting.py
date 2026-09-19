@@ -134,9 +134,12 @@ class ScoutingFilters:
     include_unlikely: bool = False
     include_raw_external_positions: bool = False
     scouted_only: bool = False
+    ranking_sort: str = "median"
     facts: Mapping[str, str] | None = None
 
     def __post_init__(self) -> None:
+        if self.ranking_sort not in RANKING_SORTS:
+            raise ValueError("ranking sort is invalid")
         if self.minimum_age is not None and self.maximum_age is not None and self.minimum_age > self.maximum_age:
             raise ValueError("minimum age cannot exceed maximum age")
         if self.minimum_floor is not None and self.minimum_ceiling is not None and self.minimum_floor > self.minimum_ceiling:
@@ -216,6 +219,88 @@ def assess_scouting_candidates(
             )
         )
     return tuple(sorted(assessments, key=_sort_key))
+
+
+RANKING_SORTS = {
+    "median": "Median (best guess)",
+    "ceiling": "Ceiling (best case)",
+    "upside": "Upside (ceiling above median)",
+}
+
+
+@dataclass(frozen=True)
+class PositionRanking:
+    """One player's score range for a position, by the role that suits him best.
+
+    ``minimum``/``maximum`` come from the visible ranges alone (an unknown
+    attribute spans the whole scale), so they are the honest bounds on what
+    the player could be worth; ``median`` puts every range at its midpoint and
+    every unknown mid-scale. A wide gap between them is exactly where more
+    scouting would change the decision.
+    """
+
+    candidate: ScoutingCandidate
+    role_key: str
+    role_name: str
+    minimum: float
+    median: float
+    maximum: float
+    known_attributes: int
+    ranged_attributes: int
+    unknown_attributes: int
+
+    @property
+    def upside(self) -> float:
+        return self.maximum - self.median
+
+
+def rank_for_position(
+    candidates: Sequence[ScoutingCandidate],
+    catalogue: FootballCatalogue,
+    position: str,
+    *,
+    sort: str = "median",
+) -> tuple[PositionRanking, ...]:
+    """Rank candidates for a position using whichever role there fits each best.
+
+    Position eligibility is the caller's concern (``filter_scouting_candidates``
+    already applied it); this only scores. The role is chosen per player on the
+    median so one player can be shown as a Ball-Winning Midfielder and another
+    as a Deep-Lying Playmaker in the same list.
+    """
+    if sort not in RANKING_SORTS:
+        raise ValueError(f"sort must be one of {sorted(RANKING_SORTS)}")
+    roles = [role for role in catalogue.roles.values() if position in role.eligible_positions]
+    if not roles:
+        return ()
+    rankings: list[PositionRanking] = []
+    for candidate in candidates:
+        best = max(
+            (score_role(role, candidate.attributes) for role in roles),
+            key=lambda score: (score.median, score.score.upper, score.role_key),
+        )
+        visibilities = [item.observation.visibility for item in best.contributions]
+        known = sum(v is Visibility.KNOWN for v in visibilities)
+        ranged = sum(v is Visibility.RANGE for v in visibilities)
+        rankings.append(
+            PositionRanking(
+                candidate=candidate,
+                role_key=best.role_key,
+                role_name=best.role_name,
+                minimum=best.score.lower,
+                median=best.median,
+                maximum=best.score.upper,
+                known_attributes=known,
+                ranged_attributes=ranged,
+                unknown_attributes=len(visibilities) - known - ranged,
+            )
+        )
+    keys = {
+        "median": lambda r: (-r.median, -r.maximum),
+        "ceiling": lambda r: (-r.maximum, -r.median),
+        "upside": lambda r: (-r.upside, -r.median),
+    }
+    return tuple(sorted(rankings, key=lambda r: (*keys[sort](r), r.candidate.name.casefold(), r.candidate.id)))
 
 
 def filter_scouting_candidates(

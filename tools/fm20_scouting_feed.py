@@ -605,6 +605,21 @@ def capture_pool(
         for player_id, player in scouted_players.items():
             names[player_id] = player.name
             identity_facts_by_id.setdefault(player_id, {}).setdefault("age", player.age)
+        # A scouted player the pool did not supply still has a Person in FM's
+        # memory, so his club and positions can be read the same way as a pool
+        # member's. This is what makes the Scouted tab usable before Player
+        # Search has ever been opened. One unreadable player is skipped rather
+        # than allowed to fail the whole refresh.
+        for player_id, player in scouted_players.items():
+            if player_id in records:
+                continue
+            single = {player_id: player.person}
+            try:
+                raw_positions_by_id.update(read_raw_external_positions(pid, single))
+            except ScoutingFeedError:
+                pass
+            for key, value in resolve_source_identity_facts(pid, single, after.game_date).get(player_id, {}).items():
+                identity_facts_by_id[player_id].setdefault(key, value)
         if requested_hydration and device is None:
             # Only the hydration paths still need Frida once the pool is warm, so
             # a plain refresh never attaches to FM at all.

@@ -93,6 +93,14 @@ explicit level and no report, which can only widen a range.
 scouts to the brackets four real players imply. Check it against the staff
 profiles in FM (the three scouts in the test save read 11+11, 7+9 and 8+9).
 
+**Positions and club for scouted players (19 September 2026).** A scouted
+player who is not in the Player Search pool still has a Person in FM's memory,
+so his positions (behind the same accepted-gap checkbox as any raw position)
+and his club and transfer status are read from it directly. Without this the
+Scouted tab worked but its position filter and Club column were empty until
+Player Search had been opened. A player with no current contract simply has no
+club, which is real, not a read failure.
+
 **Known gap: players known only through reputation.** A manager can know
 something about a well-known player never explicitly scouted; that
 knowledge path is not yet implemented, so such a player still reads as

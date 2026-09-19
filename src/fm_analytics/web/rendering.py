@@ -21,6 +21,7 @@ _NAV: tuple[tuple[str, str], ...] = (
     ("/squad", "Squad"),
     ("/roles", "Roles"),
     ("/tactics", "Tactics"),
+    ("/set-pieces", "Set pieces"),
     ("/depth", "Depth"),
     ("/scouting", "Scouting"),
     ("/data", "Data"),
@@ -176,6 +177,14 @@ _STYLE = """
   nav.scouting-tabs a { padding: 0.4rem 0.8rem; border-radius: 0.25rem; text-decoration: none; color: #1a2b3c; background: #e8ecef; }
   nav.scouting-tabs a.tab-active { background: #1a2b3c; color: white; }
   .dropped-warning { color: #8a2b12; font-weight: bold; }
+  details.sheet summary { cursor: pointer; color: #1a2b3c; }
+  .sheet-groups { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.4rem; }
+  .sheet-group h4 { margin: 0 0 0.2rem; font-size: 0.8rem; text-transform: uppercase; color: #566; }
+  .attr { display: flex; justify-content: space-between; gap: 0.8rem; min-width: 10rem; font-size: 0.85rem; }
+  .attr-hidden { color: #9aa; }
+  .bar { position: relative; display: inline-block; width: 110px; height: 0.8rem; background: #e8ecef; border-radius: 0.2rem; vertical-align: middle; }
+  .bar-fill { position: absolute; top: 0; bottom: 0; background: #9fb6cf; border-radius: 0.2rem; }
+  .bar-mark { position: absolute; top: -2px; bottom: -2px; width: 3px; margin-left: -1px; background: #1a2b3c; }
   .badge-scout { background: #fff2d6; color: #805400; }
   .badge-proven { background: #e3f3e1; color: #1e6b1e; }
   .badge-unlikely { background: #eee; color: #555; }
@@ -346,6 +355,7 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         include_unlikely=_query_first(query, "includeUnlikely") == "1",
         include_raw_external_positions=_query_first(query, "includeRawPositions") == "1",
         scouted_only=_scouting_view(query) == "scouted",
+        ranking_sort=_query_first(query, "sort") or "median",
         facts=facts,
     )
 
@@ -506,4 +516,3 @@ def _scouting_refresh_command(path: Path) -> Callable[..., str]:
         return (result.stdout or "Scouting data refreshed.").strip()
 
     return refresh
-

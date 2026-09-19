@@ -100,6 +100,13 @@ class RoleScore:
     scoring_version: str
     score: ScoreBand
     contributions: tuple[AttributeContribution, ...]
+    # The score if every unknown attribute were mid-scale and every range sat at
+    # its midpoint. ``score.central`` deliberately treats an unknown as the scale
+    # minimum, so a barely-scouted player cannot outrank a well-known one; this
+    # is the neutral counterpart used to rank *what to scout next*, where the
+    # question is "what could this player be worth?" rather than "what do we
+    # know he is worth?". Always between ``score.lower`` and ``score.upper``.
+    median: float = 0.0
 
     @property
     def information_gaps(self) -> tuple[AttributeContribution, ...]:
@@ -179,7 +186,36 @@ def score_role(
             upper=_sum_points(contributions, "upper"),
         ),
         contributions=tuple(contributions),
+        median=_median_score(role, observations, total_weight, policy),
     )
+
+
+def _median_score(
+    role: RoleDefinition,
+    observations: Mapping[str, AttributeObservation],
+    total_weight: float,
+    policy: ScoringPolicy,
+) -> float:
+    midpoint = (policy.scale_minimum + policy.scale_maximum) / 2
+    total = 0.0
+    for weighted_attribute in role.attributes:
+        observation = observations.get(
+            weighted_attribute.name, AttributeObservation(visibility=Visibility.UNKNOWN)
+        )
+        if observation.visibility is Visibility.KNOWN:
+            assert observation.value is not None
+            raw = float(observation.value)
+        elif observation.visibility is Visibility.RANGE:
+            assert observation.minimum is not None and observation.maximum is not None
+            raw = (observation.minimum + observation.maximum) / 2
+        else:
+            raw = midpoint
+        scale_span = policy.scale_maximum - policy.scale_minimum
+        normalized = (raw - policy.scale_minimum) / scale_span
+        total += normalized * (weighted_attribute.weight / total_weight) * 100
+    # Rounded once, at the end: rounding each term first (as the banded scores
+    # do) lets the error accumulate, giving 50.000001 for an all-unknown player.
+    return round(total, 6)
 
 
 def _raw_band(

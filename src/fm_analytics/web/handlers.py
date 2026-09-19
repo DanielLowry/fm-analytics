@@ -12,10 +12,13 @@ from urllib.parse import parse_qs, urlparse
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
     ScoutRecommendation,
+    RANKING_SORTS,
     ScoutingFilters,
     assess_scouting_candidates,
     available_fact_values,
     filter_scouting_candidates,
+    rank_for_position,
+    recommend_set_pieces,
 )
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.domain import Squad
@@ -25,6 +28,7 @@ from fm_analytics.reporting import (
     required_role_attributes,
     validate_recommendation_snapshot,
 )
+from fm_analytics.web.scouting_render import attribute_sheet, ranking_results
 from fm_analytics.web.rendering import (
     _MAX_SCOUTING_ROWS,
     _SCOUTING_LIVE_FILTER_SCRIPT,
@@ -58,6 +62,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "/squad": self._squad_page,
             "/roles": self._roles_page,
             "/tactics": self._tactics_page,
+            "/set-pieces": self._set_pieces_page,
             "/depth": self._depth_page,
             "/scouting": self._scouting_page,
             "/scouting/results": self._scouting_results_fragment,
@@ -452,6 +457,107 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         )
         self._send(_layout("Tactics", path, body))
 
+    def _set_pieces_page(self, path: str, _query: dict[str, list[str]]) -> None:
+        """Recommend current-match set-piece assignments from visible attributes.
+
+        This deliberately reads the squad directly instead of requiring the
+        broader tactic bundle: set-piece suggestions remain useful while some
+        unrelated role attributes are still being extracted.
+        """
+        try:
+            game, squad = self.server.read()  # type: ignore[attr-defined]
+            validate_recommendation_snapshot(game, squad)
+            report = recommend_set_pieces(squad)
+        except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
+            self._send(_error_page("Set pieces", str(exc), path), HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+
+        labels = {
+            "anticipation": "Anticipation", "bravery": "Bravery", "composure": "Composure",
+            "corners": "Corners", "crossing": "Crossing", "finishing": "Finishing",
+            "flair": "Flair", "heading": "Heading", "jumpingReach": "Jumping reach",
+            "longShots": "Long shots", "marking": "Marking", "strength": "Strength",
+            "technique": "Technique",
+        }
+
+        summary_rows = []
+        details = []
+        for recommendation in report.recommendations:
+            task = recommendation.task
+            suggested = recommendation.suggested
+            if suggested is None:
+                suggested_name = (
+                    "No evidence-based suggestion" if recommendation.candidates else "No available player"
+                )
+                score, backups = "—", "—"
+            else:
+                suggested_name = html.escape(suggested.player.name)
+                score = _band(suggested.score.score)
+                backups = ", ".join(
+                    html.escape(candidate.player.name) for candidate in recommendation.candidates[1:3]
+                ) or "—"
+            note = (
+                " <span class='warn'>Proxy — "
+                + html.escape(task.proxy_for_unread_attribute)
+                + " is not captured.</span>"
+                if task.proxy_for_unread_attribute else ""
+            )
+            summary_rows.append(
+                "<tr>"
+                f"<td>{html.escape(task.name)}{note}</td><td><b>{suggested_name}</b></td>"
+                f"<td>{score}</td><td>{backups}</td></tr>"
+            )
+            inputs = ", ".join(
+                f"{html.escape(labels.get(attribute.name, attribute.name))} {attribute.weight:g}%"
+                for attribute in task.attributes
+            )
+            candidate_rows = "".join(
+                "<tr>"
+                f"<td>{html.escape(candidate.player.name)}</td>"
+                f"<td>{_band(candidate.score.score)}</td>"
+                f"<td>{' · '.join(html.escape(item.observation.display()) for item in candidate.score.contributions)}</td>"
+                "</tr>"
+                for candidate in recommendation.candidates[:5]
+            )
+            details.append(
+                f"<details><summary>{html.escape(task.name)} — {suggested_name}</summary>"
+                f"<p>{html.escape(task.explanation)}</p>"
+                f"<p class='muted'><b>Weighted inputs:</b> {inputs}.</p>"
+                "<table><tr><th>Player</th><th>Score</th><th>Inputs (in weight order)</th></tr>"
+                + candidate_rows
+                + "</table></details>"
+            )
+
+        unavailable = (
+            "<p class='muted'><b>Not proposed for this match:</b> "
+            + ", ".join(html.escape(player.name) for player in report.unavailable_players)
+            + ".</p>"
+            if report.unavailable_players else ""
+        )
+        body = (
+            "<p>Suggested assignments for the current available senior squad. Enter these "
+            "in FM if they fit your routine; this page does not change tactics in-game.</p>"
+            "<ul class='legend'>"
+            "<li>Scores are a 0–100 weighted attribute comparison. Condition and match "
+            "fitness do not alter set-piece skill; injury, suspension, and unavailable "
+            "status exclude a player for this match.</li>"
+            "<li>Ranges and unknown values remain visible in the score. An unknown attribute "
+            "cannot improve a player's current ranking.</li>"
+            "<li>Footedness, preferred routines, and opponent-specific match-ups are not "
+            "modelled yet.</li></ul>"
+            "<h2>Suggested assignments</h2>"
+            "<table><tr><th>Assignment</th><th>Suggested</th><th>Score</th><th>Alternatives</th></tr>"
+            + "".join(summary_rows)
+            + "</table>"
+            + "<h2>Why these players</h2>"
+            + "".join(details)
+            + "<h2>Not scoreable from the current feed</h2>"
+            "<p><b>Long throws</b> cannot be ranked yet: the dedicated Long Throws attribute "
+            "is not currently extracted. It is intentionally not guessed from unrelated attributes.</p>"
+            + unavailable
+        )
+        self._send(_layout("Set pieces", path, body))
+
     def _depth_page(self, path: str, _query: dict[str, list[str]]) -> None:
         bundle = self._bundle_or_error(path, "Depth")
         if bundle is None:
@@ -601,6 +707,21 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             if filters.role_key
             else filter_scouting_candidates(candidates, filters)
         )
+        if not filters.role_key and filters.position:
+            # A position with no role chosen: rank everyone for it, by the role
+            # that suits each best, so "who should I scout next" has an answer.
+            return (
+                (_raw_position_notice(candidates) if filters.include_raw_external_positions else "")
+                + ranking_results(
+                    rank_for_position(
+                        position_candidates, MVP_CATALOGUE, filters.position,
+                        sort=filters.ranking_sort,
+                    ),
+                    position=filters.position,
+                    sort_label=RANKING_SORTS[filters.ranking_sort],
+                    raw_positions=filters.include_raw_external_positions,
+                )
+            )
         return (
             (
                 _raw_position_notice(candidates)
@@ -657,6 +778,9 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             + _options(((value, value) for value in values("availability")), filters.availability, "Any")
             + "</select></label><label>Visibility<select name='visibility'>"
             + _options(((key, label) for key, label in (("any", "Any"), ("known", "Fully known"), ("partial", "Has a range"), ("unknown", "Nothing known"))), filters.visibility, "")
+            + "</select></label>"
+            + "<label>Rank by<select name='sort'>"
+            + _options(RANKING_SORTS.items(), filters.ranking_sort, "")
             + "</select></label>"
             f"<label>Minimum floor<input name='minFloor' type='number' min='0' max='100' step='0.1' value='{_input_value(filters.minimum_floor)}'></label>"
             f"<label>Minimum ceiling<input name='minCeiling' type='number' min='0' max='100' step='0.1' value='{_input_value(filters.minimum_ceiling)}'></label>"
@@ -725,7 +849,8 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 f"<details><summary>{html.escape(candidate.name)} — {label}; score {_band(item.role_score.score)}</summary>"
                 f"<p>{html.escape(meta_text or 'No additional manager-visible facts captured.')}<br>"
                 f"<b>Scout next:</b> {html.escape(next_scout)}</p>"
-                "<div class='attribute-grid'>" + attribute_cells + "</div></details>"
+                "<div class='attribute-grid'>" + attribute_cells + "</div>"
+                + attribute_sheet(candidate) + "</details>"
             )
         role_name = MVP_CATALOGUE.roles[role_key].name if role_key in MVP_CATALOGUE.roles else "selected role"
         return (
@@ -764,6 +889,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             f"<td>{_position_display(candidate, include_raw_external_positions=include_raw_external_positions)}</td>"
             f"<td>{html.escape(candidate.footedness or '—')}</td>"
             f"<td>{_scouting_knowledge_cell(candidate)}</td>"
+            f"<td>{attribute_sheet(candidate)}</td>"
             "</tr>"
             for candidate in displayed
         )
@@ -779,7 +905,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             )
             + "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions"
             + (" (raw external data)" if include_raw_external_positions else "")
-            + "</th><th>Footedness</th><th>Scouted</th></tr>"
+            + "</th><th>Footedness</th><th>Scouted</th><th>Attributes</th></tr>"
             + rows
             + "</table>"
         )

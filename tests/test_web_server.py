@@ -84,7 +84,7 @@ class SquadWebServerTests(unittest.TestCase):
             fixture_path = _write_complete_fixture(Path(directory))
             port = self._serve(fixture_path)
 
-            for path in ("/", "/squad", "/roles", "/tactics", "/depth", "/scouting", "/data"):
+            for path in ("/", "/squad", "/roles", "/tactics", "/set-pieces", "/depth", "/scouting", "/data"):
                 with self.subTest(path=path):
                     status, body = self._get(port, path)
                     self.assertEqual(status, 200)
@@ -163,6 +163,19 @@ class SquadWebServerTests(unittest.TestCase):
             self.assertIn("Matchday substitutions", body)
             self.assertIn("Bring on (best first)", body)
 
+    def test_set_pieces_page_suggests_assignments_and_names_known_limitations(self) -> None:
+        # This page only needs its own inputs, so it works before the wider
+        # role-scoring extraction is complete.
+        port = self._serve(FIXTURE)
+
+        status, body = self._get(port, "/set-pieces")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Suggested assignments", body)
+        self.assertIn("Direct free kicks", body)
+        self.assertIn("Free Kick Taking is not captured", body)
+        self.assertIn("Long throws", body)
+
     def test_unknown_path_is_not_found(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             fixture_path = _write_complete_fixture(Path(directory))
@@ -240,6 +253,47 @@ class SquadWebServerTests(unittest.TestCase):
 
         self.assertEqual(status, 503)
         self.assertIn("scouting capture is unreadable", body)
+
+    def test_a_position_with_no_role_is_ranked_with_min_median_and_max(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="external-1", name="Ranked Defender", positions=("DC",),
+                    attributes={}, age=20, club="Example FC", scouting_knowledge=9,
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        status, body = self._get(port, "/scouting?view=scouted&position=DC")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Ranked for DC (1)", body)
+        self.assertIn("<th>Median</th>", body)
+        self.assertIn("Sorted by <b>Median (best guess)</b>", body)
+        self.assertIn("Ranked Defender", body)
+
+    def test_the_scouting_page_offers_a_rank_by_control(self) -> None:
+        port = self._serve(FIXTURE)
+        _status, body = self._get(port, "/scouting")
+
+        self.assertIn("name='sort'", body)
+        self.assertIn("Ceiling (best case)", body)
+
+    def test_the_browse_table_shows_each_players_attributes(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="external-1", name="Sheet Player", positions=("ST",),
+                    attributes={"pace": AttributeObservation(Visibility.RANGE, minimum=9, maximum=15)},
+                    age=19, scouting_knowledge=12,
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        _status, body = self._get(port, "/scouting?view=scouted")
+
+        self.assertIn("<th>Attributes</th>", body)
+        self.assertIn("9-15", body)
 
     def test_scouting_refresh_button_runs_the_configured_capture(self) -> None:
         calls = []
@@ -327,7 +381,7 @@ class SquadWebServerTests(unittest.TestCase):
         self.assertIn("Raw Position Striker", shown_body)
         self.assertIn("Raw external positions enabled", shown_body)
         self.assertIn("raw external data", shown_body)
-        self.assertIn("This is position browsing", shown_body)
+        self.assertIn("Ranked for ST", shown_body)
 
     def test_scouting_page_explains_when_an_old_capture_has_no_raw_positions(self) -> None:
         def scouting_provider():
