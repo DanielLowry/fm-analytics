@@ -111,6 +111,44 @@ class JointRoleSystemTests(unittest.TestCase):
         self.assertGreater(dynamic.coherence.score, fixed.coherence.score)
         self.assertGreater(dynamic.score.central, fixed.score.central)
 
+    def test_every_permitted_role_version_is_considered_before_players_are_assigned(self) -> None:
+        slots = tuple(
+            TacticSlot(key=f"slot-{index}", position=position, role_key="generic")
+            for index, position in enumerate(POSITIONS[:9])
+        ) + (
+            TacticSlot("slot-9", "ST", "creator", alternate_role_keys=("runner",)),
+            TacticSlot("slot-10", "ST", "creator", alternate_role_keys=("runner",)),
+        )
+        shaped = TacticDefinition(
+            key="two-role-choices", name="Two role choices", formation="test",
+            mentality="Balanced", instructions=(), slots=slots,
+            catalogue_version=VERSION,
+            system_requirements=TacticSystemRequirements(minimums={"runners": 2.0}),
+        )
+        forwards = [
+            PlayerSelectionInput(
+                id=str(index), name=f"Forward {index}", positions=("ST",),
+                attributes={"creator": observation(20), "runner": observation(8)},
+                availability="available", injured=False, suspended=False,
+                condition_percent=100, match_fitness_percent=100,
+            )
+            for index in (10, 11)
+        ]
+        catalogue = FootballCatalogue(
+            version=VERSION,
+            roles={role.key: role for role in (GENERIC, CREATOR, RUNNER)},
+            tactics={shaped.key: shaped},
+        )
+        result = evaluate_tactic(shaped, players()[:9] + forwards, catalogue)
+
+        selected_roles = tuple(
+            assignment.intrinsic_role_score.role_key
+            for assignment in result.assignments
+            if assignment.slot.position == "ST"
+        )
+        self.assertEqual(selected_roles, ("runner", "runner"))
+        self.assertEqual(result.coherence.score, 100)
+
     def test_creator_redundancy_is_an_explicit_coherence_penalty(self) -> None:
         requirements = TacticSystemRequirements(maximum_creators=1)
         shaped = TacticDefinition(

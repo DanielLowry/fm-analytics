@@ -174,6 +174,10 @@ _STYLE = """
   table { border-collapse: collapse; width: 100%; margin: 0.75rem 0 1.5rem; font-size: 0.9rem; }
   th, td { text-align: left; padding: 0.35rem 0.6rem; border-bottom: 1px solid #e5e5e5; }
   th { background: #f0f2f5; }
+  th.sort-header { cursor: pointer; user-select: none; }
+  th.sort-header::after { content: ' \\2195'; color: #9aa5b1; }
+  th[aria-sort=ascending]::after { content: ' \\25B2'; color: inherit; }
+  th[aria-sort=descending]::after { content: ' \\25BC'; color: inherit; }
   .muted { color: #666; }
   .warn { color: #9a4a00; }
   .error { color: #a30000; font-weight: 600; }
@@ -335,6 +339,97 @@ def _band(value) -> str:
     if value.lower == value.upper:
         return f"{value.central:.1f}"
     return f"{value.central:.1f} ({value.lower:.1f}–{value.upper:.1f})"
+
+
+def role_score_cells(scores) -> str:
+    """The three best-role score cells, shared by the Squad roster and a player's page.
+
+    Each cell carries ``data-sort`` (the central score, empty when there is no
+    eligible role) so a ``table.sortable`` can order by the number, not the text.
+    """
+    def sort_attr(value) -> str:
+        return f" data-sort='{value.central:.4f}'" if value is not None else ""
+
+    best = scores.attribute_based
+    if best is not None:
+        attribute = f"{html.escape(best.role_name)} ({_band(best.role_score.score)})"
+    else:
+        attribute = "<span class='muted'>no eligible role</span>"
+    in_position = scores.in_position
+    if in_position is not None:
+        familiarity = (
+            f"{in_position.position} {in_position.familiarity_rating}/20"
+            if in_position.familiarity_known
+            else f"{in_position.position} unknown (assumed {in_position.familiarity_rating}/20)"
+        )
+        in_position_text = (
+            f"{html.escape(in_position.role_name)} ({html.escape(familiarity)})<br>"
+            f"<b>{_band(in_position.position_adjusted_score)}</b>"
+        )
+    else:
+        in_position_text = "<span class='muted'>no eligible role</span>"
+    selection = scores.selection
+    if selection is not None:
+        selection_text = (
+            f"{html.escape(selection.role_name)} ({selection.position} {selection.familiarity_rating}/20)<br>"
+            f"<b>{_band(selection.selection_score)}</b>"
+        )
+    else:
+        selection_text = "<span class='muted'>not selectable today</span>"
+    return (
+        f"<td{sort_attr(best.role_score.score if best else None)}>{attribute}</td>"
+        f"<td{sort_attr(in_position.position_adjusted_score if in_position else None)}>{in_position_text}</td>"
+        f"<td{sort_attr(selection.selection_score if selection else None)}>{selection_text}</td>"
+    )
+
+
+_SORTABLE_TABLE_SCRIPT = """
+<script>
+(function () {
+  // Client-side column sort for tables marked class="sortable". A cell's
+  // data-sort attribute, when present, is the sort value (numbers compare
+  // numerically); otherwise its text is used. Empty values always sort last.
+  document.querySelectorAll('table.sortable').forEach(function (table) {
+    var headers = table.querySelectorAll('tr:first-child > th');
+    headers.forEach(function (th, column) {
+      th.classList.add('sort-header');
+      th.tabIndex = 0;
+      function sort() {
+        var descending = th.getAttribute('aria-sort') === 'ascending';
+        headers.forEach(function (other) { other.removeAttribute('aria-sort'); });
+        th.setAttribute('aria-sort', descending ? 'descending' : 'ascending');
+        var body = table.tBodies[0];
+        var rows = Array.prototype.slice.call(body.rows).filter(function (row) {
+          return row.querySelector('td');
+        });
+        function value(row) {
+          var cell = row.cells[column];
+          if (!cell) return '';
+          return cell.hasAttribute('data-sort') ? cell.getAttribute('data-sort') : cell.textContent.trim();
+        }
+        function compare(a, b) {
+          var x = value(a), y = value(b);
+          if (x === '' && y === '') return 0;
+          if (x === '') return 1;
+          if (y === '') return -1;
+          var nx = parseFloat(x), ny = parseFloat(y);
+          var result = (!isNaN(nx) && !isNaN(ny) && /^[-+]?[0-9.]/.test(x) && /^[-+]?[0-9.]/.test(y))
+            ? nx - ny : x.localeCompare(y, undefined, {sensitivity: 'base'});
+          return descending ? -result : result;
+        }
+        var keyed = rows.map(function (row, index) { return [row, index]; });
+        keyed.sort(function (a, b) { return compare(a[0], b[0]) || a[1] - b[1]; });
+        keyed.forEach(function (pair) { body.appendChild(pair[0]); });
+      }
+      th.addEventListener('click', sort);
+      th.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); sort(); }
+      });
+    });
+  });
+})();
+</script>
+"""
 
 
 def _injury_risk_count(report: WeaknessReport) -> int:

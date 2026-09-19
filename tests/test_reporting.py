@@ -7,6 +7,7 @@ from fm_analytics.cli import load_fixture
 from fm_analytics.domain import AttributeObservation, Visibility
 from fm_analytics.reporting import (
     build_recommendation_bundle,
+    build_squad_role_matrix,
     has_complete_role_attributes,
     required_role_attributes,
     validate_recommendation_snapshot,
@@ -71,6 +72,19 @@ class ReportingTests(unittest.TestCase):
         self.assertEqual(bundle.squad_depth.tactic_keys, tuple(
             evaluation.tactic.key for evaluation in bundle.recommendation.evaluations
         ))
+
+    def test_squad_role_matrix_does_not_evaluate_tactics(self) -> None:
+        from unittest.mock import patch
+
+        _game, squad = _complete_owned_snapshot()
+        with patch(
+            "fm_analytics.reporting.recommend_tactic_effective_and_potential",
+            side_effect=AssertionError("the roster must not optimise tactics"),
+        ):
+            matrix = build_squad_role_matrix(squad)
+
+        self.assertTrue(matrix.role_rankings)
+        self.assertEqual(set(matrix.player_profiles), {player.id for player in squad.players})
 
     def test_build_recommendation_bundle_and_cli_agree_on_the_selected_tactic(self) -> None:
         # Guards against the CLI and a future web view silently drifting:

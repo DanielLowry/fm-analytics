@@ -172,7 +172,6 @@ class SystemFitPolicy:
     coherence_weight: float = 0.25
     instruction_weight: float = 0.15
     weakest_component_weight: float = 0.20
-    role_assignment_beam_width: int = 512
 
     def __post_init__(self) -> None:
         if not self.version:
@@ -182,8 +181,6 @@ class SystemFitPolicy:
             raise ValueError("system-fit component weights must be finite and total above zero")
         if not isfinite(self.weakest_component_weight) or not 0 <= self.weakest_component_weight <= 1:
             raise ValueError("weakest component weight must be finite and between 0 and 1")
-        if not isinstance(self.role_assignment_beam_width, int) or self.role_assignment_beam_width < 1:
-            raise ValueError("role assignment beam width must be a positive integer")
 
 
 @dataclass(frozen=True)
@@ -318,11 +315,4 @@ class _CandidateAssignment:
 @dataclass(frozen=True)
 class _AssignmentState:
     total: float
-    assignments: tuple[_CandidateAssignment, ...]
-
-
-@dataclass(frozen=True)
-class _JointAssignmentState:
-    total: float
-    player_indexes: frozenset[int]
     assignments: tuple[_CandidateAssignment, ...]

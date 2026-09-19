@@ -40,31 +40,29 @@ check the trait distance the same way rather than by eye; it's an easy
 mistake to make a system-identity role "flexible" because two roles sound
 similar in name.
 
-## `_best_joint_role_state` (`xi_selection.py:445`) — read before editing
+## Role versions and player assignment — read before editing
 
-This is a beam search: it fills tactic slots one at a time (fewest
-candidates first), and after each slot keeps only the best
-`role_assignment_beam_width` partial teams by individual player/role score,
-discarding the rest.
+`_best_role_version` first enumerates every role combination that a tactic
+explicitly permits. This is deliberately small: slots are pinned by default,
+and a slot only has alternatives named in its `roles` array. Each complete
+role version receives its own team-coherence and instruction assessment.
 
-**The last slot is handled differently, on purpose.** A flat "keep the best
-scorers" cut at the final slot would always keep whichever role scores best
-*individually* — but the whole reason this search is "joint" rather than
-per-slot-independent is to let a lower-scoring role choice win because it
-makes the *team* better (covers a missing runner, adds width, satisfies an
-instruction). So the final step buckets survivors by which role they'd use
-in that slot and keeps the best few *per role*, not overall, before scoring
-team coherence and instructions. If you flatten that back to a single
-top-K cut, tests still pass at first glance and the code gets simpler and
-faster — and then the optimiser silently stops making that trade-off. See
-`tests/test_joint_role_system.py::test_joint_search_can_trade_individual_role_fit_for_system_coherence`,
-which exists specifically to catch this regression.
+For a fixed role version, a player's score for a slot is independent of the
+other selected players. The remaining constraint is simply that a player
+cannot fill two slots. `_maximum_total_assignment` therefore uses an exact
+assignment solver rather than enumerating XIs or keeping a beam of partial
+ones. `_best_full_fit_assignment` repeats that solve at each possible weakest
+slot score, which preserves the mean/weakest-slot blend exactly.
 
-If you need to make this faster, profile first — the last time this got
-slow (a squad taking ~60s to score) it was this exact function, and the fix
-that didn't break the test above still left real headroom (repeatedly
-re-sorting the full candidate list at every step, not just once at the
-end).
+Do not collapse this into greedy "best player per slot" selection: it must
+still resolve the case where the same player is best at two jobs. Do not
+discard role versions before their system score is assessed either; see
+`tests/test_joint_role_system.py::test_joint_search_can_trade_individual_role_fit_for_system_coherence`.
+
+This approach is exact only while team-system scoring depends on selected
+roles, not on particular player pairings. If a future feature adds a
+player-A-with-player-B interaction, revisit the optimiser rather than
+silently treating it as independent.
 
 ## Everything else in here
 

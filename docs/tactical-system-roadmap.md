@@ -230,9 +230,9 @@ These are not separate football hypotheses, but make the model safer to evolve.
   are still in `tactical_system.py`, not catalogue data.
 - Treat role and duty as independently structured data where the source data
   permits it, rather than relying only on combined keys such as `BPD-D`.
-- Replace or benchmark the bounded role/player beam search with an exact or
-  better-bounded optimiser when the catalogue grows; retain several
-  near-optimal alternatives for explanation.
+- Keep the exact role-version and player-assignment optimiser benchmarked as
+  the catalogue grows; retain several near-optimal alternatives for
+  explanation.
 - Explain selected roles, rejected alternatives, capability shortfalls and the
   marginal effect of likely swaps in the UI.
 - Make bench, depth and recruitment analysis evaluate permitted role

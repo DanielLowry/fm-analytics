@@ -23,7 +23,9 @@ from fm_analytics.analytics import (
     score_role,
 )
 from fm_analytics.domain.models import Visibility
+from fm_analytics.reporting import build_player_role_scores
 from fm_analytics.web.rendering import (
+    role_score_cells,
     _MAX_SCOUTING_ROWS,
     _label,
     _scouting_knowledge_cell,
@@ -146,16 +148,29 @@ def squad_player_report(player, catalogue) -> str:
         ("Squad status", contract.squad_status if contract else None),
         ("Transfer status", contract.transfer_status if contract else None),
     ]
+    scores = build_player_role_scores(player, catalogue=catalogue)
+    headline = (
+        "<h2>Best-role scores</h2>"
+        "<p class='muted'>The same three scores, calculated the same way, as the Squad roster: "
+        "<b>attribute-based</b> (attributes and role fit only), <b>in-position</b> (adds positional "
+        "familiarity) and <b>today’s selection score</b> (adds match readiness). "
+        "Each shows the player's strongest role by that measure.</p>"
+        "<table><tr><th>Attribute-based role score (best role)</th>"
+        "<th>In-position role score (best role)</th>"
+        "<th>Today’s selection score (best role)</th></tr>"
+        f"<tr>{role_score_cells(scores)}</tr></table>"
+    )
     return _player_detail_report(
         player.name, player.attributes, player.positions, player.position_familiarity,
         facts, catalogue, back_href="/squad", back_label="Back to squad",
         familiarity_source="the captured 0–20 position familiarity rating",
+        headline=headline,
     )
 
 
 def _player_detail_report(
     name, attributes, player_positions, familiarity, facts, catalogue, *,
-    back_href: str, back_label: str, familiarity_source: str,
+    back_href: str, back_label: str, familiarity_source: str, headline: str = "",
 ) -> str:
     """Render every attribute and catalogue role for a scouted or owned player."""
     policy = FamiliarityPolicy()
@@ -179,6 +194,7 @@ def _player_detail_report(
     return (
         f"<p><a href='{html.escape(back_href, quote=True)}'>← {html.escape(back_label)}</a></p>"
         "<h2>Player information</h2><table class='report-facts'>" + fact_rows + "</table>"
+        + headline +
         "<h2>All captured attributes</h2>"
         "<p class='muted'>Values shown as a range retain the uncertainty reported by scouting.</p>"
         + attributes_html

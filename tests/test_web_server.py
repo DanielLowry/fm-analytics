@@ -110,14 +110,23 @@ class SquadWebServerTests(unittest.TestCase):
 
             self.assertIn("href='/squad/player/player-1'", squad)
             self.assertIn("Attribute-based role score", squad)
-            self.assertIn("Best in-position role", squad)
-            self.assertIn("Best role today", squad)
+            self.assertIn("In-position role score (best role)", squad)
+            self.assertIn("Today’s selection score (best role)", squad)
             self.assertIn("unknown (assumed 10/20)", squad)
             self.assertEqual(status, 200)
             self.assertIn("All captured attributes", report)
             self.assertIn("Position score summary", report)
             self.assertIn("Position familiarity", report)
             self.assertIn("All attribute-based role scores by position", report)
+            self.assertIn("Best-role scores", report)
+            self.assertIn("Today’s selection score (best role)", report)
+            self.assertIn("<table class='sortable'>", squad)
+            self.assertIn("data-sort='", squad)
+            # The player page's three scores are the roster row's three scores.
+            roster_row = squad.split("href='/squad/player/player-1'")[1].split("</tr>")[0]
+            headline = report.split("Best-role scores")[1].split("</table>")[0]
+            for cell in roster_row.split("<td")[-3:]:
+                self.assertIn(cell.replace("</td>", ""), headline)
 
     def test_scored_pages_use_consistent_score_names(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -603,6 +612,17 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         # There are twelve tactics in the current catalogue; each gets its
         # own collapsible role/fill breakdown, not just the winner's.
         self.assertGreaterEqual(body.count("<details>"), 12)
+
+    def test_xi_rows_follow_formation_order_from_goalkeeper_to_attack(self) -> None:
+        status, body = self._get("/tactics")
+
+        self.assertEqual(status, 200)
+        first_tactic = body.split("<details>", 1)[1].split("</details>", 1)[0]
+        assignment_table = first_tactic.split("<table>", 1)[1]
+        self.assertLess(
+            assignment_table.index("<td>GK</td>"),
+            assignment_table.index("<td>ST</td>"),
+        )
 
     def test_depth_page_leads_with_conclusions_and_a_compact_table(self) -> None:
         status, body = self._get("/depth")

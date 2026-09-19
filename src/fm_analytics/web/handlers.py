@@ -31,6 +31,8 @@ from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.domain import Squad
 from fm_analytics.reporting import (
     RecommendationBundle,
+    build_player_role_scores,
+    build_squad_role_matrix,
     has_complete_role_attributes,
     required_role_attributes,
     validate_recommendation_snapshot,
@@ -47,6 +49,7 @@ from fm_analytics.web.rendering import (
     _MAX_SCOUTING_ROWS,
     _SCOUTING_LIVE_FILTER_SCRIPT,
     ScoutingPoolNotBuilt,
+    _SORTABLE_TABLE_SCRIPT,
     _band,
     _error_page,
     _injury_risk_count,
@@ -59,6 +62,7 @@ from fm_analytics.web.rendering import (
     _raw_position_notice,
     _pool_not_built_page,
     _refresh_notice,
+    role_score_cells,
     _scouting_knowledge_cell,
     _scouting_tab_nav,
     _scouting_filters,
@@ -167,41 +171,21 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             return None
 
     def _squad_page(self, path: str, _query: dict[str, list[str]]) -> None:
-        bundle = self._bundle_or_error(path, "Squad")
-        if bundle is None:
+        try:
+            game, squad = self.server.read()  # type: ignore[attr-defined]
+            validate_recommendation_snapshot(game, squad)
+            if not has_complete_role_attributes(squad):
+                raise ValueError(
+                    "This source has not supplied every role-scoring attribute yet; "
+                    "see the Data page for exactly what is missing."
+                )
+            role_matrix = build_squad_role_matrix(squad)
+        except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
+            self._send(_error_page("Squad", str(exc), path), HTTPStatus.SERVICE_UNAVAILABLE)
             return
         rows = []
-        for player in bundle.squad.players:
-            profile = bundle.role_matrix.player_profiles.get(player.id)
-            best = profile.best if profile else None
-            in_position = best_position_adjusted_role(
-                PlayerSelectionInput.from_player(player), MVP_CATALOGUE
-            )
-            selection = best_selection_adjusted_role(
-                PlayerSelectionInput.from_player(player), MVP_CATALOGUE
-            )
-            best_text = (
-                f"{html.escape(best.role_name)} ({_band(best.role_score.score)})"
-                if best is not None
-                else "<span class='muted'>no eligible role</span>"
-            )
-            in_position_text = "<span class='muted'>no eligible role</span>"
-            if in_position is not None:
-                familiarity = (
-                    f"{in_position.position} {in_position.familiarity_rating}/20"
-                    if in_position.familiarity_known
-                    else f"{in_position.position} unknown (assumed {in_position.familiarity_rating}/20)"
-                )
-                in_position_text = (
-                    f"{html.escape(in_position.role_name)} ({html.escape(familiarity)})<br>"
-                    f"<b>{_band(in_position.position_adjusted_score)}</b>"
-                )
-            selection_text = "<span class='muted'>not selectable today</span>"
-            if selection is not None:
-                selection_text = (
-                    f"{html.escape(selection.role_name)} ({selection.position} {selection.familiarity_rating}/20)<br>"
-                    f"<b>{_band(selection.selection_score)}</b>"
-                )
+        for player in squad.players:
+            scores = build_player_role_scores(player, role_matrix)
             rows.append(
                 "<tr>"
                 f"<td>{squad_player_link(player)}</td>"
@@ -209,9 +193,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 f"<td>{player.condition_percent if player.condition_percent is not None else '?'}%</td>"
                 f"<td>{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
                 f"<td>{html.escape(player.availability)}</td>"
-                f"<td>{best_text}</td>"
-                f"<td>{in_position_text}</td>"
-                f"<td>{selection_text}</td>"
+                f"{role_score_cells(scores)}"
                 "</tr>"
             )
         body = (
@@ -220,12 +202,16 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "<b>In-position role score</b> also applies positional familiarity. "
             "<b>Today’s selection score</b> then applies match readiness, using the same calculation as Tactics. "
             "Each column shows the player's strongest role by that measure.</p>"
-            "<table><tr><th>Player</th><th>Positions</th><th>Condition</th>"
-            "<th>Match fitness</th><th>Availability</th><th>Best attribute-based role</th>"
-            "<th>Best in-position role</th><th>Best role today</th></tr>"
+            "<p class='muted'>Click a column heading to sort by it.</p>"
+            "<table class='sortable'><tr><th>Player</th><th>Positions</th><th>Condition</th>"
+            "<th>Match fitness</th><th>Availability</th>"
+            "<th>Attribute-based role score (best role)</th>"
+            "<th>In-position role score (best role)</th>"
+            "<th>Today’s selection score (best role)</th></tr>"
             + "".join(rows)
             + "</table>"
-            + self._other_teams_section(bundle.squad)
+            + self._other_teams_section(squad)
+            + _SORTABLE_TABLE_SCRIPT
         )
         self._send(_layout("Squad", path, body))
 
@@ -377,7 +363,10 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 f"<td>{_band(assignment.in_position_score)}</td>"
                 f"<td><b>{_band(assignment.selection_score)}</b></td>"
                 "</tr>"
-                for assignment in sorted(evaluation.assignments, key=lambda item: item.slot.key)
+                # XI assignments retain the catalogue's formation order:
+                # goalkeeper, defence, midfield, then attack. Sorting by the
+                # slot label made a right-sided role appear before the keeper.
+                for assignment in evaluation.assignments
             )
             unfilled_note = (
                 "<p class='warn'>Unfilled: "

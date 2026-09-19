@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import product
 from typing import Sequence
 
 from fm_analytics.analytics.catalogue import (
@@ -28,10 +29,7 @@ from fm_analytics.analytics.xi_models import (
     TrainingTarget,
     _AssignmentState,
     _CandidateAssignment,
-    _JointAssignmentState,
 )
-
-
 
 
 def evaluate_tactic(
@@ -55,40 +53,21 @@ def evaluate_tactic(
         tactic, ordered_players, catalogue, readiness_policy, familiarity_policy
     )
     full_mask = (1 << len(tactic.slots)) - 1
-    has_role_choices = any(
-        len(catalogue.role_keys_for_slot(slot)) > 1 for slot in tactic.slots
-    )
-    if has_role_choices:
-        best = _best_joint_role_state(
-            tactic, choices, catalogue, fit_policy, system_policy
-        )
-        best_mask = sum(1 << choice.slot_index for choice in best.assignments)
-    else:
-        states = _assignment_states(choices)
-        best_mask, best = min(
-            states.items(),
-            key=lambda item: (
-                -item[0].bit_count(),
-                -item[1].total,
-                _state_signature(item[1]),
-            ),
-        )
-        if best_mask == full_mask and fit_policy.weakest_slot_weight:
-            best = _best_fit_state(choices, full_mask, fit_policy, best)
-    ordered_assignments = tuple(
-        choice.assignment
-        for choice in sorted(best.assignments, key=lambda item: item.slot_index)
-    )
+    (
+        best_mask,
+        _best_state,
+        ordered_assignments,
+        mean_score,
+        weakest_score,
+        xi_score,
+        coherence,
+        instruction_suitability,
+        fit_score,
+    ) = _best_role_version(tactic, choices, catalogue, fit_policy, system_policy)
     unfilled = tuple(
         slot
         for index, slot in enumerate(tactic.slots)
         if not best_mask & (1 << index)
-    )
-    mean_score, weakest_score, xi_score = _tactic_fit(
-        ordered_assignments, len(tactic.slots), fit_policy
-    )
-    coherence, instruction_suitability, fit_score = _system_fit(
-        tactic, ordered_assignments, catalogue, xi_score, system_policy
     )
     weakest_value = weakest_score.central
     weakest_slot_keys = tuple(
@@ -501,12 +480,6 @@ def _familiarity(
     return policy.multiplier(rating), tuple(warnings)
 
 
-def _state_is_better(candidate: _AssignmentState, current: _AssignmentState) -> bool:
-    if candidate.total != current.total:
-        return candidate.total > current.total
-    return _state_signature(candidate) < _state_signature(current)
-
-
 def _state_signature(state: _AssignmentState) -> tuple[tuple[int, str, str], ...]:
     return tuple(
         (
@@ -518,48 +491,156 @@ def _state_signature(state: _AssignmentState) -> tuple[tuple[int, str, str], ...
     )
 
 
-def _assignment_states(
+@dataclass(frozen=True)
+class _RoleVersionEvaluation:
+    mask: int
+    state: _AssignmentState
+    assignments: tuple[SlotAssignment, ...]
+    mean_score: ScoreBand
+    weakest_score: ScoreBand
+    xi_score: ScoreBand
+    coherence: SystemAssessment
+    instruction_suitability: SystemAssessment
+    score: ScoreBand
+
+
+def _best_role_version(
+    tactic: TacticDefinition,
     choices: tuple[tuple[_CandidateAssignment, ...], ...],
-    *,
-    minimum_score: float = 0,
-) -> dict[int, _AssignmentState]:
-    states: dict[int, _AssignmentState] = {0: _AssignmentState(0, ())}
-    for player_choices in choices:
-        next_states = dict(states)
-        for mask, state in states.items():
-            for choice in player_choices:
-                score = choice.assignment.selection_score.central
-                if score < minimum_score:
-                    continue
-                bit = 1 << choice.slot_index
-                if mask & bit:
-                    continue
-                candidate = _AssignmentState(
-                    total=round(state.total + score, 6),
-                    assignments=state.assignments + (choice,),
-                )
-                next_mask = mask | bit
-                current = next_states.get(next_mask)
-                if current is None or _state_is_better(candidate, current):
-                    next_states[next_mask] = candidate
-        states = next_states
-    return states
+    catalogue: FootballCatalogue,
+    fit_policy: TacticFitPolicy,
+    system_policy: SystemFitPolicy,
+) -> tuple[
+    int,
+    _AssignmentState,
+    tuple[SlotAssignment, ...],
+    ScoreBand,
+    ScoreBand,
+    ScoreBand,
+    SystemAssessment,
+    SystemAssessment,
+    ScoreBand,
+]:
+    """Evaluate every permitted role version, then solve its XI exactly.
+
+    A tactic's system and instruction scores are determined by its roles, not
+    by the identities of the players filling those roles.  We can therefore
+    enumerate the small set of explicitly permitted role versions first. For
+    each one, player selection is a standard one-player-per-slot assignment:
+    no partial XI is discarded just because its individual score is lower
+    before its complete role system has been assessed.
+    """
+    full_mask = (1 << len(tactic.slots)) - 1
+    best: _RoleVersionEvaluation | None = None
+    role_options = tuple(catalogue.role_keys_for_slot(slot) for slot in tactic.slots)
+    for role_keys in product(*role_options):
+        version_choices = _choices_for_role_version(choices, role_keys)
+        state = _best_assignment_for_role_version(
+            version_choices, full_mask, fit_policy
+        )
+        mask = sum(1 << choice.slot_index for choice in state.assignments)
+        assignments = tuple(
+            choice.assignment
+            for choice in sorted(state.assignments, key=lambda item: item.slot_index)
+        )
+        mean_score, weakest_score, xi_score = _tactic_fit(
+            assignments, len(tactic.slots), fit_policy
+        )
+        coherence, instruction_suitability, score = _system_fit(
+            tactic, assignments, catalogue, xi_score, system_policy
+        )
+        candidate = _RoleVersionEvaluation(
+            mask=mask,
+            state=state,
+            assignments=assignments,
+            mean_score=mean_score,
+            weakest_score=weakest_score,
+            xi_score=xi_score,
+            coherence=coherence,
+            instruction_suitability=instruction_suitability,
+            score=score,
+        )
+        if (
+            best is None
+            or _role_version_key(candidate, full_mask)
+            < _role_version_key(best, full_mask)
+        ):
+            best = candidate
+
+    if best is None:  # A tactic must have at least one pinned role per slot.
+        raise ValueError(f"tactic {tactic.key!r} has no permitted role versions")
+    return (
+        best.mask,
+        best.state,
+        best.assignments,
+        best.mean_score,
+        best.weakest_score,
+        best.xi_score,
+        best.coherence,
+        best.instruction_suitability,
+        best.score,
+    )
 
 
-def _best_fit_state(
+def _role_version_key(
+    candidate: _RoleVersionEvaluation,
+    full_mask: int,
+) -> tuple[bool, int, float, float, tuple[tuple[int, str, str], ...]]:
+    return (
+        candidate.mask != full_mask,
+        -candidate.mask.bit_count(),
+        -candidate.score.central,
+        -candidate.xi_score.central,
+        _state_signature(candidate.state),
+    )
+
+
+def _choices_for_role_version(
+    choices: tuple[tuple[_CandidateAssignment, ...], ...],
+    role_keys: tuple[str, ...],
+) -> tuple[tuple[_CandidateAssignment, ...], ...]:
+    return tuple(
+        tuple(
+            choice
+            for choice in player_choices
+            if choice.assignment.intrinsic_role_score.role_key == role_keys[choice.slot_index]
+        )
+        for player_choices in choices
+    )
+
+
+def _best_assignment_for_role_version(
     choices: tuple[tuple[_CandidateAssignment, ...], ...],
     full_mask: int,
     policy: TacticFitPolicy,
-    mean_best: _AssignmentState,
 ) -> _AssignmentState:
-    """Optimize the central mean/weakest blend over every feasible XI.
+    """Return the exact best full XI, or the best explainable partial XI."""
+    full = _best_full_fit_assignment(choices, full_mask, policy)
+    if full is not None:
+        return full
+    return _best_partial_assignment(
+        choices, slot_count=full_mask.bit_count()
+    )[1]
 
-    For each distinct candidate score as a possible minimum, the max-total
-    assignment under that floor dominates all other assignments with that
-    minimum or higher. This is exact for the linear mean/weakest objective.
+
+def _best_full_fit_assignment(
+    choices: tuple[tuple[_CandidateAssignment, ...], ...],
+    full_mask: int,
+    policy: TacticFitPolicy,
+) -> _AssignmentState | None:
+    """Optimize the mean/weakest blend without enumerating full XIs.
+
+    For each possible weakest score, an exact assignment solver finds the
+    highest-total XI that clears it. That candidate dominates every other XI
+    with the same or a higher weakest score, so this covers the full objective
+    without listing player combinations.
     """
-    best = mean_best
     slot_count = full_mask.bit_count()
+    best = _maximum_total_assignment(
+        choices, slot_count=slot_count, minimum_score=0
+    )
+    if best is None:
+        return None
 
     def key(state: _AssignmentState) -> tuple[float, float, tuple[tuple[int, str, str], ...]]:
         weakest = min(
@@ -580,7 +661,9 @@ def _best_fit_state(
         if choice.assignment.selection_score.central > 0
     })
     for threshold in thresholds:
-        candidate = _assignment_states(choices, minimum_score=threshold).get(full_mask)
+        candidate = _maximum_total_assignment(
+            choices, slot_count=slot_count, minimum_score=threshold
+        )
         if candidate is None:
             break
         candidate_key = key(candidate)
@@ -589,116 +672,214 @@ def _best_fit_state(
     return best
 
 
-def _best_joint_role_state(
-    tactic: TacticDefinition,
+def _maximum_total_assignment(
     choices: tuple[tuple[_CandidateAssignment, ...], ...],
-    catalogue: FootballCatalogue,
-    fit_policy: TacticFitPolicy,
-    system_policy: SystemFitPolicy,
-) -> _AssignmentState:
-    """Bounded joint search across slots, players, and allowed roles.
+    *,
+    slot_count: int,
+    minimum_score: float,
+) -> _AssignmentState | None:
+    """Find the highest-total legal full XI above a score floor.
 
-    The old dynamic programme could retain only one state for a slot mask,
-    which is valid when every slot has one role but throws away meaningful
-    alternatives once role interactions matter.  This deterministic beam
-    keeps complete player/role combinations alive until their system score can
-    be evaluated.  The bound is explicit in the policy and should be measured
-    again before catalogue breadth grows materially.
+    The Hungarian assignment algorithm solves the fixed-role problem directly:
+    every slot gets one player, and no player can be selected twice.  It is
+    polynomial in the small player/slot score table rather than exponential in
+    the number of possible XIs.
     """
-
-    by_slot: list[tuple[_CandidateAssignment, ...]] = []
-    for slot_index in range(len(tactic.slots)):
-        candidates = tuple(
-            choice
-            for player_choices in choices
-            for choice in player_choices
-            if choice.slot_index == slot_index
-        )
-        by_slot.append(candidates)
-    slot_order = tuple(sorted(range(len(tactic.slots)), key=lambda index: (len(by_slot[index]), index)))
-    states = (_JointAssignmentState(0.0, frozenset(), ()),)
-    for step, slot_index in enumerate(slot_order):
-        expanded: list[_JointAssignmentState] = list(states)  # Allow an explainable partial XI.
-        for state in states:
-            for choice in by_slot[slot_index]:
-                if choice.player_index in state.player_indexes:
-                    continue
-                expanded.append(
-                    _JointAssignmentState(
-                        total=round(state.total + choice.assignment.selection_score.central, 6),
-                        player_indexes=state.player_indexes | {choice.player_index},
-                        assignments=state.assignments + (choice,),
-                    )
-                )
-        ranked = sorted(
-            expanded,
-            key=lambda state: (
-                -len(state.assignments),
-                -state.total,
-                -min(
-                    (choice.assignment.selection_score.central for choice in state.assignments),
-                    default=0.0,
-                ),
-                _joint_state_signature(state),
-            ),
-        )
-        if step == len(slot_order) - 1:
-            # A flat top-K cut here would keep only whichever role scores
-            # best on individual fit, discarding an alternate role for this
-            # same slot that a downstream coherence/instruction check might
-            # actually prefer (e.g. a "runner" over a "creator" up front).
-            # Keep the best few states for *each* role choice at this slot
-            # instead, so that trade-off is still visible when we score
-            # coherence below, without carrying forward every combination.
-            grouped: dict[str | None, list[_JointAssignmentState]] = {}
-            for state in ranked:
-                role_key = next(
-                    (
-                        choice.assignment.intrinsic_role_score.role_key
-                        for choice in state.assignments
-                        if choice.slot_index == slot_index
-                    ),
-                    None,
-                )
-                grouped.setdefault(role_key, []).append(state)
-            states = tuple(
-                state
-                for group in grouped.values()
-                for state in group[: system_policy.role_assignment_beam_width]
-            )
-        else:
-            states = tuple(ranked[: system_policy.role_assignment_beam_width])
-
-    def key(state: _JointAssignmentState) -> tuple[bool, int, float, float, tuple[tuple[int, str, str], ...]]:
-        assignments = tuple(
-            choice.assignment
-            for choice in sorted(state.assignments, key=lambda item: item.slot_index)
-        )
-        _, _, xi_score = _tactic_fit(assignments, len(tactic.slots), fit_policy)
-        _, _, overall = _system_fit(tactic, assignments, catalogue, xi_score, system_policy)
-        return (
-            len(assignments) != len(tactic.slots),
-            -len(assignments),
-            -overall.central,
-            -xi_score.central,
-            _joint_state_signature(state),
-        )
-
-    best = min(states, key=key)
-    return _AssignmentState(best.total, best.assignments)
-
-
-def _joint_state_signature(
-    state: _JointAssignmentState,
-) -> tuple[tuple[int, str, str], ...]:
-    return tuple(
-        (
-            choice.slot_index,
-            choice.assignment.player_id,
-            choice.assignment.intrinsic_role_score.role_key,
-        )
-        for choice in sorted(state.assignments, key=lambda item: item.slot_index)
+    if slot_count == 0 or len(choices) < slot_count:
+        return None
+    by_slot = _choices_by_slot(
+        choices, slot_count=slot_count, minimum_score=minimum_score
     )
+    if any(not candidates for candidates in by_slot):
+        return None
+
+    highest_score = max(
+        choice.assignment.selection_score.central
+        for candidates in by_slot
+        for choice in candidates.values()
+    )
+    costs: list[list[float | None]] = [
+        [
+            (
+                round(
+                    highest_score
+                    - candidates[player_index].assignment.selection_score.central,
+                    6,
+                )
+                if player_index in candidates
+                else None
+            )
+            for player_index in range(len(choices))
+        ]
+        for candidates in by_slot
+    ]
+    player_indexes = _minimum_cost_full_assignment(costs)
+    if player_indexes is None:
+        return None
+    assignments = tuple(
+        by_slot[slot_index][player_index]
+        for slot_index, player_index in enumerate(player_indexes)
+    )
+    return _AssignmentState(
+        total=round(
+            sum(choice.assignment.selection_score.central for choice in assignments), 6
+        ),
+        assignments=assignments,
+    )
+
+
+def _best_partial_assignment(
+    choices: tuple[tuple[_CandidateAssignment, ...], ...],
+    *,
+    slot_count: int,
+) -> tuple[int, _AssignmentState]:
+    """Find the best incomplete XI when a legal XI cannot be filled.
+
+    Empty dummy assignments let the same solver maximize filled slots first,
+    then player score. This keeps incomplete tactic results useful without
+    returning to exponential partial-XI enumeration.
+    """
+    by_slot = _choices_by_slot(choices, slot_count=slot_count, minimum_score=0)
+    player_count = len(choices)
+    best_possible_total = sum(
+        max(
+            (choice.assignment.selection_score.central for choice in candidates.values()),
+            default=0.0,
+        )
+        for candidates in by_slot
+    )
+    filled_slot_bonus = best_possible_total + 1
+    highest_weight = filled_slot_bonus + max(
+        (
+            choice.assignment.selection_score.central
+            for candidates in by_slot
+            for choice in candidates.values()
+        ),
+        default=0.0,
+    )
+    # Every row can use any dummy column. The number of dummies is the number
+    # of slots, so each unfilled slot can remain distinct in the assignment.
+    costs: list[list[float | None]] = [
+        [
+            (
+                round(
+                    highest_weight
+                    - filled_slot_bonus
+                    - candidates[player_index].assignment.selection_score.central,
+                    6,
+                )
+                if player_index in candidates
+                else None
+            )
+            for player_index in range(player_count)
+        ]
+        + [highest_weight] * slot_count
+        for candidates in by_slot
+    ]
+    selected_indexes = _minimum_cost_full_assignment(costs)
+    if selected_indexes is None:  # Dummy columns make this defensive only.
+        return 0, _AssignmentState(0, ())
+    assignments = tuple(
+        by_slot[slot_index][player_index]
+        for slot_index, player_index in enumerate(selected_indexes)
+        if player_index < player_count and player_index in by_slot[slot_index]
+    )
+    mask = sum(1 << choice.slot_index for choice in assignments)
+    return mask, _AssignmentState(
+        total=round(
+            sum(choice.assignment.selection_score.central for choice in assignments), 6
+        ),
+        assignments=assignments,
+    )
+
+
+def _choices_by_slot(
+    choices: tuple[tuple[_CandidateAssignment, ...], ...],
+    *,
+    slot_count: int,
+    minimum_score: float,
+) -> list[dict[int, _CandidateAssignment]]:
+    by_slot: list[dict[int, _CandidateAssignment]] = [dict() for _ in range(slot_count)]
+    for player_choices in choices:
+        for choice in player_choices:
+            if choice.assignment.selection_score.central >= minimum_score:
+                by_slot[choice.slot_index][choice.player_index] = choice
+    return by_slot
+
+
+def _minimum_cost_full_assignment(
+    costs: Sequence[Sequence[float | None]],
+) -> tuple[int, ...] | None:
+    """Return one minimum-cost distinct-column choice for every row.
+
+    ``None`` represents an illegal player/slot pairing. Rows are tactic slots
+    and columns are players; tactics have eleven rows, so this stays tiny even
+    for a large squad.
+    """
+    row_count = len(costs)
+    column_count = len(costs[0]) if costs else 0
+    if row_count > column_count or any(len(row) != column_count for row in costs):
+        return None
+    infinity = float("inf")
+    potential_rows = [0.0] * (row_count + 1)
+    potential_columns = [0.0] * (column_count + 1)
+    matched_row_for_column = [0] * (column_count + 1)
+    predecessor = [0] * (column_count + 1)
+
+    for row in range(1, row_count + 1):
+        matched_row_for_column[0] = row
+        column = 0
+        minimum = [infinity] * (column_count + 1)
+        used = [False] * (column_count + 1)
+        while True:
+            used[column] = True
+            current_row = matched_row_for_column[column]
+            delta = infinity
+            next_column = 0
+            for candidate_column in range(1, column_count + 1):
+                if used[candidate_column]:
+                    continue
+                cost = costs[current_row - 1][candidate_column - 1]
+                if cost is not None:
+                    reduced = (
+                        cost
+                        - potential_rows[current_row]
+                        - potential_columns[candidate_column]
+                    )
+                    if reduced < minimum[candidate_column]:
+                        minimum[candidate_column] = reduced
+                        predecessor[candidate_column] = column
+                if minimum[candidate_column] < delta:
+                    delta = minimum[candidate_column]
+                    next_column = candidate_column
+            if delta == infinity:
+                return None
+            for candidate_column in range(column_count + 1):
+                if used[candidate_column]:
+                    potential_rows[matched_row_for_column[candidate_column]] += delta
+                    potential_columns[candidate_column] -= delta
+                else:
+                    minimum[candidate_column] -= delta
+            column = next_column
+            if matched_row_for_column[column] == 0:
+                break
+        while True:
+            previous_column = predecessor[column]
+            matched_row_for_column[column] = matched_row_for_column[previous_column]
+            column = previous_column
+            if column == 0:
+                break
+
+    assignment = [-1] * row_count
+    for column in range(1, column_count + 1):
+        if matched_row_for_column[column]:
+            assignment[matched_row_for_column[column] - 1] = column - 1
+    if any(
+        column < 0 or costs[row][column] is None
+        for row, column in enumerate(assignment)
+    ):
+        return None
+    return tuple(assignment)
 
 
 def _system_fit(

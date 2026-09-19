@@ -24,13 +24,14 @@ data/                        local runtime captures — gitignored, absent on a 
 
 ## The one rule that matters most
 
-`fm_analytics.reporting.build_recommendation_bundle` is the single computation
-both the CLI (`fm-analytics --recommend`) and the web view (`fm-web`) call.
+`fm_analytics.reporting.build_recommendation_bundle` is the single full
+recommendation computation used by the CLI (`fm-analytics --recommend`) and
+the Tactics/Depth web views. `build_squad_role_matrix` is the deliberately
+lighter shared computation for the Squad roster: it must not evaluate tactics.
 **Never duplicate scoring logic into the CLI or web layers** — a number shown
 on a page and a number printed by the CLI must be the same number, computed
-the same way. If a page-specific view needs a derived value, derive it from
-the `RecommendationBundle` the reporting path already returns, in the caller
-(e.g. `web/server.py`), not by recomputing analytics there.
+the same way. Add or reuse a reporting helper rather than recomputing
+analytics inside a handler.
 
 ## Running things
 
@@ -57,10 +58,10 @@ tries three filenames in order), and `--snapshot-db` raises a bare
 there are no migrations, so an old capture is simply unreadable.
 
 For performance work, generate a synthetic squad of the size you care about
-rather than reaching for the fixture or a capture. A full bundle against the
-25-tactic catalogue measures roughly 3s at 17 players and 5.4s at 25; almost
-all of it is the joint role search, so a change that doesn't move that number
-hasn't moved anything.
+rather than reaching for the fixture or a capture. Measure the full bundle
+against the 25-tactic catalogue: it evaluates every permitted role version
+and then solves the player assignment, so a change that does not improve that
+end-to-end measurement has not improved the page load.
 
 ## Before editing
 
@@ -69,9 +70,10 @@ hasn't moved anything.
   route), `rendering.py` (shared HTML helpers), `providers.py` (data
   sources). Find the route you're changing in `handlers.py` first rather
   than starting from `server.py`.
-- `src/fm_analytics/analytics/xi_selection.py` contains a beam search with a
-  correctness property that looks like dead weight until you remove it — read
-  `analytics/CLAUDE.md` before touching it.
+- `src/fm_analytics/analytics/xi_selection.py` expands only the explicitly
+  allowed role versions of a tactic, then uses an exact player-to-slot
+  assignment. Read `analytics/CLAUDE.md` before changing either half: the
+  separation is what makes the recommendation both fast and complete.
 - Recruitment currently exists twice and the two halves have not been
   reconciled: `analytics/recruitment.py` turns weaknesses into briefs and
   shortlists them against `imports.VisibleExportPlayer` (CLI, `--candidate-html`),
