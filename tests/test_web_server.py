@@ -109,8 +109,9 @@ class SquadWebServerTests(unittest.TestCase):
             status, report = self._get(port, "/squad/player/player-1")
 
             self.assertIn("href='/squad/player/player-1'", squad)
-            self.assertIn("intrinsic: attributes and role fit only", squad)
+            self.assertIn("Attribute-based role score", squad)
             self.assertIn("Best in-position role", squad)
+            self.assertIn("Best role today", squad)
             self.assertIn("unknown (assumed 10/20)", squad)
             self.assertEqual(status, 200)
             self.assertIn("All captured attributes", report)

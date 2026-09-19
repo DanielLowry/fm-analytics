@@ -209,12 +209,12 @@ def is_player_selectable(
 
 @dataclass(frozen=True)
 class PositionAdjustedRoleFit:
-    """A role score adjusted only for the best eligible position familiarity.
+    """One role's scores at the player's most familiar eligible position.
 
-    Unlike ``SlotAssignment``, this deliberately excludes match readiness and
-    a tactic slot. It is the stable Squad-page answer to "which role can this
-    player perform best in position?"; Tactics then adds today's readiness and
-    assigns the player to one specific slot.
+    It has no tactic slot: the Squad page uses it for each player's strongest
+    attribute-only, in-position, and available-today role. The calculation of
+    ``selection_score`` is deliberately the same as ``SlotAssignment`` so the
+    Squad and Tactics pages stay comparable.
     """
 
     role_key: str
@@ -225,6 +225,9 @@ class PositionAdjustedRoleFit:
     familiarity_multiplier: float
     intrinsic_role_score: RoleScore
     position_adjusted_score: ScoreBand
+    readiness_penalty: float
+    readiness_warnings: tuple[str, ...]
+    selection_score: ScoreBand
 
 
 def best_position_adjusted_role(
@@ -240,7 +243,61 @@ def best_position_adjusted_role(
     reading follows the Tactics policy's neutral ``unknown_rating`` and is
     marked on the returned fit rather than treated as evidence of familiarity.
     """
+    return max(
+        _position_role_fits(
+            player, catalogue, readiness_policy=ReadinessPolicy(),
+            familiarity_policy=familiarity_policy,
+        ),
+        key=lambda item: (
+            item.position_adjusted_score.central,
+            item.position_adjusted_score.lower,
+            item.role_key,
+            item.position,
+        ),
+        default=None,
+    )
+
+
+def best_selection_adjusted_role(
+    player: PlayerSelectionInput,
+    catalogue: FootballCatalogue,
+    *,
+    readiness_policy: ReadinessPolicy = ReadinessPolicy(),
+    familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
+) -> PositionAdjustedRoleFit | None:
+    """Return the player's strongest legal role for selection today.
+
+    This is the Squad-page counterpart to a Tactics assignment. It does not
+    choose a formation or reserve the player for a particular slot, but it
+    applies the same availability, readiness and position-familiarity rules.
+    """
+    if not _is_available(player, readiness_policy):
+        return None
+    return max(
+        _position_role_fits(
+            player, catalogue, readiness_policy=readiness_policy,
+            familiarity_policy=familiarity_policy,
+        ),
+        key=lambda item: (
+            item.selection_score.central,
+            item.selection_score.lower,
+            item.role_key,
+            item.position,
+        ),
+        default=None,
+    )
+
+
+def _position_role_fits(
+    player: PlayerSelectionInput,
+    catalogue: FootballCatalogue,
+    *,
+    readiness_policy: ReadinessPolicy,
+    familiarity_policy: FamiliarityPolicy,
+) -> list[PositionAdjustedRoleFit]:
+    """Score every eligible role once for the Squad-page summaries."""
     player_positions = set(player.positions)
+    readiness_penalty, readiness_warnings = _readiness(player, readiness_policy)
     fits: list[PositionAdjustedRoleFit] = []
     for role in catalogue.roles.values():
         eligible_positions = sorted(player_positions.intersection(role.eligible_positions))
@@ -259,6 +316,11 @@ def best_position_adjusted_role(
         rating = player.position_familiarity.get(position, familiarity_policy.unknown_rating)
         multiplier = familiarity_policy.multiplier(rating)
         intrinsic = score_role(role, player.attributes)
+        position_adjusted = ScoreBand(
+            lower=round(intrinsic.score.lower * multiplier, 6),
+            central=round(intrinsic.score.central * multiplier, 6),
+            upper=round(intrinsic.score.upper * multiplier, 6),
+        )
         fits.append(
             PositionAdjustedRoleFit(
                 role_key=role.key,
@@ -268,23 +330,17 @@ def best_position_adjusted_role(
                 familiarity_known=familiarity_known,
                 familiarity_multiplier=multiplier,
                 intrinsic_role_score=intrinsic,
-                position_adjusted_score=ScoreBand(
-                    lower=round(intrinsic.score.lower * multiplier, 6),
-                    central=round(intrinsic.score.central * multiplier, 6),
-                    upper=round(intrinsic.score.upper * multiplier, 6),
+                position_adjusted_score=position_adjusted,
+                readiness_penalty=readiness_penalty,
+                readiness_warnings=readiness_warnings,
+                selection_score=ScoreBand(
+                    lower=_selection_adjust(intrinsic.score.lower, readiness_penalty, multiplier),
+                    central=_selection_adjust(intrinsic.score.central, readiness_penalty, multiplier),
+                    upper=_selection_adjust(intrinsic.score.upper, readiness_penalty, multiplier),
                 ),
             )
         )
-    return max(
-        fits,
-        key=lambda item: (
-            item.position_adjusted_score.central,
-            item.position_adjusted_score.lower,
-            item.role_key,
-            item.position,
-        ),
-        default=None,
-    )
+    return fits
 
 
 def score_player_for_slot(
@@ -320,9 +376,6 @@ def score_player_for_slot(
         player, slot, familiarity_policy
     )
 
-    def _adjust(raw: float) -> float:
-        return round(max(0, round(raw - readiness_penalty, 6)) * familiarity_multiplier, 6)
-
     assignments = []
     for candidate_role in candidate_roles:
         intrinsic = score_role(catalogue.roles[candidate_role], player.attributes)
@@ -337,9 +390,15 @@ def score_player_for_slot(
                 familiarity_multiplier=familiarity_multiplier,
                 familiarity_warnings=familiarity_warnings,
                 selection_score=ScoreBand(
-                    lower=_adjust(intrinsic.score.lower),
-                    central=_adjust(intrinsic.score.central),
-                    upper=_adjust(intrinsic.score.upper),
+                    lower=_selection_adjust(
+                        intrinsic.score.lower, readiness_penalty, familiarity_multiplier
+                    ),
+                    central=_selection_adjust(
+                        intrinsic.score.central, readiness_penalty, familiarity_multiplier
+                    ),
+                    upper=_selection_adjust(
+                        intrinsic.score.upper, readiness_penalty, familiarity_multiplier
+                    ),
                 ),
             )
         )
@@ -422,6 +481,13 @@ def _readiness(
         + (100 - match_fitness) * policy.match_fitness_penalty_weight
     )
     return round(penalty, 6), tuple(warnings)
+
+
+def _selection_adjust(raw: float, readiness_penalty: float, familiarity_multiplier: float) -> float:
+    """The shared Tactics/Squad adjustment from intrinsic score to today score."""
+    return round(
+        max(0, round(raw - readiness_penalty, 6)) * familiarity_multiplier, 6
+    )
 
 
 def _familiarity(

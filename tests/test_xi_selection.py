@@ -13,6 +13,7 @@ from fm_analytics.analytics import (
     TacticSlot,
     evaluate_tactic,
     best_position_adjusted_role,
+    best_selection_adjusted_role,
     recommend_tactic,
     recommend_tactic_effective_and_potential,
     score_player_for_slot,
@@ -110,6 +111,27 @@ class XiSelectionTests(unittest.TestCase):
         self.assertEqual(fit.familiarity_multiplier, FamiliarityPolicy().multiplier(10))
         self.assertLess(
             fit.position_adjusted_score.central, fit.intrinsic_role_score.score.central
+        )
+
+    def test_best_selection_role_uses_the_same_readiness_and_familiarity_adjustment_as_tactics(self) -> None:
+        candidate = player(
+            1, "ST", 20, condition=80, match_fitness=70, position_familiarity={"ST": 10}
+        )
+        selection = best_selection_adjusted_role(candidate, CATALOGUE)
+        assignment = score_player_for_slot(
+            candidate, TACTIC.slots[-1], CATALOGUE, role_key="generic"
+        )
+
+        self.assertIsNotNone(selection)
+        self.assertIsNotNone(assignment)
+        assert selection is not None and assignment is not None
+        self.assertEqual(selection.selection_score, assignment.selection_score)
+
+    def test_best_selection_role_excludes_a_player_tactics_cannot_select(self) -> None:
+        self.assertIsNone(
+            best_selection_adjusted_role(
+                player(1, "ST", 20, availability="suspended"), CATALOGUE
+            )
         )
 
     def test_one_weak_slot_outweighs_a_better_average(self) -> None:

@@ -21,6 +21,7 @@ from fm_analytics.analytics import (
     default_descending,
     assess_scouting_candidates,
     best_position_adjusted_role,
+    best_selection_adjusted_role,
     available_fact_values,
     filter_scouting_candidates,
     rank_for_position,
@@ -176,6 +177,9 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             in_position = best_position_adjusted_role(
                 PlayerSelectionInput.from_player(player), MVP_CATALOGUE
             )
+            selection = best_selection_adjusted_role(
+                PlayerSelectionInput.from_player(player), MVP_CATALOGUE
+            )
             best_text = (
                 f"{html.escape(best.role_name)} ({_band(best.role_score.score)})"
                 if best is not None
@@ -192,6 +196,12 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                     f"{html.escape(in_position.role_name)} ({html.escape(familiarity)})<br>"
                     f"<b>{_band(in_position.position_adjusted_score)}</b>"
                 )
+            selection_text = "<span class='muted'>not selectable today</span>"
+            if selection is not None:
+                selection_text = (
+                    f"{html.escape(selection.role_name)} ({selection.position} {selection.familiarity_rating}/20)<br>"
+                    f"<b>{_band(selection.selection_score)}</b>"
+                )
             rows.append(
                 "<tr>"
                 f"<td>{squad_player_link(player)}</td>"
@@ -201,16 +211,18 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 f"<td>{html.escape(player.availability)}</td>"
                 f"<td>{best_text}</td>"
                 f"<td>{in_position_text}</td>"
+                f"<td>{selection_text}</td>"
                 "</tr>"
             )
         body = (
             "<h2>Roster</h2>"
-            "<p class='muted'>The role score here is intrinsic: attributes and role fit only. "
-            "The in-position score applies the same positional-familiarity multiplier as Tactics; "
-            "Tactics additionally applies match readiness to show what the player is worth today.</p>"
+            "<p class='muted'><b>Attribute-based role score</b> uses attributes and role fit only. "
+            "<b>In-position role score</b> also applies positional familiarity. "
+            "<b>Today’s selection score</b> then applies match readiness, using the same calculation as Tactics. "
+            "Each column shows the player's strongest role by that measure.</p>"
             "<table><tr><th>Player</th><th>Positions</th><th>Condition</th>"
-            "<th>Match fitness</th><th>Availability</th><th>Best intrinsic role</th>"
-            "<th>Best in-position role</th></tr>"
+            "<th>Match fitness</th><th>Availability</th><th>Best attribute-based role</th>"
+            "<th>Best in-position role</th><th>Best role today</th></tr>"
             + "".join(rows)
             + "</table>"
             + self._other_teams_section(bundle.squad)
