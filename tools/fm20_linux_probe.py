@@ -485,7 +485,10 @@ def position_familiarity_map(ratings: bytes) -> dict[str, int]:
     """Return every position's raw 1-20 rating byte, keyed by FM position code.
 
     SAFE ONLY for the owned squad -- see `decode_positions` above, which
-    carries the full warning. This is the same underlying truth, at full
+    carries the full warning. (Exception: from 19 September 2026 the Scouting
+    page also shows a non-owned player's ratings, via
+    `tools.fm20_scouting_feed.read_raw_position_familiarity`, but only behind
+    the existing "Use raw external positions" opt-in, never by default.) This is the same underlying truth, at full
     resolution rather than collapsed to an eligibility cut, which makes it
     more informative for scoring but no more visibility-safe: reading it for
     any player other than the manager's own is proven, not merely suspected,

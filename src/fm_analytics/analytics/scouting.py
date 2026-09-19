@@ -8,11 +8,13 @@ owner accepted its documented short-term visibility gap.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from enum import StrEnum
 from typing import Any, Mapping, Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.role_scoring import RoleScore, score_role
+from fm_analytics.analytics.xi_models import FamiliarityPolicy
 from fm_analytics.domain import AttributeObservation, Visibility
 
 
@@ -41,6 +43,19 @@ class ScoutingCandidate:
     facts: Mapping[str, str] | None = None
     scouting_knowledge: int | None = None
     dropped_from_scout_reports: bool = False
+    # Raw 0-20 rating per position code. Finer than the eligibility list and,
+    # for a player the manager does not own, beyond what FM's own screens
+    # necessarily show, so it is only ever used behind the same opt-in as
+    # ``raw_positions`` (see ``rank_for_position``).
+    raw_position_familiarity: Mapping[str, int] | None = None
+    # What makes a player gettable. ``has_contract`` is False for an unattached
+    # player (a free agent) and None when it is not known; ``contract_end`` is an
+    # ISO date.
+    contract_end: str | None = None
+    contract_type: str | None = None
+    has_contract: bool | None = None
+    # The game date the capture was taken at; contract expiry is measured from it.
+    captured_game_date: str | None = None
 
     def __post_init__(self) -> None:
         if not self.id or not self.name:
@@ -53,6 +68,13 @@ class ScoutingCandidate:
             raise ValueError("scouting knowledge must be between 0 and 100")
         if self.dropped_from_scout_reports and self.scouting_knowledge is None:
             raise ValueError("a player dropped from scout reports must still carry a last-known knowledge level")
+        if self.contract_end is not None:
+            date.fromisoformat(self.contract_end)  # ValueError on a malformed date
+        if self.raw_position_familiarity is not None and any(
+            not position or not isinstance(rating, int) or isinstance(rating, bool) or not 0 <= rating <= 20
+            for position, rating in self.raw_position_familiarity.items()
+        ):
+            raise ValueError("position familiarity must map position codes to ratings from 0 to 20")
 
     def is_scouted(self) -> bool:
         """True for any player with a current or last-known scouting-knowledge record.
@@ -89,6 +111,12 @@ class ScoutingCandidate:
         dropped = raw.get("droppedFromScoutReports", False)
         if not isinstance(dropped, bool):
             raise TypeError("scouting candidate droppedFromScoutReports must be a boolean")
+        has_contract = raw.get("hasContract")
+        if has_contract is not None and not isinstance(has_contract, bool):
+            raise TypeError("scouting candidate hasContract must be a boolean")
+        familiarity = raw.get("rawPositionFamiliarity")
+        if familiarity is not None and not isinstance(familiarity, Mapping):
+            raise TypeError("scouting candidate rawPositionFamiliarity must be an object")
 
         def optional_text(name: str) -> str | None:
             value = raw.get(name)
@@ -113,7 +141,54 @@ class ScoutingCandidate:
             facts=dict(facts_raw),
             scouting_knowledge=scouting_knowledge,
             dropped_from_scout_reports=dropped,
+            raw_position_familiarity=dict(familiarity) if familiarity is not None else None,
+            contract_end=optional_text("contractEnd"), contract_type=optional_text("contractType"),
+            has_contract=has_contract, captured_game_date=optional_text("capturedGameDate"),
         )
+
+
+MARKET_FILTERS = {
+    "any": "Any",
+    "gettable": "Gettable (any of the below)",
+    "free": "Free agent",
+    "listed": "Transfer listed",
+    "expiring": "Contract running out",
+}
+_LISTED_STATUSES = frozenset({
+    "transfer_listed", "transfer_and_loan_listed", "transfer_listed_by_request",
+    "transfer_listed_not_for_loan", "listed_by_request_not_for_loan",
+})
+
+
+def is_free_agent(candidate: "ScoutingCandidate") -> bool:
+    # No club is not enough on its own: an unreadable contract also leaves the
+    # club empty. Only a contract read that succeeded and found none counts.
+    return candidate.has_contract is False
+
+
+def is_transfer_listed(candidate: "ScoutingCandidate") -> bool:
+    return candidate.transfer_status in _LISTED_STATUSES
+
+
+def contract_months_left(candidate: "ScoutingCandidate") -> int | None:
+    if candidate.contract_end is None or candidate.captured_game_date is None:
+        return None
+    end, now = date.fromisoformat(candidate.contract_end), date.fromisoformat(candidate.captured_game_date)
+    return (end.year - now.year) * 12 + end.month - now.month - (end.day < now.day)
+
+
+def _matches_market(candidate: "ScoutingCandidate", filters: "ScoutingFilters") -> bool:
+    if filters.market == "any":
+        return True
+    months = contract_months_left(candidate)
+    expiring = months is not None and months <= filters.expiring_months
+    checks = {
+        "free": is_free_agent(candidate), "listed": is_transfer_listed(candidate),
+        "expiring": expiring,
+    }
+    if filters.market == "gettable":
+        return any(checks.values())
+    return checks[filters.market]
 
 
 @dataclass(frozen=True)
@@ -134,10 +209,17 @@ class ScoutingFilters:
     include_unlikely: bool = False
     include_raw_external_positions: bool = False
     scouted_only: bool = False
+    market: str = "any"
+    expiring_months: int = 6
     ranking_sort: str = "median"
+    ranking_descending: bool | None = None
     facts: Mapping[str, str] | None = None
 
     def __post_init__(self) -> None:
+        if self.market not in MARKET_FILTERS:
+            raise ValueError("market filter is invalid")
+        if self.expiring_months < 0:
+            raise ValueError("expiring months cannot be negative")
         if self.ranking_sort not in RANKING_SORTS:
             raise ValueError("ranking sort is invalid")
         if self.minimum_age is not None and self.maximum_age is not None and self.minimum_age > self.maximum_age:
@@ -223,9 +305,24 @@ def assess_scouting_candidates(
 
 RANKING_SORTS = {
     "median": "Median (best guess)",
+    "minimum": "Min (floor)",
     "ceiling": "Ceiling (best case)",
     "upside": "Upside (ceiling above median)",
+    "age": "Age",
+    "scouted": "Scouted %",
+    "known": "Attributes known",
+    "name": "Player name",
+    "role": "Best role",
+    "adjusted": "In position today (median)",
+    "familiarity": "Position familiarity",
 }
+# Text columns and age read naturally smallest/first-first; everything that is
+# a score or an amount of information reads best largest-first.
+_ASCENDING_BY_DEFAULT = frozenset({"age", "name", "role"})
+
+
+def default_descending(sort: str) -> bool:
+    return sort not in _ASCENDING_BY_DEFAULT
 
 
 @dataclass(frozen=True)
@@ -248,36 +345,116 @@ class PositionRanking:
     known_attributes: int
     ranged_attributes: int
     unknown_attributes: int
+    # Set only when the caller opted into position ratings AND this player has
+    # them: the rating (0-20) for the position he would play this role at, the
+    # multiplier the tactics page would apply for it, and the three scores after
+    # that multiplier -- "what he is worth in that position today".
+    familiarity: int | None = None
+    multiplier: float | None = None
+    adjusted_minimum: float | None = None
+    adjusted_median: float | None = None
+    adjusted_maximum: float | None = None
 
     @property
     def upside(self) -> float:
         return self.maximum - self.median
 
 
+# The attributes FM only shows for goalkeepers (they are absent, not unknown,
+# for an outfield player).
+_GOALKEEPING_ATTRIBUTES = frozenset({
+    "aerialReach", "commandOfArea", "communication", "handling", "kicking",
+    "oneOnOnes", "reflexes", "rushingOut", "throwing",
+})
+
+
+def _role_rating(role, position: str | None, ratings: Mapping[str, int] | None) -> int | None:
+    """His familiarity for the position this role would be played at."""
+    if not ratings:
+        return None
+    positions = [position] if position else list(role.eligible_positions)
+    found = [ratings[name] for name in positions if name in ratings]
+    return max(found) if found else None
+
+
 def rank_for_position(
     candidates: Sequence[ScoutingCandidate],
     catalogue: FootballCatalogue,
-    position: str,
+    position: str | None = None,
     *,
     sort: str = "median",
+    descending: bool | None = None,
+    include_raw_external_positions: bool = False,
+    familiarity_policy: FamiliarityPolicy | None = None,
 ) -> tuple[PositionRanking, ...]:
-    """Rank candidates for a position using whichever role there fits each best.
+    """Rank candidates, each by whichever role suits him best.
 
-    Position eligibility is the caller's concern (``filter_scouting_candidates``
+    With a ``position`` only roles for that position are tried. With none, each
+    player is tried in the roles for his own positions (raw ones only if opted
+    in), and in every role if his positions are not known -- so the list is
+    still ranked before anyone has chosen or verified a position. Position
+    eligibility itself is the caller's concern (``filter_scouting_candidates``
     already applied it); this only scores. The role is chosen per player on the
-    median so one player can be shown as a Ball-Winning Midfielder and another
+    median, so one player can be shown as a Ball-Winning Midfielder and another
     as a Deep-Lying Playmaker in the same list.
+
+    With a ``familiarity_policy`` and a player who has position ratings, each
+    role's three scores are also multiplied by the same familiarity multiplier
+    the tactics page applies, using his rating for the chosen position (or, with
+    none chosen, his best rating among the positions that role is played at),
+    and the role is then chosen on that adjusted median: the best role he could
+    actually play today, not merely the one that suits his attributes. Callers
+    pass the policy only when the raw-positions opt-in is ticked. A player
+    without ratings is left unadjusted rather than assumed unfamiliar.
+
+    ``sort`` may be any key of ``RANKING_SORTS``; ``descending`` defaults to
+    the natural direction for that column. A player missing the sorted value
+    (no age, never scouted) always goes last, whichever direction is chosen.
     """
     if sort not in RANKING_SORTS:
         raise ValueError(f"sort must be one of {sorted(RANKING_SORTS)}")
-    roles = [role for role in catalogue.roles.values() if position in role.eligible_positions]
-    if not roles:
-        return ()
+    if descending is None:
+        descending = default_descending(sort)
+    all_roles = list(catalogue.roles.values())
     rankings: list[PositionRanking] = []
     for candidate in candidates:
-        best = max(
-            (score_role(role, candidate.attributes) for role in roles),
-            key=lambda score: (score.median, score.score.upper, score.role_key),
+        if position:
+            roles = [role for role in all_roles if position in role.eligible_positions]
+        else:
+            roles = all_roles
+            if candidate.attributes:
+                # FM's visibility formula only produces the goalkeeping
+                # attributes (Handling, Reflexes, ...) for a goalkeeper, and
+                # only produces the outfield-only ones (Heading, Marking,
+                # Tackling, ...) for everyone else. Which set a player carries
+                # therefore says which kind of player he is, and it is applied
+                # first because it comes from the formula, not from a position
+                # label. Scoring the absent set as "unknown, so mid-scale"
+                # otherwise let a goalkeeper role win for a defender on paper.
+                keeper = any(name in candidate.attributes for name in _GOALKEEPING_ATTRIBUTES)
+                roles = [role for role in roles if ("GK" in role.eligible_positions) == keeper] or roles
+            own = set(candidate.positions_for(
+                include_raw_external_positions=include_raw_external_positions
+            ))
+            roles = [role for role in roles if own.intersection(role.eligible_positions)] or roles
+        if not roles:
+            continue
+        ratings = candidate.raw_position_familiarity if familiarity_policy else None
+        scored = []
+        for role in roles:
+            score = score_role(role, candidate.attributes)
+            rating = _role_rating(role, position, ratings)
+            multiplier = (
+                familiarity_policy.multiplier(max(rating, familiarity_policy.scale_minimum))
+                if familiarity_policy is not None and rating is not None else None
+            )
+            scored.append((score, rating, multiplier))
+        best, best_rating, best_multiplier = max(
+            scored,
+            key=lambda item: (
+                item[0].median * (item[2] if item[2] is not None else 1.0),
+                item[0].score.upper, item[0].role_key,
+            ),
         )
         visibilities = [item.observation.visibility for item in best.contributions]
         known = sum(v is Visibility.KNOWN for v in visibilities)
@@ -293,14 +470,34 @@ def rank_for_position(
                 known_attributes=known,
                 ranged_attributes=ranged,
                 unknown_attributes=len(visibilities) - known - ranged,
+                familiarity=best_rating if best_multiplier is not None else None,
+                multiplier=best_multiplier,
+                adjusted_minimum=None if best_multiplier is None else round(best.score.lower * best_multiplier, 6),
+                adjusted_median=None if best_multiplier is None else round(best.median * best_multiplier, 6),
+                adjusted_maximum=None if best_multiplier is None else round(best.score.upper * best_multiplier, 6),
             )
         )
-    keys = {
-        "median": lambda r: (-r.median, -r.maximum),
-        "ceiling": lambda r: (-r.maximum, -r.median),
-        "upside": lambda r: (-r.upside, -r.median),
-    }
-    return tuple(sorted(rankings, key=lambda r: (*keys[sort](r), r.candidate.name.casefold(), r.candidate.id)))
+    value = {
+        "median": lambda r: r.median,
+        "minimum": lambda r: r.minimum,
+        "ceiling": lambda r: r.maximum,
+        "upside": lambda r: r.upside,
+        "age": lambda r: r.candidate.age,
+        "scouted": lambda r: r.candidate.scouting_knowledge,
+        "known": lambda r: r.known_attributes + r.ranged_attributes,
+        "name": lambda r: r.candidate.name.casefold(),
+        "role": lambda r: r.role_name.casefold(),
+        "adjusted": lambda r: r.adjusted_median,
+        "familiarity": lambda r: r.familiarity,
+    }[sort]
+    # Three stable passes so ties fall back to a sensible order in either
+    # direction: name, then median (best first), then the chosen column.
+    ordered = sorted(rankings, key=lambda r: (r.candidate.name.casefold(), r.candidate.id))
+    ordered.sort(key=lambda r: -r.median)
+    present = [r for r in ordered if value(r) is not None]
+    missing = [r for r in ordered if value(r) is None]
+    present.sort(key=value, reverse=descending)
+    return tuple(present + missing)
 
 
 def filter_scouting_candidates(
@@ -338,6 +535,8 @@ def available_fact_values(candidates: Sequence[ScoutingCandidate]) -> dict[str, 
 
 def _matches_visible_filters(candidate: ScoutingCandidate, filters: ScoutingFilters) -> bool:
     if filters.scouted_only and not candidate.is_scouted():
+        return False
+    if not _matches_market(candidate, filters):
         return False
     if filters.minimum_age is not None and (candidate.age is None or candidate.age < filters.minimum_age):
         return False

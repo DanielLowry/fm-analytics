@@ -26,9 +26,8 @@ import json
 import os
 import sys
 import time
-from datetime import date
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 if __package__ in {None, ""}:
     project_root = Path(__file__).resolve().parent.parent
@@ -57,15 +56,7 @@ from tools.fm20_frida_property import (
 )
 from tools.fm20_frida_server import FridaServerError, frida_server_session
 from tools.fm20_frida_trace import FridaTraceError, preflight, process_alive
-from tools.fm20_linux_probe import (
-    ProbeError,
-    calculate_age,
-    decode_fm_date,
-    decode_positions,
-    read_exact,
-    read_fm_string,
-    read_player_contract,
-)
+from tools.fm20_linux_probe import ProbeError, read_exact
 from tools.fm20_linux_probe_runtime import choose_pid
 from tools.fm20_cold_query_cache import (
     resolve_context_and_manager,
@@ -73,6 +64,12 @@ from tools.fm20_cold_query_cache import (
 )
 from tools.fm20_native_call_log import log_event, next_call_number
 from tools.fm20_scouted_attributes import capture_scouted_attributes
+from tools.fm20_scouting_identity import (
+    read_raw_external_positions,
+    read_raw_position_familiarity,
+    resolve_source_identity_facts,
+    resolve_source_player_names,
+)
 from tools.fm20_scouting_feed_contract import (
     PoolNotBuiltError,
     PriorVisibility,
@@ -81,135 +78,6 @@ from tools.fm20_scouting_feed_contract import (
     load_prior_visibility,
 )
 from tools.fm20_visibility_trace import DISPLAY_ATTRIBUTE_IDS
-
-
-def resolve_source_player_names(pid: int, records: dict[int, int]) -> dict[int, str]:
-    """Label verified source records directly, avoiding a second global scan.
-
-    The Player Search pool itself already has a checked person pointer for
-    every ID.  Some valid source members do not appear in the generic loaded
-    person collection used by the older name resolver, so resolving from this
-    record is both more complete and less work.  Only first/last-name strings
-    are read here; this is identity metadata, never a player rating.
-    """
-    fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
-    try:
-        names: dict[int, str] = {}
-        for player_id, person in records.items():
-            try:
-                actual_person = person + 0x28
-                name = f"{read_fm_string(fd, actual_person + 0x30)} {read_fm_string(fd, actual_person + 0x38)}".strip()
-            except (OSError, ProbeError):
-                continue
-            if name:
-                names[player_id] = name
-        return names
-    finally:
-        os.close(fd)
-
-
-def resolve_source_identity_facts(
-    pid: int, records: Mapping[int, int], game_date: str
-) -> dict[int, dict[str, Any]]:
-    """Read age, club, and transfer status -- basic facts, always visible.
-
-    Added 18 September 2026 in response to every scouted candidate showing no
-    club and no age, which every one of them plainly has in FM's own search
-    and scouting lists with no additional knowledge required. Unlike a
-    position eligibility projection or a football attribute, club, date of
-    birth, and transfer status are not gated behind any scouting-depth
-    concept in FM -- they are exactly what a manager sees for any player a
-    search surfaces -- so they need no opt-in checkbox, the same footing as
-    the identity resolver above.
-
-    Uses the same ``actual_person = person + 0x28`` relationship that
-    resolver already established and the proven, production owned-squad
-    reader (`fm20_linux_probe.read_first_team_squad`) already reads both
-    fields from. Sampling 800 live pool records found zero failures for
-    either field, so a single player's read failing is treated as a genuine
-    anomaly for that player, not swallowed as an expected gap: skip that one
-    player's identity facts rather than failing the whole capture, mirroring
-    the owned-squad reader's own per-field degrade-to-unknown behaviour.
-
-    Deliberately does not attempt availability/injury status: the same
-    sampling found its read failing for 222 of 800 players (its pointer sits
-    behind a different, less reliably populated field for pool records), so
-    it needs more research before it is safe to publish, not a guess shipped
-    alongside the two fields that are actually solid.
-    """
-    as_of = date.fromisoformat(game_date)
-    fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
-    try:
-        facts: dict[int, dict[str, Any]] = {}
-        for player_id, person in records.items():
-            actual_person = person + 0x28
-            entry: dict[str, Any] = {}
-            try:
-                dob = decode_fm_date(read_exact(fd, actual_person + 0x1C, 4), maximum_year=as_of.year)
-                entry["age"] = calculate_age(dob, as_of)
-            except (OSError, ProbeError):
-                pass
-            try:
-                contract = read_player_contract(fd, actual_person)
-            except (OSError, ProbeError):
-                contract = None
-            if contract is not None:
-                if contract.contracted_club is not None:
-                    entry["club"] = contract.contracted_club.name
-                if contract.transfer_status is not None:
-                    entry["transferStatus"] = contract.transfer_status
-            if entry:
-                facts[player_id] = entry
-        return facts
-    finally:
-        os.close(fd)
-
-
-def read_raw_external_positions(pid: int, records: Mapping[int, int]) -> dict[int, tuple[str, ...]]:
-    """Read raw non-owned position labels for the explicitly accepted gap.
-
-    Corrected 18 September 2026 -- was off by exactly one pointer width
-    (0x08), and every capture taken before this fix has wrong `rawPositions`
-    for some players (see below).
-
-    A search-source record's ``person`` pointer is the same one
-    ``resolve_source_player_names`` reaches identity fields from via
-    ``person + 0x28``, i.e. it is the owned-squad reader's own
-    ``person_address`` (`fm20_linux_probe.read_first_team_squad`:
-    ``person_address = player_address + 0x1C0``). That reader's proven,
-    production ratings offset is ``player_address + 0x164``, which in terms
-    of ``person`` is ``person - 0x1C0 + 0x164`` = **``person - 0x5C``**.
-
-    The previous derivation instead subtracted 0x1C8 -- the *attribute
-    builder's* separate ``player_interface`` convention used elsewhere in
-    this project (`fm20_frida_attribute_sweep.py`), which is a different
-    pointer, one 8-byte pointer width away from ``player_address`` above --
-    giving ``person - 0x64``, eight bytes too early. Verified by sampling
-    500 live pool records at both offsets: 708 of the resulting 7,500 bytes
-    (9.4%) exceeded the valid 1-20 rating range at ``person - 0x64``, and
-    zero did at ``person - 0x5C``. The reported symptom (a player visibly
-    eligible for a position in FM reading as ineligible here) matched
-    exactly: Ashley Wells read DR=0 at the old offset and DR=20 at the
-    corrected one.
-
-    This deliberately does not read or publish the individual familiarity
-    ratings, only the existing eligibility projection. Call it only for
-    manager-discoverable players and only after the user has explicitly
-    opted into the accepted visibility gap.
-    """
-    fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
-    try:
-        positions: dict[int, tuple[str, ...]] = {}
-        for player_id, person in records.items():
-            try:
-                positions[player_id] = decode_positions(read_exact(fd, person - 0x5C, 15))
-            except (OSError, ProbeError) as error:
-                raise ScoutingFeedError(
-                    f"could not read raw positions for discovered player {player_id}: {error}"
-                ) from error
-        return positions
-    finally:
-        os.close(fd)
 
 
 def hydrate_visible_attributes(
@@ -620,6 +488,12 @@ def capture_pool(
                 pass
             for key, value in resolve_source_identity_facts(pid, single, after.game_date).get(player_id, {}).items():
                 identity_facts_by_id[player_id].setdefault(key, value)
+        familiarity_persons = {player_id: records[player_id] for player_id in external_ids}
+        familiarity_persons.update({
+            player_id: player.person for player_id, player in scouted_players.items()
+            if player_id not in familiarity_persons
+        })
+        position_familiarity_by_id = read_raw_position_familiarity(pid, familiarity_persons)
         if requested_hydration and device is None:
             # Only the hydration paths still need Frida once the pool is warm, so
             # a plain refresh never attaches to FM at all.
@@ -699,6 +573,7 @@ def capture_pool(
         footedness_by_id = {k: v for k, v in footedness_by_id.items() if k in all_ids}
         footedness_observed_at = {k: v for k, v in footedness_observed_at.items() if k in all_ids}
         raw_positions_by_id = {k: v for k, v in raw_positions_by_id.items() if k in all_ids}
+        position_familiarity_by_id = {k: v for k, v in position_familiarity_by_id.items() if k in all_ids}
 
         scouting_knowledge_by_id = dict(prior_scouting_knowledge or {})
         scouting_knowledge_by_id.update(current_knowledge)
@@ -725,6 +600,7 @@ def capture_pool(
             footedness_observed_at=footedness_observed_at,
             raw_positions_by_id=raw_positions_by_id,
             identity_facts_by_id=identity_facts_by_id,
+            position_familiarity_by_id=position_familiarity_by_id,
             scouting_knowledge_by_id=scouting_knowledge_by_id,
             dropped_from_scout_reports_ids=dropped_from_scout_reports_ids,
             hydrated_count=len(newly_hydrated_attributes),

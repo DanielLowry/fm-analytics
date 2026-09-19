@@ -268,9 +268,74 @@ class SquadWebServerTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertIn("Ranked for DC (1)", body)
-        self.assertIn("<th>Median</th>", body)
+        self.assertIn("data-sort='median'", body)
         self.assertIn("Sorted by <b>Median (best guess)</b>", body)
         self.assertIn("Ranked Defender", body)
+
+    def test_the_scouted_tab_ranks_everyone_without_choosing_a_position_first(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="a", name="Scouted One", positions=(), attributes={},
+                    age=20, scouting_knowledge=9,
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        _status, body = self._get(port, "/scouting?view=scouted")
+
+        self.assertIn("Ranked, all positions (1)", body)
+        self.assertIn("data-sort='median'", body)
+        self.assertIn("data-sort='minimum'", body)
+        self.assertIn("data-sort='ceiling'", body)
+
+    def test_column_headings_sort_on_the_server_and_show_the_direction(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(id="a", name="Older", positions=(), attributes={}, age=30, scouting_knowledge=9),
+                ScoutingCandidate(id="b", name="Younger", positions=(), attributes={}, age=18, scouting_knowledge=9),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        _status, ascending = self._get(port, "/scouting?view=scouted&sort=age")
+        _status, descending = self._get(port, "/scouting?view=scouted&sort=age&dir=desc")
+
+        self.assertIn("data-sort='age' data-default='asc'>Age ▲", ascending)
+        self.assertLess(ascending.index("Younger"), ascending.index("Older"))
+        self.assertIn("Age ▼", descending)
+        self.assertLess(descending.index("Older"), descending.index("Younger"))
+        self.assertIn("name='dir' value='desc'", descending)
+
+    def test_the_role_table_shows_the_median_too(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(id="a", name="Role Player", positions=("ST",), attributes={}, age=20),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        _status, body = self._get(port, "/scouting?role=af_attack&position=ST")
+
+        self.assertIn("<th>Median</th>", body)
+
+    def test_familiarity_columns_appear_only_when_the_raw_positions_box_is_ticked(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="a", name="Rated Defender", positions=("DC",), attributes={},
+                    age=22, scouting_knowledge=12, raw_position_familiarity={"DC": 17, "DR": 4},
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        _s, off = self._get(port, "/scouting?view=scouted&position=DC")
+        _s, ticked = self._get(port, "/scouting?view=scouted&position=DC&includeRawPositions=1")
+
+        self.assertIn("Rated Defender", off)
+        self.assertNotIn("data-sort='adjusted'", off)   # the sort *button*, not the dropdown label
+        self.assertNotIn("17/20", off)
+        self.assertIn("data-sort='adjusted'", ticked)
+        self.assertIn("17/20", ticked)
+        self.assertIn("(×0.92)", ticked)
 
     def test_the_scouting_page_offers_a_rank_by_control(self) -> None:
         port = self._serve(FIXTURE)

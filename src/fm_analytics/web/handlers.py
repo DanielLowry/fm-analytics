@@ -12,8 +12,11 @@ from urllib.parse import parse_qs, urlparse
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
     ScoutRecommendation,
+    FamiliarityPolicy,
+    MARKET_FILTERS,
     RANKING_SORTS,
     ScoutingFilters,
+    default_descending,
     assess_scouting_candidates,
     available_fact_values,
     filter_scouting_candidates,
@@ -707,18 +710,32 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             if filters.role_key
             else filter_scouting_candidates(candidates, filters)
         )
-        if not filters.role_key and filters.position:
-            # A position with no role chosen: rank everyone for it, by the role
-            # that suits each best, so "who should I scout next" has an answer.
+        if not filters.role_key and (filters.position or filters.scouted_only):
+            # No role chosen: rank everyone by whichever role suits each best,
+            # so "who should I scout next" has an answer without picking a
+            # position first (the Scouted tab) or a role at all.
+            descending = (
+                filters.ranking_descending
+                if filters.ranking_descending is not None
+                else default_descending(filters.ranking_sort)
+            )
             return (
                 (_raw_position_notice(candidates) if filters.include_raw_external_positions else "")
                 + ranking_results(
                     rank_for_position(
                         position_candidates, MVP_CATALOGUE, filters.position,
-                        sort=filters.ranking_sort,
+                        sort=filters.ranking_sort, descending=descending,
+                        include_raw_external_positions=filters.include_raw_external_positions,
+                        # The same opt-in as the raw positions: ticking it accepts
+                        # the raw position data, ratings included.
+                        familiarity_policy=(
+                            FamiliarityPolicy() if filters.include_raw_external_positions else None
+                        ),
                     ),
                     position=filters.position,
+                    sort=filters.ranking_sort,
                     sort_label=RANKING_SORTS[filters.ranking_sort],
+                    descending=descending,
                     raw_positions=filters.include_raw_external_positions,
                 )
             )
@@ -762,10 +779,17 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             # keystroke -- "view" is otherwise carried by the tab link only,
             # not by anything inside the form itself.
             f"<input type='hidden' name='view' value='{'scouted' if filters.scouted_only else 'all'}'>"
+            # The direction the results are currently sorted in; the header
+            # buttons flip it, and an empty value means "that column's default".
+            f"<input type='hidden' name='dir' value='{'desc' if (filters.ranking_descending if filters.ranking_descending is not None else default_descending(filters.ranking_sort)) else 'asc'}'>"
             f"<label>Position<select name='position'>{position_options}</select></label>"
             f"<label>Role (optional)<select name='role'>{role_options}</select></label>"
             f"<label>Minimum age<input name='minAge' type='number' min='0' value='{_input_value(filters.minimum_age)}'></label>"
             f"<label>Maximum age<input name='maxAge' type='number' min='0' value='{_input_value(filters.maximum_age)}'></label>"
+            "<label>Can I sign him?<select name='market'>"
+            + _options(MARKET_FILTERS.items(), filters.market, "")
+            + "</select></label>"
+            f"<label>Running out within (months)<input name='expiringMonths' type='number' min='0' value='{filters.expiring_months}'></label>"
             f"<label>Player name<input name='name' value='{html.escape(filters.name_contains or '', quote=True)}'></label>"
             f"<label>Club contains<input name='club' value='{html.escape(filters.club_contains or '', quote=True)}'></label>"
             "<label>Nationality<select name='nationality'>"
@@ -829,6 +853,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 f"<td>{html.escape(candidate.club or '—')}</td><td>{candidate.age if candidate.age is not None else '—'}</td>"
                 f"<td>{html.escape(', '.join(positions) or 'Not yet captured')}</td>"
                 f"<td>{_band(item.role_score.score)}</td>"
+                f"<td><b>{item.role_score.median:.1f}</b></td>"
                 f"<td>{html.escape(item.visibility_summary)}</td>"
                 f"<td>{_scouting_knowledge_cell(candidate)}</td>"
                 f"<td><span class='badge {badge}'>{label}</span><br><span class='muted'>{html.escape(reason)}</span></td></tr>"
@@ -865,7 +890,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "<li><b>Floor / estimate / ceiling</b>: the best and worst role score supported by visible information.</li></ul>"
             "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions"
             + (" (raw external data)" if include_raw_external_positions else "")
-            + "</th><th>Role score</th><th>Visibility</th><th>Scouted</th><th>Recommendation</th></tr>"
+            + "</th><th>Role score (min / est. / max)</th><th>Median</th><th>Visibility</th><th>Scouted</th><th>Recommendation</th></tr>"
             + "".join(rows) + "</table><h2>Visible role data</h2>" + "".join(details)
         )
 

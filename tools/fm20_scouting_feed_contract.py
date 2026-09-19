@@ -47,6 +47,7 @@ def feed_document(
     footedness_observed_at: dict[int, str] | None = None,
     raw_positions_by_id: dict[int, tuple[str, ...]] | None = None,
     identity_facts_by_id: Mapping[int, dict[str, Any]] | None = None,
+    position_familiarity_by_id: Mapping[int, Mapping[str, int]] | None = None,
     scouting_knowledge_by_id: Mapping[int, int] | None = None,
     dropped_from_scout_reports_ids: Iterable[int] = (),
     hydrated_count: int = 0,
@@ -76,6 +77,7 @@ def feed_document(
     footedness_observed_at = footedness_observed_at or {}
     raw_positions_by_id = raw_positions_by_id or {}
     identity_facts_by_id = identity_facts_by_id or {}
+    position_familiarity_by_id = position_familiarity_by_id or {}
     scouting_knowledge_by_id = scouting_knowledge_by_id or {}
     dropped_from_scout_reports = set(dropped_from_scout_reports_ids)
     with_age = sum(1 for player_id in ids if "age" in identity_facts_by_id.get(player_id, {}))
@@ -106,6 +108,10 @@ def feed_document(
                 "positions": (
                     "raw external position data accepted under the documented short-term "
                     f"visibility gap for {len(raw_positions_by_id)}/{len(ids)} candidates"
+                    + (
+                        f"; individual position ratings for {len(position_familiarity_by_id)}/{len(ids)}"
+                        if position_familiarity_by_id else ""
+                    )
                     if raw_positions_by_id else "not yet externally visibility-verified"
                 ),
                 "attributes": (
@@ -144,6 +150,8 @@ def feed_document(
                 ),
                 **({"rawPositions": list(raw_positions_by_id[player_id])}
                    if player_id in raw_positions_by_id else {}),
+                **({"rawPositionFamiliarity": dict(position_familiarity_by_id[player_id])}
+                   if player_id in position_familiarity_by_id else {}),
                 "attributes": attributes_by_id.get(player_id, {}),
                 **(
                     {"attributesObservedAt": attributes_observed_at.get(player_id, game_date)}

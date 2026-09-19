@@ -46,7 +46,11 @@ def scouting_json_provider(path: str | Path) -> ScoutingProvider:
         rows = raw.get("players") if isinstance(raw, dict) else raw
         if not isinstance(rows, list):
             raise ValueError("scouting JSON must be a player list or an object with players")
-        candidates = tuple(ScoutingCandidate.from_dict(row) for row in rows)
+        captured = raw.get("gameDate") if isinstance(raw, dict) else None
+        candidates = tuple(
+            ScoutingCandidate.from_dict({**row, "capturedGameDate": captured} if captured else row)
+            for row in rows
+        )
         ids = [candidate.id for candidate in candidates]
         if len(ids) != len(set(ids)):
             raise ValueError("scouting JSON contains duplicate player IDs")

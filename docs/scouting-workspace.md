@@ -41,6 +41,63 @@ knowledge level and attributes, flagged rather than silently dropped:
 scout reports anymore."* See `dropped_from_scout_reports_ids` in
 `fm20_scouting_feed.capture_pool`.
 
+## Ranking: who to scout next (19 September 2026)
+
+With no role chosen, the Scouted tab ranks every player, and choosing a
+position ranks everyone for that position. Each player is scored in whichever
+role suits him best (`analytics.rank_for_position`), and the table shows three
+scores on a 0-100 scale, all built only from what the manager can see:
+
+- **Min** -- every unknown attribute counts as 1 and every range at its low end;
+- **Max** -- every unknown counts as 20 and every range at its top;
+- **Median** -- every range at its midpoint and every unknown mid-scale.
+
+Min and Max are the existing floor and ceiling of `score_role`. Median is new
+(`RoleScore.median`) and is deliberately separate from `score.central`, which
+still counts an unknown as the scale minimum so that a barely-scouted player can
+never outrank a well-known one; the squad optimiser relies on that. Median asks
+a different question -- "what could this player be worth?" -- so an unscouted
+player scores 50 and sits above a known poor one. That is intended for choosing
+whom to scout, and it is why the table also shows how many of the role's
+attributes are known, ranged or unknown, and a bar for the spread.
+
+Every column sorts, in either direction, on the server (`sort` and `dir`
+query parameters), so with a long list the top of the list is the true top by
+that column rather than the top of whatever was on screen: Min, Median, Max,
+Range (ceiling above median), Age, Scouted %, attributes known, name and best
+role. A player missing the sorted value (no age, never scouted) always goes
+last.
+
+Before a position is chosen a player's role comes from which attributes he
+carries: the goalkeeping attributes exist only for goalkeepers and the outfield
+ones only for everyone else, so that picks the family without needing a
+position. A position label is applied after, only to narrow further.
+
+Each row has an **Attributes** dropdown listing every attribute in FM's own
+order, with `-` for anything the manager cannot see.
+
+## Position familiarity (19 September 2026)
+
+The 15 raw position ratings are already read for every scouted player (they
+pick his visibility family), so the scouting feed now also stores them, apart
+from the verified positions, as `rawPositionFamiliarity`. Shown only when the
+existing **Use raw external positions (accepted visibility gap)** box is ticked:
+the product owner confirmed that this one opt-in covers the ratings as well, so
+there is no second checkbox. This goes beyond the original acceptance, which
+covered the eligibility *list* only, and the ratings can show more than FM's own
+screens do for a player the manager does not own -- which is why it stays off by
+default and is named in the notice above the results.
+
+With it on, the ranking gains two columns. **Familiarity** is his rating for the
+position (or, with none chosen, the best rating among the positions the role is
+played at) and the multiplier it implies. **In position today** is Min / Median /
+Max multiplied by that multiplier, using the *same* `FamiliarityPolicy` the
+Tactics page uses, so it is comparable with a squad player's selection score,
+while Min / Median / Max stay comparable with his plain role score. The role is
+then chosen on that adjusted median. A raw rating of 0 is treated as the worst
+rating (the 0.5 floor), and a player with no ratings is left unadjusted rather
+than assumed unfamiliar.
+
 ## Scouted-player attributes: read-only, no Frida, no Player Search
 
 Added 18 September 2026, in `tools/fm20_scouted_attributes.py`. For every
@@ -309,3 +366,9 @@ The page is ready for the Frida Player Search result-ID collector described in
 [Frida and player discoverability](frida-discoverability.md). That collector
 will become the candidate-feed producer; it must first prove exact agreement
 with FM's visible Player Search results.
+
+## Can I sign him? (market filter)
+
+The filter bar's "Can I sign him?" narrows the list to players who are realistically gettable: **free agent** (a contract read that succeeded and found none), **transfer listed**, or **contract running out** within N months (default 6, measured from the capture's game date). "Gettable" is any of the three. Players whose contract could not be read are never treated as gettable. The Contract column shows the same facts plus the expiry date.
+
+Not covered: whether a player *wants* to join (a bigger club's player may have no interest in us). That is not captured yet, so judge it yourself for now. Contract facts appear after the next scouting refresh.

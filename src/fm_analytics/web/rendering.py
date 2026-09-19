@@ -121,6 +121,28 @@ _SCOUTING_LIVE_FILTER_SCRIPT = """
     clearTimeout(timer);
     apply();
   });
+  // Column headers re-sort on the server, so the top of a long list is the
+  // true top by that column rather than the top of what was on screen. The
+  // hidden `dir` field carries the current direction; clicking the active
+  // column flips it, clicking another starts from that column's natural one.
+  var sortSelect = form.querySelector("select[name='sort']");
+  var dirInput = form.querySelector("input[name='dir']");
+  if (sortSelect && dirInput) {
+    sortSelect.addEventListener('change', function () { dirInput.value = ''; });
+    results.addEventListener('click', function (event) {
+      var button = event.target.closest('button.sort-btn');
+      if (!button) return;
+      var key = button.getAttribute('data-sort');
+      if (sortSelect.value === key) {
+        dirInput.value = dirInput.value === 'desc' ? 'asc' : 'desc';
+      } else {
+        sortSelect.value = key;
+        dirInput.value = button.getAttribute('data-default');
+      }
+      clearTimeout(timer);
+      apply();
+    });
+  }
 })();
 </script>
 """
@@ -184,6 +206,8 @@ _STYLE = """
   .attr-hidden { color: #9aa; }
   .bar { position: relative; display: inline-block; width: 110px; height: 0.8rem; background: #e8ecef; border-radius: 0.2rem; vertical-align: middle; }
   .bar-fill { position: absolute; top: 0; bottom: 0; background: #9fb6cf; border-radius: 0.2rem; }
+  button.sort-btn { all: unset; cursor: pointer; font-weight: 600; white-space: nowrap; }
+  button.sort-btn:hover { text-decoration: underline; }
   .bar-mark { position: absolute; top: -2px; bottom: -2px; width: 3px; margin-left: -1px; background: #1a2b3c; }
   .badge-scout { background: #fff2d6; color: #805400; }
   .badge-proven { background: #e3f3e1; color: #1e6b1e; }
@@ -257,8 +281,10 @@ def _raw_position_notice(candidates: Sequence[object]) -> str:
     return (
         "<p class='warn'><b>Raw external positions enabled.</b> These labels are "
         "derived from non-owned players' raw position data under the accepted short-"
-        "term visibility gap. They can reveal secondary positions FM does not "
-        f"currently show the manager ({raw_count} captured).</p>"
+        "term visibility gap, and so are the players' individual position ratings "
+        "used for the familiarity columns. They can reveal secondary positions and "
+        "ratings FM does not currently show the manager "
+        f"({raw_count} captured).</p>"
     )
 
 
@@ -355,7 +381,10 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         include_unlikely=_query_first(query, "includeUnlikely") == "1",
         include_raw_external_positions=_query_first(query, "includeRawPositions") == "1",
         scouted_only=_scouting_view(query) == "scouted",
+        market=_query_first(query, "market") or "any",
+        expiring_months=_query_number(query, "expiringMonths", integer=True) or 6,
         ranking_sort=_query_first(query, "sort") or "median",
+        ranking_descending={"desc": True, "asc": False}.get(_query_first(query, "dir") or ""),
         facts=facts,
     )
 

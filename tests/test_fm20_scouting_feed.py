@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from tools import fm20_scouting_feed as feed
+from tools import fm20_scouting_identity as identity
 from tools.fm20_scouting_feed import ScoutingFeedError, feed_document, load_prior_visibility
 
 
@@ -292,12 +293,12 @@ class IdentityFactsTests(unittest.TestCase):
             return b"\x00\x00\x00\x00"
 
         with contextlib.ExitStack() as stack:
-            stack.enter_context(mock.patch.object(feed, "read_exact", side_effect=fake_read_exact))
+            stack.enter_context(mock.patch.object(identity, "read_exact", side_effect=fake_read_exact))
             stack.enter_context(mock.patch.object(
-                feed, "decode_fm_date", return_value=date(1991, 8, 8)
+                identity, "decode_fm_date", return_value=date(1991, 8, 8)
             ))
-            stack.enter_context(mock.patch.object(feed, "calculate_age", return_value=27))
-            stack.enter_context(mock.patch.object(feed, "read_player_contract", return_value=contract))
+            stack.enter_context(mock.patch.object(identity, "calculate_age", return_value=27))
+            stack.enter_context(mock.patch.object(identity, "read_player_contract", return_value=contract))
 
             facts = feed.resolve_source_identity_facts(
                 os.getpid(), {1: 10, 2: 20}, "2019-07-04"
@@ -312,20 +313,20 @@ class IdentityFactsTests(unittest.TestCase):
         self.assertNotIn("age", facts[2])
         self.assertEqual(facts[2]["club"], "Weymouth")
 
-    def test_a_player_with_no_contract_and_no_dob_is_simply_absent(self) -> None:
+    def test_a_player_with_no_contract_is_recorded_as_unattached(self) -> None:
         import os
 
         from tools.fm20_linux_probe import ProbeError
 
         with contextlib.ExitStack() as stack:
             stack.enter_context(mock.patch.object(
-                feed, "read_exact", side_effect=ProbeError("no DOB")
+                identity, "read_exact", side_effect=ProbeError("no DOB")
             ))
-            stack.enter_context(mock.patch.object(feed, "read_player_contract", return_value=None))
+            stack.enter_context(mock.patch.object(identity, "read_player_contract", return_value=None))
 
             facts = feed.resolve_source_identity_facts(os.getpid(), {1: 10}, "2019-07-04")
 
-        self.assertNotIn(1, facts)
+        self.assertEqual(facts[1], {"hasContract": False})
 
 
 class DateDriftTests(unittest.TestCase):
@@ -473,3 +474,31 @@ class ScoutedOnlyIdentityTests(unittest.TestCase):
 
         self.assertEqual(document["players"][0]["name"], "P")
         self.assertNotIn("rawPositions", document["players"][0])
+
+
+class PositionFamiliarityFeedTests(unittest.TestCase):
+    def test_ratings_are_stored_apart_from_the_verified_positions(self) -> None:
+        document = feed_document(
+            [10, 30], {10: "One", 30: "Two"}, game_date="2020-08-14",
+            managed_club={"id": "club-1", "name": "Hungerford Town"},
+            source_count=2, excluded_own_ids=[],
+            raw_positions_by_id={10: ("DC",)},
+            position_familiarity_by_id={10: {"DC": 17, "DR": 3}},
+        )
+
+        self.assertEqual(document["players"][0]["rawPositionFamiliarity"], {"DC": 17, "DR": 3})
+        self.assertEqual(document["players"][0]["positions"], [])
+        self.assertNotIn("rawPositionFamiliarity", document["players"][1])
+        self.assertIn("individual position ratings for 1/2", document["source"]["fieldCoverage"]["positions"])
+
+    def test_the_reader_keeps_all_fifteen_ratings_and_refuses_a_non_rating_array(self) -> None:
+        import os
+        from tools.fm20_linux_probe import POSITION_CODES
+
+        good = bytes(range(len(POSITION_CODES)))
+        noise = bytes([200] + [0] * (len(POSITION_CODES) - 1))
+        reads = {0x1000 - 0x5C: good, 0x2000 - 0x5C: noise}
+        with mock.patch.object(identity, "read_exact", side_effect=lambda fd, address, size: reads[address]):
+            ratings = feed.read_raw_position_familiarity(os.getpid(), {1: 0x1000, 2: 0x2000})
+
+        self.assertEqual(ratings, {1: dict(zip(POSITION_CODES, good))})
