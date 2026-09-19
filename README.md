@@ -84,7 +84,7 @@ separate work. A fresh live run through the HTTP bridge is still
 needed to validate that separate transport path against FM.
 
 The tactic and role catalogue has since grown past what that run exercised: it
-now covers 12 tactics and 28 roles (`fm20-mvp-v5`, defined as data in
+now covers 25 tactics and 28 roles (`fm20-expanded-tactics-v1`, defined as data in
 `src/fm_analytics/analytics/data/catalogue.json` rather than Python literals),
 so a fresh live run would compare more shapes than the four described above.
 
@@ -293,11 +293,11 @@ The public contract exposes manager-visible attribute observations as one of:
 - a scouted minimum/maximum range; or
 - unknown.
 
-The automated recruitment path is blocked until the bridge can reproduce
-external-player knowledge and query the verified manager-discoverable player
-collection without opening FM screens. Reachability in FM's internal player
-database is never treated as visibility. Legacy HTML candidate import remains
-research-only.
+The web scouting workspace can now consume a manager-visible JSON capture and
+refresh it through the research tooling; the legacy HTML candidate import
+remains available to the CLI for verification. These are still separate
+recruitment paths and neither is a stable FMBridge resource yet. Reachability
+in FM's internal player database is never treated as visibility.
 
 Research tooling can now call FM's manager-visible attribute logic off-screen
 and resolve the player-search source builder directly from the active manager,
@@ -312,8 +312,9 @@ the [Phase 03 status](docs/phases/03-information-visibility/README.md) for the
 underlying visibility boundary.
 
 Hidden FM values should never cross the HTTP boundary. See
-[the architecture notes](docs/architecture.md) for the design and the next
-implementation step. The complete staged delivery plan starts at
+[the architecture notes](docs/architecture.md) for the current boundaries and
+[the application improvement review](docs/app-improvement-review.md) for the
+integration backlog. The complete staged delivery plan starts at
 [the phase roadmap](docs/phases/README.md).
 For planned, deliberately deferred improvements to the player and tactical
 models, see [the tactical-system roadmap](docs/tactical-system-roadmap.md).

@@ -15,7 +15,7 @@ and explainable.
 The MVP must identify when further scouting could change the decision. It must
 not imply that a partially known estimate is an exact player rating.
 
-## Implemented MVP slice
+## Implemented slices
 
 Actionable tactic weaknesses can now become position/role recruitment briefs
 with a starter or depth threshold. A shortlist scorer accepts only players
@@ -25,11 +25,18 @@ bound could still meet it. The latter are labelled
 `possible_with_more_scouting` and carry the role attributes to investigate.
 Players below even their optimistic bound are excluded.
 
-Candidate exports must now be accompanied by the result count visible in FM.
-Recruitment fails unless the merged export contains exactly that many unique
-UIDs. This closes silent pagination/row-loss failures, while real FM20 export
-verification, persistence, and cost/attainability remain before recruitment is
-complete.
+Candidate HTML exports must be accompanied by the result count visible in FM.
+The CLI path fails unless the merged export contains exactly that many unique
+UIDs, closing silent pagination/row-loss failures.
+
+Separately, the web scouting workspace consumes a richer manager-visible JSON
+feed with exact/ranged/unknown observations, visible facts, discovery context,
+and optional live refresh. It can filter and assess candidates by role, but it
+does not yet consume `RecommendationBundle.briefs`. The HTML path uses
+`VisibleExportPlayer` and `shortlist_candidates`; the web path uses
+`ScoutingCandidate` and `assess_scouting_candidates`. Unifying those inputs and
+services without losing provenance is the next integration step, tracked in
+the [application improvement review](../../app-improvement-review.md).
 
 ## Prerequisites
 

@@ -1,9 +1,9 @@
-# Football Manager Analytics Project
+# Archived initial plan: Football Manager Analytics Project
 
 > This is the original vision document. The maintained delivery breakdown is
-> in the [phase roadmap](phases/README.md); the roadmap may refine ordering and
+> in the [phase roadmap](../../phases/README.md); the roadmap may refine ordering and
 > scope as evidence is gathered. The current first-product definition is the
-> [early-game decision-support MVP](mvp.md).
+> [early-game decision-support MVP](../../mvp.md).
 
 ## Background
 
@@ -769,7 +769,7 @@ Once this works, most of the uncertainty around the project disappears.
 Everything after that can be built incrementally.
 
 That milestone is now complete on the supported Linux/Proton FM20 build. The
-current product milestone is the [early-game MVP](mvp.md): a reproducible
+current product milestone is the [early-game MVP](../../mvp.md): a reproducible
 baseline tactic/XI recommendation, squad weakness report, and visible-player
 recruitment shortlist with useful further-scouting guidance.
 

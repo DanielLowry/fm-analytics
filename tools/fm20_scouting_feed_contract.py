@@ -111,7 +111,7 @@ def feed_document(
                 "attributes": (
                     (
                         f"{scouted_count}/{len(ids)} from the manager's own scouting knowledge "
-                        "(read-only, FM's own visibility formula, no report-quality adjustment yet -- "
+                        "(read-only, FM's own visibility formula and the scout's report -- "
                         "see tools.fm20_scouted_attributes)"
                         + (
                             f"; {hydrated_count}/{len(ids)} additionally confirmed via a "

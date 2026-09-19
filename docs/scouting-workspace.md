@@ -64,15 +64,34 @@ with scouted players alone; `source.poolAvailable: false` marks that the
 "All players" tab has nothing to show this time, not that the refresh
 failed.
 
-**Known gap: report quality.** FM widens a scouted attribute's precision
-when a scout report exists, via two quality fields whose location in
-memory has not been found -- see the "report-quality fields" discussion in
-`docs/phases/03-information-visibility/03.2-fm-representation-research.md`.
-Every attribute here is calculated as if no report exists, which the same
-research proved only ever *widens* a range relative to FM's true,
-report-informed one -- never narrower, never a value FM would hide. Ranges
-will look a little wider than FM's own until this is read properly; that is
-the deliberate, safe direction for an unfinished input to fail towards.
+**Scout reports (fixed 19 September 2026).** The first version calculated
+every attribute as if no scout report existed, and its ranges came out wider
+than FM's -- and, for some attributes, "unknown" where FM showed a range.
+Comparing against FM's own exported player profiles found three separate
+causes, all now fixed:
+
+1. **The bracket test was inverted.** The width of a range depends on a
+   quality figure and on the knowledge level. The code used `or` where FM's
+   executable (RVA `0x15a4c86`-`0x15a4cd8`, read from the file on disk, no
+   attach) uses `and`, so it picked the widest bracket far too often.
+2. **The knowledge level lags.** The percentage in the knowledge list is one
+   step behind the level in the player's report record, and FM uses the
+   report's. The record sits in a vector 0x2a0 below the manager's Person
+   (`read_report_records`) and is reachable without any scan. The lag is the
+   "older report, lower percentage" suspicion, and it was right.
+3. **Quality comes from the scout.** The figure is the sum of two rating
+   bytes on the staff member named in the report record
+   (`read_scout_quality_sum`), not anything about the report itself. Players
+   share it when they share a scout.
+
+With all three, every attribute FM exported for four scouted players is
+reproduced exactly (47 of 47 ranges) and every attribute FM hides stays
+hidden. If a record or scout cannot be read the code falls back to the
+explicit level and no report, which can only widen a range.
+
+**Still to confirm.** The scout-rating offset was located by fitting three
+scouts to the brackets four real players imply. Check it against the staff
+profiles in FM (the three scouts in the test save read 11+11, 7+9 and 8+9).
 
 **Known gap: players known only through reputation.** A manager can know
 something about a well-known player never explicitly scouted; that

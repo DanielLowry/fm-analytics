@@ -2,10 +2,12 @@
 
 ## Planning status
 
-Outline only. Automation is introduced incrementally alongside useful earlier
-features; a substantial dashboard waits until recurring workflows are proven.
-The disposable Phase 00 live monitor supplies immediate visibility and should
-inform this phase, but does not dictate its architecture.
+In progress through a thin local web application. Squad, roles, tactics, depth,
+scouting, and data pages exist over the shared reporting path. The current
+focus is making that surface responsive and connected: input-keyed caching,
+observable background refresh, a player view, named depth evidence, and a
+decision-oriented dashboard. The disposable Phase 00 monitor remains a
+diagnostic rather than the product UI.
 
 ## Outcome
 
@@ -59,19 +61,12 @@ If recurring use justifies it, add a browser UI over Python application APIs.
 Show capture freshness, recommendation version/confidence, explanations, and
 source health. Keep analytics logic outside view/controller code.
 
-The [decision-support design](../../decision-support-design.md) proposes a page
-structure for this, one page per manager question, plus a data page showing
-per-field coverage, provenance, and staleness — the page that makes the
-extraction backlog self-prioritising. It also proposes the mechanism for the
-"analytics logic outside view code" rule above: plain report objects between
-analysis and presentation, rendered by both the CLI and the browser UI, so the
-view layer cannot grow private analytics and report shapes stay testable
-without a browser.
-
-That design argues for building a thin version of this earlier than Phase 11,
-on the grounds that an engine which is tedious to consult does not get
-consulted. That is a sequencing proposal, not a settled change to this
-roadmap; the 11.5 gate ("if recurring use justifies it") still applies.
+The thin dashboard and its data page were built early, following the now
+completed [decision-support proposal](../../archive/plans/decision-support-design-2026-09-15.md).
+CLI and web share `reporting.build_recommendation_bundle`, so analytics logic
+remains outside view/controller code. The active [application improvement
+review](../../app-improvement-review.md) defines the next UI and operational
+slice.
 
 ### 11.6 — Operational hardening
 

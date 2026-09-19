@@ -1,17 +1,14 @@
 # Delivery roadmap
 
-This directory turns the vision in `initial_plan.md` and the
-[early-game MVP](../mvp.md) into gated increments.
+This directory turns the [early-game MVP](../mvp.md) into gated increments.
 Each phase has a useful outcome of its own; later work should not begin merely
 because code for the previous phase exists. Its exit criteria must be met and
 the important findings recorded.
 
-The [decision-support design](../decision-support-design.md) cuts across these
-phases from the other direction: it starts from the five decisions the manager
-wants help with and identifies which phase each is really waiting on. Read it
-alongside this table when deciding what to do next. Its main finding is that
-four of those five questions are limited by football-catalogue breadth and by
-already-extracted data that is being discarded, rather than by extraction work.
+The active [application improvement review](../app-improvement-review.md) cuts
+across the phases for performance, workflow integration, and product polish.
+The original broad plan and the completed 15 September decision-support
+proposal are retained in the [archive](../archive/README.md).
 
 The roadmap is detailed where decisions are imminent and intentionally lighter
 where experiments in earlier phases will change the design. Later phase plans
@@ -25,14 +22,14 @@ are hypotheses, not promises about implementation.
 | [01 — Extraction API](01-extraction-api/README.md) | Supply stable, observable inputs for the MVP | In progress | Execution-ready | 00 |
 | [02 — Persistence](02-persistence/README.md) | Retain the observations and provenance needed to reproduce decisions | In progress | Detailed | 01 |
 | [03 — Information visibility](03-information-visibility/README.md) | Enforce field knowledge and the discoverable-player boundary | In progress | Native off-screen attribute query validated; manager-rooted search source callable; exact discoverable set and bridge integration remain | 00–02 |
-| [04 — Squad model](04-squad-analytics/README.md) | Explain role suitability, baseline-tactic fit, depth, and weaknesses | In progress | Four versioned tactics, role scoring, and weakness pass implemented; threshold review remains | 02–03 |
-| [05 — Tactic and XI selection](05-xi-optimisation/README.md) | Recommend a valid baseline tactic and lineup jointly | In progress | Direct live command produced legal narrow-diamond XI; football review remains | 04 |
-| [06 — Recruitment](06-recruitment/README.md) | Convert weaknesses into uncertainty-aware visible-player shortlists | In progress | Brief, bounded shortlist, and export-count gate implemented | 03–05 |
+| [04 — Squad model](04-squad-analytics/README.md) | Explain role suitability, baseline-tactic fit, depth, and weaknesses | In progress | 28 roles, 25 tactics, role matrix, and squad-wide depth implemented; football calibration remains | 02–03 |
+| [05 — Tactic and XI selection](05-xi-optimisation/README.md) | Recommend a valid baseline tactic and lineup jointly | In progress | Joint role/player search works; current 25-tactic bundle cost is an interactive bottleneck | 04 |
+| [06 — Recruitment](06-recruitment/README.md) | Convert weaknesses into uncertainty-aware visible-player shortlists | In progress | Brief/HTML CLI path and richer JSON web path work separately; unification remains | 03–05 |
 | [07 — Match database](07-match-database/README.md) | Build a trustworthy history of matches and decisions | Planned | Provisional | 01–03 |
 | [08 — Opposition analysis](08-opposition-analysis/README.md) | Produce evidence-backed pre-match reports | Planned | Outline | 07 |
 | [09 — Opposition-specific tactics](09-tactical-recommendations/README.md) | Adjust the baseline tactic for a particular matchup | Planned | Outline | 05, 07–08 |
 | [10 — Machine learning](10-machine-learning/README.md) | Learn calibrated models only where they beat baselines | Planned | Outline | 04, 06–09 |
-| [11 — Automation and UI](11-automation-and-ui/README.md) | Deliver timely decisions in the normal play loop | Planned | Outline | Capabilities from earlier phases |
+| [11 — Automation and UI](11-automation-and-ui/README.md) | Deliver timely decisions in the normal play loop | In progress | Thin local web app exists; cache, refresh jobs, player navigation, and decision dashboard remain | Capabilities from earlier phases |
 
 The numeric order expresses the default delivery sequence, not a ban on small
 research spikes. For example, match-data reconnaissance can happen before the

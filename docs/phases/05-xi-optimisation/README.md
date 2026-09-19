@@ -115,11 +115,10 @@ changes choices without allowing an unavailable familiarity value to become
 an assumed advantage. Until then, every tactic is compared on squad fit only;
 the output must not claim that the squad already knows the selected shape.
 
-*Position* familiarity is a separate and much nearer input; see
+*Position* familiarity is a separate input and is now implemented; see
 [Phase 04](../04-squad-analytics/README.md) and Phase 03's 15 September note.
-Once it lands, the [decision-support design](../../decision-support-design.md)
-gets "best tactic now versus the one to aim for" from this subphase unchanged,
-by running the comparison twice — once with the familiarity penalty applied
+The system gets "best tactic now versus the one to aim for" by running the
+comparison twice — once with the familiarity penalty applied
 (**effective**) and once ignoring it (**potential**) — and reporting the gap as
 a retraining cost. That is a reporting distinction over existing machinery, and
 it must not be confused with the tactic-familiarity input deferred above: it
@@ -128,22 +127,20 @@ are playing in positions they are suited to.
 
 ### 05.4 — Constrained optimiser
 
-Note a cost characteristic, now measured after the catalogue grew to seven
-tactics and twenty-eight roles (15 September 2026). `_assignment_states` is
-acceptable on its own, but `_best_fit_state` re-runs that whole search once
-per distinct candidate score threshold, and thresholds scale with players
-times slots. A synthetic `recommend_tactic_effective_and_potential` run (seven
-tactics, two familiarity modes) measured 0.19s at 17 players, 2.1s at 25, and
-3.0s at 30, all on ordinary development hardware with no attempt at
-optimisation. That is a fine cost for a one-shot CLI command; it is not a cost
-a web page should pay synchronously on every request once
-[Phase 11](../11-automation-and-ui/README.md) exists -- that page should cache
-the recommendation and recompute on demand, not on every view. It also means
-the catalogue can keep growing for now without this becoming the blocking
-concern, but a much larger squad or catalogue should re-measure rather than
-assume the trend stays linear. Known remedies if it does bite: binary search
-over thresholds, or sharing the search across thresholds, instead of the
-current full re-run per threshold.
+The cost became an interactive bottleneck after the catalogue grew to 25
+tactics. On 19 September 2026, two unprofiled full-bundle runs over the local
+17-player capture took 5.02s and 5.44s. A profiled run attributed most work to
+the joint role/player beam: tactical coherence and instruction assessment were
+each repeated 76,850 times, while state minimum/signature calculation and
+rounding accounted for millions of calls.
+
+The active [application improvement review](../../app-improvement-review.md)
+records the evidence and correctness gates. The immediate remedies are to
+memoise tactical assessments per tactic/role tuple, carry the beam sort fields
+without recomputing them, avoid an identical potential pass, and reuse role
+scores within a bundle. The web layer must also cache by observation identity,
+make cold builds single-flight, and recompute explicitly rather than on every
+navigation request.
 
 Maximize the versioned team objective subject to eleven unique players, filled
 slots, eligibility, and configured readiness rules. Add bench coverage,

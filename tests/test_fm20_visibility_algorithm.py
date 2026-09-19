@@ -158,31 +158,64 @@ class Fm20VisibilityAlgorithmTests(unittest.TestCase):
         self.assertEqual(classify_visibility(12, 12, 50), Visibility.RANGE)
         self.assertEqual(classify_visibility(50, 12, 50), Visibility.KNOWN)
 
-    def test_calculates_age_and_low_knowledge_spreads(self) -> None:
+    def test_a_bracket_needs_both_quality_and_knowledge_within_its_limits(self) -> None:
+        # Poor knowledge AND poor quality: the widest bracket.
         self.assertEqual(
-            calculate_range_widths(
-                age=17, effective_knowledge=20, report_quality_sum=40
-            ),
-            RangeWidths(wide=8, medium=4, narrow=2),
+            calculate_range_widths(age=27, effective_knowledge=15, report_quality_sum=8),
+            RangeWidths(wide=6, medium=3, narrow=2),
         )
+        # Either one being better is enough to leave it (the old code needed both).
         self.assertEqual(
-            calculate_range_widths(
-                age=19, effective_knowledge=35, report_quality_sum=22
-            ),
+            calculate_range_widths(age=27, effective_knowledge=15, report_quality_sum=16),
             RangeWidths(wide=5, medium=3, narrow=2),
         )
         self.assertEqual(
-            calculate_range_widths(
-                age=25, effective_knowledge=60, report_quality_sum=40
-            ),
+            calculate_range_widths(age=27, effective_knowledge=25, report_quality_sum=5),
+            RangeWidths(wide=5, medium=3, narrow=2),
+        )
+
+    def test_reproduces_real_players_from_fms_own_exports(self) -> None:
+        """Each case reproduced every attribute FM exported for that player."""
+        # Rogan McGeorge / Jack Farmer: knowledge 15, scout quality in 12-19.
+        self.assertEqual(
+            calculate_range_widths(age=27, effective_knowledge=15, report_quality_sum=16),
+            RangeWidths(wide=5, medium=3, narrow=2),
+        )
+        # Shuai Li: age 16, knowledge 20, a better scout (quality 20-24).
+        self.assertEqual(
+            calculate_range_widths(age=16, effective_knowledge=20, report_quality_sum=22),
+            RangeWidths(wide=6, medium=3, narrow=2),
+        )
+        # Jordan Richards: knowledge 27 is enough to leave the widest bracket.
+        self.assertEqual(
+            calculate_range_widths(age=21, effective_knowledge=27, report_quality_sum=17),
+            RangeWidths(wide=5, medium=3, narrow=2),
+        )
+
+    def test_very_good_quality_and_knowledge_add_no_extra_width(self) -> None:
+        self.assertEqual(
+            calculate_range_widths(age=25, effective_knowledge=60, report_quality_sum=40),
+            RangeWidths(wide=2, medium=1, narrow=1),
+        )
+        self.assertEqual(
+            calculate_range_widths(age=25, effective_knowledge=51, report_quality_sum=29),
             RangeWidths(wide=2, medium=1, narrow=1),
         )
 
-    def test_missing_report_uses_the_widest_quality_band(self) -> None:
+    def test_a_missing_report_lets_knowledge_alone_decide(self) -> None:
+        # No report is a quality sum of zero: it can never be the reason to
+        # stay wide, so knowledge picks the bracket (the old code always
+        # forced the widest bracket here, whatever the knowledge).
         self.assertEqual(
-            calculate_range_widths(
-                age=25, effective_knowledge=60, report_quality_sum=None
-            ),
+            calculate_range_widths(age=25, effective_knowledge=60, report_quality_sum=None),
+            RangeWidths(wide=2, medium=1, narrow=1),
+        )
+        self.assertEqual(
+            calculate_range_widths(age=21, effective_knowledge=27, report_quality_sum=None),
+            RangeWidths(wide=5, medium=3, narrow=2),
+        )
+        self.assertEqual(
+            calculate_range_widths(age=27, effective_knowledge=15, report_quality_sum=None),
             RangeWidths(wide=6, medium=3, narrow=2),
         )
 

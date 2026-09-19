@@ -1,11 +1,15 @@
-# Decision-support design: where we are and where we are going
+# Archived decision-support design (15 September 2026)
+
+> Historical proposal. Its implemented slices, catalogue counts, benchmarks,
+> and blockers describe the repository at that date, not the current backlog.
+> See the [application improvement review](../../app-improvement-review.md).
 
 This document takes a whole-system view of the five decisions the manager
 actually wants help with, states honestly which parts of the system already
 serve them, and proposes the seams that let manual data now become automated
 data later without rewriting the analytics.
 
-It complements rather than replaces the [phase roadmap](phases/README.md).
+It complements rather than replaces the [phase roadmap](../../phases/README.md).
 The roadmap sequences *capabilities*; this document sequences *the manager's
 questions* and shows which capability each one is really waiting on.
 
@@ -65,7 +69,7 @@ FM20 process.
 
 ## The unlock we already own
 
-[`tools/fm20_linux_probe.py:406`](../tools/fm20_linux_probe.py#L406) reads the
+[`tools/fm20_linux_probe.py:406`](../../../tools/fm20_linux_probe.py#L406) reads the
 full array of raw position-rating bytes, then collapses it:
 
 ```python
@@ -76,7 +80,7 @@ positions = tuple(
 
 Every byte of familiarity granularity is discarded at that line.
 
-Separately, [`tools/fm20_position_familiarity.py`](../tools/fm20_position_familiarity.py)
+Separately, [`tools/fm20_position_familiarity.py`](../../../tools/fm20_position_familiarity.py)
 already maps those same raw bytes onto FM's own UI labels — Natural,
 Accomplished, Competent, Unconvincing, Ineffectual — with a fail-closed band
 table validated against the in-game position diagram. It is deliberately not
@@ -182,7 +186,7 @@ optimiser is needed.
 
 Tactic (team) familiarity — FM's fluidity bars — is genuinely not yet available
 and is the correct next target for the
-[field-acquisition workbench](field-acquisition-workbench.md). Until it lands,
+[field-acquisition workbench](../../field-acquisition-workbench.md). Until it lands,
 manual entry through the same seam is a reasonable interim provider.
 
 ### 4. Question 1 needs one small module
@@ -303,7 +307,7 @@ Phase 03 gate).
    roles, dual effective/potential) measured 0.19s at 17 players, 2.1s at 25,
    3.0s at 30 on ordinary development hardware -- fine for a CLI command, a
    real constraint for a web page computing synchronously per request. See
-   [Phase 05](phases/05-xi-optimisation/README.md#05.4). No optimisation has
+   [Phase 05](../../phases/05-xi-optimisation/README.md#054--constrained-optimiser). No optimisation has
    been attempted; the catalogue can keep growing for now.
 7. Tactic familiarity through the workbench remains undone; it needs new FM
    research this session had no game access to perform.
@@ -318,7 +322,7 @@ Phase 03 gate).
    before.
 
 Step 4's placement was a judgment call, not a settled roadmap change; see
-[Phase 11](phases/11-automation-and-ui/README.md)'s note on it. Building it
+[Phase 11](../../phases/11-automation-and-ui/README.md)'s note on it. Building it
 early paid off in one concrete way already: `/data` immediately made the
 `positionFamiliarity`-was-being-discarded gap (item 1) the obvious next thing
 to fix, which is exactly the self-prioritising effect it was meant to have.

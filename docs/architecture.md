@@ -26,9 +26,11 @@ The initial API is intentionally small.
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /health` | Process health and active source |
-| `GET /game` | Current date, human manager, and controlled club |
-| `GET /squad` | First-team squad and visible attributes |
+| `GET /v1/health` | Process health and active source |
+| `GET /v1/game` | Current date, human manager, and controlled club |
+| `GET /v1/squad` | First-team squad and visible attributes |
+
+The unversioned Phase 00 routes remain temporary compatibility aliases.
 
 Identifiers are strings because their size and exact representation in the
 extraction framework are not yet confirmed. Dates use ISO 8601. Positions use
@@ -55,8 +57,8 @@ projection, caches successful observations for one second, and converts source
 failures into structured health states. Probe implementation details do not
 cross the interface.
 
-Phase 01 should replace the subprocess seam if measurements justify it, while
-preserving these answers:
+The subprocess seam remains acceptable until measurements justify replacing
+it. Any replacement must preserve these answers:
 
 1. Can it reliably identify the human manager and club?
 2. Can it enumerate the club's first team while the save advances?
@@ -104,8 +106,9 @@ team recommendation   weakness model
               discoverable-player shortlist
 ```
 
-Baseline tactical definitions are versioned Python configuration. FMBridge
-exposes facts, not role weights, tactical judgments, or candidate rankings.
+Baseline tactical definitions are versioned JSON data loaded and validated by
+the Python analytics layer. FMBridge exposes facts, not role weights, tactical
+judgments, or candidate rankings.
 
 External-player access has two gates. First, the player must belong to a
 verified manager-discoverable collection; the existence of an internal player
@@ -117,20 +120,21 @@ number. Suitability results retain lower/central/upper estimates, the policy
 used for a central estimate, and the source observations. Readiness inputs such
 as condition and match sharpness remain separate from intrinsic role quality.
 
-## Near-term sequence
+## Current application boundary
 
-1. Stabilise and version the Phase 01 contract around the squad observations
-   required by the MVP.
-2. Add source lifecycle telemetry and contract-level bridge tests, including the
-   deferred live advancement and membership-change soak check.
-3. Add the narrow SQLite capture path needed to reproduce a recommendation.
-4. Prove both field knowledge and the discoverable-player collection against
-   controlled FM20 UI cases without reading hidden truth into production DTOs.
-5. Define the first role and baseline-tactic catalogue from the real squad data.
-6. Implement deterministic role/depth reporting, then joint tactic/XI selection.
-7. Convert weaknesses into recruitment briefs and rank visible candidates with
-   uncertainty bounds and targeted further-scouting guidance.
+The bridge contract, snapshot store, versioned catalogue, joint tactic/XI
+selection, role matrix, weakness/depth analysis, recruitment briefs, CLI, and
+local web view all exist. External-player acquisition is available through a
+manager-visible research capture consumed by the scouting page, but it is not
+yet a stable bridge resource and the CLI HTML and web JSON recruitment paths
+have not been unified.
 
-The delivery gates and open questions live in the
-[phase roadmap](phases/README.md), beginning with
-[Phase 00: data access](phases/00-data-access/README.md).
+`reporting.build_recommendation_bundle` is the single owned-squad calculation
+used by CLI and web. The browser currently caches source reads and bundles on
+separate short TTLs; the active [application improvement
+review](app-improvement-review.md) defines the move to one input-keyed,
+single-flight cache and the connected player/depth/scouting workflow.
+
+Capability gates and open research questions live in the [phase
+roadmap](phases/README.md). Deliberate football-model changes live in the
+[tactical-system roadmap](tactical-system-roadmap.md).

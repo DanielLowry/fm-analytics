@@ -2,9 +2,9 @@
 
 ## Planning status
 
-In progress. The first deterministic role-scoring core is implemented. Exact
-roles, weights, and tactic templates are selected from the first real Phase
-02–03 captures and then versioned.
+In progress. Deterministic role scoring, a data-backed catalogue, role matrix,
+tactic-aware weaknesses, and squad-wide depth are implemented. Football
+calibration and expert review remain open.
 
 ## Implemented MVP slice
 
@@ -27,30 +27,27 @@ and suspension are not accepted by the intrinsic role scorer. This preserves
 the distinction needed by the eventual XI selector between player quality,
 positional fit, current readiness, and availability.
 
-The first catalogue (`fm20-mvp-v1`) contains thirteen shared roles and three
-materially different opponent-neutral templates: a balanced 4-4-2, a positive
-4-2-3-1, and a positive 4-3-3 with a defensive midfielder. Each has eleven
-versioned slots, mentality, and a deliberately small instruction set. The
-definitions are provisional football hypotheses pending review against the
-real squad; changes create a new catalogue version rather than silently
+The current catalogue (`fm20-expanded-tactics-v1`) contains 28 roles and 25
+materially different opponent-neutral templates. It is loaded from versioned
+JSON, with eleven slots, mentality, instructions, structural requirements, and
+explicit per-slot role alternatives. These remain provisional football
+hypotheses; changes create a new catalogue version rather than silently
 changing old recommendations.
 
-The first direct live owned-squad recommendation showed why that review matters:
-the managed 17-player Hungerford squad has no left-sided wide player, so all
-three `fm20-mvp-v1` templates produced partial XIs despite complete 32/32
-role-input coverage. `fm20-mvp-v2` adds a balanced 4-1-2-1-2 DM narrow diamond,
-using the squad's central midfield/attacking-midfield and two-forward depth.
-It produced a legal live XI on 24 June 2019; the original wide shapes remain
-in the comparison as incomplete alternatives. This is a verified structural
-fit, not yet an expert endorsement of the role weights or instructions.
+The first direct live owned-squad recommendation showed why breadth matters:
+the managed 17-player Hungerford squad had no left-sided wide player, so the
+original wide templates produced partial XIs. A balanced 4-1-2-1-2 DM narrow
+diamond then produced a legal live XI on 24 June 2019. The catalogue has grown
+substantially since that run, so its 25-tactic output still needs fresh live
+and expert review.
 
 The first tactic-aware weakness pass now keeps starter quality, available
 backup quality, structural gaps, temporary availability gaps, and shared
 simultaneous cover as distinct findings. Thresholds are versioned independently
 from the role catalogue. This is sufficient to form the first traceable weak
-points; richer severity calibration remains. In this low-tier save, the
-current absolute 50/40 starter/backup cutoffs flag many players, so those
-rankings are provisional and should not be read as league-calibrated quality.
+points; richer severity calibration remains. `weakness-v2` uses ratios against
+the selected XI median and starter rather than fixed league-level cutoffs, so
+it remains relative to this squad and is not a comparison with rival clubs.
 
 ## Outcome
 
@@ -59,8 +56,8 @@ of baseline tactics, and where first-choice quality or depth is weak. A manager
 should see not just a rank, but why it exists and how uncertainty, availability,
 or a different supported shape changes the conclusion.
 
-This phase defines and scores baseline tactical options. It does not yet choose
-the jointly optimal tactic and eleven-player assignment; Phase 05 does that.
+This phase defines and scores baseline tactical options. Phase 05 owns the
+joint tactic, role, and eleven-player search over those definitions.
 
 ## Prerequisites
 
@@ -85,15 +82,9 @@ materially different squad shapes. Each template specifies formation slots,
 roles, duties, mentality, a small compatible instruction set, structural rules,
 and an explanation of the intended style.
 
-These are opponent-neutral starting points. The catalogue should be data/config,
-not hard-coded across the scoring implementation.
-
-Still outstanding: `analytics/catalogue.py` currently holds these definitions as
-Python literals. The [decision-support design](../../decision-support-design.md)
-sequences the move to loaded data files, keeping `CATALOGUE_VERSION` and every
-existing `FootballCatalogue` invariant check, on the grounds that the remaining
-role and formation breadth is the binding constraint on squad and tactic
-analysis.
+These are opponent-neutral starting points. The catalogue is versioned JSON
+loaded and validated by `analytics/catalogue.py`, rather than definitions
+hard-coded across scoring code.
 
 ### 04.3 — Deterministic suitability scoring
 
@@ -146,7 +137,6 @@ rationale. Establish simple baselines for later optimisation and learning.
 
 ## Deferred
 
-- Selecting the tactic and jointly valid XI (Phase 05)
 - Searching and pricing transfer targets (Phase 06)
 - Opposition-specific tactical adjustments (Phases 08–09)
 - Learning role weights from match performance (Phase 10)
@@ -154,16 +144,10 @@ rationale. Establish simple baselines for later optimisation and learning.
 
 ## Decisions to settle from real data
 
-- The first three to five tactical templates and how different they must be to
-  provide a meaningful comparison
-- How position familiarity constrains eligibility versus reducing suitability.
-  The [decision-support design](../../decision-support-design.md) proposes
-  *reducing suitability*: a separate, independently versioned penalty channel
-  beside `ReadinessPolicy`, never folded into intrinsic role quality. This
-  remains a proposal until validated against a real squad, but note that the
-  current `>= 15` position cut is an approximation of FM's own rule, not the
-  rule itself, so today an Unconvincing player is not merely penalised but
-  invisible to selection
+- Whether all 25 templates are materially distinct enough to justify their
+  compute and comparison cost
+- Whether the implemented continuous position-familiarity multiplier matches
+  useful football judgment across the raw 1–20 range
 - How owned-player missing observations affect ranking and explanation
 - Whether condition and sharpness should be hard selection thresholds or
   versioned soft penalties in Phase 05

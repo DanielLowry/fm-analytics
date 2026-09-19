@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """Read-only visible attributes for every player on the manager's scout list.
 
-Verified 18 September 2026 against three real attributes for a live, scouted
-player (Jordan Richards -- Pace, Determination, Passing all matched FM's
-displayed ranges exactly, once a scout report was accounted for). See
-``docs/scouting-workspace.md`` for the fuller derivation and the remaining
-gap this still carries.
+Verified against FM's own exported profiles for four scouted players -- see
+the scout-reports paragraph below and ``docs/scouting-workspace.md``.
 
 This makes **no calls into FM and no native invocation of any kind**. It
 reads three things FM already keeps in its own memory, at rest:
@@ -29,15 +26,21 @@ known -- the same guarantee ``fm_analytics.bridge.visibility_result``
 documents for the Frida/ptrace route. Nothing here can leak more than the
 formula computes as visible.
 
-**Known gap.** FM also raises a scouted attribute's precision when a scout
-report exists, via two report-quality fields whose location in memory is not
-yet found (see ``docs/phases/03-information-visibility/03.2-fm-representation-research.md``,
-around "the ranged-bound path also needs the verified report-quality
-fields"). Every call here treats every player as if no report exists, which
-the same research proved only ever WIDENS a range relative to FM's true,
-report-informed one -- it can misstate as "less certain than FM shows",
-never as "more certain" or "visible when FM would hide it". This is a
-deliberate, safe default, not a shortcut past the underlying question.
+**Scout reports (added 19 September 2026).** FM does not use the explicit
+list's percentage alone. Each scouted player also has a report record (see
+``read_report_records``) naming the staff member who covers him and carrying
+the knowledge level FM actually uses, and the width of every range depends on
+that scout's two judging ratings (``read_scout_quality_sum``). With both
+read, this reproduces every attribute in FM's own exported profiles for four
+real scouted players (47 of 47 ranges, and every attribute FM hides stays
+hidden). If a player's record or scout cannot be read, this falls back to the
+explicit level and "no report", which can only widen a range -- never narrow
+one -- so an unreadable input still fails in the safe direction.
+
+**Still to confirm.** The offset of a scout's two ratings was found by fitting
+three scouts to the width brackets those four players imply, not read from a
+documented structure; it should be confirmed against the staff profiles in the
+game (see ``STAFF_RATING_OFFSET``).
 """
 
 from __future__ import annotations
@@ -81,6 +84,26 @@ KNOWLEDGE_CONTEXT_VECTOR_OFFSET = 0x0
 KNOWLEDGE_RECORD_ROW_ID_OFFSET = 0x0
 KNOWLEDGE_RECORD_LEVEL_OFFSET = 0x8
 
+# The manager's per-player scout-report records (found 19 September 2026).
+# `knowledge context + 0x18` is the manager's Person pointer; a vector of
+# report-record pointers sits 0x2a0 below it. Each record is
+# {player Person*, staff Person*, club*, date, ..., 4 level bytes}, and the last
+# level byte (+0x3f) is the knowledge FM actually used for visibility -- one
+# above the explicit list's figure for 19 of 22 scouted players, equal for
+# the other 3, and equal to the exact effective knowledge each of four real
+# players' FM exports implied.
+CONTEXT_MANAGER_PERSON_OFFSET = 0x18
+REPORT_VECTOR_FROM_MANAGER_PERSON = 0x2A0
+REPORT_STAFF_OFFSET = 0x8
+REPORT_LEVEL_OFFSET = 0x3F
+STAFF_TYPE_RVA = 0x6D817A8
+# Two signed rating bytes on a staff Person, read the way the range-width code
+# reads them (RVA 0x15a4c2e: `movsx [obj+0x2c]`, `+0x2d`, each `(b+2)*0.2`
+# clamped to 1..20). Only the *sum* matters. Located by fitting three scouts
+# to the width brackets four real players imply, then to be confirmed against
+# the staff profiles in the game -- see `read_scout_quality_sum`.
+STAFF_RATING_OFFSET = -0xB4
+
 
 class ScoutedAttributesError(RuntimeError):
     """A read-only scouted-attribute pass failed a safety or evidence check."""
@@ -96,6 +119,11 @@ class ScoutedPlayer:
     age: int
     knowledge: int
     observations: dict[str, AttributeObservation]
+    # What the formula was actually given, kept for diagnosis: the effective
+    # knowledge (never below ``knowledge``) and the scout-rating sum, or None
+    # when no readable report was found for this player.
+    effective_knowledge: int = 0
+    report_quality_sum: int | None = None
 
 
 def read_explicit_knowledge(memory_fd: int, context: int) -> dict[int, int]:
@@ -120,6 +148,70 @@ def read_explicit_knowledge(memory_fd: int, context: int) -> dict[int, int]:
         level = read_exact(memory_fd, record + KNOWLEDGE_RECORD_LEVEL_OFFSET, 1)[0]
         knowledge[row_id] = level
     return knowledge
+
+
+@dataclass(frozen=True)
+class ReportRecord:
+    """The manager's scout-report record for one player."""
+
+    level: int
+    staff_person: int
+
+
+def read_report_records(
+    memory_fd: int, module_base: int, context: int
+) -> dict[int, ReportRecord]:
+    """The report record for each player the manager has one for, by RowID.
+
+    Read-only and cheap: the vector is reached from the knowledge context
+    already used for the explicit list, with no memory scan. Anything that
+    does not look like a report record is skipped rather than guessed at, so
+    a layout that differs on another build simply yields no records and the
+    caller falls back to the explicit level alone.
+    """
+    manager_person = read_u64(memory_fd, context + CONTEXT_MANAGER_PERSON_OFFSET)
+    if not manager_person:
+        return {}
+    begin = read_u64(memory_fd, manager_person - REPORT_VECTOR_FROM_MANAGER_PERSON)
+    end = read_u64(memory_fd, manager_person - REPORT_VECTOR_FROM_MANAGER_PERSON + 8)
+    if not begin or end < begin or (end - begin) % 8 or (end - begin) // 8 > 100_000:
+        return {}
+    player_types = {module_base + rva for rva in PERSON_TYPE_RVAS}
+    staff_type = module_base + STAFF_TYPE_RVA
+    records: dict[int, ReportRecord] = {}
+    for index in range((end - begin) // 8):
+        try:
+            record = read_u64(memory_fd, begin + index * 8)
+            player = read_u64(memory_fd, record)
+            staff = read_u64(memory_fd, record + REPORT_STAFF_OFFSET)
+            if read_u64(memory_fd, player) not in player_types:
+                continue
+            if read_u64(memory_fd, staff) != staff_type:
+                continue
+            row_id = struct.unpack("<I", read_exact(memory_fd, player + 0x8, 4))[0]
+            level = read_exact(memory_fd, record + REPORT_LEVEL_OFFSET, 1)[0]
+        except (OSError, ProbeError):
+            continue
+        if 0 <= level <= 100:
+            records[row_id] = ReportRecord(level=level, staff_person=staff)
+    return records
+
+
+def read_scout_quality_sum(memory_fd: int, staff_person: int) -> int | None:
+    """The sum of the scout's two rating bytes, as the width code computes it.
+
+    ``None`` when the bytes are not both plausible ratings, so an unreadable
+    scout degrades to "no report" -- the widest, safest reading -- instead of
+    producing a number FM would not.
+    """
+    try:
+        raw = read_exact(memory_fd, staff_person + STAFF_RATING_OFFSET, 2)
+    except (OSError, ProbeError):
+        return None
+    normalized = [max(1, min(20, (b + 2) // 5)) for b in struct.unpack("<bb", raw)]
+    if min(normalized) < 2:  # a real scout is never this poor at both judging skills
+        return None
+    return sum(normalized)
 
 
 def resolve_persons_by_row_id(
@@ -161,6 +253,7 @@ def _read_visible_attributes_for_person(
     row_id: int,
     knowledge: int,
     as_of: date,
+    report_quality_sum: int | None = None,
 ) -> tuple[int, dict[str, AttributeObservation]]:
     """One player's full visible attribute sheet, from raw memory to observations.
 
@@ -194,10 +287,7 @@ def _read_visible_attributes_for_person(
                 position_ratings=ratings,
                 age=age,
                 effective_knowledge=knowledge,
-                # Report quality is not yet safely readable -- see module
-                # docstring. Treating it as absent only ever widens a range
-                # relative to FM's true, report-informed one.
-                report_quality_sum=None,
+                report_quality_sum=report_quality_sum,
             )
         except ValueError:
             # Attribute not supported for this position family (e.g. a
@@ -225,6 +315,7 @@ def capture_scouted_attributes(
         if not knowledge:
             return {}, {}
         persons = resolve_persons_by_row_id(fd, module_base, set(knowledge))
+        reports = read_report_records(fd, module_base, context)
         players: dict[int, ScoutedPlayer] = {}
         issues: dict[int, str] = {}
         for row_id, level in knowledge.items():
@@ -243,7 +334,15 @@ def capture_scouted_attributes(
             try:
                 actual_person = person + ACTUAL_PERSON_FROM_PERSON
                 name = f"{read_fm_string(fd, actual_person + 0x30)} {read_fm_string(fd, actual_person + 0x38)}".strip()
-                age, observations = _read_visible_attributes_for_person(fd, person, row_id, level, as_of)
+                report = reports.get(row_id)
+                # FM merges the explicit level with the report's own (see
+                # `calculate_effective_knowledge`); the report's is never lower
+                # in anything observed, but max() keeps that a guarantee.
+                effective = max(level, report.level) if report else level
+                quality = read_scout_quality_sum(fd, report.staff_person) if report else None
+                age, observations = _read_visible_attributes_for_person(
+                    fd, person, row_id, effective, as_of, quality,
+                )
             except (OSError, ProbeError, ValueError) as error:
                 issues[player_id] = str(error)
                 continue
@@ -253,6 +352,7 @@ def capture_scouted_attributes(
             players[player_id] = ScoutedPlayer(
                 row_id=row_id, player_id=player_id, name=name, age=age,
                 knowledge=level, observations=observations,
+                effective_knowledge=effective, report_quality_sum=quality,
             )
         return players, issues
     finally:

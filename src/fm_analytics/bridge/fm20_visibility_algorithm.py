@@ -321,8 +321,20 @@ def calculate_range_widths(
 ) -> RangeWidths:
     """Calculate FM20's three uncertainty widths for a ranged attribute.
 
-    ``report_quality_sum`` is the sum of the two normalized 1--20 report
-    quality fields used by FM. ``None`` represents no report object.
+    ``report_quality_sum`` is the sum of the two normalized 1--20 rating
+    bytes FM reads from the object its report hands back (see
+    ``tools.fm20_scouted_attributes`` for where those live). ``None`` means no
+    report object, which FM treats as a sum of zero -- so knowledge alone then
+    decides the bracket.
+
+    Corrected 19 September 2026. The four brackets were previously written as
+    ``quality <= X **or** knowledge <= Y``, which is the opposite of what the
+    executable does. The comparisons at RVA 0x15a4c86-0x15a4cd8 skip a bracket
+    when *either* value is over its limit, so a bracket applies only when
+    *both* are within it: the effective bracket is the tighter of the one the
+    quality picks and the one the knowledge picks. Checked against FM's own
+    exported ranges for four real scouted players (44 attributes): with the
+    right inputs the widths below reproduce every one of them exactly.
     """
 
     _bounded(age, "age", 0, 100)
@@ -339,13 +351,13 @@ def calculate_range_widths(
     narrow = 1
     quality = report_quality_sum or 0
 
-    if quality <= 11 or effective_knowledge <= 20:
+    if quality <= 11 and effective_knowledge <= 20:
         wide, medium, narrow = wide + 4, medium + 2, 2
-    elif quality <= 19 or effective_knowledge <= 30:
+    elif quality <= 19 and effective_knowledge <= 30:
         wide, medium, narrow = wide + 3, medium + 2, 2
-    elif quality <= 24 or effective_knowledge <= 40:
+    elif quality <= 24 and effective_knowledge <= 40:
         wide, medium, narrow = wide + 2, medium + 1, 2
-    elif quality <= 29 or effective_knowledge <= 50:
+    elif quality <= 29 and effective_knowledge <= 50:
         wide, medium = wide + 1, medium + 1
     return RangeWidths(wide=wide, medium=medium, narrow=narrow)
 
