@@ -214,6 +214,10 @@ class ScoutingFilters:
     scouted_only: bool = False
     market: str = "any"
     expiring_months: int = 6
+    # A cheap stand-in for "would he join us": on this save every player FM
+    # listed as interested was valued under about GBP4,000 and every one it did
+    # not was over. It is an estimate from one save, not FM's own rule.
+    maximum_value: int | None = None
     ranking_sort: str = "median"
     ranking_descending: bool | None = None
     facts: Mapping[str, str] | None = None
@@ -318,10 +322,11 @@ RANKING_SORTS = {
     "role": "Best role",
     "adjusted": "In position today (median)",
     "familiarity": "Position familiarity",
+    "value": "Transfer value",
 }
 # Text columns and age read naturally smallest/first-first; everything that is
 # a score or an amount of information reads best largest-first.
-_ASCENDING_BY_DEFAULT = frozenset({"age", "name", "role"})
+_ASCENDING_BY_DEFAULT = frozenset({"age", "name", "role", "value"})
 
 
 def default_descending(sort: str) -> bool:
@@ -492,6 +497,7 @@ def rank_for_position(
         "role": lambda r: r.role_name.casefold(),
         "adjusted": lambda r: r.adjusted_median,
         "familiarity": lambda r: r.familiarity,
+        "value": lambda r: r.candidate.value,
     }[sort]
     # Three stable passes so ties fall back to a sensible order in either
     # direction: name, then median (best first), then the chosen column.
@@ -540,6 +546,10 @@ def _matches_visible_filters(candidate: ScoutingCandidate, filters: ScoutingFilt
     if filters.scouted_only and not candidate.is_scouted():
         return False
     if not _matches_market(candidate, filters):
+        return False
+    if filters.maximum_value is not None and (
+        candidate.value is None or candidate.value > filters.maximum_value
+    ):
         return False
     if filters.minimum_age is not None and (candidate.age is None or candidate.age < filters.minimum_age):
         return False

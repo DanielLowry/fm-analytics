@@ -100,6 +100,39 @@ class SquadWebServerTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn("Goalkeeper", body)
 
+    def test_squad_player_links_to_a_full_player_report(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture_path = _write_complete_fixture(Path(directory))
+            port = self._serve(fixture_path)
+
+            _status, squad = self._get(port, "/squad")
+            status, report = self._get(port, "/squad/player/player-1")
+
+            self.assertIn("href='/squad/player/player-1'", squad)
+            self.assertIn("intrinsic: attributes and role fit only", squad)
+            self.assertIn("Best in-position role", squad)
+            self.assertIn("unknown (assumed 10/20)", squad)
+            self.assertEqual(status, 200)
+            self.assertIn("All captured attributes", report)
+            self.assertIn("Position score summary", report)
+            self.assertIn("Position familiarity", report)
+            self.assertIn("All attribute-based role scores by position", report)
+
+    def test_scored_pages_use_consistent_score_names(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture_path = _write_complete_fixture(Path(directory))
+            port = self._serve(fixture_path)
+
+            _status, roles = self._get(port, "/roles")
+            _status, tactics = self._get(port, "/tactics")
+            _status, set_pieces = self._get(port, "/set-pieces")
+
+            self.assertIn("Attribute-based role score", roles)
+            self.assertIn("In-position role score", tactics)
+            self.assertIn("Today’s selection score", tactics)
+            self.assertIn("Play-now tactic score", tactics)
+            self.assertIn("Set-piece attribute score", set_pieces)
+
     def test_squad_page_lists_other_teams_without_scoring_them(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             fixture_path = _write_complete_fixture(Path(directory))
@@ -161,7 +194,7 @@ class SquadWebServerTests(unittest.TestCase):
 
             self.assertEqual(status, 200)
             self.assertIn("Matchday substitutions", body)
-            self.assertIn("Bring on (best first)", body)
+            self.assertIn("Bring on (today’s selection score)", body)
 
     def test_set_pieces_page_suggests_assignments_and_names_known_limitations(self) -> None:
         # This page only needs its own inputs, so it works before the wider
@@ -317,7 +350,7 @@ class SquadWebServerTests(unittest.TestCase):
         port = self._serve(FIXTURE, scouting_provider)
         _status, body = self._get(port, "/scouting?role=af_attack&position=ST")
 
-        self.assertIn("<th>Median</th>", body)
+        self.assertIn("<th>Median estimate</th>", body)
 
     def test_familiarity_columns_appear_only_when_the_raw_positions_box_is_ticked(self) -> None:
         def scouting_provider():
@@ -336,6 +369,8 @@ class SquadWebServerTests(unittest.TestCase):
         self.assertNotIn("data-sort='adjusted'", off)   # the sort *button*, not the dropdown label
         self.assertNotIn("17/20", off)
         self.assertIn("data-sort='adjusted'", ticked)
+        self.assertIn("In-position role score", ticked)
+        self.assertIn("attribute-based", ticked)
         self.assertIn("17/20", ticked)
         self.assertIn("(×0.92)", ticked)
 
@@ -389,7 +424,10 @@ class SquadWebServerTests(unittest.TestCase):
         self.assertIn("Position familiarity", report)
         self.assertIn("18/20", report)
         self.assertIn("AMR", report)
-        self.assertIn("All position and role scores", report)
+        self.assertIn("Position score summary", report)
+        self.assertIn("Best role (by estimate)", report)
+        self.assertIn("In-position estimate", report)
+        self.assertIn("All attribute-based role scores by position", report)
         self.assertIn("Advanced Forward (Attack)", report)
         self.assertIn("Attribute score inputs", report)
 

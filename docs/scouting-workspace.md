@@ -372,3 +372,36 @@ with FM's visible Player Search results.
 The filter bar's "Contract / listing" narrows the list to players who are realistically gettable: **free agent** (a contract read that succeeded and found none), **transfer listed**, or **contract running out** within N months (default 6, measured from the capture's game date). "Gettable" is any of the three. Players whose contract could not be read are never treated as gettable. The Contract column shows the same facts plus the expiry date.
 
 Not covered: whether a player *wants* to join (a bigger club's player may have no interest in us). That is not captured yet, so judge it yourself for now. Contract facts appear after the next scouting refresh.
+
+## Transfer value, and estimating "would he join us"
+
+The capture reads each player's transfer value (`person - 0x98`, pounds) — the
+same figure FM prints in Player Search's Value column, so it is manager-visible,
+not a hidden rating. Verified 19 September 2026 against ten exported players,
+allowing for FM's display rounding (14,435 shows as £14.5K).
+
+FM's "interested in transfer" filter is **not** a stored flag. Reading
+`PERSON_INTERESTED_FILTER_RULE`'s evaluator (slot 27, `fm.exe+0x1fb27d0`) shows
+it computed per player on each search: a routine scores the player against his
+club, and the result is compared with a threshold derived from the managing
+club. A wide read-only sweep over 17 labelled players (person record, contract,
+his club, scout report; 1-, 2- and 4-byte fields) found nothing that separates
+interested from not.
+
+Value is **not** a usable proxy, despite first appearances. On a sample of 17
+named players the split looked perfect (interested under £3,589, not-interested
+over £5,088), but that sample was biased towards players FM names in an export.
+Across the whole 4,111-player pool, "value <= £3,589" marks 3,011 players where
+FM's own filter marks 1,929, and 1,028 players valued at £0 are *not*
+interested, which value alone can never separate. The **Max value** filter is
+kept because value is real, manager-visible data worth filtering on -- not as an
+interest estimate.
+
+The exact route works and is built: `tools/fm20_search_results.py` reads the
+result list FM itself produces for the search currently on screen (see that
+module for the signature it matches on). Verified against a live
+"interested in transfer" filter: FM reported 1,929 of 4,090, the reader found
+exactly 1,929, and 16 of 17 independently labelled players fell on the expected
+side. Because the reader cannot see *which* criteria produced the list, anything
+built on it must describe the result as "matched the search open in FM" and let
+the manager say what that search was.

@@ -12,6 +12,7 @@ from fm_analytics.analytics import (
     TacticFitPolicy,
     TacticSlot,
     evaluate_tactic,
+    best_position_adjusted_role,
     recommend_tactic,
     recommend_tactic_effective_and_potential,
     score_player_for_slot,
@@ -96,6 +97,21 @@ def legal_squad() -> list[PlayerSelectionInput]:
 
 
 class XiSelectionTests(unittest.TestCase):
+    def test_best_position_adjusted_role_uses_the_tactics_familiarity_multiplier(self) -> None:
+        fit = best_position_adjusted_role(
+            player(1, "ST", 20, position_familiarity={"ST": 10}), CATALOGUE
+        )
+
+        self.assertIsNotNone(fit)
+        assert fit is not None
+        self.assertEqual(fit.position, "ST")
+        self.assertEqual(fit.familiarity_rating, 10)
+        self.assertTrue(fit.familiarity_known)
+        self.assertEqual(fit.familiarity_multiplier, FamiliarityPolicy().multiplier(10))
+        self.assertLess(
+            fit.position_adjusted_score.central, fit.intrinsic_role_score.score.central
+        )
+
     def test_one_weak_slot_outweighs_a_better_average(self) -> None:
         uneven = legal_squad()
         uneven[0] = player(1, "GK", 1)

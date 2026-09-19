@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
+    PlayerSelectionInput,
     DELIVERY_STYLES,
     ScoutRecommendation,
     FamiliarityPolicy,
@@ -19,6 +20,7 @@ from fm_analytics.analytics import (
     ScoutingFilters,
     default_descending,
     assess_scouting_candidates,
+    best_position_adjusted_role,
     available_fact_values,
     filter_scouting_candidates,
     rank_for_position,
@@ -37,6 +39,8 @@ from fm_analytics.web.scouting_render import (
     player_scouting_report,
     ranking_results,
     scouting_player_link,
+    squad_player_link,
+    squad_player_report,
 )
 from fm_analytics.web.rendering import (
     _MAX_SCOUTING_ROWS,
@@ -80,6 +84,8 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         handler = routes.get(path)
         if handler is None and path.startswith("/scouting/player/") and path != "/scouting/player/":
             handler = self._scouting_player_page
+        if handler is None and path.startswith("/squad/player/") and path != "/squad/player/":
+            handler = self._squad_player_page
         if handler is None:
             self._send(
                 _error_page("Not found", f"No page exists at '{path}'."),
@@ -167,30 +173,71 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         for player in bundle.squad.players:
             profile = bundle.role_matrix.player_profiles.get(player.id)
             best = profile.best if profile else None
+            in_position = best_position_adjusted_role(
+                PlayerSelectionInput.from_player(player), MVP_CATALOGUE
+            )
             best_text = (
                 f"{html.escape(best.role_name)} ({_band(best.role_score.score)})"
                 if best is not None
                 else "<span class='muted'>no eligible role</span>"
             )
+            in_position_text = "<span class='muted'>no eligible role</span>"
+            if in_position is not None:
+                familiarity = (
+                    f"{in_position.position} {in_position.familiarity_rating}/20"
+                    if in_position.familiarity_known
+                    else f"{in_position.position} unknown (assumed {in_position.familiarity_rating}/20)"
+                )
+                in_position_text = (
+                    f"{html.escape(in_position.role_name)} ({html.escape(familiarity)})<br>"
+                    f"<b>{_band(in_position.position_adjusted_score)}</b>"
+                )
             rows.append(
                 "<tr>"
-                f"<td>{html.escape(player.name)}</td>"
+                f"<td>{squad_player_link(player)}</td>"
                 f"<td>{', '.join(player.positions)}</td>"
                 f"<td>{player.condition_percent if player.condition_percent is not None else '?'}%</td>"
                 f"<td>{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
                 f"<td>{html.escape(player.availability)}</td>"
                 f"<td>{best_text}</td>"
+                f"<td>{in_position_text}</td>"
                 "</tr>"
             )
         body = (
             "<h2>Roster</h2>"
+            "<p class='muted'>The role score here is intrinsic: attributes and role fit only. "
+            "The in-position score applies the same positional-familiarity multiplier as Tactics; "
+            "Tactics additionally applies match readiness to show what the player is worth today.</p>"
             "<table><tr><th>Player</th><th>Positions</th><th>Condition</th>"
-            "<th>Match fitness</th><th>Availability</th><th>Best eligible role</th></tr>"
+            "<th>Match fitness</th><th>Availability</th><th>Best intrinsic role</th>"
+            "<th>Best in-position role</th></tr>"
             + "".join(rows)
             + "</table>"
             + self._other_teams_section(bundle.squad)
         )
         self._send(_layout("Squad", path, body))
+
+    def _squad_player_page(self, path: str, _query: dict[str, list[str]]) -> None:
+        """Show the detailed role, attribute, and familiarity report for one squad member."""
+        player_id = unquote(path.removeprefix("/squad/player/"))
+        try:
+            _game, squad = self.server.read()  # type: ignore[attr-defined]
+        except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
+            self._send(_error_page("Squad player report", str(exc), "/squad"), HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        player = next((item for item in squad.players if item.id == player_id), None)
+        if player is None:
+            self._send(
+                _error_page("Squad player report", "That player is not in the current senior squad.", "/squad"),
+                HTTPStatus.NOT_FOUND,
+            )
+            return
+        self._send(
+            _layout(
+                f"Squad player · {player.name}", "/squad",
+                squad_player_report(player, MVP_CATALOGUE),
+            )
+        )
 
     @staticmethod
     def _other_teams_section(squad: Squad) -> str:
@@ -257,12 +304,12 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         body = (
             "<h2>Best player per role</h2>"
             "<ul class='legend'>"
-            "<li><b>Score</b>: attributes weighted for this specific role and duty, "
-            "discounted for match readiness and adjusted for position familiarity. "
-            "The weighting is fixed per role/duty — it does not vary by tactic.</li>"
+            "<li><b>Attribute-based role score</b>: attributes weighted for this specific role and duty. "
+            "It deliberately excludes positional familiarity and match readiness, so it compares underlying "
+            "role suitability only. The weighting is fixed per role/duty — it does not vary by tactic.</li>"
             "<li><b>Uncertain</b>: a rival could still overtake once scouted</li>"
             "</ul>"
-            "<table><tr><th>Role</th><th>Best player</th><th>Score</th>"
+            "<table><tr><th>Role</th><th>Best player</th><th>Attribute-based role score</th>"
             "<th>Eligible candidates</th><th>Decision</th></tr>"
             + "".join(rows)
             + "</table>"
@@ -314,7 +361,9 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 f"<td>{html.escape(assignment.slot.position)}</td>"
                 f"<td>{html.escape(assignment.intrinsic_role_score.role_name)}</td>"
                 f"<td>{html.escape(assignment.player_name)}</td>"
-                f"<td>{assignment.selection_score.central:.1f}</td>"
+                f"<td>{_band(assignment.intrinsic_role_score.score)}</td>"
+                f"<td>{_band(assignment.in_position_score)}</td>"
+                f"<td><b>{_band(assignment.selection_score)}</b></td>"
                 "</tr>"
                 for assignment in sorted(evaluation.assignments, key=lambda item: item.slot.key)
             )
@@ -332,7 +381,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 f"({html.escape(evaluation.tactic.formation)})</summary>"
                 + _tactic_notes(evaluation.tactic)
                 + "<p><b>Play now:</b> "
-                f"{_band(evaluation.score)}. <b>Player-role fit:</b> "
+                f"{_band(evaluation.score)}. <b>Today’s player-role fit:</b> "
                 f"{evaluation.xi_score.central:.1f}. <b>Team balance:</b> "
                 f"{evaluation.coherence.score:.1f}. <b>Game-plan support:</b> "
                 f"{evaluation.instruction_suitability.score:.1f}.</p>"
@@ -362,8 +411,9 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                     ", ".join(evaluation.tactic.instructions) or "No special instructions"
                 )
                 + ".</p>"
-                "<table><tr><th>Slot</th><th>Position</th><th>Role</th>"
-                "<th>Player</th><th>Score</th></tr>"
+                "<table><tr><th>Slot</th><th>Position</th><th>Role</th><th>Player</th>"
+                "<th>Attribute-based role score</th><th>In-position role score</th>"
+                "<th>Today’s selection score</th></tr>"
                 + assignment_rows
                 + "</table>"
                 + unfilled_note
@@ -383,7 +433,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 "<h2>Training targets</h2>"
                 "<p class='muted'>These are setups improved by positional training, "
                 "not predictions of player development.</p>"
-                "<table><tr><th>Tactic</th><th>Play now</th><th>After positional training</th>"
+                "<table><tr><th>Tactic</th><th>Today’s tactic score</th><th>After positional training</th>"
                 "<th>Gain</th></tr>"
                 + targets_rows
                 + "</table>"
@@ -428,9 +478,9 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         substitutions_body = (
             "<h2>Matchday substitutions</h2>"
             "<p class='muted'>For the selected tactic only: named substitutes who can "
-            "take each starter's exact role, ordered by current suitability. This is a "
+            "take each starter's exact role, ordered by today’s selection score. This is a "
             "replacement board, not a recommendation about timing or a player's live match rating.</p>"
-            "<table><tr><th>Take off</th><th>Bring on (best first)</th><th>Cover after the change</th></tr>"
+            "<table><tr><th>Take off</th><th>Bring on (today’s selection score)</th><th>Cover after the change</th></tr>"
             + "".join(substitution_rows)
             + "</table>"
         )
@@ -440,9 +490,10 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "and not an opponent-specific recommendation.</p>"
             "<ul class='legend'>"
             "<li><b>Play now</b>: how well the available squad fits this setup today.</li>"
-            "<li><b>Score</b> (per slot, below): the player's attributes weighted for "
-            "that specific role and duty, discounted for match readiness and adjusted "
-            "for position familiarity. A role is weighted the same wherever it appears "
+            "<li><b>Attribute-based role score</b>: the player's attributes weighted for "
+            "that specific role and duty. <b>In-position role score</b> applies positional "
+            "familiarity. <b>Today’s selection score</b> then applies match readiness. "
+            "A role is weighted the same wherever it appears "
             "— today, a Deep-Lying Playmaker is scored identically in every tactic that "
             "uses one; the tactic can choose a different role for a slot, but not yet "
             "ask more of the same role.</li>"
@@ -451,13 +502,13 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "<li><b>Game-plan support</b>: whether the chosen roles support this tactic's "
             "instructions. It is currently role-based; attribute-aware instruction "
             "scoring is planned work.</li>"
-            "<li><b>After positional training</b>: the same recommendation with every "
+            "<li><b>After positional training</b>: the same today-score recommendation with every "
             "eligible selected player's positional familiarity treated as 20/20. It does "
             "not project attribute growth, hidden potential, or whole-tactic familiarity.</li>"
             "<li><b>XI</b>: ✓ full XI available, ✗ lists unfillable slots</li>"
             "<li><b>Cover risk</b>: starting slots without adequate cover</li>"
             "</ul>"
-            "<table><tr><th>Tactic</th><th>Shape</th><th>Play now</th><th>What needs "
+            "<table><tr><th>Tactic</th><th>Shape</th><th>Play-now tactic score</th><th>What needs "
             "attention</th><th>XI</th><th>Cover risk</th></tr>"
             + "".join(rows)
             + "</table>"
@@ -569,6 +620,8 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "<li>Scores are a 0–100 weighted attribute comparison. Condition and match "
             "fitness do not alter set-piece skill; injury, suspension, and unavailable "
             "status exclude a player for this match.</li>"
+            "<li><b>Set-piece attribute score</b> is task-specific; it is not a role score "
+            "and does not use positional familiarity.</li>"
             "<li>Ranges and unknown values remain visible in the score. An unknown attribute "
             "cannot improve a player's current ranking.</li>"
             "<li>Delivery tasks are split left/right; choose the routine above to change the "
@@ -689,7 +742,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         body = (
             _scouting_tab_nav(query)
             + "<p>Only players in the manager-visible discovery feed are shown. "
-            "Scores preserve their <b>floor / estimate / ceiling</b>; a player with "
+            "Attribute-based role scores preserve their <b>floor / estimate / ceiling</b>; a player with "
             "no known role attributes is a reason to scout, not a claim that they are good.</p>"
             + _refresh_notice(_query_first(query, "refreshed"))
             + "<form class='refresh' method='post' action='/scouting/refresh'>"
@@ -840,6 +893,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             + _options(MARKET_FILTERS.items(), filters.market, "")
             + "</select></label>"
             f"<label>Running out within (months)<input name='expiringMonths' type='number' min='0' value='{filters.expiring_months}'></label>"
+            f"<label>Max value (&pound;)<input name='maxValue' type='number' min='0' step='500' value='{_input_value(filters.maximum_value)}'></label>"
             f"<label>Player name<input name='name' value='{html.escape(filters.name_contains or '', quote=True)}'></label>"
             f"<label>Club contains<input name='club' value='{html.escape(filters.club_contains or '', quote=True)}'></label>"
             "<label>Nationality<select name='nationality'>"
@@ -921,7 +975,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             meta_text = " · ".join(f"{name}: {value}" for name, value in meta if value)
             next_scout = ", ".join(item.scout_next) if item.scout_next else "Nothing role-critical is unknown."
             details.append(
-                f"<details><summary>{html.escape(candidate.name)} — {label}; score {_band(item.role_score.score)}</summary>"
+                f"<details><summary>{html.escape(candidate.name)} — {label}; attribute-based role score {_band(item.role_score.score)}</summary>"
                 f"<p>{html.escape(meta_text or 'No additional manager-visible facts captured.')}<br>"
                 f"<b>Scout next:</b> {html.escape(next_scout)}</p>"
                 "<div class='attribute-grid'>" + attribute_cells + "</div>"
@@ -937,10 +991,11 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             )
             + "<ul class='legend'><li><b>Scout first</b>: no relevant attributes are known.</li>"
             "<li><b>Scout to decide</b>: ranges or unknown values could still change the role fit.</li>"
-            "<li><b>Floor / estimate / ceiling</b>: the best and worst role score supported by visible information.</li></ul>"
+            "<li><b>Attribute-based floor / estimate / ceiling</b>: the best and worst role score supported by visible information. "
+            "This table does not apply positional familiarity.</li></ul>"
             "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions"
             + (" (raw external data)" if include_raw_external_positions else "")
-            + "</th><th>Role score (min / est. / max)</th><th>Median</th><th>Visibility</th><th>Scouted</th><th>Recommendation</th></tr>"
+            + "</th><th>Attribute-based role score (min / est. / max)</th><th>Median estimate</th><th>Visibility</th><th>Scouted</th><th>Recommendation</th></tr>"
             + "".join(rows) + "</table><h2>Visible role data</h2>" + "".join(details)
         )
 

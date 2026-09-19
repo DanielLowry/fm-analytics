@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Sequence
 
 from fm_analytics.analytics.catalogue import (
@@ -204,6 +205,86 @@ def is_player_selectable(
     policy: ReadinessPolicy = ReadinessPolicy(),
 ) -> bool:
     return _is_available(player, policy)
+
+
+@dataclass(frozen=True)
+class PositionAdjustedRoleFit:
+    """A role score adjusted only for the best eligible position familiarity.
+
+    Unlike ``SlotAssignment``, this deliberately excludes match readiness and
+    a tactic slot. It is the stable Squad-page answer to "which role can this
+    player perform best in position?"; Tactics then adds today's readiness and
+    assigns the player to one specific slot.
+    """
+
+    role_key: str
+    role_name: str
+    position: str
+    familiarity_rating: int
+    familiarity_known: bool
+    familiarity_multiplier: float
+    intrinsic_role_score: RoleScore
+    position_adjusted_score: ScoreBand
+
+
+def best_position_adjusted_role(
+    player: PlayerSelectionInput,
+    catalogue: FootballCatalogue,
+    *,
+    familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
+) -> PositionAdjustedRoleFit | None:
+    """Return a player's strongest eligible role after position familiarity.
+
+    A role can be used at multiple positions. For this squad-level summary we
+    use the player's most familiar eligible position for that role; a missing
+    reading follows the Tactics policy's neutral ``unknown_rating`` and is
+    marked on the returned fit rather than treated as evidence of familiarity.
+    """
+    player_positions = set(player.positions)
+    fits: list[PositionAdjustedRoleFit] = []
+    for role in catalogue.roles.values():
+        eligible_positions = sorted(player_positions.intersection(role.eligible_positions))
+        if not eligible_positions:
+            continue
+        position = max(
+            eligible_positions,
+            key=lambda item: (
+                familiarity_policy.multiplier(
+                    player.position_familiarity.get(item, familiarity_policy.unknown_rating)
+                ),
+                item,
+            ),
+        )
+        familiarity_known = position in player.position_familiarity
+        rating = player.position_familiarity.get(position, familiarity_policy.unknown_rating)
+        multiplier = familiarity_policy.multiplier(rating)
+        intrinsic = score_role(role, player.attributes)
+        fits.append(
+            PositionAdjustedRoleFit(
+                role_key=role.key,
+                role_name=role.name,
+                position=position,
+                familiarity_rating=rating,
+                familiarity_known=familiarity_known,
+                familiarity_multiplier=multiplier,
+                intrinsic_role_score=intrinsic,
+                position_adjusted_score=ScoreBand(
+                    lower=round(intrinsic.score.lower * multiplier, 6),
+                    central=round(intrinsic.score.central * multiplier, 6),
+                    upper=round(intrinsic.score.upper * multiplier, 6),
+                ),
+            )
+        )
+    return max(
+        fits,
+        key=lambda item: (
+            item.position_adjusted_score.central,
+            item.position_adjusted_score.lower,
+            item.role_key,
+            item.position,
+        ),
+        default=None,
+    )
 
 
 def score_player_for_slot(

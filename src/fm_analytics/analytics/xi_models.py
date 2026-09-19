@@ -198,6 +198,15 @@ class SlotAssignment:
     familiarity_warnings: tuple[str, ...]
     selection_score: ScoreBand
 
+    @property
+    def in_position_score(self) -> ScoreBand:
+        """Attribute-based role score after position familiarity, before readiness."""
+        return ScoreBand(
+            lower=round(self.intrinsic_role_score.score.lower * self.familiarity_multiplier, 6),
+            central=round(self.intrinsic_role_score.score.central * self.familiarity_multiplier, 6),
+            upper=round(self.intrinsic_role_score.score.upper * self.familiarity_multiplier, 6),
+        )
+
 
 @dataclass(frozen=True)
 class TacticEvaluation:
@@ -317,4 +326,3 @@ class _JointAssignmentState:
     total: float
     player_indexes: frozenset[int]
     assignments: tuple[_CandidateAssignment, ...]
-
