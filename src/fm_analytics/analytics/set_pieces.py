@@ -15,7 +15,13 @@ from fm_analytics.analytics.role_scoring import RoleAttribute, RoleDefinition, R
 from fm_analytics.domain import Player, Squad, Visibility
 
 
-SET_PIECE_SCORING_VERSION = "set-piece-v1"
+SET_PIECE_SCORING_VERSION = "set-piece-v2"
+DELIVERY_STYLES = {
+    "inswinging": "Inswingers",
+    "outswinging": "Outswingers",
+}
+_SIDE_DELIVERY_TASKS = frozenset({"corners", "direct_free_kicks", "indirect_free_kicks"})
+_SIDE_FOOT_BONUS = 4.0
 
 
 @dataclass(frozen=True)
@@ -52,12 +58,29 @@ class SetPieceTask:
 class SetPieceCandidate:
     player: Player
     score: RoleScore
+    side_fit_bonus: float = 0.0
+    side_fit_label: str = "Not applicable"
+
+    @property
+    def ordering_score(self) -> float:
+        """The score used for the side-specific ranking, kept visible in UI."""
+
+        return self.score.score.central + self.side_fit_bonus
 
 
 @dataclass(frozen=True)
 class SetPieceRecommendation:
     task: SetPieceTask
     candidates: tuple[SetPieceCandidate, ...]
+    side: str | None = None
+    preferred_foot: str | None = None
+
+    @property
+    def name(self) -> str:
+        if self.side is None:
+            return self.task.name
+        assert self.preferred_foot is not None
+        return f"{self.side.capitalize()}-side {self.task.name} (prefer {self.preferred_foot} foot)"
 
     @property
     def suggested(self) -> SetPieceCandidate | None:
@@ -76,6 +99,7 @@ class SetPieceRecommendation:
 class SetPieceReport:
     recommendations: tuple[SetPieceRecommendation, ...]
     unavailable_players: tuple[Player, ...]
+    delivery_style: str
 
 
 # These are explicit football hypotheses, not claims about FM's internal
@@ -125,19 +149,80 @@ def is_set_piece_available(player: Player) -> bool:
 def recommend_set_pieces(
     squad: Squad,
     tasks: Sequence[SetPieceTask] = SET_PIECE_TASKS,
+    *,
+    delivery_style: str = "inswinging",
 ) -> SetPieceReport:
-    """Rank currently available senior players for every set-piece task."""
+    """Rank available senior players, splitting delivery tasks by side.
+
+    A verified preferred-foot category gets a small, explicit ranking bonus.
+    Attribute score remains the dominant measure: a suitable-foot player is
+    preferred in close cases, rather than a weak deliverer being promoted
+    merely because of his foot.
+    """
+
+    if delivery_style not in DELIVERY_STYLES:
+        raise ValueError(f"delivery_style must be one of {sorted(DELIVERY_STYLES)}")
 
     available = tuple(player for player in squad.players if is_set_piece_available(player))
     unavailable = tuple(player for player in squad.players if not is_set_piece_available(player))
     recommendations = []
     for task in tasks:
-        candidates = tuple(sorted(
-            (SetPieceCandidate(player=player, score=task.score(player)) for player in available),
-            key=lambda item: (
-                -item.score.score.central, -item.score.score.lower, -item.score.score.upper,
-                item.player.name.casefold(), item.player.id,
-            ),
-        ))
-        recommendations.append(SetPieceRecommendation(task=task, candidates=candidates))
-    return SetPieceReport(tuple(recommendations), unavailable)
+        sides = ("left", "right") if task.key in _SIDE_DELIVERY_TASKS else (None,)
+        for side in sides:
+            preferred_foot = _preferred_foot_for_side(side, delivery_style) if side else None
+            candidates = tuple(sorted(
+                (
+                    _candidate_for(task, player, preferred_foot)
+                    for player in available
+                ),
+                key=lambda item: (
+                    -item.ordering_score, -item.score.score.central,
+                    -item.score.score.lower, -item.score.score.upper,
+                    item.player.name.casefold(), item.player.id,
+                ),
+            ))
+            recommendations.append(
+                SetPieceRecommendation(
+                    task=task,
+                    candidates=candidates,
+                    side=side,
+                    preferred_foot=preferred_foot,
+                )
+            )
+    return SetPieceReport(tuple(recommendations), unavailable, delivery_style)
+
+
+def _preferred_foot_for_side(side: str, delivery_style: str) -> str:
+    if side not in {"left", "right"}:
+        raise ValueError("side must be 'left' or 'right'")
+    # An in-swinger curves in towards goal: right-footed from the left and
+    # left-footed from the right. Outswingers reverse that pairing.
+    if delivery_style == "inswinging":
+        return "Right" if side == "left" else "Left"
+    return "Left" if side == "left" else "Right"
+
+
+def _candidate_for(
+    task: SetPieceTask,
+    player: Player,
+    preferred_foot: str | None,
+) -> SetPieceCandidate:
+    bonus, label = _side_fit(player.preferred_foot, preferred_foot)
+    return SetPieceCandidate(
+        player=player,
+        score=task.score(player),
+        side_fit_bonus=bonus,
+        side_fit_label=label,
+    )
+
+
+def _side_fit(player_foot: str | None, preferred_foot: str | None) -> tuple[float, str]:
+    if preferred_foot is None:
+        return 0.0, "Not applicable"
+    if player_foot is None:
+        return 0.0, "Foot not captured"
+    if player_foot == "Either":
+        return _SIDE_FOOT_BONUS / 2, "Either foot"
+    if player_foot.startswith(preferred_foot):
+        return _SIDE_FOOT_BONUS, f"Preferred {preferred_foot.lower()} foot"
+    return 0.0, f"Prefers {player_foot.lower()} foot"

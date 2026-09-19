@@ -16,6 +16,7 @@ from fm_analytics.domain import (
     GameState,
     Manager,
     Player,
+    PREFERRED_FOOT_VALUES,
     PlayerContract,
     SourceHealth,
     Squad,
@@ -385,6 +386,11 @@ def _validate_squad_player(player: Any) -> None:
     _validate_position_familiarity(
         player.get("position_familiarity"), player.get("id")
     )
+    foot = player.get("preferred_foot")
+    if foot is not None and foot not in PREFERRED_FOOT_VALUES:
+        raise BridgeSourceError(
+            "invalid_payload", f"Player '{player.get('id')}' has invalid preferred foot."
+        )
 
 
 def _active_manager(document: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -404,6 +410,7 @@ def _map_player(raw: Mapping[str, Any], club_id: str) -> Player:
         age=raw.get("age"),
         positions=tuple(raw["positions"]),
         position_familiarity=dict(raw.get("position_familiarity") or {}),
+        preferred_foot=raw.get("preferred_foot"),
         club_id=club_id,
         condition_percent=raw.get("condition_percent"),
         match_fitness_percent=raw.get("match_fitness_percent"),

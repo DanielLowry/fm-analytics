@@ -172,9 +172,11 @@ class SquadWebServerTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertIn("Suggested assignments", body)
+        self.assertIn("Left-side Corners (prefer Right foot)", body)
         self.assertIn("Direct free kicks", body)
         self.assertIn("Free Kick Taking is not captured", body)
         self.assertIn("Long throws", body)
+        self.assertIn("Outswingers", body)
 
     def test_unknown_path_is_not_found(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -359,6 +361,45 @@ class SquadWebServerTests(unittest.TestCase):
 
         self.assertIn("<th>Attributes</th>", body)
         self.assertIn("9-15", body)
+
+    def test_a_scouted_player_links_to_an_exhaustive_scouting_report(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="report player/1", name="Report Player", positions=("ST",),
+                    attributes={
+                        "pace": AttributeObservation(Visibility.KNOWN, value=16),
+                        "finishing": AttributeObservation(Visibility.RANGE, minimum=12, maximum=16),
+                    },
+                    age=21, scouting_knowledge=82,
+                    raw_position_familiarity={"ST": 18, "AMR": 7},
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        _status, listing = self._get(port, "/scouting?view=scouted")
+        status, report = self._get(port, "/scouting/player/report%20player%2F1")
+
+        self.assertIn("href='/scouting/player/report%20player%2F1'", listing)
+        self.assertEqual(status, 200)
+        self.assertIn("All captured attributes", report)
+        self.assertIn("Pace", report)
+        self.assertIn("16", report)
+        self.assertIn("12-16", report)
+        self.assertIn("Position familiarity", report)
+        self.assertIn("18/20", report)
+        self.assertIn("AMR", report)
+        self.assertIn("All position and role scores", report)
+        self.assertIn("Advanced Forward (Attack)", report)
+        self.assertIn("Attribute score inputs", report)
+
+    def test_a_missing_scouting_report_player_returns_not_found(self) -> None:
+        port = self._serve(FIXTURE)
+
+        status, body = self._get(port, "/scouting/player/missing")
+
+        self.assertEqual(status, 404)
+        self.assertIn("not in the current scouting capture", body)
 
     def test_scouting_refresh_button_runs_the_configured_capture(self) -> None:
         calls = []

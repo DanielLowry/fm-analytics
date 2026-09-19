@@ -59,6 +59,7 @@
         "positions": [
           "GK"
         ],
+        "preferredFoot": "Right",
         "positionFamiliarity": {
           "GK": 20
         },
@@ -100,6 +101,7 @@
           "DC",
           "DM"
         ],
+        "preferredFoot": "Left",
         "positionFamiliarity": {
           "DC": 18,
           "DM": 15,
@@ -147,6 +149,7 @@
           "MC",
           "AMC"
         ],
+        "preferredFoot": "Either",
         "positionFamiliarity": {
           "MC": 17,
           "AMC": 19,

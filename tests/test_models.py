@@ -141,6 +141,16 @@ class PlayerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "positionFamiliarity"):
             Player.from_dict(raw)
 
+    def test_preferred_foot_round_trips_as_a_visible_category(self) -> None:
+        player = Player.from_dict(self._raw(preferredFoot="Left"))
+
+        self.assertEqual(player.preferred_foot, "Left")
+        self.assertEqual(player.to_dict()["preferredFoot"], "Left")
+
+    def test_preferred_foot_rejects_an_unrecognised_or_hidden_value(self) -> None:
+        with self.assertRaisesRegex(ValueError, "preferredFoot"):
+            Player.from_dict(self._raw(preferredFoot="17/8"))
+
 
 def _player(player_id: str, name: str) -> Player:
     return Player(

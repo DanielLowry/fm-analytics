@@ -12,6 +12,11 @@ class Visibility(StrEnum):
     UNKNOWN = "unknown"
 
 
+# FM exposes these as manager-facing category labels. We intentionally keep
+# only the label, rather than either underlying left/right-foot rating.
+PREFERRED_FOOT_VALUES = frozenset({"Left Only", "Left", "Right Only", "Right", "Either"})
+
+
 @dataclass(frozen=True)
 class AttributeObservation:
     visibility: Visibility
@@ -233,6 +238,9 @@ class Player:
     # it. Empty means "no reading available", not "unfamiliar with every
     # position" -- callers must not treat a missing entry as a low rating.
     position_familiarity: Mapping[str, int] = field(default_factory=dict)
+    # Additive within the v1 contract. ``None`` means the source has no
+    # manager-visible reading, not that the player is equally good with both.
+    preferred_foot: str | None = None
 
     def __post_init__(self) -> None:
         for position, rating in self.position_familiarity.items():
@@ -254,6 +262,11 @@ class Player:
                 raise TypeError("age must be an integer")
             if self.age < 0:
                 raise ValueError("age cannot be negative")
+        if self.preferred_foot is not None and self.preferred_foot not in PREFERRED_FOOT_VALUES:
+            raise ValueError(
+                "preferredFoot must be one of "
+                + ", ".join(sorted(PREFERRED_FOOT_VALUES))
+            )
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> Player:
@@ -282,6 +295,7 @@ class Player:
                 for name, value in attributes.items()
             },
             position_familiarity=_nullable_position_familiarity(raw, "positionFamiliarity"),
+            preferred_foot=_optional_string(raw, "preferredFoot"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -299,6 +313,7 @@ class Player:
             "suspended": self.suspended,
             "contract": self.contract.to_dict() if self.contract else None,
             "positionFamiliarity": dict(self.position_familiarity),
+            "preferredFoot": self.preferred_foot,
             "attributes": {
                 name: observation.to_dict()
                 for name, observation in self.attributes.items()
@@ -420,6 +435,13 @@ def _required_string(raw: Mapping[str, Any], name: str) -> str:
 
 def _nullable_string(raw: Mapping[str, Any], name: str) -> str | None:
     value = _required(raw, name)
+    return None if value is None else _string(value, name)
+
+
+def _optional_string(raw: Mapping[str, Any], name: str) -> str | None:
+    """Read an additive nullable string without requiring older producers."""
+
+    value = raw.get(name)
     return None if value is None else _string(value, name)
 
 

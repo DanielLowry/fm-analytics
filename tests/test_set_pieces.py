@@ -60,6 +60,46 @@ class SetPieceRecommendationTests(unittest.TestCase):
         self.assertEqual((score.lower, score.central, score.upper), (0.0, 0.0, 100.0))
         self.assertIsNone(penalties.suggested)
 
+    def test_inswinging_delivery_uses_different_takers_on_each_side(self) -> None:
+        attributes = {"corners": known(15), "crossing": known(15), "technique": known(15)}
+        left_footed = replace(
+            self.base, id="left", name="Left Foot", preferred_foot="Left", attributes=attributes,
+        )
+        right_footed = replace(
+            self.base, id="right", name="Right Foot", preferred_foot="Right", attributes=attributes,
+        )
+        report = recommend_set_pieces(
+            replace(self.squad, players=(left_footed, right_footed)),
+            delivery_style="inswinging",
+        )
+        left_side = next(
+            item for item in report.recommendations
+            if item.task.key == "corners" and item.side == "left"
+        )
+        right_side = next(
+            item for item in report.recommendations
+            if item.task.key == "corners" and item.side == "right"
+        )
+
+        self.assertEqual(left_side.suggested.player.id, "right")  # type: ignore[union-attr]
+        self.assertEqual(right_side.suggested.player.id, "left")  # type: ignore[union-attr]
+        self.assertEqual(left_side.suggested.side_fit_bonus, 4.0)  # type: ignore[union-attr]
+
+    def test_outswinging_delivery_reverses_the_preferred_foot_by_side(self) -> None:
+        attributes = {"corners": known(15), "crossing": known(15), "technique": known(15)}
+        left_footed = replace(self.base, id="left", preferred_foot="Left", attributes=attributes)
+        right_footed = replace(self.base, id="right", preferred_foot="Right", attributes=attributes)
+        report = recommend_set_pieces(
+            replace(self.squad, players=(left_footed, right_footed)),
+            delivery_style="outswinging",
+        )
+        left_side = next(
+            item for item in report.recommendations
+            if item.task.key == "corners" and item.side == "left"
+        )
+
+        self.assertEqual(left_side.suggested.player.id, "left")  # type: ignore[union-attr]
+
 
 if __name__ == "__main__":
     unittest.main()

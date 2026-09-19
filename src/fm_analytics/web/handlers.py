@@ -7,10 +7,11 @@ import json
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
 from typing import Sequence
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
+    DELIVERY_STYLES,
     ScoutRecommendation,
     FamiliarityPolicy,
     MARKET_FILTERS,
@@ -31,7 +32,12 @@ from fm_analytics.reporting import (
     required_role_attributes,
     validate_recommendation_snapshot,
 )
-from fm_analytics.web.scouting_render import attribute_sheet, ranking_results
+from fm_analytics.web.scouting_render import (
+    attribute_sheet,
+    player_scouting_report,
+    ranking_results,
+    scouting_player_link,
+)
 from fm_analytics.web.rendering import (
     _MAX_SCOUTING_ROWS,
     _SCOUTING_LIVE_FILTER_SCRIPT,
@@ -72,6 +78,8 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             "/data": self._data_page,
         }
         handler = routes.get(path)
+        if handler is None and path.startswith("/scouting/player/") and path != "/scouting/player/":
+            handler = self._scouting_player_page
         if handler is None:
             self._send(
                 _error_page("Not found", f"No page exists at '{path}'."),
@@ -470,7 +478,8 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         try:
             game, squad = self.server.read()  # type: ignore[attr-defined]
             validate_recommendation_snapshot(game, squad)
-            report = recommend_set_pieces(squad)
+            delivery_style = _query_first(_query, "delivery") or "inswinging"
+            report = recommend_set_pieces(squad, delivery_style=delivery_style)
         except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
             self._send(_error_page("Set pieces", str(exc), path), HTTPStatus.SERVICE_UNAVAILABLE)
             return
@@ -493,9 +502,11 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                     "No evidence-based suggestion" if recommendation.candidates else "No available player"
                 )
                 score, backups = "—", "—"
+                side_fit = "—"
             else:
                 suggested_name = html.escape(suggested.player.name)
                 score = _band(suggested.score.score)
+                side_fit = html.escape(suggested.side_fit_label)
                 backups = ", ".join(
                     html.escape(candidate.player.name) for candidate in recommendation.candidates[1:3]
                 ) or "—"
@@ -507,8 +518,8 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             )
             summary_rows.append(
                 "<tr>"
-                f"<td>{html.escape(task.name)}{note}</td><td><b>{suggested_name}</b></td>"
-                f"<td>{score}</td><td>{backups}</td></tr>"
+                f"<td>{html.escape(recommendation.name)}{note}</td><td><b>{suggested_name}</b></td>"
+                f"<td>{score}</td><td>{side_fit}</td><td>{backups}</td></tr>"
             )
             inputs = ", ".join(
                 f"{html.escape(labels.get(attribute.name, attribute.name))} {attribute.weight:g}%"
@@ -518,15 +529,21 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 "<tr>"
                 f"<td>{html.escape(candidate.player.name)}</td>"
                 f"<td>{_band(candidate.score.score)}</td>"
+                f"<td>{html.escape(candidate.side_fit_label)}</td>"
                 f"<td>{' · '.join(html.escape(item.observation.display()) for item in candidate.score.contributions)}</td>"
                 "</tr>"
                 for candidate in recommendation.candidates[:5]
             )
             details.append(
-                f"<details><summary>{html.escape(task.name)} — {suggested_name}</summary>"
+                f"<details><summary>{html.escape(recommendation.name)} — {suggested_name}</summary>"
                 f"<p>{html.escape(task.explanation)}</p>"
-                f"<p class='muted'><b>Weighted inputs:</b> {inputs}.</p>"
-                "<table><tr><th>Player</th><th>Score</th><th>Inputs (in weight order)</th></tr>"
+                + (
+                    "<p class='muted'>The ranking applies a visible +4.0 preference for a "
+                    f"{html.escape(recommendation.preferred_foot or '')}-footed taker; an Either-footed player receives +2.0.</p>"
+                    if recommendation.preferred_foot else ""
+                )
+                + f"<p class='muted'><b>Weighted inputs:</b> {inputs}.</p>"
+                + "<table><tr><th>Player</th><th>Attribute score</th><th>Side fit</th><th>Inputs (in weight order)</th></tr>"
                 + candidate_rows
                 + "</table></details>"
             )
@@ -537,19 +554,27 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             + ".</p>"
             if report.unavailable_players else ""
         )
+        routine_picker = (
+            "<nav class='scouting-tabs'><a class='"
+            + ("tab-active" if report.delivery_style == "inswinging" else "tab")
+            + "' href='/set-pieces?delivery=inswinging'>Inswingers</a><a class='"
+            + ("tab-active" if report.delivery_style == "outswinging" else "tab")
+            + "' href='/set-pieces?delivery=outswinging'>Outswingers</a></nav>"
+        )
         body = (
             "<p>Suggested assignments for the current available senior squad. Enter these "
             "in FM if they fit your routine; this page does not change tactics in-game.</p>"
-            "<ul class='legend'>"
+            + routine_picker
+            + "<ul class='legend'>"
             "<li>Scores are a 0–100 weighted attribute comparison. Condition and match "
             "fitness do not alter set-piece skill; injury, suspension, and unavailable "
             "status exclude a player for this match.</li>"
             "<li>Ranges and unknown values remain visible in the score. An unknown attribute "
             "cannot improve a player's current ranking.</li>"
-            "<li>Footedness, preferred routines, and opponent-specific match-ups are not "
-            "modelled yet.</li></ul>"
+            "<li>Delivery tasks are split left/right; choose the routine above to change the "
+            "preferred foot. Opponent-specific match-ups are not modelled yet.</li></ul>"
             "<h2>Suggested assignments</h2>"
-            "<table><tr><th>Assignment</th><th>Suggested</th><th>Score</th><th>Alternatives</th></tr>"
+            "<table><tr><th>Assignment</th><th>Suggested</th><th>Attribute score</th><th>Side fit</th><th>Alternatives</th></tr>"
             + "".join(summary_rows)
             + "</table>"
             + "<h2>Why these players</h2>"
@@ -699,6 +724,31 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             return
         self._send(self._scouting_results_block(candidates, filters))
 
+    def _scouting_player_page(self, path: str, _query: dict[str, list[str]]) -> None:
+        """Show the exhaustive, evidence-bounded report for one scouted player."""
+        player_id = unquote(path.removeprefix("/scouting/player/"))
+        try:
+            candidate = next(
+                (item for item in self.server.scouting() if item.id == player_id),  # type: ignore[attr-defined]
+                None,
+            )
+        except (OSError, ValueError, KeyError) as exc:
+            self._send(_error_page("Scouting report", str(exc), "/scouting"), HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        if candidate is None:
+            self._send(
+                _error_page("Scouting report", "That player is not in the current scouting capture.", "/scouting"),
+                HTTPStatus.NOT_FOUND,
+            )
+            return
+        self._send(
+            _layout(
+                f"Scouting report · {candidate.name}",
+                "/scouting",
+                player_scouting_report(candidate, MVP_CATALOGUE),
+            )
+        )
+
     def _scouting_results_block(self, candidates, filters: ScoutingFilters) -> str:
         assessments = (
             assess_scouting_candidates(candidates, MVP_CATALOGUE, filters)
@@ -786,7 +836,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             f"<label>Role (optional)<select name='role'>{role_options}</select></label>"
             f"<label>Minimum age<input name='minAge' type='number' min='0' value='{_input_value(filters.minimum_age)}'></label>"
             f"<label>Maximum age<input name='maxAge' type='number' min='0' value='{_input_value(filters.maximum_age)}'></label>"
-            "<label>Can I sign him?<select name='market'>"
+            "<label>Contract / listing<select name='market'>"
             + _options(MARKET_FILTERS.items(), filters.market, "")
             + "</select></label>"
             f"<label>Running out within (months)<input name='expiringMonths' type='number' min='0' value='{filters.expiring_months}'></label>"
@@ -849,7 +899,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             )
             rows.append(
                 "<tr>"
-                f"<td>{html.escape(candidate.name)}<br><span class='muted'>{html.escape(candidate.nationality or 'Nationality not known')}</span></td>"
+                f"<td>{scouting_player_link(candidate)}<br><span class='muted'>{html.escape(candidate.nationality or 'Nationality not known')}</span></td>"
                 f"<td>{html.escape(candidate.club or '—')}</td><td>{candidate.age if candidate.age is not None else '—'}</td>"
                 f"<td>{html.escape(', '.join(positions) or 'Not yet captured')}</td>"
                 f"<td>{_band(item.role_score.score)}</td>"
@@ -908,7 +958,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         displayed = candidates[:_MAX_SCOUTING_ROWS]
         rows = "".join(
             "<tr>"
-            f"<td>{html.escape(candidate.name)}</td>"
+            f"<td>{scouting_player_link(candidate)}</td>"
             f"<td>{html.escape(candidate.club or '—')}</td>"
             f"<td>{candidate.age if candidate.age is not None else '—'}</td>"
             f"<td>{_position_display(candidate, include_raw_external_positions=include_raw_external_positions)}</td>"
@@ -953,6 +1003,9 @@ class SquadWebHandler(BaseHTTPRequestHandler):
         for player in squad.players:
             missing = sorted(required.difference(player.attributes))
             familiarity_count = len(player.position_familiarity)
+            preferred_foot = html.escape(player.preferred_foot) if player.preferred_foot else (
+                "<span class='muted'>not captured</span>"
+            )
             rows.append(
                 "<tr>"
                 f"<td>{html.escape(player.name)}</td>"
@@ -960,7 +1013,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
                 f"<td>{'<span class=\"warn\">' + html.escape(', '.join(missing)) + '</span>' if missing else 'complete'}</td>"
                 f"<td>{familiarity_count} position(s)"
                 + ("" if familiarity_count else " <span class='muted'>(none read yet)</span>")
-                + "</td></tr>"
+                + f"</td><td>{preferred_foot}</td></tr>"
             )
         other_team_players = [player for team in squad.other_teams for player in team.players]
         other_coverage = (
@@ -977,7 +1030,7 @@ class SquadWebHandler(BaseHTTPRequestHandler):
             f"<code>positionFamiliarity</code> is additive and optional -- absence means "
             "no reading is available yet, not that a player is unfamiliar everywhere.</p>"
             "<table><tr><th>Player</th><th>Attribute coverage</th>"
-            "<th>Missing attributes</th><th>Position familiarity</th></tr>"
+            "<th>Missing attributes</th><th>Position familiarity</th><th>Preferred foot</th></tr>"
             + "".join(rows)
             + "</table>"
             + other_coverage

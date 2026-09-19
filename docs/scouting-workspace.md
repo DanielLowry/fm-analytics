@@ -367,8 +367,8 @@ The page is ready for the Frida Player Search result-ID collector described in
 will become the candidate-feed producer; it must first prove exact agreement
 with FM's visible Player Search results.
 
-## Can I sign him? (market filter)
+## Contract / listing filter (not "would he join us")
 
-The filter bar's "Can I sign him?" narrows the list to players who are realistically gettable: **free agent** (a contract read that succeeded and found none), **transfer listed**, or **contract running out** within N months (default 6, measured from the capture's game date). "Gettable" is any of the three. Players whose contract could not be read are never treated as gettable. The Contract column shows the same facts plus the expiry date.
+The filter bar's "Contract / listing" narrows the list to players who are realistically gettable: **free agent** (a contract read that succeeded and found none), **transfer listed**, or **contract running out** within N months (default 6, measured from the capture's game date). "Gettable" is any of the three. Players whose contract could not be read are never treated as gettable. The Contract column shows the same facts plus the expiry date.
 
 Not covered: whether a player *wants* to join (a bigger club's player may have no interest in us). That is not captured yet, so judge it yourself for now. Contract facts appear after the next scouting refresh.

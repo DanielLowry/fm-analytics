@@ -100,6 +100,7 @@ from fm_analytics.analytics.scouting import (
     rank_for_position,
 )
 from fm_analytics.analytics.set_pieces import (
+    DELIVERY_STYLES,
     SET_PIECE_SCORING_VERSION,
     SET_PIECE_TASKS,
     SetPieceCandidate,
@@ -120,6 +121,7 @@ __all__ = [
     "FamiliarityPolicy",
     "FootballCatalogue",
     "DepthCandidate",
+    "DELIVERY_STYLES",
     "MVP_CATALOGUE",
     "PlayerRoleFit",
     "PlayerRoleProfile",

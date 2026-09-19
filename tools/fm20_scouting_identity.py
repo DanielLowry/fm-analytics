@@ -13,6 +13,7 @@ which fails closed because its output is published as position data.
 from __future__ import annotations
 
 import os
+import struct
 from datetime import date
 from typing import Any, Mapping
 
@@ -52,6 +53,25 @@ def resolve_source_player_names(pid: int, records: dict[int, int]) -> dict[int, 
         return names
     finally:
         os.close(fd)
+
+
+# The player's transfer value in pounds, as FM prints it in the Value column of
+# Player Search and on his profile -- a manager-visible figure, not a hidden
+# rating. Verified 19 September 2026 against ten exported players whose Value
+# column matches this field once FM's own display rounding is applied (e.g.
+# 14,435 -> "PS14.5K", 3,589 -> "PS3.6K").
+PLAYER_VALUE_FROM_PERSON = -0x98
+
+
+def read_player_value(memory_fd: int, person: int) -> int | None:
+    """Pounds, or None when the field does not read as a plausible value."""
+    try:
+        raw = struct.unpack("<I", read_exact(memory_fd, person + PLAYER_VALUE_FROM_PERSON, 4))[0]
+    except (OSError, ProbeError):
+        return None
+    # FM's own ceiling for a player valuation is far below this; anything
+    # larger means the field was not what we think it is for this record.
+    return raw if raw <= 500_000_000 else None
 
 
 def resolve_source_identity_facts(
@@ -95,6 +115,9 @@ def resolve_source_identity_facts(
                 entry["age"] = calculate_age(dob, as_of)
             except (OSError, ProbeError):
                 pass
+            value = read_player_value(fd, person)
+            if value is not None:
+                entry["value"] = value
             contract_read_failed = False
             try:
                 contract = read_player_contract(fd, actual_person)

@@ -54,6 +54,8 @@ class ScoutingCandidate:
     contract_end: str | None = None
     contract_type: str | None = None
     has_contract: bool | None = None
+    # Transfer value in pounds, as FM's own Value column shows it.
+    value: int | None = None
     # The game date the capture was taken at; contract expiry is measured from it.
     captured_game_date: str | None = None
 
@@ -144,6 +146,7 @@ class ScoutingCandidate:
             raw_position_familiarity=dict(familiarity) if familiarity is not None else None,
             contract_end=optional_text("contractEnd"), contract_type=optional_text("contractType"),
             has_contract=has_contract, captured_game_date=optional_text("capturedGameDate"),
+            value=raw.get("value"),
         )
 
 

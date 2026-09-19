@@ -10,14 +10,17 @@ from __future__ import annotations
 
 import html
 from typing import Sequence
+from urllib.parse import quote
 
 from fm_analytics.analytics import (
+    FamiliarityPolicy,
     PositionRanking,
     ScoutingCandidate,
     contract_months_left,
     default_descending,
     is_free_agent,
     is_transfer_listed,
+    score_role,
 )
 from fm_analytics.domain.models import Visibility
 from fm_analytics.web.rendering import (
@@ -85,6 +88,156 @@ def attribute_sheet(candidate: ScoutingCandidate) -> str:
     return (
         f"<details class='sheet'><summary>Attributes ({shown} shown)</summary>"
         f"<div class='sheet-groups'>{''.join(groups)}</div></details>"
+    )
+
+
+def scouting_player_link(candidate: ScoutingCandidate) -> str:
+    """A stable link to the player's full scouting report."""
+    return (
+        f"<a href='/scouting/player/{quote(candidate.id, safe='')}' "
+        f"class='player-link'>{html.escape(candidate.name)}</a>"
+    )
+
+
+def player_scouting_report(candidate: ScoutingCandidate, catalogue) -> str:
+    """Render every captured attribute and every catalogue role for one player.
+
+    The role table is deliberately exhaustive rather than filtering to the
+    positions currently shown in FM. It answers both "what can he play now?"
+    and "what does the model say if we retrain him?" without treating a missing
+    familiarity reading as a made-up rating.
+    """
+    policy = FamiliarityPolicy()
+    positions = sorted({
+        position for role in catalogue.roles.values() for position in role.eligible_positions
+    })
+    known_positions = set(candidate.positions_for(include_raw_external_positions=True))
+    familiarity = candidate.raw_position_familiarity or {}
+    position_rows = "".join(
+        _position_familiarity_row(position, known_positions, familiarity, policy)
+        for position in positions
+    )
+    attributes = _full_attribute_sheet(candidate)
+    score_sections = "".join(
+        _position_role_scores(candidate, position, catalogue, familiarity, policy)
+        for position in positions
+    )
+    facts = [
+        ("Club", candidate.club),
+        ("Age", str(candidate.age) if candidate.age is not None else None),
+        ("Nationality", candidate.nationality),
+        ("Footedness", candidate.footedness),
+        ("Scouting knowledge", f"{candidate.scouting_knowledge}%" if candidate.scouting_knowledge is not None else None),
+        ("Availability", candidate.availability),
+        ("Transfer status", candidate.transfer_status),
+        ("Contract type", candidate.contract_type),
+        ("Contract ends", candidate.contract_end),
+    ]
+    facts.extend((key, value) for key, value in (candidate.facts or {}).items())
+    fact_rows = "".join(
+        f"<tr><th>{html.escape(label)}</th><td>{html.escape(value)}</td></tr>"
+        for label, value in facts if value
+    ) or "<tr><td colspan='2' class='muted'>No additional facts captured</td></tr>"
+    return (
+        "<p><a href='/scouting?view=scouted'>← Back to scouted players</a></p>"
+        "<h2>Player information</h2><table class='report-facts'>" + fact_rows + "</table>"
+        "<h2>All captured attributes</h2>"
+        "<p class='muted'>Values shown as a range retain the uncertainty reported by scouting.</p>"
+        + attributes
+        + "<h2>Position familiarity</h2>"
+        "<p class='muted'>Familiarity is the captured raw 0–20 position rating. The multiplier is the "
+        "same discount used for an in-position score; a missing rating is left unknown rather than assumed.</p>"
+        "<table><tr><th>Position</th><th>Position captured</th><th>Familiarity / in-position multiplier</th></tr>"
+        + position_rows + "</table>"
+        + "<h2>All position and role scores</h2>"
+        "<p class='muted'>Floor and ceiling are the bounds supported by scouting. Current is deliberately "
+        "conservative when an attribute is unknown; estimate treats unknown attributes as mid-scale. "
+        "In-position estimate applies the listed familiarity multiplier where one was captured.</p>"
+        + score_sections
+    )
+
+
+def _full_attribute_sheet(candidate: ScoutingCandidate) -> str:
+    groups: list[str] = []
+    for title, keys in _ATTRIBUTE_GROUPS:
+        rows = []
+        for key in keys:
+            observation = candidate.attributes.get(key)
+            if observation is None:
+                continue
+            rows.append(
+                "<tr>"
+                f"<td>{html.escape(_attribute_label(key))}</td>"
+                f"<td>{html.escape(observation.display())}</td>"
+                "</tr>"
+            )
+        if rows:
+            groups.append(
+                f"<section class='report-attribute-group'><h3>{title}</h3>"
+                "<table><tr><th>Attribute</th><th>Scouted value</th></tr>"
+                + "".join(rows) + "</table></section>"
+            )
+    return "".join(groups) or "<p class='muted'>No attributes captured.</p>"
+
+
+def _position_familiarity_row(position, known_positions, familiarity, policy) -> str:
+    if position in familiarity:
+        rating = familiarity[position]
+        rating_text = (
+            f"{rating}/20 (×{policy.multiplier(max(rating, policy.scale_minimum)):.2f})"
+        )
+    else:
+        rating_text = "Not captured"
+    return (
+        "<tr>"
+        f"<td>{html.escape(position)}</td>"
+        f"<td>{'Captured position' if position in known_positions else '—'}</td>"
+        f"<td>{rating_text}</td></tr>"
+    )
+
+
+def _position_role_scores(candidate, position, catalogue, familiarity, policy) -> str:
+    rating = familiarity.get(position)
+    multiplier = (
+        policy.multiplier(max(rating, policy.scale_minimum)) if rating is not None else None
+    )
+    rows: list[str] = []
+    roles = sorted(
+        (role for role in catalogue.roles.values() if position in role.eligible_positions),
+        key=lambda role: (role.name, role.key),
+    )
+    for role in roles:
+        score = score_role(role, candidate.attributes)
+        input_rows = "".join(
+            "<tr>"
+            f"<td>{html.escape(_attribute_label(contribution.attribute))}</td>"
+            f"<td>{contribution.weight:g}</td>"
+            f"<td>{html.escape(contribution.observation.display())}</td>"
+            f"<td>{contribution.points.lower:.1f} / {contribution.points.central:.1f} / {contribution.points.upper:.1f}</td>"
+            "</tr>"
+            for contribution in score.contributions
+        )
+        inputs = (
+            "<details class='role-inputs'><summary>Attribute score inputs</summary>"
+            "<table><tr><th>Attribute</th><th>Weight</th><th>Scouted value</th>"
+            "<th>Points (floor / current / ceiling)</th></tr>"
+            + input_rows + "</table></details>"
+        )
+        in_position = "—" if multiplier is None else f"{score.median * multiplier:.1f}"
+        rows.append(
+            "<tr>"
+            f"<td>{html.escape(role.name)}</td><td>{score.score.lower:.1f}</td>"
+            f"<td>{score.score.central:.1f}</td><td><b>{score.median:.1f}</b></td>"
+            f"<td>{score.score.upper:.1f}</td><td>{in_position}</td><td>{inputs}</td>"
+            "</tr>"
+        )
+    familiarity_text = "not captured" if rating is None else f"{rating}/20 (×{multiplier:.2f})"
+    return (
+        f"<section class='position-role-report'><h3>{html.escape(position)} "
+        f"<span class='muted'>— familiarity {familiarity_text}</span></h3>"
+        "<table><tr><th>Role</th><th>Floor</th><th>Current</th><th>Estimate</th>"
+        "<th>Ceiling</th><th>In-position estimate</th><th>Breakdown</th></tr>"
+        + "".join(rows) + "</table></section>"
     )
 
 
@@ -213,7 +366,7 @@ def _ranking_row(rank: int, item: PositionRanking, show_familiarity: bool = Fals
     return (
         "<tr>"
         f"<td>{rank}</td>"
-        f"<td>{html.escape(candidate.name)}"
+        f"<td>{scouting_player_link(candidate)}"
         f"<br><span class='muted'>{html.escape(candidate.club or 'No club')}</span></td>"
         f"<td>{candidate.age if candidate.age is not None else '—'}</td>"
         f"<td>{_scouting_knowledge_cell(candidate)}</td>"

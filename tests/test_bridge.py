@@ -139,6 +139,18 @@ class BridgeSourceTests(unittest.TestCase):
 
         self.assertEqual(squad.players[0].position_familiarity, {})
 
+    def test_linux_source_carries_a_verified_preferred_foot_from_the_probe(self) -> None:
+        source = LinuxProtonDataSource(__file__)
+        probe = self.probe_document("2019-06-24", ("player-1",))
+        probe["first_team_squad"][0]["preferred_foot"] = "Left"
+        with (
+            patch.object(source, "_run_probe", return_value=probe),
+            patch.object(source, "_run_owned_source", return_value=self.owned_document(probe)),
+        ):
+            squad = source.get_squad()
+
+        self.assertEqual(squad.players[0].preferred_foot, "Left")
+
     def test_linux_source_rejects_out_of_range_position_familiarity(self) -> None:
         source = LinuxProtonDataSource(__file__)
         probe = self.probe_document("2019-06-24", ("player-1",))
