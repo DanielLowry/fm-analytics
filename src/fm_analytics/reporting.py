@@ -18,12 +18,18 @@ from fm_analytics.analytics import (
     PositionAdjustedRoleFit,
     MVP_CATALOGUE,
     FootballCatalogue,
+    FamiliarityPolicy,
     PlayerSelectionInput,
+    ReadinessPolicy,
     RecruitmentBrief,
     RoleMatrix,
     SquadDepthReport,
     SubstitutionBoard,
+    TacticEvaluation,
+    TacticFitPolicy,
     TacticRecommendation,
+    TacticSelectionExplanation,
+    SystemFitPolicy,
     TrainingTarget,
     WeaknessReport,
     assess_squad_depth,
@@ -33,6 +39,7 @@ from fm_analytics.analytics import (
     best_position_adjusted_role,
     best_selection_adjusted_role,
     build_substitution_board,
+    explain_tactic_selection,
     recommend_tactic_effective_and_potential,
     select_bench,
 )
@@ -51,6 +58,37 @@ class RecommendationBundle:
     squad_depth: SquadDepthReport
     role_matrix: RoleMatrix
     briefs: tuple[RecruitmentBrief, ...]
+    policy: RecommendationPolicy
+
+
+@dataclass(frozen=True)
+class RecommendationPolicy:
+    """All adjustable recommendation priorities carried as one profile.
+
+    The browser uses these defaults today.  Keeping the policies together and
+    on the resulting bundle gives future controls one input to change while
+    ensuring every explanation and matchday calculation uses the same values.
+    """
+
+    readiness: ReadinessPolicy = ReadinessPolicy()
+    familiarity: FamiliarityPolicy = FamiliarityPolicy()
+    tactic_fit: TacticFitPolicy = TacticFitPolicy()
+    system_fit: SystemFitPolicy = SystemFitPolicy()
+    bench_size: int = 7
+
+    def __post_init__(self) -> None:
+        if self.bench_size < 0:
+            raise ValueError("bench size cannot be negative")
+
+
+@dataclass(frozen=True)
+class TacticMatchdayReport:
+    """Drill-down data for one tactic, computed through the shared analytics."""
+
+    evaluation: TacticEvaluation
+    bench: BenchSelection
+    substitution_board: SubstitutionBoard
+    selection_explanation: TacticSelectionExplanation
 
 
 def required_role_attributes(catalogue: FootballCatalogue = MVP_CATALOGUE) -> frozenset[str]:
@@ -129,6 +167,7 @@ def build_recommendation_bundle(
     squad: Squad,
     *,
     catalogue: FootballCatalogue = MVP_CATALOGUE,
+    policy: RecommendationPolicy = RecommendationPolicy(),
 ) -> RecommendationBundle:
     """Run every analytics pass a squad recommendation needs, once.
 
@@ -141,12 +180,29 @@ def build_recommendation_bundle(
         PlayerSelectionInput.from_player(player) for player in squad.players
     )
     effective_and_potential = recommend_tactic_effective_and_potential(
-        selection_players, catalogue
+        selection_players,
+        catalogue,
+        readiness_policy=policy.readiness,
+        familiarity_policy=policy.familiarity,
+        fit_policy=policy.tactic_fit,
+        system_policy=policy.system_fit,
     )
     recommendation = effective_and_potential.effective
-    bench = select_bench(recommendation.selected, selection_players, catalogue)
+    bench = select_bench(
+        recommendation.selected,
+        selection_players,
+        catalogue,
+        bench_size=policy.bench_size,
+        readiness_policy=policy.readiness,
+        familiarity_policy=policy.familiarity,
+    )
     substitution_board = build_substitution_board(
-        recommendation.selected, bench, selection_players, catalogue
+        recommendation.selected,
+        bench,
+        selection_players,
+        catalogue,
+        readiness_policy=policy.readiness,
+        familiarity_policy=policy.familiarity,
     )
     weakness_report = assess_weaknesses(recommendation.selected, selection_players, catalogue)
     squad_depth = assess_squad_depth(recommendation.evaluations, selection_players, catalogue)
@@ -163,4 +219,54 @@ def build_recommendation_bundle(
         squad_depth=squad_depth,
         role_matrix=role_matrix,
         briefs=briefs,
+        policy=policy,
+    )
+
+
+def build_tactic_matchday_report(
+    bundle: RecommendationBundle,
+    tactic_key: str,
+    *,
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+    bench_size: int | None = None,
+) -> TacticMatchdayReport:
+    """Build the XI explanation and tactic-specific matchday bench."""
+    try:
+        evaluation = bundle.recommendation.by_tactic_key(tactic_key)
+    except StopIteration as exc:
+        raise ValueError(f"unknown evaluated tactic {tactic_key!r}") from exc
+    selection_players = tuple(
+        PlayerSelectionInput.from_player(player) for player in bundle.squad.players
+    )
+    resolved_bench_size = bundle.policy.bench_size if bench_size is None else bench_size
+    bench = select_bench(
+        evaluation,
+        selection_players,
+        catalogue,
+        bench_size=resolved_bench_size,
+        readiness_policy=bundle.policy.readiness,
+        familiarity_policy=bundle.policy.familiarity,
+    )
+    substitution_board = build_substitution_board(
+        evaluation,
+        bench,
+        selection_players,
+        catalogue,
+        readiness_policy=bundle.policy.readiness,
+        familiarity_policy=bundle.policy.familiarity,
+    )
+    selection_explanation = explain_tactic_selection(
+        evaluation,
+        selection_players,
+        catalogue,
+        readiness_policy=bundle.policy.readiness,
+        familiarity_policy=bundle.policy.familiarity,
+        fit_policy=bundle.policy.tactic_fit,
+        system_policy=bundle.policy.system_fit,
+    )
+    return TacticMatchdayReport(
+        evaluation=evaluation,
+        bench=bench,
+        substitution_board=substitution_board,
+        selection_explanation=selection_explanation,
     )

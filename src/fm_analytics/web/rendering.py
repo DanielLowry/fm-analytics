@@ -219,6 +219,19 @@ _STYLE = """
   .attribute-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.35rem; }
   .attribute-grid div { border: 1px solid #e5e5e5; padding: 0.35rem; border-radius: 0.25rem; }
   .attribute-grid b { display: block; font-size: 0.75rem; color: #667; }
+  .tactic-hero { margin: 1rem 0 1.5rem; padding: 1rem 1.2rem; background: #eef3f7; border-left: 4px solid #1a2b3c; border-radius: 0.3rem; }
+  .tactic-hero h2 { margin: 0.2rem 0; border: 0; padding: 0; font-size: 1.35rem; }
+  .tactic-hero p { margin: 0.45rem 0; }
+  .eyebrow { color: #566; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+  .button-link { display: inline-block; padding: 0.4rem 0.7rem; border-radius: 0.25rem; background: #1a2b3c; color: white; text-decoration: none; }
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 0.65rem; margin: 1rem 0; }
+  .metric-grid div { display: grid; gap: 0.2rem; padding: 0.75rem; border: 1px solid #dfe3e7; border-radius: 0.3rem; background: white; }
+  .metric-grid span { color: #667; font-size: 0.8rem; }
+  .metric-grid b { font-size: 1.15rem; }
+  tr.explanation-row td { padding: 0 0.6rem 0.55rem; background: #fcfcfc; }
+  tr.explanation-row details { margin: 0; }
+  .score-path { line-height: 1.8; }
+  .tactic-link { white-space: nowrap; }
 </style>
 """
 

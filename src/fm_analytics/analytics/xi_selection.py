@@ -15,6 +15,7 @@ from fm_analytics.analytics.tactical_system import (
     assess_coherence,
     assess_instruction_suitability,
 )
+from fm_analytics.analytics.selection_constraints import apply_forced_assignment_choices
 from fm_analytics.domain import Player
 from fm_analytics.analytics.xi_models import (
     EffectiveAndPotentialRecommendation,
@@ -42,6 +43,28 @@ def evaluate_tactic(
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
     system_policy: SystemFitPolicy = SystemFitPolicy(),
 ) -> TacticEvaluation:
+    return _evaluate_tactic(
+        tactic,
+        players,
+        catalogue,
+        readiness_policy=readiness_policy,
+        familiarity_policy=familiarity_policy,
+        fit_policy=fit_policy,
+        system_policy=system_policy,
+    )
+
+
+def _evaluate_tactic(
+    tactic: TacticDefinition,
+    players: Sequence[PlayerSelectionInput],
+    catalogue: FootballCatalogue,
+    *,
+    readiness_policy: ReadinessPolicy,
+    familiarity_policy: FamiliarityPolicy,
+    fit_policy: TacticFitPolicy,
+    system_policy: SystemFitPolicy,
+    forced_assignment: tuple[int, str, str] | None = None,
+) -> TacticEvaluation:
     if tactic.key not in catalogue.tactics or catalogue.tactics[tactic.key] != tactic:
         raise ValueError("tactic must belong to the supplied football catalogue")
     player_ids = [player.id for player in players]
@@ -52,6 +75,11 @@ def evaluate_tactic(
     choices = _build_choices(
         tactic, ordered_players, catalogue, readiness_policy, familiarity_policy
     )
+    forced_roles: dict[int, str] = {}
+    if forced_assignment is not None:
+        choices, forced_roles = apply_forced_assignment_choices(
+            choices, ordered_players, forced_assignment
+        )
     full_mask = (1 << len(tactic.slots)) - 1
     (
         best_mask,
@@ -63,7 +91,14 @@ def evaluate_tactic(
         coherence,
         instruction_suitability,
         fit_score,
-    ) = _best_role_version(tactic, choices, catalogue, fit_policy, system_policy)
+    ) = _best_role_version(
+        tactic,
+        choices,
+        catalogue,
+        fit_policy,
+        system_policy,
+        forced_roles=forced_roles,
+    )
     unfilled = tuple(
         slot
         for index, slot in enumerate(tactic.slots)
@@ -510,6 +545,8 @@ def _best_role_version(
     catalogue: FootballCatalogue,
     fit_policy: TacticFitPolicy,
     system_policy: SystemFitPolicy,
+    *,
+    forced_roles: dict[int, str] | None = None,
 ) -> tuple[
     int,
     _AssignmentState,
@@ -532,7 +569,13 @@ def _best_role_version(
     """
     full_mask = (1 << len(tactic.slots)) - 1
     best: _RoleVersionEvaluation | None = None
-    role_options = tuple(catalogue.role_keys_for_slot(slot) for slot in tactic.slots)
+    forced_roles = forced_roles or {}
+    role_options = tuple(
+        (forced_roles[index],)
+        if index in forced_roles
+        else catalogue.role_keys_for_slot(slot)
+        for index, slot in enumerate(tactic.slots)
+    )
     for role_keys in product(*role_options):
         version_choices = _choices_for_role_version(choices, role_keys)
         state = _best_assignment_for_role_version(

@@ -5,7 +5,7 @@ from __future__ import annotations
 import html
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
@@ -62,6 +62,8 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             handler = self._scouting_player_page
         if handler is None and path.startswith("/squad/player/") and path != "/squad/player/":
             handler = self._squad_player_page
+        if handler is None and path.startswith("/tactics/") and path != "/tactics/":
+            handler = self._tactic_detail_page
         if handler is None:
             self._send(
                 _error_page("Not found", f"No page exists at '{path}'."),
@@ -290,206 +292,270 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
         bundle = self._bundle_or_error(path, "Tactics")
         if bundle is None:
             return
+        selected = bundle.recommendation.selected
         rows = []
-        details = []
-        for evaluation in bundle.recommendation.evaluations:
+        for rank, evaluation in enumerate(bundle.recommendation.evaluations, start=1):
             tactic_key = evaluation.tactic.key
-            status = (
-                "✓"
-                if evaluation.has_legal_xi
-                else "✗ " + ", ".join(slot.key for slot in evaluation.unfilled_slots)
+            issue = self._tactic_headline(bundle, evaluation)
+            recommendation = (
+                " <span class='badge badge-ok'>Recommended</span>"
+                if tactic_key == selected.tactic.key
+                else ""
             )
-            risk = _injury_risk_count(bundle.squad_depth.per_tactic[tactic_key])
-            risk_class = "badge-persistent" if risk else "badge-ok"
-            concerns = []
-            if not evaluation.has_legal_xi:
-                concerns.append("cannot fill every position")
-            if evaluation.coherence.shortfalls:
-                concerns.append(
-                    "balance: " + _tactical_shortfalls(evaluation.coherence.shortfalls)
-                )
-            if evaluation.instruction_suitability.shortfalls:
-                concerns.append(
-                    "game plan: "
-                    + _tactical_shortfalls(evaluation.instruction_suitability.shortfalls)
-                )
-            summary = " · ".join(concerns) if concerns else "no structural warning"
             rows.append(
                 "<tr>"
-                f"<td>{html.escape(evaluation.tactic.name)}</td>"
+                f"<td>{rank}</td>"
+                f"<td><b>{html.escape(evaluation.tactic.name)}</b>{recommendation}</td>"
                 f"<td>{html.escape(evaluation.tactic.formation)}</td>"
-                f"<td>{_band(evaluation.score)}</td>"
-                f"<td>{html.escape(summary)}</td>"
-                f"<td>{status}</td>"
-                f"<td><span class='badge {risk_class}'>{risk}</span></td>"
+                f"<td><b>{_band(evaluation.score)}</b></td>"
+                f"<td>{'Full XI' if evaluation.has_legal_xi else 'Incomplete XI'}</td>"
+                f"<td>{html.escape(issue)}</td>"
+                f"<td><a class='tactic-link' href='/tactics/{quote(tactic_key, safe='')}'>"
+                "View tactic →</a></td>"
                 "</tr>"
             )
-            assignment_rows = "".join(
+        body = (
+            "<section class='tactic-hero'>"
+            "<span class='eyebrow'>Recommended for today</span>"
+            f"<h2>{html.escape(selected.tactic.name)}</h2>"
+            f"<p>{html.escape(selected.tactic.formation)} · Play-now tactic score "
+            f"<b>{_band(selected.score)}</b></p>"
+            f"<p><a class='button-link' href='/tactics/{quote(selected.tactic.key, safe='')}'>"
+            "Open recommended tactic →</a></p></section>"
+            "<h2>Compare tactics</h2>"
+            "<p class='muted'>A quick squad-fit comparison. Open a tactic to inspect its "
+            f"XI, why each player was selected, and a {bundle.policy.bench_size}-player "
+            "matchday bench.</p>"
+            "<table><tr><th>Rank</th><th>Tactic</th><th>Shape</th>"
+            "<th>Play-now score</th><th>Line-up</th><th>Key issue</th><th></th></tr>"
+            + "".join(rows)
+            + "</table>"
+            "<details><summary>How tactics are ranked</summary>"
+            "<p class='muted'>The play-now score combines today’s player-role fit, team "
+            "balance and support for the tactic’s instructions. It is a squad-fit estimate, "
+            "not a match prediction or an opponent-specific recommendation. Open a tactic "
+            "to see those components separately.</p></details>"
+        )
+        self._send(_layout("Tactics", path, body))
+
+    @staticmethod
+    def _tactic_headline(bundle: RecommendationBundle, evaluation) -> str:
+        if evaluation.unfilled_slots:
+            slots = ", ".join(slot.key for slot in evaluation.unfilled_slots)
+            return f"Cannot fill {slots}"
+        if evaluation.coherence.shortfalls:
+            return "Role balance: " + _tactical_shortfalls(evaluation.coherence.shortfalls)
+        if evaluation.instruction_suitability.shortfalls:
+            return "Game plan: " + _tactical_shortfalls(
+                evaluation.instruction_suitability.shortfalls
+            )
+        risk = _injury_risk_count(bundle.squad_depth.per_tactic[evaluation.tactic.key])
+        if risk:
+            return f"{risk} starting slot{'s' if risk != 1 else ''} lack reliable cover"
+        if evaluation.weakest_slot_keys:
+            return "Weakest starting slot: " + ", ".join(evaluation.weakest_slot_keys)
+        return "No immediate issue"
+
+    def _tactic_detail_page(self, path: str, _query: dict[str, list[str]]) -> None:
+        tactic_key = unquote(path.removeprefix("/tactics/"))
+        if "/" in tactic_key or tactic_key not in MVP_CATALOGUE.tactics:
+            self._send(
+                _error_page("Tactic", "That tactic is not in the current catalogue.", "/tactics"),
+                HTTPStatus.NOT_FOUND,
+            )
+            return
+        bundle = self._bundle_or_error("/tactics", "Tactic")
+        if bundle is None:
+            return
+        try:
+            report = self.server.tactic_report(tactic_key)  # type: ignore[attr-defined]
+        except (OSError, RuntimeError, ValueError, KeyError) as exc:
+            self._send(_error_page("Tactic", str(exc), "/tactics"), HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        evaluation = report.evaluation
+        players_by_id = {player.id: player for player in bundle.squad.players}
+        explanation_by_slot = {
+            item.starter.slot.key: item for item in report.selection_explanation.slots
+        }
+        xi_rows = []
+        for assignment in evaluation.assignments:
+            player = players_by_id[assignment.player_id]
+            explanation = explanation_by_slot[assignment.slot.key]
+            alternatives = "".join(
+                self._selection_alternative_row(option, players_by_id, assignment)
+                for option in explanation.alternatives
+            ) or "<tr><td colspan='6' class='muted'>No other eligible player for this exact role.</td></tr>"
+            warning_text = ", ".join(
+                assignment.readiness_warnings + assignment.familiarity_warnings
+            )
+            warnings = (
+                f"<p class='warn'>{html.escape(warning_text)}</p>" if warning_text else ""
+            )
+            score_path = (
+                f"<b>{_band(assignment.intrinsic_role_score.score)}</b> attribute-based "
+                f"→ ×{assignment.familiarity_multiplier:.2f} familiarity "
+                f"→ <b>{_band(assignment.in_position_score)}</b> in-position "
+                f"→ −{explanation.readiness_score_cost:.1f} readiness "
+                f"→ <b>{_band(assignment.selection_score)}</b> today"
+            )
+            xi_rows.append(
                 "<tr>"
                 f"<td>{html.escape(assignment.slot.key)}</td>"
                 f"<td>{html.escape(assignment.slot.position)}</td>"
                 f"<td>{html.escape(assignment.intrinsic_role_score.role_name)}</td>"
-                f"<td>{html.escape(assignment.player_name)}</td>"
-                f"<td>{_band(assignment.intrinsic_role_score.score)}</td>"
-                f"<td>{_band(assignment.in_position_score)}</td>"
+                f"<td>{squad_player_link(player)}</td>"
+                f"<td>{player.condition_percent if player.condition_percent is not None else '?'}%</td>"
+                f"<td>{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
                 f"<td><b>{_band(assignment.selection_score)}</b></td>"
                 "</tr>"
-                # XI assignments retain the catalogue's formation order:
-                # goalkeeper, defence, midfield, then attack. Sorting by the
-                # slot label made a right-sided role appear before the keeper.
-                for assignment in evaluation.assignments
+                "<tr class='explanation-row'><td colspan='7'>"
+                f"<details><summary>Why {html.escape(assignment.player_name)}?</summary>"
+                f"<p class='score-path'>{score_path}</p>{warnings}"
+                "<p class='muted'>Alternatives below are evaluated in this exact slot and "
+                "role. The tactic effect comes from forcing that player here and re-optimising "
+                "the other ten positions.</p>"
+                "<table><tr><th>Alternative</th><th>Role fit</th><th>In-position</th>"
+                "<th>Condition / sharpness</th><th>Today</th><th>Why not selected</th></tr>"
+                + alternatives
+                + "</table></details></td></tr>"
             )
-            unfilled_note = (
-                "<p class='warn'>Unfilled: "
-                + ", ".join(
-                    f"{slot.key} ({slot.position})" for slot in evaluation.unfilled_slots
-                )
-                + "</p>"
-                if evaluation.unfilled_slots
-                else ""
+        if evaluation.unfilled_slots:
+            xi_rows.append(
+                "<tr><td colspan='7' class='warn'>Unfilled: "
+                + html.escape(", ".join(slot.key for slot in evaluation.unfilled_slots))
+                + "</td></tr>"
             )
-            details.append(
-                f"<details><summary>{html.escape(evaluation.tactic.name)} "
-                f"({html.escape(evaluation.tactic.formation)})</summary>"
-                + _tactic_notes(evaluation.tactic)
-                + "<p><b>Play now:</b> "
-                f"{_band(evaluation.score)}. <b>Today’s player-role fit:</b> "
-                f"{evaluation.xi_score.central:.1f}. <b>Team balance:</b> "
-                f"{evaluation.coherence.score:.1f}. <b>Game-plan support:</b> "
-                f"{evaluation.instruction_suitability.score:.1f}.</p>"
-                "<p class='muted'><b>Team balance</b> asks whether the selected roles "
-                "cover the jobs a functioning XI needs — for example width, defensive "
-                "cover, progression and runners. <b>Game-plan support</b> asks whether "
-                "those roles suit this tactic's instructions, such as pressing, playing "
-                "out, or countering.</p>"
-                + (
-                    "<p class='warn'><b>Balance concerns:</b> "
-                    + html.escape(_tactical_shortfalls(evaluation.coherence.shortfalls))
-                    + ".</p>"
-                    if evaluation.coherence.shortfalls
-                    else ""
-                )
-                + (
-                    "<p class='warn'><b>Game-plan concerns:</b> "
-                    + html.escape(
-                        _tactical_shortfalls(evaluation.instruction_suitability.shortfalls)
-                    )
-                    + ".</p>"
-                    if evaluation.instruction_suitability.shortfalls
-                    else ""
-                )
-                + "<p><b>Instructions:</b> "
-                + html.escape(
-                    ", ".join(evaluation.tactic.instructions) or "No special instructions"
-                )
-                + ".</p>"
-                "<table><tr><th>Slot</th><th>Position</th><th>Role</th><th>Player</th>"
-                "<th>Attribute-based role score</th><th>In-position role score</th>"
-                "<th>Today’s selection score</th></tr>"
-                + assignment_rows
-                + "</table>"
-                + unfilled_note
-                + "</details>"
-            )
-        targets_rows = "".join(
+
+        bench_rows = "".join(
             "<tr>"
-            f"<td>{html.escape(target.tactic_name)}</td>"
-            f"<td>{target.effective_score.central:.1f}</td>"
-            f"<td>{target.potential_score.central:.1f}</td>"
-            f"<td>+{target.score_gap:.1f}</td>"
+            f"<td>{squad_player_link(players_by_id[entry.player_id])}</td>"
+            f"<td>{html.escape(entry.primary_assignment.slot.key)} — "
+            f"{html.escape(entry.primary_assignment.intrinsic_role_score.role_name)}</td>"
+            f"<td>{html.escape(', '.join(entry.covered_slots))}</td>"
             "</tr>"
-            for target in bundle.training_targets
-        )
-        targets_body = (
-            (
-                "<h2>Training targets</h2>"
-                "<p class='muted'>These are setups improved by positional training, "
-                "not predictions of player development.</p>"
-                "<table><tr><th>Tactic</th><th>Today’s tactic score</th><th>After positional training</th>"
-                "<th>Gain</th></tr>"
-                + targets_rows
-                + "</table>"
-            )
-            if bundle.training_targets
-            else "<h2>Training targets</h2><p class='muted'>None — familiarity isn't holding any tactic back.</p>"
-        )
-        substitution_rows = []
-        for target in bundle.substitution_board.targets:
-            starter = target.starter
-            starter_label = (
-                f"{starter.slot.key} — {starter.player_name} "
-                f"({starter.intrinsic_role_score.role_name})"
-            )
-            if not target.options:
-                replacement_body = "<span class='warn'>No named substitute covers this role.</span>"
+            for entry in report.bench.entries
+        ) or "<tr><td colspan='3' class='warn'>No eligible substitutes.</td></tr>"
+
+        targets = {target.starter.slot.key: target for target in report.substitution_board.targets}
+        coverage_rows = []
+        for slot in evaluation.tactic.slots:
+            target = targets.get(slot.key)
+            if target is None:
+                cover = "<span class='warn'>Starting slot is unfilled</span>"
+                starter = "—"
             else:
-                replacement_body = "<br>".join(
-                    f"<b>{html.escape(option.player_name)}</b> — "
-                    f"{html.escape(option.assignment.intrinsic_role_score.role_name)} "
-                    f"({_band(option.assignment.selection_score)})"
-                    for option in target.options
-                )
-            warning_lines = [
-                f"<b>{html.escape(option.player_name)}</b>: no named bench cover for "
-                f"{html.escape(', '.join(option.sole_cover_slot_keys))} after this change."
-                for option in target.options
-                if option.sole_cover_slot_keys
-            ]
-            warning_body = (
-                "<span class='warn'>" + "<br>".join(warning_lines) + "</span>"
-                if warning_lines
-                else "—"
-            )
-            substitution_rows.append(
+                starter = squad_player_link(players_by_id[target.starter.player_id])
+                if target.options:
+                    cover = "<br>".join(
+                        f"{squad_player_link(players_by_id[option.player_id])} "
+                        f"<span class='muted'>({_band(option.assignment.selection_score)})</span>"
+                        + (
+                            " <span class='warn'>uses sole cover elsewhere</span>"
+                            if option.sole_cover_slot_keys else ""
+                        )
+                        for option in target.options
+                    )
+                else:
+                    cover = "<span class='warn'>No bench cover</span>"
+            coverage_rows.append(
                 "<tr>"
-                f"<td>{html.escape(starter_label)}</td>"
-                f"<td>{replacement_body}</td>"
-                f"<td>{warning_body}</td>"
-                "</tr>"
+                f"<td>{html.escape(slot.key)}</td><td>{html.escape(slot.position)}</td>"
+                f"<td>{starter}</td><td>{cover}</td></tr>"
             )
-        substitutions_body = (
-            "<h2>Matchday substitutions</h2>"
-            "<p class='muted'>For the selected tactic only: named substitutes who can "
-            "take each starter's exact role, ordered by today’s selection score. This is a "
-            "replacement board, not a recommendation about timing or a player's live match rating.</p>"
-            "<table><tr><th>Take off</th><th>Bring on (today’s selection score)</th><th>Cover after the change</th></tr>"
-            + "".join(substitution_rows)
-            + "</table>"
+
+        issue = self._tactic_headline(bundle, evaluation)
+        target = next(
+            (item for item in bundle.training_targets if item.tactic_key == tactic_key), None
+        )
+        training = (
+            "<p class='muted'><b>Positional-training upside:</b> "
+            f"{target.effective_score.central:.1f} → {target.potential_score.central:.1f} "
+            f"(+{target.score_gap:.1f}). This changes positional familiarity only.</p>"
+            if target else ""
         )
         body = (
-            "<h2>What can this squad play now?</h2>"
-            "<p class='muted'>The score is a squad-fit estimate, not a match prediction "
-            "and not an opponent-specific recommendation.</p>"
-            "<ul class='legend'>"
-            "<li><b>Play now</b>: how well the available squad fits this setup today.</li>"
-            "<li><b>Attribute-based role score</b>: the player's attributes weighted for "
-            "that specific role and duty. <b>In-position role score</b> applies positional "
-            "familiarity. <b>Today’s selection score</b> then applies match readiness. "
-            "A role is weighted the same wherever it appears "
-            "— today, a Deep-Lying Playmaker is scored identically in every tactic that "
-            "uses one; the tactic can choose a different role for a slot, but not yet "
-            "ask more of the same role.</li>"
-            "<li><b>Team balance</b>: whether the chosen roles form a workable whole. "
-            "It is not a measure of player attributes.</li>"
-            "<li><b>Game-plan support</b>: whether the chosen roles support this tactic's "
-            "instructions. It is currently role-based; attribute-aware instruction "
-            "scoring is planned work.</li>"
-            "<li><b>After positional training</b>: the same today-score recommendation with every "
-            "eligible selected player's positional familiarity treated as 20/20. It does "
-            "not project attribute growth, hidden potential, or whole-tactic familiarity.</li>"
-            "<li><b>XI</b>: ✓ full XI available, ✗ lists unfillable slots</li>"
-            "<li><b>Cover risk</b>: starting slots without adequate cover</li>"
-            "</ul>"
-            "<table><tr><th>Tactic</th><th>Shape</th><th>Play-now tactic score</th><th>What needs "
-            "attention</th><th>XI</th><th>Cover risk</th></tr>"
-            + "".join(rows)
+            "<p><a href='/tactics'>← Back to tactics</a></p>"
+            "<section class='tactic-hero'>"
+            f"<span class='eyebrow'>{html.escape(evaluation.tactic.formation)}</span>"
+            f"<h2>{html.escape(evaluation.tactic.name)}</h2>"
+            f"<p><b>Play-now tactic score: {_band(evaluation.score)}</b></p>"
+            f"<p>{html.escape(issue)}</p></section>"
+            + _tactic_notes(evaluation.tactic)
+            + "<div class='metric-grid'>"
+            f"<div><span>Player-role fit</span><b>{evaluation.xi_score.central:.1f}</b></div>"
+            f"<div><span>Team balance</span><b>{evaluation.coherence.score:.1f}</b></div>"
+            f"<div><span>Game-plan support</span><b>{evaluation.instruction_suitability.score:.1f}</b></div>"
+            f"<div><span>Weakest slot</span><b>{evaluation.weakest_score.central:.1f}</b></div>"
+            "</div>"
+            + training
+            + "<h2>Starting XI</h2>"
+            "<p class='muted'>Open “Why this player?” to compare like-for-like alternatives "
+            "and see the effect of reallocating the rest of the XI.</p>"
+            "<table><tr><th>Slot</th><th>Position</th><th>Role</th><th>Player</th>"
+            "<th>Condition</th><th>Match fitness</th><th>Today’s selection score</th></tr>"
+            + "".join(xi_rows)
             + "</table>"
-            + targets_body
-            + substitutions_body
-            + "<h2>XI by tactic</h2>"
-            + "".join(details)
+            "<h2>Matchday bench</h2>"
+            f"<p class='muted'>{len(report.bench.entries)} of {bundle.policy.bench_size} "
+            "substitute places selected "
+            "for this tactic. Coverage is prioritised before playing quality.</p>"
+            "<table><tr><th>Substitute</th><th>Best use</th><th>Slots covered</th></tr>"
+            + bench_rows
+            + "</table>"
+            "<h2>Substitution coverage</h2>"
+            "<p class='muted'>Every slot in this tactic is listed. Scores are today’s "
+            "selection scores for the exact replacement role.</p>"
+            "<table><tr><th>Slot</th><th>Position</th><th>Starter</th><th>Bench replacements</th></tr>"
+            + "".join(coverage_rows)
+            + "</table>"
+            "<details><summary>How these scores work</summary>"
+            "<p><b>Attribute-based role score</b> measures the role fit from visible player "
+            "attributes. <b>In-position role score</b> applies positional familiarity. "
+            "<b>Today’s selection score</b> then applies condition and match fitness. The "
+            "current priorities are fixed; this structure allows them to become adjustable "
+            "without changing the explanation or coverage views.</p>"
+            "<p><b>Team balance</b> evaluates whether the roles cover the jobs a functioning "
+            "XI needs. <b>Game-plan support</b> evaluates whether those roles suit the tactic’s "
+            "instructions.</p></details>"
         )
-        self._send(_layout("Tactics", path, body))
+        self._send(_layout(evaluation.tactic.name, "/tactics", body))
+
+    @staticmethod
+    def _selection_alternative_row(option, players_by_id, starter) -> str:
+        player = players_by_id[option.player_id]
+        if not option.counterfactual_has_legal_xi:
+            reason = "Cannot form a complete XI with this player here"
+        elif abs(option.tactic_score_change) < 0.05:
+            reason = (
+                f"Starts at {option.current_slot_key}; the two XIs are effectively tied"
+                if option.current_slot_key
+                else "The two XIs are effectively tied; stable tie-break retained the starter"
+            )
+        else:
+            sign = "+" if option.tactic_score_change > 0 else "−"
+            effect = f"{sign}{abs(option.tactic_score_change):.1f} tactic score"
+            if option.current_slot_key:
+                reason = f"Starts at {option.current_slot_key}; moving them here gives {effect}"
+            elif option.assignment.selection_score.central < starter.selection_score.central:
+                reason = f"Lower score in this exact role; forcing the change gives {effect}"
+            else:
+                reason = f"Reallocating the rest of the XI gives {effect}"
+        condition = player.condition_percent if player.condition_percent is not None else "?"
+        sharpness = (
+            player.match_fitness_percent
+            if player.match_fitness_percent is not None
+            else "?"
+        )
+        return (
+            "<tr>"
+            f"<td>{squad_player_link(player)}</td>"
+            f"<td>{_band(option.assignment.intrinsic_role_score.score)}</td>"
+            f"<td>{_band(option.assignment.in_position_score)}</td>"
+            f"<td>{condition}% / {sharpness}%</td>"
+            f"<td>{_band(option.assignment.selection_score)}</td>"
+            f"<td>{html.escape(reason)}</td>"
+            "</tr>"
+        )
 
     def _set_pieces_page(self, path: str, _query: dict[str, list[str]]) -> None:
         """Recommend current-match set-piece assignments from visible attributes.

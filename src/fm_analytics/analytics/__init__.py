@@ -41,6 +41,13 @@ from fm_analytics.analytics.xi_selection import (
     recommend_tactic_effective_and_potential,
     score_player_for_slot,
 )
+from fm_analytics.analytics.forced_selection import evaluate_tactic_with_forced_assignment
+from fm_analytics.analytics.selection_explanation import (
+    SelectionAlternative,
+    SlotSelectionExplanation,
+    TacticSelectionExplanation,
+    explain_tactic_selection,
+)
 from fm_analytics.analytics.bench_selection import (
     BenchEntry,
     BenchSelection,
@@ -161,7 +168,9 @@ __all__ = [
     "ScoutingCandidate",
     "ScoutingFilters",
     "ScoutingPriority",
+    "SelectionAlternative",
     "SlotAssignment",
+    "SlotSelectionExplanation",
     "SlotDepth",
     "SquadDepthReport",
     "SquadAttributeMerge",
@@ -173,6 +182,7 @@ __all__ = [
     "SubstitutionTarget",
     "TacticRecommendation",
     "TacticSlot",
+    "TacticSelectionExplanation",
     "TacticSystemRequirements",
     "TaggedWeakness",
     "TrainingTarget",
@@ -193,6 +203,8 @@ __all__ = [
     "build_role_matrix",
     "compare_role_scores",
     "evaluate_tactic",
+    "evaluate_tactic_with_forced_assignment",
+    "explain_tactic_selection",
     "is_position_eligible",
     "is_set_piece_available",
     "is_player_selectable",

@@ -6,8 +6,10 @@ from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.cli import load_fixture
 from fm_analytics.domain import AttributeObservation, Visibility
 from fm_analytics.reporting import (
+    RecommendationPolicy,
     build_recommendation_bundle,
     build_squad_role_matrix,
+    build_tactic_matchday_report,
     has_complete_role_attributes,
     required_role_attributes,
     validate_recommendation_snapshot,
@@ -72,6 +74,18 @@ class ReportingTests(unittest.TestCase):
         self.assertEqual(bundle.squad_depth.tactic_keys, tuple(
             evaluation.tactic.key for evaluation in bundle.recommendation.evaluations
         ))
+
+    def test_matchday_detail_reuses_the_bundle_policy_profile(self) -> None:
+        game, squad = _complete_owned_snapshot()
+        policy = RecommendationPolicy(bench_size=0)
+        bundle = build_recommendation_bundle(game, squad, policy=policy)
+
+        report = build_tactic_matchday_report(
+            bundle, bundle.recommendation.selected.tactic.key
+        )
+
+        self.assertIs(bundle.policy, policy)
+        self.assertEqual(report.bench.entries, ())
 
     def test_squad_role_matrix_does_not_evaluate_tactics(self) -> None:
         from unittest.mock import patch

@@ -39,7 +39,9 @@ from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.domain import Squad
 from fm_analytics.reporting import (
     RecommendationBundle,
+    TacticMatchdayReport,
     build_recommendation_bundle,
+    build_tactic_matchday_report,
     has_complete_role_attributes,
     required_role_attributes,
     validate_recommendation_snapshot,
@@ -115,6 +117,7 @@ class SquadWebServer(ThreadingHTTPServer):
         self._bundle_at = 0.0
         self._bundle_result: RecommendationBundle | None = None
         self._bundle_error: Exception | None = None
+        self._tactic_report_cache: dict[tuple[int, str, int | None], TacticMatchdayReport] = {}
         super().__init__(address, SquadWebHandler)
 
     def scouting(self):
@@ -174,6 +177,26 @@ class SquadWebServer(ThreadingHTTPServer):
             raise
         with self._lock:
             self._bundle_result, self._bundle_error, self._bundle_at = built, None, time.monotonic()
+            self._tactic_report_cache.clear()
+        return built
+
+    def tactic_report(
+        self, tactic_key: str, *, bench_size: int | None = None
+    ) -> TacticMatchdayReport:
+        """Return a cached drill-down without bloating the overview bundle."""
+        bundle = self.bundle()
+        cache_key = (id(bundle), tactic_key, bench_size)
+        with self._lock:
+            cached = self._tactic_report_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        built = build_tactic_matchday_report(
+            bundle,
+            tactic_key,
+            bench_size=bench_size,
+        )
+        with self._lock:
+            self._tactic_report_cache[cache_key] = built
         return built
 
 

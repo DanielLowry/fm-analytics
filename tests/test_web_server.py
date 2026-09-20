@@ -135,11 +135,12 @@ class SquadWebServerTests(unittest.TestCase):
 
             _status, roles = self._get(port, "/roles")
             _status, tactics = self._get(port, "/tactics")
+            _status, tactic = self._get(port, "/tactics/balanced_442")
             _status, set_pieces = self._get(port, "/set-pieces")
 
             self.assertIn("Attribute-based role score", roles)
-            self.assertIn("In-position role score", tactics)
-            self.assertIn("Today’s selection score", tactics)
+            self.assertIn("In-position role score", tactic)
+            self.assertIn("Today’s selection score", tactic)
             self.assertIn("Play-now tactic score", tactics)
             self.assertIn("Set-piece attribute score", set_pieces)
 
@@ -195,16 +196,28 @@ class SquadWebServerTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn("Balanced 4-4-2", body)
 
-    def test_tactics_page_has_a_matchday_substitution_board(self) -> None:
+    def test_tactic_detail_has_a_matchday_bench_and_complete_coverage_board(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             fixture_path = _write_complete_fixture(Path(directory))
             port = self._serve(fixture_path)
 
-            status, body = self._get(port, "/tactics")
+            status, body = self._get(port, "/tactics/balanced_442")
 
             self.assertEqual(status, 200)
-            self.assertIn("Matchday substitutions", body)
-            self.assertIn("Bring on (today’s selection score)", body)
+            self.assertIn("Matchday bench", body)
+            self.assertIn("Substitution coverage", body)
+            coverage = body.split("Substitution coverage", 1)[1].split("</table>", 1)[0]
+            self.assertEqual(coverage.count("<tr>"), 12)  # header plus all eleven slots
+
+    def test_unknown_tactic_detail_is_not_found(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture_path = _write_complete_fixture(Path(directory))
+            port = self._serve(fixture_path)
+
+            status, body = self._get(port, "/tactics/not-a-tactic")
+
+            self.assertEqual(status, 404)
+            self.assertIn("not in the current catalogue", body)
 
     def test_set_pieces_page_suggests_assignments_and_names_known_limitations(self) -> None:
         # This page only needs its own inputs, so it works before the wider
@@ -592,33 +605,37 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         connection.close()
         return response.status, body
 
-    def test_tactics_page_explains_play_now_and_positional_training(self) -> None:
+    def test_tactics_overview_is_compact_and_links_to_drill_down(self) -> None:
         status, body = self._get("/tactics")
 
         self.assertEqual(status, 200)
-        self.assertIn("Cover risk", body)
+        self.assertIn("Recommended for today", body)
+        self.assertIn("Key issue", body)
+        self.assertIn("View tactic", body)
+        self.assertNotIn("Starting XI", body)
+        self.assertNotIn("Matchday bench", body)
+        # Owned players' attributes are exact, so scores collapse to one number.
+        self.assertNotIn(" / ", body.split("Compare tactics")[1].split("</table>")[0])
+
+    def test_tactic_detail_explains_each_selection_and_score_layer(self) -> None:
+        status, body = self._get("/tactics/balanced_442")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body.count("Why Player"), 11)
+        self.assertIn("attribute-based", body)
+        self.assertIn("in-position", body)
+        self.assertIn("readiness", body)
+        self.assertIn("re-optimising the other ten positions", body)
         self.assertIn("Team balance", body)
         self.assertIn("Game-plan support", body)
-        self.assertIn("After positional training", body)
-        self.assertIn("does not project attribute growth", body)
-        self.assertIn("<ul class='legend'>", body)
-        # Owned players' attributes are exact, so scores collapse to one number.
-        self.assertNotIn(" / ", body.split("What can this squad play now?")[1].split("</table>")[0])
-
-    def test_tactics_page_lists_roles_for_every_tactic_not_just_the_selected_one(self) -> None:
-        status, body = self._get("/tactics")
-
-        self.assertEqual(status, 200)
-        # There are twelve tactics in the current catalogue; each gets its
-        # own collapsible role/fill breakdown, not just the winner's.
-        self.assertGreaterEqual(body.count("<details>"), 12)
 
     def test_xi_rows_follow_formation_order_from_goalkeeper_to_attack(self) -> None:
-        status, body = self._get("/tactics")
+        status, body = self._get("/tactics/balanced_442")
 
         self.assertEqual(status, 200)
-        first_tactic = body.split("<details>", 1)[1].split("</details>", 1)[0]
-        assignment_table = first_tactic.split("<table>", 1)[1]
+        assignment_table = body.split("<h2>Starting XI</h2>", 1)[1].split(
+            "<h2>Matchday bench</h2>", 1
+        )[0]
         self.assertLess(
             assignment_table.index("<td>GK</td>"),
             assignment_table.index("<td>ST</td>"),

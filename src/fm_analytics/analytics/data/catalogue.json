@@ -677,6 +677,234 @@
         "firstTouch",
         "teamwork"
       ]
+    },
+    {
+      "key": "dlf_attack",
+      "name": "Deep-Lying Forward (Attack)",
+      "positions": [
+        "ST"
+      ],
+      "required": [
+        "finishing",
+        "firstTouch",
+        "offTheBall",
+        "anticipation"
+      ],
+      "desirable": [
+        "composure",
+        "passing",
+        "strength",
+        "technique"
+      ]
+    },
+    {
+      "key": "tm_support",
+      "name": "Target Man (Support)",
+      "positions": [
+        "ST"
+      ],
+      "required": [
+        "balance",
+        "heading",
+        "jumpingReach",
+        "strength"
+      ],
+      "desirable": [
+        "firstTouch",
+        "teamwork",
+        "bravery",
+        "aggression"
+      ]
+    },
+    {
+      "key": "cf_attack",
+      "name": "Complete Forward (Attack)",
+      "positions": [
+        "ST"
+      ],
+      "required": [
+        "finishing",
+        "offTheBall",
+        "anticipation",
+        "composure"
+      ],
+      "desirable": [
+        "firstTouch",
+        "technique",
+        "acceleration",
+        "decisions"
+      ]
+    },
+    {
+      "key": "pf_defend",
+      "name": "Pressing Forward (Defend)",
+      "positions": [
+        "ST"
+      ],
+      "required": [
+        "workRate",
+        "aggression",
+        "stamina",
+        "teamwork"
+      ],
+      "desirable": [
+        "anticipation",
+        "bravery",
+        "acceleration",
+        "pace"
+      ]
+    },
+    {
+      "key": "pf_support",
+      "name": "Pressing Forward (Support)",
+      "positions": [
+        "ST"
+      ],
+      "required": [
+        "workRate",
+        "aggression",
+        "stamina",
+        "teamwork"
+      ],
+      "desirable": [
+        "acceleration",
+        "anticipation",
+        "bravery",
+        "pace"
+      ]
+    },
+    {
+      "key": "pf_attack",
+      "name": "Pressing Forward (Attack)",
+      "positions": [
+        "ST"
+      ],
+      "required": [
+        "offTheBall",
+        "acceleration",
+        "anticipation",
+        "finishing"
+      ],
+      "desirable": [
+        "pace",
+        "workRate",
+        "aggression",
+        "composure"
+      ]
+    },
+    {
+      "key": "treq_st_attack",
+      "name": "Trequartista (Attack)",
+      "positions": [
+        "ST"
+      ],
+      "required": [
+        "firstTouch",
+        "flair",
+        "offTheBall",
+        "technique"
+      ],
+      "desirable": [
+        "vision",
+        "composure",
+        "passing",
+        "agility"
+      ]
+    },
+    {
+      "key": "f9_support",
+      "name": "False Nine (Support)",
+      "positions": [
+        "ST"
+      ],
+      "required": [
+        "firstTouch",
+        "offTheBall",
+        "passing",
+        "technique"
+      ],
+      "desirable": [
+        "vision",
+        "decisions",
+        "dribbling",
+        "composure"
+      ]
+    },
+    {
+      "key": "am_attack",
+      "name": "Attacking Midfielder (Attack)",
+      "positions": [
+        "AMC"
+      ],
+      "required": [
+        "offTheBall",
+        "firstTouch",
+        "acceleration",
+        "composure"
+      ],
+      "desirable": [
+        "decisions",
+        "dribbling",
+        "passing",
+        "technique"
+      ]
+    },
+    {
+      "key": "ap_amc_support",
+      "name": "Advanced Playmaker (Support)",
+      "positions": [
+        "AMC"
+      ],
+      "required": [
+        "firstTouch",
+        "passing",
+        "technique",
+        "vision"
+      ],
+      "desirable": [
+        "decisions",
+        "composure",
+        "flair",
+        "teamwork"
+      ]
+    },
+    {
+      "key": "treq_amc_attack",
+      "name": "Trequartista (Attack)",
+      "positions": [
+        "AMC"
+      ],
+      "required": [
+        "firstTouch",
+        "flair",
+        "passing",
+        "technique"
+      ],
+      "desirable": [
+        "vision",
+        "composure",
+        "offTheBall",
+        "agility"
+      ]
+    },
+    {
+      "key": "eng_support",
+      "name": "Enganche (Support)",
+      "positions": [
+        "AMC"
+      ],
+      "required": [
+        "composure",
+        "decisions",
+        "firstTouch",
+        "passing"
+      ],
+      "desirable": [
+        "technique",
+        "vision",
+        "flair",
+        "anticipation"
+      ]
     }
   ],
   "tactics": [
