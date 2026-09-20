@@ -6,7 +6,7 @@ from math import isfinite
 from pathlib import Path
 from typing import Any, Mapping
 
-_DATA_PATH = Path(__file__).with_name("data") / "role_weights_v6.json"
+_DATA_PATH = Path(__file__).with_name("data") / "role_weights_v7.json"
 
 # Weights run 0 (ignored) to 10 (defines the role at this position). Scoring
 # divides each weight by the role's total, so only the ratios matter: the scale

@@ -794,7 +794,7 @@
     },
     {
       "key": "treq_st_attack",
-      "name": "Trequartista (Attack)",
+      "name": "Trequartista (Attack) [ST]",
       "positions": [
         "ST"
       ],
@@ -851,7 +851,7 @@
     },
     {
       "key": "ap_amc_support",
-      "name": "Advanced Playmaker (Support)",
+      "name": "Advanced Playmaker (Support) [AMC]",
       "positions": [
         "AMC"
       ],
@@ -870,7 +870,7 @@
     },
     {
       "key": "treq_amc_attack",
-      "name": "Trequartista (Attack)",
+      "name": "Trequartista (Attack) [AMC]",
       "positions": [
         "AMC"
       ],
@@ -904,6 +904,366 @@
         "vision",
         "flair",
         "anticipation"
+      ]
+    },
+    {
+      "key": "if_support",
+      "name": "Inside Forward (Support)",
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "required": [
+        "dribbling",
+        "acceleration",
+        "firstTouch",
+        "offTheBall"
+      ],
+      "desirable": [
+        "technique",
+        "composure",
+        "decisions",
+        "pace"
+      ]
+    },
+    {
+      "key": "wtm_support",
+      "name": "Wide Target Man (Support) [AML/AMR]",
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "required": [
+        "jumpingReach",
+        "strength",
+        "balance",
+        "heading"
+      ],
+      "desirable": [
+        "bravery",
+        "firstTouch",
+        "teamwork",
+        "anticipation"
+      ]
+    },
+    {
+      "key": "wtm_attack",
+      "name": "Wide Target Man (Attack) [AML/AMR]",
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "required": [
+        "jumpingReach",
+        "strength",
+        "balance",
+        "heading"
+      ],
+      "desirable": [
+        "bravery",
+        "firstTouch",
+        "offTheBall",
+        "anticipation"
+      ]
+    },
+    {
+      "key": "raum_attack",
+      "name": "Raumdeuter (Attack)",
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "required": [
+        "anticipation",
+        "offTheBall",
+        "composure",
+        "finishing"
+      ],
+      "desirable": [
+        "acceleration",
+        "decisions",
+        "pace",
+        "firstTouch"
+      ]
+    },
+    {
+      "key": "iw_support",
+      "name": "Inverted Winger (Support) [AML/AMR]",
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "required": [
+        "dribbling",
+        "acceleration",
+        "technique",
+        "offTheBall"
+      ],
+      "desirable": [
+        "pace",
+        "passing",
+        "decisions",
+        "firstTouch"
+      ]
+    },
+    {
+      "key": "iw_attack",
+      "name": "Inverted Winger (Attack) [AML/AMR]",
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "required": [
+        "dribbling",
+        "acceleration",
+        "offTheBall",
+        "pace"
+      ],
+      "desirable": [
+        "technique",
+        "composure",
+        "finishing",
+        "firstTouch"
+      ]
+    },
+    {
+      "key": "ap_aml_amr_support",
+      "name": "Advanced Playmaker (Support) [AML/AMR]",
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "required": [
+        "passing",
+        "technique",
+        "vision",
+        "decisions"
+      ],
+      "desirable": [
+        "firstTouch",
+        "composure",
+        "flair",
+        "dribbling"
+      ]
+    },
+    {
+      "key": "ap_aml_amr_attack",
+      "name": "Advanced Playmaker (Attack) [AML/AMR]",
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "required": [
+        "passing",
+        "technique",
+        "vision",
+        "composure"
+      ],
+      "desirable": [
+        "firstTouch",
+        "flair",
+        "decisions",
+        "dribbling"
+      ]
+    },
+    {
+      "key": "treq_aml_amr_attack",
+      "name": "Trequartista (Attack) [AML/AMR]",
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "required": [
+        "firstTouch",
+        "flair",
+        "passing",
+        "technique"
+      ],
+      "desirable": [
+        "vision",
+        "composure",
+        "dribbling",
+        "offTheBall"
+      ]
+    },
+    {
+      "key": "fb_defend",
+      "name": "Full Back (Defend)",
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "required": [
+        "marking",
+        "positioning",
+        "tackling",
+        "anticipation"
+      ],
+      "desirable": [
+        "decisions",
+        "stamina",
+        "teamwork",
+        "workRate"
+      ]
+    },
+    {
+      "key": "fb_attack",
+      "name": "Full Back (Attack)",
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "required": [
+        "crossing",
+        "stamina",
+        "acceleration",
+        "pace"
+      ],
+      "desirable": [
+        "workRate",
+        "marking",
+        "offTheBall",
+        "positioning"
+      ]
+    },
+    {
+      "key": "wb_dl_dr_defend",
+      "name": "Wing Back (Defend)",
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "required": [
+        "stamina",
+        "marking",
+        "positioning",
+        "tackling"
+      ],
+      "desirable": [
+        "workRate",
+        "teamwork",
+        "acceleration",
+        "anticipation"
+      ]
+    },
+    {
+      "key": "nnfb_defend",
+      "name": "No-Nonsense Full Back (Defend)",
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "required": [
+        "marking",
+        "positioning",
+        "tackling",
+        "anticipation"
+      ],
+      "desirable": [
+        "concentration",
+        "strength",
+        "bravery",
+        "workRate"
+      ]
+    },
+    {
+      "key": "cwb_dl_dr_support",
+      "name": "Complete Wing Back (Support)",
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "required": [
+        "stamina",
+        "acceleration",
+        "crossing",
+        "dribbling"
+      ],
+      "desirable": [
+        "offTheBall",
+        "workRate",
+        "pace",
+        "teamwork"
+      ]
+    },
+    {
+      "key": "cwb_dl_dr_attack",
+      "name": "Complete Wing Back (Attack)",
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "required": [
+        "acceleration",
+        "crossing",
+        "dribbling",
+        "offTheBall"
+      ],
+      "desirable": [
+        "stamina",
+        "flair",
+        "pace",
+        "technique"
+      ]
+    },
+    {
+      "key": "iwb_dl_dr_defend",
+      "name": "Inverted Wing Back (Defend)",
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "required": [
+        "positioning",
+        "tackling",
+        "anticipation",
+        "decisions"
+      ],
+      "desirable": [
+        "marking",
+        "passing",
+        "stamina",
+        "teamwork"
+      ]
+    },
+    {
+      "key": "iwb_dl_dr_support",
+      "name": "Inverted Wing Back (Support)",
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "required": [
+        "decisions",
+        "passing",
+        "stamina",
+        "composure"
+      ],
+      "desirable": [
+        "firstTouch",
+        "teamwork",
+        "technique",
+        "vision"
+      ]
+    },
+    {
+      "key": "iwb_dl_dr_attack",
+      "name": "Inverted Wing Back (Attack)",
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "required": [
+        "offTheBall",
+        "passing",
+        "stamina",
+        "technique"
+      ],
+      "desirable": [
+        "acceleration",
+        "composure",
+        "decisions",
+        "firstTouch"
       ]
     }
   ],
