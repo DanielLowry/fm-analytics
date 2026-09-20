@@ -14,7 +14,7 @@ from fm_analytics.contract import CONTRACT_VERSION
 from fm_analytics.domain import GameState, Player, Squad
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 SCHEMA = """
 CREATE TABLE captures (
@@ -55,6 +55,7 @@ CREATE TABLE squad_players (
     availability TEXT NOT NULL,
     injured INTEGER CHECK (injured IS NULL OR injured IN (0, 1)),
     suspended INTEGER CHECK (suspended IS NULL OR suspended IN (0, 1)),
+    preferred_foot TEXT,
     contract_present INTEGER NOT NULL CHECK (contract_present IN (0, 1)),
     contract_type TEXT,
     contract_start_date TEXT,
@@ -330,11 +331,11 @@ class SnapshotStore:
             INSERT INTO squad_players (
                 capture_id, player_id, ordinal, team_marker, name, date_of_birth, age,
                 club_id, condition_percent, match_fitness_percent, availability,
-                injured, suspended, contract_present, contract_type,
+                injured, suspended, preferred_foot, contract_present, contract_type,
                 contract_start_date, contract_end_date, contract_joined_date,
                 squad_status, transfer_status, contracted_club_id,
                 contracted_club_name
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 capture_id,
@@ -350,6 +351,7 @@ class SnapshotStore:
                 player.availability,
                 player.injured,
                 player.suspended,
+                player.preferred_foot,
                 int(contract is not None),
                 contract.contract_type if contract else None,
                 _date_text(contract.start_date) if contract else None,
@@ -454,6 +456,7 @@ class SnapshotStore:
             "availability": row["availability"],
             "injured": _optional_bool(row["injured"]),
             "suspended": _optional_bool(row["suspended"]),
+            "preferredFoot": row["preferred_foot"],
             "contract": contract,
             "positionFamiliarity": {
                 item["position"]: item["rating"] for item in familiarity

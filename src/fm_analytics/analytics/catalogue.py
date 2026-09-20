@@ -186,14 +186,26 @@ def _attributes_from_weights(
     reserved data for the not-yet-implemented nonlinear contribution model
     -- see that dataclass's docstring in `role_weights.py`.
     """
-    if weight_catalogue is not None and catalogue_key in weight_catalogue.roles:
-        entry = weight_catalogue.roles[catalogue_key]
+    if weight_catalogue is not None:
+        # A catalogue role with no weights entry must fail here, not fall back.
+        # The fallback below gives every attribute a flat 2.0, which scores
+        # plausibly enough to look fine on a page while being badly wrong --
+        # exactly what happened when role_weights split roles by position
+        # (wb_support -> wb_dl_dr_support/wb_wbl_wbr_support) and the catalogue
+        # still named the old keys.
+        entry = weight_catalogue.roles.get(catalogue_key)
+        if entry is None:
+            raise ValueError(
+                f"role {catalogue_key!r} has no entry in role weights "
+                f"{weight_catalogue.version!r}; catalogue and weights disagree"
+            )
         return tuple(
             RoleAttribute(name=name, weight=cfg.effective_weight)
             for name, cfg in entry.attributes.items()
             if cfg.effective_weight > 0
         )
-    # Fallback for roles not in the weight config (shouldn't happen with current data)
+    # Only reachable when no weight catalogue was supplied at all (tests that
+    # build a catalogue from required/desirable alone).
     return tuple(
         RoleAttribute(name=name, weight=2.0)
         for name in required

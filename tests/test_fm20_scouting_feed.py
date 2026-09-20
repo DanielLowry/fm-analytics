@@ -502,3 +502,22 @@ class PositionFamiliarityFeedTests(unittest.TestCase):
             ratings = feed.read_raw_position_familiarity(os.getpid(), {1: 0x1000, 2: 0x2000})
 
         self.assertEqual(ratings, {1: dict(zip(POSITION_CODES, good))})
+
+
+
+class NoPlayerIdTests(unittest.TestCase):
+    def test_source_records_skip_a_player_fm_gave_no_id(self) -> None:
+        import struct as _struct
+
+        from tools.fm20_discoverability_cold_filter import _source_records
+
+        memory = {
+            (0x1000 + 0xD0, 16): _struct.pack("<QQ", 0x2000, 0x2010),
+            (0x2000, 16): _struct.pack("<QQ", 0x3000, 0x3010),
+            (0x3000, 8): _struct.pack("<Q", 0x4000),
+            (0x3010, 8): _struct.pack("<Q", 0x4010),
+            (0x4000 + 0xC, 4): _struct.pack("<i", 42),
+            (0x4010 + 0xC, 4): _struct.pack("<i", -1),
+        }
+        records = _source_records(lambda address, size: memory[(address, size)], 0x1000)
+        self.assertEqual(records, {42: 0x4000})

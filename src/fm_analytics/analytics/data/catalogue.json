@@ -1,5 +1,5 @@
 {
-  "version": "fm20-expanded-tactics-v1",
+  "version": "fm20-expanded-tactics-v2-position-weights",
   "roles": [
     {
       "key": "gk_defend",
@@ -118,10 +118,28 @@
       ]
     },
     {
-      "key": "dlp_support",
-      "name": "Deep-Lying Playmaker (Support)",
+      "key": "dlp_dm_support",
+      "name": "Deep-Lying Playmaker (Support) [DM]",
       "positions": [
-        "DM",
+        "DM"
+      ],
+      "required": [
+        "passing",
+        "vision",
+        "firstTouch",
+        "decisions"
+      ],
+      "desirable": [
+        "composure",
+        "positioning",
+        "teamwork",
+        "technique"
+      ]
+    },
+    {
+      "key": "dlp_mc_support",
+      "name": "Deep-Lying Playmaker (Support) [MC]",
+      "positions": [
         "MC"
       ],
       "required": [
@@ -138,11 +156,29 @@
       ]
     },
     {
-      "key": "winger_support",
-      "name": "Winger (Support)",
+      "key": "winger_ml_mr_support",
+      "name": "Winger (Support) [ML/MR]",
       "positions": [
         "ML",
-        "MR",
+        "MR"
+      ],
+      "required": [
+        "crossing",
+        "dribbling",
+        "acceleration",
+        "pace"
+      ],
+      "desirable": [
+        "offTheBall",
+        "technique",
+        "teamwork",
+        "workRate"
+      ]
+    },
+    {
+      "key": "winger_aml_amr_support",
+      "name": "Winger (Support) [AML/AMR]",
+      "positions": [
         "AML",
         "AMR"
       ],
@@ -160,8 +196,28 @@
       ]
     },
     {
-      "key": "winger_attack",
-      "name": "Winger (Attack)",
+      "key": "winger_ml_mr_attack",
+      "name": "Winger (Attack) [ML/MR]",
+      "positions": [
+        "ML",
+        "MR"
+      ],
+      "required": [
+        "crossing",
+        "dribbling",
+        "acceleration",
+        "pace"
+      ],
+      "desirable": [
+        "offTheBall",
+        "technique",
+        "flair",
+        "finishing"
+      ]
+    },
+    {
+      "key": "winger_aml_amr_attack",
+      "name": "Winger (Attack) [AML/AMR]",
       "positions": [
         "AML",
         "AMR"
@@ -314,11 +370,29 @@
       ]
     },
     {
-      "key": "wb_support",
-      "name": "Wing-Back (Support)",
+      "key": "wb_dl_dr_support",
+      "name": "Wing-Back (Support) [DL/DR]",
       "positions": [
         "DL",
-        "DR",
+        "DR"
+      ],
+      "required": [
+        "crossing",
+        "dribbling",
+        "tackling",
+        "stamina"
+      ],
+      "desirable": [
+        "acceleration",
+        "pace",
+        "workRate",
+        "teamwork"
+      ]
+    },
+    {
+      "key": "wb_wbl_wbr_support",
+      "name": "Wing-Back (Support) [WBL/WBR]",
+      "positions": [
         "WBL",
         "WBR"
       ],
@@ -336,11 +410,29 @@
       ]
     },
     {
-      "key": "wb_attack",
-      "name": "Wing-Back (Attack)",
+      "key": "wb_dl_dr_attack",
+      "name": "Wing-Back (Attack) [DL/DR]",
       "positions": [
         "DL",
-        "DR",
+        "DR"
+      ],
+      "required": [
+        "crossing",
+        "dribbling",
+        "acceleration",
+        "pace"
+      ],
+      "desirable": [
+        "technique",
+        "flair",
+        "stamina",
+        "offTheBall"
+      ]
+    },
+    {
+      "key": "wb_wbl_wbr_attack",
+      "name": "Wing-Back (Attack) [WBL/WBR]",
+      "positions": [
         "WBL",
         "WBR"
       ],
@@ -377,11 +469,29 @@
       ]
     },
     {
-      "key": "bwm_support",
-      "name": "Ball-Winning Midfielder (Support)",
+      "key": "bwm_dm_support",
+      "name": "Ball-Winning Midfielder (Support) [DM]",
       "positions": [
-        "MC",
         "DM"
+      ],
+      "required": [
+        "tackling",
+        "aggression",
+        "workRate",
+        "stamina"
+      ],
+      "desirable": [
+        "marking",
+        "positioning",
+        "teamwork",
+        "anticipation"
+      ]
+    },
+    {
+      "key": "bwm_mc_support",
+      "name": "Ball-Winning Midfielder (Support) [MC]",
+      "positions": [
+        "MC"
       ],
       "required": [
         "tackling",
@@ -455,8 +565,27 @@
       ]
     },
     {
-      "key": "ap_attack",
-      "name": "Advanced Playmaker (Attack)",
+      "key": "ap_mc_attack",
+      "name": "Advanced Playmaker (Attack) [MC]",
+      "positions": [
+        "MC"
+      ],
+      "required": [
+        "passing",
+        "vision",
+        "technique",
+        "decisions"
+      ],
+      "desirable": [
+        "flair",
+        "firstTouch",
+        "offTheBall",
+        "composure"
+      ]
+    },
+    {
+      "key": "ap_amc_attack",
+      "name": "Advanced Playmaker (Attack) [AMC]",
       "positions": [
         "AMC"
       ],
@@ -609,7 +738,7 @@
         {
           "key": "MCR",
           "position": "MC",
-          "role": "dlp_support"
+          "role": "dlp_mc_support"
         },
         {
           "key": "AMC",
@@ -696,7 +825,7 @@
         {
           "key": "ML",
           "position": "ML",
-          "role": "winger_support"
+          "role": "winger_ml_mr_support"
         },
         {
           "key": "MCL",
@@ -711,7 +840,7 @@
         {
           "key": "MR",
           "position": "MR",
-          "role": "winger_support"
+          "role": "winger_ml_mr_support"
         },
         {
           "key": "STL",
@@ -799,7 +928,7 @@
         {
           "key": "DMCR",
           "position": "DM",
-          "role": "dlp_support"
+          "role": "dlp_dm_support"
         },
         {
           "key": "AML",
@@ -814,7 +943,7 @@
         {
           "key": "AMR",
           "position": "AMR",
-          "role": "winger_attack"
+          "role": "winger_aml_amr_attack"
         },
         {
           "key": "ST",
@@ -894,7 +1023,7 @@
         {
           "key": "MCL",
           "position": "MC",
-          "role": "dlp_support"
+          "role": "dlp_mc_support"
         },
         {
           "key": "MCR",
@@ -909,7 +1038,7 @@
         {
           "key": "AMR",
           "position": "AMR",
-          "role": "winger_attack"
+          "role": "winger_aml_amr_attack"
         },
         {
           "key": "ST",
@@ -977,12 +1106,12 @@
         {
           "key": "WBL",
           "position": "WBL",
-          "role": "wb_support"
+          "role": "wb_wbl_wbr_support"
         },
         {
           "key": "WBR",
           "position": "WBR",
-          "role": "wb_attack"
+          "role": "wb_wbl_wbr_attack"
         },
         {
           "key": "DM",
@@ -1052,7 +1181,7 @@
         {
           "key": "DL",
           "position": "DL",
-          "role": "wb_support"
+          "role": "wb_dl_dr_support"
         },
         {
           "key": "DCL",
@@ -1070,12 +1199,12 @@
         {
           "key": "DR",
           "position": "DR",
-          "role": "wb_attack"
+          "role": "wb_dl_dr_attack"
         },
         {
           "key": "DM",
           "position": "DM",
-          "role": "bwm_support"
+          "role": "bwm_dm_support"
         },
         {
           "key": "MCL",
@@ -1090,7 +1219,7 @@
         {
           "key": "AML",
           "position": "AML",
-          "role": "winger_attack"
+          "role": "winger_aml_amr_attack"
         },
         {
           "key": "AMR",
@@ -1250,12 +1379,12 @@
         {
           "key": "WBL",
           "position": "WBL",
-          "role": "wb_support"
+          "role": "wb_wbl_wbr_support"
         },
         {
           "key": "WBR",
           "position": "WBR",
-          "role": "wb_support"
+          "role": "wb_wbl_wbr_support"
         },
         {
           "key": "MCL",
@@ -1265,7 +1394,7 @@
         {
           "key": "MCC",
           "position": "MC",
-          "role": "bwm_support"
+          "role": "bwm_mc_support"
         },
         {
           "key": "MCR",
@@ -1411,7 +1540,7 @@
         {
           "key": "DL",
           "position": "DL",
-          "role": "wb_attack"
+          "role": "wb_dl_dr_attack"
         },
         {
           "key": "DCL",
@@ -1429,7 +1558,7 @@
         {
           "key": "DR",
           "position": "DR",
-          "role": "wb_attack"
+          "role": "wb_dl_dr_attack"
         },
         {
           "key": "MCL",
@@ -1449,7 +1578,7 @@
         {
           "key": "AML",
           "position": "AML",
-          "role": "winger_attack"
+          "role": "winger_aml_amr_attack"
         },
         {
           "key": "AMR",
@@ -1522,12 +1651,12 @@
         {
           "key": "WBL",
           "position": "WBL",
-          "role": "wb_attack"
+          "role": "wb_wbl_wbr_attack"
         },
         {
           "key": "WBR",
           "position": "WBR",
-          "role": "wb_attack"
+          "role": "wb_wbl_wbr_attack"
         },
         {
           "key": "MCL",
@@ -1537,12 +1666,12 @@
         {
           "key": "MCR",
           "position": "MC",
-          "role": "dlp_support"
+          "role": "dlp_mc_support"
         },
         {
           "key": "AML",
           "position": "AML",
-          "role": "winger_attack"
+          "role": "winger_aml_amr_attack"
         },
         {
           "key": "AMR",
@@ -1631,7 +1760,7 @@
         {
           "key": "MCR",
           "position": "MC",
-          "role": "bwm_support"
+          "role": "bwm_mc_support"
         },
         {
           "key": "MR",
@@ -1718,7 +1847,7 @@
         {
           "key": "DMCR",
           "position": "DM",
-          "role": "dlp_support"
+          "role": "dlp_dm_support"
         },
         {
           "key": "AML",
@@ -1728,12 +1857,12 @@
         {
           "key": "AMC",
           "position": "AMC",
-          "role": "ap_attack"
+          "role": "ap_amc_attack"
         },
         {
           "key": "AMR",
           "position": "AMR",
-          "role": "winger_support"
+          "role": "winger_aml_amr_support"
         },
         {
           "key": "ST",
@@ -1783,7 +1912,7 @@
         {
           "key": "DL",
           "position": "DL",
-          "role": "wb_support"
+          "role": "wb_dl_dr_support"
         },
         {
           "key": "DCL",
@@ -1806,7 +1935,7 @@
         {
           "key": "DM",
           "position": "DM",
-          "role": "dlp_support"
+          "role": "dlp_dm_support"
         },
         {
           "key": "MCL",
@@ -1826,7 +1955,7 @@
         {
           "key": "AMR",
           "position": "AMR",
-          "role": "winger_support"
+          "role": "winger_aml_amr_support"
         },
         {
           "key": "ST",
@@ -1876,7 +2005,7 @@
         {
           "key": "DL",
           "position": "DL",
-          "role": "wb_support"
+          "role": "wb_dl_dr_support"
         },
         {
           "key": "DCL",
@@ -1894,17 +2023,17 @@
         {
           "key": "DR",
           "position": "DR",
-          "role": "wb_support"
+          "role": "wb_dl_dr_support"
         },
         {
           "key": "DMCL",
           "position": "DM",
-          "role": "bwm_support"
+          "role": "bwm_dm_support"
         },
         {
           "key": "DMCR",
           "position": "DM",
-          "role": "dlp_support"
+          "role": "dlp_dm_support"
         },
         {
           "key": "AML",
@@ -1919,7 +2048,7 @@
         {
           "key": "AMR",
           "position": "AMR",
-          "role": "winger_attack"
+          "role": "winger_aml_amr_attack"
         },
         {
           "key": "ST",
@@ -1994,7 +2123,7 @@
         {
           "key": "ML",
           "position": "ML",
-          "role": "winger_support"
+          "role": "winger_ml_mr_support"
         },
         {
           "key": "MCL",
@@ -2009,7 +2138,7 @@
         {
           "key": "MR",
           "position": "MR",
-          "role": "winger_support"
+          "role": "winger_ml_mr_support"
         },
         {
           "key": "STL",
@@ -2091,7 +2220,7 @@
         {
           "key": "ML",
           "position": "ML",
-          "role": "winger_support"
+          "role": "winger_ml_mr_support"
         },
         {
           "key": "MCL",
@@ -2101,12 +2230,12 @@
         {
           "key": "MCR",
           "position": "MC",
-          "role": "bwm_support"
+          "role": "bwm_mc_support"
         },
         {
           "key": "MR",
           "position": "MR",
-          "role": "winger_support"
+          "role": "winger_ml_mr_support"
         },
         {
           "key": "STL",
@@ -2186,7 +2315,7 @@
         {
           "key": "ML",
           "position": "ML",
-          "role": "winger_support"
+          "role": "winger_ml_mr_support"
         },
         {
           "key": "MCL",
@@ -2196,12 +2325,12 @@
         {
           "key": "MCR",
           "position": "MC",
-          "role": "dlp_support"
+          "role": "dlp_mc_support"
         },
         {
           "key": "MR",
           "position": "MR",
-          "role": "winger_support"
+          "role": "winger_ml_mr_support"
         },
         {
           "key": "STL",
@@ -2285,7 +2414,7 @@
         {
           "key": "ML",
           "position": "ML",
-          "role": "winger_support"
+          "role": "winger_ml_mr_support"
         },
         {
           "key": "MCL",
@@ -2300,7 +2429,7 @@
         {
           "key": "MR",
           "position": "MR",
-          "role": "winger_support"
+          "role": "winger_ml_mr_support"
         },
         {
           "key": "ST",
@@ -2372,7 +2501,7 @@
         {
           "key": "DM",
           "position": "DM",
-          "role": "dlp_support"
+          "role": "dlp_dm_support"
         },
         {
           "key": "ML",
@@ -2392,7 +2521,7 @@
         {
           "key": "MR",
           "position": "MR",
-          "role": "winger_support"
+          "role": "winger_ml_mr_support"
         },
         {
           "key": "ST",
@@ -2442,7 +2571,7 @@
         {
           "key": "DL",
           "position": "DL",
-          "role": "wb_attack"
+          "role": "wb_dl_dr_attack"
         },
         {
           "key": "DCL",
@@ -2460,7 +2589,7 @@
         {
           "key": "DR",
           "position": "DR",
-          "role": "wb_support"
+          "role": "wb_dl_dr_support"
         },
         {
           "key": "MCL",
@@ -2470,7 +2599,7 @@
         {
           "key": "MCC",
           "position": "MC",
-          "role": "dlp_support"
+          "role": "dlp_mc_support"
         },
         {
           "key": "MCR",
@@ -2480,7 +2609,7 @@
         {
           "key": "AMC",
           "position": "AMC",
-          "role": "ap_attack"
+          "role": "ap_amc_attack"
         },
         {
           "key": "STL",
@@ -2577,7 +2706,7 @@
         {
           "key": "MR",
           "position": "MR",
-          "role": "winger_support"
+          "role": "winger_ml_mr_support"
         },
         {
           "key": "AMC",
@@ -2651,12 +2780,12 @@
         {
           "key": "WBL",
           "position": "WBL",
-          "role": "wb_support"
+          "role": "wb_wbl_wbr_support"
         },
         {
           "key": "WBR",
           "position": "WBR",
-          "role": "wb_attack"
+          "role": "wb_wbl_wbr_attack"
         },
         {
           "key": "MCL",
@@ -2748,12 +2877,12 @@
         {
           "key": "WBL",
           "position": "WBL",
-          "role": "wb_support"
+          "role": "wb_wbl_wbr_support"
         },
         {
           "key": "WBR",
           "position": "WBR",
-          "role": "wb_attack"
+          "role": "wb_wbl_wbr_attack"
         },
         {
           "key": "MCL",
@@ -2763,12 +2892,12 @@
         {
           "key": "MCR",
           "position": "MC",
-          "role": "dlp_support"
+          "role": "dlp_mc_support"
         },
         {
           "key": "AMCL",
           "position": "AMC",
-          "role": "ap_attack"
+          "role": "ap_amc_attack"
         },
         {
           "key": "AMCR",
@@ -2854,7 +2983,7 @@
         {
           "key": "MCR",
           "position": "MC",
-          "role": "dlp_support"
+          "role": "dlp_mc_support"
         },
         {
           "key": "AML",
@@ -2864,7 +2993,7 @@
         {
           "key": "AMR",
           "position": "AMR",
-          "role": "winger_attack"
+          "role": "winger_aml_amr_attack"
         },
         {
           "key": "STL",

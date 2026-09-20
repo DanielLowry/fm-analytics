@@ -31,7 +31,7 @@ The following remain intentionally provisional:
 ### 1. Explicit role attribute weights — **implemented**
 
 Done. Every role/duty owns an explicit, versioned per-attribute weight
-(`effectiveWeight`, 0-5) in `src/fm_analytics/analytics/data/role_weights_v2.json`,
+(`effectiveWeight`, 0-10) in `src/fm_analytics/analytics/data/role_weights_v2.json`,
 generated from a source spreadsheet by `tools/csv_to_role_weights.py` and
 loaded by `role_weights.py` into the catalogue at import time
 (`catalogue._attributes_from_weights`). The old `required = 2` /

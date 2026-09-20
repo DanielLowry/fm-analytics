@@ -53,7 +53,7 @@ class RecruitmentTests(unittest.TestCase):
             tactic_key="positive_433dm",
             slot_keys=("MCL",),
             position="MC",
-            role_key="dlp_support",
+            role_key="dlp_mc_support",
             need="starter",
             minimum_role_score=50,
             reason="upgrade required",
@@ -95,7 +95,10 @@ class RecruitmentTests(unittest.TestCase):
             position="ST",
             role_key="af_attack",
             need="starter",
-            minimum_role_score=30,
+            # Above this player's optimistic bound: the export supplies 8 of the
+            # role's attributes at 3, and even counting every unsupplied one at
+            # the top of the scale he cannot reach this.
+            minimum_role_score=60,
             reason="upgrade required",
         )
 

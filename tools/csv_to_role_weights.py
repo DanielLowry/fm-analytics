@@ -3,6 +3,17 @@
 
 The JSON uses the same role keys as catalogue.json so the weight data
 can be directly looked up when building RoleDefinition objects.
+
+STALE as of role_weights_v4: seven roles were split by position group
+(wb_support -> wb_dl_dr_support / wb_wbl_wbr_support, and likewise for
+wb_attack, dlp_support, bwm_support, ap_attack, winger_support,
+winger_attack), so a key is now (role, duty, position group) and not just
+(role, duty). ``CATALOGUE_ROLE_MAP`` below still emits the old two-part keys
+and would therefore produce a file the catalogue no longer matches. Loading
+such a file fails loudly (see ``catalogue._attributes_from_weights``) rather
+than silently scoring those roles on flat fallback weights, but this
+converter needs the position group threading through before it is used
+again.
 """
 
 from __future__ import annotations
@@ -127,10 +138,12 @@ def _camel_case(name: str) -> str:
 def main() -> None:
     roles: dict[str, dict] = {}
     skipped = 0
+    versions: set[str] = set()
 
     with CSV_PATH.open(newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
+            versions.add(row["model_version"])
             duty = row["duty"]
             role = row["role"]
             cat_key = CATALOGUE_ROLE_MAP.get((role, duty))
@@ -178,8 +191,10 @@ def main() -> None:
 
             roles[cat_key]["attributes"][attr_key] = attr_config
 
+    if len(versions) != 1:
+        raise SystemExit(f"CSV must carry exactly one model_version, found {sorted(versions)}")
     document = {
-        "version": "role_weights_v2.0",
+        "version": versions.pop(),
         "roles": roles,
     }
 

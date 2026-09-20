@@ -144,6 +144,12 @@ def compare_candidate_reports(base: dict[str, Any], expanded: dict[str, Any]) ->
     }
 
 
+# FM's "no ID" sentinel. A genuine player record (valid player type, valid
+# RowID) can carry it; every read of the Player Search source skips such a
+# player the same way, so the two readers' ID sets still agree exactly.
+NO_PLAYER_ID = -1
+
+
 def resolve_source_vector_ids(
     read_bytes: Callable[[int, int], bytes],
     module_base: int,
@@ -178,6 +184,11 @@ def resolve_source_vector_ids(
         if person == 0:
             raise ProbeError(f"null person at search source index {index}")
         type_pointer, row_id, player_id = struct.unpack("<Qii", read_bytes(person, 16))
+        if type_pointer in valid_types and row_id >= 0 and player_id == NO_PLAYER_ID:
+            # A real player FM has given no ID (seen: Bradley Bubb, 2019-09).
+            # He cannot be keyed or tracked, so he is left out rather than
+            # failing the whole search source -- see NO_PLAYER_ID.
+            continue
         if type_pointer not in valid_types or row_id < 0 or player_id < 0:
             raise ProbeError(f"unresolved player at search source index {index}")
         ids.append(player_id)

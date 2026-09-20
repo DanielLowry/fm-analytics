@@ -29,7 +29,7 @@ from tools.fm20_cold_visibility_ptrace import (
 from tools.fm20_discoverability_cold_builder import (
     _phase_from_report, _read_at, derive_builder_arguments, run as builder_preflight,
 )
-from tools.fm20_discoverability_experiment import _write_report
+from tools.fm20_discoverability_experiment import NO_PLAYER_ID, _write_report
 from tools.fm20_linux_probe import ProbeError, read_exact
 from tools.fm20_linux_probe_runtime import choose_pid, probe
 from tools.fm20_native_call_log import log_event, next_call_number
@@ -129,6 +129,8 @@ def _source_records(read_bytes, source: int) -> dict[int, int]:
         if not person:
             raise ProbeError(f"null source person at index {index}")
         player_id = struct.unpack("<i", read_bytes(person + 0xC, 4))[0]
+        if player_id == NO_PLAYER_ID:
+            continue  # FM gave this player no ID; see NO_PLAYER_ID
         if player_id < 0 or player_id in records:
             raise ProbeError(f"invalid/duplicate source player at index {index}")
         records[player_id] = person

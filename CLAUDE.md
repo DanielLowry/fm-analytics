@@ -67,7 +67,7 @@ end-to-end measurement has not improved the page load.
 
 - `src/fm_analytics/web/` is split by concern: `server.py` (the caching
   HTTP server + CLI arg-parsing), `handlers.py` (one `_xxx_page` method per
-  route), `rendering.py` (shared HTML helpers), `providers.py` (data
+  route; the Scouting routes live in `scouting_pages.py` as a mixin), `rendering.py` (shared HTML helpers), `providers.py` (data
   sources). Find the route you're changing in `handlers.py` first rather
   than starting from `server.py`.
 - `src/fm_analytics/analytics/xi_selection.py` expands only the explicitly

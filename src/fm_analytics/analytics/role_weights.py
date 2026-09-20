@@ -6,7 +6,12 @@ from math import isfinite
 from pathlib import Path
 from typing import Any, Mapping
 
-_DATA_PATH = Path(__file__).with_name("data") / "role_weights_v2.json"
+_DATA_PATH = Path(__file__).with_name("data") / "role_weights_v5.json"
+
+# Weights run 0 (ignored) to 10 (defines the role at this position). Scoring
+# divides each weight by the role's total, so only the ratios matter: the scale
+# is a resolution for whoever writes the JSON, not something scoring depends on.
+MAX_EFFECTIVE_WEIGHT = 10
 
 
 @dataclass(frozen=True)
@@ -37,16 +42,15 @@ class AttributeWeightConfig:
     normal_multiplier_if_attr_ge_10: float | None = None
 
     def __post_init__(self) -> None:
-        if not (0 <= self.effective_weight <= 5):
-            raise ValueError("effective weight must be between 0 and 5")
-        if self.weight_tier not in {
-            "marginal",
-            "useful",
-            "important",
-            "primary",
-            "role-defining/core",
-        }:
-            raise ValueError(f"unknown weight tier {self.weight_tier!r}")
+        if not (0 <= self.effective_weight <= MAX_EFFECTIVE_WEIGHT):
+            raise ValueError(f"effective weight must be between 0 and {MAX_EFFECTIVE_WEIGHT}")
+        # The tier is a label for the human reading the JSON; scoring never
+        # reads it. It was a closed list while weights were 0-5 and each tier
+        # mapped to one weight, but a finer scale has no such mapping, so a
+        # rejected tier name would only ever be a loading failure over inert
+        # data. Any non-empty label is accepted.
+        if not self.weight_tier.strip():
+            raise ValueError("weight tier label must not be empty")
 
 
 @dataclass(frozen=True)

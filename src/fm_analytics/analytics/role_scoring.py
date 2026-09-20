@@ -150,6 +150,12 @@ def score_role(
 
     total_weight = sum(attribute.weight for attribute in role.attributes)
     contributions: list[AttributeContribution] = []
+    # Each contribution is rounded for display, but the totals below are summed
+    # from these unrounded values and rounded once -- the same way `_median_score`
+    # does it. Summing pre-rounded terms let the error accumulate, so a fully
+    # known player's `lower` drifted off his `median`, and an all-unknown
+    # player's `upper` came to 99.999999 instead of 100.
+    exact_points: list[ScoreBand] = []
 
     for weighted_attribute in role.attributes:
         supplied = weighted_attribute.name in observations
@@ -159,10 +165,16 @@ def score_role(
         )
         raw = _raw_band(observation, policy)
         weight_share = weighted_attribute.weight / total_weight
-        points = ScoreBand(
+        exact = ScoreBand(
             lower=_score_points(raw.lower, weight_share, policy),
             central=_score_points(raw.central, weight_share, policy),
             upper=_score_points(raw.upper, weight_share, policy),
+        )
+        exact_points.append(exact)
+        points = ScoreBand(
+            lower=round(exact.lower, 6),
+            central=round(exact.central, 6),
+            upper=round(exact.upper, 6),
         )
         contributions.append(
             AttributeContribution(
@@ -181,9 +193,9 @@ def score_role(
         catalogue_version=role.catalogue_version,
         scoring_version=policy.version,
         score=ScoreBand(
-            lower=_sum_points(contributions, "lower"),
-            central=_sum_points(contributions, "central"),
-            upper=_sum_points(contributions, "upper"),
+            lower=round(sum(band.lower for band in exact_points), 6),
+            central=round(sum(band.central for band in exact_points), 6),
+            upper=round(sum(band.upper for band in exact_points), 6),
         ),
         contributions=tuple(contributions),
         median=_median_score(role, observations, total_weight, policy),
@@ -255,10 +267,5 @@ def _score_points(
 ) -> float:
     scale_span = policy.scale_maximum - policy.scale_minimum
     normalized = (raw_value - policy.scale_minimum) / scale_span
-    return round(normalized * weight_share * 100, 6)
+    return normalized * weight_share * 100
 
-
-def _sum_points(
-    contributions: list[AttributeContribution], field: str
-) -> float:
-    return round(sum(getattr(item.points, field) for item in contributions), 6)

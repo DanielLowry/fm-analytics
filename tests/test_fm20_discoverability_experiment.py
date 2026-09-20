@@ -145,3 +145,37 @@ def test_study_compares_candidate_and_source_deltas():
     assert report["candidateComparison"]["addedPlayerIds"] == [30]
     assert report["sourceComparison"]["addedPlayerIds"] == [30]
     assert report["sourceComparison"]["sourceOnlyBasePlayerIds"] == [99]
+
+
+def _three_player_source(third_type_rva, third_row, third_id):
+    module_base = 0x10000000
+    memory = {
+        (0x1000 + 0xD0, 16): struct.pack("<QQ", 0x2000, 0x2018),
+        (0x2000, 24): struct.pack("<QQQ", 0x3000, 0x3010, 0x3020),
+        (0x3000, 8): struct.pack("<Q", 0x4000),
+        (0x3010, 8): struct.pack("<Q", 0x4010),
+        (0x3020, 8): struct.pack("<Q", 0x4020),
+        (0x4000, 16): struct.pack("<Qii", module_base + 0x6D92778, 1, 42),
+        (0x4010, 16): struct.pack("<Qii", module_base + 0x6D92778, 2, 17),
+        (0x4020, 16): struct.pack("<Qii", module_base + third_type_rva, third_row, third_id),
+    }
+    events = [{"source_pointer": 0x1000, "vector_begin": 0x2000,
+               "vector_end": 0x2018, "vector_count": 3}]
+    return lambda address, size: memory[(address, size)], module_base, events
+
+
+def test_a_real_player_with_no_id_is_skipped_not_fatal():
+    # Seen live: Bradley Bubb, a genuine player record FM had given ID -1,
+    # aborted every scouting refresh while he was in the search.
+    read, module_base, events = _three_player_source(0x6D92778, 31403, -1)
+    assert resolve_source_vector_ids(read, module_base, events) == [17, 42]
+
+
+def test_a_record_that_is_not_a_player_still_fails():
+    read, module_base, events = _three_player_source(0x1234, 31403, -1)
+    try:
+        resolve_source_vector_ids(read, module_base, events)
+    except ProbeError as exc:
+        assert "unresolved player" in str(exc)
+    else:
+        assert False, "a non-player record must still be refused"

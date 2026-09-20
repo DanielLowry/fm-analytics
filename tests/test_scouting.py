@@ -28,7 +28,12 @@ class ScoutingTests(unittest.TestCase):
 
         self.assertEqual(result[0].recommendation, ScoutRecommendation.SCOUT_FIRST)
         self.assertEqual(result[0].known_attributes, 0)
-        self.assertEqual(result[0].unknown_attributes, 11)
+        # Every attribute the role scores is unknown -- read from the catalogue
+        # rather than hard-coded, so a change to the weights file does not
+        # falsify a test that is really about visibility, not weighting.
+        self.assertEqual(
+            result[0].unknown_attributes, len(MVP_CATALOGUE.roles["af_attack"].attributes)
+        )
         self.assertTrue(result[0].scout_next)
 
     def test_ranges_keep_a_floor_and_ceiling_and_need_more_scouting(self) -> None:

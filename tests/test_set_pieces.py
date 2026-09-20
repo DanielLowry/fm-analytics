@@ -34,7 +34,7 @@ class SetPieceRecommendationTests(unittest.TestCase):
         corners = next(item for item in report.recommendations if item.task.key == "corners")
 
         self.assertEqual(corners.suggested.player.id, "strong")  # type: ignore[union-attr]
-        self.assertEqual(corners.suggested.score.score.central, 86.578948)  # type: ignore[union-attr]
+        self.assertEqual(corners.suggested.score.score.central, 86.578947)  # type: ignore[union-attr]
 
     def test_unavailable_players_are_not_suggested_even_when_they_are_best(self) -> None:
         available = replace(
