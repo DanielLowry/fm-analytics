@@ -80,6 +80,18 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 7.0,
+      "runners": 4.0,
+      "penetration": 1.8,
+      "ballProgression": 5.0,
+      "restDefence": 6.5
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
   "style": "Back-Three Counter",
   "description": "A cautious back-three system retaining an AMC and two strikers so regains can become attacks without waiting for many players to advance.",
   "whyGood": "The AMC, DLF and AF form an immediate counter-attacking triangle while the back three protect against turnovers.",

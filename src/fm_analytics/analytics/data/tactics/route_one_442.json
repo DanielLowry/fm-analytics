@@ -77,6 +77,19 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 6.5,
+      "aerialOutlet": 3.0,
+      "runners": 2.0,
+      "boxPresence": 2.0,
+      "restDefence": 6.5,
+      "ballProgression": 3.5
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
   "style": "Route One",
   "description": "A deliberately direct system that moves the ball forward early toward a physical target and runners attacking second balls.",
   "whyGood": "The Target Man gives long passes a destination while the AF, wide players and midfield compete for territory and knockdowns.",

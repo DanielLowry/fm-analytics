@@ -77,6 +77,18 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 7.0,
+      "runners": 3.5,
+      "penetration": 1.5,
+      "ballProgression": 4.5,
+      "restDefence": 7.0
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
   "style": "Fluid Counter-Attack",
   "description": "A compact 4-1-4-1 that counters through short combinations and supporting runs rather than immediately launching long balls.",
   "whyGood": "The DM stabilises the block while the Box-to-Box midfielder and wide players quickly join the AF after regains.",

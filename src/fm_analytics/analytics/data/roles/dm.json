@@ -8,6 +8,11 @@
       ],
       "positionGroup": "DM",
       "duty": "Defend",
+      "system": {
+        "defensiveCover": 1.6,
+        "ballProgression": 0.5,
+        "restDefence": 1.6
+      },
       "attributes": {
         "anticipation": {
           "effectiveWeight": 8,
@@ -117,6 +122,11 @@
       ],
       "positionGroup": "DM",
       "duty": "Support",
+      "system": {
+        "ballProgression": 1.5,
+        "creativity": 1.4,
+        "restDefence": 0.7
+      },
       "attributes": {
         "anticipation": {
           "effectiveWeight": 6,
@@ -240,6 +250,12 @@
       ],
       "positionGroup": "DM",
       "duty": "Support",
+      "system": {
+        "defensiveCover": 1.1,
+        "ballProgression": 1.0,
+        "restDefence": 1.2,
+        "pressing": 0.3
+      },
       "attributes": {
         "anticipation": {
           "effectiveWeight": 8,
@@ -347,6 +363,12 @@
       ],
       "positionGroup": "DM",
       "duty": "Support",
+      "system": {
+        "defensiveCover": 1.2,
+        "pressing": 1.5,
+        "ballProgression": 0.5,
+        "restDefence": 0.8
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 5,

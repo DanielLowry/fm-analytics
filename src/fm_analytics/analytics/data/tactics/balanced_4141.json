@@ -72,6 +72,19 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 8.0,
+      "ballProgression": 4.5,
+      "runners": 2.0,
+      "penetration": 1.0,
+      "boxPresence": 1.0,
+      "restDefence": 7.5
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
   "style": "Balanced 4-1-4-1",
   "description": "A compact 4-1-4-1 with a dedicated screen behind a four-man midfield.",
   "whyGood": "It gives strong defensive spacing and central control while retaining wide outlets.",

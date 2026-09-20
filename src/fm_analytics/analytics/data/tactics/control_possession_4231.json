@@ -75,6 +75,19 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 6.0,
+      "ballProgression": 6.0,
+      "creativity": 3.0,
+      "runners": 2.5,
+      "penetration": 2.0,
+      "restDefence": 7.0
+    },
+    "maximumAttackDuties": 3,
+    "maximumCreators": 3
+  },
   "style": "Control Possession",
   "description": "A patient 4-2-3-1 that controls territory and circulates until space opens between or outside the opposition lines.",
   "whyGood": "The double pivot gives secure circulation while the AP and wide attackers provide several receiving lines ahead of the ball.",

@@ -397,6 +397,64 @@ not reviewed by eye. Delete the tool once merged.
 - Not done here: `tools/tactic_weight_report.py` (§2.5) — it has nothing to
   report until per-tactic weights exist (phase 5).
 
+## 2b. Phase 1–2 as built (traits, demands, per-tactic balance)
+
+Implemented: A1–A4 and the B1 fixes needed to make demands reachable.
+
+**Done**
+
+- All 65 roles carry a `system` block in `data/roles/*.json`; the code-side
+  `_DEFAULT_ROLE_TRAITS` table is gone (removed outright rather than kept as a
+  fallback — the tests that needed one already set traits explicitly). The
+  loader refuses a shipped role that a tactic uses but that has no traits.
+- Supply and demand were recalibrated as one scale. `pressing` was the worst
+  offender: it is now supplied by roles that actually press (Pressing Forwards
+  1.6–2.0, Ball-Winning Midfielders 1.5, Box-to-Box 1.0, down to 0 for roles
+  that don't) so a passive shape cannot accumulate a high-press demand from
+  small contributions, and the demands were restated to be reachable.
+- All ten unscored instructions are modelled (§1.2).
+- Every tactic has its own `system` block, by style (§A4). The old inferred
+  thresholds sat far below what any XI supplies for the defensive dimensions
+  (needing 3.0 against 6–10 supplied), so they never bit.
+- `tests/test_tactical_calibration.py` guards it: no instruction demand or
+  balance minimum may exceed what some legal role version can supply, every
+  instruction used must be modelled, and a passive shape must not clear the
+  urgent-pressing demand.
+
+**Football judgement calls to review** (each changes a score; none is a bugfix)
+
+| Change | Reason |
+| --- | --- |
+| `positive_4231`, `positive_433dm`: DM `dm_defend` → `bwm_dm_support` | Counter-Press + Higher Line of Engagement with no pressing role fielded |
+| `attacking_424`: MC `cm_defend` → `bwm_mc_support` | Same |
+| `defensive_532`, `lowblock_442`: `tm_attack` → `af_attack` (alt `p_attack`) | `Counter` with no forward who runs in behind; low block still keeps its DLF/CF hold-up |
+| `highpress_433`: `tm_attack` → `pf_attack` (alt `af_attack`) | A Target Man leading a Much More Urgent press |
+| `gegenpress_4231`: `af_attack`/`p_attack` → `pf_attack` (alt `af_attack`) | Same; the Poacher alternate is dropped, it doesn't press |
+| `counter_352_wingback`: `Narrower` → `Fairly Wide` | Narrower cancelled the width its two wing-backs exist to provide |
+| `Counter` demand 2.0 → 1.5 runners | One true outlet (an Advanced Forward supplies 1.5) is a counter threat; 2.0 needed two |
+| `Shorter Passing` no longer demands creativity | Short passing needs progression, not chance-making; it made tactics with no creator unreachable |
+| `Narrower` now asks for cover + progression, not creativity | Narrow is a compactness instruction as often as a creative one |
+
+**Not done**
+
+- A5 (exclusion groups across the whole XI) — nothing yet selects the new
+  free-role positions, so it has no effect until the catalogue expands.
+- The remaining B1 items: the asymmetric wide roles in `possession_4141` and
+  `vertical_tikitaka_433dm` (left as-is; needs your call on intent), and a
+  trait-distance review of slot alternates.
+
+**A finding that changes what the later phases must do.** After
+recalibration every tactic scores 100/100 on both balance and instruction fit
+for its default role version. That is correct and also a limit: both
+components depend only on *roles*, never on *players*, so for a consistent
+tactic they are a constant. They now work as a consistency check (a slot
+alternate that breaks the tactic's balance is penalised) rather than a ranking
+signal, and tactic ranking is now driven by XI quality alone. The old spread
+(instruction fit ranged 60–100) was an artifact of unreachable demands, not
+information. Real discrimination between tactics has to come from the pieces
+still to be built: attribute-aware instruction suitability (roadmap item 4),
+per-tactic attribute weights (§5) and the opponent (§6).
+
 ## 3. Workstream A — the catalogue
 
 ### A1. Give all 65 roles system traits
@@ -812,8 +870,8 @@ Ordered so that nothing is tuned on top of a known-broken baseline.
 | Phase | Work | Why here |
 | --- | --- | --- |
 | **0 — done** | **§2 data layout migration and retirements** | **Cheapest now: 25 small tactics, not 45 large ones. Also fixes the wheel-packaging bug before anyone installs one.** |
-| 1 | A1 traits for all 65 roles, A2 scale recalibration, A3 missing instructions | Fixes §1.1–1.2. Everything downstream is measured against this. Do not skip ahead. |
-| 2 | A4 per-tactic system requirements, A5 exclusion groups, B1 fix the existing 25 | Makes the current 25 correct before multiplying them. |
+| 1 — done | A1 traits for all 65 roles, A2 scale recalibration, A3 missing instructions | Fixes §1.1–1.2. Everything downstream is measured against this. Do not skip ahead. |
+| 2 — partly done | A4 per-tactic system requirements (done), A5 exclusion groups, B1 fix the existing 25 (reachability fixes done; see §2b) | Makes the current 25 correct before multiplying them. |
 | 3 | A6 expand to 40+, with B2 justifications authored alongside | Now safe: the load-time invariants from phase 1 catch a mis-authored tactic. |
 | 4 | B3 surface justifications and better shortfall explanations | The manager can now read why, which is also how you review phases 1–3. |
 | 5 | C1–C4 per-tactic per-role weights | Needs a correct system model and a settled tactic list. |

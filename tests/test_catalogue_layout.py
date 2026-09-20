@@ -13,6 +13,7 @@ DATA = Path(__file__).resolve().parents[1] / "src" / "fm_analytics" / "analytics
 ROLE = {
     "key": "gk_x", "name": "Keeper", "positions": ["GK"],
     "positionGroup": "GK", "duty": "Defend",
+    "system": {"defensiveCover": 0.5},
     "attributes": {"reflexes": {
         "effectiveWeight": 8, "dutyModifier": 0,
         "weightTier": "core", "coreSoftFloorApplies": False,
@@ -74,6 +75,16 @@ class DirectoryLoadingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaisesRegex(ValueError, "file name must match"):
                 load_catalogue(self.build(Path(tmp), tactic_filename="other.json"))
+
+    def test_a_role_used_by_a_tactic_without_system_traits_is_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = self.build(Path(tmp))
+            bare = {k: v for k, v in ROLE.items() if k != "system"}
+            (directory / "roles" / "gk.json").write_text(
+                json.dumps({"roles": [bare]}), encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ValueError, "no system traits"):
+                load_catalogue(directory)
 
     def test_a_role_defined_twice_across_files_is_refused(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

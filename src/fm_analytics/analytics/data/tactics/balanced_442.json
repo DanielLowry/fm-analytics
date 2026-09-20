@@ -80,6 +80,19 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 6.0,
+      "ballProgression": 4.5,
+      "runners": 2.5,
+      "penetration": 1.2,
+      "boxPresence": 1.2,
+      "restDefence": 6.0
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
   "style": "Balanced 4-4-2",
   "description": "A simple two-banks-of-four structure with natural width and two complementary forwards.",
   "whyGood": "It is easy to recruit for, tactically clear and gives a useful baseline against more specialised systems.",

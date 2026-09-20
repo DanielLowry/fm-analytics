@@ -70,12 +70,25 @@
     {
       "key": "ST",
       "position": "ST",
-      "role": "af_attack",
+      "role": "pf_attack",
       "roles": [
-        "p_attack"
+        "af_attack"
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 5.0,
+      "ballProgression": 5.0,
+      "runners": 5.5,
+      "penetration": 3.5,
+      "boxPresence": 2.5,
+      "restDefence": 5.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
   "style": "Gegenpress",
   "description": "An intense 4-2-3-1 intended to regain the ball immediately after losing it and attack before the opponent reorganises.",
   "whyGood": "Four aggressive attackers lead the press while the pivot balances ball winning and distribution behind them.",

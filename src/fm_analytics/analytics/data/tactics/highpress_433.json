@@ -67,9 +67,25 @@
     {
       "key": "ST",
       "position": "ST",
-      "role": "tm_attack"
+      "role": "pf_attack",
+      "roles": [
+        "af_attack"
+      ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.5,
+      "defensiveCover": 5.0,
+      "ballProgression": 5.5,
+      "runners": 6.0,
+      "penetration": 4.0,
+      "boxPresence": 2.5,
+      "restDefence": 5.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
   "style": "High-Press 4-3-3",
   "description": "An aggressive 4-3-3 designed to regain possession high and sustain pressure in the opposition half.",
   "whyGood": "The front three, energetic midfield and compressed defensive line make it easier to surround the ball.",

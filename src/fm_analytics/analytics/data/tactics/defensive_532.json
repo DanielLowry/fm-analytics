@@ -74,9 +74,24 @@
     {
       "key": "ST2",
       "position": "ST",
-      "role": "tm_attack"
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 2.5,
+      "defensiveCover": 9.0,
+      "ballProgression": 4.0,
+      "runners": 2.0,
+      "penetration": 1.5,
+      "restDefence": 8.0
+    },
+    "maximumAttackDuties": 3,
+    "maximumCreators": 3
+  },
   "style": "Defensive 5-3-2",
   "description": "A deep five-defender system prioritising central protection and counter-attacking through two forwards.",
   "whyGood": "It packs the box while still keeping two outlets available after regains.",

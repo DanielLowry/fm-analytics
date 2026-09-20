@@ -4,7 +4,7 @@
   "formation": "3-5-2",
   "mentality": "Counter",
   "instructions": [
-    "Narrower",
+    "Fairly Wide",
     "Lower Tempo",
     "Counter",
     "Drop Deeper Line of Engagement",
@@ -79,6 +79,18 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.3,
+      "defensiveCover": 7.0,
+      "runners": 4.5,
+      "penetration": 2.0,
+      "ballProgression": 5.0,
+      "restDefence": 6.5
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
   "style": "3-5-2 Counter",
   "description": "A back-three counter system using wing-backs for width and two forwards as immediate outlets.",
   "whyGood": "Three centre-backs protect the box while two forwards keep counter-attacking threat high.",

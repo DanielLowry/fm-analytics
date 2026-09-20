@@ -8,6 +8,11 @@
       ],
       "positionGroup": "GK",
       "duty": "Defend",
+      "system": {
+        "defensiveCover": 0.5,
+        "restDefence": 1.0,
+        "aerialOutlet": 0.4
+      },
       "attributes": {
         "aerialReach": {
           "effectiveWeight": 8,
@@ -133,6 +138,12 @@
       ],
       "positionGroup": "GK",
       "duty": "Defend",
+      "system": {
+        "defensiveCover": 0.7,
+        "restDefence": 1.0,
+        "ballProgression": 0.8,
+        "pressing": 0.4
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 6,

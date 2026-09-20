@@ -8,6 +8,11 @@
       ],
       "positionGroup": "DC",
       "duty": "Defend",
+      "system": {
+        "defensiveCover": 1.8,
+        "restDefence": 1.8,
+        "aerialOutlet": 0.8
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 3,
@@ -133,6 +138,12 @@
       ],
       "positionGroup": "DC",
       "duty": "Defend",
+      "system": {
+        "defensiveCover": 1.5,
+        "restDefence": 1.6,
+        "ballProgression": 1.3,
+        "aerialOutlet": 0.7
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 3,
@@ -260,6 +271,11 @@
       ],
       "positionGroup": "DC",
       "duty": "Cover",
+      "system": {
+        "defensiveCover": 1.8,
+        "restDefence": 1.8,
+        "pressing": 0.3
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 7,

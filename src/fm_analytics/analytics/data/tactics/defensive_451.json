@@ -73,6 +73,17 @@
       "role": "tm_attack"
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 9.0,
+      "ballProgression": 3.5,
+      "aerialOutlet": 3.0,
+      "restDefence": 9.0
+    },
+    "maximumAttackDuties": 3,
+    "maximumCreators": 3
+  },
   "style": "Defensive 4-5-1",
   "description": "A conservative five-man midfield shape designed to deny central space and protect a result.",
   "whyGood": "The dense midfield makes progression difficult and keeps defensive responsibilities simple.",

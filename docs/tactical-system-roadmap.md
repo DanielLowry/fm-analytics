@@ -100,8 +100,8 @@ There is a low-cost workaround already available with no scoring-engine
 change: define a second catalogue role (e.g. `dlp_support_possession`) with
 its own role entry (under `data/roles/`) and point the relevant slot at it via
 the tactic file's per-slot `role`/`roles`. The catch: it must also get a
-`tactical_system._DEFAULT_ROLE_TRAITS` entry (or a `system` override in the
-catalogue), or it silently contributes nothing to that tactic's team-balance
+`system` block in its role entry (or it contributes nothing; the loader now
+refuses such a role), or it silently contributes nothing to that tactic's team-balance
 score. A proper fix folds tactical context into `f(attribute, role, duty,
 tactical context)` in item 2 instead of multiplying role variants by hand.
 
@@ -226,8 +226,8 @@ These are not separate football hypotheses, but make the model safer to evolve.
   `_POC_ROLE_FAMILIES` code table that opened every slot to a fixed family
   regardless of what the tactic needed — see `analytics/CLAUDE.md` for the
   trait-distance method used to decide which pairs are safe to declare
-  interchangeable. Default tactical-system traits (`_DEFAULT_ROLE_TRAITS`)
-  are still in `tactical_system.py`, not catalogue data.
+  interchangeable. Default tactical-system traits (formerly `_DEFAULT_ROLE_TRAITS`)
+  now live in each role's `system` block under `data/roles/` — done.
 - Treat role and duty as independently structured data where the source data
   permits it, rather than relying only on combined keys such as `BPD-D`.
 - Keep the exact role-version and player-assignment optimiser benchmarked as

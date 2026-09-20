@@ -39,69 +39,44 @@ class SystemAssessment:
     active: bool
 
 
-# These are deliberately coarse starting hypotheses.  Catalogue authors can
-# override them per RoleDefinition via `system_traits`; keeping this mapping
-# central makes every current assumption reviewable during the POC.
-_DEFAULT_ROLE_TRAITS: Mapping[str, Mapping[str, float]] = {
-    "gk_defend": {"defensiveCover": 0.5, "restDefence": 1.0, "aerialOutlet": 0.4},
-    "sk_defend": {"defensiveCover": 0.7, "restDefence": 1.0, "ballProgression": 0.8, "pressing": 0.4},
-    "cd_defend": {"defensiveCover": 1.8, "restDefence": 1.8, "aerialOutlet": 0.8},
-    "bpd_defend": {"defensiveCover": 1.5, "restDefence": 1.6, "ballProgression": 1.3, "aerialOutlet": 0.7},
-    "cd_cover": {"defensiveCover": 1.8, "restDefence": 1.8, "pressing": 0.5},
-    "fb_support": {"width": 1.0, "defensiveCover": 0.9, "ballProgression": 0.6, "restDefence": 0.8},
-    "wb_dl_dr_support": {"width": 1.5, "defensiveCover": 0.5, "ballProgression": 1.0, "runners": 0.8, "pressing": 0.8},
-    "wb_wbl_wbr_support": {"width": 1.5, "defensiveCover": 0.5, "ballProgression": 1.0, "runners": 0.8, "pressing": 0.8},
-    "wb_dl_dr_attack": {"width": 1.8, "ballProgression": 1.2, "runners": 1.1, "penetration": 0.7, "boxPresence": 0.4, "attackDuty": 1.0},
-    "wb_wbl_wbr_attack": {"width": 1.8, "ballProgression": 1.2, "runners": 1.1, "penetration": 0.7, "boxPresence": 0.4, "attackDuty": 1.0},
-    "dm_defend": {"defensiveCover": 1.6, "ballProgression": 0.5, "restDefence": 1.6},
-    "dm_support": {"defensiveCover": 1.1, "ballProgression": 1.0, "restDefence": 1.2},
-    "bwm_dm_support": {"defensiveCover": 1.2, "pressing": 1.5, "ballProgression": 0.5, "restDefence": 0.8},
-    "bwm_mc_support": {"defensiveCover": 1.2, "pressing": 1.5, "ballProgression": 0.5, "restDefence": 0.8},
-    "dlp_dm_support": {"ballProgression": 1.5, "creativity": 1.4, "restDefence": 0.7},
-    "dlp_mc_support": {"ballProgression": 1.5, "creativity": 1.4, "restDefence": 0.7},
-    "cm_defend": {"defensiveCover": 1.0, "ballProgression": 0.6, "restDefence": 0.9},
-    "cm_support": {"ballProgression": 1.0, "creativity": 0.7, "runners": 0.6, "pressing": 0.5},
-    "b2b_support": {"defensiveCover": 0.7, "ballProgression": 0.8, "runners": 1.3, "boxPresence": 0.7, "pressing": 1.0},
-    "mez_attack": {"width": 0.5, "ballProgression": 0.9, "creativity": 0.8, "runners": 1.1, "penetration": 0.7, "attackDuty": 1.0},
-    "wm_support": {"width": 1.5, "defensiveCover": 0.5, "ballProgression": 0.7, "pressing": 0.6},
-    "winger_ml_mr_support": {"width": 1.8, "ballProgression": 0.9, "creativity": 0.7, "runners": 0.6, "pressing": 0.5},
-    "winger_aml_amr_support": {"width": 1.8, "ballProgression": 0.9, "creativity": 0.7, "runners": 0.6, "pressing": 0.5},
-    "winger_ml_mr_attack": {"width": 1.8, "runners": 1.1, "penetration": 1.0, "boxPresence": 0.5, "attackDuty": 1.0},
-    "winger_aml_amr_attack": {"width": 1.8, "runners": 1.1, "penetration": 1.0, "boxPresence": 0.5, "attackDuty": 1.0},
-    "if_attack": {"runners": 1.2, "penetration": 1.4, "boxPresence": 0.8, "attackDuty": 1.0},
-    "am_support": {"creativity": 1.4, "ballProgression": 0.7, "runners": 0.5, "pressing": 0.3},
-    "ap_mc_attack": {"creativity": 1.8, "ballProgression": 0.8, "penetration": 0.5, "attackDuty": 1.0},
-    "ap_amc_attack": {"creativity": 1.8, "ballProgression": 0.8, "penetration": 0.5, "attackDuty": 1.0},
-    "ss_attack": {"runners": 1.5, "penetration": 1.2, "boxPresence": 1.0, "attackDuty": 1.0},
-    "dlf_support": {"creativity": 0.9, "ballProgression": 0.5, "boxPresence": 0.7, "aerialOutlet": 0.4},
-    "cf_support": {"creativity": 0.8, "ballProgression": 0.6, "boxPresence": 0.9, "aerialOutlet": 0.7},
-    "af_attack": {"runners": 1.5, "penetration": 1.6, "boxPresence": 1.0, "attackDuty": 1.0},
-    "p_attack": {"runners": 1.4, "penetration": 1.4, "boxPresence": 0.9, "attackDuty": 1.0},
-    "tm_attack": {"aerialOutlet": 1.8, "boxPresence": 1.3, "attackDuty": 1.0},
-}
-
-
+# What each instruction asks of the eleven, in the same units a role's
+# `system` traits supply (see data/roles/*.json).  The two are one scale:
+# a demand is only meaningful if some legal XI can reach it, and
+# tests/test_tactical_calibration.py fails any tactic whose instructions
+# demand more than its role versions can supply.  Every instruction a tactic
+# uses must appear here (also tested), or it silently costs nothing.
+# These are declared football hypotheses, not fitted numbers.
 _INSTRUCTION_REQUIREMENTS: Mapping[str, Mapping[str, float]] = {
-    "Fairly Narrow": {"creativity": 1.5, "ballProgression": 1.5},
+    "Fairly Narrow": {"creativity": 1.0, "ballProgression": 1.5},
     "Fairly Wide": {"width": 3.0},
-    "Narrower": {"creativity": 1.5, "ballProgression": 1.5},
-    "Shorter Passing": {"ballProgression": 2.0, "creativity": 1.5},
+    "Narrower": {"defensiveCover": 2.0, "ballProgression": 1.0},
+    "Shorter Passing": {"ballProgression": 2.0},
+    "Slightly Shorter Passing": {"ballProgression": 1.5},
     "Slightly More Direct Passing": {"aerialOutlet": 0.8, "runners": 1.5},
+    "More Direct Passing": {"aerialOutlet": 1.0, "runners": 1.5},
+    "Much More Direct Passing": {"aerialOutlet": 2.0, "runners": 2.0},
+    "Pass Into Space": {"runners": 2.0, "penetration": 1.5},
     "Play Out Of Defence": {"ballProgression": 3.0, "restDefence": 2.5},
+    "Prevent Short GK Distribution": {"pressing": 3.0},
     "Work Ball Into Box": {"creativity": 2.0, "boxPresence": 1.5},
+    "Hit Early Crosses": {"width": 2.0, "aerialOutlet": 1.5, "boxPresence": 1.5},
+    "Overlap Left": {"width": 2.5, "restDefence": 2.0},
+    "Overlap Right": {"width": 2.5, "restDefence": 2.0},
     "Higher Tempo": {"runners": 1.5, "pressing": 1.0},
-    "Lower Tempo": {"creativity": 1.5, "restDefence": 2.0},
-    "Slower Tempo": {"creativity": 1.5, "restDefence": 2.0},
-    "Counter": {"runners": 2.0, "penetration": 1.5},
-    "Counter-Press": {"pressing": 3.0, "restDefence": 2.5},
-    "Much More Urgent Pressing": {"pressing": 4.0},
+    "Lower Tempo": {"ballProgression": 1.5, "restDefence": 2.0},
+    "Slower Tempo": {"defensiveCover": 2.0, "restDefence": 2.0},
+    "Hold Shape": {"defensiveCover": 2.5, "restDefence": 3.0},
+    "Counter": {"runners": 1.5, "penetration": 1.5},
+    "Counter-Press": {"pressing": 2.5, "restDefence": 2.5},
+    "Much More Urgent Pressing": {"pressing": 3.5},
     "Standard Line of Engagement": {"defensiveCover": 2.0},
-    "Higher Line of Engagement": {"pressing": 2.5, "restDefence": 2.5},
-    "Much Higher Line of Engagement": {"pressing": 3.5, "restDefence": 3.0},
+    "Higher Line of Engagement": {"pressing": 2.0, "restDefence": 2.5},
+    "Much Higher Line of Engagement": {"pressing": 3.0, "restDefence": 3.0},
+    "Lower Line of Engagement": {"defensiveCover": 2.5, "restDefence": 2.5},
     "Drop Deeper Line of Engagement": {"defensiveCover": 3.0, "restDefence": 3.0},
     "Much Lower Line of Engagement": {"defensiveCover": 3.5, "restDefence": 3.5},
     "Standard Defensive Line": {"restDefence": 2.0},
-    "Higher Defensive Line": {"pressing": 2.0, "restDefence": 3.0},
+    "Higher Defensive Line": {"pressing": 1.0, "restDefence": 3.0},
     "Drop Off More Defensive Line": {"defensiveCover": 3.0, "restDefence": 3.0},
     "Much Deeper Defensive Line": {"defensiveCover": 3.5, "restDefence": 3.5},
     "Regroup": {"defensiveCover": 3.0, "restDefence": 3.0},
@@ -109,7 +84,7 @@ _INSTRUCTION_REQUIREMENTS: Mapping[str, Mapping[str, float]] = {
 
 
 def role_traits(role: RoleDefinition) -> Mapping[str, float]:
-    return role.system_traits or _DEFAULT_ROLE_TRAITS.get(role.key, {})
+    return role.system_traits
 
 
 def assess_coherence(

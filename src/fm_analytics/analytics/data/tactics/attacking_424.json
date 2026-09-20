@@ -48,7 +48,7 @@
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_defend"
+      "role": "bwm_mc_support"
     },
     {
       "key": "MCR",
@@ -82,6 +82,19 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 6.0,
+      "ballProgression": 3.5,
+      "runners": 3.0,
+      "penetration": 3.5,
+      "boxPresence": 2.5,
+      "restDefence": 6.5
+    },
+    "maximumAttackDuties": 6,
+    "maximumCreators": 3
+  },
   "style": "Attacking 4-2-4",
   "description": "A high-risk structure that immediately puts four players against the opposition back line and is intended to force the game.",
   "whyGood": "The DLF supplies some connection while the other three attackers threaten depth and width around the box.",

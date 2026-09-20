@@ -73,6 +73,19 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 4.0,
+      "defensiveCover": 4.5,
+      "ballProgression": 5.0,
+      "runners": 6.0,
+      "penetration": 4.5,
+      "boxPresence": 3.0,
+      "restDefence": 4.5
+    },
+    "maximumAttackDuties": 6,
+    "maximumCreators": 3
+  },
   "style": "Attacking 4-3-3",
   "description": "An aggressive 4-3-3 committing full-backs, midfield runners and wide forwards to attack.",
   "whyGood": "It creates several simultaneous attacking lanes and is useful when the team must force the game.",

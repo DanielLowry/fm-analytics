@@ -77,6 +77,19 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 6.0,
+      "ballProgression": 4.5,
+      "runners": 2.5,
+      "penetration": 1.2,
+      "boxPresence": 1.0,
+      "restDefence": 6.0
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
   "style": "Balanced 4-4-1-1",
   "description": "A conventional 4-4-2 defensive shell with one attacker dropping into the number-ten line to connect midfield and the lone striker.",
   "whyGood": "The AMC reduces striker isolation while preserving two clear banks of four without the ball.",

@@ -74,9 +74,24 @@
     {
       "key": "ST2",
       "position": "ST",
-      "role": "tm_attack"
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 8.5,
+      "ballProgression": 3.5,
+      "runners": 1.5,
+      "penetration": 1.5,
+      "restDefence": 7.5
+    },
+    "maximumAttackDuties": 3,
+    "maximumCreators": 3
+  },
   "style": "Low-Block 4-4-2",
   "description": "Two compact banks of four with two forwards retained as direct counter outlets.",
   "whyGood": "It keeps defensive jobs simple while preserving an immediate route out after regains.",

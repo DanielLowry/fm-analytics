@@ -8,6 +8,12 @@
       ],
       "positionGroup": "MC",
       "duty": "Defend",
+      "system": {
+        "defensiveCover": 1.0,
+        "ballProgression": 0.6,
+        "restDefence": 0.9,
+        "pressing": 0.3
+      },
       "attributes": {
         "anticipation": {
           "effectiveWeight": 6,
@@ -115,6 +121,12 @@
       ],
       "positionGroup": "MC",
       "duty": "Support",
+      "system": {
+        "ballProgression": 1.0,
+        "creativity": 0.7,
+        "runners": 0.6,
+        "pressing": 0.4
+      },
       "attributes": {
         "anticipation": {
           "effectiveWeight": 6,
@@ -222,6 +234,11 @@
       ],
       "positionGroup": "MC",
       "duty": "Support",
+      "system": {
+        "ballProgression": 1.5,
+        "creativity": 1.4,
+        "restDefence": 0.7
+      },
       "attributes": {
         "anticipation": {
           "effectiveWeight": 6,
@@ -333,6 +350,12 @@
       ],
       "positionGroup": "MC",
       "duty": "Support",
+      "system": {
+        "defensiveCover": 1.2,
+        "pressing": 1.5,
+        "ballProgression": 0.5,
+        "restDefence": 0.8
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 5,
@@ -474,6 +497,13 @@
       ],
       "positionGroup": "MC",
       "duty": "Support",
+      "system": {
+        "defensiveCover": 0.7,
+        "ballProgression": 0.8,
+        "runners": 1.3,
+        "boxPresence": 0.7,
+        "pressing": 1.0
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 6,
@@ -601,6 +631,15 @@
       ],
       "positionGroup": "MC",
       "duty": "Attack",
+      "system": {
+        "width": 0.5,
+        "ballProgression": 0.9,
+        "creativity": 0.8,
+        "runners": 1.1,
+        "penetration": 0.7,
+        "pressing": 0.4,
+        "attackDuty": 1.0
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 7,
@@ -734,6 +773,12 @@
       ],
       "positionGroup": "MC",
       "duty": "Attack",
+      "system": {
+        "creativity": 1.8,
+        "ballProgression": 0.8,
+        "penetration": 0.5,
+        "attackDuty": 1.0
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 3,

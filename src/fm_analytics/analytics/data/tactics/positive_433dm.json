@@ -47,7 +47,7 @@
     {
       "key": "DM",
       "position": "DM",
-      "role": "dm_defend"
+      "role": "bwm_dm_support"
     },
     {
       "key": "MCL",
@@ -78,6 +78,20 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 6.0,
+      "ballProgression": 3.5,
+      "creativity": 1.5,
+      "runners": 3.5,
+      "penetration": 3.0,
+      "boxPresence": 2.0,
+      "restDefence": 6.5
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
   "style": "Positive 4-3-3 DM",
   "description": "A modern 4-3-3 with a holder, two eights and complementary wide forwards.",
   "whyGood": "It offers strong pitch coverage, good rest defence and multiple progression routes.",

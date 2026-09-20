@@ -79,6 +79,20 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 5.5,
+      "ballProgression": 6.5,
+      "creativity": 3.0,
+      "runners": 3.5,
+      "penetration": 2.0,
+      "boxPresence": 2.0,
+      "restDefence": 5.5
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
   "style": "Narrow Combination Play",
   "description": "A narrow 4-3-1-2 using three central midfielders and an advanced playmaker behind two complementary forwards.",
   "whyGood": "It overloads central zones while the wing-backs provide the width that the midfield shape lacks.",

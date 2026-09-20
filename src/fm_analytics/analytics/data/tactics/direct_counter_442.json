@@ -81,6 +81,18 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 6.5,
+      "runners": 3.5,
+      "penetration": 1.5,
+      "ballProgression": 4.0,
+      "restDefence": 6.5
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
   "style": "Direct Counter-Attack",
   "description": "A compact 4-4-2 that accepts periods without the ball and attacks space quickly after regaining possession.",
   "whyGood": "The DLF provides an outlet while the AF and wide runners attack the space left by an advanced opponent.",

@@ -80,6 +80,20 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 1.5,
+      "defensiveCover": 6.5,
+      "ballProgression": 4.5,
+      "creativity": 3.0,
+      "runners": 2.0,
+      "penetration": 1.2,
+      "boxPresence": 1.2,
+      "restDefence": 7.0
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
   "style": "Balanced Narrow Diamond",
   "description": "A compact narrow 4-1-2-1-2 built around central combinations, two strikers and full-backs supplying most of the width.",
   "whyGood": "It creates central numerical superiority and strong links between DM, midfield, AMC and two forwards.",

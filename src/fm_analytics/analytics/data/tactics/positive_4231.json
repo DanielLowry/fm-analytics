@@ -47,7 +47,7 @@
     {
       "key": "DMCL",
       "position": "DM",
-      "role": "dm_defend"
+      "role": "bwm_dm_support"
     },
     {
       "key": "DMCR",
@@ -78,6 +78,20 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 6.0,
+      "ballProgression": 3.5,
+      "creativity": 2.0,
+      "runners": 3.5,
+      "penetration": 3.0,
+      "boxPresence": 2.0,
+      "restDefence": 6.5
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
   "style": "Positive 4-2-3-1",
   "description": "A proactive 4-2-3-1 using a double pivot behind three attacking midfielders and one striker.",
   "whyGood": "The pivot stabilises build-up while the front four occupy several attacking lines.",

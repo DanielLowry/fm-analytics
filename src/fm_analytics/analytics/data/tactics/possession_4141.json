@@ -75,6 +75,18 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.5,
+      "defensiveCover": 6.0,
+      "ballProgression": 7.0,
+      "creativity": 3.0,
+      "runners": 2.0,
+      "restDefence": 6.0
+    },
+    "maximumAttackDuties": 3,
+    "maximumCreators": 3
+  },
   "style": "Possession",
   "description": "A lower-risk possession structure with a playmaker at the base and four midfielders offering short passing options ahead.",
   "whyGood": "The DM acts as a circulation hub and the compact midfield keeps support distances short.",

@@ -40,7 +40,7 @@ single-role unless a human decided otherwise for it specifically.
 The catalogue currently declares alternatives for exactly three role pairs
 — `cd_defend`/`cd_cover`, `af_attack`/`p_attack`, `dlf_support`/`cf_support`
 — chosen because their `tactical_system.py` trait contributions are nearly
-identical (see `_DEFAULT_ROLE_TRAITS`): swapping one for the other changes
+identical (see each role's `system` traits in `data/roles/`): swapping one for the other changes
 which specific player profile fits the slot, not what the team's system
 does. Contrast `dm_defend`/`dm_support`, which looks like a similar swap
 but trades off primary `defensiveCover`/`ballProgression` contribution by a
@@ -88,8 +88,10 @@ silently treating it as independent.
 ## Everything else in here
 
 - `tactical_system.py` — team-balance ("coherence") and instruction-fit
-  scoring, off explicit per-role trait weights (`_DEFAULT_ROLE_TRAITS`) and
-  per-instruction requirements (`_INSTRUCTION_REQUIREMENTS`). These are
+  scoring, off explicit per-role `system` traits (in the role files) and
+  per-instruction requirements (`_INSTRUCTION_REQUIREMENTS`). Traits supply
+  and instruction demands share one scale; `tests/test_tactical_calibration.py`
+  fails a tactic whose demands no legal XI can meet. These are
   declared, reviewable football hypotheses, not tuned/learned weights —
   changing one is a football judgment call, worth calling out as such in
   the commit rather than treating as a pure bugfix.

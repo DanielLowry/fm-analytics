@@ -78,6 +78,18 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 4.5,
+      "defensiveCover": 5.5,
+      "ballProgression": 4.0,
+      "aerialOutlet": 3.0,
+      "boxPresence": 2.0,
+      "restDefence": 6.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
   "style": "Wing Play",
   "description": "A width-first 4-4-2 designed to stretch the opponent and generate repeated crossing opportunities for two forwards.",
   "whyGood": "Wide midfielders and overlapping full-backs create outside overloads, with a Target Man giving crosses a clear focal point.",

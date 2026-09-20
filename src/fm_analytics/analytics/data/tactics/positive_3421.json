@@ -77,6 +77,20 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 6.5,
+      "ballProgression": 6.5,
+      "creativity": 3.0,
+      "runners": 3.5,
+      "penetration": 3.0,
+      "boxPresence": 2.0,
+      "restDefence": 7.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
   "style": "3-4-2-1 Half-Space Attack",
   "description": "A modern back-three system using two central attacking midfielders to occupy the half-spaces behind a single striker.",
   "whyGood": "Two number tens work between the lines while wing-backs hold width, creating five distinct attacking lanes.",

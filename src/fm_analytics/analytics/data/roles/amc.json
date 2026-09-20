@@ -8,6 +8,12 @@
       ],
       "positionGroup": "AMC",
       "duty": "Support",
+      "system": {
+        "creativity": 1.4,
+        "ballProgression": 0.7,
+        "runners": 0.5,
+        "pressing": 0.2
+      },
       "attributes": {
         "anticipation": {
           "effectiveWeight": 6,
@@ -93,6 +99,13 @@
       ],
       "positionGroup": "AMC",
       "duty": "Attack",
+      "system": {
+        "creativity": 1.8,
+        "ballProgression": 0.8,
+        "penetration": 0.5,
+        "pressing": 0.2,
+        "attackDuty": 1.0
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 4,
@@ -202,6 +215,13 @@
       ],
       "positionGroup": "AMC",
       "duty": "Attack",
+      "system": {
+        "runners": 1.5,
+        "penetration": 1.2,
+        "boxPresence": 1.0,
+        "pressing": 0.7,
+        "attackDuty": 1.0
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 8,
@@ -317,6 +337,15 @@
       ],
       "positionGroup": "AMC",
       "duty": "Attack",
+      "system": {
+        "creativity": 1.2,
+        "ballProgression": 0.6,
+        "runners": 0.8,
+        "penetration": 0.7,
+        "boxPresence": 0.9,
+        "pressing": 0.3,
+        "attackDuty": 1.0
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 8,
@@ -426,6 +455,12 @@
       ],
       "positionGroup": "AMC",
       "duty": "Support",
+      "system": {
+        "creativity": 1.7,
+        "ballProgression": 1.0,
+        "penetration": 0.2,
+        "pressing": 0.2
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 3,
@@ -547,6 +582,12 @@
       ],
       "positionGroup": "AMC",
       "duty": "Attack",
+      "system": {
+        "creativity": 1.7,
+        "penetration": 0.8,
+        "boxPresence": 0.5,
+        "attackDuty": 1.0
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 4,
@@ -688,6 +729,10 @@
       ],
       "positionGroup": "AMC",
       "duty": "Support",
+      "system": {
+        "creativity": 1.9,
+        "ballProgression": 0.8
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 2,

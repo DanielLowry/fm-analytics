@@ -76,6 +76,19 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 4.0,
+      "defensiveCover": 5.0,
+      "ballProgression": 5.0,
+      "runners": 5.5,
+      "penetration": 4.0,
+      "boxPresence": 3.0,
+      "restDefence": 6.0
+    },
+    "maximumAttackDuties": 6,
+    "maximumCreators": 3
+  },
   "style": "Attacking 3-4-3",
   "description": "A front-foot back-three system with wing-backs stretching the pitch and a front three occupying the back line.",
   "whyGood": "Three defenders permit aggressive wing-back positions and five-lane attacking occupation.",

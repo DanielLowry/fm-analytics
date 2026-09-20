@@ -9,6 +9,13 @@
       ],
       "positionGroup": "WBL/WBR",
       "duty": "Support",
+      "system": {
+        "width": 1.5,
+        "defensiveCover": 0.5,
+        "ballProgression": 1.0,
+        "runners": 0.8,
+        "pressing": 0.6
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 8,
@@ -139,6 +146,15 @@
       ],
       "positionGroup": "WBL/WBR",
       "duty": "Attack",
+      "system": {
+        "width": 1.8,
+        "ballProgression": 1.2,
+        "runners": 1.1,
+        "penetration": 0.7,
+        "boxPresence": 0.4,
+        "pressing": 0.6,
+        "attackDuty": 1.0
+      },
       "attributes": {
         "acceleration": {
           "effectiveWeight": 9,

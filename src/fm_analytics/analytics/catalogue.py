@@ -412,6 +412,23 @@ def load_catalogue(
     }
     if len(tactics) != len(tactics_raw):
         raise ValueError(f"catalogue {path} has duplicate tactic keys")
+    if path.is_dir():
+        # A role with no traits contributes nothing to team balance, silently
+        # dragging its tactic's score down. Hand-built test catalogues may omit
+        # traits; the shipped data may not.
+        untraited = sorted(
+            {
+                role_key
+                for tactic in tactics.values()
+                for slot in tactic.slots
+                for role_key in slot.role_keys
+                if role_key in roles and not roles[role_key].system_traits
+            }
+        )
+        if untraited:
+            raise ValueError(
+                f"roles used by tactics have no system traits: {untraited!r}"
+            )
     return FootballCatalogue(
         version=version,
         roles=roles,
@@ -511,6 +528,7 @@ def _inferred_system_requirements(
         "Positive": 5,
         "Attacking": 6,
         "Counter": 4,
+        "Cautious": 4,
     }.get(mentality, 4)
     return TacticSystemRequirements(
         minimums={

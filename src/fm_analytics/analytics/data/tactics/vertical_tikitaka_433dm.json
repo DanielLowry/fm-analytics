@@ -76,6 +76,20 @@
       ]
     }
   ],
+  "system": {
+    "minimums": {
+      "width": 3.5,
+      "defensiveCover": 5.0,
+      "ballProgression": 6.5,
+      "creativity": 2.5,
+      "runners": 5.0,
+      "penetration": 3.0,
+      "boxPresence": 2.0,
+      "restDefence": 5.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
   "style": "Vertical Tiki-Taka",
   "description": "Short combinations are used to progress quickly rather than simply retain possession, with runners attacking spaces created by circulation.",
   "whyGood": "The playmaking DM anchors build-up while the eights and front three provide vertical movement and penetration.",
