@@ -48,6 +48,11 @@ from fm_analytics.analytics.selection_explanation import (
     TacticSelectionExplanation,
     explain_tactic_selection,
 )
+from fm_analytics.analytics.position_comparison import (
+    PositionComparison,
+    PositionComparisonEntry,
+    compare_players_at_position,
+)
 from fm_analytics.analytics.bench_selection import (
     BenchEntry,
     BenchSelection,
@@ -136,6 +141,8 @@ __all__ = [
     "PlayerRoleFit",
     "PlayerRoleProfile",
     "PositionAdjustedRoleFit",
+    "PositionComparison",
+    "PositionComparisonEntry",
     "PositionDepth",
     "PlayerSelectionInput",
     "ReadinessPolicy",
@@ -202,6 +209,7 @@ __all__ = [
     "build_substitution_board",
     "build_role_matrix",
     "compare_role_scores",
+    "compare_players_at_position",
     "evaluate_tactic",
     "evaluate_tactic_with_forced_assignment",
     "explain_tactic_selection",

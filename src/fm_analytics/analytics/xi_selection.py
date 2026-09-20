@@ -10,6 +10,7 @@ from fm_analytics.analytics.catalogue import (
     TacticSlot,
 )
 from fm_analytics.analytics.role_scoring import RoleScore, ScoreBand, score_role
+from fm_analytics.analytics.selection_status import selection_unavailability_reasons
 from fm_analytics.analytics.tactical_system import (
     SystemAssessment,
     assess_coherence,
@@ -365,6 +366,7 @@ def score_player_for_slot(
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     role_key: str | None = None,
+    require_selectable: bool = True,
 ) -> SlotAssignment | None:
     """Score a legal player/slot pairing for one allowed role.
 
@@ -372,7 +374,7 @@ def score_player_for_slot(
     slot.  The joint optimiser passes every permitted role explicitly so it
     can trade a little individual quality for a materially better XI system.
     """
-    if not _is_available(player, readiness_policy):
+    if require_selectable and not _is_available(player, readiness_policy):
         return None
     if slot.position not in player.positions:
         return None
@@ -463,19 +465,7 @@ def _build_choices(
 
 
 def _is_available(player: PlayerSelectionInput, policy: ReadinessPolicy) -> bool:
-    if player.availability != "available" or player.injured is True or player.suspended is True:
-        return False
-    if (
-        player.condition_percent is not None
-        and player.condition_percent < policy.minimum_condition
-    ):
-        return False
-    if (
-        player.match_fitness_percent is not None
-        and player.match_fitness_percent < policy.minimum_match_fitness
-    ):
-        return False
-    return True
+    return not selection_unavailability_reasons(player, policy)
 
 
 def _readiness(

@@ -12,6 +12,9 @@
   intentional deferrals.
 - [Tactical-system roadmap](tactical-system-roadmap.md) tracks deliberate
   changes to the football model rather than application polish.
+- [Tactical model upgrade plan](tactical-model-upgrade-plan.md) is the
+  proposed (not yet implemented) plan for the catalogue audit, per-tactic
+  attribute weighting and opponent-aware tactic selection.
 
 ## Current operating and research references
 

@@ -16,6 +16,7 @@ from fm_analytics.analytics import (
     BenchSelection,
     PlayerRoleFit,
     PositionAdjustedRoleFit,
+    PositionComparison,
     MVP_CATALOGUE,
     FootballCatalogue,
     FamiliarityPolicy,
@@ -36,6 +37,7 @@ from fm_analytics.analytics import (
     assess_weaknesses,
     build_recruitment_briefs,
     build_role_matrix,
+    compare_players_at_position,
     best_position_adjusted_role,
     best_selection_adjusted_role,
     build_substitution_board,
@@ -119,6 +121,25 @@ def build_squad_role_matrix(
         PlayerSelectionInput.from_player(player) for player in squad.players
     )
     return build_role_matrix(selection_players, catalogue)
+
+
+def build_squad_position_comparison(
+    squad: Squad,
+    position: str,
+    *,
+    role_key: str | None = None,
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+    policy: RecommendationPolicy = RecommendationPolicy(),
+) -> PositionComparison:
+    """Compare a squad at one position using the shared recommendation policy."""
+    return compare_players_at_position(
+        tuple(PlayerSelectionInput.from_player(player) for player in squad.players),
+        position,
+        catalogue,
+        role_key=role_key,
+        readiness_policy=policy.readiness,
+        familiarity_policy=policy.familiarity,
+    )
 
 
 @dataclass(frozen=True)

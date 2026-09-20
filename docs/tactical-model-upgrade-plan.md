@@ -1,0 +1,751 @@
+# Tactical model upgrade plan
+
+Status: **proposed, not implemented.** This is the plan for four related
+changes to the tactical model, requested together:
+
+- **A** — audit the tactic list for gaps and for role choices made stale by
+  the expanded role catalogue;
+- **B** — make each tactic's instructions internally coherent, and give every
+  tactic and every slot a written justification;
+- **C** — let a tactic change how much each attribute matters, on top of the
+  existing per-role/duty weights;
+- **D** — introduce the opponent, initially as manager-set sliders on the
+  Tactics page.
+
+It extends [tactical-system-roadmap.md](tactical-system-roadmap.md) rather
+than replacing it: A/B are that document's "supporting engineering work" plus
+item 4, C is item 1b, and D is item 9. The roadmap's ordering advice — do not
+put an opponent model on top of an unvalidated player-role model — is the
+reason the sequencing below front-loads calibration.
+
+## Decisions taken
+
+Four choices were made before planning, and the plan assumes them:
+
+| Question | Decision |
+| --- | --- |
+| Catalogue size | **Large expansion to 40+ tactics**, systematic coverage of FM20 shapes and styles |
+| Opponent reach | **Re-rank tactics *and* re-pick the XI** — opponent shifts attribute emphasis, not just tactic order |
+| Per-tactic weighting | **Full per-tactic, per-role weight tables**, spreadsheet-driven like the existing role weights |
+| Tactic-free pages | **Squad, Roles and Scouting keep base weights** — a player's "best role" must not move when an opponent slider does |
+
+## 1. Diagnosis — what is actually wrong today
+
+Every claim here was measured against the current catalogue, not inferred.
+
+### 1.1 Fourteen tactics carry a structurally unsatisfiable demand
+
+`_INSTRUCTION_REQUIREMENTS` demands system-dimension totals that
+`_DEFAULT_ROLE_TRAITS` cannot supply for that tactic's permitted role
+versions. This is not "the squad falls short" — it is unreachable for *any*
+squad and *any* legal role combination, so it acts as a fixed handicap on
+those tactics that tells the manager nothing.
+
+| Tactic | Unreachable demand (best achievable → required) |
+| --- | --- |
+| `attacking_433` | pressing 1.5 → 3.5; creativity 0.8 → 1.5 |
+| `attacking_343` | pressing 1.5 → 3.5; creativity 1.4 → 1.5 |
+| `attacking_424` | pressing 0.9 → 3.0 |
+| `positive_4231` | pressing 0.8 → 3.0 |
+| `positive_433dm` | pressing 1.0 → 3.0 |
+| `positive_3421` | pressing 1.7 → 3.0 |
+| `positive_4312_narrow` | pressing 2.3 → 3.0 |
+| `control_possession_4231` | pressing 1.4 → 2.0 |
+| `gegenpress_4231` | creativity 1.4 → 1.5 |
+| `highpress_433` | creativity 0.8 → 1.5 |
+| `balanced_4141` | creativity 0.0 → 1.5 |
+| `defensive_451` | creativity 0.0 → 1.5 |
+| `defensive_532` | creativity 0.9 → 1.5; runners 1.6 → 2.0; penetration 0.0 → 1.5 |
+| `lowblock_442` | creativity 0.9 → 1.5; runners 0.0 → 2.0; penetration 0.0 → 1.5 |
+
+The `pressing` dimension is the clearest failure. Only 12 of 65 roles carry
+any pressing trait at all, the largest is 1.5 (`bwm_*_support`), and **no
+forward, centre-back or attacking full-back carries one**. An eleven
+therefore cannot reach 3.0, let alone the 3.5 that "Much Higher Line of
+Engagement" asks for. The supply table and the demand table were written
+against different implicit scales and have never been reconciled.
+
+The practical effect: the model systematically marks down pressing and
+low-block systems for reasons that have nothing to do with the manager's
+players.
+
+### 1.2 Ten instructions in use are unscored
+
+`_INSTRUCTION_REQUIREMENTS` has no entry for these, so
+`assess_instruction_suitability` silently skips them:
+
+`Pass Into Space` (6 tactics), `Lower Line of Engagement` (3),
+`Hit Early Crosses` (2), `Overlap Left` (2), `Overlap Right` (2),
+`Hold Shape` (2), `More Direct Passing`, `Much More Direct Passing`,
+`Slightly Shorter Passing`, `Prevent Short GK Distribution`.
+
+This is worse than a gap, because it is not neutral. `route_one_442` and
+`wing_play_442` both score **100.0 / 100.0** — a flawless rating earned by
+having three of their defining instructions go unmeasured. Route One's
+entire identity (`Much More Direct Passing`, `Hit Early Crosses`) is
+invisible to scoring. A tactic is rewarded for being unmodelled.
+
+### 1.3 No tactic declares its own balance requirements
+
+Not one of the 25 tactics supplies a `system` block, so every one falls
+through to `_inferred_system_requirements`. A low-block 5-3-2 and a
+gegenpress 4-2-3-1 are held to the *same* `defensiveCover 3.0`,
+`ballProgression 2.0`, `restDefence 3.0` thresholds. The only tactic-specific
+inputs are a width minimum (2.0 if any wide slot exists, else 1.5) and an
+attack-duty cap keyed on mentality — and that cap's lookup table has no
+`Cautious` entry, so the three Cautious tactics silently get the Balanced
+limit of 4.
+
+"Team balance" is therefore close to a constant across the catalogue. This is
+the single most naive part of the current model.
+
+### 1.4 Half the role catalogue is unreachable, and would misbehave if used
+
+**32 of 65 roles are named by no tactic**: every Pressing Forward
+(`pf_defend/support/attack`), False Nine, Trequartista (all three
+positions), Enganche, Raumdeuter, both Inverted Wingers, both Wide Target
+Men, all Complete and Inverted Wing-Backs, `fb_defend`, `fb_attack`,
+`wb_dl_dr_defend`, `nnfb_defend`, `dlf_attack`, `cf_attack`, `tm_support`,
+`am_attack`, `if_support`, and the AML/AMR and MC Advanced Playmakers.
+
+Worse, **30 of 65 roles have no `_DEFAULT_ROLE_TRAITS` entry and no `system`
+block in `catalogue.json`**, so `role_traits()` returns `{}` for them. Using
+one today would contribute *nothing* to team balance and quietly depress the
+coherence score. The trap is already documented in the roadmap's item 1b;
+nothing enforces it.
+
+This directly causes a football error in the tactics that do exist: both
+gegenpress systems (`highpress_433`, `gegenpress_4231`) demand urgent
+pressing while fielding a Target Man or Advanced Forward with a pressing
+trait of exactly zero — when three Pressing Forward roles sit unused in the
+catalogue.
+
+### 1.5 Exclusion groups cannot express "at most one in the XI"
+
+`RoleExclusionGroup` requires a `position`, so it can only say "at most one
+Cover centre-back among DC slots". It cannot say "at most one Trequartista
+anywhere in the eleven" — a rule that matters as soon as Trequartista,
+Enganche and Raumdeuter (all near-zero defensive contribution) become
+selectable at three different positions.
+
+### 1.6 The data layout is already failing
+
+Five separate symptoms, all of the same cause — config that grew by
+accretion:
+
+- **Seven superseded weight files are still in the tree** (`role_weights_v2`
+  … `v7`), none loaded by anything.
+- **Filename and declared version have drifted.** The loaded file is
+  `role_weights_v8.json`; it declares `"version": "role_weights_v5.5"`. They
+  matched through v4 and have diverged ever since, so neither name is now a
+  reliable identifier.
+- **A built wheel ships the wrong data.** `pyproject.toml`'s `force-include`
+  enumerates `role_weights_v2.json`, but `role_weights.py` loads `v8`. A
+  non-editable install would be missing the file the code actually reads;
+  this is invisible locally only because the working install is editable.
+- **The CSV and its generator are dead.** `fm20_role_attribute_weights_v2.csv`
+  is referenced only by `tools/csv_to_role_weights.py`, which its own
+  docstring marks stale, which targets `role_weights_v2.json`, and which has
+  no test coverage. Nothing in the loading path touches either.
+- **Every role is defined in two files that must agree.** Identity,
+  positions and required/desirable live in `catalogue.json`; attribute
+  weights live in `role_weights_v8.json`. `_attributes_from_weights` raises
+  when they disagree — a guard that exists precisely because they have
+  disagreed before (the `wb_support` position split). Meanwhile
+  `required`/`desirable` are *mandatory* fields in the role schema and dead
+  in production: they are read only on the no-weight-catalogue fallback path
+  that real data never takes.
+
+Addressed in §2, and sequenced first — the migration is far cheaper at 25
+tactics than at 45.
+
+### 1.7 Cost baseline
+
+Measured on synthetic squads, full effective+potential search:
+
+| Catalogue | 30 players |
+| --- | --- |
+| 25 tactics (today) | 1.6 s |
+| 45 tactics | 2.8 s |
+| 60 tactics | 3.9 s |
+
+Split roughly 40% role scoring / 60% assignment solving. At 45 tactics a
+cold Tactics page is ~3 s, and an opponent slider that recomputes makes that
+an interaction cost rather than a once-per-load cost. Addressed in §6.
+
+## 2. Data layout and maintenance
+
+The diagnosis in §1.6 is the argument for doing this **first**, before the
+catalogue grows. Splitting 25 tactics is a mechanical afternoon; splitting 45
+tactics that have each just acquired a `system` block, per-slot
+justifications and weight overrides is a merge-conflict festival.
+
+### 2.1 Target layout
+
+```
+src/fm_analytics/analytics/data/
+  catalogue.json          version, exclusiveRoleGroups, tacticResearchNotes
+  roles/
+    gk.json      dc.json     dl_dr.json   wbl_wbr.json   dm.json
+    mc.json      ml_mr.json  amc.json     aml_amr.json   st.json
+  tactics/
+    balanced_442.json
+    gegenpress_4231.json
+    ...                   one file per tactic
+```
+
+`catalogue.json` shrinks to the things that are genuinely global: the version
+string, the exclusion groups (which span roles by definition) and the
+research notes.
+
+### 2.2 Roles: split by position, and merge in the weights
+
+Ten position files, following the `positionGroup` field the weights data
+*already* carries — so the split is read out of the data, not invented.
+Current distribution: ST 13, AML/AMR 12, DL/DR 12, AMC 7, MC 7, DM 4, DC 3,
+ML/MR 3, GK 2, WBL/WBR 2.
+
+This matches how the data is actually edited. You tune all the strikers in
+one sitting; today that means paging through a 237 KB file holding all 65
+roles, and every such session collides with every other in git history.
+
+**A role's weights move into its role file.** Today a role is defined across
+two documents that must agree, guarded by a load-time error that exists
+because they have disagreed before (§1.6). Merging them deletes that entire
+failure class: one role, one place, identity and system traits and attribute
+weights together.
+
+```jsonc
+// roles/st.json
+{ "roles": [
+  { "key": "pf_attack",
+    "name": "Pressing Forward (Attack)",
+    "positions": ["ST"],
+    "system": { "pressing": 2.2, "runners": 1.2, "penetration": 1.0,
+                "boxPresence": 0.8, "attackDuty": 1.0 },
+    "attributes": {
+      "workRate":     { "effectiveWeight": 9, "dutyModifier": 0, ... },
+      "acceleration": { "effectiveWeight": 8, "dutyModifier": 0, ... }
+    } } ] }
+```
+
+While doing this, make `required`/`desirable` **optional**. They are
+mandatory today and dead in production — read only on the
+no-weight-catalogue fallback that real data never takes. Keep the fallback
+for hand-built test catalogues; stop demanding the fields from real ones.
+
+### 2.3 Tactics: one file per tactic, holding everything
+
+Yes — and the case gets stronger under this plan. A tactic entry averages 94
+lines today. After its `system` block, per-slot `why`, `whenToUse`,
+`whenNotToUse` and `instructionRationale` (§4.2) it is realistically 200+.
+At 45 tactics that is a ~10,000-line single file. One file per tactic makes
+adding a tactic a new file rather than a conflict, and makes the diff for
+"I retuned the gegenpress" show exactly that.
+
+**And yes — the weight overrides belong in it too.** With the CSV retired
+(§2.6) there is no generated-vs-hand-authored split to keep apart, and the
+argument for cohesion wins outright: the decision "this system needs more
+stamina from its wide slots" belongs next to the slot it applies to. One
+file is the whole tactic; deleting a tactic deletes one file; a weight
+override cannot reference a role the tactic does not field.
+
+```jsonc
+// tactics/gegenpress_4231.json
+{
+  "key": "gegenpress_4231",
+  "name": "Gegenpress 4-2-3-1",
+  "formation": "4-2-3-1 DM AM Wide",
+  "mentality": "Positive",
+  "instructions": ["Counter-Press", "Much More Urgent Pressing", ...],
+  "instructionRationale": {
+    "Counter-Press": "The 4-2-3-1's front four already screen the ball side; ..."
+  },
+  "system": { "minimums": { "pressing": 6.0, "restDefence": 4.0, ... },
+              "maximumAttackDuties": 5, "maximumCreators": 3 },
+
+  "weights": { "stamina": 8, "workRate": 8, "aggression": 6 },
+
+  "slots": [
+    { "key": "STC", "position": "ST",
+      "role": "pf_attack", "roles": ["af_attack"],
+      "why": "The press starts here; an Advanced Forward would leave the ...",
+      "weights": { "workRate": 9, "aggression": 8 } }
+  ],
+
+  "whyThisShape": "...", "whenToUse": "...", "whenNotToUse": "...",
+  "style": "...", "description": "...", "whyGood": "...",
+  "keyRequirements": [...], "tags": [...]
+}
+```
+
+### 2.4 Override semantics — three layers, absolute values
+
+1. **Base** — the role's weights in its position file.
+2. **Tactic `weights`** — applies to every slot in this tactic. Stops "this
+   gegenpress wants stamina everywhere" from being copy-pasted eleven times.
+3. **Slot `weights`** — applies to that slot only, and wins.
+
+Slot-level is deliberately more precise than the tactic-plus-role table
+originally proposed: it is strictly more expressive, because the same role
+can fill two slots with different demands (the left and right wing-backs of
+an asymmetric system). Where a slot has alternates that need *different*
+emphasis, key the block by role: `"weights": { "pf_attack": {...} }`.
+
+Values are **absolute `effectiveWeight` on the existing 0–10 scale**, not
+multipliers or deltas. Reasons, in order:
+
+- You review the final number, not an expression that produces it.
+- A multiplier cannot introduce an attribute the base role scores 0 — a
+  high-press tactic could never add stamina to a role that ignores it,
+  which is exactly the case this feature exists for.
+- Deltas need clamping rules at both ends, and a delta whose base moved is
+  silently wrong in a way an absolute value is not.
+
+Only `effectiveWeight` is overridable, so an override is a plain number
+rather than the eight-field object the base carries. Add a load-time lint:
+an override equal to its base is a no-op and should warn, not pass quietly.
+
+### 2.5 What the split costs, and the fix
+
+Losing the single weights table makes cross-cutting review harder: "which
+tactics emphasise stamina, and how much?" becomes a grep across 45 files.
+
+Do not solve this by keeping a second copy. **Derive the view**:
+`tools/tactic_weight_report.py` renders the cross-tactic matrix on demand
+from the per-tactic files. A derived table cannot drift from its source; a
+stored one can, and §1.6 is what that looks like.
+
+### 2.6 Retirements
+
+- **Delete `fm20_role_attribute_weights_v2.csv` and
+  `tools/csv_to_role_weights.py`.** Dead, stale by their own admission, no
+  tests, and targeting a file the loader abandoned six revisions ago. JSON
+  becomes the source of truth outright — which also means the tactic-weight
+  CSV pipeline proposed earlier in this plan is dropped (§6.2).
+- **Delete `role_weights_v2` … `v7`.** Git holds history; the tree should
+  hold current state.
+
+### 2.7 Stop versioning in filenames
+
+One `version` in `catalogue.json`, injected into every role and tactic by
+the loader exactly as it is today. Paths become stable: `roles/st.json`, not
+`roles/st_v9.json`.
+
+The current scheme has already failed — the file named `v8` declares
+`v5.5`, and the two have disagreed since v5. A version in a filename means
+every revision forks a new file, `_DATA_PATH` must be edited to match, the
+old file lingers, and git — which is the real version record — is bypassed.
+
+### 2.8 Loader and packaging
+
+- `load_catalogue(path)` accepts **either** a directory (production) **or** a
+  single JSON document. The single-document path is not legacy baggage:
+  `tests/test_catalogue.py` builds minimal in-line catalogues to test
+  validation, and those tests should keep working unchanged.
+- Files are discovered by **sorted glob**, so ordering is deterministic. Add
+  a test asserting each file's `key` matches its filename and that the
+  loaded counts are as expected, so a stray, duplicated or mis-named file
+  fails loudly rather than being silently absorbed.
+- **Delete the `force-include` block in `pyproject.toml`.** Enumerating data
+  files was already wrong (§1.6) and is untenable at ~55 files; hatchling's
+  `packages = ["src/fm_analytics"]` includes them. Add a CI step that builds
+  a wheel, installs it into a clean environment and imports
+  `fm_analytics.analytics.catalogue` — the check that would have caught the
+  current bug.
+
+### 2.9 Do the migration mechanically
+
+Write a one-off `tools/split_catalogue_data.py` that performs the split from
+the current files, and assert the result is **lossless**: load the catalogue
+before and after and compare the resulting `FootballCatalogue` objects for
+equality. A reshuffle of every scoring input should be proven by comparison,
+not reviewed by eye. Delete the tool once merged.
+
+## 3. Workstream A — the catalogue
+
+### A1. Give all 65 roles system traits
+
+Move `_DEFAULT_ROLE_TRAITS` out of `tactical_system.py` and into
+`catalogue.json` as the per-role `system` block the loader already supports
+(`_role_from_json` reads `raw.get("system")`; nothing uses it yet). Author
+traits for all 65 roles in the same pass, using the existing 35 as the
+calibration reference.
+
+Add a catalogue-load invariant: **a role named by any tactic slot must have
+a non-empty trait map.** This converts §1.4's silent failure into a load
+error, and is the guard rail that makes the expansion in A3 safe.
+
+Keep `_DEFAULT_ROLE_TRAITS` as a fallback for one release so tests that
+construct catalogues by hand keep working, then delete it.
+
+### A2. Recalibrate the trait and requirement scales together
+
+Do this *before* any new tactic is authored, or the new ones inherit the same
+mis-scaling. Two halves, and they must move together:
+
+- **Supply.** Every role gets a `pressing` value consistent with how that
+  role actually presses — Pressing Forwards high, Advanced Forward low but
+  non-zero, attacking full-backs and wing-backs non-zero, centre-backs small
+  but real in a high line. Likewise `creativity`, which today only five roles
+  supply at ≥ 1.2, making several tactics' creativity demands unreachable.
+- **Demand.** Restate `_INSTRUCTION_REQUIREMENTS` on a scale an eleven can
+  actually reach.
+
+Acceptance: **no tactic in the catalogue may carry an unsatisfiable demand.**
+Encode this as a test that reproduces §1.1's search over permitted role
+versions and fails on any dimension where the maximum achievable total is
+below the requirement. That test is the regression guard for every later
+change.
+
+### A3. Model the ten missing instructions
+
+Add entries for all ten in §1.2. Notes on the interesting ones:
+
+- `Hit Early Crosses` → `width` and `aerialOutlet`, and a **box-presence
+  requirement**: crossing into nobody is the failure mode to catch.
+- `Overlap Left`/`Overlap Right` → `width`, plus a `restDefence` cost, since
+  overlapping full-backs are exactly the trade-off the manager is making.
+- `Hold Shape` → `restDefence` and `defensiveCover`; it is the counterpart to
+  `Counter-Press` and should not be free.
+- `Pass Into Space` → `runners` and `penetration`; it appears in 6 tactics
+  and is currently the largest single blind spot.
+- `Prevent Short GK Distribution` → `pressing`, on the recalibrated scale.
+
+Add a test asserting **every instruction string used by any tactic has a
+requirements entry**, so the failure mode in §1.2 cannot recur silently.
+
+### A4. Per-tactic system requirements
+
+Author an explicit `system` block for every tactic, replacing
+`_inferred_system_requirements` as the normal path. A low block should demand
+high `defensiveCover`/`restDefence` and little `width`; a gegenpress should
+demand `pressing` and `restDefence` and tolerate low `defensiveCover`.
+
+Keep the inferred function as the fallback for catalogues that omit the
+block (tests rely on it), but add the missing `Cautious` mentality entry to
+its attack-duty table either way.
+
+### A5. Extend exclusion groups to the whole XI
+
+Make `RoleExclusionGroup.position` optional. When absent, the group counts
+across all eleven slots. New groups to add:
+
+- **Free roles** — at most one of `treq_st_attack`, `treq_amc_attack`,
+  `treq_aml_amr_attack`, `eng_support`, `raum_attack` in the XI.
+- **Cover centre-back** — as today, extended to any new Cover/Stopper role.
+- **Inverted wing-backs** — at most one `iwb_*` alongside a defensive-minded
+  DM, since both occupy the same space.
+
+### A6. Expand to 40+ tactics
+
+Fix the existing 25 first (§3), then add shapes and styles that are genuinely
+distinct rather than re-skins. Candidates, chosen to exercise the unused
+roles:
+
+| Shape / style | Roles it unlocks |
+| --- | --- |
+| 4-2-3-1 Narrow (AMC × 3) | `ap_amc_support`, `am_attack`, `eng_support` |
+| 4-4-2 Diamond (MC, no DM) | `ap_mc_attack`, `mez_attack` at MC |
+| 4-3-3 False Nine | `f9_support`, `iw_attack` |
+| Inverted build-up 4-3-3 | `iwb_dl_dr_defend/support/attack` |
+| 5-4-1 / 5-2-3 | `nnfb_defend`, `wtm_support/attack` |
+| 4-2-2-2 narrow box | `ss_attack`, `pf_support` |
+| Gegenpress 4-3-3 with Pressing Forward | `pf_attack`, `pf_defend` |
+| 3-1-4-2 | `cwb_dl_dr_support/attack` |
+| Trequartista 4-3-1-2 | `treq_amc_attack` |
+| Wide-overload 4-2-3-1 | `ap_aml_amr_support/attack`, `raum_attack` |
+
+Two guard rails for an expansion this size:
+
+- A **near-duplicate detector** test: no two tactics may share a formation
+  *and* have role sets differing by fewer than N slots *and* have
+  instruction sets differing by fewer than M entries. `tests/test_catalogue.py`
+  already asserts "materially different complete tactics"; this makes that
+  claim enforceable at 40+ rather than aspirational.
+- Every new tactic must ship its justification text (§3) and its `system`
+  block in the same commit. No tactic lands without them.
+
+## 4. Workstream B — coherence and justifications
+
+### B1. Fix the tactics whose football is wrong
+
+Beyond the scale problems in §1.1, these are judgement calls to make
+explicitly, each as its own reviewable commit (per `analytics/CLAUDE.md`, a
+trait or weight change is a football hypothesis, not a bugfix):
+
+- **`highpress_433`** fields `tm_attack` (Target Man) as the lone striker
+  under `Much More Urgent Pressing` and `Shorter Passing`. Should be
+  `pf_attack`, with Target Man at most an alternate.
+- **`gegenpress_4231`** fields `af_attack`/`p_attack`, neither of which
+  presses. Pressing Forward should be the default or an explicit alternate.
+- **`counter_352_wingback`** pairs `Counter` with `Lower Tempo` *and*
+  `Narrower` while fielding two wing-backs — three instructions pulling
+  against each other and against the shape.
+- **`possession_4141`** and **`vertical_tikitaka_433dm`** use asymmetric
+  wide roles (`wm_support` one side, `winger_*` the other; `wb_*` one side,
+  `fb_support` the other) with nothing in the catalogue explaining why.
+  Either justify the asymmetry or make it symmetric.
+- **Slot alternates** should be re-reviewed now that 32 more roles exist,
+  using the trait-distance method in `analytics/CLAUDE.md` — *not* by name
+  similarity. Only three alternate pairs exist today; several more are
+  probably justified (e.g. `pf_attack`/`af_attack` in a pressing system),
+  and some currently-pinned slots may deserve opening.
+
+### B2. Justification data
+
+Tactics already carry `style`, `description`, `whyGood`, `keyRequirements`
+and `tags`, rendered by `rendering._tactic_notes`. Extend the schema with:
+
+- `whyThisShape` — what the formation does structurally (where the numerical
+  overloads are, which spaces it concedes).
+- `whenToUse` / `whenNotToUse` — the manager-facing selection guidance.
+- Per-slot `why` — one line per slot explaining why *that* role is in *that*
+  tactic. This is the piece most obviously missing today: the Tactics page
+  can tell you a Mezzala was picked, not why this system wants one.
+- `instructionRationale` — a line per instruction tying it to the shape.
+
+All of it is manager-facing commentary, not scoring input, so it stays
+optional and older entries keep loading unchanged — the existing
+`_tactic_notes` contract.
+
+### B3. Surfacing
+
+- Tactic detail page: `whyThisShape` and `whenToUse` near the top; per-slot
+  `why` in the XI table next to each role.
+- Tactics overview: `whenToUse` as a one-line hint per row.
+- Where a shortfall is reported, name the instruction or requirement that
+  caused it and the role that would fix it, rather than the raw
+  `dimension x.x/y.y` string `_tactical_shortfalls` prints today.
+
+## 5. Workstream C — per-tactic, per-role attribute weights
+
+### C1. Data model
+
+Defined in §2.3 and §2.4: the overrides live inside each tactic's own file,
+as a tactic-wide `weights` block plus per-slot `weights` blocks, carrying
+absolute `effectiveWeight` values that layer over the role's base weights.
+
+**Sparse throughout.** An absent tactic, slot or attribute inherits. A
+tactic with no `weights` anywhere scores exactly as it does today — which is
+both the migration path and a test assertion.
+
+### C2. Authoring
+
+JSON is the source of truth; there is no CSV and no generator (§2.6). What
+remains to settle is volume.
+
+Dense authoring would be 45 tactics × 11 slots × 38 attributes ≈ 18,800
+cells, which nobody is going to maintain. The three-layer model in §2.4 is
+what makes it tractable: most emphasis is tactic-wide (one block of 3–6
+attributes covering all eleven slots), and slot-level overrides are reserved
+for the handful of slots where the tactic asks something unusual of that
+specific job. A realistic tactic carries one `weights` block and two or
+three slot overrides — call it 10–20 numbers, not 400.
+
+Still worth deciding before the work starts: **do you want a generated first
+draft?** I can seed each tactic's `weights` block from its instructions and
+mentality (a gegenpress raising stamina/workRate/aggression; a high
+defensive line raising pace/acceleration for the back four), which you then
+own and edit as ordinary JSON. The stored data is per-tactic either way; the
+seed only avoids starting from a blank file 45 times. The alternative is
+starting empty and filling tactic by tactic as you review each one — slower,
+but every number in the tree is then one you chose deliberately, which given
+that these are football judgements has real merit.
+
+### C3. Plumbing — the derived-catalogue approach
+
+The minimal-diff mechanism, which also serves workstream D:
+
+```python
+catalogue.for_context(tactic_key, opponent_profile) -> FootballCatalogue
+```
+
+Returns a catalogue whose `roles` carry re-weighted `attributes` but
+**identical keys, positions and version**. That invariant is what makes it
+cheap: `_system_fit`'s `catalogue.roles[...]` lookup, `role_keys_for_slot`,
+the exclusion groups and the `role.catalogue_version == self.version` check
+all keep working untouched, and every function already taking
+`(catalogue, tactic)` works with no signature change.
+
+Built lazily and memoised. Applies to the tactic-specific consumers —
+`xi_selection`, `bench_selection`, `substitution_board`, `squad_depth`,
+`weaknesses`, `selection_explanation` — and **not** to `role_matrix`,
+`position_comparison` or `scouting`, per the decision to keep tactic-free
+pages on base weights.
+
+### C4. What this changes about the numbers
+
+Weights are normalised by the role's total, so a score stays "% of the ideal
+player for this job". Emphasising stamina raises the denominator too; scores
+do not inflate. But the meaning shifts from *"% of the ideal Mezzala"* to
+*"% of the ideal Mezzala in this system"*, and cross-tactic comparison
+becomes a comparison of two differently-defined ideals. That is the right
+model, and it must be said in the UI rather than left for the manager to
+infer.
+
+The tactic detail page's attribute contributions become tactic-specific;
+label them so, and show base vs emphasised weight where they differ.
+
+## 6. Workstream D — the opponent
+
+### D1. Profile
+
+`src/fm_analytics/analytics/opponent.py`, holding a frozen `OpponentProfile`
+of six axes, each an integer −2…+2 defaulting to 0:
+
+| Axis | −2 | +2 |
+| --- | --- | --- |
+| `quality` | much weaker | much stronger |
+| `defensive_line` | deep block | high line |
+| `pressing` | passive | heavy press |
+| `attacking_width` | central threat | wide threat |
+| `aerial_threat` | negligible | dominant |
+| `pace_in_behind` | slow | very fast |
+
+Six is a judgement call: enough to describe the scouting report you actually
+get, few enough to set in seconds before a match. `OpponentProfile.neutral()`
+is all zeros.
+
+### D2. Declared effects
+
+`OPPONENT_AXES` as reviewable data in the same spirit as
+`_INSTRUCTION_REQUIREMENTS` — each axis declares, per step:
+
+- **`system_demands`** — deltas to the tactic's balance minimums. Their pace
+  in behind raises the `defensiveCover` a tactic must supply; their deep
+  block raises `creativity` and `boxPresence` and lowers the value of
+  `runners`.
+- **`attribute_emphasis`** — multipliers scoped to a position group. Aerial
+  threat raises `heading`/`jumpingReach`/`strength` for DC and GK; pace in
+  behind raises `pace`/`acceleration` for the back line; their heavy press
+  raises `composure`/`firstTouch`/`passing` for defence and midfield. **This
+  is what makes the XI change, not just the ranking** — it is the same
+  emphasis mechanism as C3, sourced from the opponent instead of the tactic,
+  and composed with it.
+- **`tag_affinity`** — small score deltas against tactic tags and mentality.
+  A deep block penalises `counter`-tagged tactics and rewards `wing-play`
+  and `crossing`; a stronger opponent rewards `Cautious`/`Defensive`.
+
+### D3. Scoring
+
+`assess_opponent_fit(tactic, roles, profile) -> SystemAssessment`, reusing
+the existing type and the `active` convention. `SystemFitPolicy` gains
+`opponent_weight` (proposed 0.20); `_system_fit` already excludes inactive
+components, so **a neutral profile leaves every number byte-identical to
+today**. That is a test, not an aspiration.
+
+Reported as its own component alongside coherence and instruction fit, per
+roadmap item 9's requirement that it never be folded into a global "best
+tactic" number.
+
+### D4. Plumbing and parity
+
+`RecommendationPolicy` gains `opponent: OpponentProfile = neutral()`.
+`build_recommendation_bundle`'s signature is unchanged, so the one-path rule
+in `CLAUDE.md` holds automatically: the CLI gets `--opponent-<axis>` flags
+and the web gets sliders, both feeding the same policy into the same
+computation.
+
+`SquadWebServer.bundle()` currently takes no arguments and caches on time
+alone. It becomes keyed on the opponent profile, backed by a small LRU rather
+than a single slot, so flicking a slider back and forth is free.
+`_tactic_report_cache` already keys on `id(bundle)` and needs no change.
+
+### D5. UI
+
+Sliders on `/tactics` as a plain GET form (`?opp_aerial=1&opp_line=-2&…`):
+the page stays read-only, bookmarkable, shareable, and works without JS.
+
+The feature that makes it worth having is a **delta view** — for each tactic,
+its rank and score against this opponent versus neutral, so the page answers
+"what changes about my thinking against a deep block" rather than just
+re-sorting silently. Plus a short "because" line naming the axis that moved
+it, and a reset-to-neutral control.
+
+Confidence framing matters: this is the manager's own estimate of the
+opponent, so the page should say so plainly and not present the opponent-fit
+component with the same authority as squad fit.
+
+### D6. Towards automation
+
+The eventual goal is deriving the profile from the opposition squad. The
+manager-visible boundary applies unchanged: the profile may be computed from
+scouted attributes and visible ranges, **never** from opponent Current or
+Potential Ability. Keeping `OpponentProfile` as the single interface means
+the automatic version substitutes for the sliders without touching scoring.
+
+## 7. Cross-cutting
+
+### 7.1 Performance
+
+At 45 tactics a bundle is ~2.8 s (§1.7), and the slider turns that into an
+interaction cost. Three mitigations, in order of value:
+
+1. **Memoise role scores** on `(derived-role identity, player id)`. Role
+   scoring is ~40% of the time and is repeated per tactic today even though
+   most tactics share most role definitions. Per-tactic weights reduce but do
+   not eliminate the sharing — key the memo on the derived role's identity,
+   never on the tactic, or the win disappears.
+2. **LRU the bundle by opponent profile**, so revisiting a setting is free.
+3. **Consider pinning the *potential* pass to a neutral opponent.** The
+   effective/potential double-run doubles cost; training targets are a
+   squad-development question, not an opponent question. Worth deciding
+   explicitly rather than paying for it by default.
+
+Re-benchmark after each workstream. Per `CLAUDE.md`, measure the full bundle
+against the real catalogue on a synthetic squad, not the three-player
+fixture.
+
+### 7.2 Tests
+
+New invariants, each guarding a failure this plan found:
+
+- No tactic carries an unsatisfiable system demand (§A2) — the key one.
+- Every instruction used by a tactic has a requirements entry (§A3).
+- Every role named by a tactic slot has non-empty system traits (§A1).
+- A neutral opponent reproduces today's scores exactly (§D3).
+- A tactic with no weight override scores identically to base weights (§C1).
+- Opponent monotonicity: raising an axis never lowers the emphasis it is
+  supposed to raise.
+- Near-duplicate detection across the expanded catalogue (§A6).
+- Existing CLI/web parity coverage extended to carry an opponent profile.
+
+### 7.3 Documentation
+
+Update `analytics/CLAUDE.md` (traits move to catalogue data; the derived-
+catalogue mechanism; the exclusion-group extension), mark roadmap items 1b,
+4 and 9 as in progress, and link this plan from `docs/README.md`.
+
+## 8. Sequencing
+
+Ordered so that nothing is tuned on top of a known-broken baseline.
+
+| Phase | Work | Why here |
+| --- | --- | --- |
+| **0** | **§2 data layout migration and retirements** | **Cheapest now: 25 small tactics, not 45 large ones. Also fixes the wheel-packaging bug before anyone installs one.** |
+| 1 | A1 traits for all 65 roles, A2 scale recalibration, A3 missing instructions | Fixes §1.1–1.2. Everything downstream is measured against this. Do not skip ahead. |
+| 2 | A4 per-tactic system requirements, A5 exclusion groups, B1 fix the existing 25 | Makes the current 25 correct before multiplying them. |
+| 3 | A6 expand to 40+, with B2 justifications authored alongside | Now safe: the load-time invariants from phase 1 catch a mis-authored tactic. |
+| 4 | B3 surface justifications and better shortfall explanations | The manager can now read why, which is also how you review phases 1–3. |
+| 5 | C1–C4 per-tactic per-role weights | Needs a correct system model and a settled tactic list. |
+| 6 | D1–D5 opponent model and slider | Reuses C3's emphasis mechanism; last per the roadmap's ordering advice. |
+| 7 | 7.1 performance pass and re-benchmark | After the catalogue and scoring have stopped moving. |
+
+Phase 0 is a pure refactor and should land on its own, proven lossless by the equality check in §2.9 — no football judgement changes in that commit.
+
+Phases 1 and 2 are worth reviewing together before phase 3 begins: they
+change every existing score, and the whole point is that you can see and
+disagree with the football judgements.
+
+## 9. Out of scope
+
+- Automatic opponent profiling from the opposition squad (§D6 is the
+  interface for it, not the implementation).
+- Roadmap items 2 and 3 — nonlinear contributions and soft core-attribute
+  floors. The data already exists in the role weights and is inert.
+  They interact with workstream C and should follow it, not accompany it.
+- Reconciling the two recruitment paths (`analytics/recruitment.py` vs
+  `analytics/scouting.py`). Untouched here, and this plan deliberately keeps
+  tactic emphasis out of both so it does not deepen that split.
+- Whole-tactic familiarity (roadmap item 8).

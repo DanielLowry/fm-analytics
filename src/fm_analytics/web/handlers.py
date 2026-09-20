@@ -17,6 +17,7 @@ from fm_analytics.domain import Squad
 from fm_analytics.reporting import (
     RecommendationBundle,
     build_player_role_scores,
+    build_squad_position_comparison,
     build_squad_role_matrix,
     has_complete_role_attributes,
     required_role_attributes,
@@ -34,6 +35,7 @@ from fm_analytics.web.rendering import (
     _error_page,
     _injury_risk_count,
     _layout,
+    _options,
     _query_first,
     _pool_not_built_page,
     role_score_cells,
@@ -153,6 +155,15 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
                     "see the Data page for exactly what is missing."
                 )
             role_matrix = build_squad_role_matrix(squad)
+            position = _query_first(_query, "position")
+            role_key = _query_first(_query, "role")
+            if role_key and not position:
+                raise ValueError("choose a position before choosing a role")
+            comparison = (
+                build_squad_position_comparison(squad, position, role_key=role_key)
+                if position
+                else None
+            )
         except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
             self._send(_error_page("Squad", str(exc), path), HTTPStatus.SERVICE_UNAVAILABLE)
             return
@@ -169,8 +180,18 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
                 f"{role_score_cells(scores)}"
                 "</tr>"
             )
+        positions = tuple(sorted({position for role in MVP_CATALOGUE.roles.values() for position in role.eligible_positions}))
+        role_options = (
+            tuple((key, MVP_CATALOGUE.roles[key].name) for key in comparison.available_role_keys)
+            if comparison is not None
+            else ()
+        )
+        comparison_body = self._position_comparison_section(
+            comparison, position, role_key, positions, role_options
+        )
         body = (
-            "<h2>Roster</h2>"
+            comparison_body
+            + "<h2>Roster overview</h2>"
             "<p class='muted'><b>Attribute-based role score</b> uses attributes and role fit only. "
             "<b>In-position role score</b> also applies positional familiarity. "
             "<b>Today’s selection score</b> then applies match readiness, using the same calculation as Tactics. "
@@ -187,6 +208,66 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             + _SORTABLE_TABLE_SCRIPT
         )
         self._send(_layout("Squad", path, body))
+
+    @staticmethod
+    def _position_comparison_section(
+        comparison, position: str | None, role_key: str | None,
+        positions: tuple[str, ...], role_options: tuple[tuple[str, str], ...],
+    ) -> str:
+        form = (
+            "<h2>Compare a position</h2>"
+            "<p class='muted'>Choose a position to compare like-for-like. Pinning a role is optional; "
+            "otherwise each player is shown in their best compatible role there.</p>"
+            "<form class='filters' method='get' action='/squad'>"
+            "<label>Position<select name='position'>"
+            + _options(((item, item) for item in positions), position, "Choose a position")
+            + "</select></label><label>Role (optional)<select name='role'>"
+            + _options(role_options, role_key, "Best role at this position")
+            + "</select></label><button type='submit'>Compare</button></form>"
+        )
+        if comparison is None:
+            return form
+        role_description = (
+            html.escape(comparison.requested_role_name)
+            if comparison.requested_role_name
+            else f"best compatible role at {html.escape(comparison.position)}"
+        )
+        rows = []
+        for rank, entry in enumerate(comparison.entries, start=1):
+            assignment = entry.assignment
+            familiarity = (
+                f"{entry.familiarity_rating}/20 (×{assignment.familiarity_multiplier:.3f})"
+                if entry.familiarity_known
+                else f"unknown (assumed {entry.familiarity_rating}/20; ×{assignment.familiarity_multiplier:.3f})"
+            )
+            if entry.selectable_today:
+                today = _band(assignment.selection_score)
+                status = "Selectable"
+            else:
+                today = "<span class='warn'>Not selectable</span>"
+                status = html.escape("; ".join(entry.unavailability_reasons))
+            rows.append(
+                "<tr>"
+                f"<td>{rank}</td><td><a href='/squad/player/{quote(entry.player_id)}'>{html.escape(entry.player_name)}</a></td>"
+                f"<td>{html.escape(assignment.intrinsic_role_score.role_name)}</td>"
+                f"<td>{familiarity}</td>"
+                f"<td data-sort='{assignment.intrinsic_role_score.score.central:.4f}'>{_band(assignment.intrinsic_role_score.score)}</td>"
+                f"<td data-sort='{assignment.in_position_score.central:.4f}'><b>{_band(assignment.in_position_score)}</b></td>"
+                f"<td>{entry.condition_percent if entry.condition_percent is not None else '?'}%</td>"
+                f"<td>{entry.match_fitness_percent if entry.match_fitness_percent is not None else '?'}%</td>"
+                f"<td data-sort='{assignment.selection_score.central:.4f}'>{today}</td><td>{status}</td></tr>"
+            )
+        return (
+            form
+            + f"<h2>{html.escape(comparison.position)} comparison</h2>"
+            + f"<p class='muted'>Role: {role_description}. {len(comparison.entries)} players are captured as eligible for "
+            + f"{html.escape(comparison.position)}; {comparison.players_not_captured_for_position} are not assessed for this position. "
+            + "Sorted by in-position estimate. ‘Today’ adds readiness and is suppressed when the player cannot be selected.</p>"
+            + "<table class='sortable'><tr><th>Rank</th><th>Player</th><th>Role</th><th>Familiarity</th>"
+            + "<th>Attribute role score</th><th>In-position estimate</th><th>Condition</th><th>Match fitness</th>"
+            + "<th>Today’s score</th><th>Status</th></tr>"
+            + "".join(rows) + "</table>"
+        )
 
     def _squad_player_page(self, path: str, _query: dict[str, list[str]]) -> None:
         """Show the detailed role, attribute, and familiarity report for one squad member."""

@@ -100,6 +100,31 @@ class SquadWebServerTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn("Goalkeeper", body)
 
+    def test_squad_can_compare_every_player_captured_for_a_position(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture_path = _write_complete_fixture(Path(directory))
+            port = self._serve(fixture_path)
+
+            status, body = self._get(port, "/squad?position=DR")
+
+            self.assertEqual(status, 200)
+            self.assertIn("DR comparison", body)
+            self.assertIn("Best role at this position", body)
+            self.assertIn("players are captured as eligible for DR", body)
+            self.assertIn("In-position estimate", body)
+            self.assertIn("Today’s score", body)
+            self.assertIn("Player 5", body)
+
+    def test_squad_position_comparison_can_pin_a_role(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture_path = _write_complete_fixture(Path(directory))
+            port = self._serve(fixture_path)
+
+            status, body = self._get(port, "/squad?position=DR&role=fb_support")
+
+            self.assertEqual(status, 200)
+            self.assertIn("Role: Full-Back (Support)", body)
+
     def test_squad_player_links_to_a_full_player_report(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             fixture_path = _write_complete_fixture(Path(directory))
