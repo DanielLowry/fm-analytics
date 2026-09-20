@@ -1,0 +1,94 @@
+{
+  "key": "lowblock_442",
+  "name": "Low-Block 4-4-2",
+  "formation": "4-4-2 (Low Block)",
+  "mentality": "Defensive",
+  "instructions": [
+    "Much Lower Line of Engagement",
+    "Much Deeper Defensive Line",
+    "Narrower",
+    "Slower Tempo",
+    "Counter",
+    "Regroup"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend"
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support"
+    },
+    {
+      "key": "ML",
+      "position": "ML",
+      "role": "wm_support"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "bwm_mc_support"
+    },
+    {
+      "key": "MR",
+      "position": "MR",
+      "role": "wm_support"
+    },
+    {
+      "key": "ST1",
+      "position": "ST",
+      "role": "dlf_support",
+      "roles": [
+        "cf_support"
+      ]
+    },
+    {
+      "key": "ST2",
+      "position": "ST",
+      "role": "tm_attack"
+    }
+  ],
+  "style": "Low-Block 4-4-2",
+  "description": "Two compact banks of four with two forwards retained as direct counter outlets.",
+  "whyGood": "It keeps defensive jobs simple while preserving an immediate route out after regains.",
+  "keyRequirements": [
+    "Disciplined block",
+    "Wide midfield recovery",
+    "One hold-up forward",
+    "One runner"
+  ],
+  "tags": [
+    "defensive",
+    "442",
+    "direct-counter"
+  ]
+}

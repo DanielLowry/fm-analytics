@@ -1,0 +1,97 @@
+{
+  "key": "balanced_41212_diamond",
+  "name": "Balanced 4-1-2-1-2 Diamond",
+  "formation": "4-1-2-1-2 DM Narrow",
+  "mentality": "Balanced",
+  "instructions": [
+    "Fairly Narrow",
+    "Shorter Passing",
+    "Counter",
+    "Regroup",
+    "Standard Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend"
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support"
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dm_defend"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_support"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "dlp_mc_support"
+    },
+    {
+      "key": "AMC",
+      "position": "AMC",
+      "role": "am_support"
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "dlf_support",
+      "roles": [
+        "cf_support"
+      ]
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
+    }
+  ],
+  "style": "Balanced Narrow Diamond",
+  "description": "A compact narrow 4-1-2-1-2 built around central combinations, two strikers and full-backs supplying most of the width.",
+  "whyGood": "It creates central numerical superiority and strong links between DM, midfield, AMC and two forwards.",
+  "keyRequirements": [
+    "Full-backs with stamina/crossing",
+    "Disciplined DM",
+    "Creative AMC",
+    "Complementary strikers"
+  ],
+  "tags": [
+    "narrow",
+    "balanced",
+    "two-strikers"
+  ]
+}

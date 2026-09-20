@@ -1,0 +1,94 @@
+{
+  "key": "positive_3421",
+  "name": "Positive 3-4-2-1",
+  "formation": "3-4-2-1",
+  "mentality": "Positive",
+  "instructions": [
+    "Shorter Passing",
+    "Play Out Of Defence",
+    "Counter-Press",
+    "Higher Line of Engagement",
+    "Standard Defensive Line",
+    "Work Ball Into Box"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "sk_defend"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCC",
+      "position": "DC",
+      "role": "bpd_defend"
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_cover",
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "key": "WBL",
+      "position": "WBL",
+      "role": "wb_wbl_wbr_support"
+    },
+    {
+      "key": "WBR",
+      "position": "WBR",
+      "role": "wb_wbl_wbr_attack"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "dlp_mc_support"
+    },
+    {
+      "key": "AMCL",
+      "position": "AMC",
+      "role": "ap_amc_attack"
+    },
+    {
+      "key": "AMCR",
+      "position": "AMC",
+      "role": "ss_attack"
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
+    }
+  ],
+  "style": "3-4-2-1 Half-Space Attack",
+  "description": "A modern back-three system using two central attacking midfielders to occupy the half-spaces behind a single striker.",
+  "whyGood": "Two number tens work between the lines while wing-backs hold width, creating five distinct attacking lanes.",
+  "keyRequirements": [
+    "Mobile centre-backs",
+    "Very strong wing-backs",
+    "Two quality AMCs",
+    "Midfield pair with defensive range"
+  ],
+  "tags": [
+    "positive",
+    "3421",
+    "half-spaces"
+  ]
+}

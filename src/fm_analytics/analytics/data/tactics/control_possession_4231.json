@@ -1,0 +1,92 @@
+{
+  "key": "control_possession_4231",
+  "name": "Control Possession 4-2-3-1",
+  "formation": "4-2-3-1 DM AM Wide",
+  "mentality": "Positive",
+  "instructions": [
+    "Shorter Passing",
+    "Lower Tempo",
+    "Play Out Of Defence",
+    "Work Ball Into Box",
+    "Hold Shape",
+    "Standard Line of Engagement",
+    "Higher Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "sk_defend"
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "bpd_defend"
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support"
+    },
+    {
+      "key": "DMCL",
+      "position": "DM",
+      "role": "dm_defend"
+    },
+    {
+      "key": "DMCR",
+      "position": "DM",
+      "role": "dlp_dm_support"
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "if_attack"
+    },
+    {
+      "key": "AMC",
+      "position": "AMC",
+      "role": "ap_amc_attack"
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "winger_aml_amr_support"
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
+    }
+  ],
+  "style": "Control Possession",
+  "description": "A patient 4-2-3-1 that controls territory and circulates until space opens between or outside the opposition lines.",
+  "whyGood": "The double pivot gives secure circulation while the AP and wide attackers provide several receiving lines ahead of the ball.",
+  "keyRequirements": [
+    "Technically secure defenders/midfielders",
+    "High-quality distributor",
+    "Intelligent AMC",
+    "Good first touch and decisions"
+  ],
+  "tags": [
+    "possession",
+    "4231",
+    "technical"
+  ]
+}

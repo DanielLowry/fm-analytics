@@ -13,17 +13,24 @@ from fm_analytics.analytics.role_scoring import (
 )
 from fm_analytics.analytics.role_weights import (
     RoleWeightsCatalogue,
-    load_role_weights,
+    parse_attribute_weights,
+    role_documents,
 )
 
 
-# The role and tactic definitions themselves live in versioned JSON data
-# (data/catalogue.json) rather than as Python literals here, per the Phase 04
-# decision that "the catalogue should be data/config, not hard-coded across
-# the scoring implementation". This module owns loading that data into the
-# same validated dataclasses below; every invariant that previously lived in
-# hand-written Python construction still runs, just against loaded data.
-_DATA_PATH = Path(__file__).with_name("data") / "catalogue.json"
+# The role and tactic definitions themselves live in JSON data rather than as
+# Python literals here, per the Phase 04 decision that "the catalogue should be
+# data/config, not hard-coded across the scoring implementation". The layout is
+#
+#   data/catalogue.json     the version, exclusion groups, research notes
+#   data/roles/<pos>.json   one file per position group: each role's identity
+#                           and its attribute weights, together
+#   data/tactics/<key>.json one file per tactic
+#
+# This module owns loading that data into the same validated dataclasses
+# below; every invariant that previously lived in hand-written Python
+# construction still runs, just against loaded data.
+_DATA_PATH = Path(__file__).with_name("data")
 
 
 @dataclass(frozen=True)
@@ -239,7 +246,11 @@ def _attributes_from_weights(
     desirable: tuple[str, ...],
     weight_catalogue: RoleWeightsCatalogue | None,
 ) -> tuple[RoleAttribute, ...]:
-    """Build RoleAttribute tuple using CSV-derived weights when available.
+    """Build RoleAttribute tuple from a separate weights catalogue when given.
+
+    A role that carries its own `attributes` never comes through here (see
+    `_role_from_json`); this path serves standalone weights documents and the
+    required/desirable fallback below.
 
     Only `effective_weight` feeds scoring; every other field
     `AttributeWeightConfig` carries (duty modifier, soft floors, ...) is
@@ -282,16 +293,24 @@ def _role_from_json(
     weight_catalogue: RoleWeightsCatalogue | None = None,
 ) -> RoleDefinition:
     key = _str(raw, "key")
+    if "attributes" in raw:
+        attributes = tuple(
+            RoleAttribute(name=name, weight=cfg.effective_weight)
+            for name, cfg in parse_attribute_weights(key, raw["attributes"]).items()
+            if cfg.effective_weight > 0
+        )
+    else:
+        attributes = _attributes_from_weights(
+            catalogue_key=key,
+            required=_optional_str_tuple(raw, "required"),
+            desirable=_optional_str_tuple(raw, "desirable"),
+            weight_catalogue=weight_catalogue,
+        )
     return RoleDefinition(
         key=key,
         name=_str(raw, "name"),
         eligible_positions=_str_tuple(raw, "positions"),
-        attributes=_attributes_from_weights(
-            catalogue_key=key,
-            required=_str_tuple(raw, "required"),
-            desirable=_str_tuple(raw, "desirable"),
-            weight_catalogue=weight_catalogue,
-        ),
+        attributes=attributes,
         catalogue_version=version,
         system_traits=_number_mapping(raw.get("system"), "role system"),
     )
@@ -355,6 +374,11 @@ def load_catalogue(
 ) -> FootballCatalogue:
     """Load and validate a versioned football catalogue from JSON.
 
+    `path` is either a data directory (`catalogue.json` plus `roles/` and
+    `tactics/`, the shipped layout) or a single self-contained document with
+    `roles` and `tactics` arrays, which keeps small hand-built catalogues
+    easy to write in tests.
+
     Every structural rule (eleven unique slots, roles that exist, slots whose
     position the assigned role can actually play) is enforced by the
     dataclasses above exactly as it was when this data was Python literals;
@@ -362,13 +386,17 @@ def load_catalogue(
     catalogue file still fails closed at import time rather than producing a
     silently broken recommendation later.
     """
-    with path.open(encoding="utf-8") as data_file:
-        document = json.load(data_file)
+    if path.is_dir():
+        document = _read_json(path / "catalogue.json")
+        roles_raw = role_documents(path)
+        tactics_raw = _tactic_documents(path)
+    else:
+        document = _read_json(path)
+        roles_raw = document.get("roles")
+        tactics_raw = document.get("tactics")
     version = _str(document, "version")
-    roles_raw = document.get("roles")
-    tactics_raw = document.get("tactics")
     if not isinstance(roles_raw, list) or not isinstance(tactics_raw, list):
-        raise ValueError(f"catalogue file {path} must define roles and tactics arrays")
+        raise ValueError(f"catalogue {path} must define roles and tactics")
     roles = {
         role.key: role
         for role in (
@@ -377,13 +405,13 @@ def load_catalogue(
         )
     }
     if len(roles) != len(roles_raw):
-        raise ValueError(f"catalogue file {path} has duplicate role keys")
+        raise ValueError(f"catalogue {path} has duplicate role keys")
     tactics = {
         tactic.key: tactic
         for tactic in (_tactic_from_json(entry, version=version) for entry in tactics_raw)
     }
     if len(tactics) != len(tactics_raw):
-        raise ValueError(f"catalogue file {path} has duplicate tactic keys")
+        raise ValueError(f"catalogue {path} has duplicate tactic keys")
     return FootballCatalogue(
         version=version,
         roles=roles,
@@ -393,6 +421,25 @@ def load_catalogue(
             for entry in document.get("exclusiveRoleGroups", [])
         ),
     )
+
+
+def _read_json(path: Path) -> Mapping[str, Any]:
+    with path.open(encoding="utf-8") as data_file:
+        return json.load(data_file)
+
+
+def _tactic_documents(data_dir: Path) -> list[Mapping[str, Any]]:
+    """One tactic per `tactics/<key>.json`; the file name must be the key."""
+    tactics = []
+    for path in sorted((data_dir / "tactics").glob("*.json")):
+        tactic = _read_json(path)
+        if tactic.get("key") != path.stem:
+            raise ValueError(
+                f"tactic file {path.name} declares key {tactic.get('key')!r}; "
+                "the file name must match the key"
+            )
+        tactics.append(tactic)
+    return tactics
 
 
 def _exclusion_group_from_json(raw: Mapping[str, Any]) -> RoleExclusionGroup:
@@ -415,6 +462,10 @@ def _str_tuple(raw: Mapping[str, Any], name: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise ValueError(f"{name!r} must be an array of strings")
     return tuple(value)
+
+
+def _optional_str_tuple(raw: Mapping[str, Any], name: str) -> tuple[str, ...]:
+    return _str_tuple(raw, name) if name in raw else ()
 
 
 def _number_mapping(value: Any, name: str) -> Mapping[str, float]:
@@ -476,8 +527,7 @@ def _inferred_system_requirements(
     )
 
 
-_WEIGHT_CATALOGUE = load_role_weights()
-MVP_CATALOGUE = load_catalogue(weight_catalogue=_WEIGHT_CATALOGUE)
+MVP_CATALOGUE = load_catalogue()
 # The version string lives in the JSON data (single source of truth); this
 # alias exists only so code that wants "the current catalogue version" does
 # not need to import MVP_CATALOGUE just to read one field off it.

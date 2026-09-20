@@ -1,0 +1,94 @@
+{
+  "key": "balanced_4411",
+  "name": "Balanced 4-4-1-1",
+  "formation": "4-4-1-1",
+  "mentality": "Balanced",
+  "instructions": [
+    "Fairly Wide",
+    "Slightly More Direct Passing",
+    "Counter",
+    "Regroup",
+    "Standard Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend"
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support"
+    },
+    {
+      "key": "ML",
+      "position": "ML",
+      "role": "wm_support"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "cm_support"
+    },
+    {
+      "key": "MR",
+      "position": "MR",
+      "role": "winger_ml_mr_support"
+    },
+    {
+      "key": "AMC",
+      "position": "AMC",
+      "role": "am_support"
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
+    }
+  ],
+  "style": "Balanced 4-4-1-1",
+  "description": "A conventional 4-4-2 defensive shell with one attacker dropping into the number-ten line to connect midfield and the lone striker.",
+  "whyGood": "The AMC reduces striker isolation while preserving two clear banks of four without the ball.",
+  "keyRequirements": [
+    "Intelligent AMC",
+    "Mobile striker",
+    "Hard-working wide midfielders",
+    "Balanced CM pair"
+  ],
+  "tags": [
+    "balanced",
+    "4411",
+    "compact"
+  ]
+}

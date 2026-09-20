@@ -47,6 +47,18 @@ jobs:
       - name: Build Python package
         run: uv build --no-sources
 
+      - name: Smoke-test the built wheel in a clean environment
+        # The catalogue is data files, not code: a wheel that omits them imports
+        # fine and fails only when the catalogue loads.
+        run: |
+          uv venv "$RUNNER_TEMP/wheel-env"
+          uv pip install --python "$RUNNER_TEMP/wheel-env/bin/python" dist/*.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/wheel-env/bin/python" -c "
+          from fm_analytics.analytics.catalogue import MVP_CATALOGUE as C
+          assert len(C.roles) >= 65 and len(C.tactics) >= 25, (len(C.roles), len(C.tactics))
+          "
+
       - name: Run bridge fixture smoke test
         run: |
           uv run --no-sync fm-bridge --host 127.0.0.1 --port 5072 &

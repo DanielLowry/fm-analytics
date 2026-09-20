@@ -1,0 +1,90 @@
+{
+  "key": "attacking_433",
+  "name": "Attacking 4-3-3",
+  "formation": "4-3-3 (Attacking)",
+  "mentality": "Attacking",
+  "instructions": [
+    "Much Higher Line of Engagement",
+    "Higher Defensive Line",
+    "Shorter Passing",
+    "Higher Tempo",
+    "Counter-Press"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend"
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "wb_dl_dr_attack"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "bpd_defend"
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "wb_dl_dr_attack"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend"
+    },
+    {
+      "key": "MCC",
+      "position": "MC",
+      "role": "b2b_support"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "mez_attack"
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "winger_aml_amr_attack"
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "if_attack"
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
+    }
+  ],
+  "style": "Attacking 4-3-3",
+  "description": "An aggressive 4-3-3 committing full-backs, midfield runners and wide forwards to attack.",
+  "whyGood": "It creates several simultaneous attacking lanes and is useful when the team must force the game.",
+  "keyRequirements": [
+    "Fast recovery defenders",
+    "Attacking full-backs",
+    "Midfield legs",
+    "Wide forwards with end product"
+  ],
+  "tags": [
+    "attacking",
+    "433",
+    "overload"
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "key": "fluid_counter_4141",
+  "name": "Fluid Counter 4-1-4-1",
+  "formation": "4-1-4-1",
+  "mentality": "Cautious",
+  "instructions": [
+    "Slightly Shorter Passing",
+    "Pass Into Space",
+    "Counter",
+    "Regroup",
+    "Lower Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend"
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_cover",
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support"
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dm_defend"
+    },
+    {
+      "key": "ML",
+      "position": "ML",
+      "role": "winger_ml_mr_support"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "b2b_support"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "cm_support"
+    },
+    {
+      "key": "MR",
+      "position": "MR",
+      "role": "winger_ml_mr_support"
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
+    }
+  ],
+  "style": "Fluid Counter-Attack",
+  "description": "A compact 4-1-4-1 that counters through short combinations and supporting runs rather than immediately launching long balls.",
+  "whyGood": "The DM stabilises the block while the Box-to-Box midfielder and wide players quickly join the AF after regains.",
+  "keyRequirements": [
+    "Mobile midfield",
+    "Pacy striker",
+    "Reliable DM",
+    "Good transition decisions"
+  ],
+  "tags": [
+    "fluid-counter",
+    "4141",
+    "transition"
+  ]
+}

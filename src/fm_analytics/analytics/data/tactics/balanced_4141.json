@@ -1,0 +1,89 @@
+{
+  "key": "balanced_4141",
+  "name": "Balanced 4-1-4-1",
+  "formation": "4-1-4-1",
+  "mentality": "Balanced",
+  "instructions": [
+    "Standard Line of Engagement",
+    "Standard Defensive Line",
+    "Shorter Passing",
+    "Regroup"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend"
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "bpd_defend"
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support"
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dm_defend"
+    },
+    {
+      "key": "ML",
+      "position": "ML",
+      "role": "wm_support"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "b2b_support"
+    },
+    {
+      "key": "MR",
+      "position": "MR",
+      "role": "wm_support"
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "p_attack",
+      "roles": [
+        "af_attack"
+      ]
+    }
+  ],
+  "style": "Balanced 4-1-4-1",
+  "description": "A compact 4-1-4-1 with a dedicated screen behind a four-man midfield.",
+  "whyGood": "It gives strong defensive spacing and central control while retaining wide outlets.",
+  "keyRequirements": [
+    "Disciplined DM",
+    "Hard-working wide players",
+    "CM support for lone striker",
+    "Self-sufficient striker"
+  ],
+  "tags": [
+    "balanced",
+    "4141",
+    "compact"
+  ]
+}

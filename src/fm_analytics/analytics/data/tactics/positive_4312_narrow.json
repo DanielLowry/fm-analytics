@@ -1,0 +1,96 @@
+{
+  "key": "positive_4312_narrow",
+  "name": "Positive 4-3-1-2 Narrow",
+  "formation": "4-3-1-2",
+  "mentality": "Positive",
+  "instructions": [
+    "Fairly Narrow",
+    "Shorter Passing",
+    "Work Ball Into Box",
+    "Overlap Left",
+    "Overlap Right",
+    "Counter-Press",
+    "Standard Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend"
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "wb_dl_dr_attack"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "bpd_defend"
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "wb_dl_dr_support"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend"
+    },
+    {
+      "key": "MCC",
+      "position": "MC",
+      "role": "dlp_mc_support"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "b2b_support"
+    },
+    {
+      "key": "AMC",
+      "position": "AMC",
+      "role": "ap_amc_attack"
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "dlf_support",
+      "roles": [
+        "cf_support"
+      ]
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
+    }
+  ],
+  "style": "Narrow Combination Play",
+  "description": "A narrow 4-3-1-2 using three central midfielders and an advanced playmaker behind two complementary forwards.",
+  "whyGood": "It overloads central zones while the wing-backs provide the width that the midfield shape lacks.",
+  "keyRequirements": [
+    "Excellent attacking full-backs",
+    "Three capable central midfielders",
+    "Creative AMC",
+    "Complementary strikers"
+  ],
+  "tags": [
+    "narrow",
+    "4312",
+    "central-overload"
+  ]
+}

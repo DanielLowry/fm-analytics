@@ -1,0 +1,95 @@
+{
+  "key": "positive_433dm",
+  "name": "Positive 4-3-3 DM Wide",
+  "formation": "4-3-3 DM Wide",
+  "mentality": "Positive",
+  "instructions": [
+    "Shorter Passing",
+    "Play Out Of Defence",
+    "Work Ball Into Box",
+    "Counter-Press",
+    "Counter",
+    "Higher Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend"
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support"
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dm_defend"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "dlp_mc_support"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "cm_support"
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "if_attack"
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "winger_aml_amr_attack"
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
+    }
+  ],
+  "style": "Positive 4-3-3 DM",
+  "description": "A modern 4-3-3 with a holder, two eights and complementary wide forwards.",
+  "whyGood": "It offers strong pitch coverage, good rest defence and multiple progression routes.",
+  "keyRequirements": [
+    "Reliable DM",
+    "Progressive midfielders",
+    "Wide forwards with end product",
+    "Mobile striker"
+  ],
+  "tags": [
+    "positive",
+    "433",
+    "dm"
+  ]
+}

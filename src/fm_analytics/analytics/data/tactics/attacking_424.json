@@ -1,0 +1,99 @@
+{
+  "key": "attacking_424",
+  "name": "Attacking 4-2-4",
+  "formation": "4-2-4",
+  "mentality": "Attacking",
+  "instructions": [
+    "Fairly Wide",
+    "More Direct Passing",
+    "Higher Tempo",
+    "Pass Into Space",
+    "Counter-Press",
+    "Counter",
+    "Higher Line of Engagement",
+    "Higher Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "sk_defend"
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_cover",
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "dlp_mc_support"
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "if_attack"
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "winger_aml_amr_attack"
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "dlf_support",
+      "roles": [
+        "cf_support"
+      ]
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
+    }
+  ],
+  "style": "Attacking 4-2-4",
+  "description": "A high-risk structure that immediately puts four players against the opposition back line and is intended to force the game.",
+  "whyGood": "The DLF supplies some connection while the other three attackers threaten depth and width around the box.",
+  "keyRequirements": [
+    "Two midfielders able to cover huge spaces",
+    "Fast defenders",
+    "Four dangerous attackers",
+    "High fitness"
+  ],
+  "tags": [
+    "attacking",
+    "424",
+    "overload"
+  ]
+}

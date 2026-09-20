@@ -1,0 +1,95 @@
+{
+  "key": "positive_4231",
+  "name": "Positive 4-2-3-1 Wide",
+  "formation": "4-2-3-1 DM AM Wide",
+  "mentality": "Positive",
+  "instructions": [
+    "Shorter Passing",
+    "Play Out Of Defence",
+    "Higher Tempo",
+    "Counter-Press",
+    "Counter",
+    "Higher Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend"
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support"
+    },
+    {
+      "key": "DMCL",
+      "position": "DM",
+      "role": "dm_defend"
+    },
+    {
+      "key": "DMCR",
+      "position": "DM",
+      "role": "dlp_dm_support"
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "if_attack"
+    },
+    {
+      "key": "AMC",
+      "position": "AMC",
+      "role": "am_support"
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "winger_aml_amr_attack"
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
+    }
+  ],
+  "style": "Positive 4-2-3-1",
+  "description": "A proactive 4-2-3-1 using a double pivot behind three attacking midfielders and one striker.",
+  "whyGood": "The pivot stabilises build-up while the front four occupy several attacking lines.",
+  "keyRequirements": [
+    "Secure double pivot",
+    "Quality AMC",
+    "Complementary wide attackers",
+    "Mobile striker"
+  ],
+  "tags": [
+    "positive",
+    "4231",
+    "front-four"
+  ]
+}

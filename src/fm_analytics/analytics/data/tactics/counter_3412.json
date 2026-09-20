@@ -1,0 +1,97 @@
+{
+  "key": "counter_3412",
+  "name": "Counter 3-4-1-2",
+  "formation": "3-4-1-2",
+  "mentality": "Cautious",
+  "instructions": [
+    "Slightly More Direct Passing",
+    "Pass Into Space",
+    "Counter",
+    "Regroup",
+    "Lower Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCC",
+      "position": "DC",
+      "role": "bpd_defend"
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_cover",
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "key": "WBL",
+      "position": "WBL",
+      "role": "wb_wbl_wbr_support"
+    },
+    {
+      "key": "WBR",
+      "position": "WBR",
+      "role": "wb_wbl_wbr_attack"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "b2b_support"
+    },
+    {
+      "key": "AMC",
+      "position": "AMC",
+      "role": "am_support"
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "dlf_support",
+      "roles": [
+        "cf_support"
+      ]
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
+    }
+  ],
+  "style": "Back-Three Counter",
+  "description": "A cautious back-three system retaining an AMC and two strikers so regains can become attacks without waiting for many players to advance.",
+  "whyGood": "The AMC, DLF and AF form an immediate counter-attacking triangle while the back three protect against turnovers.",
+  "keyRequirements": [
+    "Three reliable centre-backs",
+    "High-stamina wing-backs",
+    "Strong AMC",
+    "Complementary strikers"
+  ],
+  "tags": [
+    "counter",
+    "3412",
+    "back-three"
+  ]
+}

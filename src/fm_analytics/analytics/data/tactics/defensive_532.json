@@ -1,0 +1,94 @@
+{
+  "key": "defensive_532",
+  "name": "Defensive 5-3-2",
+  "formation": "5-3-2",
+  "mentality": "Defensive",
+  "instructions": [
+    "Much Lower Line of Engagement",
+    "Much Deeper Defensive Line",
+    "Narrower",
+    "Slower Tempo",
+    "Counter",
+    "Regroup"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCC",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "bpd_defend"
+    },
+    {
+      "key": "WBL",
+      "position": "WBL",
+      "role": "wb_wbl_wbr_support"
+    },
+    {
+      "key": "WBR",
+      "position": "WBR",
+      "role": "wb_wbl_wbr_support"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend"
+    },
+    {
+      "key": "MCC",
+      "position": "MC",
+      "role": "bwm_mc_support"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "cm_defend"
+    },
+    {
+      "key": "ST1",
+      "position": "ST",
+      "role": "dlf_support",
+      "roles": [
+        "cf_support"
+      ]
+    },
+    {
+      "key": "ST2",
+      "position": "ST",
+      "role": "tm_attack"
+    }
+  ],
+  "style": "Defensive 5-3-2",
+  "description": "A deep five-defender system prioritising central protection and counter-attacking through two forwards.",
+  "whyGood": "It packs the box while still keeping two outlets available after regains.",
+  "keyRequirements": [
+    "Aerially strong centre-backs",
+    "High-stamina wing-backs",
+    "Defensive midfield discipline",
+    "Direct-capable forwards"
+  ],
+  "tags": [
+    "defensive",
+    "532",
+    "low-block"
+  ]
+}

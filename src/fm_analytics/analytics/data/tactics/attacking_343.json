@@ -1,0 +1,93 @@
+{
+  "key": "attacking_343",
+  "name": "Attacking 3-4-3 Wing-Back",
+  "formation": "3-4-3",
+  "mentality": "Positive",
+  "instructions": [
+    "Much Higher Line of Engagement",
+    "Higher Defensive Line",
+    "Shorter Passing",
+    "Play Out Of Defence",
+    "Counter-Press"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCC",
+      "position": "DC",
+      "role": "bpd_defend"
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "WBL",
+      "position": "WBL",
+      "role": "wb_wbl_wbr_attack"
+    },
+    {
+      "key": "WBR",
+      "position": "WBR",
+      "role": "wb_wbl_wbr_attack"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "b2b_support"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "dlp_mc_support"
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "winger_aml_amr_attack"
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "if_attack"
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ]
+    }
+  ],
+  "style": "Attacking 3-4-3",
+  "description": "A front-foot back-three system with wing-backs stretching the pitch and a front three occupying the back line.",
+  "whyGood": "Three defenders permit aggressive wing-back positions and five-lane attacking occupation.",
+  "keyRequirements": [
+    "Mobile outside centre-backs",
+    "Elite wing-back stamina",
+    "Midfield pair with defensive range",
+    "Fast front three"
+  ],
+  "tags": [
+    "positive",
+    "343",
+    "wing-backs"
+  ]
+}

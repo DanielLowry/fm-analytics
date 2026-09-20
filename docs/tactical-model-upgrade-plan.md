@@ -20,13 +20,15 @@ reason the sequencing below front-loads calibration.
 
 ## Decisions taken
 
-Four choices were made before planning, and the plan assumes them:
+Five choices were made before and during planning, and the plan assumes
+them:
 
 | Question | Decision |
 | --- | --- |
 | Catalogue size | **Large expansion to 40+ tactics**, systematic coverage of FM20 shapes and styles |
 | Opponent reach | **Re-rank tactics *and* re-pick the XI** — opponent shifts attribute emphasis, not just tactic order |
-| Per-tactic weighting | **Full per-tactic, per-role weight tables**, spreadsheet-driven like the existing role weights |
+| Per-tactic weighting | **Full per-tactic, per-role weight tables**, authored as JSON inside each tactic's own file (§2.3) |
+| Weight draft | **Soft seeded first draft** — tactic-wide +2 on the 0–10 scale, hand-tuned after |
 | Tactic-free pages | **Squad, Roles and Scouting keep base weights** — a player's "best role" must not move when an opponent slider does |
 
 ## 1. Diagnosis — what is actually wrong today
@@ -174,6 +176,11 @@ cold Tactics page is ~3 s, and an opponent slider that recomputes makes that
 an interaction cost rather than a once-per-load cost. Addressed in §6.
 
 ## 2. Data layout and maintenance
+
+> **Phase 0 is implemented** (this section describes it; deviations from the
+> original proposal are listed in §2.10). The lossless check in §2.9 passed:
+> the catalogue loaded from the new layout compares equal, as a whole
+> `FootballCatalogue` object, to the one loaded before the split.
 
 The diagnosis in §1.6 is the argument for doing this **first**, before the
 catalogue grows. Splitting 25 tactics is a mechanical afternoon; splitting 45
@@ -362,6 +369,34 @@ before and after and compare the resulting `FootballCatalogue` objects for
 equality. A reshuffle of every scoring input should be proven by comparison,
 not reviewed by eye. Delete the tool once merged.
 
+### 2.10 As built — where it differs from the proposal above
+
+- **`required`/`desirable` are dropped from the role files, not just made
+  optional.** They were dead in production. The loader still tolerates them
+  (and the fallback that reads them) so hand-built test catalogues keep working.
+- **`csvRole` is dropped; `positionGroup` and `duty` are kept** on each role
+  entry as descriptive labels. A test asserts each role file holds exactly the
+  position group its filename names.
+- **The loader enforces tactic filename = key** at load time rather than only
+  in a test; a mismatched file fails the import.
+- **Two document formats remain**: the shipped directory, and a single
+  self-contained JSON document (used by `tests/test_catalogue.py` for small
+  catalogues). `load_role_weights(path)` likewise still reads the old
+  standalone weights document, because `tests/test_role_weights.py` builds its
+  fixtures in that shape. Both are test conveniences, not shipped data.
+- **The weights file's own version is gone.** The catalogue's single version
+  is used for everything (`load_role_weights().version` equals it; tested).
+- **Role order in `catalogue.roles` changed** (it now follows sorted filename,
+  then file order) and tactic order follows sorted filename. Neither affects a
+  result: `recommend_tactic` already breaks ties on `tactic.key`. It can change
+  the order of role lists that iterate the catalogue directly, e.g. on the
+  Scouting page.
+- **`pyproject.toml`'s force-include lost both data entries**; the wheel now
+  carries all 36 data files from the package tree. CI gains a step that
+  installs the built wheel into a clean venv and loads the catalogue.
+- Not done here: `tools/tactic_weight_report.py` (§2.5) — it has nothing to
+  report until per-tactic weights exist (phase 5).
+
 ## 3. Workstream A — the catalogue
 
 ### A1. Give all 65 roles system traits
@@ -530,28 +565,79 @@ absolute `effectiveWeight` values that layer over the role's base weights.
 tactic with no `weights` anywhere scores exactly as it does today — which is
 both the migration path and a test assertion.
 
-### C2. Authoring
+### C2. Authoring — a soft seeded draft
 
-JSON is the source of truth; there is no CSV and no generator (§2.6). What
-remains to settle is volume.
+**Decided: generate a first draft, deliberately gentle, and hand-tune from
+there.** JSON is the source of truth; there is no CSV and no round-trip
+generator (§2.6). The seed runs once, its output is committed as ordinary
+data, and from that point the files are hand-owned.
 
-Dense authoring would be 45 tactics × 11 slots × 38 attributes ≈ 18,800
-cells, which nobody is going to maintain. The three-layer model in §2.4 is
-what makes it tractable: most emphasis is tactic-wide (one block of 3–6
-attributes covering all eleven slots), and slot-level overrides are reserved
-for the handful of slots where the tactic asks something unusual of that
-specific job. A realistic tactic carries one `weights` block and two or
-three slot overrides — call it 10–20 numbers, not 400.
+#### What "soft" means, measured
 
-Still worth deciding before the work starts: **do you want a generated first
-draft?** I can seed each tactic's `weights` block from its instructions and
-mentality (a gegenpress raising stamina/workRate/aggression; a high
-defensive line raising pace/acceleration for the back four), which you then
-own and edit as ordinary JSON. The stored data is per-tactic either way; the
-seed only avoids starting from a blank file 45 times. The alternative is
-starting empty and filling tactic by tactic as you review each one — slower,
-but every number in the tree is then one you chose deliberately, which given
-that these are football judgements has real merit.
+"Small" needs a number, so the seed rule was prototyped against the current
+catalogue on three synthetic 30-player squads. Bumping the attributes an
+instruction implies, by a fixed delta on the 0–10 scale:
+
+| Delta | Tactic score moves | Best-for-this-job changes | Quality of that change |
+| --- | --- | --- | --- |
+| +1 | 0.11 pts (max 0.37) | 2.4% of slot/role pairs | +0.36 pts |
+| **+2** | **0.21 pts (max 0.70)** | **4.7%** | **+0.61 pts** |
+| +3 | 0.25 pts (max 0.87) | 6.2% | +0.81 pts |
+| +5 | 0.32 pts (max 0.94) | 9.8% | +1.02 pts |
+
+Context for the scale: role weight totals average 113 across ~17 weighted
+attributes, so +2 on three attributes redistributes roughly 5% of a role's
+weight.
+
+**+2 is the recommendation.** Around one slot decision in twenty changes,
+each one a genuine improvement under that tactic's own stated priorities,
+while tactic ranking barely moves — which is exactly the "take the tactics
+into account but don't let them dominate" balance asked for.
+
+#### Two cautions about reading the effect
+
+- **Tactic score is the wrong instrument for judging this.** It moves 0.2
+  points, because the score is a normalised weighted average and re-weighting
+  shifts every candidate similarly. You cannot tune the emphasis by watching
+  the headline number; judge it on *who gets picked*.
+- **Raw XI churn overstates it.** A +2 nudge changes 1.35 of 11 starters on
+  average, but measuring those swaps shows the newly-picked player is
+  frequently no better even under the nudged weights — the XI is a global
+  assignment, so one genuine upgrade cascades into several consequential
+  moves. The honest measure is the per-slot one in the table above, which
+  holds the assignment problem fixed. Build the review tooling around that,
+  not around a diff of the eleven.
+
+These are synthetic squads with uniformly random attributes; a real save has
+specialists and will not reproduce these percentages exactly. Re-measure
+against your own squad once the seed lands, before deciding whether +2 is
+right.
+
+#### Seed rules
+
+Deliberately conservative — the mechanism is more capable than the draft
+uses, and the extra capability is reserved for your hand edits:
+
+1. **Tactic-wide only.** The seed writes one `weights` block per tactic and
+   never a slot-level override. Slot-level stays a purely human decision, so
+   every one in the tree is one you made.
+2. **+2, clamped at 10.**
+3. **Only attributes the role already weights above 0.** The seed never
+   invents a requirement a role does not have — a Central Defender that
+   ignores crossing keeps ignoring it. The file format permits introducing
+   an attribute from zero (§2.4); the automated draft simply declines to.
+4. **At most four attributes per tactic**, taken from the instruction and
+   mentality mapping. A tactic that emphasises everything emphasises nothing.
+
+A seeded tactic therefore carries three or four numbers in one block —
+small enough to read in the diff and argue with, which is the point.
+
+#### Telling seed from judgement
+
+Extend `tools/tactic_weight_report.py` (§2.5) to mark each override as seed
+default or hand-tuned, by magnitude and by whether a slot-level block
+exists. Review then focuses on what you actually changed, and the draft
+never quietly becomes indistinguishable from deliberate football judgement.
 
 ### C3. Plumbing — the derived-catalogue approach
 
@@ -708,6 +794,8 @@ New invariants, each guarding a failure this plan found:
 - A tactic with no weight override scores identically to base weights (§C1).
 - Opponent monotonicity: raising an axis never lowers the emphasis it is
   supposed to raise.
+- Seeded tactic weights stay inside the soft band of §C2 — so a later
+  hand-tune that leaves it is a visible, deliberate act rather than drift.
 - Near-duplicate detection across the expanded catalogue (§A6).
 - Existing CLI/web parity coverage extended to carry an opponent profile.
 
@@ -723,7 +811,7 @@ Ordered so that nothing is tuned on top of a known-broken baseline.
 
 | Phase | Work | Why here |
 | --- | --- | --- |
-| **0** | **§2 data layout migration and retirements** | **Cheapest now: 25 small tactics, not 45 large ones. Also fixes the wheel-packaging bug before anyone installs one.** |
+| **0 — done** | **§2 data layout migration and retirements** | **Cheapest now: 25 small tactics, not 45 large ones. Also fixes the wheel-packaging bug before anyone installs one.** |
 | 1 | A1 traits for all 65 roles, A2 scale recalibration, A3 missing instructions | Fixes §1.1–1.2. Everything downstream is measured against this. Do not skip ahead. |
 | 2 | A4 per-tactic system requirements, A5 exclusion groups, B1 fix the existing 25 | Makes the current 25 correct before multiplying them. |
 | 3 | A6 expand to 40+, with B2 justifications authored alongside | Now safe: the load-time invariants from phase 1 catch a mis-authored tactic. |

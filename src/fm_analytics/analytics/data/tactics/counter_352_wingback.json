@@ -1,0 +1,96 @@
+{
+  "key": "counter_352_wingback",
+  "name": "Counter 3-5-2 Wing-Back",
+  "formation": "3-5-2",
+  "mentality": "Counter",
+  "instructions": [
+    "Narrower",
+    "Lower Tempo",
+    "Counter",
+    "Drop Deeper Line of Engagement",
+    "Drop Off More Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend"
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "key": "DCC",
+      "position": "DC",
+      "role": "bpd_defend"
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_cover",
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "key": "WBL",
+      "position": "WBL",
+      "role": "wb_wbl_wbr_support"
+    },
+    {
+      "key": "WBR",
+      "position": "WBR",
+      "role": "wb_wbl_wbr_attack"
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dm_support"
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "b2b_support"
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "mez_attack"
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "cf_support",
+      "roles": [
+        "dlf_support"
+      ]
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "p_attack",
+      "roles": [
+        "af_attack"
+      ]
+    }
+  ],
+  "style": "3-5-2 Counter",
+  "description": "A back-three counter system using wing-backs for width and two forwards as immediate outlets.",
+  "whyGood": "Three centre-backs protect the box while two forwards keep counter-attacking threat high.",
+  "keyRequirements": [
+    "Three dependable centre-backs",
+    "High-stamina wing-backs",
+    "Transition runners",
+    "Complementary forwards"
+  ],
+  "tags": [
+    "counter",
+    "352",
+    "back-three"
+  ]
+}

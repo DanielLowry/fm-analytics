@@ -30,11 +30,11 @@ The following remain intentionally provisional:
 
 ### 1. Explicit role attribute weights — **implemented**
 
-Done. Every role/duty owns an explicit, versioned per-attribute weight
-(`effectiveWeight`, 0-10) in `src/fm_analytics/analytics/data/role_weights_v2.json`,
-generated from a source spreadsheet by `tools/csv_to_role_weights.py` and
-loaded by `role_weights.py` into the catalogue at import time
-(`catalogue._attributes_from_weights`). The old `required = 2` /
+Done. Every role/duty owns an explicit per-attribute weight
+(`effectiveWeight`, 0-10), authored inline in its role entry under
+`src/fm_analytics/analytics/data/roles/<position>.json` and loaded into the
+catalogue at import time. (It was once generated from a spreadsheet; that CSV
+and its converter were retired and the JSON is now the source of truth.) The old `required = 2` /
 `desirable = 1` label-as-weight behaviour only remains as a fallback for a
 role absent from that file, which should not happen with the current data.
 
@@ -59,8 +59,8 @@ returns.  Pace can become much more important under a high defensive line.
 Start with transparent piecewise curves and thresholds, not a black-box model.
 They should be inspectable in the catalogue and visible in explanations.
 
-The role-weights CSV already carries a `dutyModifier` per attribute, ahead of
-this work landing, so the generation pass doesn't need repeating later. It is
+The role data already carries a `dutyModifier` per attribute, ahead of
+this work landing, so no extra data pass is needed later. It is
 loaded and validated (`role_weights.AttributeWeightConfig`) but not yet read
 by scoring, which still applies `effectiveWeight` alone, linearly. Implementing
 this item means consuming that field where `catalogue._attributes_from_weights`
@@ -98,8 +98,8 @@ system's occasional out-ball), and today they score that DLP identically.
 
 There is a low-cost workaround already available with no scoring-engine
 change: define a second catalogue role (e.g. `dlp_support_possession`) with
-its own `role_weights_v2.json` entry and point the relevant slot at it via
-`catalogue.json`'s per-slot `role`/`roles`. The catch: it must also get a
+its own role entry (under `data/roles/`) and point the relevant slot at it via
+the tactic file's per-slot `role`/`roles`. The catch: it must also get a
 `tactical_system._DEFAULT_ROLE_TRAITS` entry (or a `system` override in the
 catalogue), or it silently contributes nothing to that tactic's team-balance
 score. A proper fix folds tactical context into `f(attribute, role, duty,

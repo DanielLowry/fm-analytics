@@ -16,12 +16,22 @@ requirement, not a style preference — the whole point of the tool is that
 its numbers are things the manager could in principle have worked out by
 hand.
 
+## Where the data lives
+
+`data/catalogue.json` (version, exclusion groups, notes), `data/roles/<pos>.json`
+(one file per position group: role identity *and* attribute weights together)
+and `data/tactics/<key>.json` (one file per tactic; the file name must equal
+the key). Discovery is a sorted glob, so adding a tactic is adding a file. The
+catalogue has a single version, in `catalogue.json` — never put a version in a
+file name. The wheel picks these files up from the package tree; don't
+enumerate them in `pyproject.toml`.
+
 ## Where role choice actually happens
 
 A tactic slot's role is pinned by default. `TacticDefinition.slots` name a
 `role_key`, and `FootballCatalogue.role_keys_for_slot` (`catalogue.py:154`)
 only ever tries that role plus whatever a slot's own `roles` array in
-`catalogue.json` explicitly lists as alternatives — there is no automatic
+the tactic's own file under `data/tactics/` explicitly lists as alternatives — there is no automatic
 fallback that opens a slot up on its own. This is deliberate: which role a
 slot plays is usually what makes a tactic *that* tactic (a deep playmaker
 vs. a ball-winner as the DM defines two different systems), so a slot stays
@@ -43,7 +53,7 @@ similar in name.
 ## Illegal role combinations
 
 Slot alternatives are chosen independently, so a tactic can name the same
-role in two slots on one line. `catalogue.json`'s `exclusiveRoleGroups` rules
+role in two slots on one line. `data/catalogue.json`'s `exclusiveRoleGroups` rules
 those out: each group names a position and roles of which at most one slot at
 that position may play (today: one Cover centre-back, `cd_cover`). Roles in a
 group are the ones that only make sense alongside a partner who isn't in it.
@@ -83,10 +93,11 @@ silently treating it as independent.
   declared, reviewable football hypotheses, not tuned/learned weights —
   changing one is a football judgment call, worth calling out as such in
   the commit rather than treating as a pure bugfix.
-- `role_weights.py` — loads per-role, per-attribute weights from
-  `data/role_weights_v2.json` (generated from a CSV via
-  `tools/csv_to_role_weights.py`). Loaded once at import time into
-  `catalogue.MVP_CATALOGUE`; don't call `load_role_weights` per-request.
+- `role_weights.py` — parses per-role, per-attribute weights, which are
+  authored inline in each role's entry under `data/roles/<position>.json`
+  (one file per position group; the JSON is the source of truth, there is no
+  CSV). Loaded once at import time into `catalogue.MVP_CATALOGUE`; don't call
+  `load_role_weights` per-request.
   Only `effective_weight` is actually consumed by scoring — the rest of
   `AttributeWeightConfig` (soft floors, duty modifier) is validated but
   inert data, reserved for `docs/tactical-system-roadmap.md` items 2-3.
