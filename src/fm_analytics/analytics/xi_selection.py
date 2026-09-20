@@ -577,6 +577,8 @@ def _best_role_version(
         for index, slot in enumerate(tactic.slots)
     )
     for role_keys in product(*role_options):
+        if not catalogue.role_version_is_legal(tactic, role_keys):
+            continue
         version_choices = _choices_for_role_version(choices, role_keys)
         state = _best_assignment_for_role_version(
             version_choices, full_mask, fit_policy

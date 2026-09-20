@@ -1,5 +1,14 @@
 {
   "version": "fm20-expanded-tactics-v2-position-weights",
+  "exclusiveRoleGroups": [
+    {
+      "name": "Cover centre-back",
+      "position": "DC",
+      "roles": [
+        "cd_cover"
+      ]
+    }
+  ],
   "roles": [
     {
       "key": "gk_defend",

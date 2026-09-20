@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from itertools import product
 from math import isfinite
 from pathlib import Path
 from typing import Any, Mapping
@@ -114,10 +115,44 @@ class TacticDefinition:
 
 
 @dataclass(frozen=True)
+class RoleExclusionGroup:
+    """Roles of which a tactic may use at most one, among slots at one position.
+
+    Slot alternatives are chosen independently, so nothing stops two slots on
+    the same line picking the same role. Some pairings are not a legitimate
+    system: two Cover centre-backs leave nobody to be covered, so at most one
+    slot at `position` may play a role in `role_keys`. The rule applies to
+    every role version, whether the roles are pinned or chosen from
+    alternatives.
+    """
+
+    name: str
+    position: str
+    role_keys: frozenset[str]
+
+    def __post_init__(self) -> None:
+        if not self.name or not self.position or not self.role_keys:
+            raise ValueError("role exclusion group name, position, and roles are required")
+
+    def is_violated_by(
+        self, slots: tuple[TacticSlot, ...], role_keys: tuple[str, ...]
+    ) -> bool:
+        return (
+            sum(
+                1
+                for slot, role_key in zip(slots, role_keys)
+                if slot.position == self.position and role_key in self.role_keys
+            )
+            > 1
+        )
+
+
+@dataclass(frozen=True)
 class FootballCatalogue:
     version: str
     roles: Mapping[str, RoleDefinition]
     tactics: Mapping[str, TacticDefinition]
+    exclusive_role_groups: tuple[RoleExclusionGroup, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.version or not self.roles or not self.tactics:
@@ -125,6 +160,12 @@ class FootballCatalogue:
         for key, role in self.roles.items():
             if key != role.key or role.catalogue_version != self.version:
                 raise ValueError("role keys and versions must match their catalogue")
+        for group in self.exclusive_role_groups:
+            unknown = sorted(group.role_keys - set(self.roles))
+            if unknown:
+                raise ValueError(
+                    f"role exclusion group {group.name!r} references unknown roles {unknown!r}"
+                )
         for key, tactic in self.tactics.items():
             if key != tactic.key or tactic.catalogue_version != self.version:
                 raise ValueError("tactic keys and versions must match their catalogue")
@@ -150,6 +191,25 @@ class FootballCatalogue:
                 raise ValueError(
                     f"tactic {key!r} has role-incompatible slots {incompatible_slots!r}"
                 )
+            if not any(
+                self.role_version_is_legal(tactic, role_keys)
+                for role_keys in product(
+                    *(self.role_keys_for_slot(slot) for slot in tactic.slots)
+                )
+            ):
+                raise ValueError(
+                    f"tactic {key!r} has no role version that satisfies the "
+                    "catalogue's role exclusion groups"
+                )
+
+    def role_version_is_legal(
+        self, tactic: TacticDefinition, role_keys: tuple[str, ...]
+    ) -> bool:
+        """Whether one role per slot (in slot order) breaks no exclusion group."""
+        return not any(
+            group.is_violated_by(tactic.slots, role_keys)
+            for group in self.exclusive_role_groups
+        )
 
     def role_keys_for_slot(self, slot: TacticSlot) -> tuple[str, ...]:
         """Return the slot's permitted roles after position compatibility.
@@ -324,7 +384,23 @@ def load_catalogue(
     }
     if len(tactics) != len(tactics_raw):
         raise ValueError(f"catalogue file {path} has duplicate tactic keys")
-    return FootballCatalogue(version=version, roles=roles, tactics=tactics)
+    return FootballCatalogue(
+        version=version,
+        roles=roles,
+        tactics=tactics,
+        exclusive_role_groups=tuple(
+            _exclusion_group_from_json(entry)
+            for entry in document.get("exclusiveRoleGroups", [])
+        ),
+    )
+
+
+def _exclusion_group_from_json(raw: Mapping[str, Any]) -> RoleExclusionGroup:
+    return RoleExclusionGroup(
+        name=_str(raw, "name"),
+        position=_str(raw, "position"),
+        role_keys=frozenset(_str_tuple(raw, "roles")),
+    )
 
 
 def _str(raw: Mapping[str, Any], name: str) -> str:

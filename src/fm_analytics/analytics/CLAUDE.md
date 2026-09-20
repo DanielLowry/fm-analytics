@@ -40,6 +40,17 @@ check the trait distance the same way rather than by eye; it's an easy
 mistake to make a system-identity role "flexible" because two roles sound
 similar in name.
 
+## Illegal role combinations
+
+Slot alternatives are chosen independently, so a tactic can name the same
+role in two slots on one line. `catalogue.json`'s `exclusiveRoleGroups` rules
+those out: each group names a position and roles of which at most one slot at
+that position may play (today: one Cover centre-back, `cd_cover`). Roles in a
+group are the ones that only make sense alongside a partner who isn't in it.
+`_best_role_version` skips any role version that breaks a group, and
+`FootballCatalogue` refuses to load a tactic with no legal version. When a new
+Cover (or Stopper) role is added at DC, put it in the group.
+
 ## Role versions and player assignment — read before editing
 
 `_best_role_version` first enumerates every role combination that a tactic
