@@ -6,128 +6,29 @@
       "positions": [
         "GK"
       ],
-      "positionGroup": "GK",
-      "duty": "Defend",
       "system": {
         "defensiveCover": 0.5,
         "restDefence": 1.0,
         "aerialOutlet": 0.4
       },
       "attributes": {
-        "aerialReach": {
-          "effectiveWeight": 8,
-          "dutyModifier": 0,
-          "weightTier": "primary",
-          "coreSoftFloorApplies": false
-        },
-        "agility": {
-          "effectiveWeight": 6,
-          "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        },
-        "anticipation": {
-          "effectiveWeight": 4,
-          "dutyModifier": 0,
-          "weightTier": "useful",
-          "coreSoftFloorApplies": false
-        },
-        "commandOfArea": {
-          "effectiveWeight": 8,
-          "dutyModifier": 0,
-          "weightTier": "primary",
-          "coreSoftFloorApplies": false
-        },
-        "communication": {
-          "effectiveWeight": 6,
-          "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        },
-        "composure": {
-          "effectiveWeight": 4,
-          "dutyModifier": 0,
-          "weightTier": "useful",
-          "coreSoftFloorApplies": false
-        },
-        "concentration": {
-          "effectiveWeight": 8,
-          "dutyModifier": 0,
-          "weightTier": "primary",
-          "coreSoftFloorApplies": false
-        },
-        "decisions": {
-          "effectiveWeight": 6,
-          "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        },
-        "firstTouch": {
-          "effectiveWeight": 2,
-          "dutyModifier": 0,
-          "weightTier": "marginal",
-          "coreSoftFloorApplies": false
-        },
-        "handling": {
-          "effectiveWeight": 10,
-          "dutyModifier": 0,
-          "weightTier": "role-defining/core",
-          "coreSoftFloorApplies": true,
-          "softFloorIfAttrLt6": 0.75,
-          "softFloorIfAttrLt8": 0.85,
-          "softFloorIfAttrLt10": 0.93,
-          "normalMultiplierIfAttrGe10": 1.0
-        },
-        "kicking": {
-          "effectiveWeight": 4,
-          "dutyModifier": 0,
-          "weightTier": "useful",
-          "coreSoftFloorApplies": false
-        },
-        "oneOnOnes": {
-          "effectiveWeight": 10,
-          "dutyModifier": 0,
-          "weightTier": "role-defining/core",
-          "coreSoftFloorApplies": true,
-          "softFloorIfAttrLt6": 0.75,
-          "softFloorIfAttrLt8": 0.85,
-          "softFloorIfAttrLt10": 0.93,
-          "normalMultiplierIfAttrGe10": 1.0
-        },
-        "passing": {
-          "effectiveWeight": 2,
-          "dutyModifier": 0,
-          "weightTier": "marginal",
-          "coreSoftFloorApplies": false
-        },
-        "positioning": {
-          "effectiveWeight": 8,
-          "dutyModifier": 0,
-          "weightTier": "primary",
-          "coreSoftFloorApplies": false
-        },
-        "reflexes": {
-          "effectiveWeight": 10,
-          "dutyModifier": 0,
-          "weightTier": "role-defining/core",
-          "coreSoftFloorApplies": true,
-          "softFloorIfAttrLt6": 0.75,
-          "softFloorIfAttrLt8": 0.85,
-          "softFloorIfAttrLt10": 0.93,
-          "normalMultiplierIfAttrGe10": 1.0
-        },
-        "rushingOut": {
-          "effectiveWeight": 3,
-          "dutyModifier": 0,
-          "weightTier": "useful",
-          "coreSoftFloorApplies": false
-        },
-        "throwing": {
-          "effectiveWeight": 4,
-          "dutyModifier": 0,
-          "weightTier": "useful",
-          "coreSoftFloorApplies": false
-        }
+        "aerialReach": 8,
+        "agility": 6,
+        "anticipation": 4,
+        "commandOfArea": 8,
+        "communication": 6,
+        "composure": 4,
+        "concentration": 8,
+        "decisions": 6,
+        "firstTouch": 2,
+        "handling": 10,
+        "kicking": 4,
+        "oneOnOnes": 10,
+        "passing": 2,
+        "positioning": 8,
+        "reflexes": 10,
+        "rushingOut": 3,
+        "throwing": 4
       }
     },
     {
@@ -136,8 +37,6 @@
       "positions": [
         "GK"
       ],
-      "positionGroup": "GK",
-      "duty": "Defend",
       "system": {
         "defensiveCover": 0.7,
         "restDefence": 1.0,
@@ -145,142 +44,26 @@
         "pressing": 0.4
       },
       "attributes": {
-        "acceleration": {
-          "effectiveWeight": 6,
-          "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        },
-        "aerialReach": {
-          "effectiveWeight": 6,
-          "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        },
-        "agility": {
-          "effectiveWeight": 5,
-          "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        },
-        "anticipation": {
-          "effectiveWeight": 8,
-          "dutyModifier": 0,
-          "weightTier": "primary",
-          "coreSoftFloorApplies": false
-        },
-        "commandOfArea": {
-          "effectiveWeight": 5,
-          "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        },
-        "communication": {
-          "effectiveWeight": 5,
-          "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        },
-        "composure": {
-          "effectiveWeight": 8,
-          "dutyModifier": 0,
-          "weightTier": "primary",
-          "coreSoftFloorApplies": false
-        },
-        "concentration": {
-          "effectiveWeight": 5,
-          "dutyModifier": 1,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        },
-        "decisions": {
-          "effectiveWeight": 8,
-          "dutyModifier": 0,
-          "weightTier": "primary",
-          "coreSoftFloorApplies": false
-        },
-        "firstTouch": {
-          "effectiveWeight": 6,
-          "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        },
-        "handling": {
-          "effectiveWeight": 9,
-          "dutyModifier": 1,
-          "weightTier": "role-defining/core",
-          "coreSoftFloorApplies": true,
-          "softFloorIfAttrLt6": 0.75,
-          "softFloorIfAttrLt8": 0.85,
-          "softFloorIfAttrLt10": 0.93,
-          "normalMultiplierIfAttrGe10": 1.0
-        },
-        "kicking": {
-          "effectiveWeight": 6,
-          "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        },
-        "oneOnOnes": {
-          "effectiveWeight": 8,
-          "dutyModifier": 0,
-          "weightTier": "primary",
-          "coreSoftFloorApplies": false
-        },
-        "pace": {
-          "effectiveWeight": 6,
-          "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        },
-        "passing": {
-          "effectiveWeight": 6,
-          "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        },
-        "positioning": {
-          "effectiveWeight": 9,
-          "dutyModifier": 1,
-          "weightTier": "role-defining/core",
-          "coreSoftFloorApplies": true,
-          "softFloorIfAttrLt6": 0.75,
-          "softFloorIfAttrLt8": 0.85,
-          "softFloorIfAttrLt10": 0.93,
-          "normalMultiplierIfAttrGe10": 1.0
-        },
-        "reflexes": {
-          "effectiveWeight": 10,
-          "dutyModifier": 0,
-          "weightTier": "role-defining/core",
-          "coreSoftFloorApplies": true,
-          "softFloorIfAttrLt6": 0.75,
-          "softFloorIfAttrLt8": 0.85,
-          "softFloorIfAttrLt10": 0.93,
-          "normalMultiplierIfAttrGe10": 1.0
-        },
-        "rushingOut": {
-          "effectiveWeight": 10,
-          "dutyModifier": 0,
-          "weightTier": "role-defining/core",
-          "coreSoftFloorApplies": true,
-          "softFloorIfAttrLt6": 0.75,
-          "softFloorIfAttrLt8": 0.85,
-          "softFloorIfAttrLt10": 0.93,
-          "normalMultiplierIfAttrGe10": 1.0
-        },
-        "technique": {
-          "effectiveWeight": 4,
-          "dutyModifier": 0,
-          "weightTier": "useful",
-          "coreSoftFloorApplies": false
-        },
-        "throwing": {
-          "effectiveWeight": 6,
-          "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
-        }
+        "acceleration": 6,
+        "aerialReach": 6,
+        "agility": 5,
+        "anticipation": 8,
+        "commandOfArea": 5,
+        "communication": 5,
+        "composure": 8,
+        "concentration": 5,
+        "decisions": 8,
+        "firstTouch": 6,
+        "handling": 9,
+        "kicking": 6,
+        "oneOnOnes": 8,
+        "pace": 6,
+        "passing": 6,
+        "positioning": 9,
+        "reflexes": 10,
+        "rushingOut": 10,
+        "technique": 4,
+        "throwing": 6
       }
     }
   ]

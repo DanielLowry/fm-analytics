@@ -13,7 +13,6 @@ from fm_analytics.analytics.role_scoring import (
 )
 from fm_analytics.analytics.role_weights import (
     MAX_EFFECTIVE_WEIGHT,
-    RoleWeightsCatalogue,
     parse_attribute_weights,
     role_documents,
 )
@@ -61,6 +60,50 @@ class AttributeEmphasis:
                 )
         if len(self.positions) != len(set(self.positions)) or not all(self.positions):
             raise ValueError("emphasis positions must be unique, non-empty names")
+
+    def applies_to(self, position: str) -> bool:
+        return not self.positions or position in self.positions
+
+
+# The attribute scale a taper level is on (the same 1-20 scale as a player's
+# attributes and role_scoring.ScoringPolicy).
+TAPER_SCALE_MINIMUM = 1
+TAPER_SCALE_MAXIMUM = 20
+
+
+@dataclass(frozen=True)
+class AttributeTaper:
+    """A level below which a player's fit for this tactic tapers away.
+
+    This is deliberately not a minimum. Nobody is ruled out: a player at or above
+    `below` is unaffected, and below it his slot score is multiplied by a factor
+    that falls smoothly with the shortfall (see `attribute_taper`), so a player
+    whose other attributes are strong enough can still be the best available.
+
+    With no `positions` it applies to the whole team; with positions, only to
+    slots at those positions, exactly as an emphasis block does.
+    """
+
+    attribute: str
+    below: int
+    positions: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.attribute:
+            raise ValueError("an attribute taper must name an attribute")
+        if (
+            not isinstance(self.below, int)
+            or isinstance(self.below, bool)
+            or not TAPER_SCALE_MINIMUM < self.below <= TAPER_SCALE_MAXIMUM
+        ):
+            raise ValueError(
+                f"taper level for {self.attribute!r} must be a whole number from "
+                f"{TAPER_SCALE_MINIMUM + 1} to {TAPER_SCALE_MAXIMUM} "
+                f"(attributes run {TAPER_SCALE_MINIMUM}-{TAPER_SCALE_MAXIMUM}, "
+                f"so nothing sits below {TAPER_SCALE_MINIMUM}), got {self.below!r}"
+            )
+        if len(self.positions) != len(set(self.positions)) or not all(self.positions):
+            raise ValueError("taper positions must be unique, non-empty names")
 
     def applies_to(self, position: str) -> bool:
         return not self.positions or position in self.positions
@@ -172,6 +215,12 @@ class TacticDefinition:
     # attribute, so a centre-back that ignores crossing keeps ignoring it.
     # Every block covering a slot is summed, then clamped to the 0-10 scale.
     attribute_emphasis: tuple[AttributeEmphasis, ...] = ()
+    # Levels below which a player's fit tapers away, per attribute and optionally
+    # per position. Unlike emphasis these are not deltas on a weight: they scale
+    # the finished slot score, because a weighted average can never say "this
+    # tactic does not work without passing" (a midfielder on passing 4 costs about
+    # 8% of his score however much the role values passing).
+    attribute_taper: tuple[AttributeTaper, ...] = ()
 
     @property
     def emphasised_attributes(self) -> tuple[str, ...]:
@@ -193,6 +242,25 @@ class TacticDefinition:
                     f"tactic {self.key!r} emphasises positions it does not field: "
                     f"{unfielded!r} (it fields {sorted(fielded)!r})"
                 )
+        for taper in self.attribute_taper:
+            unfielded = sorted(set(taper.positions) - fielded)
+            if unfielded:
+                raise ValueError(
+                    f"tactic {self.key!r} tapers {taper.attribute!r} at positions it does "
+                    f"not field: {unfielded!r} (it fields {sorted(fielded)!r})"
+                )
+        for position in fielded:
+            seen: set[str] = set()
+            for taper in self.attribute_taper:
+                if not taper.applies_to(position):
+                    continue
+                if taper.attribute in seen:
+                    # Applying it twice would quietly double the penalty.
+                    raise ValueError(
+                        f"tactic {self.key!r} tapers {taper.attribute!r} more than once "
+                        f"for position {position!r}"
+                    )
+                seen.add(taper.attribute)
         for slot in self.slots:
             for attribute, delta in slot.attribute_emphasis.items():
                 if not isinstance(delta, int) or isinstance(delta, bool):
@@ -268,6 +336,11 @@ class FootballCatalogue:
     slot_roles: Mapping[tuple[str, str], RoleDefinition] = field(
         default_factory=dict, compare=False, repr=False
     )
+    # Tapers that apply to each slot, keyed by slot key. Only populated on a
+    # catalogue returned by `for_tactic`.
+    slot_tapers: Mapping[str, tuple[AttributeTaper, ...]] = field(
+        default_factory=dict, compare=False, repr=False
+    )
     # True on a catalogue returned by `for_tactic`. Its roles are computed, not
     # authored: emphasis has already been applied and may have taken a weight to
     # zero, dropping that attribute. Re-checking authored emphasis names against
@@ -311,7 +384,14 @@ class FootballCatalogue:
             )
             if total != whole_team:
                 slot_totals[slot.key] = total
-        if not whole_team and not slot_totals:
+        slot_tapers = {
+            slot.key: applicable
+            for slot in tactic.slots
+            if (applicable := tuple(
+                taper for taper in tactic.attribute_taper if taper.applies_to(slot.position)
+            ))
+        }
+        if not whole_team and not slot_totals and not slot_tapers:
             return self
         cached = self._derived.get(tactic_key)
         if cached is not None:
@@ -323,10 +403,16 @@ class FootballCatalogue:
             if slot.key in slot_totals
             for role_key in slot.role_keys
         }
-        derived = replace(self, roles=roles, slot_roles=slot_roles, tactic_view=True)
+        derived = replace(
+            self, roles=roles, slot_roles=slot_roles, slot_tapers=slot_tapers, tactic_view=True
+        )
         # Worst case under threading is building this twice; both are equal.
         self._derived[tactic_key] = derived
         return derived
+
+    def tapers_for_slot(self, slot: TacticSlot) -> tuple[AttributeTaper, ...]:
+        """The attribute tapers that apply to whoever fills this slot."""
+        return self.slot_tapers.get(slot.key, ())
 
     def role_for_slot(self, slot: TacticSlot, role_key: str) -> RoleDefinition:
         """The role as this slot weights it: a slot override, else the role."""
@@ -350,6 +436,12 @@ class FootballCatalogue:
         for key, tactic in self.tactics.items():
             if key != tactic.key or tactic.catalogue_version != self.version:
                 raise ValueError("tactic keys and versions must match their catalogue")
+            if not self.tactic_view:
+                misspelled = sorted(
+                    {t.attribute for t in tactic.attribute_taper} - known_attributes
+                )
+                if misspelled:
+                    raise ValueError(f"tactic {key!r} tapers unknown attributes {misspelled!r}")
             # A misspelled attribute would weight nothing and say nothing.
             for where, emphasis in () if self.tactic_view else (
                 *((key, block.attributes) for block in tactic.attribute_emphasis),
@@ -446,78 +538,18 @@ def _emphasised(
     return replace(role, attributes=attributes)
 
 
-def _attributes_from_weights(
-    *,
-    catalogue_key: str,
-    required: tuple[str, ...],
-    desirable: tuple[str, ...],
-    weight_catalogue: RoleWeightsCatalogue | None,
-) -> tuple[RoleAttribute, ...]:
-    """Build RoleAttribute tuple from a separate weights catalogue when given.
-
-    A role that carries its own `attributes` never comes through here (see
-    `_role_from_json`); this path serves standalone weights documents and the
-    required/desirable fallback below.
-
-    Only `effective_weight` feeds scoring; every other field
-    `AttributeWeightConfig` carries (duty modifier, soft floors, ...) is
-    reserved data for the not-yet-implemented nonlinear contribution model
-    -- see that dataclass's docstring in `role_weights.py`.
-    """
-    if weight_catalogue is not None:
-        # A catalogue role with no weights entry must fail here, not fall back.
-        # The fallback below gives every attribute a flat 2.0, which scores
-        # plausibly enough to look fine on a page while being badly wrong --
-        # exactly what happened when role_weights split roles by position
-        # (wb_support -> wb_dl_dr_support/wb_wbl_wbr_support) and the catalogue
-        # still named the old keys.
-        entry = weight_catalogue.roles.get(catalogue_key)
-        if entry is None:
-            raise ValueError(
-                f"role {catalogue_key!r} has no entry in role weights "
-                f"{weight_catalogue.version!r}; catalogue and weights disagree"
-            )
-        return tuple(
-            RoleAttribute(name=name, weight=cfg.effective_weight)
-            for name, cfg in entry.attributes.items()
-            if cfg.effective_weight > 0
-        )
-    # Only reachable when no weight catalogue was supplied at all (tests that
-    # build a catalogue from required/desirable alone).
-    return tuple(
-        RoleAttribute(name=name, weight=2.0)
-        for name in required
-    ) + tuple(
-        RoleAttribute(name=name, weight=1.0)
-        for name in desirable
-    )
-
-
-def _role_from_json(
-    raw: Mapping[str, Any],
-    *,
-    version: str,
-    weight_catalogue: RoleWeightsCatalogue | None = None,
-) -> RoleDefinition:
+def _role_from_json(raw: Mapping[str, Any], *, version: str) -> RoleDefinition:
+    _only_known_keys(raw, _ROLE_KEYS, f"role {raw.get('key')!r}")
     key = _str(raw, "key")
-    if "attributes" in raw:
-        attributes = tuple(
-            RoleAttribute(name=name, weight=cfg.effective_weight)
-            for name, cfg in parse_attribute_weights(key, raw["attributes"]).items()
-            if cfg.effective_weight > 0
-        )
-    else:
-        attributes = _attributes_from_weights(
-            catalogue_key=key,
-            required=_optional_str_tuple(raw, "required"),
-            desirable=_optional_str_tuple(raw, "desirable"),
-            weight_catalogue=weight_catalogue,
-        )
     return RoleDefinition(
         key=key,
         name=_str(raw, "name"),
         eligible_positions=_str_tuple(raw, "positions"),
-        attributes=attributes,
+        attributes=tuple(
+            RoleAttribute(name=name, weight=weight)
+            for name, weight in parse_attribute_weights(key, raw.get("attributes")).items()
+            if weight > 0
+        ),
         catalogue_version=version,
         system_traits=_number_mapping(raw.get("system"), "role system"),
     )
@@ -534,6 +566,7 @@ def _slot_from_json(raw: Mapping[str, Any]) -> TacticSlot:
     were present -- which made editing `role` on such a slot a no-op with
     no warning).
     """
+    _only_known_keys(raw, _SLOT_KEYS, f"slot {raw.get('key')!r}")
     role_key = _str(raw, "role")
     alternate_role_keys = _str_tuple(raw, "roles") if "roles" in raw else ()
     if role_key in alternate_role_keys:
@@ -552,6 +585,7 @@ def _slot_from_json(raw: Mapping[str, Any]) -> TacticSlot:
 
 
 def _tactic_from_json(raw: Mapping[str, Any], *, version: str) -> TacticDefinition:
+    _only_known_keys(raw, _TACTIC_KEYS, f"tactic {raw.get('key')!r}")
     slots_raw = raw.get("slots")
     if not isinstance(slots_raw, list):
         raise ValueError(f"tactic {raw.get('key')!r} is missing its slots list")
@@ -579,13 +613,11 @@ def _tactic_from_json(raw: Mapping[str, Any], *, version: str) -> TacticDefiniti
         when_not_to_use=raw.get("whenNotToUse") or "",
         instruction_rationale=_string_mapping(raw.get("instructionRationale"), "instructionRationale"),
         attribute_emphasis=_emphasis_blocks(raw.get("attributeEmphasis"), _str(raw, "key")),
+        attribute_taper=_taper_blocks(raw.get("attributeTaper"), _str(raw, "key")),
     )
 
 
-def load_catalogue(
-    path: Path = _DATA_PATH,
-    weight_catalogue: RoleWeightsCatalogue | None = None,
-) -> FootballCatalogue:
+def load_catalogue(path: Path = _DATA_PATH) -> FootballCatalogue:
     """Load and validate a versioned football catalogue from JSON.
 
     `path` is either a data directory (`catalogue.json` plus `roles/` and
@@ -608,13 +640,18 @@ def load_catalogue(
         document = _read_json(path)
         roles_raw = document.get("roles")
         tactics_raw = document.get("tactics")
+    _only_known_keys(
+        document,
+        _CATALOGUE_KEYS if path.is_dir() else _CATALOGUE_KEYS | {"roles", "tactics"},
+        f"catalogue {path.name}",
+    )
     version = _str(document, "version")
     if not isinstance(roles_raw, list) or not isinstance(tactics_raw, list):
         raise ValueError(f"catalogue {path} must define roles and tactics")
     roles = {
         role.key: role
         for role in (
-            _role_from_json(entry, version=version, weight_catalogue=weight_catalogue)
+            _role_from_json(entry, version=version)
             for entry in roles_raw
         )
     }
@@ -674,11 +711,38 @@ def _tactic_documents(data_dir: Path) -> list[Mapping[str, Any]]:
 
 
 def _exclusion_group_from_json(raw: Mapping[str, Any]) -> RoleExclusionGroup:
+    _only_known_keys(raw, _EXCLUSION_KEYS, f"exclusion group {raw.get('name')!r}")
     return RoleExclusionGroup(
         name=_str(raw, "name"),
         position=_str(raw, "position") if "position" in raw else None,
         role_keys=frozenset(_str_tuple(raw, "roles")),
     )
+
+
+# Every key the loader reads, per kind of entry. A key outside these is an error,
+# not a silent no-op: config that nothing reads only misleads whoever edits it
+# (a typo such as `whyThisShap` would otherwise be dropped without a word).
+_ROLE_KEYS = frozenset({"key", "name", "positions", "system", "attributes"})
+_TACTIC_KEYS = frozenset({
+    "key", "name", "formation", "mentality", "instructions", "slots", "system",
+    "style", "description", "whyGood", "whyThisShape", "whenToUse", "whenNotToUse",
+    "instructionRationale", "keyRequirements", "tags", "attributeEmphasis",
+    "attributeTaper",
+})
+_TAPER_KEYS = frozenset({"attribute", "taperBelow", "positions"})
+_SLOT_KEYS = frozenset({"key", "position", "role", "roles", "why", "attributeEmphasis"})
+_SYSTEM_KEYS = frozenset({"minimums", "maximumAttackDuties", "maximumCreators"})
+_EXCLUSION_KEYS = frozenset({"name", "position", "roles"})
+_CATALOGUE_KEYS = frozenset({"version", "exclusiveRoleGroups"})
+
+
+def _only_known_keys(raw: Mapping[str, Any], known: frozenset[str], where: str) -> None:
+    unknown = sorted(set(raw) - known)
+    if unknown:
+        raise ValueError(
+            f"{where}: unknown key(s) {unknown!r}. Nothing reads them, so they are not "
+            f"allowed (check the spelling). Known keys: {sorted(known)!r}"
+        )
 
 
 def _str(raw: Mapping[str, Any], name: str) -> str:
@@ -693,6 +757,29 @@ def _str_tuple(raw: Mapping[str, Any], name: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise ValueError(f"{name!r} must be an array of strings")
     return tuple(value)
+
+
+def _taper_blocks(value: Any, tactic_key: str) -> tuple[AttributeTaper, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        raise ValueError(
+            f"tactic {tactic_key!r}: attributeTaper must be a list, each entry "
+            '{"attribute": "passing", "taperBelow": 12} with an optional "positions": [...]'
+        )
+    tapers = []
+    for index, raw in enumerate(value):
+        if not isinstance(raw, dict):
+            raise ValueError(f"tactic {tactic_key!r}: attributeTaper entry {index} must be an object")
+        _only_known_keys(raw, _TAPER_KEYS, f"tactic {tactic_key!r} attributeTaper entry {index}")
+        tapers.append(
+            AttributeTaper(
+                attribute=_str(raw, "attribute"),
+                below=raw.get("taperBelow"),
+                positions=_str_tuple(raw, "positions") if "positions" in raw else (),
+            )
+        )
+    return tuple(tapers)
 
 
 def _emphasis_blocks(value: Any, tactic_key: str) -> tuple[AttributeEmphasis, ...]:
@@ -740,10 +827,6 @@ def _string_mapping(value: Any, name: str) -> Mapping[str, str]:
     return dict(value)
 
 
-def _optional_str_tuple(raw: Mapping[str, Any], name: str) -> tuple[str, ...]:
-    return _str_tuple(raw, name) if name in raw else ()
-
-
 def _number_mapping(value: Any, name: str) -> Mapping[str, float]:
     if value is None:
         return {}
@@ -764,6 +847,7 @@ def _system_requirements(value: Any) -> TacticSystemRequirements:
         return TacticSystemRequirements()
     if not isinstance(value, dict):
         raise ValueError("tactic system must be an object")
+    _only_known_keys(value, _SYSTEM_KEYS, "tactic system")
     return TacticSystemRequirements(
         minimums=_number_mapping(value.get("minimums"), "tactic system minimums"),
         maximum_attack_duties=value.get("maximumAttackDuties"),

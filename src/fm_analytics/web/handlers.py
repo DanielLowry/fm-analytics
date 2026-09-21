@@ -478,10 +478,22 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             warnings = (
                 f"<p class='warn'>{html.escape(warning_text)}</p>" if warning_text else ""
             )
+            taper_step = (
+                f"→ ×{assignment.taper_multiplier.central:.2f} attribute taper "
+                f"→ <b>{_band(assignment.tapered_score)}</b> "
+                if assignment.taper_notes else ""
+            )
+            if assignment.taper_notes:
+                warnings += (
+                    "<p class='warn'>Below this tactic's attribute levels: "
+                    + html.escape("; ".join(assignment.taper_notes))
+                    + ". Fit tapers off gradually, so he can still be the best choice.</p>"
+                )
             score_path = (
                 f"<b>{_band(assignment.intrinsic_role_score.score)}</b> attribute-based "
                 f"→ ×{assignment.familiarity_multiplier:.2f} familiarity "
                 f"→ <b>{_band(assignment.in_position_score)}</b> in-position "
+                f"{taper_step}"
                 f"→ −{explanation.readiness_score_cost:.1f} readiness "
                 f"→ <b>{_band(assignment.selection_score)}</b> today"
             )

@@ -230,6 +230,20 @@ def _median_score(
     return round(total, 6)
 
 
+def observation_band(
+    observation: AttributeObservation, policy: ScoringPolicy = ScoringPolicy()
+) -> ScoreBand:
+    """An observation as (lower, central, upper) values on the attribute scale.
+
+    A known value is all three; a scouted range spans its bounds with the
+    midpoint central; an unknown value spans the whole scale with the policy's
+    unknown-central (the minimum) as its central estimate, so a poorly known
+    player cannot look better than a well known one.
+    """
+
+    return _raw_band(observation, policy)
+
+
 def _raw_band(
     observation: AttributeObservation, policy: ScoringPolicy
 ) -> ScoreBand:

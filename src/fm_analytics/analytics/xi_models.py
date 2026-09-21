@@ -194,6 +194,34 @@ class SlotAssignment:
     familiarity_multiplier: float
     familiarity_warnings: tuple[str, ...]
     selection_score: ScoreBand
+    # How far this player falls short of the tactic's attribute levels, as a
+    # multiplier band (1.0 = no shortfall), and why. See `attribute_taper`.
+    taper_multiplier: ScoreBand = ScoreBand(1.0, 1.0, 1.0)
+    taper_notes: tuple[str, ...] = ()
+
+    @property
+    def tapered_attribute_score(self) -> ScoreBand:
+        """The attribute-based role score after this tactic's taper.
+
+        This, not `intrinsic_role_score`, is the like-for-like figure to compare
+        a starter with his cover: both have the taper applied.
+        """
+        score, taper = self.intrinsic_role_score.score, self.taper_multiplier
+        return ScoreBand(
+            lower=round(score.lower * taper.lower, 6),
+            central=round(score.central * taper.central, 6),
+            upper=round(score.upper * taper.upper, 6),
+        )
+
+    @property
+    def tapered_score(self) -> ScoreBand:
+        """After position familiarity and the taper, before readiness."""
+        base, taper = self.in_position_score, self.taper_multiplier
+        return ScoreBand(
+            lower=round(base.lower * taper.lower, 6),
+            central=round(base.central * taper.central, 6),
+            upper=round(base.upper * taper.upper, 6),
+        )
 
     @property
     def in_position_score(self) -> ScoreBand:

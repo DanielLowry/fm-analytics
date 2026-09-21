@@ -58,7 +58,6 @@ def explain_tactic_selection(
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
     system_policy: SystemFitPolicy = SystemFitPolicy(),
 ) -> TacticSelectionExplanation:
-    catalogue = catalogue.for_tactic(evaluation.tactic.key)
     """Explain each starter with like-for-like and whole-XI comparisons.
 
     Alternatives are scored in the starter's exact slot and selected role.
@@ -66,6 +65,7 @@ def explain_tactic_selection(
     normal optimiser reallocates every other player.  This distinguishes
     "weaker in this job" from "stronger here, but needed elsewhere".
     """
+    catalogue = catalogue.for_tactic(evaluation.tactic.key)
     if alternative_limit < 0:
         raise ValueError("alternative limit cannot be negative")
     current_slots = {
@@ -126,8 +126,7 @@ def explain_tactic_selection(
             SlotSelectionExplanation(
                 starter=starter,
                 readiness_score_cost=round(
-                    starter.in_position_score.central
-                    - starter.selection_score.central,
+                    starter.tapered_score.central - starter.selection_score.central,
                     6,
                 ),
                 alternatives=tuple(alternatives),

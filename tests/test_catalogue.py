@@ -70,8 +70,7 @@ class CatalogueLoaderTests(unittest.TestCase):
                     "key": "gk",
                     "name": "Keeper",
                     "positions": ["GK"],
-                    "required": ["reflexes"],
-                    "desirable": ["handling"],
+                    "attributes": {"reflexes": 8, "handling": 4},
                 }
             ],
             "tactics": [
@@ -111,10 +110,12 @@ class CatalogueLoaderTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "duplicate role"):
                 load_catalogue(path)
 
-    def test_rejects_a_role_missing_required_attributes(self) -> None:
+    def test_rejects_a_role_with_no_attributes(self) -> None:
+        # There is no fallback weighting: a role with no attributes is an error,
+        # not a flat guess that would score plausibly while being badly wrong.
         with tempfile.TemporaryDirectory() as directory:
             document = self._minimal_document()
-            del document["roles"][0]["required"]
+            del document["roles"][0]["attributes"]
             path = self._write(Path(directory), document)
 
             with self.assertRaises(ValueError):

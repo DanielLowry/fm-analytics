@@ -6,7 +6,8 @@ from statistics import median
 from typing import Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue, TacticSlot
-from fm_analytics.analytics.role_scoring import RoleScore, score_role
+from fm_analytics.analytics.attribute_taper import assess_tapers, taper_role_score
+from fm_analytics.analytics.role_scoring import RoleDefinition, RoleScore, score_role
 from fm_analytics.analytics.xi_selection import (
     PlayerSelectionInput,
     ReadinessPolicy,
@@ -104,7 +105,7 @@ def assess_weaknesses(
     starter_ids = {assignment.player_id for assignment in evaluation.assignments}
     reference = round(
         median(
-            assignment.intrinsic_role_score.score.central
+            assignment.tapered_attribute_score.central
             for assignment in evaluation.assignments
         )
         if evaluation.assignments
@@ -163,7 +164,7 @@ def assess_weaknesses(
                 )
             )
             continue
-        starter_score = starter.intrinsic_role_score.score.central
+        starter_score = starter.tapered_attribute_score.central
         backup_bar = round(starter_score * policy.backup_ratio, 6)
         if starter_score < starter_bar:
             weaknesses.append(
@@ -218,7 +219,7 @@ def assess_weaknesses(
                     f"{cover_names[player_id]} is first cover for multiple simultaneous slots",
                     round(
                         max(
-                            starters[key].intrinsic_role_score.score.central
+                            starters[key].tapered_attribute_score.central
                             for key in slot_keys
                             if key in starters
                         )
@@ -239,6 +240,23 @@ def assess_weaknesses(
     )
 
 
+def _tactic_role_score(
+    catalogue: FootballCatalogue,
+    slot: TacticSlot,
+    role: RoleDefinition,
+    player: PlayerSelectionInput,
+) -> RoleScore:
+    """A player's role score in this tactic's slot, with its attribute taper applied.
+
+    Cover is judged like for like with the starter he would replace, whose score
+    (`SlotAssignment.tapered_attribute_score`) carries the same taper.
+    """
+    return taper_role_score(
+        score_role(role, player.attributes),
+        assess_tapers(catalogue.tapers_for_slot(slot), player.attributes),
+    )
+
+
 def _backups_for_slot(
     slot: TacticSlot,
     role_key: str,
@@ -256,7 +274,7 @@ def _backups_for_slot(
         candidate = DepthCandidate(
             player_id=player.id,
             player_name=player.name,
-            role_score=score_role(role, player.attributes),
+            role_score=_tactic_role_score(catalogue, slot, role, player),
         )
         target = (
             available
@@ -285,7 +303,7 @@ def _occupied_starter_cover(
         DepthCandidate(
             player_id=player.id,
             player_name=player.name,
-            role_score=score_role(role, player.attributes),
+            role_score=_tactic_role_score(catalogue, slot, role, player),
         )
         for player in players
         if player.id in starter_ids and slot.position in player.positions

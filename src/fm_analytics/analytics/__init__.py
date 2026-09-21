@@ -21,6 +21,7 @@ from fm_analytics.analytics.catalogue import (
     TacticSlot,
     TacticSystemRequirements,
 )
+from fm_analytics.analytics.attribute_taper import AttributeTaperPolicy
 from fm_analytics.analytics.xi_selection import (
     EffectiveAndPotentialRecommendation,
     FamiliarityPolicy,
@@ -191,6 +192,7 @@ __all__ = [
     "TacticSlot",
     "TacticSelectionExplanation",
     "TacticSystemRequirements",
+    "AttributeTaperPolicy",
     "TaggedWeakness",
     "TrainingTarget",
     "Weakness",

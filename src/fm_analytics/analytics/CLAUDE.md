@@ -29,6 +29,16 @@ on each slot); it is not scoring input, and it must be kept in step with the
 roles, alternates and instructions it describes. The wheel picks these files up from the package tree; don't
 enumerate them in `pyproject.toml`.
 
+## No ignored config
+
+The loader rejects any key it does not read (roles, tactics, slots, system blocks,
+exclusion groups, the catalogue file), naming the key and listing what is
+allowed. That is deliberate: config that nothing reads only misleads whoever
+edits it, and a misspelled key (`whyThisShap`) would otherwise be dropped
+silently. Do not add a field "for later"; add it with the code that reads it. (A
+per-attribute duty modifier and soft-floor table once shipped in the role files
+unread, and were removed.)
+
 ## Where role choice actually happens
 
 A tactic slot's role is pinned by default. `TacticDefinition.slots` name a
@@ -97,6 +107,41 @@ overturn what a role fundamentally asks for.
 Tactic-free surfaces (the Squad roster, Roles, Scouting) deliberately stay on
 base weights, so a player's best role does not move between pages.
 
+## Attribute taper
+
+A tactic may declare `attributeTaper`: a list of `{"attribute": "passing",
+"taperBelow": 12, "positions": ["MC"]}` (positions optional, as for emphasis).
+Below the level a player's slot score is multiplied by
+`max(0.5, 1 - 0.06 * shortfall)`; at or above it he is untouched. The name is
+deliberate: this is a **taper, not a minimum**. There is no cliff and nobody is
+ruled out. Several tapers multiply, floored at 0.35 so no one is scored to zero.
+`taperBelow` is a whole number 2-20; naming an unfielded position, a misspelled
+attribute, or tapering one attribute twice for a position is an error.
+
+Why it exists: a weighted average can never say "this tactic does not work
+without passing" (a midfielder on passing 4 costs ~8% of his score however much
+the role values passing). Emphasis moves a weight; a taper scales the finished
+score.
+
+**Calibration to know about.** The maximum score is 100, so however good a short
+player's other attributes are, a big enough shortfall cannot be overcome. Against
+a rival on 60: 3 points short needs 73, 5 short needs 86, 6 short needs 94, and 7+
+is impossible. So the defaults are "heavy but survivable" up to about 5 points
+short and behave as a bar beyond that. The knob is
+`attribute_taper.AttributeTaperPolicy` (rate, single floor, combined floor); it is
+not yet part of `RecommendationPolicy`, so it is a default argument, not a UI
+setting.
+
+The taper is applied per player and slot, independent of the other ten, which
+keeps the exact assignment in `assignment_solver` exact. It reaches selection,
+bench, substitution cover, explanations, and the depth/weakness report (starter
+and cover are both tapered, or a penalised starter would look better than his
+cover). A group rule such as "at least one midfielder with passing 12" would
+couple players and is deliberately not supported.
+
+Scouted ranges follow the observation band (penalised at the low end, not the
+high); an unknown attribute is the scale minimum centrally, as everywhere.
+
 ## Role versions and player assignment — read before editing
 
 `_best_role_version` first enumerates every role combination that a tactic
@@ -106,7 +151,7 @@ role version receives its own team-coherence and instruction assessment.
 
 For a fixed role version, a player's score for a slot is independent of the
 other selected players. The remaining constraint is simply that a player
-cannot fill two slots. `_maximum_total_assignment` therefore uses an exact
+cannot fill two slots. `assignment_solver._maximum_total_assignment` therefore uses an exact
 assignment solver rather than enumerating XIs or keeping a beam of partial
 ones. `_best_full_fit_assignment` repeats that solve at each possible weakest
 slot score, which preserves the mean/weakest-slot blend exactly.
@@ -131,16 +176,11 @@ silently treating it as independent.
   declared, reviewable football hypotheses, not tuned/learned weights —
   changing one is a football judgment call, worth calling out as such in
   the commit rather than treating as a pure bugfix.
-- `role_weights.py` — parses per-role, per-attribute weights, which are
-  authored inline in each role's entry under `data/roles/<position>.json`
-  (one file per position group; the JSON is the source of truth, there is no
-  CSV). Loaded once at import time into `catalogue.MVP_CATALOGUE`; don't call
-  `load_role_weights` per-request.
-  Only `effective_weight` is actually consumed by scoring — the rest of
-  `AttributeWeightConfig` (soft floors, duty modifier) is validated but
-  inert data, reserved for `docs/tactical-system-roadmap.md` items 2-3.
-  Don't assume a nonlinear or soft-threshold effect is live because the
-  field exists; check whether `catalogue._attributes_from_weights` reads it.
+- `role_weights.py` — validates per-role attribute weights, which are authored
+  inline in each role's entry under `data/roles/<position>.json` as a plain
+  `{"passing": 9}` map (one file per position group; the JSON is the source of
+  truth, there is no CSV). Loaded once at import time into
+  `catalogue.MVP_CATALOGUE`. Scoring is linear in these weights.
 - `squad_depth.py` / `bench_selection.py` / `weaknesses.py` — all consume
   the XI evaluations `xi_selection.py` already produced. They shouldn't
   re-run tactic evaluation themselves.

@@ -653,6 +653,83 @@ that the batch 1 and 2 tactics had put a style name in `formation`
 ("4-2-3-1 Enganche") where the original 25 use FM formation labels; those are
 now normalised, with the style kept in the `style` field where it belongs.
 
+## 2h. Config hygiene: nothing ignored (from review)
+
+**Rule: config that is not applied does not stay in the data.** An audit found four
+kinds of ignored config, all removed:
+
+- seven per-attribute fields on every attribute entry (`dutyModifier`,
+  `weightTier`, `coreSoftFloorApplies`, `softFloorIfAttrLt6/8/10`,
+  `normalMultiplierIfAttrGe10`) — 324 of 1,483 entries even carried the same
+  soft-floor ladder, which nothing applied;
+- two per-role labels, `duty` and `positionGroup` (the latter was read only by a
+  test; the file name now carries it and a test checks each role's `positions`
+  against it);
+- `tacticResearchNotes` in `catalogue.json`;
+- code that existed only to carry them: the standalone weights-document loader
+  and the `required`/`desirable` flat-weight fallback, which the code itself
+  called dangerous.
+
+A role's attributes are now a plain map, `"passing": 9`, so the role files went
+from 340 KB to 63 KB. **This supersedes the example in §2.2**, which still shows
+the old object form.
+
+**Enforced, not just tidied.** The loader now refuses any key it does not read, on
+roles, tactics, slots, system blocks, exclusion groups and the catalogue file,
+naming the key and listing what is allowed. Beyond the principle, that catches a
+class of silent mistake: a misspelled `whyThisShap` used to be dropped without a
+word.
+
+**Proved lossless:** the loaded catalogue compares equal object-for-object to the
+one loaded before the change, and all 126 tactic evaluations (score and every
+slot's player and role) are identical.
+
+## 2i. Attribute taper (from review)
+
+Some tactics do not work without a base level of skill: a possession side with
+midfielders on passing 6 is ineffective however good their other attributes look.
+A weighted average cannot express that. A midfielder on passing 4 in a role that
+gives passing a tenth of its weight loses only about 8% of his score, so a
+position-scoped emphasis of +2 cannot fix it either.
+
+**Design (agreed in review).** A tactic declares levels, per attribute and
+optionally per position:
+
+```json
+"attributeTaper": [{"attribute": "passing", "taperBelow": 12, "positions": ["MC"]}]
+```
+
+Below the level the slot score is multiplied by `max(0.5, 1 - 0.06 * shortfall)`.
+Several multiply, floored at 0.35. It is a smooth penalty, not a rule-out, and it
+is named for what it does: the first draft said "minimum", which implies the hard
+cut-off it is not, and the loader now refuses that word.
+
+**Applied wherever a tactic scores a player:** selection, bench, substitution
+cover, explanations and the depth report. The depth report needed care: it compares
+a starter's attribute score with his cover's, so both carry the taper, or a
+penalised starter would look better than the player who replaces him. The tactic
+page shows the taper as its own step in the score path (not booked as a readiness
+cost, which is computed as a difference and would otherwise have swallowed it) and
+says in words what fell short.
+
+**Kept exact.** The penalty is per player and slot, independent of the other ten,
+so the exact assignment is untouched. A group rule ("at least one midfielder with
+passing 12") would couple players and break that; it is deliberately out of scope.
+
+**A calibration finding, reported rather than hidden.** With the agreed 6%/point,
+the maximum score of 100 limits how far a short player's other attributes can make
+up for it. Against a rival on 60: 3 points short needs 73, 5 short needs 86, 6
+short needs 94, and 7+ cannot be overcome. So it is heavy but survivable up to
+about 5 points short and behaves as a bar beyond that. That matches "heavy", and
+only partly matches "still selectable if his other attributes are exceptional".
+The rate and floors are one policy object if you want it gentler (4%/point with a
+0.6 floor would leave room out to about 8 points).
+
+**Also from this change.** `xi_selection.py` reached the 1,000-line cap, so the
+exact assignment solver moved to `assignment_solver.py` unchanged (126 of 126
+evaluations identical before and after). No tactic ships with a taper yet: the
+levels are football claims, so they are yours to set.
+
 ## 3. Workstream A — the catalogue
 
 ### A1. Give all 65 roles system traits

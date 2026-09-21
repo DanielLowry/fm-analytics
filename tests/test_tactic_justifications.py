@@ -56,12 +56,9 @@ class ShippedJustificationTests(unittest.TestCase):
 
 class LoaderTests(unittest.TestCase):
     ROLE = {
-        "key": "gk_x", "name": "Keeper", "positions": ["GK"], "positionGroup": "GK",
-        "duty": "Defend", "system": {"defensiveCover": 0.5},
-        "attributes": {"reflexes": {
-            "effectiveWeight": 8, "dutyModifier": 0,
-            "weightTier": "core", "coreSoftFloorApplies": False,
-        }},
+        "key": "gk_x", "name": "Keeper", "positions": ["GK"],
+        "system": {"defensiveCover": 0.5},
+        "attributes": {"reflexes": 8},
     }
 
     def build(self, directory: Path, **extra) -> Path:

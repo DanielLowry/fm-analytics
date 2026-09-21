@@ -30,20 +30,20 @@ The following remain intentionally provisional:
 
 ### 1. Explicit role attribute weights — **implemented**
 
-Done. Every role/duty owns an explicit per-attribute weight
-(`effectiveWeight`, 0-10), authored inline in its role entry under
-`src/fm_analytics/analytics/data/roles/<position>.json` and loaded into the
-catalogue at import time. (It was once generated from a spreadsheet; that CSV
-and its converter were retired and the JSON is now the source of truth.) The old `required = 2` /
-`desirable = 1` label-as-weight behaviour only remains as a fallback for a
-role absent from that file, which should not happen with the current data.
+Done. Every role/duty owns an explicit per-attribute weight (0-10), authored
+inline in its role entry under
+`src/fm_analytics/analytics/data/roles/<position>.json` as a plain
+`{"passing": 9}` map and loaded into the catalogue at import time. (It was once
+generated from a spreadsheet; that CSV and its converter were retired and the
+JSON is now the source of truth.) The old `required = 2` / `desirable = 1`
+flat-weight fallback has been removed: a role with no weights is a load error.
 
 This is still **per role/duty, not per position, and not per tactic** — see
 "Attribute-aware team-instruction suitability" below and the new item
 this gap prompted, "Per-tactic role weighting", for what that still leaves
 out.
 
-### 2. Nonlinear attribute contribution — **data present, not yet applied**
+### 2. Nonlinear attribute contribution — **not implemented**
 
 Replace uniform linear scaling with functions that can depend on the role and
 tactical context:
@@ -59,14 +59,12 @@ returns.  Pace can become much more important under a high defensive line.
 Start with transparent piecewise curves and thresholds, not a black-box model.
 They should be inspectable in the catalogue and visible in explanations.
 
-The role data already carries a `dutyModifier` per attribute, ahead of
-this work landing, so no extra data pass is needed later. It is
-loaded and validated (`role_weights.AttributeWeightConfig`) but not yet read
-by scoring, which still applies `effectiveWeight` alone, linearly. Implementing
-this item means consuming that field where `catalogue._attributes_from_weights`
-currently ignores it.
+Scoring applies each role attribute's weight alone, linearly. A per-attribute
+`dutyModifier` used to ship in the role files ahead of this work, but nothing
+read it, so it was removed (config that is not applied is not kept). Implementing
+this item means adding that data back alongside the code that uses it.
 
-### 3. Soft thresholds and weak-link penalties for core attributes — **data present, not yet applied**
+### 3. Soft thresholds and weak-link penalties for core attributes — **partly implemented**
 
 Some attributes must be allowed to dominate when they are catastrophically
 low.  A weighted average should not make a Finishing-3 striker look adequate
@@ -82,11 +80,13 @@ if key_attribute < role_threshold:
 Thresholds should be limited to genuinely core requirements and should explain
 the exact cause of the penalty in the UI.
 
-As with item 2, the thresholds themselves already exist per attribute in the
-role-weights data (`coreSoftFloorApplies`, `softFloorIfAttrLt6/8/10`,
-`normalMultiplierIfAttrGe10`), loaded and validated by `role_weights.py` and
-currently unread by scoring. This is the same implementation gap as item 2,
-not a separate data-collection task.
+A **per-tactic** version is being implemented: a tactic declares, per attribute
+and optionally per position, a level below which a player's fit tapers away (see
+`attributeTaper` in `src/fm_analytics/analytics/CLAUDE.md`). The **per-role**
+version is not: a per-attribute soft-floor table used to ship in the role files
+(`coreSoftFloorApplies`, `softFloorIfAttrLt6/8/10`, `normalMultiplierIfAttrGe10`)
+but nothing read it, so it was removed rather than left as reserved config. A
+role-level taper would reuse the same mechanism.
 
 ### 1b. Per-tactic role weighting (new)
 

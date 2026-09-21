@@ -29,14 +29,5 @@
         "raum_attack"
       ]
     }
-  ],
-  "tacticResearchNotes": {
-    "purpose": "Broad baseline template set for squad-fit and tactical comparison; not claimed to be a set of optimal FM20 meta tactics.",
-    "design": [
-      "Templates cover genuinely different structures/styles rather than many near-duplicates.",
-      "Every added tactic uses only role keys already present in the supplied catalogue.",
-      "Descriptions and requirements are intended to support later tactical-coherence scoring and UI explanation.",
-      "Long-term design should allow role/duty optimisation within formations instead of treating templates as immutable."
-    ]
-  }
+  ]
 }

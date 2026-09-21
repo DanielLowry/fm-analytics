@@ -268,7 +268,7 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
         (
             tactic.style, tactic.description, tactic.why_good, tactic.key_requirements,
             tactic.tags, tactic.why_this_shape, tactic.when_to_use, tactic.when_not_to_use,
-            tactic.instruction_rationale, tactic.attribute_emphasis,
+            tactic.instruction_rationale, tactic.attribute_emphasis, tactic.attribute_taper,
         )
     ):
         return ""
@@ -304,6 +304,17 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
             f"<p class='muted'><b>Leans on:</b> {'; '.join(scopes)}. "
             "Role fit on this page is scored with these attributes weighted a little "
             "differently from the same role in another tactic.</p>"
+        )
+    if tactic.attribute_taper:
+        levels = "; ".join(
+            f"{html.escape(_readable_attribute(t.attribute))} {t.below}"
+            f" <span class='muted'>({html.escape(', '.join(t.positions) or 'whole team')})</span>"
+            for t in tactic.attribute_taper
+        )
+        parts.append(
+            f"<p class='muted'><b>Expects at least:</b> {levels}. This is a taper, not a "
+            "cut-off: a player below a level loses fit gradually the further he falls "
+            "short, and can still be selected if the rest of his game is strong.</p>"
         )
     if tactic.instruction_rationale:
         items = "".join(

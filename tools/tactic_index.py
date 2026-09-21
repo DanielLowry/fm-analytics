@@ -63,6 +63,14 @@ def leans_detail(tactic: TacticDefinition) -> str:
     return "; ".join(scopes) or "—"
 
 
+def taper_detail(tactic: TacticDefinition) -> str:
+    """`passing 12 (MC); stamina 12 (whole team)`."""
+    return "; ".join(
+        f"{readable(t.attribute)} {t.below} ({', '.join(t.positions) or 'whole team'})"
+        for t in tactic.attribute_taper
+    ) or "—"
+
+
 def first_sentence(text: str) -> str:
     head = re.split(r"(?<=[.;])\s", text.strip(), maxsplit=1)[0]
     return head.rstrip(".;")
@@ -106,6 +114,7 @@ def render() -> str:
         out += [
             "",
             f"- **Leans on:** " + leans_detail(tactic),
+            *([f"- **Expects at least (tapers below):** " + taper_detail(tactic)] if tactic.attribute_taper else []),
             f"- **Needs:** " + ("; ".join(tactic.key_requirements) or "—"),
             f"- **Instructions:** " + ("; ".join(tactic.instructions) or "—"),
             f"- **Avoid when:** {first_sentence(tactic.when_not_to_use)}",
