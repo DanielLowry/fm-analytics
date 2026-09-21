@@ -127,6 +127,30 @@
       }
     }
   ],
+  "attributeTaper": [
+    {
+      "attribute": "vision",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ]
+    },
+    {
+      "attribute": "technique",
+      "taperBelow": 9,
+      "positions": [
+        "AMC"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    }
+  ],
   "keyRequirements": [
     "An exceptional creative player with vision and technique",
     "A pressing forward with high work rate",

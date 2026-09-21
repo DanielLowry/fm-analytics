@@ -130,6 +130,30 @@
       }
     }
   ],
+  "attributeTaper": [
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "vision",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 9,
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    }
+  ],
   "keyRequirements": [
     "Excellent attacking full-backs",
     "Three capable central midfielders",

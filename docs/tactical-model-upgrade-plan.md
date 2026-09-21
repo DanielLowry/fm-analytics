@@ -727,8 +727,21 @@ The rate and floors are one policy object if you want it gentler (4%/point with 
 
 **Also from this change.** `xi_selection.py` reached the 1,000-line cap, so the
 exact assignment solver moved to `assignment_solver.py` unchanged (126 of 126
-evaluations identical before and after). No tactic ships with a taper yet: the
-levels are football claims, so they are yours to set.
+evaluations identical before and after).
+
+**Three tactics now carry mild tapers**, the three narrow shapes where the
+full-backs supply all the width and the midfield does the work: the balanced
+diamond (MC passing and first touch 8, full-back stamina 8), Trequartista 4-3-1-2
+(AMC vision 8 and technique 9, full-back stamina 8) and Positive 4-3-1-2 Narrow
+(MC passing 8, AMC vision 8, full-back stamina 9). "Mild" was set against real
+data, not intuition: in the scouting pool a midfielder's median passing is 8 and
+12 is the top decile, so a level of 12 would have penalised about 86% of players.
+At 8-9 only clearly weak players lose anything meaningful (a player 2 short loses
+12%). Crossing was deliberately left alone: full-backs in the pool have a median
+crossing of 4, so any level would penalise nearly everyone. Effect on synthetic
+squads is under 0.6 points and at most 2 starters. The levels were set from a wide
+scouting pool, not your own squad (its capture is unreadable), so treat them as a
+starting point and tune against what the tactic page shows.
 
 ## 3. Workstream A — the catalogue
 

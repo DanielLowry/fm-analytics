@@ -129,6 +129,30 @@
       }
     }
   ],
+  "attributeTaper": [
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    }
+  ],
   "keyRequirements": [
     "Full-backs with stamina/crossing",
     "Disciplined DM",
