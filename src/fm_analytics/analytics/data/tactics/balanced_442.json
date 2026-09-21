@@ -15,12 +15,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Distributes directly to the strikers or full-backs; no sweeping needed in a flat block."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back gives width behind the winger and covers when the winger goes forward."
     },
     {
       "key": "DCL",
@@ -28,7 +30,8 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender in a flat pair. Cover is the alternate."
     },
     {
       "key": "DCR",
@@ -36,32 +39,38 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but at most one of the pair can be Cover."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right."
     },
     {
       "key": "ML",
       "position": "ML",
-      "role": "winger_ml_mr_support"
+      "role": "winger_ml_mr_support",
+      "why": "Winger (Support) provides width and crosses for the two strikers."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_defend"
+      "role": "cm_defend",
+      "why": "Defensive central midfielder screens the defence and does the simple work."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "cm_support"
+      "role": "cm_support",
+      "why": "Supporting central midfielder links the wingers and strikers with the defensive midfielder."
     },
     {
       "key": "MR",
       "position": "MR",
-      "role": "winger_ml_mr_support"
+      "role": "winger_ml_mr_support",
+      "why": "Winger (Support) on the right, giving the same width and crossing."
     },
     {
       "key": "STL",
@@ -69,7 +78,8 @@
       "role": "dlf_support",
       "roles": [
         "cf_support"
-      ]
+      ],
+      "why": "Deep-lying forward (or Complete Forward) holds the ball and links with the other striker."
     },
     {
       "key": "STR",
@@ -77,7 +87,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Advanced Forward runs in behind the defence; Poacher is the alternate for a striker who finishes better than he runs."
     }
   ],
   "system": {
@@ -96,6 +107,17 @@
   "style": "Balanced 4-4-2",
   "description": "A simple two-banks-of-four structure with natural width and two complementary forwards.",
   "whyGood": "It is easy to recruit for, tactically clear and gives a useful baseline against more specialised systems.",
+  "whyThisShape": "Two flat banks of four with two strikers, the most familiar shape in the game. It is easy to understand, gives every player a clear job, and puts two strikers against two centre-backs. It is thin in central midfield against a three.",
+  "whenToUse": "As a solid default, or when you have two good strikers and two decent wingers. It is also the shape most lower-league squads can fill without a specialist.",
+  "whenNotToUse": "Against a team with three central midfielders who will pass through the middle, since your two are outnumbered.",
+  "instructionRationale": {
+    "Fairly Wide": "Wingers and full-backs stretch the opponent so the two strikers have space.",
+    "Slightly More Direct Passing": "Gets the ball to the strikers quicker than short passing does, which suits a pair of forwards.",
+    "Counter": "Breaks quickly when the ball is won, using the pace of the wingers and second striker.",
+    "Regroup": "Falls back into the two banks of four after losing the ball.",
+    "Standard Line of Engagement": "A balanced press: engages when the ball reaches the midfield banks.",
+    "Standard Defensive Line": "A balanced line keeps the block compact."
+  },
   "keyRequirements": [
     "Hard-working wide midfielders",
     "Balanced CM pair",

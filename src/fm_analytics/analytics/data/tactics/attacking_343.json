@@ -14,7 +14,8 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "A high line leaves space behind the defence, so the keeper needs to claim through balls early and distribute quickly."
     },
     {
       "key": "DCL",
@@ -22,12 +23,14 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Wide centre-back who defends the channel the wing-back has vacated. The Cover alternate lets him sit behind a more aggressive partner."
     },
     {
       "key": "DCC",
       "position": "DC",
-      "role": "bpd_defend"
+      "role": "bpd_defend",
+      "why": "Ball-playing defender in the middle starts build-up and passes through the opposition's press."
     },
     {
       "key": "DCR",
@@ -35,37 +38,44 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Wide centre-back on the other side, covering the space left by the right wing-back. Cover is the alternate if he is the safer of the two."
     },
     {
       "key": "WBL",
       "position": "WBL",
-      "role": "wb_wbl_wbr_attack"
+      "role": "wb_wbl_wbr_attack",
+      "why": "Attacking wing-back supplies the width, so the whole shape depends on him getting up the pitch and back again."
     },
     {
       "key": "WBR",
       "position": "WBR",
-      "role": "wb_wbl_wbr_attack"
+      "role": "wb_wbl_wbr_attack",
+      "why": "Mirror of the left side: with two wing-backs pushed on, the front three can play narrower and closer to the striker."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "b2b_support"
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder covers the ground the wing-backs leave and supplies the runs that support the counter-press."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "dlp_mc_support"
+      "role": "dlp_mc_support",
+      "why": "Deep-lying playmaker sets the tempo and keeps the ball moving so the back three can push up."
     },
     {
       "key": "AML",
       "position": "AML",
-      "role": "winger_aml_amr_attack"
+      "role": "winger_aml_amr_attack",
+      "why": "Winger stays wide and beats his full-back, giving the attack a wide threat to go with the inside forward."
     },
     {
       "key": "AMR",
       "position": "AMR",
-      "role": "if_attack"
+      "role": "if_attack",
+      "why": "Inside forward cuts in from the right to shoot and attack the far post, overloading the box with the striker."
     },
     {
       "key": "ST",
@@ -73,7 +83,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Advanced Forward runs in behind the defence. Poacher is the alternate for a striker who is better as a finisher than a runner."
     }
   ],
   "system": {
@@ -92,6 +103,16 @@
   "style": "Attacking 3-4-3",
   "description": "A front-foot back-three system with wing-backs stretching the pitch and a front three occupying the back line.",
   "whyGood": "Three defenders permit aggressive wing-back positions and five-lane attacking occupation.",
+  "whyThisShape": "Three centre-backs behind two attacking wing-backs put five players across the width of the pitch in attack and three forwards against a back four. The price is the space behind the wing-backs, so it only works while you keep the ball high up the pitch and win it back fast.",
+  "whenToUse": "When you are clearly the stronger side and expect the opponent to sit deep, or you need goals late. It needs wing-backs with real stamina and centre-backs who can defend wide areas.",
+  "whenNotToUse": "Against quick counter-attacking sides that target the space behind your wing-backs, or if your centre-backs are slow or your wing-backs tire before the hour.",
+  "instructionRationale": {
+    "Much Higher Line of Engagement": "Starts the press in the opponent's half, so the wing-backs' advanced positions are backed by pressure on the ball.",
+    "Higher Defensive Line": "Keeps the back three close to the midfield and the team compact; it needs pace in the centre-backs.",
+    "Shorter Passing": "Keeps possession inside the triangles the wing-backs, midfielders and forwards form.",
+    "Play Out Of Defence": "Three centre-backs are a natural build-up base and draw opposition forwards out of position.",
+    "Counter-Press": "Wins the ball straight back after a loss, before the space behind the wing-backs can be attacked."
+  },
   "keyRequirements": [
     "Mobile outside centre-backs",
     "Elite wing-back stamina",

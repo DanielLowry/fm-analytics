@@ -14,17 +14,20 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "sk_defend"
+      "role": "sk_defend",
+      "why": "Sweeper keeper covers the space behind the high line and starts moves with his feet."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "wb_dl_dr_support"
+      "role": "wb_dl_dr_support",
+      "why": "Support wing-back gives width and joins the press high up the pitch."
     },
     {
       "key": "DCL",
       "position": "DC",
-      "role": "bpd_defend"
+      "role": "bpd_defend",
+      "why": "Ball-playing defender steps out to press and starts attacks with a pass."
     },
     {
       "key": "DCR",
@@ -32,37 +35,44 @@
       "role": "cd_cover",
       "roles": [
         "cd_defend"
-      ]
+      ],
+      "why": "Cover centre-back sweeps behind his partner, since the line is high; Defend is the alternate."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "wb_dl_dr_attack"
+      "role": "wb_dl_dr_attack",
+      "why": "Attacking wing-back gives the width on the right and pushes on when the ball is won."
     },
     {
       "key": "DM",
       "position": "DM",
-      "role": "bwm_dm_support"
+      "role": "bwm_dm_support",
+      "why": "Ball-winning midfielder harries opponents in the middle and wins the ball back."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "b2b_support"
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder supports the press and runs beyond the striker when the ball is won."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "mez_attack"
+      "role": "mez_attack",
+      "why": "Mezzala runs into the half-space to arrive in the box."
     },
     {
       "key": "AML",
       "position": "AML",
-      "role": "winger_aml_amr_attack"
+      "role": "winger_aml_amr_attack",
+      "why": "Winger presses the full-back and stays wide when the ball is won."
     },
     {
       "key": "AMR",
       "position": "AMR",
-      "role": "if_attack"
+      "role": "if_attack",
+      "why": "Inside forward cuts in to shoot and attack the box."
     },
     {
       "key": "ST",
@@ -70,7 +80,8 @@
       "role": "pf_attack",
       "roles": [
         "af_attack"
-      ]
+      ],
+      "why": "Pressing forward leads the press by closing down the defenders. Advanced Forward is the alternate."
     }
   ],
   "system": {
@@ -89,6 +100,16 @@
   "style": "High-Press 4-3-3",
   "description": "An aggressive 4-3-3 designed to regain possession high and sustain pressure in the opposition half.",
   "whyGood": "The front three, energetic midfield and compressed defensive line make it easier to surround the ball.",
+  "whyThisShape": "A 4-3-3 built around a high, aggressive press: a ball-winning midfielder in front of the defence, energetic midfielders alongside him, and a pressing forward leading three attackers. The team wins the ball high and finishes attacks quickly.",
+  "whenToUse": "When you have fit, energetic players and want to play in the opponent's half, especially against sides that build slowly from the back.",
+  "whenNotToUse": "Against sides that play long over the press, or when your players lack stamina: the press cannot be kept up for 90 minutes.",
+  "instructionRationale": {
+    "Much Higher Line of Engagement": "Starts the press in the opponent's half, so the ball is won close to their goal.",
+    "Much More Urgent Pressing": "Presses with more intensity, which wins the ball more often but tires the team.",
+    "Higher Defensive Line": "Keeps the team compact so the press is close together; it needs pace in the defence.",
+    "Shorter Passing": "Keeps possession after the ball is won.",
+    "Counter-Press": "Presses at once after losing the ball, so the ball is regained before the opponent is organised."
+  },
   "keyRequirements": [
     "High work rate/stamina",
     "Fast centre-backs",

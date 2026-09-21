@@ -23,7 +23,10 @@ hand.
 and `data/tactics/<key>.json` (one file per tactic; the file name must equal
 the key). Discovery is a sorted glob, so adding a tactic is adding a file. The
 catalogue has a single version, in `catalogue.json` — never put a version in a
-file name. The wheel picks these files up from the package tree; don't
+file name. A tactic file also carries manager-facing justification text
+(`whyThisShape`, `whenToUse`, `whenNotToUse`, `instructionRationale`, and a `why`
+on each slot); it is not scoring input, and it must be kept in step with the
+roles, alternates and instructions it describes. The wheel picks these files up from the package tree; don't
 enumerate them in `pyproject.toml`.
 
 ## Where role choice actually happens

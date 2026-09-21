@@ -11,6 +11,7 @@ from urllib.parse import urlencode
 from fm_analytics.analytics import (
     ScoutingFilters,
     TacticDefinition,
+    TacticSlot,
     WeaknessKind,
     WeaknessReport,
 )
@@ -256,13 +257,18 @@ def _tactical_shortfalls(shortfalls: Sequence[str]) -> str:
 def _tactic_notes(tactic: TacticDefinition) -> str:
     """Render the catalogue author's own explanation of a tactic, if given.
 
-    These fields (style/description/whyGood/keyRequirements/tags) are
-    manager-facing commentary carried alongside the tactic in the catalogue
-    data, not scoring input -- a tactic with none of them still renders
-    correctly, since older catalogue entries may not define any.
+    These fields (style/description/whyGood/keyRequirements/tags and the
+    shape/usage/instruction justifications) are manager-facing commentary
+    carried alongside the tactic in the catalogue data, not scoring input --
+    a tactic with none of them still renders correctly, since older catalogue
+    entries may not define any.
     """
     if not any(
-        (tactic.style, tactic.description, tactic.why_good, tactic.key_requirements, tactic.tags)
+        (
+            tactic.style, tactic.description, tactic.why_good, tactic.key_requirements,
+            tactic.tags, tactic.why_this_shape, tactic.when_to_use, tactic.when_not_to_use,
+            tactic.instruction_rationale,
+        )
     ):
         return ""
     parts = []
@@ -270,6 +276,12 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
         parts.append(f"<p><b>{html.escape(tactic.style)}</b></p>")
     if tactic.description:
         parts.append(f"<p>{html.escape(tactic.description)}</p>")
+    if tactic.why_this_shape:
+        parts.append(f"<p><b>Why this shape:</b> {html.escape(tactic.why_this_shape)}</p>")
+    if tactic.when_to_use:
+        parts.append(f"<p><b>When to use it:</b> {html.escape(tactic.when_to_use)}</p>")
+    if tactic.when_not_to_use:
+        parts.append(f"<p><b>When to avoid it:</b> {html.escape(tactic.when_not_to_use)}</p>")
     if tactic.why_good:
         parts.append(f"<p class='muted'><b>Why it works:</b> {html.escape(tactic.why_good)}</p>")
     if tactic.key_requirements:
@@ -278,6 +290,15 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
             + ", ".join(html.escape(item) for item in tactic.key_requirements)
             + "</p>"
         )
+    if tactic.instruction_rationale:
+        items = "".join(
+            f"<li><b>{html.escape(instruction)}</b> — {html.escape(reason)}</li>"
+            for instruction, reason in tactic.instruction_rationale.items()
+        )
+        parts.append(
+            "<details><summary>Why these instructions</summary>"
+            f"<ul>{items}</ul></details>"
+        )
     if tactic.tags:
         parts.append(
             "<p>"
@@ -285,6 +306,25 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
             + "</p>"
         )
     return "".join(parts)
+
+
+def _slot_reasoning(slot: TacticSlot, chosen_role_key: str, chosen_role_name: str) -> str:
+    """Why this tactic has this role in this slot, if the catalogue says.
+
+    The text is written for the slot's default role. When the optimiser picked
+    an alternate instead, say so rather than presenting the default's
+    reasoning as if it described the chosen role.
+    """
+    if not slot.why:
+        return ""
+    note = ""
+    if chosen_role_key != slot.role_key:
+        note = (
+            f" <span class='muted'>(Your squad suits {html.escape(chosen_role_name)} here "
+            "better than this slot's default role, so the reasoning above is for the "
+            "default.)</span>"
+        )
+    return f"<p class='slot-why'><b>Why this role here:</b> {html.escape(slot.why)}{note}</p>"
 
 
 def _raw_position_notice(candidates: Sequence[object]) -> str:

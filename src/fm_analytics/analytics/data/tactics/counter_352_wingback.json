@@ -14,7 +14,8 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Distributes quickly to start counters."
     },
     {
       "key": "DCL",
@@ -22,12 +23,14 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Wide centre-back who defends the channel. Cover is the alternate."
     },
     {
       "key": "DCC",
       "position": "DC",
-      "role": "bpd_defend"
+      "role": "bpd_defend",
+      "why": "Ball-playing defender starts counters with a forward pass."
     },
     {
       "key": "DCR",
@@ -35,32 +38,38 @@
       "role": "cd_cover",
       "roles": [
         "cd_defend"
-      ]
+      ],
+      "why": "Cover centre-back sweeps up behind his partner and the wing-back's space; Defend is the alternate, but only one Cover can be used."
     },
     {
       "key": "WBL",
       "position": "WBL",
-      "role": "wb_wbl_wbr_support"
+      "role": "wb_wbl_wbr_support",
+      "why": "Support wing-back is the safer side and stays back more."
     },
     {
       "key": "WBR",
       "position": "WBR",
-      "role": "wb_wbl_wbr_attack"
+      "role": "wb_wbl_wbr_attack",
+      "why": "Attacking wing-back is the main wide outlet on the counter."
     },
     {
       "key": "DM",
       "position": "DM",
-      "role": "dm_support"
+      "role": "dm_support",
+      "why": "Supporting holding midfielder screens the back three and passes to the runners."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "b2b_support"
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder supports the counter with runs from deep."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "mez_attack"
+      "role": "mez_attack",
+      "why": "Mezzala breaks forward into the half-space to join the forwards."
     },
     {
       "key": "STL",
@@ -68,7 +77,8 @@
       "role": "cf_support",
       "roles": [
         "dlf_support"
-      ]
+      ],
+      "why": "Complete Forward or Deep-lying Forward holds up the ball while the others run."
     },
     {
       "key": "STR",
@@ -76,7 +86,8 @@
       "role": "p_attack",
       "roles": [
         "af_attack"
-      ]
+      ],
+      "why": "Poacher (or Advanced Forward) finishes the counter and runs in behind."
     }
   ],
   "system": {
@@ -94,6 +105,16 @@
   "style": "3-5-2 Counter",
   "description": "A back-three counter system using wing-backs for width and two forwards as immediate outlets.",
   "whyGood": "Three centre-backs protect the box while two forwards keep counter-attacking threat high.",
+  "whyThisShape": "Three centre-backs with wing-backs for width, a holding midfielder and two forwards ready to break. It defends deep with five or six players and counters through the wing-backs and forwards.",
+  "whenToUse": "Against stronger opponents who will dominate the ball, or when you have good wing-backs and forwards but a weaker midfield.",
+  "whenNotToUse": "When you need to dominate the ball, or when your wing-backs are not fit enough to cover the whole flank.",
+  "instructionRationale": {
+    "Fairly Wide": "The wing-backs provide the width this shape depends on.",
+    "Lower Tempo": "Builds calmly when the team has the ball, and saves energy for the counters.",
+    "Counter": "Attacks immediately on winning the ball, with the wing-backs and forwards as outlets.",
+    "Drop Deeper Line of Engagement": "Leaves the opponent with the ball in their own half and defends the space nearer the box.",
+    "Drop Off More Defensive Line": "Keeps the defence deep, which suits the back three and leaves space in front of them."
+  },
   "keyRequirements": [
     "Three dependable centre-backs",
     "High-stamina wing-backs",

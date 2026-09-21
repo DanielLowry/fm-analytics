@@ -16,12 +16,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Distributes quickly to the wingers or forwards to start the break."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back stays reasonably back, but supplies width when the counter is on."
     },
     {
       "key": "DCL",
@@ -29,7 +31,8 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender. Cover is the alternate."
     },
     {
       "key": "DCR",
@@ -37,32 +40,38 @@
       "role": "cd_cover",
       "roles": [
         "cd_defend"
-      ]
+      ],
+      "why": "Cover centre-back sweeps behind his partner, which suits a deeper block; Defend is the alternate."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right."
     },
     {
       "key": "ML",
       "position": "ML",
-      "role": "winger_ml_mr_support"
+      "role": "winger_ml_mr_support",
+      "why": "Winger (Support) is a quick outlet who receives the ball wide and runs at the defence."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_defend"
+      "role": "cm_defend",
+      "why": "Defensive central midfielder breaks up play and shields the back four."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "b2b_support"
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder is the runner who supports the forwards on the break."
     },
     {
       "key": "MR",
       "position": "MR",
-      "role": "winger_ml_mr_support"
+      "role": "winger_ml_mr_support",
+      "why": "Winger (Support) on the right, doing the same job as on the left."
     },
     {
       "key": "STL",
@@ -70,7 +79,8 @@
       "role": "dlf_support",
       "roles": [
         "cf_support"
-      ]
+      ],
+      "why": "Deep-lying forward (or Complete Forward) holds up the ball so the others can arrive."
     },
     {
       "key": "STR",
@@ -78,7 +88,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Advanced Forward runs in behind the defence. Poacher is the alternate."
     }
   ],
   "system": {
@@ -96,6 +107,18 @@
   "style": "Direct Counter-Attack",
   "description": "A compact 4-4-2 that accepts periods without the ball and attacks space quickly after regaining possession.",
   "whyGood": "The DLF provides an outlet while the AF and wide runners attack the space left by an advanced opponent.",
+  "whyThisShape": "A flat 4-4-2 that sits in a mid-to-low block and breaks quickly when it wins the ball, using its two wingers, a runner from midfield and two forwards. It is the simplest way to counter-attack: few players stay forward, so the rest can defend.",
+  "whenToUse": "Against a stronger or possession-based team that will leave space behind its defence, when you have quick wingers and forwards.",
+  "whenNotToUse": "Against a team that sits deep and does not leave space to run into, since the counter has nothing to attack.",
+  "instructionRationale": {
+    "Slightly More Direct Passing": "Gets the ball forward to the outlets quicker after winning it.",
+    "Higher Tempo": "Speeds up the break so the defence has no time to reorganise.",
+    "Pass Into Space": "Plays the ball behind the defence for the runners.",
+    "Counter": "Attacks straight away on winning the ball.",
+    "Regroup": "Falls back into shape after losing the ball, before the next break.",
+    "Lower Line of Engagement": "Lets the opponent have the ball in their own half, which leaves the space to counter into.",
+    "Standard Defensive Line": "A balanced line keeps the block compact without giving up too much space in behind."
+  },
   "keyRequirements": [
     "Pace in attack",
     "Hold-up forward",

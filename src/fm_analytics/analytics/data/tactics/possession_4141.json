@@ -16,17 +16,20 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "sk_defend"
+      "role": "sk_defend",
+      "why": "Sweeper keeper is the extra passer in build-up and covers the space behind a higher line."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back offers a wide passing option."
     },
     {
       "key": "DCL",
       "position": "DC",
-      "role": "bpd_defend"
+      "role": "bpd_defend",
+      "why": "Ball-playing defender starts moves with passes into midfield."
     },
     {
       "key": "DCR",
@@ -34,37 +37,44 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender who defends while his partner plays. Cover is the alternate."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right."
     },
     {
       "key": "DM",
       "position": "DM",
-      "role": "dlp_dm_support"
+      "role": "dlp_dm_support",
+      "why": "Deep-lying playmaker is the base of the team, receiving from the defence and distributing it."
     },
     {
       "key": "ML",
       "position": "ML",
-      "role": "wm_support"
+      "role": "wm_support",
+      "why": "Wide midfielder (Support) is the safer flank, keeping the shape and passing inside."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_support"
+      "role": "cm_support",
+      "why": "Supporting central midfielder provides a short passing option and links play."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "b2b_support"
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder supplies runs from deep so the possession has a target."
     },
     {
       "key": "MR",
       "position": "MR",
-      "role": "winger_ml_mr_support"
+      "role": "winger_ml_mr_support",
+      "why": "Winger (Support) is the more creative flank, so one side keeps the shape and the other provides width."
     },
     {
       "key": "ST",
@@ -72,7 +82,8 @@
       "role": "dlf_support",
       "roles": [
         "cf_support"
-      ]
+      ],
+      "why": "Lone striker who drops to link play (Deep-lying Forward) or Complete Forward."
     }
   ],
   "system": {
@@ -90,6 +101,18 @@
   "style": "Possession",
   "description": "A lower-risk possession structure with a playmaker at the base and four midfielders offering short passing options ahead.",
   "whyGood": "The DM acts as a circulation hub and the compact midfield keeps support distances short.",
+  "whyThisShape": "A 4-1-4-1 built around keeping the ball: a deep-lying playmaker sits in front of the defence, four midfielders form a passing line, and a sweeper keeper joins the build-up. It aims to control the game rather than to attack quickly.",
+  "whenToUse": "When your squad is technically better than the opponent's and you want to control the game, or when protecting a lead.",
+  "whenNotToUse": "When you need goals quickly, or when your defenders and midfield are uncomfortable on the ball. A lone striker gets little support.",
+  "instructionRationale": {
+    "Shorter Passing": "Keeps possession in short passes rather than risking it with long balls.",
+    "Lower Tempo": "Slows the game down so the team can control it.",
+    "Play Out Of Defence": "The sweeper keeper and ball-playing defender make building from the back safe.",
+    "Work Ball Into Box": "Patient movement of the ball until a clear chance opens up.",
+    "Hold Shape": "Keeps positions rather than pushing players forward, so the team stays balanced while it has the ball.",
+    "Standard Line of Engagement": "A balanced press: does not chase the ball and lose the shape.",
+    "Standard Defensive Line": "A balanced line keeps the team compact."
+  },
   "keyRequirements": [
     "Technically reliable midfield",
     "Linking striker",

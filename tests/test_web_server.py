@@ -1,3 +1,4 @@
+import html
 import json
 import tempfile
 import threading
@@ -13,7 +14,7 @@ from fm_analytics.reporting import required_role_attributes
 from fm_analytics.persistence import SnapshotStore
 from fm_analytics.analytics import ScoutingCandidate
 from fm_analytics.web.providers import fixture_provider
-from fm_analytics.web.rendering import ScoutingPoolNotBuilt
+from fm_analytics.web.rendering import ScoutingPoolNotBuilt, _slot_reasoning
 from fm_analytics.web.server import SquadWebServer, _build_provider, build_parser
 
 
@@ -653,6 +654,35 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertIn("re-optimising the other ten positions", body)
         self.assertIn("Team balance", body)
         self.assertIn("Game-plan support", body)
+
+    def test_tactic_detail_justifies_the_shape_and_every_slot(self) -> None:
+        tactic = MVP_CATALOGUE.tactics["balanced_442"]
+        status, body = self._get("/tactics/balanced_442")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Why this shape:", body)
+        self.assertIn("When to use it:", body)
+        self.assertIn("When to avoid it:", body)
+        self.assertIn("Why these instructions", body)
+        self.assertEqual(body.count("Why this role here:"), 11)
+        for slot in tactic.slots:
+            self.assertIn(html.escape(slot.why), body)
+
+    def test_tactics_overview_hints_when_each_tactic_suits(self) -> None:
+        status, body = self._get("/tactics")
+
+        self.assertEqual(status, 200)
+        for tactic in MVP_CATALOGUE.tactics.values():
+            self.assertIn(html.escape(tactic.when_to_use), body)
+
+    def test_an_alternate_role_choice_does_not_borrow_the_default_roles_reasoning(self) -> None:
+        slot = MVP_CATALOGUE.tactics["balanced_442"].slots[-1]
+        default = _slot_reasoning(slot, slot.role_key, "Advanced Forward (Attack)")
+        alternate = _slot_reasoning(slot, slot.alternate_role_keys[0], "Poacher (Attack)")
+
+        self.assertNotIn("suits", default)
+        self.assertIn("Your squad suits Poacher (Attack)", alternate)
+        self.assertIn(html.escape(slot.why), alternate)
 
     def test_xi_rows_follow_formation_order_from_goalkeeper_to_attack(self) -> None:
         status, body = self._get("/tactics/balanced_442")

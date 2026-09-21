@@ -15,12 +15,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Kicks long to the target man, so kicking and throwing matter."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back provides width for the early crosses."
     },
     {
       "key": "DCL",
@@ -28,7 +30,8 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender. Cover is the alternate."
     },
     {
       "key": "DCR",
@@ -36,37 +39,44 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right."
     },
     {
       "key": "ML",
       "position": "ML",
-      "role": "winger_ml_mr_support"
+      "role": "winger_ml_mr_support",
+      "why": "Winger (Support) crosses early for the target man and second striker."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_defend"
+      "role": "cm_defend",
+      "why": "Defensive central midfielder wins the ball and passes it forward simply."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "bwm_mc_support"
+      "role": "bwm_mc_support",
+      "why": "Ball-winning midfielder wins the second ball from the knock-downs."
     },
     {
       "key": "MR",
       "position": "MR",
-      "role": "winger_ml_mr_support"
+      "role": "winger_ml_mr_support",
+      "why": "Winger (Support) crosses early from the right."
     },
     {
       "key": "STL",
       "position": "ST",
-      "role": "tm_attack"
+      "role": "tm_attack",
+      "why": "Target man wins the long balls in the air and holds it up or flicks it on."
     },
     {
       "key": "STR",
@@ -74,7 +84,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Advanced Forward runs onto the flick-ons. Poacher is the alternate."
     }
   ],
   "system": {
@@ -93,6 +104,17 @@
   "style": "Route One",
   "description": "A deliberately direct system that moves the ball forward early toward a physical target and runners attacking second balls.",
   "whyGood": "The Target Man gives long passes a destination while the AF, wide players and midfield compete for territory and knockdowns.",
+  "whyThisShape": "A direct 4-4-2 that skips the midfield: long balls to a target man, with a second striker running onto flick-ons, and wingers crossing early. It is the least subtle system in the catalogue, and works when the forwards are physically stronger than the defenders.",
+  "whenToUse": "When you have a big target man and a quick second striker, but weak technical midfielders; or against teams with small defenders.",
+  "whenNotToUse": "Against tall, strong centre-backs who win the aerial duels, or when your squad is technical and would waste its passing.",
+  "instructionRationale": {
+    "Much More Direct Passing": "Long balls go straight to the target man, which is the point of the system.",
+    "Higher Tempo": "Gets the ball forward before the defence has set.",
+    "Pass Into Space": "The second striker runs onto the flick-ons behind the defence.",
+    "Hit Early Crosses": "The wingers cross early for the target man, instead of dribbling.",
+    "Counter": "Attacks quickly when the ball is won.",
+    "Regroup": "Drops back into shape after losing the ball."
+  },
   "keyRequirements": [
     "Dominant aerial striker",
     "Fast strike partner",

@@ -39,6 +39,7 @@ from fm_analytics.web.rendering import (
     _query_first,
     _pool_not_built_page,
     role_score_cells,
+    _slot_reasoning,
     _tactic_notes,
     _tactical_shortfalls,
 )
@@ -386,7 +387,12 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             rows.append(
                 "<tr>"
                 f"<td>{rank}</td>"
-                f"<td><b>{html.escape(evaluation.tactic.name)}</b>{recommendation}</td>"
+                f"<td><b>{html.escape(evaluation.tactic.name)}</b>{recommendation}"
+                + (
+                    f"<br><span class='muted'>{html.escape(evaluation.tactic.when_to_use)}</span>"
+                    if evaluation.tactic.when_to_use else ""
+                )
+                + "</td>"
                 f"<td>{html.escape(evaluation.tactic.formation)}</td>"
                 f"<td><b>{_band(evaluation.score)}</b></td>"
                 f"<td>{'Full XI' if evaluation.has_legal_xi else 'Incomplete XI'}</td>"
@@ -490,7 +496,12 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
                 f"<td><b>{_band(assignment.selection_score)}</b></td>"
                 "</tr>"
                 "<tr class='explanation-row'><td colspan='7'>"
-                f"<details><summary>Why {html.escape(assignment.player_name)}?</summary>"
+                + _slot_reasoning(
+                    assignment.slot,
+                    assignment.intrinsic_role_score.role_key,
+                    assignment.intrinsic_role_score.role_name,
+                )
+                + f"<details><summary>Why {html.escape(assignment.player_name)}?</summary>"
                 f"<p class='score-path'>{score_path}</p>{warnings}"
                 "<p class='muted'>Alternatives below are evaluated in this exact slot and "
                 "role. The tactic effect comes from forcing that player here and re-optimising "

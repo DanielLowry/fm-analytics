@@ -13,12 +13,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Starts short passing moves; a compact block does not need a sweeper."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back helps the wide midfielder without overlapping unless it is safe."
     },
     {
       "key": "DCL",
@@ -26,42 +28,50 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender in a settled back four. Cover is the alternate."
     },
     {
       "key": "DCR",
       "position": "DC",
-      "role": "bpd_defend"
+      "role": "bpd_defend",
+      "why": "Ball-playing defender starts moves with passes to the holding midfielder and the wide players."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right, doing the same job as on the left."
     },
     {
       "key": "DM",
       "position": "DM",
-      "role": "dm_defend"
+      "role": "dm_defend",
+      "why": "Holding midfielder protects the centre-backs and takes the ball off them; he stays in front of the defence."
     },
     {
       "key": "ML",
       "position": "ML",
-      "role": "wm_support"
+      "role": "wm_support",
+      "why": "Wide midfielder provides width and tracks back to help the full-back."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_defend"
+      "role": "cm_defend",
+      "why": "Defensive central midfielder pairs with the holding midfielder to keep the block tight."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "b2b_support"
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder is the runner who joins the striker's attacks."
     },
     {
       "key": "MR",
       "position": "MR",
-      "role": "wm_support"
+      "role": "wm_support",
+      "why": "Wide midfielder on the right, doing the same job as on the left."
     },
     {
       "key": "ST",
@@ -69,7 +79,8 @@
       "role": "p_attack",
       "roles": [
         "af_attack"
-      ]
+      ],
+      "why": "Lone striker attacks the space. Poacher stays in the box; Advanced Forward runs the channels."
     }
   ],
   "system": {
@@ -88,6 +99,15 @@
   "style": "Balanced 4-1-4-1",
   "description": "A compact 4-1-4-1 with a dedicated screen behind a four-man midfield.",
   "whyGood": "It gives strong defensive spacing and central control while retaining wide outlets.",
+  "whyThisShape": "A compact 4-1-4-1: a holding midfielder screens the defence behind a flat line of four midfielders, with one striker. It is hard to play through the middle and balances defence with support for the striker.",
+  "whenToUse": "As a safe default when you want control without committing many players forward, or away from home against a stronger side.",
+  "whenNotToUse": "When you need to chase a goal: there is a single striker and no creative attacking midfielder to feed him.",
+  "instructionRationale": {
+    "Standard Line of Engagement": "A balanced press keeps the two banks of four compact rather than chasing the ball.",
+    "Standard Defensive Line": "A balanced line suits a side that wants to stay compact without taking risks.",
+    "Shorter Passing": "Keeps possession in the compact midfield line.",
+    "Regroup": "Falls back into the two banks after losing the ball."
+  },
   "keyRequirements": [
     "Disciplined DM",
     "Hard-working wide players",

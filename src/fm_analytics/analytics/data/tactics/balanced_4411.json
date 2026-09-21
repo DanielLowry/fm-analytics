@@ -15,12 +15,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Distributes to a compact block; plays it long or short depending on the pressure."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back gives width behind the wide midfielder without leaving the defence exposed."
     },
     {
       "key": "DCL",
@@ -28,7 +30,8 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender in a balanced back four. Cover is the alternate."
     },
     {
       "key": "DCR",
@@ -36,37 +39,44 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but at most one of the pair can be Cover."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right."
     },
     {
       "key": "ML",
       "position": "ML",
-      "role": "wm_support"
+      "role": "wm_support",
+      "why": "Wide midfielder is the safer side: he helps his full-back and keeps the shape compact."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_defend"
+      "role": "cm_defend",
+      "why": "Defensive central midfielder protects the back four and lets his partner go forward."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "cm_support"
+      "role": "cm_support",
+      "why": "Supporting central midfielder links the defence to the attacking midfielder and striker."
     },
     {
       "key": "MR",
       "position": "MR",
-      "role": "winger_ml_mr_support"
+      "role": "winger_ml_mr_support",
+      "why": "Winger is the more attacking side, so the team has one safe flank and one creative flank."
     },
     {
       "key": "AMC",
       "position": "AMC",
-      "role": "am_support"
+      "role": "am_support",
+      "why": "Attacking midfielder plays behind the striker, linking play and arriving late in the box."
     },
     {
       "key": "ST",
@@ -74,7 +84,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Lone striker: Advanced Forward runs in behind, Poacher stays in the box."
     }
   ],
   "system": {
@@ -93,6 +104,17 @@
   "style": "Balanced 4-4-1-1",
   "description": "A conventional 4-4-2 defensive shell with one attacker dropping into the number-ten line to connect midfield and the lone striker.",
   "whyGood": "The AMC reduces striker isolation while preserving two clear banks of four without the ball.",
+  "whyThisShape": "A 4-4-1-1: a flat back four and midfield four with a striker and a second player sitting just behind him. It keeps the compact shape of a 4-4-2 but gives the striker a link player, so the team is a little more creative than a plain 4-4-2 without losing its shape.",
+  "whenToUse": "When you have one good striker and a creative player who is not a natural second striker, or as a steady all-round system for a mixed squad.",
+  "whenNotToUse": "When you need two players to attack the box, or against sides that overload the middle: two central midfielders can be outnumbered.",
+  "instructionRationale": {
+    "Fairly Wide": "The full-backs and wide midfielders stretch the opponent so the striker has room.",
+    "Slightly More Direct Passing": "Quicker balls to the striker suit a lone forward with support behind him.",
+    "Counter": "Hits quickly when the ball is won, with the striker and attacking midfielder as outlets.",
+    "Regroup": "Drops back into the two banks after losing the ball.",
+    "Standard Line of Engagement": "A balanced press: engages when the ball enters the compact midfield.",
+    "Standard Defensive Line": "A balanced line keeps the block compact without taking risks."
+  },
   "keyRequirements": [
     "Intelligent AMC",
     "Mobile striker",

@@ -14,12 +14,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "A high line leaves space behind, so the keeper must claim through balls early; a sweeper keeper would suit this even better."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "wb_dl_dr_attack"
+      "role": "wb_dl_dr_attack",
+      "why": "Attacking wing-back supplies the width so the winger can cut inside."
     },
     {
       "key": "DCL",
@@ -27,42 +29,50 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender who covers the space the attacking full-backs leave. Cover is the alternate."
     },
     {
       "key": "DCR",
       "position": "DC",
-      "role": "bpd_defend"
+      "role": "bpd_defend",
+      "why": "Ball-playing defender starts attacks from the back and steps out with the high line."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "wb_dl_dr_attack"
+      "role": "wb_dl_dr_attack",
+      "why": "Attacking wing-back on the right, giving the inside forward room to cut in."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_defend"
+      "role": "cm_defend",
+      "why": "Holding central midfielder screens the back four while the other two go forward."
     },
     {
       "key": "MCC",
       "position": "MC",
-      "role": "b2b_support"
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder links defence to attack and supports the press."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "mez_attack"
+      "role": "mez_attack",
+      "why": "Mezzala drifts into the half-space to arrive in the box and act as a fourth attacker."
     },
     {
       "key": "AML",
       "position": "AML",
-      "role": "winger_aml_amr_attack"
+      "role": "winger_aml_amr_attack",
+      "why": "Winger holds the touchline, stretching the defence for the inside forward and striker."
     },
     {
       "key": "AMR",
       "position": "AMR",
-      "role": "if_attack"
+      "role": "if_attack",
+      "why": "Inside forward cuts in to shoot and attack the far post."
     },
     {
       "key": "ST",
@@ -70,7 +80,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Advanced Forward runs in behind a high defensive line. Poacher is the alternate for a natural finisher."
     }
   ],
   "system": {
@@ -89,6 +100,16 @@
   "style": "Attacking 4-3-3",
   "description": "An aggressive 4-3-3 committing full-backs, midfield runners and wide forwards to attack.",
   "whyGood": "It creates several simultaneous attacking lanes and is useful when the team must force the game.",
+  "whyThisShape": "A 4-3-3 pushed to its attacking limit: attacking full-backs supply the width, the wingers can move inside, and a three-man midfield keeps some cover. Up to five players can be in the final third at once.",
+  "whenToUse": "Against sides that defend deep and cannot get past your press, or when you are clearly the stronger team and want to pin them back.",
+  "whenNotToUse": "Against quick counter-attackers when your full-backs are slow to recover: the space behind both full-backs is the weakness.",
+  "instructionRationale": {
+    "Much Higher Line of Engagement": "Starts the press near the opposition box, so the ball is won high and the full-backs start advanced.",
+    "Higher Defensive Line": "Compresses the pitch so the midfield can support the attackers; it needs pace at the back.",
+    "Shorter Passing": "Keeps the ball among the midfielders and wide players rather than giving it away with hopeful passes.",
+    "Higher Tempo": "Moves the ball quickly to the front three before the defence sets.",
+    "Counter-Press": "Regains the ball immediately, which also protects the space behind the full-backs."
+  },
   "keyRequirements": [
     "Fast recovery defenders",
     "Attacking full-backs",

@@ -455,6 +455,38 @@ information. Real discrimination between tactics has to come from the pieces
 still to be built: attribute-aware instruction suitability (roadmap item 4),
 per-tactic attribute weights (§5) and the opponent (§6).
 
+## 2c. Justifications as built (B2, B3 for the existing 25)
+
+Every one of the 25 tactics now carries, in its own file:
+
+- `whyThisShape`, `whenToUse`, `whenNotToUse` — what the formation does, and when
+  to pick or avoid it;
+- a `why` on each slot — why *this role* is in *this slot* of *this tactic*;
+- `instructionRationale` — one line per instruction tying it to the shape.
+
+They are shown on the tactic detail page (shape, usage and an expandable
+"Why these instructions" list in the notes block; each slot's reasoning above its
+"Why <player>?" explanation) and as a one-line hint per tactic on the overview.
+None of it is scoring input, and the loader treats all of it as optional, so
+hand-built test catalogues are unaffected.
+
+Two behaviours worth knowing:
+
+- The slot text is written for the slot's **default** role. If the optimiser
+  picks an alternate for your squad, the page says so instead of presenting the
+  default's reasoning as if it described the chosen role.
+- Prose beside data can contradict it, so tests enforce completeness (every
+  tactic, slot and instruction is explained, no two tactics share text) and that
+  an "X is the alternate" claim matches the slot's actual alternates. That test
+  found no error in the final text, but a hand check had already caught three
+  slots where the default was Cover and the text said Cover was the alternate.
+
+The text is my authorship and is football opinion; it is meant to be edited. The
+asymmetric wide roles in `possession_4141`, `vertical_tikitaka_433dm` and
+`balanced_4411` are explained in the slot text as "one safe flank, one creative
+flank" — that is my reading of the data, not something the catalogue states, so
+correct it if the asymmetry was accidental.
+
 ## 3. Workstream A — the catalogue
 
 ### A1. Give all 65 roles system traits
@@ -873,7 +905,7 @@ Ordered so that nothing is tuned on top of a known-broken baseline.
 | 1 — done | A1 traits for all 65 roles, A2 scale recalibration, A3 missing instructions | Fixes §1.1–1.2. Everything downstream is measured against this. Do not skip ahead. |
 | 2 — partly done | A4 per-tactic system requirements (done), A5 exclusion groups, B1 fix the existing 25 (reachability fixes done; see §2b) | Makes the current 25 correct before multiplying them. |
 | 3 | A6 expand to 40+, with B2 justifications authored alongside | Now safe: the load-time invariants from phase 1 catch a mis-authored tactic. |
-| 4 | B3 surface justifications and better shortfall explanations | The manager can now read why, which is also how you review phases 1–3. |
+| 4 — partly done | B3 surface justifications (done for the existing 25; better shortfall messages still to do) | The manager can now read why, which is also how you review phases 1–3. |
 | 5 | C1–C4 per-tactic per-role weights | Needs a correct system model and a settled tactic list. |
 | 6 | D1–D5 opponent model and slider | Reuses C3's emphasis mechanism; last per the roadmap's ordering advice. |
 | 7 | 7.1 performance pass and re-benchmark | After the catalogue and scoring have stopped moving. |

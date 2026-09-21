@@ -16,12 +16,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Distributes short or long depending on the press."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back gives width and safe passing options."
     },
     {
       "key": "DCL",
@@ -29,7 +31,8 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender. Cover is the alternate."
     },
     {
       "key": "DCR",
@@ -37,37 +40,44 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right."
     },
     {
       "key": "DM",
       "position": "DM",
-      "role": "bwm_dm_support"
+      "role": "bwm_dm_support",
+      "why": "Ball-winning midfielder shields the defence and starts the counter-press."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "dlp_mc_support"
+      "role": "dlp_mc_support",
+      "why": "Deep-lying playmaker passes forward from the middle."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "cm_support"
+      "role": "cm_support",
+      "why": "Supporting central midfielder links the playmaker with the forwards."
     },
     {
       "key": "AML",
       "position": "AML",
-      "role": "if_attack"
+      "role": "if_attack",
+      "why": "Inside forward cuts in from the left to shoot and attack the box."
     },
     {
       "key": "AMR",
       "position": "AMR",
-      "role": "winger_aml_amr_attack"
+      "role": "winger_aml_amr_attack",
+      "why": "Winger stays wide and delivers, giving width on the right."
     },
     {
       "key": "ST",
@@ -75,7 +85,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Lone striker: Advanced Forward runs in behind. Poacher is the alternate."
     }
   ],
   "system": {
@@ -95,6 +106,18 @@
   "style": "Positive 4-3-3 DM",
   "description": "A modern 4-3-3 with a holder, two eights and complementary wide forwards.",
   "whyGood": "It offers strong pitch coverage, good rest defence and multiple progression routes.",
+  "whyThisShape": "A 4-3-3 with a holding midfielder, two central midfielders and three forwards. The ball-winner shields the defence, the playmaker passes forward, and the wide forwards give width and goals.",
+  "whenToUse": "A good all-round attacking system when you have a reliable holding midfielder and two forwards who can score, against opponents who defend with two banks of four.",
+  "whenNotToUse": "When you have no ball-winner to hold the midfield, or against a team that pushes wide players onto your full-backs.",
+  "instructionRationale": {
+    "Shorter Passing": "Keeps possession through the midfield three.",
+    "Play Out Of Defence": "The holding midfielder offers a short option from the defenders.",
+    "Work Ball Into Box": "Patient movement of the ball until a clear chance opens up.",
+    "Counter-Press": "Presses at once after losing the ball, led by the ball-winner.",
+    "Counter": "Attacks quickly when the ball is won, using the wide forwards.",
+    "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
+    "Standard Defensive Line": "A balanced line keeps the defence compact."
+  },
   "keyRequirements": [
     "Reliable DM",
     "Progressive midfielders",

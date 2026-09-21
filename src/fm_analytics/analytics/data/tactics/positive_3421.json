@@ -15,7 +15,8 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "sk_defend"
+      "role": "sk_defend",
+      "why": "Sweeper keeper is the extra passer in build-up with three centre-backs."
     },
     {
       "key": "DCL",
@@ -23,12 +24,14 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Wide centre-back who defends the channel. Cover is the alternate."
     },
     {
       "key": "DCC",
       "position": "DC",
-      "role": "bpd_defend"
+      "role": "bpd_defend",
+      "why": "Ball-playing defender in the centre starts moves with progressive passes."
     },
     {
       "key": "DCR",
@@ -36,37 +39,44 @@
       "role": "cd_cover",
       "roles": [
         "cd_defend"
-      ]
+      ],
+      "why": "Cover centre-back sweeps up behind his partner and the wing-back's space; Defend is the alternate, but only one Cover can be used."
     },
     {
       "key": "WBL",
       "position": "WBL",
-      "role": "wb_wbl_wbr_support"
+      "role": "wb_wbl_wbr_support",
+      "why": "Support wing-back gives width but holds a safer position on this side."
     },
     {
       "key": "WBR",
       "position": "WBR",
-      "role": "wb_wbl_wbr_attack"
+      "role": "wb_wbl_wbr_attack",
+      "why": "Attacking wing-back is the team's main width on the right."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_defend"
+      "role": "cm_defend",
+      "why": "Defensive central midfielder protects the back three and lets his partner go forward."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "dlp_mc_support"
+      "role": "dlp_mc_support",
+      "why": "Deep-lying playmaker keeps the ball moving and sets the tempo."
     },
     {
       "key": "AMCL",
       "position": "AMC",
-      "role": "ap_amc_attack"
+      "role": "ap_amc_attack",
+      "why": "Advanced playmaker in the half-space finds passes between the lines."
     },
     {
       "key": "AMCR",
       "position": "AMC",
-      "role": "ss_attack"
+      "role": "ss_attack",
+      "why": "Shadow striker runs beyond the striker and arrives in the box from the half-space."
     },
     {
       "key": "ST",
@@ -74,7 +84,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Lone striker: Advanced Forward runs in behind. Poacher is the alternate."
     }
   ],
   "system": {
@@ -94,6 +105,17 @@
   "style": "3-4-2-1 Half-Space Attack",
   "description": "A modern back-three system using two central attacking midfielders to occupy the half-spaces behind a single striker.",
   "whyGood": "Two number tens work between the lines while wing-backs hold width, creating five distinct attacking lanes.",
+  "whyThisShape": "A back three, two wing-backs, two central midfielders and two attacking midfielders behind one striker. The two number tens play in the half-spaces between the opposition's full-backs and centre-backs, where they are hard to mark.",
+  "whenToUse": "When you have two good creative players and a wing-back pair who can cover the flanks, especially against a back four that has no midfielder in the half-spaces.",
+  "whenNotToUse": "Against sides with quick wingers who target the space behind the wing-backs, or if your centre-backs are not comfortable defending wide.",
+  "instructionRationale": {
+    "Shorter Passing": "Keeps possession through the triangles the half-space players form.",
+    "Play Out Of Defence": "Three centre-backs and a sweeper keeper make building from the back safe.",
+    "Counter-Press": "Presses at once after losing the ball, close to where it was lost.",
+    "Higher Line of Engagement": "Presses in the opponent's half to keep the play high.",
+    "Standard Defensive Line": "A balanced line keeps the back three compact.",
+    "Work Ball Into Box": "Patient combinations through the half-spaces until a clear chance opens up."
+  },
   "keyRequirements": [
     "Mobile centre-backs",
     "Very strong wing-backs",

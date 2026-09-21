@@ -15,12 +15,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Distributes quickly to the forwards after a save or claim."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back stays back and helps his wide midfielder defend."
     },
     {
       "key": "DCL",
@@ -28,7 +30,8 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender in a deep block. Cover is the alternate."
     },
     {
       "key": "DCR",
@@ -36,32 +39,38 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right."
     },
     {
       "key": "ML",
       "position": "ML",
-      "role": "wm_support"
+      "role": "wm_support",
+      "why": "Wide midfielder tracks back to help the full-back and keeps the bank of four narrow."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_defend"
+      "role": "cm_defend",
+      "why": "Defensive central midfielder protects the space in front of the defence."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "bwm_mc_support"
+      "role": "bwm_mc_support",
+      "why": "Ball-winning midfielder wins the ball back in front of the box."
     },
     {
       "key": "MR",
       "position": "MR",
-      "role": "wm_support"
+      "role": "wm_support",
+      "why": "Wide midfielder on the right, doing the same job as on the left."
     },
     {
       "key": "ST1",
@@ -69,7 +78,8 @@
       "role": "dlf_support",
       "roles": [
         "cf_support"
-      ]
+      ],
+      "why": "Deep-lying forward (or Complete Forward) holds the ball up so the team can move up the pitch."
     },
     {
       "key": "ST2",
@@ -77,7 +87,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Advanced Forward runs in behind on the counter. Poacher is the alternate."
     }
   ],
   "system": {
@@ -95,6 +106,17 @@
   "style": "Low-Block 4-4-2",
   "description": "Two compact banks of four with two forwards retained as direct counter outlets.",
   "whyGood": "It keeps defensive jobs simple while preserving an immediate route out after regains.",
+  "whyThisShape": "Two compact banks of four that defend deep and narrow, with two forwards kept as outlets. It gives the opponent no space in the middle and breaks out quickly with a runner and a hold-up forward.",
+  "whenToUse": "Protecting a lead, or away against a stronger side. It suits disciplined players and wide midfielders who work hard to recover.",
+  "whenNotToUse": "When you need to control the ball or score, since the team will be under pressure for long periods.",
+  "instructionRationale": {
+    "Much Lower Line of Engagement": "The team waits deep and defends near its own box instead of pressing.",
+    "Much Deeper Defensive Line": "Keeps the defence deep to remove space in behind.",
+    "Narrower": "Compresses the middle so the opponent is pushed wide.",
+    "Slower Tempo": "Slows the game down.",
+    "Counter": "The two forwards are an outlet: the team attacks quickly when it wins the ball.",
+    "Regroup": "Drops back into shape after losing the ball."
+  },
   "keyRequirements": [
     "Disciplined block",
     "Wide midfield recovery",

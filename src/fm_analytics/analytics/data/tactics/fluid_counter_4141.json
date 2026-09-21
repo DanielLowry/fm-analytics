@@ -15,12 +15,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Distributes quickly, with a short option to the holding midfielder or long to the striker."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back stays reasonably back but supplies width on the break."
     },
     {
       "key": "DCL",
@@ -28,7 +30,8 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender. Cover is the alternate."
     },
     {
       "key": "DCR",
@@ -36,37 +39,44 @@
       "role": "cd_cover",
       "roles": [
         "cd_defend"
-      ]
+      ],
+      "why": "Cover centre-back sweeps behind his partner in the deeper block; Defend is the alternate."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right."
     },
     {
       "key": "DM",
       "position": "DM",
-      "role": "dm_defend"
+      "role": "dm_defend",
+      "why": "Holding midfielder screens the defence and starts moves with short passes."
     },
     {
       "key": "ML",
       "position": "ML",
-      "role": "winger_ml_mr_support"
+      "role": "winger_ml_mr_support",
+      "why": "Winger (Support) is a wide outlet who receives the ball and runs at the defence."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "b2b_support"
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder supports the striker with runs from midfield."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "cm_support"
+      "role": "cm_support",
+      "why": "Supporting central midfielder links the defence to the attack and gives the team a passing option."
     },
     {
       "key": "MR",
       "position": "MR",
-      "role": "winger_ml_mr_support"
+      "role": "winger_ml_mr_support",
+      "why": "Winger (Support) on the right, doing the same job as on the left."
     },
     {
       "key": "ST",
@@ -74,7 +84,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Lone striker: Advanced Forward runs in behind. Poacher is the alternate."
     }
   ],
   "system": {
@@ -92,6 +103,17 @@
   "style": "Fluid Counter-Attack",
   "description": "A compact 4-1-4-1 that counters through short combinations and supporting runs rather than immediately launching long balls.",
   "whyGood": "The DM stabilises the block while the Box-to-Box midfielder and wide players quickly join the AF after regains.",
+  "whyThisShape": "A 4-1-4-1 with a holding midfielder, two wingers and a lone striker, that defends compactly and counters with a mix of passing and running. It is less direct than the 4-4-2 counter, because the midfield can pass its way out of pressure.",
+  "whenToUse": "Against stronger or possession-based sides when you have a good holding midfielder, quick wingers and a mobile lone striker.",
+  "whenNotToUse": "When you need to dominate the ball, or when you have no quick striker to run behind.",
+  "instructionRationale": {
+    "Slightly Shorter Passing": "Keeps a passing option in midfield rather than relying only on long balls.",
+    "Pass Into Space": "Plays the ball behind the defence for the striker and wingers.",
+    "Counter": "Attacks straight away on winning the ball.",
+    "Regroup": "Falls back into shape after losing the ball.",
+    "Lower Line of Engagement": "Lets the opponent have the ball in their own half, leaving the space to counter into.",
+    "Standard Defensive Line": "A balanced line keeps the block compact."
+  },
   "keyRequirements": [
     "Mobile midfield",
     "Pacy striker",

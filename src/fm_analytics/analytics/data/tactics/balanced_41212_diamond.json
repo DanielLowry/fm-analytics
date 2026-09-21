@@ -15,12 +15,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Distributes to a compact team; the short passing game does not need a sweeper."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "The only player on this side who provides width, so he must overlap and cross; Support keeps him from being caught out."
     },
     {
       "key": "DCL",
@@ -28,7 +30,8 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender in a narrow, compact block. Cover is the alternate."
     },
     {
       "key": "DCR",
@@ -36,32 +39,38 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender on the right of the pair. Cover is the alternate, but at most one of the two can be Cover."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "The only wide player on the right; he supplies the crosses."
     },
     {
       "key": "DM",
       "position": "DM",
-      "role": "dm_defend"
+      "role": "dm_defend",
+      "why": "Holding midfielder is the base of the diamond and shields the centre-backs."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_support"
+      "role": "cm_support",
+      "why": "Central midfielder who supports the attack and links with the attacking midfielder and strikers."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "dlp_mc_support"
+      "role": "dlp_mc_support",
+      "why": "Deep-lying playmaker takes the ball off the back line and sets the tempo."
     },
     {
       "key": "AMC",
       "position": "AMC",
-      "role": "am_support"
+      "role": "am_support",
+      "why": "Attacking midfielder plays between the lines and feeds the two strikers."
     },
     {
       "key": "STL",
@@ -69,7 +78,8 @@
       "role": "dlf_support",
       "roles": [
         "cf_support"
-      ]
+      ],
+      "why": "Deep-lying forward (or Complete Forward) links the attacking midfielder to the other striker."
     },
     {
       "key": "STR",
@@ -77,7 +87,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Second striker runs in behind, using the space the other forward creates. Poacher is the alternate."
     }
   ],
   "system": {
@@ -97,6 +108,17 @@
   "style": "Balanced Narrow Diamond",
   "description": "A compact narrow 4-1-2-1-2 built around central combinations, two strikers and full-backs supplying most of the width.",
   "whyGood": "It creates central numerical superiority and strong links between DM, midfield, AMC and two forwards.",
+  "whyThisShape": "A narrow diamond: a holding midfielder, two central midfielders and an attacking midfielder behind two strikers. It puts four players in the middle against an opponent's three, so the centre is easy to control. Width comes only from the full-backs.",
+  "whenToUse": "When your best players are central (midfielders and two strikers) and you lack quality wingers, or against a side with few central midfielders that you can outnumber.",
+  "whenNotToUse": "Against teams that attack down the flanks and outnumber your full-backs, or when your full-backs lack the stamina to cover the whole side of the pitch.",
+  "instructionRationale": {
+    "Fairly Narrow": "Fits the diamond, where the four central players work in tight combinations.",
+    "Shorter Passing": "Short triangles in the middle are the diamond's strength.",
+    "Counter": "The diamond can win the ball in the centre and break quickly through the two strikers.",
+    "Regroup": "Drops back into shape after losing the ball; a narrow shape has to stay compact.",
+    "Standard Line of Engagement": "A balanced press: engages when the ball enters the compact block rather than chasing wide.",
+    "Standard Defensive Line": "A balanced line keeps the team compact without exposing the centre-backs."
+  },
   "keyRequirements": [
     "Full-backs with stamina/crossing",
     "Disciplined DM",

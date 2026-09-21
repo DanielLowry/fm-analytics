@@ -17,17 +17,20 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "sk_defend"
+      "role": "sk_defend",
+      "why": "Sweeper keeper covers the space behind a high line and starts moves after winning the ball."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "wb_dl_dr_support"
+      "role": "wb_dl_dr_support",
+      "why": "Support wing-back gives width and helps press high on the flank."
     },
     {
       "key": "DCL",
       "position": "DC",
-      "role": "bpd_defend"
+      "role": "bpd_defend",
+      "why": "Ball-playing defender steps out of the line to press and starts attacks with a pass."
     },
     {
       "key": "DCR",
@@ -35,37 +38,44 @@
       "role": "cd_cover",
       "roles": [
         "cd_defend"
-      ]
+      ],
+      "why": "Cover centre-back sweeps behind his partner, since the line is high; Defend is the alternate."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "wb_dl_dr_support"
+      "role": "wb_dl_dr_support",
+      "why": "Support wing-back on the right, doing the same job as on the left."
     },
     {
       "key": "DMCL",
       "position": "DM",
-      "role": "bwm_dm_support"
+      "role": "bwm_dm_support",
+      "why": "Ball-winning midfielder harries the opponent in the middle and wins the ball for the attackers."
     },
     {
       "key": "DMCR",
       "position": "DM",
-      "role": "dlp_dm_support"
+      "role": "dlp_dm_support",
+      "why": "Deep-lying playmaker keeps possession after the ball is won and passes it forward."
     },
     {
       "key": "AML",
       "position": "AML",
-      "role": "if_attack"
+      "role": "if_attack",
+      "why": "Inside forward cuts in and presses from the left, attacking the box when the ball is won."
     },
     {
       "key": "AMC",
       "position": "AMC",
-      "role": "ss_attack"
+      "role": "ss_attack",
+      "why": "Shadow striker presses the opposition midfield and then runs beyond the striker."
     },
     {
       "key": "AMR",
       "position": "AMR",
-      "role": "winger_aml_amr_attack"
+      "role": "winger_aml_amr_attack",
+      "why": "Winger presses the full-back and stretches the play when the ball is won."
     },
     {
       "key": "ST",
@@ -73,7 +83,8 @@
       "role": "pf_attack",
       "roles": [
         "af_attack"
-      ]
+      ],
+      "why": "Pressing forward starts the press by closing down the defenders and goalkeeper. Advanced Forward is the alternate."
     }
   ],
   "system": {
@@ -92,6 +103,19 @@
   "style": "Gegenpress",
   "description": "An intense 4-2-3-1 intended to regain the ball immediately after losing it and attack before the opponent reorganises.",
   "whyGood": "Four aggressive attackers lead the press while the pivot balances ball winning and distribution behind them.",
+  "whyThisShape": "A 4-2-3-1 built to win the ball back immediately after losing it. A ball-winning midfielder, a pressing forward and three aggressive attackers press together, so possession is regained high and the attack restarts before the opponent is organised.",
+  "whenToUse": "When you have fit, aggressive players with high work rate and stamina, and you want to play in the opponent's half against sides that struggle to play out from the back.",
+  "whenNotToUse": "Against teams that play long balls over the press, or when your players are tired: the press falls apart quickly and leaves large spaces.",
+  "instructionRationale": {
+    "Shorter Passing": "Keeps possession after the ball is won, rather than giving it straight back.",
+    "Higher Tempo": "Moves the ball quickly while the opponent is out of shape.",
+    "Counter-Press": "Presses at once after losing the ball, which is the point of the whole system.",
+    "Counter": "Attacks quickly when the ball is won, while the opponent is out of shape.",
+    "Much Higher Line of Engagement": "Starts the press in the opponent's half, so the ball is won close to their goal.",
+    "Higher Defensive Line": "Keeps the team compact so the press is close together; it needs pace in the defence.",
+    "Much More Urgent Pressing": "Presses with more intensity, which is more effective but tiring.",
+    "Prevent Short GK Distribution": "Stops the goalkeeper playing short, forcing a long kick that the defence can win."
+  },
   "keyRequirements": [
     "High work rate/stamina",
     "Fast defenders",

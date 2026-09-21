@@ -17,17 +17,20 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "sk_defend"
+      "role": "sk_defend",
+      "why": "Sweeper keeper covers the space behind a higher line and is an extra passer."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "wb_dl_dr_support"
+      "role": "wb_dl_dr_support",
+      "why": "Support wing-back on the left supplies width and joins the build-up, so this side is more attacking."
     },
     {
       "key": "DCL",
       "position": "DC",
-      "role": "bpd_defend"
+      "role": "bpd_defend",
+      "why": "Ball-playing defender starts moves with passes into midfield."
     },
     {
       "key": "DCR",
@@ -35,37 +38,44 @@
       "role": "cd_cover",
       "roles": [
         "cd_defend"
-      ]
+      ],
+      "why": "Cover centre-back sweeps behind his partner, since the line is higher; Defend is the alternate."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right stays more conservative, so the team has one more attacking flank and one safer one."
     },
     {
       "key": "DM",
       "position": "DM",
-      "role": "dlp_dm_support"
+      "role": "dlp_dm_support",
+      "why": "Deep-lying playmaker is the base of the team and distributes it to the runners."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "b2b_support"
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder supports the attack and the press."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "mez_attack"
+      "role": "mez_attack",
+      "why": "Mezzala runs into the half-space to arrive in the box."
     },
     {
       "key": "AML",
       "position": "AML",
-      "role": "if_attack"
+      "role": "if_attack",
+      "why": "Inside forward cuts in from the left to attack the box."
     },
     {
       "key": "AMR",
       "position": "AMR",
-      "role": "winger_aml_amr_support"
+      "role": "winger_aml_amr_support",
+      "why": "Winger (Support) provides width and links with the midfield."
     },
     {
       "key": "ST",
@@ -73,7 +83,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Lone striker: Advanced Forward runs in behind. Poacher is the alternate."
     }
   ],
   "system": {
@@ -93,6 +104,19 @@
   "style": "Vertical Tiki-Taka",
   "description": "Short combinations are used to progress quickly rather than simply retain possession, with runners attacking spaces created by circulation.",
   "whyGood": "The playmaking DM anchors build-up while the eights and front three provide vertical movement and penetration.",
+  "whyThisShape": "A 4-3-3 that combines short passing with quick, vertical moves: a playmaker sits in front of the defence, a runner and a mezzala move forward from midfield, and the forwards run in behind. It presses at once when the ball is lost.",
+  "whenToUse": "When you have good passers and quick forwards, against teams that sit in a mid-block and leave space behind their line.",
+  "whenNotToUse": "Against sides that press well, or when your defenders are not comfortable on the ball or with a high line.",
+  "instructionRationale": {
+    "Shorter Passing": "Keeps possession in short passes until a forward run opens up.",
+    "Play Out Of Defence": "The sweeper keeper and ball-playing defender make building from the back safe.",
+    "Higher Tempo": "Moves the ball quickly when the forwards make their runs.",
+    "Pass Into Space": "Plays the ball behind the defence for the runners, which is the vertical part.",
+    "Counter-Press": "Presses at once after losing the ball, so possession is regained high.",
+    "Counter": "Attacks quickly when the ball is won.",
+    "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
+    "Higher Defensive Line": "Keeps the team compact around the ball; it needs pace in the defence."
+  },
   "keyRequirements": [
     "Excellent first touch/passing",
     "Mobile midfield",

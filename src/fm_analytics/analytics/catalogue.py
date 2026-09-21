@@ -39,6 +39,8 @@ class TacticSlot:
     position: str
     role_key: str
     alternate_role_keys: tuple[str, ...] = ()
+    # Manager-facing: why this role sits in this slot of this tactic. Not scoring input.
+    why: str = ""
 
     def __post_init__(self) -> None:
         if not self.key or not self.position or not self.role_key:
@@ -108,12 +110,24 @@ class TacticDefinition:
     why_good: str = ""
     key_requirements: tuple[str, ...] = ()
     tags: tuple[str, ...] = ()
+    # Justification for a manager: what the shape does structurally, when it
+    # suits and when it does not, and why each instruction is in it. All
+    # optional and none of it scoring input.
+    why_this_shape: str = ""
+    when_to_use: str = ""
+    when_not_to_use: str = ""
+    instruction_rationale: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not all(
             (self.key, self.name, self.formation, self.mentality, self.catalogue_version)
         ):
             raise ValueError("tactic identity, formation, mentality, and version are required")
+        stray = sorted(set(self.instruction_rationale) - set(self.instructions))
+        if stray:
+            raise ValueError(
+                f"tactic {self.key!r} explains instructions it does not use: {stray!r}"
+            )
         if len(self.slots) != 11:
             raise ValueError("an MVP tactic must define exactly eleven slots")
         slot_keys = [slot.key for slot in self.slots]
@@ -339,6 +353,7 @@ def _slot_from_json(raw: Mapping[str, Any]) -> TacticSlot:
         position=_str(raw, "position"),
         role_key=role_key,
         alternate_role_keys=alternate_role_keys,
+        why=raw.get("why") or "",
     )
 
 
@@ -365,6 +380,10 @@ def _tactic_from_json(raw: Mapping[str, Any], *, version: str) -> TacticDefiniti
         why_good=raw.get("whyGood") or "",
         key_requirements=_str_tuple(raw, "keyRequirements") if "keyRequirements" in raw else (),
         tags=_str_tuple(raw, "tags") if "tags" in raw else (),
+        why_this_shape=raw.get("whyThisShape") or "",
+        when_to_use=raw.get("whenToUse") or "",
+        when_not_to_use=raw.get("whenNotToUse") or "",
+        instruction_rationale=_string_mapping(raw.get("instructionRationale"), "instructionRationale"),
     )
 
 
@@ -479,6 +498,16 @@ def _str_tuple(raw: Mapping[str, Any], name: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise ValueError(f"{name!r} must be an array of strings")
     return tuple(value)
+
+
+def _string_mapping(value: Any, name: str) -> Mapping[str, str]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict) or not all(
+        isinstance(k, str) and isinstance(v, str) for k, v in value.items()
+    ):
+        raise ValueError(f"{name!r} must be an object of strings")
+    return dict(value)
 
 
 def _optional_str_tuple(raw: Mapping[str, Any], name: str) -> tuple[str, ...]:

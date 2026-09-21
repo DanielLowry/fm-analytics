@@ -16,12 +16,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Distributes short or long depending on the press."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back gives width and safe passing options."
     },
     {
       "key": "DCL",
@@ -29,7 +31,8 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender. Cover is the alternate."
     },
     {
       "key": "DCR",
@@ -37,37 +40,44 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right."
     },
     {
       "key": "DMCL",
       "position": "DM",
-      "role": "bwm_dm_support"
+      "role": "bwm_dm_support",
+      "why": "Ball-winning midfielder wins the ball back and starts the counter-press."
     },
     {
       "key": "DMCR",
       "position": "DM",
-      "role": "dlp_dm_support"
+      "role": "dlp_dm_support",
+      "why": "Deep-lying playmaker passes the ball forward from behind the ball-winner."
     },
     {
       "key": "AML",
       "position": "AML",
-      "role": "if_attack"
+      "role": "if_attack",
+      "why": "Inside forward cuts in from the left to attack the box."
     },
     {
       "key": "AMC",
       "position": "AMC",
-      "role": "am_support"
+      "role": "am_support",
+      "why": "Attacking midfielder plays between the lines and supplies the striker."
     },
     {
       "key": "AMR",
       "position": "AMR",
-      "role": "winger_aml_amr_attack"
+      "role": "winger_aml_amr_attack",
+      "why": "Winger stays wide and delivers, stretching the opposition."
     },
     {
       "key": "ST",
@@ -75,7 +85,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Lone striker: Advanced Forward runs in behind. Poacher is the alternate."
     }
   ],
   "system": {
@@ -95,6 +106,18 @@
   "style": "Positive 4-2-3-1",
   "description": "A proactive 4-2-3-1 using a double pivot behind three attacking midfielders and one striker.",
   "whyGood": "The pivot stabilises build-up while the front four occupy several attacking lines.",
+  "whyThisShape": "A 4-2-3-1 with a double pivot behind three attacking midfielders and one striker. One of the pivot wins the ball and the other passes it, and the front four occupy several lines of attack.",
+  "whenToUse": "As a proactive default when you have a good attacking midfielder and two quality wide attackers, or against opponents who defend with two banks of four.",
+  "whenNotToUse": "When you have no ball-winner to pair with a playmaker, or against a team with three central midfielders who outnumber your pivot.",
+  "instructionRationale": {
+    "Shorter Passing": "Keeps possession through the pivot and attacking midfielders.",
+    "Play Out Of Defence": "The pivot offers short passing options from the defenders.",
+    "Higher Tempo": "Moves the ball forward quickly to the front four.",
+    "Counter-Press": "Presses at once after losing the ball, led by the ball-winning midfielder.",
+    "Counter": "Attacks quickly when the ball is won, using the runners.",
+    "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
+    "Standard Defensive Line": "A balanced line keeps the defence compact."
+  },
   "keyRequirements": [
     "Secure double pivot",
     "Quality AMC",

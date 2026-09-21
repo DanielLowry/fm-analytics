@@ -16,17 +16,20 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "sk_defend"
+      "role": "sk_defend",
+      "why": "Sweeper keeper is the extra outfield player in build-up and covers the space behind the higher line."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back offers a passing option wide and provides width without leaving the team open."
     },
     {
       "key": "DCL",
       "position": "DC",
-      "role": "bpd_defend"
+      "role": "bpd_defend",
+      "why": "Ball-playing defender starts moves with progressive passes through the opposition's press."
     },
     {
       "key": "DCR",
@@ -34,37 +37,44 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender who defends while his partner plays. Cover is the alternate."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right, doing the same job as on the left."
     },
     {
       "key": "DMCL",
       "position": "DM",
-      "role": "dm_defend"
+      "role": "dm_defend",
+      "why": "Holding midfielder protects the back line and gives the playmaker beside him the freedom to pass."
     },
     {
       "key": "DMCR",
       "position": "DM",
-      "role": "dlp_dm_support"
+      "role": "dlp_dm_support",
+      "why": "Deep-lying playmaker is the team's main passer and sets the tempo from deep."
     },
     {
       "key": "AML",
       "position": "AML",
-      "role": "if_attack"
+      "role": "if_attack",
+      "why": "Inside forward comes inside onto his stronger foot, so the wide areas are left to the full-back and the other winger."
     },
     {
       "key": "AMC",
       "position": "AMC",
-      "role": "ap_amc_attack"
+      "role": "ap_amc_attack",
+      "why": "Advanced playmaker is the creative centre of the team and finds passes between the lines."
     },
     {
       "key": "AMR",
       "position": "AMR",
-      "role": "winger_aml_amr_support"
+      "role": "winger_aml_amr_support",
+      "why": "Winger (Support) stays wide and gives the team a wide outlet and something to stretch the opponent."
     },
     {
       "key": "ST",
@@ -72,7 +82,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Lone striker: Advanced Forward runs in behind, Poacher stays in the box."
     }
   ],
   "system": {
@@ -91,6 +102,18 @@
   "style": "Control Possession",
   "description": "A patient 4-2-3-1 that controls territory and circulates until space opens between or outside the opposition lines.",
   "whyGood": "The double pivot gives secure circulation while the AP and wide attackers provide several receiving lines ahead of the ball.",
+  "whyThisShape": "A 4-2-3-1 built to keep the ball: a double pivot behind three attacking midfielders, with a sweeper keeper and ball-playing defender starting moves from the back. The aim is to dominate possession and wear the opponent down rather than to break quickly.",
+  "whenToUse": "When your squad is technically better than the opponent's and you expect them to sit deep, or when you want to protect a lead by keeping the ball.",
+  "whenNotToUse": "Against a well-organised high press if your defenders and pivot are not calm on the ball, and when you need goals quickly: lower tempo makes it slow to change the game.",
+  "instructionRationale": {
+    "Shorter Passing": "Keeps possession in short passes rather than risking it with long balls.",
+    "Lower Tempo": "Slows the game down so the team can control it and rest with the ball.",
+    "Play Out Of Defence": "The sweeper keeper and ball-playing defender make building from the back safe.",
+    "Work Ball Into Box": "Patient movement of the ball until a clear chance opens up.",
+    "Hold Shape": "Keeps positions rather than pushing players forward, so the team stays balanced while it keeps the ball.",
+    "Standard Line of Engagement": "A balanced press: does not chase the ball wildly and lose the shape.",
+    "Higher Defensive Line": "Keeps the team compact around the ball and squeezes the space for the opponent."
+  },
   "keyRequirements": [
     "Technically secure defenders/midfielders",
     "High-quality distributor",

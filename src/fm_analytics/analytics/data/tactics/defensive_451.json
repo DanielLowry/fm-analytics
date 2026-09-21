@@ -14,12 +14,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Distributes safely; the aim is to keep the ball away from your own box."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back gives some width but stays back."
     },
     {
       "key": "DCL",
@@ -27,7 +29,8 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender, with the depth to defend the box. Cover is the alternate."
     },
     {
       "key": "DCR",
@@ -35,42 +38,50 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right."
     },
     {
       "key": "DM",
       "position": "DM",
-      "role": "dm_defend"
+      "role": "dm_defend",
+      "why": "Holding midfielder sits in front of the centre-backs and shuts down the middle."
     },
     {
       "key": "ML",
       "position": "ML",
-      "role": "wm_support"
+      "role": "wm_support",
+      "why": "Wide midfielder tracks back to help the full-back and forms the wall."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_defend"
+      "role": "cm_defend",
+      "why": "Defensive central midfielder protects the space in front of the defence."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "cm_defend"
+      "role": "cm_defend",
+      "why": "Defensive central midfielder on the other side, so the middle is four deep."
     },
     {
       "key": "MR",
       "position": "MR",
-      "role": "wm_support"
+      "role": "wm_support",
+      "why": "Wide midfielder on the right, doing the same job as on the left."
     },
     {
       "key": "ST",
       "position": "ST",
-      "role": "tm_attack"
+      "role": "tm_attack",
+      "why": "Target man holds the ball and wins the aerial duels so the team can push up and relieve pressure."
     }
   ],
   "system": {
@@ -87,6 +98,16 @@
   "style": "Defensive 4-5-1",
   "description": "A conservative five-man midfield shape designed to deny central space and protect a result.",
   "whyGood": "The dense midfield makes progression difficult and keeps defensive responsibilities simple.",
+  "whyThisShape": "A deep 4-5-1: four defenders, a holding midfielder and a wall of five in midfield, with one striker up front. It gives the opponent very little room in the middle and defends the lead or a draw.",
+  "whenToUse": "Protecting a lead late in a game, or away against a much stronger side where a draw is a good result.",
+  "whenNotToUse": "When you need to win: there is only one striker and the team will invite pressure.",
+  "instructionRationale": {
+    "Much Lower Line of Engagement": "The team waits deep and defends near its own box, rather than pressing.",
+    "Much Deeper Defensive Line": "Keeps the defence deep to remove space in behind and to defend the box.",
+    "Narrower": "Compresses the middle so the opponent is pushed wide, where crosses can be defended.",
+    "Slower Tempo": "Slows the game down and wastes time when leading.",
+    "Regroup": "Drops back into shape after losing the ball."
+  },
   "keyRequirements": [
     "Hard-working midfield",
     "Disciplined wide midfielders",

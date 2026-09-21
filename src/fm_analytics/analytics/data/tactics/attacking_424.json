@@ -17,12 +17,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "sk_defend"
+      "role": "sk_defend",
+      "why": "Sweeper keeper covers the space behind a high line, which this shape leaves open."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back stays reasonably safe, because the wide attackers already supply the width."
     },
     {
       "key": "DCL",
@@ -30,7 +32,8 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender marks the striker; with a high line there is little room for error, so pace matters. Cover is the alternate."
     },
     {
       "key": "DCR",
@@ -38,32 +41,38 @@
       "role": "cd_cover",
       "roles": [
         "cd_defend"
-      ]
+      ],
+      "why": "Cover centre-back sweeps up behind his partner, since runners in behind are the main danger against a line this high."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support"
+      "role": "fb_support",
+      "why": "Support full-back on the right, holding a safer position while the wide attackers work the flank."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "bwm_mc_support"
+      "role": "bwm_mc_support",
+      "why": "Ball-winning midfielder wins the second ball and starts the counter-press in the centre, where you are outnumbered."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "dlp_mc_support"
+      "role": "dlp_mc_support",
+      "why": "Deep-lying playmaker is the only creative player in the middle and gets the ball to the four forwards quickly."
     },
     {
       "key": "AML",
       "position": "AML",
-      "role": "if_attack"
+      "role": "if_attack",
+      "why": "Inside forward cuts in from the left to attack the box alongside the strikers."
     },
     {
       "key": "AMR",
       "position": "AMR",
-      "role": "winger_aml_amr_attack"
+      "role": "winger_aml_amr_attack",
+      "why": "Winger stays wide and delivers, stretching the back line for the two strikers."
     },
     {
       "key": "STL",
@@ -71,7 +80,8 @@
       "role": "dlf_support",
       "roles": [
         "cf_support"
-      ]
+      ],
+      "why": "Deep-lying forward links the two wide players with the other striker, and is the one forward who drops to receive the ball."
     },
     {
       "key": "STR",
@@ -79,7 +89,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Advanced Forward runs the channels to stretch the back line. Poacher is the alternate if he is more of a finisher than a runner."
     }
   ],
   "system": {
@@ -98,6 +109,19 @@
   "style": "Attacking 4-2-4",
   "description": "A high-risk structure that immediately puts four players against the opposition back line and is intended to force the game.",
   "whyGood": "The DLF supplies some connection while the other three attackers threaten depth and width around the box.",
+  "whyThisShape": "Four forwards and only two central midfielders: the most one-sided shape in the catalogue. Four attackers pin the opposition back line, and the two midfielders win the ball and feed it forward at once.",
+  "whenToUse": "When chasing a game late, or against a much weaker side that will defend deep. It is a short-term tactic, not one for a whole season.",
+  "whenNotToUse": "Against any side with quick forwards or good passing through the middle: two central midfielders cannot cover the space, and you will be opened up down the centre.",
+  "instructionRationale": {
+    "Fairly Wide": "Stretches the opponent so the four forwards have space to work in.",
+    "More Direct Passing": "With only two midfielders, quicker forward passes skip the middle of the pitch entirely.",
+    "Higher Tempo": "Gets the ball to the forwards before the defence has set.",
+    "Pass Into Space": "Gives the fast forwards balls to run onto behind a high line.",
+    "Counter-Press": "Wins the ball back at once so you can attack again while the opponent is still out of shape.",
+    "Counter": "Attacks quickly on winning the ball, before the opposition can recover their shape.",
+    "Higher Line of Engagement": "Keeps the press high, so the attackers are supported by pressure on the ball.",
+    "Higher Defensive Line": "Keeps the team compact so two midfielders have less ground to cover, at the cost of exposing slower defenders."
+  },
   "keyRequirements": [
     "Two midfielders able to cover huge spaces",
     "Fast defenders",

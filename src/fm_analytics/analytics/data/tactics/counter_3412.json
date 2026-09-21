@@ -15,7 +15,8 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Distributes quickly to start counters."
     },
     {
       "key": "DCL",
@@ -23,12 +24,14 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Wide centre-back who defends the channel. Cover is the alternate."
     },
     {
       "key": "DCC",
       "position": "DC",
-      "role": "bpd_defend"
+      "role": "bpd_defend",
+      "why": "Ball-playing defender in the centre starts counters with a forward pass."
     },
     {
       "key": "DCR",
@@ -36,32 +39,38 @@
       "role": "cd_cover",
       "roles": [
         "cd_defend"
-      ]
+      ],
+      "why": "Cover centre-back sweeps up behind his partner and the wing-back's space; Defend is the alternate, but only one Cover can be used."
     },
     {
       "key": "WBL",
       "position": "WBL",
-      "role": "wb_wbl_wbr_support"
+      "role": "wb_wbl_wbr_support",
+      "why": "Support wing-back gives width but holds a safer position on this side."
     },
     {
       "key": "WBR",
       "position": "WBR",
-      "role": "wb_wbl_wbr_attack"
+      "role": "wb_wbl_wbr_attack",
+      "why": "Attacking wing-back is the team's main wide threat when the ball is won."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_defend"
+      "role": "cm_defend",
+      "why": "Defensive central midfielder screens the back three and lets his partner go forward."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "b2b_support"
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder supports the counter with runs from deep."
     },
     {
       "key": "AMC",
       "position": "AMC",
-      "role": "am_support"
+      "role": "am_support",
+      "why": "Attacking midfielder is the link between the midfield and two strikers, receiving between the lines."
     },
     {
       "key": "STL",
@@ -69,7 +78,8 @@
       "role": "dlf_support",
       "roles": [
         "cf_support"
-      ]
+      ],
+      "why": "Deep-lying forward (or Complete Forward) holds up the ball so others can join the counter."
     },
     {
       "key": "STR",
@@ -77,7 +87,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Advanced Forward runs in behind the defence. Poacher is the alternate."
     }
   ],
   "system": {
@@ -95,6 +106,17 @@
   "style": "Back-Three Counter",
   "description": "A cautious back-three system retaining an AMC and two strikers so regains can become attacks without waiting for many players to advance.",
   "whyGood": "The AMC, DLF and AF form an immediate counter-attacking triangle while the back three protect against turnovers.",
+  "whyThisShape": "A back three, wing-backs, two central midfielders and an attacking midfielder behind two strikers. It defends with five or six players, then breaks quickly through the two forwards and the attacking midfielder.",
+  "whenToUse": "Against stronger sides that will have most of the ball, or when your squad has quick forwards and dependable centre-backs.",
+  "whenNotToUse": "When you need to dominate the game, or when your wing-backs cannot defend as well as they run.",
+  "instructionRationale": {
+    "Slightly More Direct Passing": "Gets the ball forward to the strikers quicker after winning it.",
+    "Pass Into Space": "Plays the ball into the space behind the opposition defence for the runners.",
+    "Counter": "Attacks immediately on winning possession.",
+    "Regroup": "Drops back into shape after losing the ball; the shape has to be compact before the counter.",
+    "Lower Line of Engagement": "Lets the opponent have the ball in their own half and closes the space deeper, leaving space behind them to attack.",
+    "Standard Defensive Line": "A balanced line keeps the back three compact without leaving space in behind."
+  },
   "keyRequirements": [
     "Three reliable centre-backs",
     "High-stamina wing-backs",

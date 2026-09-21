@@ -17,12 +17,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "gk_defend"
+      "role": "gk_defend",
+      "why": "Distributes short to the midfield triangle."
     },
     {
       "key": "DL",
       "position": "DL",
-      "role": "wb_dl_dr_attack"
+      "role": "wb_dl_dr_attack",
+      "why": "Attacking full-back on the left supplies the team's width and overlaps on that side."
     },
     {
       "key": "DCL",
@@ -30,37 +32,44 @@
       "role": "cd_defend",
       "roles": [
         "cd_cover"
-      ]
+      ],
+      "why": "Central defender. Cover is the alternate."
     },
     {
       "key": "DCR",
       "position": "DC",
-      "role": "bpd_defend"
+      "role": "bpd_defend",
+      "why": "Ball-playing defender starts moves from the back."
     },
     {
       "key": "DR",
       "position": "DR",
-      "role": "wb_dl_dr_support"
+      "role": "wb_dl_dr_support",
+      "why": "Support full-back on the right stays more conservative, so the team has one attacking flank and one safe one."
     },
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_defend"
+      "role": "cm_defend",
+      "why": "Defensive central midfielder screens the defence and allows the others to go forward."
     },
     {
       "key": "MCC",
       "position": "MC",
-      "role": "dlp_mc_support"
+      "role": "dlp_mc_support",
+      "why": "Deep-lying playmaker sets the tempo and keeps the ball moving."
     },
     {
       "key": "MCR",
       "position": "MC",
-      "role": "b2b_support"
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder joins the attack and supports the press."
     },
     {
       "key": "AMC",
       "position": "AMC",
-      "role": "ap_amc_attack"
+      "role": "ap_amc_attack",
+      "why": "Advanced playmaker is the creative centre of the team and feeds both strikers."
     },
     {
       "key": "STL",
@@ -68,7 +77,8 @@
       "role": "dlf_support",
       "roles": [
         "cf_support"
-      ]
+      ],
+      "why": "Deep-lying forward (or Complete Forward) links the playmaker to the other striker."
     },
     {
       "key": "STR",
@@ -76,7 +86,8 @@
       "role": "af_attack",
       "roles": [
         "p_attack"
-      ]
+      ],
+      "why": "Advanced Forward runs in behind. Poacher is the alternate."
     }
   ],
   "system": {
@@ -96,6 +107,19 @@
   "style": "Narrow Combination Play",
   "description": "A narrow 4-3-1-2 using three central midfielders and an advanced playmaker behind two complementary forwards.",
   "whyGood": "It overloads central zones while the wing-backs provide the width that the midfield shape lacks.",
+  "whyThisShape": "A narrow 4-3-1-2: three central midfielders and an attacking midfielder behind two strikers, so five players work in the centre. The full-backs provide all of the width, and the midfield can overload the middle and keep the ball.",
+  "whenToUse": "When your best players are central and you lack wingers, or against a team with only two central midfielders that you can outnumber.",
+  "whenNotToUse": "Against sides that attack the flanks, since your full-backs are the only wide players and will be stretched.",
+  "instructionRationale": {
+    "Fairly Narrow": "The team plays through the centre, where it has the numbers.",
+    "Shorter Passing": "Short combinations suit five players close together in the middle.",
+    "Work Ball Into Box": "Patient combinations until a clear chance opens up.",
+    "Overlap Left": "The left full-back overlaps, because he is the team's only width on that side.",
+    "Overlap Right": "The right full-back overlaps when it is safe, giving width on that side too.",
+    "Counter-Press": "Presses at once after losing the ball; with five players close together the ball is quickly won back.",
+    "Standard Line of Engagement": "A balanced press: engages as the ball enters the crowded middle.",
+    "Standard Defensive Line": "A balanced line keeps the block compact."
+  },
   "keyRequirements": [
     "Excellent attacking full-backs",
     "Three capable central midfielders",
