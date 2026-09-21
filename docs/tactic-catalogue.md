@@ -5,7 +5,7 @@ after changing any tactic. Each tactic's full detail (per-slot reasoning,
 per-instruction rationale, balance requirements) lives in its own file under
 `src/fm_analytics/analytics/data/tactics/`.
 
-40 tactics, 78 roles.
+40 tactics, 84 roles.
 
 ## At a glance
 
