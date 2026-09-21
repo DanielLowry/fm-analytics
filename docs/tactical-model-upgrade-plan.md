@@ -487,6 +487,35 @@ asymmetric wide roles in `possession_4141`, `vertical_tikitaka_433dm` and
 flank" — that is my reading of the data, not something the catalogue states, so
 correct it if the asymmetry was accidental.
 
+## 2d. Catalogue expansion, batch 1 (A6)
+
+Six new tactics, taking the catalogue from 25 to 31 and the roles in use from 34
+to 51 of 65: `false_nine_433`, `inverted_wingback_433`, `enganche_4231`,
+`raumdeuter_counter_4231`, `deep_counter_541`, `complete_wingback_4231`. Each ships
+with its full justification text and its own balance requirements, per the rule
+that nothing lands without them, and each fills a legal XI on a synthetic squad.
+
+**How the new tactics' balance requirements were set — this is weaker than for
+the original 25.** The original 25 were set by hand by style, then checked for
+reachability. For these six I took about 85% of what the intended line-up
+supplies, rounded down to 0.5, in the dimensions I judged to define the style
+(and left the others unconstrained, e.g. a deep block does not need to press). That
+makes each requirement a description of the line-up I wrote rather than an
+independent statement of what the style needs, so a default line-up passing them is
+close to guaranteed. Their value is in catching a slot alternate that breaks the
+tactic, not in judging the tactic. Treat the numbers as editable.
+
+**New guard.** `test_no_tactic_is_a_near_copy_of_another_on_the_same_shape`: two
+tactics on the same shape must differ by at least six jobs plus instructions. The
+closest existing pair scores 7, so this bites only on a genuine near-copy.
+
+**Still unused (14 roles):** `treq_st_attack`, `treq_amc_attack`,
+`treq_aml_amr_attack`, `iwb_dl_dr_attack`, `iwb_dl_dr_defend`, `nnfb_defend`,
+`pf_defend`, `pf_support`, `wtm_support`, `wtm_attack`, `fb_attack`, `if_support`,
+`iw_support`, `ap_aml_amr_attack`. The three Trequartista roles are the reason A5
+(an exclusion group across the whole XI rather than one position) is still needed:
+it only matters once a tactic can put two free roles in the same XI.
+
 ## 3. Workstream A — the catalogue
 
 ### A1. Give all 65 roles system traits
@@ -904,7 +933,7 @@ Ordered so that nothing is tuned on top of a known-broken baseline.
 | **0 — done** | **§2 data layout migration and retirements** | **Cheapest now: 25 small tactics, not 45 large ones. Also fixes the wheel-packaging bug before anyone installs one.** |
 | 1 — done | A1 traits for all 65 roles, A2 scale recalibration, A3 missing instructions | Fixes §1.1–1.2. Everything downstream is measured against this. Do not skip ahead. |
 | 2 — partly done | A4 per-tactic system requirements (done), A5 exclusion groups, B1 fix the existing 25 (reachability fixes done; see §2b) | Makes the current 25 correct before multiplying them. |
-| 3 | A6 expand to 40+, with B2 justifications authored alongside | Now safe: the load-time invariants from phase 1 catch a mis-authored tactic. |
+| 3 — batch 1 of ~3 done | A6 expand to 40+, with B2 justifications authored alongside (31 now; see §2d) | Now safe: the load-time invariants from phase 1 catch a mis-authored tactic. |
 | 4 — partly done | B3 surface justifications (done for the existing 25; better shortfall messages still to do) | The manager can now read why, which is also how you review phases 1–3. |
 | 5 | C1–C4 per-tactic per-role weights | Needs a correct system model and a settled tactic list. |
 | 6 | D1–D5 opponent model and slider | Reuses C3's emphasis mechanism; last per the roadmap's ordering advice. |

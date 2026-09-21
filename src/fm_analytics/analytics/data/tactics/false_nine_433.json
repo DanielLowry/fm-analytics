@@ -1,0 +1,125 @@
+{
+  "key": "false_nine_433",
+  "name": "False Nine 4-3-3",
+  "formation": "4-3-3 False Nine",
+  "mentality": "Positive",
+  "instructions": [
+    "Shorter Passing",
+    "Play Out Of Defence",
+    "Work Ball Into Box",
+    "Counter-Press",
+    "Higher Line of Engagement",
+    "Higher Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "sk_defend",
+      "why": "Sweeper keeper is an extra passer in build-up and covers the space behind a higher line."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support",
+      "why": "Support full-back gives width while the inverted wingers move inside."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "bpd_defend",
+      "why": "Ball-playing defender starts moves with progressive passes through the press."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender who defends while his partner plays. Cover is the alternate."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "Support full-back on the right, doing the same job as on the left."
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dm_support",
+      "why": "Supporting holding midfielder screens the defence and gives the midfield a passing base."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder runs into the space the false nine vacates and supports the counter-press."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "ap_mc_attack",
+      "why": "Advanced playmaker is the creative centre of the midfield and links with the false nine."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "iw_attack",
+      "why": "Inverted winger starts wide and cuts inside, running into the space the false nine leaves and attacking the far post."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "iw_attack",
+      "why": "Inverted winger on the right, mirroring the left so both centre-back gaps are attacked."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "f9_support",
+      "why": "False nine drops between the lines to link play and pulls a centre-back out of position."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 6.0,
+      "ballProgression": 5.5,
+      "creativity": 3.5,
+      "runners": 2.5,
+      "penetration": 2.0,
+      "boxPresence": 1.5,
+      "restDefence": 6.0,
+      "pressing": 2.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Possession with a false nine",
+  "description": "A possession 4-3-3 whose striker drops into midfield, dragging a centre-back with him and leaving space for two inverted wingers to run into from wide.",
+  "whyGood": "The false nine adds a spare man in midfield, so the team outnumbers the opponent's midfield while the wingers attack the space he leaves behind.",
+  "whyThisShape": "Dropping the striker into midfield gives you a spare man against the opponent's midfield, and it puts the opposition centre-back in a dilemma: follow him and leave a gap, or stay and let him receive. The two inverted wingers start wide and run into the centre-back's space, so the attack comes from the sides of the box rather than from a striker in the middle.",
+  "whenToUse": "Against a back four that defends deep and narrow, when you have a striker who is a better passer than a finisher and two wingers who can score.",
+  "whenNotToUse": "Against a back three, or a side that keeps its centre-backs in position, since there is no gap to exploit; and when your wingers cannot finish, since nobody is left in the box.",
+  "instructionRationale": {
+    "Shorter Passing": "Keeps the ball in tight triangles, which is how the false nine and midfield combine.",
+    "Play Out Of Defence": "The sweeper keeper and ball-playing defender build from the back so the midfield can receive under little pressure.",
+    "Work Ball Into Box": "Patient combinations until a run behind the pulled-out centre-back opens up.",
+    "Counter-Press": "Presses at once after losing the ball, since many players are close to it.",
+    "Higher Line of Engagement": "Presses in the opponent's half to keep the play high and the ball near the forwards.",
+    "Higher Defensive Line": "Keeps the team compact around the ball; it needs a keeper who sweeps and defenders with pace."
+  },
+  "keyRequirements": [
+    "A forward who passes and dribbles better than he finishes",
+    "Two wingers who cut in and score",
+    "A sweeper keeper who is comfortable on the ball",
+    "Midfielders who press together"
+  ],
+  "tags": [
+    "possession",
+    "433",
+    "false-nine"
+  ]
+}

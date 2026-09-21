@@ -1,0 +1,128 @@
+{
+  "key": "enganche_4231",
+  "name": "Enganche 4-2-3-1",
+  "formation": "4-2-3-1 Enganche",
+  "mentality": "Balanced",
+  "instructions": [
+    "Fairly Wide",
+    "Slightly More Direct Passing",
+    "Work Ball Into Box",
+    "Regroup",
+    "Standard Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Distributes to the target man or the full-backs; kicking ability helps."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support",
+      "why": "Support full-back gives width and cover behind the winger."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender. Cover is the alternate."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "Support full-back on the right."
+    },
+    {
+      "key": "DMCL",
+      "position": "DM",
+      "role": "bwm_dm_support",
+      "why": "Ball-winning midfielder wins the ball back and covers for the enganche, who does not defend."
+    },
+    {
+      "key": "DMCR",
+      "position": "DM",
+      "role": "dm_defend",
+      "why": "Holding midfielder stays in front of the defence and gives the ball to the enganche."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "winger_aml_amr_attack",
+      "why": "Winger (Attack) stays wide and gets crosses in for the target man; he must also track back, since the enganche does not."
+    },
+    {
+      "key": "AMC",
+      "position": "AMC",
+      "role": "eng_support",
+      "why": "Enganche is the team's only creative player: he stays high, receives between the lines and does not defend."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "winger_aml_amr_attack",
+      "why": "Winger (Attack) on the right, doing the same job as on the left."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "tm_support",
+      "why": "Target man wins the aerial balls and holds it up; he is also the finisher for the wingers' crosses and the enganche's passes."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 4.5,
+      "defensiveCover": 7.0,
+      "ballProgression": 2.5,
+      "creativity": 1.5,
+      "runners": 1.5,
+      "penetration": 1.5,
+      "aerialOutlet": 3.0,
+      "boxPresence": 1.5,
+      "restDefence": 7.0
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
+  "style": "Classic number ten",
+  "description": "A 4-2-3-1 built around one free playmaker who does no defensive work, protected by a hard-working double pivot and two attacking wingers, with a target man to finish his passes.",
+  "whyGood": "One creative player can decide the game if the rest of the team covers for him, and the target man and wingers turn his passes into chances.",
+  "whyThisShape": "The enganche stays high and central and does not defend, so the team defends with ten outfield players and has one creative outlet in attack. The double pivot behind him covers the space he leaves, and the wingers and target man give him three clear passing options, so the whole system is built to get the ball to one player and let him decide.",
+  "whenToUse": "When you have one clearly superior creative player who is not suited to a running role, and a target man for him to pass to.",
+  "whenNotToUse": "Against sides that press hard or man-mark the playmaker, since the team has no other creative source; and when your wingers will not defend.",
+  "instructionRationale": {
+    "Fairly Wide": "The wingers and full-backs stretch the opponent so the enganche has room between the lines.",
+    "Slightly More Direct Passing": "The target man gives the team a quicker route than passing through midfield.",
+    "Work Ball Into Box": "Feeds the ball to the enganche, who decides how the chance is created.",
+    "Regroup": "Drops back into shape after losing the ball, which is essential when one player does not defend.",
+    "Standard Line of Engagement": "A balanced press, so the two banks stay compact.",
+    "Standard Defensive Line": "A balanced line keeps the block compact."
+  },
+  "keyRequirements": [
+    "An exceptional creative playmaker",
+    "A ball-winning midfielder and a holder in front of the defence",
+    "Two wingers who track back",
+    "A strong target man"
+  ],
+  "tags": [
+    "balanced",
+    "4231",
+    "playmaker"
+  ]
+}

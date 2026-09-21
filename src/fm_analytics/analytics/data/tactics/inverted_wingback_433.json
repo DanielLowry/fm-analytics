@@ -1,0 +1,125 @@
+{
+  "key": "inverted_wingback_433",
+  "name": "Inverted Wing-Back 4-3-3",
+  "formation": "4-3-3 Inverted Wing-Backs",
+  "mentality": "Positive",
+  "instructions": [
+    "Shorter Passing",
+    "Play Out Of Defence",
+    "Work Ball Into Box",
+    "Counter-Press",
+    "Higher Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "sk_defend",
+      "why": "Sweeper keeper is an extra passer in build-up and covers the space behind a higher line."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "iwb_dl_dr_support",
+      "why": "Inverted wing-back tucks into midfield when the team has the ball, adding a passer in the centre and staying compact against counter-attacks."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "bpd_defend",
+      "why": "Ball-playing defender starts moves with progressive passes."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender who defends while his partner plays. Cover is the alternate."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "iwb_dl_dr_support",
+      "why": "Inverted wing-back on the right does the same job as on the left, so the wingers alone cover both flanks."
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dm_defend",
+      "why": "Holding midfielder screens the defence, since the inverted full-backs move ahead of him."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_support",
+      "why": "Supporting midfielder links the inverted full-backs with the forwards."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "mez_attack",
+      "why": "Mezzala moves into the half-space to arrive in the box, using the room the inverted full-backs create."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "winger_aml_amr_attack",
+      "why": "Winger stays wide and provides the width the full-backs no longer give."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "if_attack",
+      "why": "Inside forward cuts in to shoot and attack the far post."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "cf_attack",
+      "why": "Complete forward can hold up the ball, link with the midfield and score."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 2.5,
+      "defensiveCover": 6.0,
+      "ballProgression": 6.0,
+      "creativity": 2.5,
+      "runners": 4.0,
+      "penetration": 3.5,
+      "boxPresence": 1.5,
+      "restDefence": 6.0,
+      "pressing": 2.5
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Build-up with inverted full-backs",
+  "description": "A 4-3-3 in which both full-backs step into midfield when the team has the ball, forming a compact central block while the wingers provide all the width.",
+  "whyGood": "Two full-backs in midfield give the team extra passing options in the middle and better protection against counter-attacks, since more players are already central when possession is lost.",
+  "whyThisShape": "The inverted wing-backs step into midfield, so the team builds up with several players in the centre. That gives you more passers in the middle than the opponent has, and because the wingers alone cover the wide areas, the full-backs are already central and in position to stop counter-attacks when the ball is lost.",
+  "whenToUse": "When your full-backs are better passers than crossers, you want to dominate the centre of the pitch, and you have two wingers who are happy to stay wide.",
+  "whenNotToUse": "Against sides that attack down the flanks, since the full-backs are not covering the wide areas; and when your full-backs are not comfortable on the ball.",
+  "instructionRationale": {
+    "Shorter Passing": "The extra midfielders make short passes the natural way to keep the ball.",
+    "Play Out Of Defence": "The sweeper keeper, ball-playing defender and inverted full-backs give many short passing options.",
+    "Work Ball Into Box": "Patient movement of the ball until the winger or inside forward is free.",
+    "Counter-Press": "The team is compact in the centre, so it can win the ball back quickly after losing it.",
+    "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
+    "Standard Defensive Line": "A balanced line rather than a high one, because the inverted full-backs are already in the centre."
+  },
+  "keyRequirements": [
+    "Full-backs who pass well and read the game",
+    "Two wingers who provide width",
+    "A sweeper keeper",
+    "A reliable holding midfielder"
+  ],
+  "tags": [
+    "possession",
+    "433",
+    "inverted-wing-backs"
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "key": "deep_counter_541",
+  "name": "Deep Counter 5-4-1",
+  "formation": "5-4-1",
+  "mentality": "Defensive",
+  "instructions": [
+    "Drop Deeper Line of Engagement",
+    "Drop Off More Defensive Line",
+    "Counter",
+    "Pass Into Space",
+    "Regroup",
+    "Slower Tempo"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Distributes safely and quickly to the target man or the wide outlets after a save or claim."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "wb_dl_dr_defend",
+      "why": "Defensive wing-back stays back as the fifth defender and covers the flank."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender on the left of the three. Cover is the alternate."
+    },
+    {
+      "key": "DCC",
+      "position": "DC",
+      "role": "bpd_defend",
+      "why": "Ball-playing defender in the centre can start a counter with a pass when the ball is won."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender on the right of the three. Cover is the alternate, but only one Cover can be used."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "wb_dl_dr_defend",
+      "why": "Defensive wing-back on the right, doing the same job as on the left."
+    },
+    {
+      "key": "ML",
+      "position": "ML",
+      "role": "winger_ml_mr_attack",
+      "why": "Winger (Attack) stays high as the outlet on the left and gives the team a way out of pressure."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend",
+      "why": "Defensive central midfielder protects the space in front of the defence."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "cm_support",
+      "why": "Supporting central midfielder links the defence with the outlets and joins the counter."
+    },
+    {
+      "key": "MR",
+      "position": "MR",
+      "role": "winger_ml_mr_attack",
+      "why": "Winger (Attack) on the right, the outlet on that side."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "tm_support",
+      "why": "Target man (Support) holds the ball up and wins aerial duels so the wide players and midfield can join the counter."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 5.0,
+      "defensiveCover": 7.0,
+      "ballProgression": 3.0,
+      "runners": 3.0,
+      "penetration": 1.5,
+      "aerialOutlet": 3.5,
+      "restDefence": 7.0
+    },
+    "maximumAttackDuties": 3,
+    "maximumCreators": 3
+  },
+  "style": "Deep block with wide outlets",
+  "description": "A defensive 5-4-1 with three centre-backs and two defensive wing-backs, a flat midfield four with two attacking wide players, and a target man who holds the ball for them.",
+  "whyGood": "Five defenders give the box very little room, and the attacking wide midfielders and the target man give the team an outlet to break out of the pressure.",
+  "whyThisShape": "Five defenders and a bank of four give the opponent almost no room in front of or inside the box. The attacking wide midfielders stay high as outlets, and the target man holds the ball so the rest of the team can move up, so the team can absorb pressure and still threaten.",
+  "whenToUse": "Protecting a lead, or away against a much stronger side, when you have two quick wide players and a strong striker.",
+  "whenNotToUse": "When you need to win rather than draw, or when you cannot get the ball to the striker, since the team will be under pressure for long periods.",
+  "instructionRationale": {
+    "Drop Deeper Line of Engagement": "The team waits deep and defends near its own box instead of pressing.",
+    "Drop Off More Defensive Line": "Keeps the defence deep to remove space in behind.",
+    "Counter": "The two wide players and target man are outlets: the team attacks quickly when it wins the ball.",
+    "Pass Into Space": "Plays the ball into the space behind the opposition's full-backs for the wide players.",
+    "Regroup": "Drops back into shape after losing the ball.",
+    "Slower Tempo": "Slows the game down and wastes time when leading."
+  },
+  "keyRequirements": [
+    "Three dependable centre-backs",
+    "Two wide midfielders with pace",
+    "A target man who holds the ball up",
+    "Disciplined wing-backs"
+  ],
+  "tags": [
+    "defensive",
+    "541",
+    "deep-block"
+  ]
+}

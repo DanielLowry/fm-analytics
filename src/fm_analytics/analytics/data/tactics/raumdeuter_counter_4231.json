@@ -1,0 +1,126 @@
+{
+  "key": "raumdeuter_counter_4231",
+  "name": "Raumdeuter Counter 4-2-3-1",
+  "formation": "4-2-3-1 Counter",
+  "mentality": "Cautious",
+  "instructions": [
+    "Slightly More Direct Passing",
+    "Pass Into Space",
+    "Counter",
+    "Regroup",
+    "Lower Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Distributes quickly to the wingers or attacking midfielder to start the counter."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_defend",
+      "why": "Defensive full-back stays back and lets the winger and raumdeuter do the attacking, which keeps the block compact."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender. Cover is the alternate."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_cover",
+      "roles": [
+        "cd_defend"
+      ],
+      "why": "Cover centre-back sweeps up behind his partner; Defend is the alternate."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_defend",
+      "why": "Defensive full-back on the right stays back for the same reason."
+    },
+    {
+      "key": "DMCL",
+      "position": "DM",
+      "role": "dm_defend",
+      "why": "Holding midfielder screens the defence and does the simple defensive work."
+    },
+    {
+      "key": "DMCR",
+      "position": "DM",
+      "role": "dm_support",
+      "why": "Supporting midfielder wins the ball and starts the counter with a simple pass."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "raum_attack",
+      "why": "Raumdeuter drifts inside from his flank into the gaps between defenders and arrives at the far post; he does little defensive work."
+    },
+    {
+      "key": "AMC",
+      "position": "AMC",
+      "role": "am_attack",
+      "why": "Attacking midfielder plays between the lines and runs beyond the striker on the counter."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "winger_aml_amr_support",
+      "why": "Winger (Support) provides the width the raumdeuter does not, so the counter is not all down one side."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "cf_attack",
+      "why": "Complete forward runs in behind or holds the ball up, according to what the counter needs."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 2.5,
+      "defensiveCover": 8.0,
+      "ballProgression": 3.0,
+      "runners": 3.0,
+      "penetration": 2.0,
+      "boxPresence": 2.5,
+      "restDefence": 8.0
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
+  "style": "Counter-attack through space",
+  "description": "A cautious 4-2-3-1 that defends in a compact shape and counters through a raumdeuter who finds space on the flank, an attacking midfielder and a quick striker.",
+  "whyGood": "The raumdeuter's movement is hard to mark, so the counter arrives at the far post from a player the defence has lost track of.",
+  "whyThisShape": "Defensive full-backs and a double pivot keep the team compact, and the front four are set up to hit quickly. The raumdeuter does not build play: he waits for the ball to be won and then runs into whichever space opens. The other flank has a winger who supplies width so the counter does not all come down one side.",
+  "whenToUse": "Against a stronger team that will leave space behind its full-backs, when you have a smart off-the-ball player who scores goals.",
+  "whenNotToUse": "When you have to dominate the ball, since only two players create; or when the raumdeuter cannot finish.",
+  "instructionRationale": {
+    "Slightly More Direct Passing": "Gets the ball forward to the runners quickly after winning it.",
+    "Pass Into Space": "Plays the ball behind the defence for the raumdeuter and striker to run onto.",
+    "Counter": "Attacks straight away on winning the ball, which is the purpose of the system.",
+    "Regroup": "Falls back into shape after losing the ball, before the next counter.",
+    "Lower Line of Engagement": "Lets the opponent have the ball in their own half, which creates the space to counter into.",
+    "Standard Defensive Line": "A balanced line keeps the block compact."
+  },
+  "keyRequirements": [
+    "A raumdeuter with good movement and finishing",
+    "A quick, mobile striker",
+    "Disciplined full-backs",
+    "A dependable double pivot"
+  ],
+  "tags": [
+    "counter",
+    "4231",
+    "raumdeuter"
+  ]
+}

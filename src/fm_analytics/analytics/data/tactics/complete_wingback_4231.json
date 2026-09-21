@@ -1,0 +1,125 @@
+{
+  "key": "complete_wingback_4231",
+  "name": "Complete Wing-Back 4-2-3-1",
+  "formation": "4-2-3-1 Wide Overload",
+  "mentality": "Positive",
+  "instructions": [
+    "Shorter Passing",
+    "Play Out Of Defence",
+    "Work Ball Into Box",
+    "Overlap Left",
+    "Counter-Press",
+    "Higher Line of Engagement"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "sk_defend",
+      "why": "Sweeper keeper is an extra passer in build-up and covers the space behind a higher line."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "cwb_dl_dr_attack",
+      "why": "Complete wing-back (Attack) overlaps the playmaker on the left and gets in crosses and passes."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "bpd_defend",
+      "why": "Ball-playing defender starts moves with passes into midfield."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender who defends while his partner plays. Cover is the alternate."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "cwb_dl_dr_support",
+      "why": "Complete wing-back (Support) is the more cautious of the two, staying back more so one flank is safer."
+    },
+    {
+      "key": "DMCL",
+      "position": "DM",
+      "role": "dm_defend",
+      "why": "Holding midfielder protects the back line and covers the flank when the wing-back goes forward."
+    },
+    {
+      "key": "DMCR",
+      "position": "DM",
+      "role": "bwm_dm_support",
+      "why": "Ball-winning midfielder wins the ball back, starts the counter-press and helps cover the wide areas."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "ap_aml_amr_support",
+      "why": "Playmaker on the left drifts inside and creates from the half-space, which leaves the flank to the wing-back."
+    },
+    {
+      "key": "AMC",
+      "position": "AMC",
+      "role": "ap_amc_support",
+      "why": "Advanced playmaker (Support) is the creative centre and links the flanks."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "iw_attack",
+      "why": "Inverted winger (Attack) cuts in from the right to shoot and attack the far post."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "dlf_attack",
+      "why": "Deep-lying forward (Attack) links play but also runs at the defence, so the striker is not only a passer."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 4.5,
+      "defensiveCover": 6.0,
+      "ballProgression": 6.5,
+      "creativity": 5.5,
+      "runners": 2.5,
+      "penetration": 2.5,
+      "boxPresence": 1.5,
+      "restDefence": 5.5,
+      "pressing": 3.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Wide overload",
+  "description": "A 4-2-3-1 with two complete wing-backs who provide both the width and the creativity from the flanks, supported by playmakers inside them and a striker who drops to link play.",
+  "whyGood": "Wing-backs who can cross, pass and dribble overload the flank against the opposition full-back, and the playmakers inside them give the team several ways to reach the box.",
+  "whyThisShape": "Both flanks are overloaded: on the left the complete wing-back overlaps a playmaker who drifts inside, and on the right the wing-back supports an inside forward who cuts in. The double pivot stays behind them to cover the flanks when the wing-backs go forward, so the team attacks with width and stays protected.",
+  "whenToUse": "When your two full-backs are among your best attacking players, or against a team that defends narrowly and leaves the flanks open.",
+  "whenNotToUse": "Against quick wingers, if your wing-backs cannot recover; or when the double pivot cannot cover the flanks.",
+  "instructionRationale": {
+    "Shorter Passing": "Keeps the ball in short passes among the wing-backs, playmakers and pivot.",
+    "Play Out Of Defence": "The sweeper keeper and ball-playing defender build from the back, so the wing-backs can advance.",
+    "Work Ball Into Box": "Patient movement of the ball until the overlap or a pass from the half-space opens a chance.",
+    "Overlap Left": "The left wing-back overlaps the drifting playmaker to provide width.",
+    "Counter-Press": "Presses at once after losing the ball, to protect the space behind the wing-backs.",
+    "Higher Line of Engagement": "Presses higher up the pitch so the wing-backs are closer to the ball."
+  },
+  "keyRequirements": [
+    "Two complete wing-backs with stamina and skill",
+    "Playmakers on the left and in the middle",
+    "An inside forward who scores",
+    "A double pivot to cover the flanks"
+  ],
+  "tags": [
+    "positive",
+    "4231",
+    "wing-backs"
+  ]
+}
