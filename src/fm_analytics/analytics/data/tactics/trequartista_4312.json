@@ -130,13 +130,27 @@
   "attributeTaper": [
     {
       "attribute": "vision",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "AMC"
       ]
     },
     {
       "attribute": "technique",
+      "taperBelow": 10,
+      "positions": [
+        "AMC"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 9,
+      "positions": [
+        "AMC"
+      ]
+    },
+    {
+      "attribute": "composure",
       "taperBelow": 9,
       "positions": [
         "AMC"

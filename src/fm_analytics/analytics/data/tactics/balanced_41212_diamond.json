@@ -145,8 +145,30 @@
       ]
     },
     {
+      "attribute": "vision",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ]
+    },
+    {
       "attribute": "stamina",
       "taperBelow": 8,
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 7,
       "positions": [
         "DL",
         "DR"
