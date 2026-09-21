@@ -5,7 +5,28 @@
       "name": "Cover centre-back",
       "position": "DC",
       "roles": [
-        "cd_cover"
+        "cd_cover",
+        "bpd_cover",
+        "nncb_cover"
+      ]
+    },
+    {
+      "name": "Stopper centre-back",
+      "position": "DC",
+      "roles": [
+        "cd_stopper",
+        "bpd_stopper",
+        "nncb_stopper"
+      ]
+    },
+    {
+      "name": "Free roles",
+      "roles": [
+        "treq_st_attack",
+        "treq_amc_attack",
+        "treq_aml_amr_attack",
+        "eng_support",
+        "raum_attack"
       ]
     }
   ],

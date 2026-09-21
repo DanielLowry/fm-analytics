@@ -1,0 +1,123 @@
+{
+  "key": "aerial_343",
+  "name": "Aerial 3-4-3",
+  "formation": "3-4-3 Aerial",
+  "mentality": "Positive",
+  "instructions": [
+    "Fairly Wide",
+    "More Direct Passing",
+    "Hit Early Crosses",
+    "Higher Tempo",
+    "Regroup"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Distributes long to the target men after winning the ball."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Wide centre-back who defends the channel behind the wing-back. Cover is the alternate."
+    },
+    {
+      "key": "DCC",
+      "position": "DC",
+      "role": "bpd_defend",
+      "why": "Ball-playing defender in the centre starts moves with a pass out of defence."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Wide centre-back on the right. Cover is the alternate, but only one Cover can be used."
+    },
+    {
+      "key": "WBL",
+      "position": "WBL",
+      "role": "wb_wbl_wbr_attack",
+      "why": "Attacking wing-back gives the width and delivers the cross."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend",
+      "why": "Defensive central midfielder protects the back three."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "cm_support",
+      "why": "Supporting central midfielder links the defence with the forwards."
+    },
+    {
+      "key": "WBR",
+      "position": "WBR",
+      "role": "wb_wbl_wbr_attack",
+      "why": "Attacking wing-back on the right, doing the same job as on the left."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "wtm_attack",
+      "why": "Wide target man (Attack) runs to the far post to attack the cross."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "wtm_attack",
+      "why": "Wide target man (Attack) on the right, attacking the far post."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "tm_support",
+      "why": "Target man (Support) attacks the near post and wins the flick-ons."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 5.5,
+      "defensiveCover": 5.5,
+      "runners": 3.0,
+      "aerialOutlet": 6.0,
+      "boxPresence": 3.0,
+      "restDefence": 6.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Wing-backs and wide target men",
+  "description": "A 3-4-3 with attacking wing-backs supplying crosses for two wide target men and a central target man.",
+  "whyGood": "The back three gives a solid base, and the two wing-backs and three tall forwards create a lot of crossing traffic in the box.",
+  "whyThisShape": "Three centre-backs leave the two wing-backs free to push up the pitch and cross. The wide target men attack the far post and the target man attacks the near post, so each cross meets several players. The central midfield pair are the only midfielders, so the team relies on direct passing more than on possession.",
+  "whenToUse": "When you have two wing-backs who cross well and three tall forwards, especially against a back four that struggles with aerial balls.",
+  "whenNotToUse": "Against quick counter-attackers who target the space behind the wing-backs; and when you need to keep the ball, since the two midfielders will be outnumbered.",
+  "instructionRationale": {
+    "Fairly Wide": "The wing-backs and wide target men stretch the opponent, so the crosses come from wide.",
+    "More Direct Passing": "Gets the ball forward to the target men quickly, skipping the two-man midfield.",
+    "Hit Early Crosses": "The crosses are delivered before the defence can set.",
+    "Higher Tempo": "Moves the ball forward quickly.",
+    "Regroup": "Drops back into shape after losing the ball, which matters with two wing-backs pushed high."
+  },
+  "keyRequirements": [
+    "Two attacking wing-backs with stamina",
+    "Two tall wide forwards",
+    "A strong central target man",
+    "Three centre-backs who defend the box"
+  ],
+  "tags": [
+    "crossing",
+    "343",
+    "aerial"
+  ]
+}

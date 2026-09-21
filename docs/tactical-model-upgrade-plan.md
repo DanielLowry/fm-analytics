@@ -516,6 +516,38 @@ closest existing pair scores 7, so this bites only on a genuine near-copy.
 (an exclusion group across the whole XI rather than one position) is still needed:
 it only matters once a tactic can put two free roles in the same XI.
 
+## 2e. Catalogue expansion, batch 2 (A5, A6)
+
+Nine more tactics, taking the catalogue to **40** and putting **all 65 roles** in
+use: `trequartista_4312`, `pressing_442`, `crossing_433`, `aerial_343`,
+`solid_4231`, `box_midfield_4231`, `wide_playmakers_433`, `trequartista_442`,
+`narrow_4222`. Each ships with its justification text and balance requirements
+and fills a legal XI on a synthetic squad; one pass over all 40 tactics with 30
+players takes about 1.1s (a full recommendation runs the search twice, for
+effective and potential).
+
+**A5 done.** An exclusion group may now omit `position` and then limits a role
+across the whole XI. The shipped "Free roles" group allows at most one of
+`treq_st_attack`, `treq_amc_attack`, `treq_aml_amr_attack`, `eng_support` and
+`raum_attack`. No shipped tactic can currently field two, so it is a guard for
+future tactics, not something that changes a result today.
+
+**Same caveat as batch 1** about how the new balance requirements were set (about
+85% of the intended line-up's supply, in the dimensions chosen as defining the
+style; §2d). One change from the plan while writing: `trequartista_442` uses a
+standard defensive line, because a higher one suits a team whose creator does
+not defend badly.
+
+**A judgement to review — the one alternate pair that is not near-identical.**
+`pf_attack`/`af_attack` in the two gegenpress tactics differs by about 1.2 in
+pressing (the other three pairs are near-identical, per `analytics/CLAUDE.md`).
+It is a deliberate fallback for a squad with no pressing forward, at a cost in
+instruction fit, rather than an interchangeable pair. If you would rather the
+gegenpress tactics were strictly Pressing Forward, remove the alternate.
+
+The remaining work on the plan is the review you plan to do, then per-tactic
+attribute weights (§5) and the opponent sliders (§6).
+
 ## 3. Workstream A — the catalogue
 
 ### A1. Give all 65 roles system traits
@@ -933,7 +965,7 @@ Ordered so that nothing is tuned on top of a known-broken baseline.
 | **0 — done** | **§2 data layout migration and retirements** | **Cheapest now: 25 small tactics, not 45 large ones. Also fixes the wheel-packaging bug before anyone installs one.** |
 | 1 — done | A1 traits for all 65 roles, A2 scale recalibration, A3 missing instructions | Fixes §1.1–1.2. Everything downstream is measured against this. Do not skip ahead. |
 | 2 — partly done | A4 per-tactic system requirements (done), A5 exclusion groups, B1 fix the existing 25 (reachability fixes done; see §2b) | Makes the current 25 correct before multiplying them. |
-| 3 — batch 1 of ~3 done | A6 expand to 40+, with B2 justifications authored alongside (31 now; see §2d) | Now safe: the load-time invariants from phase 1 catch a mis-authored tactic. |
+| 3 — done (40 tactics, 65/65 roles) | A6 expand to 40+, with B2 justifications authored alongside (31 now; see §2d) | Now safe: the load-time invariants from phase 1 catch a mis-authored tactic. |
 | 4 — partly done | B3 surface justifications (done for the existing 25; better shortfall messages still to do) | The manager can now read why, which is also how you review phases 1–3. |
 | 5 | C1–C4 per-tactic per-role weights | Needs a correct system model and a settled tactic list. |
 | 6 | D1–D5 opponent model and slider | Reuses C3's emphasis mechanism; last per the roadmap's ordering advice. |

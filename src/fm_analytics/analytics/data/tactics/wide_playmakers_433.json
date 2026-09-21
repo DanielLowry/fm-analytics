@@ -1,0 +1,123 @@
+{
+  "key": "wide_playmakers_433",
+  "name": "Wide Playmakers 4-3-3",
+  "formation": "4-3-3 Wide Playmakers",
+  "mentality": "Positive",
+  "instructions": [
+    "Shorter Passing",
+    "Work Ball Into Box",
+    "Counter-Press",
+    "Higher Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "sk_defend",
+      "why": "Sweeper keeper is an extra passer in build-up and covers the space behind a higher line."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support",
+      "why": "Support full-back gives the width the creators no longer give."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "bpd_defend",
+      "why": "Ball-playing defender starts moves with passes into midfield."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender who defends while his partner plays. Cover is the alternate."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "Support full-back on the right, providing width there too."
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "bwm_dm_support",
+      "why": "Ball-winning midfielder wins the ball back and covers for the creators, who do little defending."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder supports the press and runs beyond the forward."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "cm_support",
+      "why": "Supporting central midfielder links the defence with the creators."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "treq_aml_amr_attack",
+      "why": "Trequartista starts on the left and roams freely to find space between the lines; he does not defend."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "ap_aml_amr_attack",
+      "why": "Advanced playmaker starts on the right and moves inside to create from the half-space."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "pf_attack",
+      "why": "Pressing forward (Attack) starts the press and runs in behind, doing the work the creators do not."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 2.0,
+      "defensiveCover": 6.5,
+      "ballProgression": 5.0,
+      "creativity": 3.0,
+      "runners": 2.5,
+      "penetration": 2.0,
+      "boxPresence": 1.5,
+      "restDefence": 5.5,
+      "pressing": 4.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Roaming creators from wide",
+  "description": "A 4-3-3 with two creative players starting wide, one a trequartista who roams and one an advanced playmaker, supported by a pressing forward and a strong midfield.",
+  "whyGood": "Two creators starting from wide positions are hard to mark, and the pressing forward, ball-winner and box-to-box midfielder cover the work they do not do.",
+  "whyThisShape": "Starting the creators wide rather than in the middle means opposing central midfielders cannot easily mark them, and each drifts inside to receive between the lines. The pressing forward, ball-winner and box-to-box midfielder do the defensive work for them, and the full-backs supply the width they leave.",
+  "whenToUse": "When your best creative players are wingers or attacking midfielders rather than central playmakers, against sides that defend in a mid-block.",
+  "whenNotToUse": "Against teams that press hard on the full-backs, since the full-backs supply all the width; and when the creators cannot be protected by a strong midfield.",
+  "instructionRationale": {
+    "Shorter Passing": "Keeps the ball in short passes, which is how the creators link with the midfield.",
+    "Work Ball Into Box": "Patient movement of the ball until one of the creators finds the pass that opens the defence.",
+    "Counter-Press": "Presses at once after losing the ball, led by the pressing forward and ball-winner.",
+    "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
+    "Standard Defensive Line": "A balanced line keeps the defence compact."
+  },
+  "keyRequirements": [
+    "Two creative players who can play wide",
+    "A pressing forward with high work rate",
+    "A ball-winning midfielder",
+    "Full-backs who provide the width"
+  ],
+  "tags": [
+    "positive",
+    "433",
+    "playmakers"
+  ]
+}

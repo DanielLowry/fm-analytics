@@ -1,0 +1,134 @@
+{
+  "key": "narrow_4222",
+  "name": "Narrow 4-2-2-2",
+  "formation": "4-2-2-2 Narrow",
+  "mentality": "Positive",
+  "instructions": [
+    "Fairly Narrow",
+    "Shorter Passing",
+    "Higher Tempo",
+    "Counter-Press",
+    "Higher Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Distributes short to the pivot."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support",
+      "why": "Support full-back is the only wide player on the left, so he provides the width."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender. Cover is the alternate."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "Support full-back on the right, the only width on that side."
+    },
+    {
+      "key": "DMCL",
+      "position": "DM",
+      "role": "bwm_dm_support",
+      "why": "Ball-winning midfielder wins the ball back and starts the press."
+    },
+    {
+      "key": "DMCR",
+      "position": "DM",
+      "role": "dlp_dm_support",
+      "why": "Deep-lying playmaker distributes from the base of the midfield."
+    },
+    {
+      "key": "AMCL",
+      "position": "AMC",
+      "role": "ss_attack",
+      "why": "Shadow striker presses from the half-space and runs beyond the strikers into the box."
+    },
+    {
+      "key": "AMCR",
+      "position": "AMC",
+      "role": "am_support",
+      "why": "Attacking midfielder (Support) links the pivot with the strikers and creates from the other half-space."
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "dlf_support",
+      "roles": [
+        "cf_support"
+      ],
+      "why": "Deep-lying forward holds up the ball and links with the attacking midfielders. Complete Forward is the alternate."
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ],
+      "why": "Advanced Forward runs in behind the defence. Poacher is the alternate."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 1.5,
+      "defensiveCover": 6.0,
+      "ballProgression": 3.5,
+      "creativity": 3.0,
+      "runners": 2.5,
+      "penetration": 2.0,
+      "boxPresence": 2.0,
+      "restDefence": 6.5,
+      "pressing": 2.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Narrow box with two forwards",
+  "description": "A narrow 4-2-2-2 with a double pivot, two attacking midfielders in the half-spaces and two strikers, giving six players in the middle of the pitch.",
+  "whyGood": "Six central players make a compact, well-connected team that overloads the middle and presses as a unit.",
+  "whyThisShape": "The two attacking midfielders sit in the half-spaces between the opposition's centre-backs and full-backs, and with the double pivot and two strikers, six players occupy the middle of the pitch. Passes between them are short, and the team presses as a compact unit. The only width comes from the full-backs, so the shape depends on them.",
+  "whenToUse": "When your best players are central and you lack wingers, especially against a team with two central midfielders who will be overrun.",
+  "whenNotToUse": "Against sides that attack down the flanks and outnumber your full-backs, and when your full-backs cannot cover a whole flank.",
+  "instructionRationale": {
+    "Fairly Narrow": "The whole team plays through the centre, where it has the numbers.",
+    "Shorter Passing": "Short passes suit six players close together in the middle.",
+    "Higher Tempo": "Moves the ball quickly between the central players.",
+    "Counter-Press": "Presses at once after losing the ball; with six players near it, it is quickly won back.",
+    "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
+    "Standard Defensive Line": "A balanced line keeps the defence compact."
+  },
+  "keyRequirements": [
+    "Full-backs who provide all the width",
+    "A ball-winner and a playmaker in the pivot",
+    "A shadow striker and a creative attacking midfielder",
+    "Two complementary strikers"
+  ],
+  "tags": [
+    "positive",
+    "4222",
+    "narrow"
+  ]
+}

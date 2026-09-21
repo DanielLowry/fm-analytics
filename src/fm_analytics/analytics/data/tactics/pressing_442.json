@@ -1,0 +1,125 @@
+{
+  "key": "pressing_442",
+  "name": "High-Press 4-4-2",
+  "formation": "4-4-2 High Press",
+  "mentality": "Positive",
+  "instructions": [
+    "Higher Line of Engagement",
+    "Much More Urgent Pressing",
+    "Counter-Press",
+    "Slightly More Direct Passing",
+    "Higher Tempo",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Distributes to the forwards or wide midfielders after winning the ball."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support",
+      "why": "Support full-back gives width and pushes up to join the press on the flank."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender. Cover is the alternate."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "Support full-back on the right, doing the same job as on the left."
+    },
+    {
+      "key": "ML",
+      "position": "ML",
+      "role": "wm_support",
+      "why": "Wide midfielder (Support) works hard to close the full-back and gives the team width when the ball is won."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "bwm_mc_support",
+      "why": "Ball-winning midfielder harries the opposition midfield and wins the ball for the forwards."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder supports the press and runs beyond the forwards."
+    },
+    {
+      "key": "MR",
+      "position": "MR",
+      "role": "wm_support",
+      "why": "Wide midfielder (Support) on the right, doing the same job as on the left."
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "pf_defend",
+      "why": "Pressing forward (Defend) starts the press and drops back to help the midfield, so he is the workhorse of the pair."
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "pf_attack",
+      "why": "Pressing forward (Attack) presses too, but stays higher and looks to run in behind when the ball is won."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 4.0,
+      "defensiveCover": 7.5,
+      "ballProgression": 3.0,
+      "runners": 2.5,
+      "restDefence": 5.5,
+      "pressing": 5.5
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Two pressing forwards",
+  "description": "A 4-4-2 that presses from the front with two pressing forwards, a ball-winning midfielder and a box-to-box runner, and hard-working wide midfielders.",
+  "whyGood": "Two forwards pressing the centre-backs, backed by a midfield that presses together, wins the ball high with a simple, easy-to-understand shape.",
+  "whyThisShape": "Two pressing forwards start the press by closing the centre-backs and goalkeeper, and the ball-winner and box-to-box midfielder support them, so the whole team compresses the opponent's build-up. The 4-4-2 is compact, so the distances between players are short and the press is easy to keep together.",
+  "whenToUse": "When you have fit, energetic forwards and midfielders and want to press the opponent's build-up, especially against a side that plays short from the back.",
+  "whenNotToUse": "Against sides that play long over the press, or when your players are tired: a two-man press leaves gaps behind it if it is beaten.",
+  "instructionRationale": {
+    "Higher Line of Engagement": "Starts the press in the opponent's half so the ball is won high.",
+    "Much More Urgent Pressing": "Presses with more intensity, which wins the ball more often but tires the team.",
+    "Counter-Press": "Presses at once after losing the ball, so possession is regained before the opponent settles.",
+    "Slightly More Direct Passing": "Gets the ball forward quickly to the forwards when it is won.",
+    "Higher Tempo": "Moves the ball quickly while the opponent is out of shape.",
+    "Standard Defensive Line": "A balanced line rather than a high one, so the two-man press does not leave the defence exposed."
+  },
+  "keyRequirements": [
+    "Two forwards with high work rate and stamina",
+    "A ball-winning midfielder",
+    "Wide midfielders who work hard",
+    "Fit players who can press for the whole game"
+  ],
+  "tags": [
+    "gegenpress",
+    "442",
+    "high-press"
+  ]
+}

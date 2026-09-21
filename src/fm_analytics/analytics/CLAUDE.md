@@ -40,12 +40,15 @@ slot plays is usually what makes a tactic *that* tactic (a deep playmaker
 vs. a ball-winner as the DM defines two different systems), so a slot stays
 single-role unless a human decided otherwise for it specifically.
 
-The catalogue currently declares alternatives for exactly three role pairs
-— `cd_defend`/`cd_cover`, `af_attack`/`p_attack`, `dlf_support`/`cf_support`
-— chosen because their `tactical_system.py` trait contributions are nearly
+The catalogue currently declares alternatives for four role pairs
+— `cd_defend`/`cd_cover`, `af_attack`/`p_attack`, `dlf_support`/`cf_support`,
+and `pf_attack`/`af_attack` — the first three chosen because their `tactical_system.py` trait contributions are nearly
 identical (see each role's `system` traits in `data/roles/`): swapping one for the other changes
 which specific player profile fits the slot, not what the team's system
-does. Contrast `dm_defend`/`dm_support`, which looks like a similar swap
+does. `pf_attack`/`af_attack` (only in the two gegenpress tactics) is the
+exception: pressing differs by about 1.2, so choosing Advanced Forward costs
+that tactic instruction fit. It is a deliberate fallback for a squad with no
+pressing forward, not an interchangeable pair. Contrast `dm_defend`/`dm_support`, which looks like a similar swap
 but trades off primary `defensiveCover`/`ballProgression` contribution by a
 large margin — a genuine screen-vs-distributor identity choice, correctly
 left pinned. Before adding a new alternate pair anywhere in the catalogue,
@@ -57,8 +60,9 @@ similar in name.
 
 Slot alternatives are chosen independently, so a tactic can name the same
 role in two slots on one line. `data/catalogue.json`'s `exclusiveRoleGroups` rules
-those out: each group names a position and roles of which at most one slot at
-that position may play (today: one Cover centre-back, `cd_cover`). Roles in a
+those out: each group names roles of which at most one slot may play, at one
+position (today: one Cover centre-back, `cd_cover`) or, with no `position`,
+anywhere in the eleven (today: one of Trequartista, Enganche, Raumdeuter). Roles in a
 group are the ones that only make sense alongside a partner who isn't in it.
 `_best_role_version` skips any role version that breaks a group, and
 `FootballCatalogue` refuses to load a tactic with no legal version. When a new

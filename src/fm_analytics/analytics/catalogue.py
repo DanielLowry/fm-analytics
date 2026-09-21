@@ -139,6 +139,11 @@ class TacticDefinition:
 class RoleExclusionGroup:
     """Roles of which a tactic may use at most one, among slots at one position.
 
+    With no `position` the limit applies across the whole eleven, for roles that
+    are a liability wherever they play (a Trequartista, an Enganche and a
+    Raumdeuter all give little defensively, so two of them anywhere in one XI
+    is not a workable system).
+
     Slot alternatives are chosen independently, so nothing stops two slots on
     the same line picking the same role. Some pairings are not a legitimate
     system: two Cover centre-backs leave nobody to be covered, so at most one
@@ -148,12 +153,14 @@ class RoleExclusionGroup:
     """
 
     name: str
-    position: str
+    position: str | None
     role_keys: frozenset[str]
 
     def __post_init__(self) -> None:
-        if not self.name or not self.position or not self.role_keys:
-            raise ValueError("role exclusion group name, position, and roles are required")
+        if not self.name or not self.role_keys:
+            raise ValueError("role exclusion group name and roles are required")
+        if self.position is not None and not self.position:
+            raise ValueError("role exclusion group position must be omitted or non-empty")
 
     def is_violated_by(
         self, slots: tuple[TacticSlot, ...], role_keys: tuple[str, ...]
@@ -162,7 +169,8 @@ class RoleExclusionGroup:
             sum(
                 1
                 for slot, role_key in zip(slots, role_keys)
-                if slot.position == self.position and role_key in self.role_keys
+                if (self.position is None or slot.position == self.position)
+                and role_key in self.role_keys
             )
             > 1
         )
@@ -481,7 +489,7 @@ def _tactic_documents(data_dir: Path) -> list[Mapping[str, Any]]:
 def _exclusion_group_from_json(raw: Mapping[str, Any]) -> RoleExclusionGroup:
     return RoleExclusionGroup(
         name=_str(raw, "name"),
-        position=_str(raw, "position"),
+        position=_str(raw, "position") if "position" in raw else None,
         role_keys=frozenset(_str_tuple(raw, "roles")),
     )
 

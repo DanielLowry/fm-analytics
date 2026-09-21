@@ -1,0 +1,131 @@
+{
+  "key": "trequartista_4312",
+  "name": "Trequartista 4-3-1-2",
+  "formation": "4-3-1-2 Trequartista",
+  "mentality": "Positive",
+  "instructions": [
+    "Fairly Narrow",
+    "Shorter Passing",
+    "Work Ball Into Box",
+    "Counter-Press",
+    "Standard Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Distributes short to the midfield triangle or long to the strikers."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support",
+      "why": "Support full-back is the only wide player on the left, so he provides width and crosses."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender. Cover is the alternate."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "Support full-back on the right, the only width on that side."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "bwm_mc_support",
+      "why": "Ball-winning midfielder wins the ball back in the middle and covers for the trequartista's lack of defensive work."
+    },
+    {
+      "key": "MCC",
+      "position": "MC",
+      "role": "cm_defend",
+      "why": "Defensive central midfielder holds the base of the midfield triangle and protects the defence."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder supports the attack and joins the press."
+    },
+    {
+      "key": "AMC",
+      "position": "AMC",
+      "role": "treq_amc_attack",
+      "why": "Trequartista roams freely behind the strikers, finding space to create; he does not press or track back."
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "pf_support",
+      "why": "Pressing forward (Support) presses the defenders and links with the trequartista, doing the work he does not."
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ],
+      "why": "Advanced Forward runs in behind the defence, using the space the trequartista's movement creates. Poacher is the alternate."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 1.5,
+      "defensiveCover": 7.0,
+      "ballProgression": 2.5,
+      "creativity": 1.5,
+      "runners": 3.0,
+      "penetration": 2.0,
+      "boxPresence": 2.0,
+      "restDefence": 6.5,
+      "pressing": 4.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "One free creator, everyone else works",
+  "description": "A narrow 4-3-1-2 with one trequartista who roams freely behind two strikers, and a hard-working midfield three plus a pressing forward to cover for him.",
+  "whyGood": "The trequartista creates chances from wherever he finds space, and because the pressing forward and the midfield three do his defensive work, his freedom does not leave the team exposed.",
+  "whyThisShape": "The trequartista has no fixed position and no defensive duties: he drifts to wherever he can find the ball and create. To make that affordable, the rest of the shape does the work he does not: three central midfielders, one of them a ball-winner, protect the middle, and the pressing forward harries defenders so the team still presses with ten. The full-backs give the only width.",
+  "whenToUse": "When you have one player of clearly superior creativity who is not suited to a fixed role, and a striker partner who will run and press for him.",
+  "whenNotToUse": "Against teams that man-mark the playmaker or overload the flanks, since the full-backs are your only wide players; and when the midfield three lacks the energy to cover for him.",
+  "instructionRationale": {
+    "Fairly Narrow": "Keeps the team compact around the trequartista and lets him combine with the strikers and midfield.",
+    "Shorter Passing": "Keeps the ball in short passes, which is how the trequartista and the midfield link up.",
+    "Work Ball Into Box": "Patient movement of the ball until the trequartista finds the pass that opens the defence.",
+    "Counter-Press": "Presses at once after losing the ball, led by the pressing forward and ball-winner, since the trequartista will not.",
+    "Standard Line of Engagement": "A balanced press keeps the midfield three compact.",
+    "Standard Defensive Line": "A balanced line keeps the block compact."
+  },
+  "keyRequirements": [
+    "An exceptional creative player with vision and technique",
+    "A pressing forward with high work rate",
+    "A ball-winning midfielder",
+    "Full-backs who provide all the width"
+  ],
+  "tags": [
+    "positive",
+    "4312",
+    "trequartista"
+  ]
+}

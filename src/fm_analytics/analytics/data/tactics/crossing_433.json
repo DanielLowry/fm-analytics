@@ -1,0 +1,125 @@
+{
+  "key": "crossing_433",
+  "name": "Crossing 4-3-3",
+  "formation": "4-3-3 Crossing",
+  "mentality": "Positive",
+  "instructions": [
+    "Fairly Wide",
+    "Slightly More Direct Passing",
+    "Hit Early Crosses",
+    "Overlap Left",
+    "Overlap Right",
+    "Higher Tempo"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Distributes to the target men or full-backs; long kicking helps."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_attack",
+      "why": "Attacking full-back overlaps the wide target man and supplies the crosses."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender. Cover is the alternate."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_attack",
+      "why": "Attacking full-back on the right, doing the same job as on the left."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend",
+      "why": "Defensive central midfielder covers the space the full-backs leave when they overlap."
+    },
+    {
+      "key": "MCC",
+      "position": "MC",
+      "role": "cm_support",
+      "why": "Supporting central midfielder links the defence to the forwards."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder runs into the box to attack the crosses and second balls."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "wtm_support",
+      "why": "Wide target man (Support) holds the touchline, wins headers and gets the ball out for the overlapping full-back."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "wtm_support",
+      "why": "Wide target man (Support) on the right, doing the same job as on the left."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "tm_support",
+      "why": "Target man (Support) attacks the crosses and holds up the ball."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 4.5,
+      "defensiveCover": 5.5,
+      "runners": 3.0,
+      "aerialOutlet": 5.0,
+      "boxPresence": 2.5,
+      "restDefence": 5.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Full-backs and wide target men",
+  "description": "A 4-3-3 where attacking full-backs overlap two wide target men, and the ball is crossed early to a central target man.",
+  "whyGood": "Three tall forwards and two overlapping full-backs put many players in the box, and the crosses come from several angles.",
+  "whyThisShape": "The two wide target men stand near the touchline and are supported by attacking full-backs who overlap them, so the team has two players on each flank. Early crosses go to the central target man and the far-post target man, so up to three players are in the box for each cross, and the midfield three cover the space the full-backs leave.",
+  "whenToUse": "When you have two tall forwards who can play wide, a strong central striker, and full-backs who can cross, especially against defences that are short or slow to turn.",
+  "whenNotToUse": "Against tall centre-backs who win the crosses, or against quick wingers, since both full-backs are pushed high and the space behind them is open.",
+  "instructionRationale": {
+    "Fairly Wide": "The wide target men and full-backs stretch the opponent, so the crosses come from the flanks.",
+    "Slightly More Direct Passing": "Gets the ball wide and forward quicker than short passing does.",
+    "Hit Early Crosses": "The crosses are delivered before the defence can set, into the target men.",
+    "Overlap Left": "The left full-back overlaps the wide target man to supply the cross.",
+    "Overlap Right": "The right full-back does the same on the right.",
+    "Higher Tempo": "Moves the ball to the flanks quickly."
+  },
+  "keyRequirements": [
+    "Two tall wide forwards who win headers",
+    "A strong central target man",
+    "Full-backs with stamina and crossing",
+    "Central midfielders who cover the flanks"
+  ],
+  "tags": [
+    "crossing",
+    "433",
+    "aerial"
+  ]
+}

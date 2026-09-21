@@ -227,6 +227,262 @@
       }
     },
     {
+      "key": "cm_attack",
+      "name": "Central Midfielder (Attack)",
+      "positions": [
+        "MC"
+      ],
+      "positionGroup": "MC",
+      "duty": "Attack",
+      "system": {
+        "ballProgression": 0.8,
+        "creativity": 0.6,
+        "runners": 1.2,
+        "boxPresence": 1.0,
+        "penetration": 0.8,
+        "pressing": 0.5,
+        "attackDuty": 1.0
+      },
+      "attributes": {
+        "acceleration": {
+          "effectiveWeight": 6,
+          "dutyModifier": 3,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "anticipation": {
+          "effectiveWeight": 7,
+          "dutyModifier": 1,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "composure": {
+          "effectiveWeight": 6,
+          "dutyModifier": 2,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "concentration": {
+          "effectiveWeight": 3,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "decisions": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "dribbling": {
+          "effectiveWeight": 5,
+          "dutyModifier": 1,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "finishing": {
+          "effectiveWeight": 6,
+          "dutyModifier": 6,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "firstTouch": {
+          "effectiveWeight": 7,
+          "dutyModifier": 1,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "longShots": {
+          "effectiveWeight": 6,
+          "dutyModifier": 6,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "offTheBall": {
+          "effectiveWeight": 9,
+          "dutyModifier": 3,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "passing": {
+          "effectiveWeight": 7,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "positioning": {
+          "effectiveWeight": 4,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "stamina": {
+          "effectiveWeight": 7,
+          "dutyModifier": 1,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "tackling": {
+          "effectiveWeight": 4,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "teamwork": {
+          "effectiveWeight": 7,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "technique": {
+          "effectiveWeight": 6,
+          "dutyModifier": 2,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "vision": {
+          "effectiveWeight": 5,
+          "dutyModifier": 2,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "workRate": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        }
+      }
+    },
+    {
+      "key": "dlp_mc_defend",
+      "name": "Deep-Lying Playmaker (Defend) [MC]",
+      "positions": [
+        "MC"
+      ],
+      "positionGroup": "MC",
+      "duty": "Defend",
+      "system": {
+        "defensiveCover": 0.7,
+        "ballProgression": 1.4,
+        "creativity": 1.2,
+        "restDefence": 1.1,
+        "pressing": 0.2
+      },
+      "attributes": {
+        "anticipation": {
+          "effectiveWeight": 7,
+          "dutyModifier": 1,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "composure": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "concentration": {
+          "effectiveWeight": 5,
+          "dutyModifier": 2,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "decisions": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "firstTouch": {
+          "effectiveWeight": 9,
+          "dutyModifier": 1,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "offTheBall": {
+          "effectiveWeight": 2,
+          "dutyModifier": 0,
+          "weightTier": "marginal",
+          "coreSoftFloorApplies": false
+        },
+        "passing": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "positioning": {
+          "effectiveWeight": 8,
+          "dutyModifier": 2,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "stamina": {
+          "effectiveWeight": 4,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "strength": {
+          "effectiveWeight": 4,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "tackling": {
+          "effectiveWeight": 6,
+          "dutyModifier": 2,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "teamwork": {
+          "effectiveWeight": 6,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "technique": {
+          "effectiveWeight": 9,
+          "dutyModifier": 1,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "vision": {
+          "effectiveWeight": 9,
+          "dutyModifier": 1,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "workRate": {
+          "effectiveWeight": 5,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        }
+      }
+    },
+    {
       "key": "dlp_mc_support",
       "name": "Deep-Lying Playmaker (Support) [MC]",
       "positions": [
@@ -339,6 +595,623 @@
           "dutyModifier": 0,
           "weightTier": "important",
           "coreSoftFloorApplies": false
+        }
+      }
+    },
+    {
+      "key": "ap_mc_support",
+      "name": "Advanced Playmaker (Support) [MC]",
+      "positions": [
+        "MC"
+      ],
+      "positionGroup": "MC",
+      "duty": "Support",
+      "system": {
+        "creativity": 1.8,
+        "ballProgression": 1.0,
+        "runners": 0.3,
+        "pressing": 0.4
+      },
+      "attributes": {
+        "acceleration": {
+          "effectiveWeight": 3,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "agility": {
+          "effectiveWeight": 6,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "anticipation": {
+          "effectiveWeight": 5,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "composure": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "concentration": {
+          "effectiveWeight": 3,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "decisions": {
+          "effectiveWeight": 9,
+          "dutyModifier": 1,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "dribbling": {
+          "effectiveWeight": 6,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "firstTouch": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "flair": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "offTheBall": {
+          "effectiveWeight": 5,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "pace": {
+          "effectiveWeight": 2,
+          "dutyModifier": 0,
+          "weightTier": "marginal",
+          "coreSoftFloorApplies": false
+        },
+        "passing": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "positioning": {
+          "effectiveWeight": 4,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "stamina": {
+          "effectiveWeight": 6,
+          "dutyModifier": 1,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "tackling": {
+          "effectiveWeight": 3,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "teamwork": {
+          "effectiveWeight": 7,
+          "dutyModifier": 1,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "technique": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "vision": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "workRate": {
+          "effectiveWeight": 7,
+          "dutyModifier": 1,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        }
+      }
+    },
+    {
+      "key": "ap_mc_attack",
+      "name": "Advanced Playmaker (Attack) [MC]",
+      "positions": [
+        "MC"
+      ],
+      "positionGroup": "MC",
+      "duty": "Attack",
+      "system": {
+        "creativity": 1.8,
+        "ballProgression": 0.8,
+        "penetration": 0.5,
+        "attackDuty": 1.0
+      },
+      "attributes": {
+        "acceleration": {
+          "effectiveWeight": 3,
+          "dutyModifier": 3,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "agility": {
+          "effectiveWeight": 6,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "anticipation": {
+          "effectiveWeight": 5,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "composure": {
+          "effectiveWeight": 9,
+          "dutyModifier": 1,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "concentration": {
+          "effectiveWeight": 3,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "decisions": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "dribbling": {
+          "effectiveWeight": 7,
+          "dutyModifier": 1,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "firstTouch": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "flair": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "offTheBall": {
+          "effectiveWeight": 7,
+          "dutyModifier": 1,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "pace": {
+          "effectiveWeight": 2,
+          "dutyModifier": 0,
+          "weightTier": "marginal",
+          "coreSoftFloorApplies": false
+        },
+        "passing": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "positioning": {
+          "effectiveWeight": 4,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "stamina": {
+          "effectiveWeight": 5,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "tackling": {
+          "effectiveWeight": 3,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "teamwork": {
+          "effectiveWeight": 6,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "technique": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "vision": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "workRate": {
+          "effectiveWeight": 6,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        }
+      }
+    },
+    {
+      "key": "rpm_mc_support",
+      "name": "Roaming Playmaker (Support) [MC]",
+      "positions": [
+        "MC"
+      ],
+      "positionGroup": "MC",
+      "duty": "Support",
+      "system": {
+        "ballProgression": 1.5,
+        "creativity": 1.4,
+        "runners": 1.2,
+        "pressing": 0.8,
+        "restDefence": 0.4
+      },
+      "attributes": {
+        "acceleration": {
+          "effectiveWeight": 7,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "agility": {
+          "effectiveWeight": 7,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "anticipation": {
+          "effectiveWeight": 7,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "composure": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "decisions": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "dribbling": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "firstTouch": {
+          "effectiveWeight": 9,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "flair": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "longShots": {
+          "effectiveWeight": 5,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "offTheBall": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "pace": {
+          "effectiveWeight": 7,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "passing": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "positioning": {
+          "effectiveWeight": 5,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "stamina": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "tackling": {
+          "effectiveWeight": 5,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "teamwork": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "technique": {
+          "effectiveWeight": 9,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "vision": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "workRate": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        }
+      }
+    },
+    {
+      "key": "bwm_mc_defend",
+      "name": "Ball-Winning Midfielder (Defend) [MC]",
+      "positions": [
+        "MC"
+      ],
+      "positionGroup": "MC",
+      "duty": "Defend",
+      "system": {
+        "defensiveCover": 1.5,
+        "pressing": 1.5,
+        "ballProgression": 0.2,
+        "restDefence": 1.1
+      },
+      "attributes": {
+        "acceleration": {
+          "effectiveWeight": 5,
+          "dutyModifier": 1,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "aggression": {
+          "effectiveWeight": 9,
+          "dutyModifier": 1,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "anticipation": {
+          "effectiveWeight": 9,
+          "dutyModifier": 1,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "bravery": {
+          "effectiveWeight": 9,
+          "dutyModifier": 1,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "composure": {
+          "effectiveWeight": 3,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "concentration": {
+          "effectiveWeight": 7,
+          "dutyModifier": 3,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "decisions": {
+          "effectiveWeight": 6,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "firstTouch": {
+          "effectiveWeight": 4,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "marking": {
+          "effectiveWeight": 8,
+          "dutyModifier": 3,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "offTheBall": {
+          "effectiveWeight": 2,
+          "dutyModifier": 0,
+          "weightTier": "marginal",
+          "coreSoftFloorApplies": false
+        },
+        "passing": {
+          "effectiveWeight": 4,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "positioning": {
+          "effectiveWeight": 8,
+          "dutyModifier": 3,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "stamina": {
+          "effectiveWeight": 9,
+          "dutyModifier": 1,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "strength": {
+          "effectiveWeight": 7,
+          "dutyModifier": 1,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "tackling": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "teamwork": {
+          "effectiveWeight": 9,
+          "dutyModifier": 1,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
+        },
+        "technique": {
+          "effectiveWeight": 3,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "vision": {
+          "effectiveWeight": 2,
+          "dutyModifier": 0,
+          "weightTier": "marginal",
+          "coreSoftFloorApplies": false
+        },
+        "workRate": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
         }
       }
     },
@@ -624,6 +1497,138 @@
       }
     },
     {
+      "key": "mez_support",
+      "name": "Mezzala (Support)",
+      "positions": [
+        "MC"
+      ],
+      "positionGroup": "MC",
+      "duty": "Support",
+      "system": {
+        "width": 0.5,
+        "ballProgression": 1.0,
+        "creativity": 0.9,
+        "runners": 0.7,
+        "pressing": 0.5
+      },
+      "attributes": {
+        "acceleration": {
+          "effectiveWeight": 6,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "agility": {
+          "effectiveWeight": 6,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "anticipation": {
+          "effectiveWeight": 5,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "composure": {
+          "effectiveWeight": 6,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "concentration": {
+          "effectiveWeight": 3,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "decisions": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "dribbling": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "finishing": {
+          "effectiveWeight": 3,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "firstTouch": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "flair": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "offTheBall": {
+          "effectiveWeight": 7,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "passing": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "positioning": {
+          "effectiveWeight": 4,
+          "dutyModifier": 0,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "stamina": {
+          "effectiveWeight": 7,
+          "dutyModifier": 1,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "tackling": {
+          "effectiveWeight": 4,
+          "dutyModifier": 1,
+          "weightTier": "useful",
+          "coreSoftFloorApplies": false
+        },
+        "teamwork": {
+          "effectiveWeight": 7,
+          "dutyModifier": 1,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "technique": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "vision": {
+          "effectiveWeight": 7,
+          "dutyModifier": 1,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "workRate": {
+          "effectiveWeight": 7,
+          "dutyModifier": 1,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        }
+      }
+    },
+    {
       "key": "mez_attack",
       "name": "Mezzala (Attack)",
       "positions": [
@@ -766,52 +1771,44 @@
       }
     },
     {
-      "key": "ap_mc_attack",
-      "name": "Advanced Playmaker (Attack) [MC]",
+      "key": "car_mc_support",
+      "name": "Carrilero (Support) [MC]",
       "positions": [
         "MC"
       ],
       "positionGroup": "MC",
-      "duty": "Attack",
+      "duty": "Support",
       "system": {
-        "creativity": 1.8,
+        "defensiveCover": 0.9,
         "ballProgression": 0.8,
-        "penetration": 0.5,
-        "attackDuty": 1.0
+        "width": 0.6,
+        "runners": 0.5,
+        "pressing": 0.8,
+        "restDefence": 0.8
       },
       "attributes": {
         "acceleration": {
-          "effectiveWeight": 3,
-          "dutyModifier": 3,
-          "weightTier": "useful",
-          "coreSoftFloorApplies": false
-        },
-        "agility": {
           "effectiveWeight": 6,
           "dutyModifier": 0,
           "weightTier": "important",
           "coreSoftFloorApplies": false
         },
         "anticipation": {
+          "effectiveWeight": 7,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "composure": {
           "effectiveWeight": 5,
           "dutyModifier": 0,
           "weightTier": "important",
           "coreSoftFloorApplies": false
         },
-        "composure": {
-          "effectiveWeight": 9,
-          "dutyModifier": 1,
-          "weightTier": "role-defining/core",
-          "coreSoftFloorApplies": true,
-          "softFloorIfAttrLt6": 0.75,
-          "softFloorIfAttrLt8": 0.85,
-          "softFloorIfAttrLt10": 0.93,
-          "normalMultiplierIfAttrGe10": 1.0
-        },
         "concentration": {
-          "effectiveWeight": 3,
+          "effectiveWeight": 6,
           "dutyModifier": 0,
-          "weightTier": "useful",
+          "weightTier": "important",
           "coreSoftFloorApplies": false
         },
         "decisions": {
@@ -820,41 +1817,43 @@
           "weightTier": "primary",
           "coreSoftFloorApplies": false
         },
-        "dribbling": {
+        "firstTouch": {
           "effectiveWeight": 7,
-          "dutyModifier": 1,
+          "dutyModifier": 0,
           "weightTier": "primary",
           "coreSoftFloorApplies": false
         },
-        "firstTouch": {
-          "effectiveWeight": 10,
+        "marking": {
+          "effectiveWeight": 6,
           "dutyModifier": 0,
-          "weightTier": "role-defining/core",
-          "coreSoftFloorApplies": true,
-          "softFloorIfAttrLt6": 0.75,
-          "softFloorIfAttrLt8": 0.85,
-          "softFloorIfAttrLt10": 0.93,
-          "normalMultiplierIfAttrGe10": 1.0
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
         },
-        "flair": {
+        "offTheBall": {
+          "effectiveWeight": 7,
+          "dutyModifier": 0,
+          "weightTier": "primary",
+          "coreSoftFloorApplies": false
+        },
+        "pace": {
+          "effectiveWeight": 6,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "passing": {
           "effectiveWeight": 8,
           "dutyModifier": 0,
           "weightTier": "primary",
           "coreSoftFloorApplies": false
         },
-        "offTheBall": {
-          "effectiveWeight": 7,
-          "dutyModifier": 1,
+        "positioning": {
+          "effectiveWeight": 8,
+          "dutyModifier": 0,
           "weightTier": "primary",
           "coreSoftFloorApplies": false
         },
-        "pace": {
-          "effectiveWeight": 2,
-          "dutyModifier": 0,
-          "weightTier": "marginal",
-          "coreSoftFloorApplies": false
-        },
-        "passing": {
+        "stamina": {
           "effectiveWeight": 10,
           "dutyModifier": 0,
           "weightTier": "role-defining/core",
@@ -864,55 +1863,49 @@
           "softFloorIfAttrLt10": 0.93,
           "normalMultiplierIfAttrGe10": 1.0
         },
-        "positioning": {
-          "effectiveWeight": 4,
-          "dutyModifier": 0,
-          "weightTier": "useful",
-          "coreSoftFloorApplies": false
-        },
-        "stamina": {
+        "strength": {
           "effectiveWeight": 5,
           "dutyModifier": 0,
           "weightTier": "important",
           "coreSoftFloorApplies": false
         },
         "tackling": {
-          "effectiveWeight": 3,
+          "effectiveWeight": 7,
           "dutyModifier": 0,
-          "weightTier": "useful",
+          "weightTier": "primary",
           "coreSoftFloorApplies": false
         },
         "teamwork": {
-          "effectiveWeight": 6,
+          "effectiveWeight": 10,
           "dutyModifier": 0,
-          "weightTier": "important",
-          "coreSoftFloorApplies": false
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
         },
         "technique": {
-          "effectiveWeight": 10,
-          "dutyModifier": 0,
-          "weightTier": "role-defining/core",
-          "coreSoftFloorApplies": true,
-          "softFloorIfAttrLt6": 0.75,
-          "softFloorIfAttrLt8": 0.85,
-          "softFloorIfAttrLt10": 0.93,
-          "normalMultiplierIfAttrGe10": 1.0
-        },
-        "vision": {
-          "effectiveWeight": 10,
-          "dutyModifier": 0,
-          "weightTier": "role-defining/core",
-          "coreSoftFloorApplies": true,
-          "softFloorIfAttrLt6": 0.75,
-          "softFloorIfAttrLt8": 0.85,
-          "softFloorIfAttrLt10": 0.93,
-          "normalMultiplierIfAttrGe10": 1.0
-        },
-        "workRate": {
           "effectiveWeight": 6,
           "dutyModifier": 0,
           "weightTier": "important",
           "coreSoftFloorApplies": false
+        },
+        "vision": {
+          "effectiveWeight": 5,
+          "dutyModifier": 0,
+          "weightTier": "important",
+          "coreSoftFloorApplies": false
+        },
+        "workRate": {
+          "effectiveWeight": 10,
+          "dutyModifier": 0,
+          "weightTier": "role-defining/core",
+          "coreSoftFloorApplies": true,
+          "softFloorIfAttrLt6": 0.75,
+          "softFloorIfAttrLt8": 0.85,
+          "softFloorIfAttrLt10": 0.93,
+          "normalMultiplierIfAttrGe10": 1.0
         }
       }
     }

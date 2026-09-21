@@ -1,0 +1,123 @@
+{
+  "key": "box_midfield_4231",
+  "name": "Box Midfield 4-2-3-1",
+  "formation": "4-2-3-1 Box Midfield",
+  "mentality": "Positive",
+  "instructions": [
+    "Shorter Passing",
+    "Play Out Of Defence",
+    "Work Ball Into Box",
+    "Hold Shape",
+    "Standard Line of Engagement",
+    "Higher Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "sk_defend",
+      "why": "Sweeper keeper is an extra passer in build-up and covers the space behind a higher line."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "iwb_dl_dr_defend",
+      "why": "Inverted wing-back (Defend) tucks in beside the pivot to protect the centre, staying compact against counter-attacks."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "bpd_defend",
+      "why": "Ball-playing defender starts moves with passes into the box midfield."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender who defends while his partner plays. Cover is the alternate."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "iwb_dl_dr_attack",
+      "why": "Inverted wing-back (Attack) moves into midfield to add a passer, and is the more adventurous of the two."
+    },
+    {
+      "key": "DMCL",
+      "position": "DM",
+      "role": "dm_defend",
+      "why": "Holding midfielder protects the defence and forms the base of the box."
+    },
+    {
+      "key": "DMCR",
+      "position": "DM",
+      "role": "dlp_dm_support",
+      "why": "Deep-lying playmaker is the team's main passer and sets the tempo."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "iw_support",
+      "why": "Inverted winger (Support) starts wide and moves inside to link with the midfield."
+    },
+    {
+      "key": "AMC",
+      "position": "AMC",
+      "role": "am_support",
+      "why": "Attacking midfielder (Support) plays between the lines and links the box to the striker."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "iw_attack",
+      "why": "Inverted winger (Attack) cuts in from the right to shoot and attack the far post."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "cf_support",
+      "why": "Complete forward (Support) holds the ball and links play."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 1.5,
+      "defensiveCover": 6.0,
+      "ballProgression": 7.0,
+      "creativity": 5.0,
+      "penetration": 1.5,
+      "boxPresence": 1.0,
+      "restDefence": 6.5
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Inverted full-backs building a box",
+  "description": "A possession 4-2-3-1 in which one full-back tucks into midfield to defend and the other tucks in to attack, forming a box of four in the middle.",
+  "whyGood": "Four players in the middle of the pitch give the team a numerical edge in midfield, and the inverted full-backs keep the team compact against counter-attacks.",
+  "whyThisShape": "The two inverted full-backs move into midfield alongside the double pivot, forming a box of four in the middle of the pitch. That gives the team more passers in the middle than the opponent has, and it puts more players near the ball when it is lost. The two inverted wide players start wide but move inside, so nobody is left on the touchline and the team plays through the centre.",
+  "whenToUse": "When you want to control the middle of the pitch against a side that defends in a narrow block, and your full-backs are comfortable on the ball.",
+  "whenNotToUse": "Against teams with fast wingers who use the flanks, since nobody is covering the wide areas; and when your full-backs cannot pass well.",
+  "instructionRationale": {
+    "Shorter Passing": "Four midfielders in a box make short passes the natural way to keep the ball.",
+    "Play Out Of Defence": "The sweeper keeper, ball-playing defender and inverted full-backs give many short passing options.",
+    "Work Ball Into Box": "Patient movement of the ball until an opening appears.",
+    "Hold Shape": "Keeps players in their positions so the box stays intact.",
+    "Standard Line of Engagement": "A balanced press keeps the shape compact.",
+    "Higher Defensive Line": "Keeps the team compact around the ball; it needs a keeper who sweeps and defenders with pace."
+  },
+  "keyRequirements": [
+    "Two full-backs who can play in midfield",
+    "A deep-lying playmaker",
+    "Two inverted wide players",
+    "A sweeper keeper"
+  ],
+  "tags": [
+    "possession",
+    "4231",
+    "inverted-wing-backs"
+  ]
+}

@@ -1,0 +1,125 @@
+{
+  "key": "trequartista_442",
+  "name": "Trequartista 4-4-2",
+  "formation": "4-4-2 Trequartista",
+  "mentality": "Positive",
+  "instructions": [
+    "Fairly Wide",
+    "Work Ball Into Box",
+    "Counter-Press",
+    "Standard Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Distributes to the wide midfielders or forwards, simply and quickly."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support",
+      "why": "Support full-back provides width and cover behind the wide midfielder."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender. Cover is the alternate."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "Support full-back on the right."
+    },
+    {
+      "key": "ML",
+      "position": "ML",
+      "role": "wm_support",
+      "why": "Wide midfielder (Support) works hard on the flank and covers for the trequartista's lack of defensive work."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend",
+      "why": "Defensive central midfielder screens the defence."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "b2b_support",
+      "why": "Box-to-box midfielder supports both forwards with runs from deep."
+    },
+    {
+      "key": "MR",
+      "position": "MR",
+      "role": "wm_support",
+      "why": "Wide midfielder (Support) on the right, doing the same job as on the left."
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "treq_st_attack",
+      "why": "Trequartista drops off the front and roams to create chances; he does not press or track back."
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "pf_support",
+      "why": "Pressing forward (Support) presses the defenders and links with the trequartista."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 4.0,
+      "defensiveCover": 7.0,
+      "ballProgression": 3.5,
+      "creativity": 1.5,
+      "runners": 1.5,
+      "boxPresence": 1.5,
+      "restDefence": 6.0,
+      "pressing": 3.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Free creator up front",
+  "description": "A 4-4-2 in which one striker is a trequartista who drops off and creates, paired with a pressing forward who does the running.",
+  "whyGood": "The trequartista supplies the creativity a two-striker team often lacks, and his partner and the hard-working wide midfielders cover his defensive gaps.",
+  "whyThisShape": "The trequartista plays as a striker but drops off and roams behind his partner, so the team plays like a 4-4-1-1 in attack and a 4-4-2 out of possession, except that he does not defend. The pressing forward presses for both, and the hard-working wide midfielders and midfield pair keep the team compact behind them.",
+  "whenToUse": "When you have a creative forward who is not a natural goalscorer, and a partner with pace and work rate.",
+  "whenNotToUse": "Against sides that overload the midfield, since the trequartista does not track back; and when your wide midfielders lack the stamina to cover.",
+  "instructionRationale": {
+    "Fairly Wide": "The wide midfielders and full-backs stretch the opponent, giving the trequartista space between the lines.",
+    "Work Ball Into Box": "Patient movement of the ball until the trequartista finds a pass.",
+    "Counter-Press": "Presses at once after losing the ball, led by the pressing forward, since the trequartista will not.",
+    "Standard Line of Engagement": "A balanced press keeps the two banks compact.",
+    "Standard Defensive Line": "A balanced line keeps the block compact behind a trequartista who does not defend."
+  },
+  "keyRequirements": [
+    "A creative forward who is better at creating than finishing",
+    "A pressing forward partner",
+    "Wide midfielders who work back",
+    "A box-to-box midfielder"
+  ],
+  "tags": [
+    "positive",
+    "442",
+    "trequartista"
+  ]
+}

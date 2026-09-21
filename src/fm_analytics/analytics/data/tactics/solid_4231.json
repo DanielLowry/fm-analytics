@@ -1,0 +1,121 @@
+{
+  "key": "solid_4231",
+  "name": "Solid 4-2-3-1",
+  "formation": "4-2-3-1 Solid",
+  "mentality": "Cautious",
+  "instructions": [
+    "Lower Line of Engagement",
+    "Standard Defensive Line",
+    "Regroup",
+    "Hold Shape",
+    "Slightly More Direct Passing"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Distributes safely and simply, avoiding risks in the build-up."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "nnfb_defend",
+      "why": "No-nonsense full-back defends first and clears his lines, staying out of the attack."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender. Cover is the alternate."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "nnfb_defend",
+      "why": "No-nonsense full-back on the right, doing the same job as on the left."
+    },
+    {
+      "key": "DMCL",
+      "position": "DM",
+      "role": "dm_defend",
+      "why": "Holding midfielder screens the defence and does the simple defensive work."
+    },
+    {
+      "key": "DMCR",
+      "position": "DM",
+      "role": "dm_support",
+      "why": "Supporting midfielder wins the ball and passes it to the attacking players."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "if_support",
+      "why": "Inside forward (Support) cuts in to support the striker and works back when the ball is lost."
+    },
+    {
+      "key": "AMC",
+      "position": "AMC",
+      "role": "am_support",
+      "why": "Attacking midfielder (Support) links midfield and attack and drops back to help."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "winger_aml_amr_support",
+      "why": "Winger (Support) provides the width on the right and tracks back."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "cf_support",
+      "why": "Complete forward (Support) holds the ball up and links with the attacking midfielders."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 2.0,
+      "defensiveCover": 8.5,
+      "ballProgression": 3.0,
+      "restDefence": 8.5
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
+  "style": "Compact and disciplined",
+  "description": "A cautious 4-2-3-1 with no-nonsense full-backs, a double pivot, and attacking players who work back.",
+  "whyGood": "The team has ten players behind the ball, the full-backs simply defend, and the front four still give the team a quick way out.",
+  "whyThisShape": "The no-nonsense full-backs and double pivot give two layers of protection in front of the goalkeeper, and the attacking midfielders work back to form a compact block. Up front, the striker holds the ball and the inside forward and winger break to support him, so the team can get out of pressure without being stretched.",
+  "whenToUse": "Away against a stronger team or when you are protecting a lead, when you want a low-risk shape that can still hit on the break.",
+  "whenNotToUse": "When you need to control the ball or create chances, since the full-backs and pivot offer little going forward.",
+  "instructionRationale": {
+    "Lower Line of Engagement": "Lets the opponent have the ball in their own half and closes the space deeper.",
+    "Standard Defensive Line": "A balanced line keeps the block compact without dropping too deep.",
+    "Regroup": "Falls back into shape after losing the ball.",
+    "Hold Shape": "Keeps positions rather than pushing players forward, so the team stays compact.",
+    "Slightly More Direct Passing": "Gets the ball forward to the front four quickly when it is won."
+  },
+  "keyRequirements": [
+    "Two defensive full-backs who clear their lines",
+    "A dependable double pivot",
+    "An inside forward who works back",
+    "A striker who holds up the ball"
+  ],
+  "tags": [
+    "cautious",
+    "4231",
+    "compact"
+  ]
+}

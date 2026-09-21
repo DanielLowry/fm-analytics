@@ -124,5 +124,46 @@ class RoleExclusionGroupTests(unittest.TestCase):
             catalogue(item, [RoleExclusionGroup("Ghost", "DC", frozenset({"ghost"}))])
 
 
+class WholeXiGroupTests(unittest.TestCase):
+    """A group with no position limits the role across all eleven slots."""
+
+    def test_a_positionless_group_counts_slots_at_every_position(self) -> None:
+        group = RoleExclusionGroup("Free roles", None, frozenset({"cover"}))
+        slots = (
+            TacticSlot("a", "DC", "cover"),
+            TacticSlot("b", "ST", "cover"),
+            TacticSlot("c", "MC", "filler"),
+        )
+        self.assertTrue(group.is_violated_by(slots, ("cover", "cover", "filler")))
+        self.assertFalse(group.is_violated_by(slots, ("cover", "filler", "filler")))
+
+    def test_a_positioned_group_still_ignores_other_positions(self) -> None:
+        group = RoleExclusionGroup("Cover", "DC", frozenset({"cover"}))
+        slots = (TacticSlot("a", "DC", "cover"), TacticSlot("b", "ST", "cover"))
+        self.assertFalse(group.is_violated_by(slots, ("cover", "cover")))
+
+    def test_the_shipped_free_roles_group_covers_every_such_role(self) -> None:
+        from fm_analytics.analytics.catalogue import MVP_CATALOGUE
+
+        group = next(g for g in MVP_CATALOGUE.exclusive_role_groups if g.name == "Free roles")
+        self.assertIsNone(group.position)
+        self.assertEqual(
+            group.role_keys,
+            {"treq_st_attack", "treq_amc_attack", "treq_aml_amr_attack", "eng_support", "raum_attack"},
+        )
+
+
+    def test_every_cover_and_stopper_centre_back_is_in_a_group(self) -> None:
+        # A tactic with two Covers has nobody to be covered; with two Stoppers,
+        # nobody covers. Nothing but this group stops the optimiser choosing
+        # either, so a new Cover/Stopper role must be added to it.
+        from fm_analytics.analytics.catalogue import MVP_CATALOGUE
+
+        grouped = {key for g in MVP_CATALOGUE.exclusive_role_groups if g.position == "DC" for key in g.role_keys}
+        for key, role in MVP_CATALOGUE.roles.items():
+            if "DC" in role.eligible_positions and key.endswith(("_cover", "_stopper")):
+                self.assertIn(key, grouped, f"{key} is not in an exclusion group")
+
+
 if __name__ == "__main__":
     unittest.main()
