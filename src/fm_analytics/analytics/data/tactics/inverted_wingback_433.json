@@ -111,12 +111,16 @@
     "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
     "Standard Defensive Line": "A balanced line rather than a high one, because the inverted full-backs are already in the centre."
   },
-  "attributeEmphasis": {
-    "composure": 2,
-    "technique": 2,
-    "stamina": 2,
-    "passing": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "composure": 2,
+        "technique": 2,
+        "stamina": 2,
+        "passing": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Full-backs who pass well and read the game",
     "Two wingers who provide width",

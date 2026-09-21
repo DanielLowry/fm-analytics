@@ -65,7 +65,7 @@ A high-risk structure that immediately puts four players against the opposition 
 - **Midfield:** Ball-Winning Midfielder (Support) [MC], Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Inside Forward (Attack), Winger (Attack) [AML/AMR], Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
-- **Leans on:** anticipation +2, off the ball +2, pace +2, stamina +2
+- **Leans on:** anticipation +2, off the ball +2, pace +2, stamina +2 (whole team)
 - **Needs:** Two midfielders able to cover huge spaces; Fast defenders; Four dangerous attackers; High fitness
 - **Instructions:** Fairly Wide; More Direct Passing; Higher Tempo; Pass Into Space; Counter-Press; Counter; Higher Line of Engagement; Higher Defensive Line
 - **Avoid when:** Against any side with quick forwards or good passing through the middle: two central midfielders cannot cover the space, and you will be opened up down the centre
@@ -81,7 +81,7 @@ An aggressive 4-3-3 committing full-backs, midfield runners and wide forwards to
 - **Midfield:** Central Midfielder (Defend), Box-to-Box Midfielder (Support), Mezzala (Attack)
 - **Attack:** Winger (Attack) [AML/AMR], Inside Forward (Attack), Advanced Forward (Attack) *
 
-- **Leans on:** stamina +2, anticipation +2, work rate +2, first touch +2
+- **Leans on:** stamina +2, anticipation +2, work rate +2, first touch +2 (whole team)
 - **Needs:** Fast recovery defenders; Attacking full-backs; Midfield legs; Wide forwards with end product
 - **Instructions:** Much Higher Line of Engagement; Higher Defensive Line; Shorter Passing; Higher Tempo; Counter-Press
 - **Avoid when:** Against quick counter-attackers when your full-backs are slow to recover: the space behind both full-backs is the weakness
@@ -97,7 +97,7 @@ A compact narrow 4-1-2-1-2 built around central combinations, two strikers and f
 - **Midfield:** Defensive Midfielder (Defend), Central Midfielder (Support), Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Attacking Midfielder (Support), Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
-- **Leans on:** teamwork +2, first touch +2, positioning +2, pace +2
+- **Leans on:** teamwork +2, first touch +2, positioning +2, pace +2 (whole team)
 - **Needs:** Full-backs with stamina/crossing; Disciplined DM; Creative AMC; Complementary strikers
 - **Instructions:** Fairly Narrow; Shorter Passing; Counter; Regroup; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against teams that attack down the flanks and outnumber your full-backs, or when your full-backs lack the stamina to cover the whole side of the pitch
@@ -113,7 +113,7 @@ A compact 4-1-4-1 with a dedicated screen behind a four-man midfield.
 - **Midfield:** Defensive Midfielder (Defend), Wide Midfielder (Support) ×2, Central Midfielder (Defend), Box-to-Box Midfielder (Support)
 - **Attack:** Poacher (Attack) *
 
-- **Leans on:** positioning +2, teamwork +2, work rate +2, passing +2
+- **Leans on:** positioning +2, teamwork +2, work rate +2, passing +2 (whole team)
 - **Needs:** Disciplined DM; Hard-working wide players; CM support for lone striker; Self-sufficient striker
 - **Instructions:** Standard Line of Engagement; Standard Defensive Line; Shorter Passing; Regroup
 - **Avoid when:** When you need to chase a goal: there is a single striker and no creative attacking midfielder to feed him
@@ -129,7 +129,7 @@ A conventional 4-4-2 defensive shell with one attacker dropping into the number-
 - **Midfield:** Wide Midfielder (Support), Central Midfielder (Defend), Central Midfielder (Support), Winger (Support) [ML/MR]
 - **Attack:** Attacking Midfielder (Support), Advanced Forward (Attack) *
 
-- **Leans on:** pace +2, off the ball +2, crossing +2, anticipation +2
+- **Leans on:** pace +2, off the ball +2, crossing +2, anticipation +2 (whole team)
 - **Needs:** Intelligent AMC; Mobile striker; Hard-working wide midfielders; Balanced CM pair
 - **Instructions:** Fairly Wide; Slightly More Direct Passing; Counter; Regroup; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you need two players to attack the box, or against sides that overload the middle: two central midfielders can be outnumbered
@@ -145,7 +145,7 @@ A simple two-banks-of-four structure with natural width and two complementary fo
 - **Midfield:** Winger (Support) [ML/MR] ×2, Central Midfielder (Defend), Central Midfielder (Support)
 - **Attack:** Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
-- **Leans on:** pace +2, off the ball +2, crossing +2, anticipation +2
+- **Leans on:** pace +2, off the ball +2, crossing +2, anticipation +2 (whole team)
 - **Needs:** Hard-working wide midfielders; Balanced CM pair; Complementary strikers; Disciplined full-backs
 - **Instructions:** Fairly Wide; Slightly More Direct Passing; Counter; Regroup; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against a team with three central midfielders who will pass through the middle, since your two are outnumbered
@@ -161,7 +161,7 @@ A 4-2-3-1 built around one free playmaker who does no defensive work, protected 
 - **Midfield:** Ball-Winning Midfielder (Support) [DM], Defensive Midfielder (Defend)
 - **Attack:** Winger (Attack) [AML/AMR] ×2, Enganche (Support), Target Man (Support)
 
-- **Leans on:** crossing +2, anticipation +2, pace +2, off the ball +2
+- **Leans on:** crossing +2, anticipation +2, pace +2, off the ball +2 (whole team)
 - **Needs:** An exceptional creative playmaker; A ball-winning midfielder and a holder in front of the defence; Two wingers who track back; A strong target man
 - **Instructions:** Fairly Wide; Slightly More Direct Passing; Work Ball Into Box; Regroup; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against sides that press hard or man-mark the playmaker, since the team has no other creative source
@@ -177,7 +177,7 @@ A deliberately direct system that moves the ball forward early toward a physical
 - **Midfield:** Winger (Support) [ML/MR] ×2, Central Midfielder (Defend), Ball-Winning Midfielder (Support) [MC]
 - **Attack:** Target Man (Attack), Advanced Forward (Attack) *
 
-- **Leans on:** jumping reach +2, heading +2, strength +2, off the ball +2
+- **Leans on:** jumping reach +2, heading +2, strength +2, off the ball +2 (whole team)
 - **Needs:** Dominant aerial striker; Fast strike partner; Strong midfield; Reliable crossing
 - **Instructions:** Much More Direct Passing; Higher Tempo; Pass Into Space; Hit Early Crosses; Counter; Regroup
 - **Avoid when:** Against tall, strong centre-backs who win the aerial duels, or when your squad is technical and would waste its passing
@@ -193,7 +193,7 @@ A cautious back-three system retaining an AMC and two strikers so regains can be
 - **Midfield:** Central Midfielder (Defend), Box-to-Box Midfielder (Support)
 - **Attack:** Attacking Midfielder (Support), Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
-- **Leans on:** off the ball +2, positioning +2, anticipation +2, concentration +2
+- **Leans on:** off the ball +2, positioning +2, anticipation +2, concentration +2 (whole team)
 - **Needs:** Three reliable centre-backs; High-stamina wing-backs; Strong AMC; Complementary strikers
 - **Instructions:** Slightly More Direct Passing; Pass Into Space; Counter; Regroup; Lower Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you need to dominate the game, or when your wing-backs cannot defend as well as they run
@@ -209,7 +209,7 @@ A compact 4-4-2 that accepts periods without the ball and attacks space quickly 
 - **Midfield:** Winger (Support) [ML/MR] ×2, Central Midfielder (Defend), Box-to-Box Midfielder (Support)
 - **Attack:** Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
-- **Leans on:** off the ball +2, positioning +2, anticipation +2, concentration +2
+- **Leans on:** off the ball +2, positioning +2, anticipation +2, concentration +2 (whole team)
 - **Needs:** Pace in attack; Hold-up forward; Disciplined two banks of four; Midfield runners
 - **Instructions:** Slightly More Direct Passing; Higher Tempo; Pass Into Space; Counter; Regroup; Lower Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against a team that sits deep and does not leave space to run into, since the counter has nothing to attack
@@ -225,7 +225,7 @@ A compact 4-1-4-1 that counters through short combinations and supporting runs r
 - **Midfield:** Defensive Midfielder (Defend), Winger (Support) [ML/MR] ×2, Box-to-Box Midfielder (Support), Central Midfielder (Support)
 - **Attack:** Advanced Forward (Attack) *
 
-- **Leans on:** passing +2, first touch +2, positioning +2, off the ball +2
+- **Leans on:** passing +2, first touch +2, positioning +2, off the ball +2 (whole team)
 - **Needs:** Mobile midfield; Pacy striker; Reliable DM; Good transition decisions
 - **Instructions:** Slightly Shorter Passing; Pass Into Space; Counter; Regroup; Lower Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you need to dominate the ball, or when you have no quick striker to run behind
@@ -241,7 +241,7 @@ A cautious 4-2-3-1 that defends in a compact shape and counters through a raumde
 - **Midfield:** Defensive Midfielder (Defend), Defensive Midfielder (Support)
 - **Attack:** Raumdeuter (Attack), Attacking Midfielder (Attack), Winger (Support) [AML/AMR], Complete Forward (Attack)
 
-- **Leans on:** off the ball +2, positioning +2, anticipation +2, concentration +2
+- **Leans on:** off the ball +2, positioning +2, anticipation +2, concentration +2 (whole team)
 - **Needs:** A raumdeuter with good movement and finishing; A quick, mobile striker; Disciplined full-backs; A dependable double pivot
 - **Instructions:** Slightly More Direct Passing; Pass Into Space; Counter; Regroup; Lower Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you have to dominate the ball, since only two players create
@@ -257,7 +257,7 @@ A cautious 4-2-3-1 with no-nonsense full-backs, a double pivot, and attacking pl
 - **Midfield:** Defensive Midfielder (Defend), Defensive Midfielder (Support)
 - **Attack:** Inside Forward (Support), Attacking Midfielder (Support), Winger (Support) [AML/AMR], Complete Forward (Support)
 
-- **Leans on:** positioning +2, concentration +2, teamwork +2, anticipation +2
+- **Leans on:** positioning +2, concentration +2, teamwork +2, anticipation +2 (whole team)
 - **Needs:** Two defensive full-backs who clear their lines; A dependable double pivot; An inside forward who works back; A striker who holds up the ball
 - **Instructions:** Lower Line of Engagement; Standard Defensive Line; Regroup; Hold Shape; Slightly More Direct Passing
 - **Avoid when:** When you need to control the ball or create chances, since the full-backs and pivot offer little going forward
@@ -273,7 +273,7 @@ A back-three counter system using wing-backs for width and two forwards as immed
 - **Midfield:** Defensive Midfielder (Support), Box-to-Box Midfielder (Support), Mezzala (Attack)
 - **Attack:** Complete Forward (Support) *, Poacher (Attack) *
 
-- **Leans on:** positioning +2, concentration +2, composure +2, decisions +2
+- **Leans on:** positioning +2, concentration +2, composure +2, decisions +2 (whole team)
 - **Needs:** Three dependable centre-backs; High-stamina wing-backs; Transition runners; Complementary forwards
 - **Instructions:** Fairly Wide; Lower Tempo; Counter; Drop Deeper Line of Engagement; Drop Off More Defensive Line
 - **Avoid when:** When you need to dominate the ball, or when your wing-backs are not fit enough to cover the whole flank
@@ -289,7 +289,7 @@ A defensive 5-4-1 with three centre-backs and two defensive wing-backs, a flat m
 - **Midfield:** Winger (Attack) [ML/MR] ×2, Central Midfielder (Defend), Central Midfielder (Support)
 - **Attack:** Target Man (Support)
 
-- **Leans on:** positioning +2, concentration +2, off the ball +2, composure +2
+- **Leans on:** positioning +2, concentration +2, off the ball +2, composure +2 (whole team)
 - **Needs:** Three dependable centre-backs; Two wide midfielders with pace; A target man who holds the ball up; Disciplined wing-backs
 - **Instructions:** Drop Deeper Line of Engagement; Drop Off More Defensive Line; Counter; Pass Into Space; Regroup; Slower Tempo
 - **Avoid when:** When you need to win rather than draw, or when you cannot get the ball to the striker, since the team will be under pressure for long periods
@@ -305,7 +305,7 @@ A conservative five-man midfield shape designed to deny central space and protec
 - **Midfield:** Defensive Midfielder (Defend), Wide Midfielder (Support) ×2, Central Midfielder (Defend) ×2
 - **Attack:** Target Man (Attack)
 
-- **Leans on:** positioning +2, concentration +2, marking +2, teamwork +2
+- **Leans on:** positioning +2, concentration +2, marking +2, teamwork +2 (whole team)
 - **Needs:** Hard-working midfield; Disciplined wide midfielders; Lone striker able to compete alone
 - **Instructions:** Much Lower Line of Engagement; Much Deeper Defensive Line; Narrower; Slower Tempo; Regroup
 - **Avoid when:** When you need to win: there is only one striker and the team will invite pressure
@@ -321,7 +321,7 @@ A deep five-defender system prioritising central protection and counter-attackin
 - **Midfield:** Central Midfielder (Defend) ×2, Ball-Winning Midfielder (Support) [MC]
 - **Attack:** Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
-- **Leans on:** positioning +2, concentration +2, marking +2, teamwork +2
+- **Leans on:** positioning +2, concentration +2, marking +2, teamwork +2 (whole team)
 - **Needs:** Aerially strong centre-backs; High-stamina wing-backs; Defensive midfield discipline; Direct-capable forwards
 - **Instructions:** Much Lower Line of Engagement; Much Deeper Defensive Line; Narrower; Slower Tempo; Counter; Regroup
 - **Avoid when:** When you need to control the ball or score: the shape is built to absorb pressure
@@ -337,7 +337,7 @@ Two compact banks of four with two forwards retained as direct counter outlets.
 - **Midfield:** Wide Midfielder (Support) ×2, Central Midfielder (Defend), Ball-Winning Midfielder (Support) [MC]
 - **Attack:** Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
-- **Leans on:** positioning +2, concentration +2, marking +2, teamwork +2
+- **Leans on:** positioning +2, concentration +2, marking +2, teamwork +2 (whole team)
 - **Needs:** Disciplined block; Wide midfield recovery; One hold-up forward; One runner
 - **Instructions:** Much Lower Line of Engagement; Much Deeper Defensive Line; Narrower; Slower Tempo; Counter; Regroup
 - **Avoid when:** When you need to control the ball or score, since the team will be under pressure for long periods
@@ -353,7 +353,7 @@ A 3-4-3 with attacking wing-backs supplying crosses for two wide target men and 
 - **Midfield:** Central Midfielder (Defend), Central Midfielder (Support)
 - **Attack:** Wide Target Man (Attack) [AML/AMR] ×2, Target Man (Support)
 
-- **Leans on:** crossing +2, anticipation +2, off the ball +2, heading +2
+- **Leans on:** crossing +2, anticipation +2, off the ball +2, heading +2 (whole team)
 - **Needs:** Two attacking wing-backs with stamina; Two tall wide forwards; A strong central target man; Three centre-backs who defend the box
 - **Instructions:** Fairly Wide; More Direct Passing; Hit Early Crosses; Higher Tempo; Regroup
 - **Avoid when:** Against quick counter-attackers who target the space behind the wing-backs
@@ -369,7 +369,7 @@ A front-foot back-three system with wing-backs stretching the pitch and a front 
 - **Midfield:** Box-to-Box Midfielder (Support), Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Winger (Attack) [AML/AMR], Inside Forward (Attack), Advanced Forward (Attack) *
 
-- **Leans on:** stamina +2, anticipation +2, work rate +2, passing +2
+- **Leans on:** stamina +2, anticipation +2, work rate +2, passing +2 (whole team)
 - **Needs:** Mobile outside centre-backs; Elite wing-back stamina; Midfield pair with defensive range; Fast front three
 - **Instructions:** Much Higher Line of Engagement; Higher Defensive Line; Shorter Passing; Play Out Of Defence; Counter-Press
 - **Avoid when:** Against quick counter-attacking sides that target the space behind your wing-backs, or if your centre-backs are slow or your wing-backs tire before the hour
@@ -385,7 +385,7 @@ A possession 4-2-3-1 in which one full-back tucks into midfield to defend and th
 - **Midfield:** Defensive Midfielder (Defend), Deep-Lying Playmaker (Support) [DM]
 - **Attack:** Inverted Winger (Support) [AML/AMR], Attacking Midfielder (Support), Inverted Winger (Attack) [AML/AMR], Complete Forward (Support)
 
-- **Leans on:** composure +2, technique +2, positioning +2, passing +2
+- **Leans on:** composure +2, technique +2, positioning +2, passing +2 (whole team)
 - **Needs:** Two full-backs who can play in midfield; A deep-lying playmaker; Two inverted wide players; A sweeper keeper
 - **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Hold Shape; Standard Line of Engagement; Higher Defensive Line
 - **Avoid when:** Against teams with fast wingers who use the flanks, since nobody is covering the wide areas
@@ -401,7 +401,7 @@ A 4-2-3-1 with two complete wing-backs who provide both the width and the creati
 - **Midfield:** Defensive Midfielder (Defend), Ball-Winning Midfielder (Support) [DM]
 - **Attack:** Advanced Playmaker (Support) [AML/AMR], Advanced Playmaker (Support) [AMC], Inverted Winger (Attack) [AML/AMR], Deep-Lying Forward (Attack)
 
-- **Leans on:** stamina +2, composure +2, technique +2, crossing +2
+- **Leans on:** stamina +2, composure +2, technique +2, crossing +2 (whole team)
 - **Needs:** Two complete wing-backs with stamina and skill; Playmakers on the left and in the middle; An inside forward who scores; A double pivot to cover the flanks
 - **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Overlap Left; Counter-Press; Higher Line of Engagement
 - **Avoid when:** Against quick wingers, if your wing-backs cannot recover
@@ -417,7 +417,7 @@ A patient 4-2-3-1 that controls territory and circulates until space opens betwe
 - **Midfield:** Defensive Midfielder (Defend), Deep-Lying Playmaker (Support) [DM]
 - **Attack:** Inside Forward (Attack), Advanced Playmaker (Attack) [AMC], Winger (Support) [AML/AMR], Advanced Forward (Attack) *
 
-- **Leans on:** composure +2, decisions +2, technique +2, positioning +2
+- **Leans on:** composure +2, decisions +2, technique +2, positioning +2 (whole team)
 - **Needs:** Technically secure defenders/midfielders; High-quality distributor; Intelligent AMC; Good first touch and decisions
 - **Instructions:** Shorter Passing; Lower Tempo; Play Out Of Defence; Work Ball Into Box; Hold Shape; Standard Line of Engagement; Higher Defensive Line
 - **Avoid when:** Against a well-organised high press if your defenders and pivot are not calm on the ball, and when you need goals quickly: lower tempo makes it slow to change the game
@@ -433,7 +433,7 @@ A 4-3-3 where attacking full-backs overlap two wide target men, and the ball is 
 - **Midfield:** Central Midfielder (Defend), Central Midfielder (Support), Box-to-Box Midfielder (Support)
 - **Attack:** Wide Target Man (Support) [AML/AMR] ×2, Target Man (Support)
 
-- **Leans on:** crossing +2, stamina +2, heading +2, jumping reach +2
+- **Leans on:** crossing +2, stamina +2, heading +2, jumping reach +2 (whole team)
 - **Needs:** Two tall wide forwards who win headers; A strong central target man; Full-backs with stamina and crossing; Central midfielders who cover the flanks
 - **Instructions:** Fairly Wide; Slightly More Direct Passing; Hit Early Crosses; Overlap Left; Overlap Right; Higher Tempo
 - **Avoid when:** Against tall centre-backs who win the crosses, or against quick wingers, since both full-backs are pushed high and the space behind them is open
@@ -449,7 +449,7 @@ A possession 4-3-3 whose striker drops into midfield, dragging a centre-back wit
 - **Midfield:** Defensive Midfielder (Support), Box-to-Box Midfielder (Support), Advanced Playmaker (Attack) [MC]
 - **Attack:** Inverted Winger (Attack) [AML/AMR] ×2, False Nine (Support)
 
-- **Leans on:** composure +2, technique +2, anticipation +2, stamina +2
+- **Leans on:** composure +2, technique +2, anticipation +2, stamina +2 (whole team)
 - **Needs:** A forward who passes and dribbles better than he finishes; Two wingers who cut in and score; A sweeper keeper who is comfortable on the ball; Midfielders who press together
 - **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Counter-Press; Higher Line of Engagement; Higher Defensive Line
 - **Avoid when:** Against a back three, or a side that keeps its centre-backs in position, since there is no gap to exploit
@@ -465,7 +465,7 @@ An intense 4-2-3-1 intended to regain the ball immediately after losing it and a
 - **Midfield:** Ball-Winning Midfielder (Support) [DM], Deep-Lying Playmaker (Support) [DM]
 - **Attack:** Inside Forward (Attack), Shadow Striker (Attack), Winger (Attack) [AML/AMR], Pressing Forward (Attack) *
 
-- **Leans on:** work rate +2, aggression +2, stamina +2, anticipation +2
+- **Leans on:** work rate +2, aggression +2, stamina +2, anticipation +2 (whole team)
 - **Needs:** High work rate/stamina; Fast defenders; Sweeper keeper; Squad depth
 - **Instructions:** Shorter Passing; Higher Tempo; Counter-Press; Counter; Much Higher Line of Engagement; Higher Defensive Line; Much More Urgent Pressing; Prevent Short GK Distribution
 - **Avoid when:** Against teams that play long balls over the press, or when your players are tired: the press falls apart quickly and leaves large spaces
@@ -481,7 +481,7 @@ An aggressive 4-3-3 designed to regain possession high and sustain pressure in t
 - **Midfield:** Ball-Winning Midfielder (Support) [DM], Box-to-Box Midfielder (Support), Mezzala (Attack)
 - **Attack:** Winger (Attack) [AML/AMR], Inside Forward (Attack), Pressing Forward (Attack) *
 
-- **Leans on:** stamina +2, work rate +2, anticipation +2, aggression +2
+- **Leans on:** stamina +2, work rate +2, anticipation +2, aggression +2 (whole team)
 - **Needs:** High work rate/stamina; Fast centre-backs; Sweeper keeper; Squad depth
 - **Instructions:** Much Higher Line of Engagement; Much More Urgent Pressing; Higher Defensive Line; Shorter Passing; Counter-Press
 - **Avoid when:** Against sides that play long over the press, or when your players lack stamina: the press cannot be kept up for 90 minutes
@@ -497,7 +497,7 @@ A 4-3-3 in which both full-backs step into midfield when the team has the ball, 
 - **Midfield:** Defensive Midfielder (Defend), Central Midfielder (Support), Mezzala (Attack)
 - **Attack:** Winger (Attack) [AML/AMR], Inside Forward (Attack), Complete Forward (Attack)
 
-- **Leans on:** composure +2, technique +2, stamina +2, passing +2
+- **Leans on:** composure +2, technique +2, stamina +2, passing +2 (whole team)
 - **Needs:** Full-backs who pass well and read the game; Two wingers who provide width; A sweeper keeper; A reliable holding midfielder
 - **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Counter-Press; Higher Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against sides that attack down the flanks, since the full-backs are not covering the wide areas
@@ -513,7 +513,7 @@ A narrow 4-2-2-2 with a double pivot, two attacking midfielders in the half-spac
 - **Midfield:** Ball-Winning Midfielder (Support) [DM], Deep-Lying Playmaker (Support) [DM]
 - **Attack:** Shadow Striker (Attack), Attacking Midfielder (Support), Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
-- **Leans on:** first touch +2, teamwork +2, stamina +2, work rate +2
+- **Leans on:** first touch +2, teamwork +2, stamina +2, work rate +2 (whole team)
 - **Needs:** Full-backs who provide all the width; A ball-winner and a playmaker in the pivot; A shadow striker and a creative attacking midfielder; Two complementary strikers
 - **Instructions:** Fairly Narrow; Shorter Passing; Higher Tempo; Counter-Press; Higher Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against sides that attack down the flanks and outnumber your full-backs, and when your full-backs cannot cover a whole flank
@@ -529,7 +529,7 @@ A modern back-three system using two central attacking midfielders to occupy the
 - **Midfield:** Central Midfielder (Defend), Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Advanced Playmaker (Attack) [AMC], Shadow Striker (Attack), Advanced Forward (Attack) *
 
-- **Leans on:** composure +2, technique +2, stamina +2, passing +2
+- **Leans on:** composure +2, technique +2, stamina +2, passing +2 (whole team)
 - **Needs:** Mobile centre-backs; Very strong wing-backs; Two quality AMCs; Midfield pair with defensive range
 - **Instructions:** Shorter Passing; Play Out Of Defence; Counter-Press; Higher Line of Engagement; Standard Defensive Line; Work Ball Into Box
 - **Avoid when:** Against sides with quick wingers who target the space behind the wing-backs, or if your centre-backs are not comfortable defending wide
@@ -545,7 +545,7 @@ A proactive 4-2-3-1 using a double pivot behind three attacking midfielders and 
 - **Midfield:** Ball-Winning Midfielder (Support) [DM], Deep-Lying Playmaker (Support) [DM]
 - **Attack:** Inside Forward (Attack), Attacking Midfielder (Support), Winger (Attack) [AML/AMR], Advanced Forward (Attack) *
 
-- **Leans on:** first touch +2, technique +2, stamina +2, passing +2
+- **Leans on:** first touch +2, technique +2, stamina +2, passing +2 (whole team)
 - **Needs:** Secure double pivot; Quality AMC; Complementary wide attackers; Mobile striker
 - **Instructions:** Shorter Passing; Play Out Of Defence; Higher Tempo; Counter-Press; Counter; Higher Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you have no ball-winner to pair with a playmaker, or against a team with three central midfielders who outnumber your pivot
@@ -561,7 +561,7 @@ A narrow 4-3-1-2 using three central midfielders and an advanced playmaker behin
 - **Midfield:** Central Midfielder (Defend), Deep-Lying Playmaker (Support) [MC], Box-to-Box Midfielder (Support)
 - **Attack:** Advanced Playmaker (Attack) [AMC], Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
-- **Leans on:** stamina +2, crossing +2, first touch +2, teamwork +2
+- **Leans on:** stamina +2, crossing +2, first touch +2, teamwork +2 (whole team)
 - **Needs:** Excellent attacking full-backs; Three capable central midfielders; Creative AMC; Complementary strikers
 - **Instructions:** Fairly Narrow; Shorter Passing; Work Ball Into Box; Overlap Left; Overlap Right; Counter-Press; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against sides that attack the flanks, since your full-backs are the only wide players and will be stretched
@@ -577,7 +577,7 @@ A modern 4-3-3 with a holder, two eights and complementary wide forwards.
 - **Midfield:** Ball-Winning Midfielder (Support) [DM], Deep-Lying Playmaker (Support) [MC], Central Midfielder (Support)
 - **Attack:** Inside Forward (Attack), Winger (Attack) [AML/AMR], Advanced Forward (Attack) *
 
-- **Leans on:** composure +2, technique +2, stamina +2, passing +2
+- **Leans on:** composure +2, technique +2, stamina +2, passing +2 (whole team)
 - **Needs:** Reliable DM; Progressive midfielders; Wide forwards with end product; Mobile striker
 - **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Counter-Press; Counter; Higher Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you have no ball-winner to hold the midfield, or against a team that pushes wide players onto your full-backs
@@ -593,7 +593,7 @@ A lower-risk possession structure with a playmaker at the base and four midfield
 - **Midfield:** Deep-Lying Playmaker (Support) [DM], Wide Midfielder (Support), Central Midfielder (Support), Box-to-Box Midfielder (Support), Winger (Support) [ML/MR]
 - **Attack:** Deep-Lying Forward (Support) *
 
-- **Leans on:** composure +2, decisions +2, technique +2, positioning +2
+- **Leans on:** composure +2, decisions +2, technique +2, positioning +2 (whole team)
 - **Needs:** Technically reliable midfield; Linking striker; Ball-playing defender; Good first touch/decisions
 - **Instructions:** Shorter Passing; Lower Tempo; Play Out Of Defence; Work Ball Into Box; Hold Shape; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you need goals quickly, or when your defenders and midfield are uncomfortable on the ball
@@ -609,7 +609,7 @@ A 4-4-2 that presses from the front with two pressing forwards, a ball-winning m
 - **Midfield:** Wide Midfielder (Support) ×2, Ball-Winning Midfielder (Support) [MC], Box-to-Box Midfielder (Support)
 - **Attack:** Pressing Forward (Defend), Pressing Forward (Attack)
 
-- **Leans on:** stamina +2, work rate +2, aggression +2, anticipation +2
+- **Leans on:** stamina +2, work rate +2, aggression +2, anticipation +2 (whole team)
 - **Needs:** Two forwards with high work rate and stamina; A ball-winning midfielder; Wide midfielders who work hard; Fit players who can press for the whole game
 - **Instructions:** Higher Line of Engagement; Much More Urgent Pressing; Counter-Press; Slightly More Direct Passing; Higher Tempo; Standard Defensive Line
 - **Avoid when:** Against sides that play long over the press, or when your players are tired: a two-man press leaves gaps behind it if it is beaten
@@ -625,7 +625,7 @@ A narrow 4-3-1-2 with one trequartista who roams freely behind two strikers, and
 - **Midfield:** Ball-Winning Midfielder (Support) [MC], Central Midfielder (Defend), Box-to-Box Midfielder (Support)
 - **Attack:** Trequartista (Attack) [AMC], Pressing Forward (Support), Advanced Forward (Attack) *
 
-- **Leans on:** first touch +2, teamwork +2, technique +2, composure +2
+- **Leans on:** first touch +2, teamwork +2, technique +2, composure +2 (whole team)
 - **Needs:** An exceptional creative player with vision and technique; A pressing forward with high work rate; A ball-winning midfielder; Full-backs who provide all the width
 - **Instructions:** Fairly Narrow; Shorter Passing; Work Ball Into Box; Counter-Press; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against teams that man-mark the playmaker or overload the flanks, since the full-backs are your only wide players
@@ -641,7 +641,7 @@ A 4-4-2 in which one striker is a trequartista who drops off and creates, paired
 - **Midfield:** Wide Midfielder (Support) ×2, Central Midfielder (Defend), Box-to-Box Midfielder (Support)
 - **Attack:** Trequartista (Attack) [ST], Pressing Forward (Support)
 
-- **Leans on:** crossing +2, pace +2, composure +2, decisions +2
+- **Leans on:** crossing +2, pace +2, composure +2, decisions +2 (whole team)
 - **Needs:** A creative forward who is better at creating than finishing; A pressing forward partner; Wide midfielders who work back; A box-to-box midfielder
 - **Instructions:** Fairly Wide; Work Ball Into Box; Counter-Press; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against sides that overload the midfield, since the trequartista does not track back
@@ -657,7 +657,7 @@ Short combinations are used to progress quickly rather than simply retain posses
 - **Midfield:** Deep-Lying Playmaker (Support) [DM], Box-to-Box Midfielder (Support), Mezzala (Attack)
 - **Attack:** Inside Forward (Attack), Winger (Support) [AML/AMR], Advanced Forward (Attack) *
 
-- **Leans on:** anticipation +2, first touch +2, technique +2, pace +2
+- **Leans on:** anticipation +2, first touch +2, technique +2, pace +2 (whole team)
 - **Needs:** Excellent first touch/passing; Mobile midfield; Fast attacking movement; Quick defenders
 - **Instructions:** Shorter Passing; Play Out Of Defence; Higher Tempo; Pass Into Space; Counter-Press; Counter; Higher Line of Engagement; Higher Defensive Line
 - **Avoid when:** Against sides that press well, or when your defenders are not comfortable on the ball or with a high line
@@ -673,7 +673,7 @@ A 4-3-3 with two creative players starting wide, one a trequartista who roams an
 - **Midfield:** Ball-Winning Midfielder (Support) [DM], Box-to-Box Midfielder (Support), Central Midfielder (Support)
 - **Attack:** Trequartista (Attack) [AML/AMR], Advanced Playmaker (Attack) [AML/AMR], Pressing Forward (Attack)
 
-- **Leans on:** stamina +2, work rate +2, technique +2, composure +2
+- **Leans on:** stamina +2, work rate +2, technique +2, composure +2 (whole team)
 - **Needs:** Two creative players who can play wide; A pressing forward with high work rate; A ball-winning midfielder; Full-backs who provide the width
 - **Instructions:** Shorter Passing; Work Ball Into Box; Counter-Press; Higher Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against teams that press hard on the full-backs, since the full-backs supply all the width
@@ -689,7 +689,7 @@ A width-first 4-4-2 designed to stretch the opponent and generate repeated cross
 - **Midfield:** Winger (Support) [ML/MR] ×2, Central Midfielder (Defend), Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Target Man (Attack), Advanced Forward (Attack) *
 
-- **Leans on:** crossing +2, stamina +2, pace +2, heading +2
+- **Leans on:** crossing +2, stamina +2, pace +2, heading +2 (whole team)
 - **Needs:** Good crossing; Fast wide players; Stamina at full-back; Aerially strong striker
 - **Instructions:** Fairly Wide; Slightly More Direct Passing; Hit Early Crosses; Overlap Left; Overlap Right; Higher Tempo; Counter
 - **Avoid when:** Against tall centre-backs who win the crosses, or when your full-backs cannot get back, since the flanks are left open

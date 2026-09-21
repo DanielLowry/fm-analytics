@@ -116,12 +116,16 @@
     "Standard Defensive Line": "A balanced line keeps the back three compact.",
     "Work Ball Into Box": "Patient combinations through the half-spaces until a clear chance opens up."
   },
-  "attributeEmphasis": {
-    "composure": 2,
-    "technique": 2,
-    "stamina": 2,
-    "passing": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "composure": 2,
+        "technique": 2,
+        "stamina": 2,
+        "passing": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Mobile centre-backs",
     "Very strong wing-backs",

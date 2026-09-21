@@ -600,7 +600,37 @@ does not have and are correctly refused. That matches the band measured when
 +2 was agreed. Full effective+potential over 40 tactics and 30 players is 2.41s,
 about 10% above the pre-emphasis cost.
 
-**What is not done:** the emphasis is tactic-wide everywhere; no slot-level
+**Position-scoped blocks (a later change, from review).** `attributeEmphasis` was
+first a single whole-team block, which could not say "the back four need pace
+under a high line" without repeating it per slot. It is now a **list of blocks**,
+each with an optional `positions`:
+
+```json
+"attributeEmphasis": [
+  {"attributes": {"stamina": 2, "workRate": 2}},
+  {"attributes": {"pace": 2}, "positions": ["DL", "DC", "DR"]}
+]
+```
+
+No `positions` means the whole team. Every block covering a slot is **summed**,
+together with that slot's own block, then clamped to 0-10. Summing replaced "the
+slot block overrides the tactic block": with a list, "which one wins" has no good
+answer, and addition is order-independent and easy to predict. (No shipped data
+used a slot-level block, so nothing changed for it.)
+
+Three guards: a block may not name a position the tactic does not field (it would
+silently do nothing, and `"DCL"` for `"DC"` is the obvious typo); an unknown key
+such as `"position"` is refused (it would quietly become a whole-team block); and
+the old dict form is refused with a message saying what to write. The migration
+was proven lossless: all 120 evaluations across three squads (scores and every
+slot's player and role) were bit-identical before and after.
+
+The shipped seed is still one whole-team block per tactic, by design. A
+position-aware seed (a high line raising pace for the back four only; crossing
+for wide players only) would be an improvement but would overwrite tuning, so it
+is a decision for you, not something done silently.
+
+**What is not done:** slot-level blocks are never seeded; no slot-level
 block is seeded, and a test enforces that, so every slot-level block in the tree
 will be one you added. The tactic detail page names what a tactic leans on, but
 does not yet show base-versus-emphasised weight per attribute (5.4).

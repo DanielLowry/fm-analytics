@@ -13,16 +13,38 @@ from fm_analytics.analytics import (
     PlayerSelectionInput,
     evaluate_tactic,
 )
-from fm_analytics.analytics.catalogue import MAX_EFFECTIVE_WEIGHT, FootballCatalogue
+from fm_analytics.analytics.catalogue import (
+    MAX_EFFECTIVE_WEIGHT,
+    AttributeEmphasis,
+    FootballCatalogue,
+)
 from fm_analytics.domain import AttributeObservation, Visibility
 from fm_analytics.reporting import required_role_attributes
 
 TACTIC = "balanced_442"
 
 
-def with_emphasis(emphasis: dict[str, int], tactic_key: str = TACTIC) -> FootballCatalogue:
-    tactic = replace(MVP_CATALOGUE.tactics[tactic_key], attribute_emphasis=emphasis)
+def with_emphasis(emphasis, tactic_key: str = TACTIC) -> FootballCatalogue:
+    """A catalogue whose tactic has this emphasis.
+
+    A plain dict is one whole-team block; otherwise pass a list of blocks.
+    """
+    if isinstance(emphasis, dict):
+        emphasis = [AttributeEmphasis(emphasis)] if emphasis else []
+    tactic = replace(MVP_CATALOGUE.tactics[tactic_key], attribute_emphasis=tuple(emphasis))
     return replace(MVP_CATALOGUE, tactics={**MVP_CATALOGUE.tactics, tactic_key: tactic})
+
+
+def slot_weights(catalogue: FootballCatalogue, slot_key: str) -> dict[str, float]:
+    """The weights the tactic applies to whoever fills `slot_key`, in its default role."""
+    view = catalogue.for_tactic(TACTIC)
+    slot = next(s for s in view.tactics[TACTIC].slots if s.key == slot_key)
+    return {a.name: a.weight for a in view.role_for_slot(slot, slot.role_key).attributes}
+
+
+def base_slot_weights(slot_key: str) -> dict[str, float]:
+    slot = next(s for s in MVP_CATALOGUE.tactics[TACTIC].slots if s.key == slot_key)
+    return {a.name: a.weight for a in MVP_CATALOGUE.roles[slot.role_key].attributes}
 
 
 def weights(catalogue: FootballCatalogue, role_key: str) -> dict[str, float]:
@@ -71,25 +93,149 @@ class DerivedCatalogueTests(unittest.TestCase):
         catalogue = with_emphasis({"passing": 2})
         self.assertIs(catalogue.for_tactic(TACTIC), catalogue.for_tactic(TACTIC))
 
-    def test_a_slot_block_overrides_the_tactic_block_for_that_slot_only(self) -> None:
+    def test_a_slot_block_adds_to_the_tactic_block_for_that_slot_only(self) -> None:
         tactic = MVP_CATALOGUE.tactics[TACTIC]
         slots = list(tactic.slots)
         slots[6] = replace(slots[6], attribute_emphasis={"passing": 2})
-        changed = replace(tactic, slots=tuple(slots), attribute_emphasis={"passing": 1})
-        derived = replace(
-            MVP_CATALOGUE, tactics={**MVP_CATALOGUE.tactics, TACTIC: changed}
-        ).for_tactic(TACTIC)
-        base = weights(MVP_CATALOGUE, "cm_defend")["passing"]
-        role_key = slots[6].role_key
-        self.assertEqual(
-            {a.name: a.weight for a in derived.role_for_slot(slots[6], role_key).attributes}["passing"],
-            base + 2,
+        changed = replace(
+            tactic, slots=tuple(slots), attribute_emphasis=(AttributeEmphasis({"passing": 1}),)
         )
-        # Every other slot keeps the tactic-wide +1.
+        catalogue = replace(MVP_CATALOGUE, tactics={**MVP_CATALOGUE.tactics, TACTIC: changed})
+        derived = catalogue.for_tactic(TACTIC)
+        singled = derived.role_for_slot(slots[6], slots[6].role_key)
+        other = derived.role_for_slot(slots[7], slots[7].role_key)
+        # Slot 6 gets the tactic-wide +1 and its own +2; everyone else just +1.
+        clamp = lambda value: min(MAX_EFFECTIVE_WEIGHT, value)
         self.assertEqual(
-            {a.name: a.weight for a in derived.role_for_slot(slots[7], "cm_support").attributes}["passing"],
-            weights(MVP_CATALOGUE, "cm_support")["passing"] + 1,
+            {a.name: a.weight for a in singled.attributes}["passing"],
+            clamp(weights(MVP_CATALOGUE, slots[6].role_key)["passing"] + 3),
         )
+        self.assertEqual(
+            {a.name: a.weight for a in other.attributes}["passing"],
+            clamp(weights(MVP_CATALOGUE, slots[7].role_key)["passing"] + 1),
+        )
+
+
+class PositionBlockTests(unittest.TestCase):
+    """A block with `positions` reaches only the slots at those positions."""
+
+    BACK_LINE = ("DL", "DC", "DR")
+
+    def test_a_position_block_reaches_only_those_positions(self) -> None:
+        catalogue = with_emphasis([AttributeEmphasis({"pace": 2}, self.BACK_LINE)])
+        # DCL is a centre-back: pace moves. MCL is a midfielder: it does not.
+        self.assertEqual(
+            slot_weights(catalogue, "DCL")["pace"], base_slot_weights("DCL")["pace"] + 2
+        )
+        self.assertEqual(slot_weights(catalogue, "MCL"), base_slot_weights("MCL"))
+
+    def test_a_position_block_reaches_every_slot_at_that_position(self) -> None:
+        catalogue = with_emphasis([AttributeEmphasis({"pace": 2}, ("DC",))])
+        for slot_key in ("DCL", "DCR"):
+            self.assertEqual(
+                slot_weights(catalogue, slot_key)["pace"],
+                base_slot_weights(slot_key)["pace"] + 2, slot_key,
+            )
+
+    def test_overlapping_blocks_add_up(self) -> None:
+        catalogue = with_emphasis([
+            AttributeEmphasis({"pace": 1}),                      # whole team
+            AttributeEmphasis({"pace": 2}, ("DC",)),             # centre-backs
+        ])
+        self.assertEqual(
+            slot_weights(catalogue, "DCL")["pace"], base_slot_weights("DCL")["pace"] + 3
+        )
+
+    def test_a_whole_team_block_still_reaches_slots_a_position_block_skips(self) -> None:
+        catalogue = with_emphasis([
+            AttributeEmphasis({"passing": 1}),
+            AttributeEmphasis({"passing": 2}, ("DC",)),
+        ])
+        # MCL is not a centre-back, so it gets the whole-team +1 and nothing more.
+        self.assertEqual(
+            slot_weights(catalogue, "MCL")["passing"],
+            min(MAX_EFFECTIVE_WEIGHT, base_slot_weights("MCL")["passing"] + 1),
+        )
+
+    def test_opposite_deltas_cancel_before_clamping(self) -> None:
+        catalogue = with_emphasis([
+            AttributeEmphasis({"pace": 4}), AttributeEmphasis({"pace": -4}, ("DC",)),
+        ])
+        self.assertEqual(slot_weights(catalogue, "DCL"), base_slot_weights("DCL"))
+
+    def test_block_order_does_not_matter(self) -> None:
+        a = AttributeEmphasis({"pace": 1})
+        b = AttributeEmphasis({"pace": 2}, ("DC",))
+        self.assertEqual(
+            slot_weights(with_emphasis([a, b]), "DCL"), slot_weights(with_emphasis([b, a]), "DCL")
+        )
+
+    def test_a_position_block_never_gives_a_role_an_attribute_it_ignores(self) -> None:
+        self.assertNotIn("stamina", base_slot_weights("DCL"))
+        catalogue = with_emphasis([AttributeEmphasis({"stamina": 2}, ("DC",))])
+        self.assertNotIn("stamina", slot_weights(catalogue, "DCL"))
+
+    def test_a_tactic_with_only_position_blocks_still_leaves_other_slots_alone(self) -> None:
+        catalogue = with_emphasis([AttributeEmphasis({"pace": 2}, self.BACK_LINE)])
+        view = catalogue.for_tactic(TACTIC)
+        # Nothing whole-team, so the plain role table is untouched.
+        self.assertEqual(weights(view, "b2b_support"), weights(MVP_CATALOGUE, "b2b_support"))
+
+    def test_a_position_the_tactic_does_not_field_is_refused(self) -> None:
+        # balanced_442 has no wing-backs; a block naming them would do nothing.
+        with self.assertRaisesRegex(ValueError, "does not field"):
+            with_emphasis([AttributeEmphasis({"pace": 2}, ("WBL",))])
+
+    def test_a_typo_in_a_position_is_refused(self) -> None:
+        with self.assertRaisesRegex(ValueError, "does not field"):
+            with_emphasis([AttributeEmphasis({"pace": 2}, ("DCL",))])   # slot key, not position
+
+    def test_positions_must_be_unique(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unique"):
+            AttributeEmphasis({"pace": 2}, ("DC", "DC"))
+
+    def test_an_empty_block_is_refused(self) -> None:
+        with self.assertRaisesRegex(ValueError, "at least one attribute"):
+            AttributeEmphasis({})
+
+    def test_a_position_block_changes_who_is_picked_at_that_position_only(self) -> None:
+        # Emphasising crossing for wide midfielders decides the ML pick, and
+        # leaves the (identical) MR and every other slot exactly as it was.
+        players = SelectionEffectTests()._players()
+        plain = evaluate_tactic(MVP_CATALOGUE.tactics[TACTIC], players, MVP_CATALOGUE)
+        boosted = with_emphasis([AttributeEmphasis({"tackling": 7}, ("ML",))])
+        after = evaluate_tactic(boosted.tactics[TACTIC], players, boosted)
+        picked = lambda ev, key: next(a.player_name for a in ev.assignments if a.slot.key == key)
+        self.assertEqual(picked(plain, "ML"), "Crosser")
+        self.assertEqual(picked(after, "ML"), "Tackler")
+
+
+class LoadingTests(unittest.TestCase):
+    def test_the_old_dict_form_is_refused_with_a_message_that_says_what_to_write(self) -> None:
+        from fm_analytics.analytics.catalogue import _emphasis_blocks
+
+        with self.assertRaisesRegex(ValueError, "list of blocks"):
+            _emphasis_blocks({"stamina": 2}, "t")
+
+    def test_blocks_load_with_and_without_positions(self) -> None:
+        from fm_analytics.analytics.catalogue import _emphasis_blocks
+
+        blocks = _emphasis_blocks(
+            [{"attributes": {"stamina": 2}}, {"attributes": {"pace": 2}, "positions": ["DC", "DL"]}],
+            "t",
+        )
+        self.assertEqual(blocks[0].positions, ())
+        self.assertEqual(blocks[1].positions, ("DC", "DL"))
+        self.assertTrue(blocks[0].applies_to("ST"))
+        self.assertTrue(blocks[1].applies_to("DC"))
+        self.assertFalse(blocks[1].applies_to("ST"))
+
+    def test_a_misspelled_block_key_is_refused(self) -> None:
+        from fm_analytics.analytics.catalogue import _emphasis_blocks
+
+        # "position" for "positions" would otherwise silently make a whole-team block.
+        with self.assertRaisesRegex(ValueError, "may only have"):
+            _emphasis_blocks([{"attributes": {"pace": 2}, "position": ["DC"]}], "t")
 
 
 class ValidationTests(unittest.TestCase):
@@ -162,24 +308,25 @@ class SelectionEffectTests(unittest.TestCase):
 
 
 class ShippedSeedTests(unittest.TestCase):
-    """The committed seed stays inside the soft band it was measured at."""
+    """The committed emphasis stays inside the soft band it was measured at."""
 
     SEED_DELTA = 2
-    MAX_ATTRIBUTES = 4
+    MAX_ATTRIBUTES_PER_BLOCK = 4
 
     def test_every_tactic_declares_an_emphasis(self) -> None:
         for tactic in MVP_CATALOGUE.tactics.values():
             self.assertTrue(tactic.attribute_emphasis, tactic.key)
 
-    def test_the_seed_stays_soft(self) -> None:
+    def test_no_delta_exceeds_the_soft_band(self) -> None:
         for tactic in MVP_CATALOGUE.tactics.values():
-            self.assertLessEqual(
-                len(tactic.attribute_emphasis), self.MAX_ATTRIBUTES, tactic.key
-            )
-            for attribute, delta in tactic.attribute_emphasis.items():
+            for block in tactic.attribute_emphasis:
                 self.assertLessEqual(
-                    abs(delta), self.SEED_DELTA, f"{tactic.key}: {attribute} {delta:+d}"
+                    len(block.attributes), self.MAX_ATTRIBUTES_PER_BLOCK, tactic.key
                 )
+                for attribute, delta in block.attributes.items():
+                    self.assertLessEqual(
+                        abs(delta), self.SEED_DELTA, f"{tactic.key}: {attribute} {delta:+d}"
+                    )
 
     def test_no_slot_level_emphasis_is_seeded(self) -> None:
         # Slot-level emphasis is reserved for deliberate hand tuning.
@@ -190,10 +337,18 @@ class ShippedSeedTests(unittest.TestCase):
     def test_tactics_do_not_all_emphasise_the_same_attributes(self) -> None:
         # Emphasis exists to separate tactics; identical blocks everywhere would
         # be a weighting that says nothing.
-        blocks = {
-            frozenset(t.attribute_emphasis) for t in MVP_CATALOGUE.tactics.values()
-        }
+        blocks = {frozenset(t.emphasised_attributes) for t in MVP_CATALOGUE.tactics.values()}
         self.assertGreaterEqual(len(blocks), len(MVP_CATALOGUE.tactics) // 3)
+
+    def test_emphasised_attributes_lists_whole_team_first_without_repeats(self) -> None:
+        tactic = replace(
+            MVP_CATALOGUE.tactics[TACTIC],
+            attribute_emphasis=(
+                AttributeEmphasis({"pace": 2}, ("DC",)),
+                AttributeEmphasis({"stamina": 2, "pace": 1}),
+            ),
+        )
+        self.assertEqual(tactic.emphasised_attributes, ("stamina", "pace"))
 
 
 if __name__ == "__main__":

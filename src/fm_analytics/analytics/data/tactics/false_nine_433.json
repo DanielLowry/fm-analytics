@@ -111,12 +111,16 @@
     "Higher Line of Engagement": "Presses in the opponent's half to keep the play high and the ball near the forwards.",
     "Higher Defensive Line": "Keeps the team compact around the ball; it needs a keeper who sweeps and defenders with pace."
   },
-  "attributeEmphasis": {
-    "composure": 2,
-    "technique": 2,
-    "anticipation": 2,
-    "stamina": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "composure": 2,
+        "technique": 2,
+        "anticipation": 2,
+        "stamina": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "A forward who passes and dribbles better than he finishes",
     "Two wingers who cut in and score",

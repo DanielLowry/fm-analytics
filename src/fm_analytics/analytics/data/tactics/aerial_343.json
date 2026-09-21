@@ -109,12 +109,16 @@
     "Higher Tempo": "Moves the ball forward quickly.",
     "Regroup": "Drops back into shape after losing the ball, which matters with two wing-backs pushed high."
   },
-  "attributeEmphasis": {
-    "crossing": 2,
-    "anticipation": 2,
-    "offTheBall": 2,
-    "heading": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "crossing": 2,
+        "anticipation": 2,
+        "offTheBall": 2,
+        "heading": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Two attacking wing-backs with stamina",
     "Two tall wide forwards",

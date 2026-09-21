@@ -35,6 +35,46 @@ _DATA_PATH = Path(__file__).with_name("data")
 
 
 @dataclass(frozen=True)
+class AttributeEmphasis:
+    """One block of "this tactic values these attributes more (or less)".
+
+    `attributes` are *deltas* on each role's own weight. With no `positions` the
+    block applies to the whole team; with positions, only to slots at those
+    positions (`("DL", "DC", "DR")` is a back four). Every block that covers a
+    slot adds to it, so a tactic can say "stamina +2 everywhere" and "pace +2 for
+    the back line" as two blocks and the back line gets both.
+    """
+
+    attributes: Mapping[str, int]
+    positions: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.attributes:
+            raise ValueError("an attribute emphasis block must name at least one attribute")
+        for attribute, delta in self.attributes.items():
+            if not isinstance(delta, int) or isinstance(delta, bool):
+                raise ValueError(f"attribute emphasis {attribute!r} must be an integer")
+            if not -MAX_EFFECTIVE_WEIGHT <= delta <= MAX_EFFECTIVE_WEIGHT:
+                raise ValueError(
+                    f"attribute emphasis {attribute!r} must be between "
+                    f"-{MAX_EFFECTIVE_WEIGHT} and {MAX_EFFECTIVE_WEIGHT}"
+                )
+        if len(self.positions) != len(set(self.positions)) or not all(self.positions):
+            raise ValueError("emphasis positions must be unique, non-empty names")
+
+    def applies_to(self, position: str) -> bool:
+        return not self.positions or position in self.positions
+
+
+def _sum_emphasis(*emphases: Mapping[str, int]) -> dict[str, int]:
+    total: dict[str, int] = {}
+    for emphasis in emphases:
+        for attribute, delta in emphasis.items():
+            total[attribute] = total.get(attribute, 0) + delta
+    return {a: d for a, d in total.items() if d}
+
+
+@dataclass(frozen=True)
 class TacticSlot:
     key: str
     position: str
@@ -42,8 +82,9 @@ class TacticSlot:
     alternate_role_keys: tuple[str, ...] = ()
     # Manager-facing: why this role sits in this slot of this tactic. Not scoring input.
     why: str = ""
-    # Per-attribute weight *deltas* for whoever fills this slot, overriding the
-    # tactic-wide emphasis for the attributes named. See TacticDefinition.
+    # Per-attribute weight *deltas* for whoever fills this slot. Added to every
+    # tactic-level block that covers the slot (see TacticDefinition); use it
+    # to single out one slot when several share a position (the two DCs).
     attribute_emphasis: Mapping[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -121,33 +162,47 @@ class TacticDefinition:
     when_to_use: str = ""
     when_not_to_use: str = ""
     instruction_rationale: Mapping[str, str] = field(default_factory=dict)
-    # How much more (or less) this tactic values an attribute, as a *delta* on
-    # the role's own weight, for every role in the tactic.
+    # How much more (or less) this tactic values an attribute, as *deltas* on the
+    # role's own weight, in blocks that cover the whole team or named positions.
     #
-    # Deltas, not absolute weights: one block covers all eleven slots, and an
-    # absolute "stamina: 8" would mean stamina 8 for the goalkeeper too. A
-    # delta also honours the rule that a tactic may not invent a requirement a
-    # role does not have -- it applies only where the role already weights the
+    # Deltas, not absolute weights: a block can cover several slots, and an
+    # absolute "stamina: 8" would mean stamina 8 for the goalkeeper too. A delta
+    # also honours the rule that a tactic may not invent a requirement a role
+    # does not have -- it applies only where the role already weights the
     # attribute, so a centre-back that ignores crossing keeps ignoring it.
-    # Applied weights are clamped to the 0-10 scale.
-    attribute_emphasis: Mapping[str, int] = field(default_factory=dict)
+    # Every block covering a slot is summed, then clamped to the 0-10 scale.
+    attribute_emphasis: tuple[AttributeEmphasis, ...] = ()
+
+    @property
+    def emphasised_attributes(self) -> tuple[str, ...]:
+        """Every attribute this tactic leans on, whole-team blocks first."""
+        ordered = sorted(self.attribute_emphasis, key=lambda block: bool(block.positions))
+        return tuple(dict.fromkeys(name for block in ordered for name in block.attributes))
 
     def __post_init__(self) -> None:
         if not all(
             (self.key, self.name, self.formation, self.mentality, self.catalogue_version)
         ):
             raise ValueError("tactic identity, formation, mentality, and version are required")
-        for name, emphasis in (
-            (self.key, self.attribute_emphasis),
-            *((f"{self.key}/{slot.key}", slot.attribute_emphasis) for slot in self.slots),
-        ):
-            for attribute, delta in emphasis.items():
+        fielded = {slot.position for slot in self.slots}
+        for block in self.attribute_emphasis:
+            # A position the tactic does not field would silently do nothing.
+            unfielded = sorted(set(block.positions) - fielded)
+            if unfielded:
+                raise ValueError(
+                    f"tactic {self.key!r} emphasises positions it does not field: "
+                    f"{unfielded!r} (it fields {sorted(fielded)!r})"
+                )
+        for slot in self.slots:
+            for attribute, delta in slot.attribute_emphasis.items():
                 if not isinstance(delta, int) or isinstance(delta, bool):
-                    raise ValueError(f"{name}: attribute emphasis {attribute!r} must be an integer")
+                    raise ValueError(
+                        f"{self.key}/{slot.key}: attribute emphasis {attribute!r} must be an integer"
+                    )
                 if not -MAX_EFFECTIVE_WEIGHT <= delta <= MAX_EFFECTIVE_WEIGHT:
                     raise ValueError(
-                        f"{name}: attribute emphasis {attribute!r} must be between "
-                        f"-{MAX_EFFECTIVE_WEIGHT} and {MAX_EFFECTIVE_WEIGHT}"
+                        f"{self.key}/{slot.key}: attribute emphasis {attribute!r} must be "
+                        f"between -{MAX_EFFECTIVE_WEIGHT} and {MAX_EFFECTIVE_WEIGHT}"
                     )
         stray = sorted(set(self.instruction_rationale) - set(self.instructions))
         if stray:
@@ -238,24 +293,34 @@ class FootballCatalogue:
         what keeps the no-emphasis case exactly as it scored before.
         """
         tactic = self.tactics[tactic_key]
-        slot_emphasis = {
-            slot.key: slot.attribute_emphasis for slot in tactic.slots if slot.attribute_emphasis
-        }
-        if not tactic.attribute_emphasis and not slot_emphasis:
+        # What every slot gets regardless of position, and what each slot gets
+        # once position blocks and its own block are added. Only a slot whose
+        # total differs from the whole-team one needs its own re-weighted roles.
+        whole_team = _sum_emphasis(
+            *(block.attributes for block in tactic.attribute_emphasis if not block.positions)
+        )
+        slot_totals = {}
+        for slot in tactic.slots:
+            total = _sum_emphasis(
+                *(
+                    block.attributes
+                    for block in tactic.attribute_emphasis
+                    if block.applies_to(slot.position)
+                ),
+                slot.attribute_emphasis,
+            )
+            if total != whole_team:
+                slot_totals[slot.key] = total
+        if not whole_team and not slot_totals:
             return self
         cached = self._derived.get(tactic_key)
         if cached is not None:
             return cached
-        roles = {
-            key: _emphasised(role, tactic.attribute_emphasis)
-            for key, role in self.roles.items()
-        }
+        roles = {key: _emphasised(role, whole_team) for key, role in self.roles.items()}
         slot_roles = {
-            (slot.key, role_key): _emphasised(
-                self.roles[role_key], {**tactic.attribute_emphasis, **slot.attribute_emphasis}
-            )
+            (slot.key, role_key): _emphasised(self.roles[role_key], slot_totals[slot.key])
             for slot in tactic.slots
-            if slot.attribute_emphasis
+            if slot.key in slot_totals
             for role_key in slot.role_keys
         }
         derived = replace(self, roles=roles, slot_roles=slot_roles, tactic_view=True)
@@ -287,7 +352,7 @@ class FootballCatalogue:
                 raise ValueError("tactic keys and versions must match their catalogue")
             # A misspelled attribute would weight nothing and say nothing.
             for where, emphasis in () if self.tactic_view else (
-                (key, tactic.attribute_emphasis),
+                *((key, block.attributes) for block in tactic.attribute_emphasis),
                 *((f"{key}/{s.key}", s.attribute_emphasis) for s in tactic.slots),
             ):
                 unknown = sorted(set(emphasis) - known_attributes)
@@ -513,7 +578,7 @@ def _tactic_from_json(raw: Mapping[str, Any], *, version: str) -> TacticDefiniti
         when_to_use=raw.get("whenToUse") or "",
         when_not_to_use=raw.get("whenNotToUse") or "",
         instruction_rationale=_string_mapping(raw.get("instructionRationale"), "instructionRationale"),
-        attribute_emphasis=_int_mapping(raw.get("attributeEmphasis"), "attributeEmphasis"),
+        attribute_emphasis=_emphasis_blocks(raw.get("attributeEmphasis"), _str(raw, "key")),
     )
 
 
@@ -628,6 +693,30 @@ def _str_tuple(raw: Mapping[str, Any], name: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise ValueError(f"{name!r} must be an array of strings")
     return tuple(value)
+
+
+def _emphasis_blocks(value: Any, tactic_key: str) -> tuple[AttributeEmphasis, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        raise ValueError(
+            f"tactic {tactic_key!r}: attributeEmphasis must be a list of blocks, each "
+            '{"attributes": {...}} with an optional "positions": [...]'
+        )
+    blocks = []
+    for index, raw in enumerate(value):
+        if not isinstance(raw, dict) or set(raw) - {"attributes", "positions"}:
+            raise ValueError(
+                f"tactic {tactic_key!r}: attributeEmphasis block {index} may only have "
+                "'attributes' and 'positions'"
+            )
+        blocks.append(
+            AttributeEmphasis(
+                attributes=_int_mapping(raw.get("attributes"), "emphasis attributes"),
+                positions=_str_tuple(raw, "positions") if "positions" in raw else (),
+            )
+        )
+    return tuple(blocks)
 
 
 def _int_mapping(value: Any, name: str) -> Mapping[str, int]:

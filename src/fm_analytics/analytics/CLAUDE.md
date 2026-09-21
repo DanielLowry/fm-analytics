@@ -70,12 +70,16 @@ Cover (or Stopper) role is added at DC, put it in the group.
 
 ## Per-tactic attribute emphasis
 
-A tactic's `attributeEmphasis` block shifts what it asks of its players:
-`{"stamina": 2}` means +2 on each role's *own* stamina weight, not stamina 8 for
-everybody. Deltas, because one block covers eleven slots and because a role only
-lists attributes it cares about — so emphasis tunes what a role already values
-and can never give it a new requirement. Clamped to 0-10. A slot may carry its
-own block, which wins for that slot.
+A tactic's `attributeEmphasis` is a list of blocks that shift what it asks of
+its players: `{"attributes": {"stamina": 2}}` means +2 on each role's *own*
+stamina weight, not stamina 8 for everybody. Deltas, because one block covers
+many slots and because a role only lists attributes it cares about — so emphasis
+tunes what a role already values and can never give it a new requirement. A
+block may carry `positions` (`["DL", "DC", "DR"]`) to reach only slots at those
+positions; without it the block covers the whole team. **Every block that covers
+a slot is added together**, along with the slot's own `attributeEmphasis`, and
+the total is clamped to 0-10. Positions are slot positions, not slot keys
+(`"DC"`, not `"DCL"`), and naming one the tactic does not field is an error.
 
 `catalogue.for_tactic(key)` returns the catalogue with roles re-weighted for one
 tactic, keeping every key, name, position, system trait and the version, so

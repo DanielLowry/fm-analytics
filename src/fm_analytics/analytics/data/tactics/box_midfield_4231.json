@@ -109,12 +109,16 @@
     "Standard Line of Engagement": "A balanced press keeps the shape compact.",
     "Higher Defensive Line": "Keeps the team compact around the ball; it needs a keeper who sweeps and defenders with pace."
   },
-  "attributeEmphasis": {
-    "composure": 2,
-    "technique": 2,
-    "positioning": 2,
-    "passing": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "composure": 2,
+        "technique": 2,
+        "positioning": 2,
+        "passing": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Two full-backs who can play in midfield",
     "A deep-lying playmaker",

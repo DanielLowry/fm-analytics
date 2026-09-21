@@ -114,12 +114,16 @@
     "Standard Line of Engagement": "A balanced press, so the two banks stay compact.",
     "Standard Defensive Line": "A balanced line keeps the block compact."
   },
-  "attributeEmphasis": {
-    "crossing": 2,
-    "anticipation": 2,
-    "pace": 2,
-    "offTheBall": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "crossing": 2,
+        "anticipation": 2,
+        "pace": 2,
+        "offTheBall": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "An exceptional creative playmaker",
     "A ball-winning midfielder and a holder in front of the defence",

@@ -109,12 +109,16 @@
     "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
     "Standard Defensive Line": "A balanced line keeps the defence compact."
   },
-  "attributeEmphasis": {
-    "stamina": 2,
-    "workRate": 2,
-    "technique": 2,
-    "composure": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "stamina": 2,
+        "workRate": 2,
+        "technique": 2,
+        "composure": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Two creative players who can play wide",
     "A pressing forward with high work rate",

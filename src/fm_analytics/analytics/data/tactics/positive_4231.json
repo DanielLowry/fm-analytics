@@ -118,12 +118,16 @@
     "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
     "Standard Defensive Line": "A balanced line keeps the defence compact."
   },
-  "attributeEmphasis": {
-    "firstTouch": 2,
-    "technique": 2,
-    "stamina": 2,
-    "passing": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "firstTouch": 2,
+        "technique": 2,
+        "stamina": 2,
+        "passing": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Secure double pivot",
     "Quality AMC",

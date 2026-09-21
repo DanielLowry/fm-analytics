@@ -110,12 +110,16 @@
     "Higher Tempo": "Moves the ball quickly to the front three before the defence sets.",
     "Counter-Press": "Regains the ball immediately, which also protects the space behind the full-backs."
   },
-  "attributeEmphasis": {
-    "stamina": 2,
-    "anticipation": 2,
-    "workRate": 2,
-    "firstTouch": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "stamina": 2,
+        "anticipation": 2,
+        "workRate": 2,
+        "firstTouch": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Fast recovery defenders",
     "Attacking full-backs",

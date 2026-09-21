@@ -115,12 +115,16 @@
     "Counter": "Attacks quickly when the ball is won.",
     "Regroup": "Drops back into shape after losing the ball."
   },
-  "attributeEmphasis": {
-    "jumpingReach": 2,
-    "heading": 2,
-    "strength": 2,
-    "offTheBall": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "jumpingReach": 2,
+        "heading": 2,
+        "strength": 2,
+        "offTheBall": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Dominant aerial striker",
     "Fast strike partner",

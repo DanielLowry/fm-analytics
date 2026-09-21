@@ -118,12 +118,16 @@
     "Standard Line of Engagement": "A balanced press: engages when the ball reaches the midfield banks.",
     "Standard Defensive Line": "A balanced line keeps the block compact."
   },
-  "attributeEmphasis": {
-    "pace": 2,
-    "offTheBall": 2,
-    "crossing": 2,
-    "anticipation": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "pace": 2,
+        "offTheBall": 2,
+        "crossing": 2,
+        "anticipation": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Hard-working wide midfielders",
     "Balanced CM pair",

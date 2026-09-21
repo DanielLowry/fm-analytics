@@ -111,12 +111,16 @@
     "Higher Tempo": "Moves the ball quickly while the opponent is out of shape.",
     "Standard Defensive Line": "A balanced line rather than a high one, so the two-man press does not leave the defence exposed."
   },
-  "attributeEmphasis": {
-    "stamina": 2,
-    "workRate": 2,
-    "aggression": 2,
-    "anticipation": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "stamina": 2,
+        "workRate": 2,
+        "aggression": 2,
+        "anticipation": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Two forwards with high work rate and stamina",
     "A ball-winning midfielder",

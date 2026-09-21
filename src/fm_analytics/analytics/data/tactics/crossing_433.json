@@ -111,12 +111,16 @@
     "Overlap Right": "The right full-back does the same on the right.",
     "Higher Tempo": "Moves the ball to the flanks quickly."
   },
-  "attributeEmphasis": {
-    "crossing": 2,
-    "stamina": 2,
-    "heading": 2,
-    "jumpingReach": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "crossing": 2,
+        "stamina": 2,
+        "heading": 2,
+        "jumpingReach": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Two tall wide forwards who win headers",
     "A strong central target man",

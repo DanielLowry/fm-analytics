@@ -117,12 +117,16 @@
     "Counter": "The two forwards are an outlet: the team attacks quickly when it wins the ball.",
     "Regroup": "Drops back into shape after losing the ball."
   },
-  "attributeEmphasis": {
-    "positioning": 2,
-    "concentration": 2,
-    "marking": 2,
-    "teamwork": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "marking": 2,
+        "teamwork": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Aerially strong centre-backs",
     "High-stamina wing-backs",

@@ -112,12 +112,16 @@
     "Lower Line of Engagement": "Lets the opponent have the ball in their own half, which creates the space to counter into.",
     "Standard Defensive Line": "A balanced line keeps the block compact."
   },
-  "attributeEmphasis": {
-    "offTheBall": 2,
-    "positioning": 2,
-    "anticipation": 2,
-    "concentration": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "offTheBall": 2,
+        "positioning": 2,
+        "anticipation": 2,
+        "concentration": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "A raumdeuter with good movement and finishing",
     "A quick, mobile striker",

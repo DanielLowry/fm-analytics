@@ -115,12 +115,16 @@
     "Standard Line of Engagement": "A balanced press: engages when the ball enters the compact midfield.",
     "Standard Defensive Line": "A balanced line keeps the block compact without taking risks."
   },
-  "attributeEmphasis": {
-    "pace": 2,
-    "offTheBall": 2,
-    "crossing": 2,
-    "anticipation": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "pace": 2,
+        "offTheBall": 2,
+        "crossing": 2,
+        "anticipation": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Intelligent AMC",
     "Mobile striker",

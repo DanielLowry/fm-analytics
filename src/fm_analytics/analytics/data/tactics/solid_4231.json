@@ -107,12 +107,16 @@
     "Hold Shape": "Keeps positions rather than pushing players forward, so the team stays compact.",
     "Slightly More Direct Passing": "Gets the ball forward to the front four quickly when it is won."
   },
-  "attributeEmphasis": {
-    "positioning": 2,
-    "concentration": 2,
-    "teamwork": 2,
-    "anticipation": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "teamwork": 2,
+        "anticipation": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "Two defensive full-backs who clear their lines",
     "A dependable double pivot",

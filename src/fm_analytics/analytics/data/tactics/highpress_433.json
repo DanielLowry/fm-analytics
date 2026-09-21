@@ -110,12 +110,16 @@
     "Shorter Passing": "Keeps possession after the ball is won.",
     "Counter-Press": "Presses at once after losing the ball, so the ball is regained before the opponent is organised."
   },
-  "attributeEmphasis": {
-    "stamina": 2,
-    "workRate": 2,
-    "anticipation": 2,
-    "aggression": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "stamina": 2,
+        "workRate": 2,
+        "anticipation": 2,
+        "aggression": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "High work rate/stamina",
     "Fast centre-backs",

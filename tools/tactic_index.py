@@ -54,6 +54,15 @@ def roles_by_line(tactic: TacticDefinition) -> list[tuple[str, str]]:
     return rows
 
 
+def leans_detail(tactic: TacticDefinition) -> str:
+    """`stamina +2 (whole team); pace +2 (DL, DC, DR)`."""
+    scopes = []
+    for block in sorted(tactic.attribute_emphasis, key=lambda b: bool(b.positions)):
+        attributes = ", ".join(f"{readable(a)} {d:+d}" for a, d in block.attributes.items())
+        scopes.append(f"{attributes} ({', '.join(block.positions) or 'whole team'})")
+    return "; ".join(scopes) or "—"
+
+
 def first_sentence(text: str) -> str:
     head = re.split(r"(?<=[.;])\s", text.strip(), maxsplit=1)[0]
     return head.rstrip(".;")
@@ -77,7 +86,7 @@ def render() -> str:
         "| --- | --- | --- | --- | --- |",
     ]
     for tactic in tactics:
-        leans = ", ".join(readable(a) for a in tactic.attribute_emphasis) or "—"
+        leans = ", ".join(readable(a) for a in tactic.emphasised_attributes) or "—"
         out.append(
             f"| [{tactic.name}](#{tactic.key.replace('_', '-')}) | {tactic.formation} "
             f"| {tactic.mentality} | {leans} | {first_sentence(tactic.when_to_use)} |"
@@ -96,8 +105,7 @@ def render() -> str:
             out.append(f"- **{line}:** {names}")
         out += [
             "",
-            f"- **Leans on:** "
-            + (", ".join(f"{readable(a)} {d:+d}" for a, d in tactic.attribute_emphasis.items()) or "—"),
+            f"- **Leans on:** " + leans_detail(tactic),
             f"- **Needs:** " + ("; ".join(tactic.key_requirements) or "—"),
             f"- **Instructions:** " + ("; ".join(tactic.instructions) or "—"),
             f"- **Avoid when:** {first_sentence(tactic.when_not_to_use)}",

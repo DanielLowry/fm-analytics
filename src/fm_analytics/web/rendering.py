@@ -292,12 +292,16 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
             + "</p>"
         )
     if tactic.attribute_emphasis:
-        leaned = ", ".join(
-            f"{html.escape(_readable_attribute(name))} {delta:+d}"
-            for name, delta in tactic.attribute_emphasis.items()
-        )
+        scopes = []
+        for block in sorted(tactic.attribute_emphasis, key=lambda b: bool(b.positions)):
+            attributes = ", ".join(
+                f"{html.escape(_readable_attribute(name))} {delta:+d}"
+                for name, delta in block.attributes.items()
+            )
+            where = html.escape(", ".join(block.positions)) if block.positions else "whole team"
+            scopes.append(f"{attributes} <span class='muted'>({where})</span>")
         parts.append(
-            f"<p class='muted'><b>Leans on:</b> {leaned}. "
+            f"<p class='muted'><b>Leans on:</b> {'; '.join(scopes)}. "
             "Role fit on this page is scored with these attributes weighted a little "
             "differently from the same role in another tactic.</p>"
         )

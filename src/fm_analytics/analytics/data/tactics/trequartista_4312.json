@@ -117,12 +117,16 @@
     "Standard Line of Engagement": "A balanced press keeps the midfield three compact.",
     "Standard Defensive Line": "A balanced line keeps the block compact."
   },
-  "attributeEmphasis": {
-    "firstTouch": 2,
-    "teamwork": 2,
-    "technique": 2,
-    "composure": 2
-  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "firstTouch": 2,
+        "teamwork": 2,
+        "technique": 2,
+        "composure": 2
+      }
+    }
+  ],
   "keyRequirements": [
     "An exceptional creative player with vision and technique",
     "A pressing forward with high work rate",

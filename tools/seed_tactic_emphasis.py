@@ -8,8 +8,9 @@ overwrite a tactic that already has a block unless asked.
 
 The rules, and why (see docs/tactical-model-upgrade-plan.md 5.2):
 
-* **Tactic-wide only.** Never a slot-level block. Slot-level emphasis stays a
-  purely human decision, so every one in the tree is one somebody chose.
+* **Whole-team only.** One block with no `positions`, and never a slot-level
+  block. Targeting positions or a single slot stays a purely human decision, so
+  every such block in the tree is one somebody chose.
 * **+2 on the 0-10 scale.** Measured: about one slot decision in twenty changes,
   each an improvement under that tactic's own priorities, while tactic ranking
   barely moves.
@@ -133,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
         seeded = emphasis_for(document["instructions"], rarity)
         existing = document.get("attributeEmphasis")
         if existing is not None and not args.force:
-            if args.check and existing != seeded:
+            if args.check and existing != [{"attributes": seeded}]:
                 print(f"{path.stem}: hand-tuned ({existing}) differs from seed ({seeded})")
             continue
         if args.check:
@@ -146,7 +147,9 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             out[key] = value
             if key == "instructionRationale":
-                out["attributeEmphasis"] = seeded
+                # One whole-team block: the seed never targets positions, so
+                # every position-scoped block in the tree is one somebody chose.
+                out["attributeEmphasis"] = [{"attributes": seeded}]
         assert "attributeEmphasis" in out, f"{path.stem} has no instructionRationale to anchor to"
         path.write_text(json.dumps(out, indent=2) + "\n", encoding="utf-8")
         print(f"{path.stem}: {seeded}")
