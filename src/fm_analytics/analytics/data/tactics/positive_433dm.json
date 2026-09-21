@@ -118,6 +118,12 @@
     "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
     "Standard Defensive Line": "A balanced line keeps the defence compact."
   },
+  "attributeEmphasis": {
+    "composure": 2,
+    "technique": 2,
+    "stamina": 2,
+    "passing": 2
+  },
   "keyRequirements": [
     "Reliable DM",
     "Progressive midfielders",

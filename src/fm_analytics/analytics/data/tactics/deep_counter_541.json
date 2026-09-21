@@ -112,6 +112,12 @@
     "Regroup": "Drops back into shape after losing the ball.",
     "Slower Tempo": "Slows the game down and wastes time when leading."
   },
+  "attributeEmphasis": {
+    "positioning": 2,
+    "concentration": 2,
+    "offTheBall": 2,
+    "composure": 2
+  },
   "keyRequirements": [
     "Three dependable centre-backs",
     "Two wide midfielders with pace",

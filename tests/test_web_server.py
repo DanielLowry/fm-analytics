@@ -668,6 +668,15 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         for slot in tactic.slots:
             self.assertIn(html.escape(slot.why), body)
 
+    def test_tactic_detail_says_which_attributes_the_tactic_leans_on(self) -> None:
+        status, body = self._get("/tactics/balanced_442")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Leans on:", body)
+        # Rendered for a manager, not as the JSON key.
+        self.assertIn("off the ball +2", body)
+        self.assertNotIn("offTheBall", body)
+
     def test_tactics_overview_hints_when_each_tactic_suits(self) -> None:
         status, body = self._get("/tactics")
 

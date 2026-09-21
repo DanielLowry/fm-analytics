@@ -99,6 +99,7 @@ def assess_weaknesses(
 ) -> WeaknessReport:
     if evaluation.tactic.key not in catalogue.tactics:
         raise ValueError("evaluation tactic does not belong to the catalogue")
+    catalogue = catalogue.for_tactic(evaluation.tactic.key)
     starters = {assignment.slot.key: assignment for assignment in evaluation.assignments}
     starter_ids = {assignment.player_id for assignment in evaluation.assignments}
     reference = round(
@@ -246,7 +247,7 @@ def _backups_for_slot(
     catalogue: FootballCatalogue,
     readiness_policy: ReadinessPolicy,
 ) -> tuple[tuple[DepthCandidate, ...], tuple[DepthCandidate, ...]]:
-    role = catalogue.roles[role_key]
+    role = catalogue.role_for_slot(slot, role_key)
     available: list[DepthCandidate] = []
     unavailable: list[DepthCandidate] = []
     for player in players:
@@ -279,7 +280,7 @@ def _occupied_starter_cover(
     starter_ids: set[str],
     catalogue: FootballCatalogue,
 ) -> tuple[DepthCandidate, ...]:
-    role = catalogue.roles[role_key]
+    role = catalogue.role_for_slot(slot, role_key)
     candidates = (
         DepthCandidate(
             player_id=player.id,

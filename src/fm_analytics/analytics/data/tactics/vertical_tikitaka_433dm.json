@@ -117,6 +117,12 @@
     "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
     "Higher Defensive Line": "Keeps the team compact around the ball; it needs pace in the defence."
   },
+  "attributeEmphasis": {
+    "anticipation": 2,
+    "firstTouch": 2,
+    "technique": 2,
+    "pace": 2
+  },
   "keyRequirements": [
     "Excellent first touch/passing",
     "Mobile midfield",

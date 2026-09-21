@@ -1,7 +1,7 @@
 {
   "key": "raumdeuter_counter_4231",
   "name": "Raumdeuter Counter 4-2-3-1",
-  "formation": "4-2-3-1 Counter",
+  "formation": "4-2-3-1 DM AM Wide",
   "mentality": "Cautious",
   "instructions": [
     "Slightly More Direct Passing",
@@ -111,6 +111,12 @@
     "Regroup": "Falls back into shape after losing the ball, before the next counter.",
     "Lower Line of Engagement": "Lets the opponent have the ball in their own half, which creates the space to counter into.",
     "Standard Defensive Line": "A balanced line keeps the block compact."
+  },
+  "attributeEmphasis": {
+    "offTheBall": 2,
+    "positioning": 2,
+    "anticipation": 2,
+    "concentration": 2
   },
   "keyRequirements": [
     "A raumdeuter with good movement and finishing",

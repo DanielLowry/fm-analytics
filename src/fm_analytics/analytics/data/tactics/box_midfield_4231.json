@@ -1,7 +1,7 @@
 {
   "key": "box_midfield_4231",
   "name": "Box Midfield 4-2-3-1",
-  "formation": "4-2-3-1 Box Midfield",
+  "formation": "4-2-3-1 DM AM Wide",
   "mentality": "Positive",
   "instructions": [
     "Shorter Passing",
@@ -108,6 +108,12 @@
     "Hold Shape": "Keeps players in their positions so the box stays intact.",
     "Standard Line of Engagement": "A balanced press keeps the shape compact.",
     "Higher Defensive Line": "Keeps the team compact around the ball; it needs a keeper who sweeps and defenders with pace."
+  },
+  "attributeEmphasis": {
+    "composure": 2,
+    "technique": 2,
+    "positioning": 2,
+    "passing": 2
   },
   "keyRequirements": [
     "Two full-backs who can play in midfield",

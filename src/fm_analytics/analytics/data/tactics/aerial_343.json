@@ -1,7 +1,7 @@
 {
   "key": "aerial_343",
   "name": "Aerial 3-4-3",
-  "formation": "3-4-3 Aerial",
+  "formation": "3-4-3",
   "mentality": "Positive",
   "instructions": [
     "Fairly Wide",
@@ -108,6 +108,12 @@
     "Hit Early Crosses": "The crosses are delivered before the defence can set.",
     "Higher Tempo": "Moves the ball forward quickly.",
     "Regroup": "Drops back into shape after losing the ball, which matters with two wing-backs pushed high."
+  },
+  "attributeEmphasis": {
+    "crossing": 2,
+    "anticipation": 2,
+    "offTheBall": 2,
+    "heading": 2
   },
   "keyRequirements": [
     "Two attacking wing-backs with stamina",

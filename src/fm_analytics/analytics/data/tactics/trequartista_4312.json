@@ -1,7 +1,7 @@
 {
   "key": "trequartista_4312",
   "name": "Trequartista 4-3-1-2",
-  "formation": "4-3-1-2 Trequartista",
+  "formation": "4-3-1-2",
   "mentality": "Positive",
   "instructions": [
     "Fairly Narrow",
@@ -116,6 +116,12 @@
     "Counter-Press": "Presses at once after losing the ball, led by the pressing forward and ball-winner, since the trequartista will not.",
     "Standard Line of Engagement": "A balanced press keeps the midfield three compact.",
     "Standard Defensive Line": "A balanced line keeps the block compact."
+  },
+  "attributeEmphasis": {
+    "firstTouch": 2,
+    "teamwork": 2,
+    "technique": 2,
+    "composure": 2
   },
   "keyRequirements": [
     "An exceptional creative player with vision and technique",

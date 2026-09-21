@@ -120,6 +120,12 @@
     "Standard Line of Engagement": "A balanced press: engages as the ball enters the crowded middle.",
     "Standard Defensive Line": "A balanced line keeps the block compact."
   },
+  "attributeEmphasis": {
+    "stamina": 2,
+    "crossing": 2,
+    "firstTouch": 2,
+    "teamwork": 2
+  },
   "keyRequirements": [
     "Excellent attacking full-backs",
     "Three capable central midfielders",

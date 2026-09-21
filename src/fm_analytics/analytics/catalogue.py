@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from itertools import product
 from math import isfinite
 from pathlib import Path
@@ -12,6 +12,7 @@ from fm_analytics.analytics.role_scoring import (
     RoleDefinition,
 )
 from fm_analytics.analytics.role_weights import (
+    MAX_EFFECTIVE_WEIGHT,
     RoleWeightsCatalogue,
     parse_attribute_weights,
     role_documents,
@@ -41,6 +42,9 @@ class TacticSlot:
     alternate_role_keys: tuple[str, ...] = ()
     # Manager-facing: why this role sits in this slot of this tactic. Not scoring input.
     why: str = ""
+    # Per-attribute weight *deltas* for whoever fills this slot, overriding the
+    # tactic-wide emphasis for the attributes named. See TacticDefinition.
+    attribute_emphasis: Mapping[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.key or not self.position or not self.role_key:
@@ -117,12 +121,34 @@ class TacticDefinition:
     when_to_use: str = ""
     when_not_to_use: str = ""
     instruction_rationale: Mapping[str, str] = field(default_factory=dict)
+    # How much more (or less) this tactic values an attribute, as a *delta* on
+    # the role's own weight, for every role in the tactic.
+    #
+    # Deltas, not absolute weights: one block covers all eleven slots, and an
+    # absolute "stamina: 8" would mean stamina 8 for the goalkeeper too. A
+    # delta also honours the rule that a tactic may not invent a requirement a
+    # role does not have -- it applies only where the role already weights the
+    # attribute, so a centre-back that ignores crossing keeps ignoring it.
+    # Applied weights are clamped to the 0-10 scale.
+    attribute_emphasis: Mapping[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not all(
             (self.key, self.name, self.formation, self.mentality, self.catalogue_version)
         ):
             raise ValueError("tactic identity, formation, mentality, and version are required")
+        for name, emphasis in (
+            (self.key, self.attribute_emphasis),
+            *((f"{self.key}/{slot.key}", slot.attribute_emphasis) for slot in self.slots),
+        ):
+            for attribute, delta in emphasis.items():
+                if not isinstance(delta, int) or isinstance(delta, bool):
+                    raise ValueError(f"{name}: attribute emphasis {attribute!r} must be an integer")
+                if not -MAX_EFFECTIVE_WEIGHT <= delta <= MAX_EFFECTIVE_WEIGHT:
+                    raise ValueError(
+                        f"{name}: attribute emphasis {attribute!r} must be between "
+                        f"-{MAX_EFFECTIVE_WEIGHT} and {MAX_EFFECTIVE_WEIGHT}"
+                    )
         stray = sorted(set(self.instruction_rationale) - set(self.instructions))
         if stray:
             raise ValueError(
@@ -182,6 +208,64 @@ class FootballCatalogue:
     roles: Mapping[str, RoleDefinition]
     tactics: Mapping[str, TacticDefinition]
     exclusive_role_groups: tuple[RoleExclusionGroup, ...] = ()
+    # Roles re-weighted for one slot of one tactic, keyed (slot key, role key).
+    # Only populated on a catalogue returned by `for_tactic`.
+    slot_roles: Mapping[tuple[str, str], RoleDefinition] = field(
+        default_factory=dict, compare=False, repr=False
+    )
+    # True on a catalogue returned by `for_tactic`. Its roles are computed, not
+    # authored: emphasis has already been applied and may have taken a weight to
+    # zero, dropping that attribute. Re-checking authored emphasis names against
+    # those narrowed roles would reject a catalogue whose data is perfectly
+    # valid, so that one check is skipped here and runs on the authored data.
+    tactic_view: bool = field(default=False, compare=False, repr=False)
+    # Memoised `for_tactic` results. Excluded from equality (a catalogue is the
+    # same catalogue whether or not it has derived a tactic's view yet) and from
+    # __init__, so `dataclasses.replace` gives the copy a fresh cache instead of
+    # sharing this one -- sharing it handed a modified catalogue the *original*
+    # catalogue's derived views, silently ignoring the change.
+    _derived: dict[str, "FootballCatalogue"] = field(
+        default_factory=dict, compare=False, repr=False, init=False
+    )
+
+    def for_tactic(self, tactic_key: str) -> "FootballCatalogue":
+        """This catalogue with every role re-weighted for one tactic.
+
+        Role keys, names, positions, system traits and the catalogue version are
+        all unchanged -- only attribute weights move -- so every lookup,
+        exclusion group and version check keeps working on the result. A tactic
+        that declares no emphasis returns this catalogue unchanged, which is
+        what keeps the no-emphasis case exactly as it scored before.
+        """
+        tactic = self.tactics[tactic_key]
+        slot_emphasis = {
+            slot.key: slot.attribute_emphasis for slot in tactic.slots if slot.attribute_emphasis
+        }
+        if not tactic.attribute_emphasis and not slot_emphasis:
+            return self
+        cached = self._derived.get(tactic_key)
+        if cached is not None:
+            return cached
+        roles = {
+            key: _emphasised(role, tactic.attribute_emphasis)
+            for key, role in self.roles.items()
+        }
+        slot_roles = {
+            (slot.key, role_key): _emphasised(
+                self.roles[role_key], {**tactic.attribute_emphasis, **slot.attribute_emphasis}
+            )
+            for slot in tactic.slots
+            if slot.attribute_emphasis
+            for role_key in slot.role_keys
+        }
+        derived = replace(self, roles=roles, slot_roles=slot_roles, tactic_view=True)
+        # Worst case under threading is building this twice; both are equal.
+        self._derived[tactic_key] = derived
+        return derived
+
+    def role_for_slot(self, slot: TacticSlot, role_key: str) -> RoleDefinition:
+        """The role as this slot weights it: a slot override, else the role."""
+        return self.slot_roles.get((slot.key, role_key)) or self.roles[role_key]
 
     def __post_init__(self) -> None:
         if not self.version or not self.roles or not self.tactics:
@@ -195,9 +279,22 @@ class FootballCatalogue:
                 raise ValueError(
                     f"role exclusion group {group.name!r} references unknown roles {unknown!r}"
                 )
+        known_attributes = {
+            attribute.name for role in self.roles.values() for attribute in role.attributes
+        }
         for key, tactic in self.tactics.items():
             if key != tactic.key or tactic.catalogue_version != self.version:
                 raise ValueError("tactic keys and versions must match their catalogue")
+            # A misspelled attribute would weight nothing and say nothing.
+            for where, emphasis in () if self.tactic_view else (
+                (key, tactic.attribute_emphasis),
+                *((f"{key}/{s.key}", s.attribute_emphasis) for s in tactic.slots),
+            ):
+                unknown = sorted(set(emphasis) - known_attributes)
+                if unknown:
+                    raise ValueError(
+                        f"tactic {where!r} emphasises unknown attributes {unknown!r}"
+                    )
             unknown_roles = {
                 role_key
                 for slot in tactic.slots
@@ -259,6 +356,29 @@ class FootballCatalogue:
             if role_key in self.roles
             and slot.position in self.roles[role_key].eligible_positions
         )
+
+
+def _emphasised(
+    role: RoleDefinition, emphasis: Mapping[str, int]
+) -> RoleDefinition:
+    """`role` with each named attribute's weight shifted, clamped to 0-10.
+
+    Attributes the role does not weight are left out: a tactic adjusts what a
+    role already cares about, it does not give a role a new requirement.
+    """
+    if not emphasis:
+        return role
+    attributes = tuple(
+        RoleAttribute(
+            name=attribute.name,
+            weight=min(MAX_EFFECTIVE_WEIGHT, max(0, attribute.weight + emphasis.get(attribute.name, 0))),
+        )
+        for attribute in role.attributes
+    )
+    attributes = tuple(attribute for attribute in attributes if attribute.weight > 0)
+    if not attributes:
+        raise ValueError(f"attribute emphasis leaves role {role.key!r} with no weighted attributes")
+    return replace(role, attributes=attributes)
 
 
 def _attributes_from_weights(
@@ -362,6 +482,7 @@ def _slot_from_json(raw: Mapping[str, Any]) -> TacticSlot:
         role_key=role_key,
         alternate_role_keys=alternate_role_keys,
         why=raw.get("why") or "",
+        attribute_emphasis=_int_mapping(raw.get("attributeEmphasis"), "slot attributeEmphasis"),
     )
 
 
@@ -392,6 +513,7 @@ def _tactic_from_json(raw: Mapping[str, Any], *, version: str) -> TacticDefiniti
         when_to_use=raw.get("whenToUse") or "",
         when_not_to_use=raw.get("whenNotToUse") or "",
         instruction_rationale=_string_mapping(raw.get("instructionRationale"), "instructionRationale"),
+        attribute_emphasis=_int_mapping(raw.get("attributeEmphasis"), "attributeEmphasis"),
     )
 
 
@@ -506,6 +628,17 @@ def _str_tuple(raw: Mapping[str, Any], name: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise ValueError(f"{name!r} must be an array of strings")
     return tuple(value)
+
+
+def _int_mapping(value: Any, name: str) -> Mapping[str, int]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict) or not all(
+        isinstance(k, str) and isinstance(v, int) and not isinstance(v, bool)
+        for k, v in value.items()
+    ):
+        raise ValueError(f"{name!r} must be an object of whole-number deltas")
+    return dict(value)
 
 
 def _string_mapping(value: Any, name: str) -> Mapping[str, str]:

@@ -116,6 +116,12 @@
     "Much More Urgent Pressing": "Presses with more intensity, which is more effective but tiring.",
     "Prevent Short GK Distribution": "Stops the goalkeeper playing short, forcing a long kick that the defence can win."
   },
+  "attributeEmphasis": {
+    "workRate": 2,
+    "aggression": 2,
+    "stamina": 2,
+    "anticipation": 2
+  },
   "keyRequirements": [
     "High work rate/stamina",
     "Fast defenders",

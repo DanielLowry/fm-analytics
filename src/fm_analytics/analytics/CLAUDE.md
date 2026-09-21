@@ -68,6 +68,31 @@ group are the ones that only make sense alongside a partner who isn't in it.
 `FootballCatalogue` refuses to load a tactic with no legal version. When a new
 Cover (or Stopper) role is added at DC, put it in the group.
 
+## Per-tactic attribute emphasis
+
+A tactic's `attributeEmphasis` block shifts what it asks of its players:
+`{"stamina": 2}` means +2 on each role's *own* stamina weight, not stamina 8 for
+everybody. Deltas, because one block covers eleven slots and because a role only
+lists attributes it cares about — so emphasis tunes what a role already values
+and can never give it a new requirement. Clamped to 0-10. A slot may carry its
+own block, which wins for that slot.
+
+`catalogue.for_tactic(key)` returns the catalogue with roles re-weighted for one
+tactic, keeping every key, name, position, system trait and the version, so
+lookups and exclusion groups keep working. Score through
+`catalogue.role_for_slot(slot, role_key)`, never `catalogue.roles[...]`, anywhere
+a slot is in hand. Each per-tactic entry point derives its own view, so callers
+pass the plain catalogue as before.
+
+The blocks were seeded once by `tools/seed_tactic_emphasis.py` and are now
+hand-owned; re-running it discards tuning unless you pass `--force`. Keep them
+soft (the shipped seed is +2 on at most four attributes, and a test enforces
+that band) — the emphasis is meant to separate close candidates, not to
+overturn what a role fundamentally asks for.
+
+Tactic-free surfaces (the Squad roster, Roles, Scouting) deliberately stay on
+base weights, so a player's best role does not move between pages.
+
 ## Role versions and player assignment — read before editing
 
 `_best_role_version` first enumerates every role combination that a tactic

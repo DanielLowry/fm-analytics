@@ -58,6 +58,7 @@ def explain_tactic_selection(
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
     system_policy: SystemFitPolicy = SystemFitPolicy(),
 ) -> TacticSelectionExplanation:
+    catalogue = catalogue.for_tactic(evaluation.tactic.key)
     """Explain each starter with like-for-like and whole-XI comparisons.
 
     Alternatives are scored in the starter's exact slot and selected role.

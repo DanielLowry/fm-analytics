@@ -1,7 +1,7 @@
 {
   "key": "inverted_wingback_433",
   "name": "Inverted Wing-Back 4-3-3",
-  "formation": "4-3-3 Inverted Wing-Backs",
+  "formation": "4-3-3 DM Wide",
   "mentality": "Positive",
   "instructions": [
     "Shorter Passing",
@@ -110,6 +110,12 @@
     "Counter-Press": "The team is compact in the centre, so it can win the ball back quickly after losing it.",
     "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
     "Standard Defensive Line": "A balanced line rather than a high one, because the inverted full-backs are already in the centre."
+  },
+  "attributeEmphasis": {
+    "composure": 2,
+    "technique": 2,
+    "stamina": 2,
+    "passing": 2
   },
   "keyRequirements": [
     "Full-backs who pass well and read the game",

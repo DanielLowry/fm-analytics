@@ -116,6 +116,12 @@
     "Higher Tempo": "Moves the ball to the flanks quickly.",
     "Counter": "Attacks quickly when the ball is won."
   },
+  "attributeEmphasis": {
+    "crossing": 2,
+    "stamina": 2,
+    "pace": 2,
+    "heading": 2
+  },
   "keyRequirements": [
     "Good crossing",
     "Fast wide players",

@@ -54,6 +54,7 @@ def select_bench(
         or catalogue.tactics[evaluation.tactic.key] != evaluation.tactic
     ):
         raise ValueError("evaluated tactic must belong to the supplied catalogue")
+    catalogue = catalogue.for_tactic(evaluation.tactic.key)
     player_ids = [player.id for player in players]
     if len(player_ids) != len(set(player_ids)):
         raise ValueError("bench player ids must be unique")

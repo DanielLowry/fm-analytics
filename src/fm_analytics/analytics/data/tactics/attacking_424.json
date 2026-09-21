@@ -122,6 +122,12 @@
     "Higher Line of Engagement": "Keeps the press high, so the attackers are supported by pressure on the ball.",
     "Higher Defensive Line": "Keeps the team compact so two midfielders have less ground to cover, at the cost of exposing slower defenders."
   },
+  "attributeEmphasis": {
+    "anticipation": 2,
+    "offTheBall": 2,
+    "pace": 2,
+    "stamina": 2
+  },
   "keyRequirements": [
     "Two midfielders able to cover huge spaces",
     "Fast defenders",

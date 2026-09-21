@@ -1,7 +1,7 @@
 {
   "key": "pressing_442",
   "name": "High-Press 4-4-2",
-  "formation": "4-4-2 High Press",
+  "formation": "4-4-2",
   "mentality": "Positive",
   "instructions": [
     "Higher Line of Engagement",
@@ -110,6 +110,12 @@
     "Slightly More Direct Passing": "Gets the ball forward quickly to the forwards when it is won.",
     "Higher Tempo": "Moves the ball quickly while the opponent is out of shape.",
     "Standard Defensive Line": "A balanced line rather than a high one, so the two-man press does not leave the defence exposed."
+  },
+  "attributeEmphasis": {
+    "stamina": 2,
+    "workRate": 2,
+    "aggression": 2,
+    "anticipation": 2
   },
   "keyRequirements": [
     "Two forwards with high work rate and stamina",

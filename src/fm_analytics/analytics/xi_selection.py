@@ -68,6 +68,8 @@ def _evaluate_tactic(
 ) -> TacticEvaluation:
     if tactic.key not in catalogue.tactics or catalogue.tactics[tactic.key] != tactic:
         raise ValueError("tactic must belong to the supplied football catalogue")
+    # Score every player through this tactic's own attribute emphasis.
+    catalogue = catalogue.for_tactic(tactic.key)
     player_ids = [player.id for player in players]
     if len(player_ids) != len(set(player_ids)):
         raise ValueError("selection player ids must be unique")
@@ -394,7 +396,7 @@ def score_player_for_slot(
 
     assignments = []
     for candidate_role in candidate_roles:
-        intrinsic = score_role(catalogue.roles[candidate_role], player.attributes)
+        intrinsic = score_role(catalogue.role_for_slot(slot, candidate_role), player.attributes)
         assignments.append(
             SlotAssignment(
                 slot=slot,

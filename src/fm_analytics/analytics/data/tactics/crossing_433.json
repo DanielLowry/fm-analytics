@@ -1,7 +1,7 @@
 {
   "key": "crossing_433",
   "name": "Crossing 4-3-3",
-  "formation": "4-3-3 Crossing",
+  "formation": "4-3-3",
   "mentality": "Positive",
   "instructions": [
     "Fairly Wide",
@@ -110,6 +110,12 @@
     "Overlap Left": "The left full-back overlaps the wide target man to supply the cross.",
     "Overlap Right": "The right full-back does the same on the right.",
     "Higher Tempo": "Moves the ball to the flanks quickly."
+  },
+  "attributeEmphasis": {
+    "crossing": 2,
+    "stamina": 2,
+    "heading": 2,
+    "jumpingReach": 2
   },
   "keyRequirements": [
     "Two tall wide forwards who win headers",

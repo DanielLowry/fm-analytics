@@ -117,6 +117,12 @@
     "Counter": "The two forwards are an outlet: the team attacks quickly when it wins the ball.",
     "Regroup": "Drops back into shape after losing the ball."
   },
+  "attributeEmphasis": {
+    "positioning": 2,
+    "concentration": 2,
+    "marking": 2,
+    "teamwork": 2
+  },
   "keyRequirements": [
     "Disciplined block",
     "Wide midfield recovery",

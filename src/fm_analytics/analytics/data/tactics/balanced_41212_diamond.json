@@ -119,6 +119,12 @@
     "Standard Line of Engagement": "A balanced press: engages when the ball enters the compact block rather than chasing wide.",
     "Standard Defensive Line": "A balanced line keeps the team compact without exposing the centre-backs."
   },
+  "attributeEmphasis": {
+    "teamwork": 2,
+    "firstTouch": 2,
+    "positioning": 2,
+    "pace": 2
+  },
   "keyRequirements": [
     "Full-backs with stamina/crossing",
     "Disciplined DM",

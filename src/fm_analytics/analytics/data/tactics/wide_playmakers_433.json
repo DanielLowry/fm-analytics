@@ -1,7 +1,7 @@
 {
   "key": "wide_playmakers_433",
   "name": "Wide Playmakers 4-3-3",
-  "formation": "4-3-3 Wide Playmakers",
+  "formation": "4-3-3 DM Wide",
   "mentality": "Positive",
   "instructions": [
     "Shorter Passing",
@@ -108,6 +108,12 @@
     "Counter-Press": "Presses at once after losing the ball, led by the pressing forward and ball-winner.",
     "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
     "Standard Defensive Line": "A balanced line keeps the defence compact."
+  },
+  "attributeEmphasis": {
+    "stamina": 2,
+    "workRate": 2,
+    "technique": 2,
+    "composure": 2
   },
   "keyRequirements": [
     "Two creative players who can play wide",

@@ -113,6 +113,12 @@
     "Standard Line of Engagement": "A balanced press: does not chase the ball and lose the shape.",
     "Standard Defensive Line": "A balanced line keeps the team compact."
   },
+  "attributeEmphasis": {
+    "composure": 2,
+    "decisions": 2,
+    "technique": 2,
+    "positioning": 2
+  },
   "keyRequirements": [
     "Technically reliable midfield",
     "Linking striker",

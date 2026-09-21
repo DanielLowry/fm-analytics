@@ -114,6 +114,12 @@
     "Lower Line of Engagement": "Lets the opponent have the ball in their own half, leaving the space to counter into.",
     "Standard Defensive Line": "A balanced line keeps the block compact."
   },
+  "attributeEmphasis": {
+    "passing": 2,
+    "firstTouch": 2,
+    "positioning": 2,
+    "offTheBall": 2
+  },
   "keyRequirements": [
     "Mobile midfield",
     "Pacy striker",

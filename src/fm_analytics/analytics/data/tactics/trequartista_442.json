@@ -1,7 +1,7 @@
 {
   "key": "trequartista_442",
   "name": "Trequartista 4-4-2",
-  "formation": "4-4-2 Trequartista",
+  "formation": "4-4-2",
   "mentality": "Positive",
   "instructions": [
     "Fairly Wide",
@@ -110,6 +110,12 @@
     "Counter-Press": "Presses at once after losing the ball, led by the pressing forward, since the trequartista will not.",
     "Standard Line of Engagement": "A balanced press keeps the two banks compact.",
     "Standard Defensive Line": "A balanced line keeps the block compact behind a trequartista who does not defend."
+  },
+  "attributeEmphasis": {
+    "crossing": 2,
+    "pace": 2,
+    "composure": 2,
+    "decisions": 2
   },
   "keyRequirements": [
     "A creative forward who is better at creating than finishing",

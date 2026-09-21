@@ -115,6 +115,12 @@
     "Drop Deeper Line of Engagement": "Leaves the opponent with the ball in their own half and defends the space nearer the box.",
     "Drop Off More Defensive Line": "Keeps the defence deep, which suits the back three and leaves space in front of them."
   },
+  "attributeEmphasis": {
+    "positioning": 2,
+    "concentration": 2,
+    "composure": 2,
+    "decisions": 2
+  },
   "keyRequirements": [
     "Three dependable centre-backs",
     "High-stamina wing-backs",

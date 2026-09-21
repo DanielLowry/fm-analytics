@@ -113,6 +113,12 @@
     "Play Out Of Defence": "Three centre-backs are a natural build-up base and draw opposition forwards out of position.",
     "Counter-Press": "Wins the ball straight back after a loss, before the space behind the wing-backs can be attacked."
   },
+  "attributeEmphasis": {
+    "stamina": 2,
+    "anticipation": 2,
+    "workRate": 2,
+    "passing": 2
+  },
   "keyRequirements": [
     "Mobile outside centre-backs",
     "Elite wing-back stamina",

@@ -1,7 +1,7 @@
 {
   "key": "narrow_4222",
   "name": "Narrow 4-2-2-2",
-  "formation": "4-2-2-2 Narrow",
+  "formation": "4-2-2-2",
   "mentality": "Positive",
   "instructions": [
     "Fairly Narrow",
@@ -119,6 +119,12 @@
     "Counter-Press": "Presses at once after losing the ball; with six players near it, it is quickly won back.",
     "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
     "Standard Defensive Line": "A balanced line keeps the defence compact."
+  },
+  "attributeEmphasis": {
+    "firstTouch": 2,
+    "teamwork": 2,
+    "stamina": 2,
+    "workRate": 2
   },
   "keyRequirements": [
     "Full-backs who provide all the width",

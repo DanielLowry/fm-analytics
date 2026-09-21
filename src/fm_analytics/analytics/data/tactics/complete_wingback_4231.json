@@ -1,7 +1,7 @@
 {
   "key": "complete_wingback_4231",
   "name": "Complete Wing-Back 4-2-3-1",
-  "formation": "4-2-3-1 Wide Overload",
+  "formation": "4-2-3-1 DM AM Wide",
   "mentality": "Positive",
   "instructions": [
     "Shorter Passing",
@@ -110,6 +110,12 @@
     "Overlap Left": "The left wing-back overlaps the drifting playmaker to provide width.",
     "Counter-Press": "Presses at once after losing the ball, to protect the space behind the wing-backs.",
     "Higher Line of Engagement": "Presses higher up the pitch so the wing-backs are closer to the ball."
+  },
+  "attributeEmphasis": {
+    "stamina": 2,
+    "composure": 2,
+    "technique": 2,
+    "crossing": 2
   },
   "keyRequirements": [
     "Two complete wing-backs with stamina and skill",

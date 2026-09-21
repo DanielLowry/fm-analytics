@@ -1,7 +1,7 @@
 {
   "key": "enganche_4231",
   "name": "Enganche 4-2-3-1",
-  "formation": "4-2-3-1 Enganche",
+  "formation": "4-2-3-1 DM AM Wide",
   "mentality": "Balanced",
   "instructions": [
     "Fairly Wide",
@@ -113,6 +113,12 @@
     "Regroup": "Drops back into shape after losing the ball, which is essential when one player does not defend.",
     "Standard Line of Engagement": "A balanced press, so the two banks stay compact.",
     "Standard Defensive Line": "A balanced line keeps the block compact."
+  },
+  "attributeEmphasis": {
+    "crossing": 2,
+    "anticipation": 2,
+    "pace": 2,
+    "offTheBall": 2
   },
   "keyRequirements": [
     "An exceptional creative playmaker",

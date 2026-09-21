@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import re
 import subprocess
 from pathlib import Path
 from typing import Callable, Sequence
@@ -267,7 +268,7 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
         (
             tactic.style, tactic.description, tactic.why_good, tactic.key_requirements,
             tactic.tags, tactic.why_this_shape, tactic.when_to_use, tactic.when_not_to_use,
-            tactic.instruction_rationale,
+            tactic.instruction_rationale, tactic.attribute_emphasis,
         )
     ):
         return ""
@@ -290,6 +291,16 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
             + ", ".join(html.escape(item) for item in tactic.key_requirements)
             + "</p>"
         )
+    if tactic.attribute_emphasis:
+        leaned = ", ".join(
+            f"{html.escape(_readable_attribute(name))} {delta:+d}"
+            for name, delta in tactic.attribute_emphasis.items()
+        )
+        parts.append(
+            f"<p class='muted'><b>Leans on:</b> {leaned}. "
+            "Role fit on this page is scored with these attributes weighted a little "
+            "differently from the same role in another tactic.</p>"
+        )
     if tactic.instruction_rationale:
         items = "".join(
             f"<li><b>{html.escape(instruction)}</b> — {html.escape(reason)}</li>"
@@ -306,6 +317,11 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
             + "</p>"
         )
     return "".join(parts)
+
+
+def _readable_attribute(name: str) -> str:
+    """`offTheBall` -> `off the ball`, for manager-facing text."""
+    return re.sub(r"(?<!^)(?=[A-Z])", " ", name).lower()
 
 
 def _slot_reasoning(slot: TacticSlot, chosen_role_key: str, chosen_role_name: str) -> str:

@@ -108,6 +108,12 @@
     "Slower Tempo": "Slows the game down and wastes time when leading.",
     "Regroup": "Drops back into shape after losing the ball."
   },
+  "attributeEmphasis": {
+    "positioning": 2,
+    "concentration": 2,
+    "marking": 2,
+    "teamwork": 2
+  },
   "keyRequirements": [
     "Hard-working midfield",
     "Disciplined wide midfielders",

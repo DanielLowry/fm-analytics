@@ -117,6 +117,12 @@
     "Lower Line of Engagement": "Lets the opponent have the ball in their own half and closes the space deeper, leaving space behind them to attack.",
     "Standard Defensive Line": "A balanced line keeps the back three compact without leaving space in behind."
   },
+  "attributeEmphasis": {
+    "offTheBall": 2,
+    "positioning": 2,
+    "anticipation": 2,
+    "concentration": 2
+  },
   "keyRequirements": [
     "Three reliable centre-backs",
     "High-stamina wing-backs",

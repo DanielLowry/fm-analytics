@@ -1,7 +1,7 @@
 {
   "key": "false_nine_433",
   "name": "False Nine 4-3-3",
-  "formation": "4-3-3 False Nine",
+  "formation": "4-3-3 DM Wide",
   "mentality": "Positive",
   "instructions": [
     "Shorter Passing",
@@ -110,6 +110,12 @@
     "Counter-Press": "Presses at once after losing the ball, since many players are close to it.",
     "Higher Line of Engagement": "Presses in the opponent's half to keep the play high and the ball near the forwards.",
     "Higher Defensive Line": "Keeps the team compact around the ball; it needs a keeper who sweeps and defenders with pace."
+  },
+  "attributeEmphasis": {
+    "composure": 2,
+    "technique": 2,
+    "anticipation": 2,
+    "stamina": 2
   },
   "keyRequirements": [
     "A forward who passes and dribbles better than he finishes",

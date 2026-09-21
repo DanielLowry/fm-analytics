@@ -114,6 +114,12 @@
     "Standard Line of Engagement": "A balanced press: does not chase the ball wildly and lose the shape.",
     "Higher Defensive Line": "Keeps the team compact around the ball and squeezes the space for the opponent."
   },
+  "attributeEmphasis": {
+    "composure": 2,
+    "decisions": 2,
+    "technique": 2,
+    "positioning": 2
+  },
   "keyRequirements": [
     "Technically secure defenders/midfielders",
     "High-quality distributor",

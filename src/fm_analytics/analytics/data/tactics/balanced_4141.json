@@ -108,6 +108,12 @@
     "Shorter Passing": "Keeps possession in the compact midfield line.",
     "Regroup": "Falls back into the two banks after losing the ball."
   },
+  "attributeEmphasis": {
+    "positioning": 2,
+    "teamwork": 2,
+    "workRate": 2,
+    "passing": 2
+  },
   "keyRequirements": [
     "Disciplined DM",
     "Hard-working wide players",

@@ -69,6 +69,7 @@ def build_substitution_board(
         or catalogue.tactics[evaluation.tactic.key] != evaluation.tactic
     ):
         raise ValueError("evaluated tactic must belong to the supplied catalogue")
+    catalogue = catalogue.for_tactic(evaluation.tactic.key)
 
     players_by_id = {player.id: player for player in players}
     if len(players_by_id) != len(players):

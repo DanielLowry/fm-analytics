@@ -1,7 +1,7 @@
 {
   "key": "solid_4231",
   "name": "Solid 4-2-3-1",
-  "formation": "4-2-3-1 Solid",
+  "formation": "4-2-3-1 DM AM Wide",
   "mentality": "Cautious",
   "instructions": [
     "Lower Line of Engagement",
@@ -106,6 +106,12 @@
     "Regroup": "Falls back into shape after losing the ball.",
     "Hold Shape": "Keeps positions rather than pushing players forward, so the team stays compact.",
     "Slightly More Direct Passing": "Gets the ball forward to the front four quickly when it is won."
+  },
+  "attributeEmphasis": {
+    "positioning": 2,
+    "concentration": 2,
+    "teamwork": 2,
+    "anticipation": 2
   },
   "keyRequirements": [
     "Two defensive full-backs who clear their lines",
