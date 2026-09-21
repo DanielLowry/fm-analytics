@@ -1,0 +1,202 @@
+{
+  "key": "vertical_442",
+  "name": "Vertical 4-4-2",
+  "formation": "4-4-2",
+  "mentality": "Balanced",
+  "instructions": [
+    "Fairly Wide",
+    "Slightly More Direct Passing",
+    "Higher Tempo",
+    "Pass Into Space",
+    "Hit Early Crosses",
+    "Counter",
+    "Regroup",
+    "Standard Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Keeps the role simple and gets the ball moving quickly without requiring sweeper-keeper ability."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support",
+      "why": "Supports the winger and supplies an additional crossing option without becoming an aggressive overlap."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Defends simply in a flat pair. Cover is an alternative when pace and anticipation suit it, but only one centre-back should use Cover."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Defends simply in a flat pair. Cover is an alternative when pace and anticipation suit it, but only one centre-back should use Cover."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "Supports the winger and supplies an additional crossing option without becoming an aggressive overlap."
+    },
+    {
+      "key": "ML",
+      "position": "ML",
+      "role": "winger_ml_mr_support",
+      "why": "Provides natural width and early service while still recovering into the midfield bank."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_defend",
+      "why": "Holds position, protects the centre-backs and gives the more mobile midfielder freedom to run."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "b2b_support",
+      "why": "Adds a runner from midfield so attacks are not limited to the front two and wide players."
+    },
+    {
+      "key": "MR",
+      "position": "MR",
+      "role": "winger_ml_mr_support",
+      "why": "Provides natural width and early service while still recovering into the midfield bank."
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "dlf_support",
+      "roles": [
+        "pf_support",
+        "cf_support"
+      ],
+      "why": "Drops off to connect direct passes and combine with the midfield before releasing the runner beyond."
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ],
+      "why": "Stretches the defence and attacks the space created by the linking striker and early deliveries from wide."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 6.0,
+      "ballProgression": 4.5,
+      "runners": 3.0,
+      "penetration": 1.5,
+      "boxPresence": 1.5,
+      "restDefence": 6.0
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
+  "style": "Vertical 4-4-2",
+  "description": "A simple lower-league 4-4-2 that keeps two banks of four but attacks more vertically, using a midfield runner, early wide service and a forward running beyond.",
+  "whyGood": "It preserves the defensive clarity of a basic 4-4-2 while creating more forward movement and shot volume without requiring sophisticated possession play.",
+  "whyThisShape": "Natural width gives simple passing options, two strikers occupy the centre-backs, and the box-to-box midfielder adds a third central runner. The structure remains familiar and easy to recruit for.",
+  "whenToUse": "As a proactive lower-league default when the balanced 4-4-2 is too passive, especially when you have pace up front, energetic midfielders and wide players who can deliver early.",
+  "whenNotToUse": "Against a side that dominates central midfield with three strong midfielders, or when your forwards lack pace and movement to exploit earlier, more vertical service.",
+  "instructionRationale": {
+    "Fairly Wide": "Creates simple wide outlets and stretches the opposition so the front two have more room.",
+    "Slightly More Direct Passing": "Moves the ball forward earlier without turning every possession into a hopeful long ball.",
+    "Higher Tempo": "Encourages quicker progression before the opposition can settle into its defensive shape.",
+    "Pass Into Space": "Targets the advanced forward and wide players running beyond rather than asking mediocre players to combine intricately.",
+    "Hit Early Crosses": "Gets service into the forwards before the defence is fully set and reduces reliance on elaborate overlapping play.",
+    "Counter": "Uses the front two and wide players immediately after regains.",
+    "Regroup": "Restores the two banks of four after possession is lost rather than demanding an intensive counter-press.",
+    "Standard Line of Engagement": "Avoids asking a lower-league squad to sustain a high press.",
+    "Standard Defensive Line": "Keeps the block compact without exposing ordinary centre-backs to excessive space behind."
+  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "teamwork": 2
+      }
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "jumpingReach": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "stamina": 2,
+        "workRate": 1,
+        "crossing": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "acceleration": 2,
+        "crossing": 2,
+        "workRate": 1
+      },
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "positioning": 1,
+        "offTheBall": 1
+      },
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 2,
+        "anticipation": 2,
+        "acceleration": 2
+      },
+      "positions": [
+        "ST"
+      ]
+    }
+  ],
+  "keyRequirements": [
+    "One holding central midfielder and one energetic runner",
+    "Wide players with enough pace and crossing to deliver early",
+    "A linking striker paired with a forward who attacks space",
+    "Disciplined back four",
+    "Enough stamina and work rate to support quick transitions"
+  ],
+  "tags": [
+    "balanced",
+    "442",
+    "vertical",
+    "lower-league-friendly"
+  ]
+}

@@ -505,9 +505,13 @@ independent statement of what the style needs, so a default line-up passing them
 close to guaranteed. Their value is in catching a slot alternate that breaks the
 tactic, not in judging the tactic. Treat the numbers as editable.
 
-**New guard.** `test_no_tactic_is_a_near_copy_of_another_on_the_same_shape`: two
-tactics on the same shape must differ by at least six jobs plus instructions. The
-closest existing pair scores 7, so this bites only on a genuine near-copy.
+**Near-copy guard: tried and removed.** A test required two tactics on the same
+shape to differ by at least six jobs plus instructions. It was dropped by
+decision: the catalogue will hold many tactics that are deliberately close
+variants of one another (a vertical 4-4-2 beside a balanced one), and forcing
+them apart would push authors into inventing differences. Only the structural
+checks remain (`test_has_several_materially_different_complete_tactics` still
+rejects two tactics with an identical role line-up).
 
 **Still unused (14 roles):** `treq_st_attack`, `treq_amc_attack`,
 `treq_aml_amr_attack`, `iwb_dl_dr_attack`, `iwb_dl_dr_defend`, `nnfb_defend`,
@@ -743,13 +747,8 @@ roles:
 | Trequartista 4-3-1-2 | `treq_amc_attack` |
 | Wide-overload 4-2-3-1 | `ap_aml_amr_support/attack`, `raum_attack` |
 
-Two guard rails for an expansion this size:
+One guard rail for an expansion this size:
 
-- A **near-duplicate detector** test: no two tactics may share a formation
-  *and* have role sets differing by fewer than N slots *and* have
-  instruction sets differing by fewer than M entries. `tests/test_catalogue.py`
-  already asserts "materially different complete tactics"; this makes that
-  claim enforceable at 40+ rather than aspirational.
 - Every new tactic must ship its justification text (§3) and its `system`
   block in the same commit. No tactic lands without them.
 
@@ -1048,7 +1047,6 @@ New invariants, each guarding a failure this plan found:
   supposed to raise.
 - Seeded tactic weights stay inside the soft band of §C2 — so a later
   hand-tune that leaves it is a visible, deliberate act rather than drift.
-- Near-duplicate detection across the expanded catalogue (§A6).
 - Existing CLI/web parity coverage extended to carry an opponent profile.
 
 ### 7.3 Documentation

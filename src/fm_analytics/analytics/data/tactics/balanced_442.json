@@ -121,11 +121,57 @@
   "attributeEmphasis": [
     {
       "attributes": {
-        "pace": 2,
-        "offTheBall": 2,
-        "crossing": 2,
-        "anticipation": 2
+        "teamwork": 2
       }
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 2,
+        "stamina": 2
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 2,
+        "pace": 2,
+        "acceleration": 2
+      },
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "positioning": 2
+      },
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 2,
+        "anticipation": 2,
+        "acceleration": 2
+      },
+      "positions": [
+        "ST"
+      ]
     }
   ],
   "keyRequirements": [

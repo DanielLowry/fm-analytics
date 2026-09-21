@@ -27,29 +27,6 @@ class MvpCatalogueTests(unittest.TestCase):
             all(len(tactic.slots) == 11 for tactic in MVP_CATALOGUE.tactics.values())
         )
 
-    def test_no_tactic_is_a_near_copy_of_another_on_the_same_shape(self) -> None:
-        """Two tactics on one shape must differ by at least six jobs or instructions.
-
-        Distance is (slots whose role differs) + (instructions in one but not the
-        other). The closest pair when this was written scored 7; the floor stops
-        a large catalogue growing by re-skinning what it already has.
-        """
-        from collections import Counter
-        from itertools import combinations
-
-        def shape(tactic):
-            return tuple(sorted(slot.position for slot in tactic.slots))
-
-        def distance(a, b) -> int:
-            ra = Counter(slot.role_key for slot in a.slots)
-            rb = Counter(slot.role_key for slot in b.slots)
-            roles = sum(((ra - rb) + (rb - ra)).values()) // 2
-            return roles + len(set(a.instructions) ^ set(b.instructions))
-
-        for a, b in combinations(MVP_CATALOGUE.tactics.values(), 2):
-            if shape(a) == shape(b):
-                self.assertGreaterEqual(distance(a, b), 6, f"{a.key} vs {b.key}")
-
     def test_has_a_materially_wider_role_catalogue_than_the_mvp_baseline(self) -> None:
         # Not "every FM20 role" (an explicit Phase 04 non-goal), just wider
         # than the original thirteen-role MVP cut.

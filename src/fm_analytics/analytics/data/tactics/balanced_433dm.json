@@ -1,0 +1,217 @@
+{
+  "key": "balanced_433dm",
+  "name": "Balanced 4-3-3 DM Wide",
+  "formation": "4-3-3 DM Wide",
+  "mentality": "Balanced",
+  "instructions": [
+    "Fairly Wide",
+    "Slightly More Direct Passing",
+    "Counter",
+    "Regroup",
+    "Standard Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Keeps the goalkeeper's job simple and avoids requiring sweeper-keeper distribution or decision-making."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support",
+      "why": "Supports the left side and can overlap when space appears without being asked to provide all of the width."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Defends simply in the central pair. Cover is an option for a quicker defender, but only one centre-back should use it."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Defends simply in the central pair. Cover is an option for a quicker defender, but only one centre-back should use it."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "Supports the right winger and offers a safe outlet without needing to play as an aggressive wing-back."
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dm_defend",
+      "why": "Holds position in front of the centre-backs, breaks up attacks and gives the two central midfielders freedom to support play."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_support",
+      "roles": [
+        "b2b_support"
+      ],
+      "why": "Provides a reliable link between defence and attack. A box-to-box midfielder is an alternative when the player has the legs for it."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "cm_attack",
+      "why": "Adds a runner from midfield so the lone striker is not left isolated and the team gets an extra body into the box."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "if_attack",
+      "why": "Cuts inside to become a second goal threat and attacks the space around the lone striker."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "winger_aml_amr_support",
+      "why": "Stays wider, carries the ball forward and supplies crosses, giving the attack width and balancing the inside forward."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ],
+      "why": "Runs beyond the defence and gives the side a clear vertical outlet. Poacher is the alternative for a strong finisher with less all-round movement."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 6.5,
+      "ballProgression": 4.0,
+      "runners": 3.0,
+      "penetration": 2.5,
+      "boxPresence": 2.0,
+      "restDefence": 7.0
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 2
+  },
+  "style": "Balanced 4-3-3 DM",
+  "description": "A simple lower-league 4-3-3 with a dedicated holding midfielder, natural width on one side and two additional runners supporting a mobile striker.",
+  "whyGood": "It gives strong defensive structure and three central midfielders without requiring sophisticated build-up play. The asymmetrical front three creates both width and additional goal threat.",
+  "whyThisShape": "The defensive midfielder protects the centre-backs, the two central midfielders provide one link player and one forward runner, and the front three give an immediate outlet on regains. Unlike more technical 4-3-3s, progression does not depend on a playmaker or playing short through pressure.",
+  "whenToUse": "As a stable lower-league default when you have one good striker, a dependable holding midfielder and usable wide attackers. It is especially useful when a 4-4-2 is being outnumbered in central midfield.",
+  "whenNotToUse": "When you lack a credible lone striker or wide attackers who can threaten the defence. It can also become blunt against a very deep opponent if the inside forward and attacking central midfielder do not provide enough secondary goal threat.",
+  "instructionRationale": {
+    "Fairly Wide": "Uses the wide forwards and full-backs to stretch the opposition and creates room for the attacking central midfielder and inside forward.",
+    "Slightly More Direct Passing": "Moves the ball forward without asking lower-league players to execute patient short build-up under pressure.",
+    "Counter": "Makes use of the wide players and advanced forward immediately after possession is won.",
+    "Regroup": "Restores the 4-1-4-1 defensive shape instead of demanding an intensive counter-press.",
+    "Standard Line of Engagement": "Keeps the defensive block compact and avoids requiring a coordinated high press.",
+    "Standard Defensive Line": "Protects ordinary centre-backs from large spaces behind them while keeping the midfield close enough to support."
+  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "teamwork": 2
+      }
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "jumpingReach": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "stamina": 2,
+        "workRate": 1,
+        "pace": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "tackling": 2,
+        "teamwork": 1
+      },
+      "positions": [
+        "DM"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "offTheBall": 1
+      },
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attributes": {
+        "acceleration": 2,
+        "pace": 2,
+        "offTheBall": 2,
+        "finishing": 1
+      },
+      "positions": [
+        "AML"
+      ]
+    },
+    {
+      "attributes": {
+        "acceleration": 2,
+        "pace": 2,
+        "crossing": 2,
+        "dribbling": 1
+      },
+      "positions": [
+        "AMR"
+      ]
+    },
+    {
+      "attributes": {
+        "acceleration": 2,
+        "pace": 2,
+        "offTheBall": 2,
+        "anticipation": 2
+      },
+      "positions": [
+        "ST"
+      ]
+    }
+  ],
+  "keyRequirements": [
+    "Disciplined holding midfielder",
+    "One central midfielder able to make forward runs",
+    "Mobile lone striker who threatens space behind",
+    "One wide goal threat and one genuine width provider",
+    "Full-backs capable of supporting without being the sole attacking outlet"
+  ],
+  "tags": [
+    "balanced",
+    "433",
+    "dm",
+    "lower-league-friendly",
+    "simple"
+  ]
+}

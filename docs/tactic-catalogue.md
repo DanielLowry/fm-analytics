@@ -5,7 +5,7 @@ after changing any tactic. Each tactic's full detail (per-slot reasoning,
 per-instruction rationale, balance requirements) lives in its own file under
 `src/fm_analytics/analytics/data/tactics/`.
 
-40 tactics, 84 roles.
+42 tactics, 84 roles.
 
 ## At a glance
 
@@ -15,10 +15,12 @@ per-instruction rationale, balance requirements) lives in its own file under
 | [Attacking 4-3-3](#attacking-433) | 4-3-3 (Attacking) | Attacking | stamina, anticipation, work rate, first touch | Against sides that defend deep and cannot get past your press, or when you are clearly the stronger team and want to pin them back |
 | [Balanced 4-1-2-1-2 Diamond](#balanced-41212-diamond) | 4-1-2-1-2 DM Narrow | Balanced | teamwork, first touch, positioning, pace | When your best players are central (midfielders and two strikers) and you lack quality wingers, or against a side with few central midfielders that you can outnumber |
 | [Balanced 4-1-4-1](#balanced-4141) | 4-1-4-1 | Balanced | positioning, teamwork, work rate, passing | As a safe default when you want control without committing many players forward, or away from home against a stronger side |
+| [Balanced 4-3-3 DM Wide](#balanced-433dm) | 4-3-3 DM Wide | Balanced | teamwork, positioning, concentration, jumping reach, stamina, work rate, pace, tackling, off the ball, acceleration, finishing, crossing, dribbling, anticipation | As a stable lower-league default when you have one good striker, a dependable holding midfielder and usable wide attackers |
 | [Balanced 4-4-1-1](#balanced-4411) | 4-4-1-1 | Balanced | pace, off the ball, crossing, anticipation | When you have one good striker and a creative player who is not a natural second striker, or as a steady all-round system for a mixed squad |
-| [Balanced 4-4-2](#balanced-442) | 4-4-2 | Balanced | pace, off the ball, crossing, anticipation | As a solid default, or when you have two good strikers and two decent wingers |
+| [Balanced 4-4-2](#balanced-442) | 4-4-2 | Balanced | teamwork, positioning, concentration, crossing, stamina, pace, acceleration, work rate, off the ball, anticipation | As a solid default, or when you have two good strikers and two decent wingers |
 | [Enganche 4-2-3-1](#enganche-4231) | 4-2-3-1 DM AM Wide | Balanced | crossing, anticipation, pace, off the ball | When you have one clearly superior creative player who is not suited to a running role, and a target man for him to pass to |
 | [Route One 4-4-2](#route-one-442) | 4-4-2 | Balanced | jumping reach, heading, strength, off the ball | When you have a big target man and a quick second striker, but weak technical midfielders |
+| [Vertical 4-4-2](#vertical-442) | 4-4-2 | Balanced | teamwork, positioning, concentration, jumping reach, stamina, work rate, crossing, pace, acceleration, off the ball, anticipation | As a proactive lower-league default when the balanced 4-4-2 is too passive, especially when you have pace up front, energetic midfielders and wide players who can deliver early |
 | [Counter 3-4-1-2](#counter-3412) | 3-4-1-2 | Cautious | off the ball, positioning, anticipation, concentration | Against stronger sides that will have most of the ball, or when your squad has quick forwards and dependable centre-backs |
 | [Direct Counter 4-4-2](#direct-counter-442) | 4-4-2 | Cautious | off the ball, positioning, anticipation, concentration | Against a stronger or possession-based team that will leave space behind its defence, when you have quick wingers and forwards |
 | [Fluid Counter 4-1-4-1](#fluid-counter-4141) | 4-1-4-1 | Cautious | passing, first touch, positioning, off the ball | Against stronger or possession-based sides when you have a good holding midfielder, quick wingers and a mobile lone striker |
@@ -118,6 +120,22 @@ A compact 4-1-4-1 with a dedicated screen behind a four-man midfield.
 - **Instructions:** Standard Line of Engagement; Standard Defensive Line; Shorter Passing; Regroup
 - **Avoid when:** When you need to chase a goal: there is a single striker and no creative attacking midfielder to feed him
 
+### Balanced 4-3-3 DM Wide
+
+`balanced_433dm` · 4-3-3 DM Wide · Balanced · Balanced 4-3-3 DM
+
+A simple lower-league 4-3-3 with a dedicated holding midfielder, natural width on one side and two additional runners supporting a mobile striker.
+
+- **Goal:** Goalkeeper (Defend)
+- **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
+- **Midfield:** Defensive Midfielder (Defend), Central Midfielder (Support) *, Central Midfielder (Attack)
+- **Attack:** Inside Forward (Attack), Winger (Support) [AML/AMR], Advanced Forward (Attack) *
+
+- **Leans on:** teamwork +2 (whole team); positioning +2, concentration +2, jumping reach +1 (DC); stamina +2, work rate +1, pace +1 (DL, DR); positioning +2, concentration +2, tackling +2, teamwork +1 (DM); work rate +2, stamina +2, off the ball +1 (MC); acceleration +2, pace +2, off the ball +2, finishing +1 (AML); acceleration +2, pace +2, crossing +2, dribbling +1 (AMR); acceleration +2, pace +2, off the ball +2, anticipation +2 (ST)
+- **Needs:** Disciplined holding midfielder; One central midfielder able to make forward runs; Mobile lone striker who threatens space behind; One wide goal threat and one genuine width provider; Full-backs capable of supporting without being the sole attacking outlet
+- **Instructions:** Fairly Wide; Slightly More Direct Passing; Counter; Regroup; Standard Line of Engagement; Standard Defensive Line
+- **Avoid when:** When you lack a credible lone striker or wide attackers who can threaten the defence
+
 ### Balanced 4-4-1-1
 
 `balanced_4411` · 4-4-1-1 · Balanced · Balanced 4-4-1-1
@@ -145,7 +163,7 @@ A simple two-banks-of-four structure with natural width and two complementary fo
 - **Midfield:** Winger (Support) [ML/MR] ×2, Central Midfielder (Defend), Central Midfielder (Support)
 - **Attack:** Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
-- **Leans on:** pace +2, off the ball +2, crossing +2, anticipation +2 (whole team)
+- **Leans on:** teamwork +2 (whole team); positioning +2, concentration +2 (DC); crossing +2, stamina +2 (DL, DR); crossing +2, pace +2, acceleration +2 (ML, MR); work rate +2, positioning +2 (MC); off the ball +2, anticipation +2, acceleration +2 (ST)
 - **Needs:** Hard-working wide midfielders; Balanced CM pair; Complementary strikers; Disciplined full-backs
 - **Instructions:** Fairly Wide; Slightly More Direct Passing; Counter; Regroup; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against a team with three central midfielders who will pass through the middle, since your two are outnumbered
@@ -181,6 +199,22 @@ A deliberately direct system that moves the ball forward early toward a physical
 - **Needs:** Dominant aerial striker; Fast strike partner; Strong midfield; Reliable crossing
 - **Instructions:** Much More Direct Passing; Higher Tempo; Pass Into Space; Hit Early Crosses; Counter; Regroup
 - **Avoid when:** Against tall, strong centre-backs who win the aerial duels, or when your squad is technical and would waste its passing
+
+### Vertical 4-4-2
+
+`vertical_442` · 4-4-2 · Balanced · Vertical 4-4-2
+
+A simple lower-league 4-4-2 that keeps two banks of four but attacks more vertically, using a midfield runner, early wide service and a forward running beyond.
+
+- **Goal:** Goalkeeper (Defend)
+- **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
+- **Midfield:** Winger (Support) [ML/MR] ×2, Central Midfielder (Defend), Box-to-Box Midfielder (Support)
+- **Attack:** Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
+
+- **Leans on:** teamwork +2 (whole team); positioning +2, concentration +2, jumping reach +1 (DC); stamina +2, work rate +1, crossing +1 (DL, DR); pace +2, acceleration +2, crossing +2, work rate +1 (ML, MR); work rate +2, stamina +2, positioning +1, off the ball +1 (MC); off the ball +2, anticipation +2, acceleration +2 (ST)
+- **Needs:** One holding central midfielder and one energetic runner; Wide players with enough pace and crossing to deliver early; A linking striker paired with a forward who attacks space; Disciplined back four; Enough stamina and work rate to support quick transitions
+- **Instructions:** Fairly Wide; Slightly More Direct Passing; Higher Tempo; Pass Into Space; Hit Early Crosses; Counter; Regroup; Standard Line of Engagement; Standard Defensive Line
+- **Avoid when:** Against a side that dominates central midfield with three strong midfielders, or when your forwards lack pace and movement to exploit earlier, more vertical service
 
 ### Counter 3-4-1-2
 
