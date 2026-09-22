@@ -5,7 +5,7 @@ after changing any tactic. Each tactic's full detail (per-slot reasoning,
 per-instruction rationale, balance requirements) lives in its own file under
 `src/fm_analytics/analytics/data/tactics/`.
 
-42 tactics, 84 roles.
+45 tactics, 84 roles.
 
 ## At a glance
 
@@ -31,6 +31,7 @@ per-instruction rationale, balance requirements) lives in its own file under
 | [Defensive 4-5-1](#defensive-451) | 4-5-1 | Defensive | positioning, concentration, marking, teamwork | Protecting a lead late in a game, or away against a much stronger side where a draw is a good result |
 | [Defensive 5-3-2](#defensive-532) | 5-3-2 | Defensive | positioning, concentration, marking, teamwork | Protecting a lead, or against stronger opponents who will have most of the ball |
 | [Low-Block 4-4-2](#lowblock-442) | 4-4-2 (Low Block) | Defensive | positioning, concentration, marking, teamwork | Protecting a lead, or away against a stronger side |
+| [No-Nonsense 5-3-2](#no-nonsense-532) | 5-3-2 | Defensive | positioning, concentration, marking, heading, jumping reach, strength, bravery | When protecting a result against stronger opposition, particularly with dominant aerial centre-backs and a forward able to hold direct passes |
 | [Aerial 3-4-3](#aerial-343) | 3-4-3 | Positive | crossing, anticipation, off the ball, heading | When you have two wing-backs who cross well and three tall forwards, especially against a back four that struggles with aerial balls |
 | [Attacking 3-4-3 Wing-Back](#attacking-343) | 3-4-3 | Positive | stamina, anticipation, work rate, passing | When you are clearly the stronger side and expect the opponent to sit deep, or you need goals late |
 | [Box Midfield 4-2-3-1](#box-midfield-4231) | 4-2-3-1 DM AM Wide | Positive | composure, technique, positioning, passing | When you want to control the middle of the pitch against a side that defends in a narrow block, and your full-backs are comfortable on the ball |
@@ -42,6 +43,7 @@ per-instruction rationale, balance requirements) lives in its own file under
 | [High-Press 4-3-3](#highpress-433) | 4-3-3 (High Press) | Positive | stamina, work rate, anticipation, aggression | When you have fit, energetic players and want to play in the opponent's half, especially against sides that build slowly from the back |
 | [Inverted Wing-Back 4-3-3](#inverted-wingback-433) | 4-3-3 DM Wide | Positive | composure, technique, stamina, passing | When your full-backs are better passers than crossers, you want to dominate the centre of the pitch, and you have two wingers who are happy to stay wide |
 | [Narrow 4-2-2-2](#narrow-4222) | 4-2-2-2 | Positive | first touch, teamwork, stamina, work rate | When your best players are central and you lack wingers, especially against a team with two central midfielders who will be overrun |
+| [Positional Play 4-3-3](#positional-play-433) | 4-3-3 | Positive | composure, decisions, technique, passing, positioning, teamwork | When you have a composed central organiser, a hard-working channel midfielder, and a technical half-space player |
 | [Positive 3-4-2-1](#positive-3421) | 3-4-2-1 | Positive | composure, technique, stamina, passing | When you have two good creative players and a wing-back pair who can cover the flanks, especially against a back four that has no midfielder in the half-spaces |
 | [Positive 4-2-3-1 Wide](#positive-4231) | 4-2-3-1 DM AM Wide | Positive | first touch, technique, stamina, passing | As a proactive default when you have a good attacking midfielder and two quality wide attackers, or against opponents who defend with two banks of four |
 | [Positive 4-3-1-2 Narrow](#positive-4312-narrow) | 4-3-1-2 | Positive | stamina, crossing, first touch, teamwork | When your best players are central and you lack wingers, or against a team with only two central midfielders that you can outnumber |
@@ -51,6 +53,7 @@ per-instruction rationale, balance requirements) lives in its own file under
 | [Trequartista 4-3-1-2](#trequartista-4312) | 4-3-1-2 | Positive | first touch, teamwork, technique, composure | When you have one player of clearly superior creativity who is not suited to a fixed role, and a striker partner who will run and press for him |
 | [Trequartista 4-4-2](#trequartista-442) | 4-4-2 | Positive | crossing, pace, composure, decisions | When you have a creative forward who is not a natural goalscorer, and a partner with pace and work rate |
 | [Vertical Tiki-Taka 4-3-3 DM](#vertical-tikitaka-433dm) | 4-3-3 DM Wide | Positive | anticipation, first touch, technique, pace | When you have good passers and quick forwards, against teams that sit in a mid-block and leave space behind their line |
+| [Wide Creator 4-4-2](#wide-creator-442) | 4-4-2 | Positive | stamina, work rate, teamwork, passing, vision, technique, first touch, positioning, tackling | When one of your best creators is a natural ML/MR rather than an attacking winger, and you have a tireless defensive wide player to balance him |
 | [Wide Playmakers 4-3-3](#wide-playmakers-433) | 4-3-3 DM Wide | Positive | stamina, work rate, technique, composure | When your best creative players are wingers or attacking midfielders rather than central playmakers, against sides that defend in a mid-block |
 | [Wing Play 4-4-2](#wing-play-442) | 4-4-2 | Positive | crossing, stamina, pace, heading | When you have two good wingers, full-backs with stamina, and a striker who wins headers |
 
@@ -378,6 +381,23 @@ Two compact banks of four with two forwards retained as direct counter outlets.
 - **Instructions:** Much Lower Line of Engagement; Much Deeper Defensive Line; Narrower; Slower Tempo; Counter; Regroup
 - **Avoid when:** When you need to control the ball or score, since the team will be under pressure for long periods
 
+### No-Nonsense 5-3-2
+
+`no_nonsense_532` · 5-3-2 · Defensive · Direct deep block
+
+A pragmatic 5-3-2 for aerially strong defenders: it protects the box, clears danger early, and uses a target man and runner to turn relief into a counter-attack.
+
+- **Goal:** Goalkeeper (Defend)
+- **Defence:** No-Nonsense Centre-Back (Defend), No-Nonsense Centre-Back (Cover), No-Nonsense Centre-Back (Stopper), Wing-Back (Support) [WBL/WBR] ×2
+- **Midfield:** Central Midfielder (Defend) ×2, Ball-Winning Midfielder (Support) [MC]
+- **Attack:** Target Man (Support), Advanced Forward (Attack)
+
+- **Leans on:** positioning +2, concentration +2, marking +2, heading +2 (whole team); jumping reach +2, strength +2, bravery +2 (DC)
+- **Expects at least (tapers below):** heading 8 (DC); jumping reach 8 (DC); positioning 8 (DC); stamina 8 (WBL, WBR)
+- **Needs:** Three aerially dominant centre-backs; Wing-backs with defensive stamina; A target man; A fast runner to attack second balls
+- **Instructions:** Much Lower Line of Engagement; Much Deeper Defensive Line; Narrower; More Direct Passing; Counter; Regroup
+- **Avoid when:** When you need sustained possession or your defenders are uncomfortable defending a large number of crosses and second balls
+
 ### Aerial 3-4-3
 
 `aerial_343` · 3-4-3 · Positive · Wing-backs and wide target men
@@ -554,6 +574,23 @@ A narrow 4-2-2-2 with a double pivot, two attacking midfielders in the half-spac
 - **Instructions:** Fairly Narrow; Shorter Passing; Higher Tempo; Counter-Press; Higher Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against sides that attack down the flanks and outnumber your full-backs, and when your full-backs cannot cover a whole flank
 
+### Positional Play 4-3-3
+
+`positional_play_433` · 4-3-3 · Positive · Structured midfield circulation
+
+A 4-3-3 built around a disciplined central triangle, with a Carrilero protecting the inverted side and a Mezzala supporting the wide attack.
+
+- **Goal:** Sweeper Keeper (Defend)
+- **Defence:** Inverted Wing Back (Support), Ball-Playing Defender (Defend), Central Defender (Cover) *, Full-Back (Support)
+- **Midfield:** Carrilero (Support) [MC], Deep-Lying Playmaker (Defend) [MC], Mezzala (Support)
+- **Attack:** Inside Forward (Support), Winger (Attack) [AML/AMR], Complete Forward (Support)
+
+- **Leans on:** composure +2, decisions +2, technique +2, passing +2 (whole team); positioning +2, teamwork +2 (MC)
+- **Expects at least (tapers below):** passing 8 (MC); first touch 8 (MC); stamina 8 (MC); technique 8 (MC)
+- **Needs:** A composed DLP at MC; A high-stamina Carrilero; A technical Mezzala; Full-backs comfortable in a positional build-up
+- **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Hold Shape; Higher Line of Engagement; Standard Defensive Line
+- **Avoid when:** When your midfield lacks passing security or the opponent can repeatedly isolate the full-backs in wide transition
+
 ### Positive 3-4-2-1
 
 `positive_3421` · 3-4-2-1 · Positive · 3-4-2-1 Half-Space Attack
@@ -699,6 +736,23 @@ Short combinations are used to progress quickly rather than simply retain posses
 - **Needs:** Excellent first touch/passing; Mobile midfield; Fast attacking movement; Quick defenders
 - **Instructions:** Shorter Passing; Play Out Of Defence; Higher Tempo; Pass Into Space; Counter-Press; Counter; Higher Line of Engagement; Higher Defensive Line
 - **Avoid when:** Against sides that press well, or when your defenders are not comfortable on the ball or with a high line
+
+### Wide Creator 4-4-2
+
+`wide_creator_442` · 4-4-2 · Positive · Asymmetric wide creation
+
+A 4-4-2 with a defensive winger securing one flank and an attacking wide playmaker creating from the other, supported by an overlap and complementary forwards.
+
+- **Goal:** Sweeper Keeper (Defend)
+- **Defence:** Full-Back (Support), Central Defender (Defend) *, Ball-Playing Defender (Defend), Wing-Back (Attack) [DL/DR]
+- **Midfield:** Defensive Winger (Support) [ML/MR], Central Midfielder (Defend), Central Midfielder (Support), Wide Playmaker (Attack) [ML/MR]
+- **Attack:** Deep-Lying Forward (Support), Advanced Forward (Attack)
+
+- **Leans on:** stamina +2, work rate +2, teamwork +2 (whole team); passing +2, vision +2, technique +2, first touch +2 (MR); positioning +2, tackling +2 (ML)
+- **Expects at least (tapers below):** stamina 8 (ML); work rate 8 (ML); passing 8 (MR); vision 8 (MR); technique 8 (MR)
+- **Needs:** A technical wide playmaker; A defensive winger with stamina; An overlapping right-back; Complementary linking and running forwards
+- **Instructions:** Fairly Wide; Slightly Shorter Passing; Work Ball Into Box; Overlap Right; Counter-Press; Higher Line of Engagement; Standard Defensive Line
+- **Avoid when:** Against a side that can overload the space behind the attacking right-back, or if the wide playmaker lacks the technical quality to justify the imbalance
 
 ### Wide Playmakers 4-3-3
 

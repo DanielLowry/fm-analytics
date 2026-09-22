@@ -1,0 +1,62 @@
+{
+  "key": "wide_creator_442",
+  "name": "Wide Creator 4-4-2",
+  "formation": "4-4-2",
+  "mentality": "Positive",
+  "instructions": [
+    "Fairly Wide",
+    "Slightly Shorter Passing",
+    "Work Ball Into Box",
+    "Overlap Right",
+    "Counter-Press",
+    "Higher Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {"key": "GK", "position": "GK", "role": "sk_defend", "why": "The sweeper keeper supports a higher engagement line and starts short combinations."},
+    {"key": "DL", "position": "DL", "role": "fb_support", "why": "The support full-back overlaps selectively behind the defensive winger and keeps that flank secure."},
+    {"key": "DCL", "position": "DC", "role": "cd_defend", "roles": ["cd_cover"], "why": "A conventional defender anchors the back four; Cover is available for a quicker player."},
+    {"key": "DCR", "position": "DC", "role": "bpd_defend", "why": "The ball-playing defender can switch play toward the wide creator."},
+    {"key": "DR", "position": "DR", "role": "wb_dl_dr_attack", "why": "The attacking wing-back overlaps the playmaker, supplying the width the role deliberately gives up."},
+    {"key": "ML", "position": "ML", "role": "dw_support", "why": "The defensive winger works back to protect the left and presses the opposition full-back, allowing the opposite flank to attack."},
+    {"key": "MCL", "position": "MC", "role": "cm_defend", "why": "The defensive midfielder holds the centre and covers when the right-back overlaps."},
+    {"key": "MCR", "position": "MC", "role": "cm_support", "why": "The supporting midfielder links the central pair with the playmaker and forwards."},
+    {"key": "MR", "position": "MR", "role": "wp_attack", "why": "The wide playmaker drifts inside to create from the right, freeing the flank for the wing-back."},
+    {"key": "STL", "position": "ST", "role": "dlf_support", "why": "The deep-lying forward connects the wide creator with the runner beside him."},
+    {"key": "STR", "position": "ST", "role": "af_attack", "why": "The advanced forward attacks the space created by the playmaker and overlapping wing-back."}
+  ],
+  "system": {
+    "minimums": {"width": 3.5, "defensiveCover": 6.0, "ballProgression": 5.0, "creativity": 3.0, "runners": 2.5, "penetration": 2.0, "boxPresence": 1.5, "restDefence": 5.5, "pressing": 2.0},
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Asymmetric wide creation",
+  "description": "A 4-4-2 with a defensive winger securing one flank and an attacking wide playmaker creating from the other, supported by an overlap and complementary forwards.",
+  "whyGood": "It finds a role for a technical wide midfielder without exposing both flanks, and gives a fast striker runners to chase beyond the creator.",
+  "whyThisShape": "The left side forms a defensive working unit, while the right side is deliberately overloaded: the playmaker comes inside, the wing-back overlaps, and the supporting striker offers a short connection. The central midfield pair keeps the asymmetry from becoming an open midfield.",
+  "whenToUse": "When one of your best creators is a natural ML/MR rather than an attacking winger, and you have a tireless defensive wide player to balance him.",
+  "whenNotToUse": "Against a side that can overload the space behind the attacking right-back, or if the wide playmaker lacks the technical quality to justify the imbalance.",
+  "instructionRationale": {
+    "Fairly Wide": "The defensive winger and attacking wing-back stretch the pitch around the creator.",
+    "Slightly Shorter Passing": "Keeps the ball close enough for the wide playmaker, support striker and midfield to combine.",
+    "Work Ball Into Box": "The playmaker waits for the overlap or forward movement instead of crossing speculatively.",
+    "Overlap Right": "The right-back supplies the outside run after the wide playmaker moves inside.",
+    "Counter-Press": "The defensive winger and central pair help recover the ball around the asymmetric flank.",
+    "Higher Line of Engagement": "Keeps the side close enough to sustain attacks around its creator.",
+    "Standard Defensive Line": "Retains cover behind the attacking full-back without requiring a risky high defensive line."
+  },
+  "attributeEmphasis": [
+    {"attributes": {"stamina": 2, "workRate": 2, "teamwork": 2}},
+    {"attributes": {"passing": 2, "vision": 2, "technique": 2, "firstTouch": 2}, "positions": ["MR"]},
+    {"attributes": {"positioning": 2, "tackling": 2}, "positions": ["ML"]}
+  ],
+  "attributeTaper": [
+    {"attribute": "stamina", "taperBelow": 8, "positions": ["ML"]},
+    {"attribute": "workRate", "taperBelow": 8, "positions": ["ML"]},
+    {"attribute": "passing", "taperBelow": 8, "positions": ["MR"]},
+    {"attribute": "vision", "taperBelow": 8, "positions": ["MR"]},
+    {"attribute": "technique", "taperBelow": 8, "positions": ["MR"]}
+  ],
+  "keyRequirements": ["A technical wide playmaker", "A defensive winger with stamina", "An overlapping right-back", "Complementary linking and running forwards"],
+  "tags": ["442", "wide-playmaker", "asymmetric", "counterpress"]
+}

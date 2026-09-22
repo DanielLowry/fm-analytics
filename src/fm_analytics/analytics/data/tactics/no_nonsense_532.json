@@ -1,0 +1,58 @@
+{
+  "key": "no_nonsense_532",
+  "name": "No-Nonsense 5-3-2",
+  "formation": "5-3-2",
+  "mentality": "Defensive",
+  "instructions": [
+    "Much Lower Line of Engagement",
+    "Much Deeper Defensive Line",
+    "Narrower",
+    "More Direct Passing",
+    "Counter",
+    "Regroup"
+  ],
+  "slots": [
+    {"key": "GK", "position": "GK", "role": "gk_defend", "why": "The goalkeeper keeps distribution simple and protects a crowded penalty area."},
+    {"key": "DCL", "position": "DC", "role": "nncb_defend", "why": "The no-nonsense defender wins headers and clears the left side of the box without taking risks on the ball."},
+    {"key": "DCC", "position": "DC", "role": "nncb_cover", "why": "The cover centre-back reads through balls and sweeps behind the more aggressive defenders."},
+    {"key": "DCR", "position": "DC", "role": "nncb_stopper", "why": "The stopper attacks aerial balls and the opposing striker early, while the Cover role protects behind him."},
+    {"key": "WBL", "position": "WBL", "role": "wb_wbl_wbr_support", "why": "The support wing-back gives a cautious wide outlet without abandoning the back five."},
+    {"key": "WBR", "position": "WBR", "role": "wb_wbl_wbr_support", "why": "The other wing-back maintains the defensive width and helps clear crosses."},
+    {"key": "MCL", "position": "MC", "role": "cm_defend", "why": "The defensive midfielder protects the near-post and second-ball zones in front of the back five."},
+    {"key": "MCC", "position": "MC", "role": "bwm_mc_support", "why": "The ball-winner contests the second ball and starts the direct outlet after a regain."},
+    {"key": "MCR", "position": "MC", "role": "cm_defend", "why": "A second defensive midfielder keeps the middle compact rather than leaving the stopper exposed."},
+    {"key": "ST1", "position": "ST", "role": "tm_support", "why": "The target man gives clearances a destination and holds the ball until midfield can join."},
+    {"key": "ST2", "position": "ST", "role": "af_attack", "why": "The advanced forward attacks the space after the target man competes for the first ball."}
+  ],
+  "system": {
+    "minimums": {"width": 2.0, "defensiveCover": 9.0, "ballProgression": 2.0, "runners": 2.0, "aerialOutlet": 4.0, "boxPresence": 1.5, "restDefence": 8.5},
+    "maximumAttackDuties": 3,
+    "maximumCreators": 3
+  },
+  "style": "Direct deep block",
+  "description": "A pragmatic 5-3-2 for aerially strong defenders: it protects the box, clears danger early, and uses a target man and runner to turn relief into a counter-attack.",
+  "whyGood": "Each centre-back duty has a defined partner: one defends, one attacks the ball, and one covers. The system therefore gives limited but physically dominant defenders a tactical home.",
+  "whyThisShape": "Three no-nonsense centre-backs defend the centre with a stopper-and-cover relationship, while wing-backs complete a five-man line. The midfield stays narrow to collect second balls; direct passes find the target man and the pressing forward attacks the next phase.",
+  "whenToUse": "When protecting a result against stronger opposition, particularly with dominant aerial centre-backs and a forward able to hold direct passes.",
+  "whenNotToUse": "When you need sustained possession or your defenders are uncomfortable defending a large number of crosses and second balls.",
+  "instructionRationale": {
+    "Much Lower Line of Engagement": "The team waits close to its box, where the back five can protect the central area.",
+    "Much Deeper Defensive Line": "Removes space behind the slow, physical defensive unit.",
+    "Narrower": "Funnels the opponent wide and concentrates defenders where crosses arrive.",
+    "More Direct Passing": "Avoids asking no-nonsense defenders to build through pressure.",
+    "Counter": "The target man and advanced forward provide a direct route out after a regain.",
+    "Regroup": "Returns the team to its five-three defensive shell when possession is lost."
+  },
+  "attributeEmphasis": [
+    {"attributes": {"positioning": 2, "concentration": 2, "marking": 2, "heading": 2}},
+    {"attributes": {"jumpingReach": 2, "strength": 2, "bravery": 2}, "positions": ["DC"]}
+  ],
+  "attributeTaper": [
+    {"attribute": "heading", "taperBelow": 8, "positions": ["DC"]},
+    {"attribute": "jumpingReach", "taperBelow": 8, "positions": ["DC"]},
+    {"attribute": "positioning", "taperBelow": 8, "positions": ["DC"]},
+    {"attribute": "stamina", "taperBelow": 8, "positions": ["WBL", "WBR"]}
+  ],
+  "keyRequirements": ["Three aerially dominant centre-backs", "Wing-backs with defensive stamina", "A target man", "A fast runner to attack second balls"],
+  "tags": ["defensive", "532", "low-block", "direct", "no-nonsense"]
+}

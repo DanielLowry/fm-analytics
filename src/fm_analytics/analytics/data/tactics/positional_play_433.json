@@ -1,0 +1,58 @@
+{
+  "key": "positional_play_433",
+  "name": "Positional Play 4-3-3",
+  "formation": "4-3-3",
+  "mentality": "Positive",
+  "instructions": [
+    "Shorter Passing",
+    "Play Out Of Defence",
+    "Work Ball Into Box",
+    "Hold Shape",
+    "Higher Line of Engagement",
+    "Standard Defensive Line"
+  ],
+  "slots": [
+    {"key": "GK", "position": "GK", "role": "sk_defend", "why": "The sweeper keeper is an extra short passing option and covers the space behind the compact shape."},
+    {"key": "DL", "position": "DL", "role": "iwb_dl_dr_support", "why": "The inverted wing-back joins the midfield passing structure instead of overlapping into the same channel as the winger."},
+    {"key": "DCL", "position": "DC", "role": "bpd_defend", "why": "The ball-playing defender begins attacks with measured passes into the midfield triangle."},
+    {"key": "DCR", "position": "DC", "role": "cd_cover", "roles": ["cd_defend"], "why": "The cover defender protects the higher line while his partner distributes; Central Defender (Defend) is the safer alternate."},
+    {"key": "DR", "position": "DR", "role": "fb_support", "why": "The support full-back provides the natural width that the inverted left-back does not."},
+    {"key": "MCL", "position": "MC", "role": "car_mc_support", "why": "The Carrilero shuttles into the left channel to connect play and protect the space around the inverted wing-back."},
+    {"key": "MCC", "position": "MC", "role": "dlp_mc_defend", "why": "The deep-lying playmaker anchors circulation from midfield without vacating the centre."},
+    {"key": "MCR", "position": "MC", "role": "mez_support", "why": "The Mezzala supports from the right half-space, adding a receiver without becoming a second striker."},
+    {"key": "AML", "position": "AML", "role": "if_support", "why": "The inside forward links inside with the midfield and arrives in the box as a supporting threat."},
+    {"key": "AMR", "position": "AMR", "role": "winger_aml_amr_attack", "why": "The attacking winger holds the right touchline and attacks the space created by the Mezzala."},
+    {"key": "ST", "position": "ST", "role": "cf_support", "why": "The complete forward links the possession structure and remains a credible presence in the box."}
+  ],
+  "system": {
+    "minimums": {"width": 2.5, "defensiveCover": 6.0, "ballProgression": 7.0, "creativity": 3.5, "runners": 2.0, "boxPresence": 1.5, "restDefence": 6.0},
+    "maximumAttackDuties": 4,
+    "maximumCreators": 3
+  },
+  "style": "Structured midfield circulation",
+  "description": "A 4-3-3 built around a disciplined central triangle, with a Carrilero protecting the inverted side and a Mezzala supporting the wide attack.",
+  "whyGood": "It gives technical midfielders clear, complementary jobs and keeps enough players behind the ball to sustain possession after a loss.",
+  "whyThisShape": "The DLP holds the centre, the Carrilero fills the channel beside the inverted wing-back, and the Mezzala supports the opposite half-space. This creates staggered passing options without asking all three midfielders to run beyond the ball at once.",
+  "whenToUse": "When you have a composed central organiser, a hard-working channel midfielder, and a technical half-space player; especially against a compact side that must be moved patiently.",
+  "whenNotToUse": "When your midfield lacks passing security or the opponent can repeatedly isolate the full-backs in wide transition.",
+  "instructionRationale": {
+    "Shorter Passing": "The midfield triangle and inverted wing-back provide short connections around the ball.",
+    "Play Out Of Defence": "The sweeper keeper, ball-playing defender and DLP give the first line several safe exits.",
+    "Work Ball Into Box": "The structure moves the opposition before the winger, Mezzala or forward attacks the opening.",
+    "Hold Shape": "Keeps the DLP and Carrilero available as rest-defence instead of sending every midfielder forward.",
+    "Higher Line of Engagement": "Keeps the compact possession structure closer to the opponent after a loss.",
+    "Standard Defensive Line": "Avoids demanding a fast high line while the team is primarily selected for control."
+  },
+  "attributeEmphasis": [
+    {"attributes": {"composure": 2, "decisions": 2, "technique": 2, "passing": 2}},
+    {"attributes": {"positioning": 2, "teamwork": 2}, "positions": ["MC"]}
+  ],
+  "attributeTaper": [
+    {"attribute": "passing", "taperBelow": 8, "positions": ["MC"]},
+    {"attribute": "firstTouch", "taperBelow": 8, "positions": ["MC"]},
+    {"attribute": "stamina", "taperBelow": 8, "positions": ["MC"]},
+    {"attribute": "technique", "taperBelow": 8, "positions": ["MC"]}
+  ],
+  "keyRequirements": ["A composed DLP at MC", "A high-stamina Carrilero", "A technical Mezzala", "Full-backs comfortable in a positional build-up"],
+  "tags": ["possession", "433", "positional-play", "midfield"]
+}
