@@ -752,8 +752,10 @@ starting point and tune against what the tactic page shows.
 
 ## 2j. The opponent as built, part one (workstream D, phase 6)
 
-Implemented: D1–D3 plus the plumbing of D4. **Not** built: the CLI flags, the
-`/tactics` sliders and the delta view (the rest of D4, and D5).
+Implemented: D1–D3 and D4 (the policy, the plumbing and the CLI flags). **Not**
+built: the `/tactics` sliders and the delta view (D5), and the bundle cache is
+not yet keyed on the profile — a prerequisite for D5, since it caches on time
+alone and would otherwise serve the previous opponent's answer.
 
 `analytics/opponent.py` holds `OpponentProfile` — the six axes of §D1, each
 -2..+2 and 0 by default — and the declared effects, as one `OpponentAxis` entry
@@ -856,11 +858,8 @@ shipped state, for anything that reads a count:
   (`balanced_442`, `balanced_433dm`, `vertical_442`), so §2f's "the shipped seed
   is still one whole-team block per tactic" describes the seed, not the tree.
 - **Timings in §1.7 and §2f do not reproduce** and should not be compared
-  against. They do not state their squad generator, and cost depends far more on
-  how many slots each player is eligible for than on the tactic count. A
-  30-player squad with 2–4 positions each at full familiarity now takes ~10s for
-  a full effective+potential run. Re-baseline with a stated generator before
-  phase 7.
+  against; they do not state their squad generator. **§7.1 now holds the measured
+  cost model, its method, and the cost driver** — read that instead.
 
 ## 3. Workstream A — the catalogue
 
@@ -1225,23 +1224,86 @@ the automatic version substitutes for the sliders without touching scoring.
 
 ### 7.1 Performance
 
-At 45 tactics a bundle is ~2.8 s (§1.7), and the slider turns that into an
-interaction cost. Three mitigations, in order of value:
+**This section supersedes §1.7's figures, which do not reproduce (§2k).** It is
+the single place the measured cost model lives; other documents should point
+here rather than restate numbers.
 
-1. **Memoise role scores** on `(derived-role identity, player id)`. Role
-   scoring is ~40% of the time and is repeated per tactic today even though
-   most tactics share most role definitions. Per-tactic weights reduce but do
-   not eliminate the sharing — key the memo on the derived role's identity,
-   never on the tactic, or the win disappears.
-2. **LRU the bundle by opponent profile**, so revisiting a setting is free.
-3. **Consider pinning the *potential* pass to a neutral opponent.** The
-   effective/potential double-run doubles cost; training targets are a
-   squad-development question, not an opponent question. Worth deciding
-   explicitly rather than paying for it by default.
+#### Method (state this with any timing, or it is not comparable)
 
-Re-benchmark after each workstream. Per `CLAUDE.md`, measure the full bundle
-against the real catalogue on a synthetic squad, not the three-player
-fixture.
+Synthetic squad of 30 players, each eligible at 2–4 randomly chosen positions
+with full familiarity, all attributes 6–18, `random.seed(7)`; the full shipped
+catalogue; one `recommend_tactic_effective_and_potential` call. Cost depends far
+more on **how many slots each player is eligible for** than on the tactic count,
+so a squad generator with narrower eligibility will look much faster and tells
+you nothing about this one.
+
+**Track the counts, not the clock.** The work counts below are deterministic and
+reproduce exactly; wall clock on the same machine varied 9.7–12.3 s across runs.
+Use the counts as the regression signal and treat seconds as indicative, per the
+app-improvement-review's advice that call counters are less noisy than a seconds
+threshold.
+
+#### Where the time goes
+
+| | |
+| --- | --- |
+| Wall clock | ~10 s (varies; see above) |
+| Tactic evaluations | 84 (42 tactics × effective and potential) |
+| Legal role versions solved | 530 (deterministic) |
+| **Assignment solver runs** | **22,446 — about 42 per role version** (deterministic) |
+| `score_role` calls | 7,428, of which only 2,649 are distinct (deterministic) |
+| Split | ~39% scoring players in jobs, ~54% assignment solving |
+
+#### The actual cost driver, which was not previously written down
+
+The assignment solver is *not* slow: it is polynomial and each run is fast. The
+cost is that it runs **22,446 times**, and that is a direct consequence of the
+objective in `TacticFitPolicy`:
+
+> tactic fit = 65% mean across the eleven + 35% the weakest slot
+
+An assignment algorithm maximises a **total**. It cannot also maximise a
+**minimum**. So `_best_full_fit_assignment` sweeps the weakest slot: for every
+distinct candidate score it solves "the best-total XI in which no slot falls
+below this floor", and keeps the best blended result. That sweep is what turns
+one solve per role version into ~42, and it is why the answer is exact.
+
+**Any change to the mean/weakest blend changes this cost profile**, in either
+direction. Roadmap item 5 proposes replacing that objective; whoever does it
+should know it is also the performance lever.
+
+#### Mitigations, in order of value for money
+
+1. **Memoise role scores** on `(derived-role identity, player id)` — never on
+   the tactic, or the sharing is lost. Measured: 7,428 `score_role` calls for
+   only **2,649 distinct (derived role, player) pairs, so 64% is redundant**.
+   That is ~25% off the total, and it is worth more than that for the opponent
+   feature specifically: emphasis is position-scoped, so a neutral run and an
+   opponent run differ only in the re-weighted positions and share the rest.
+   That is what makes D5's neutral-versus-opponent delta view affordable.
+2. **Cache bundles by opponent profile** (a small LRU, not one slot). This is
+   *also a correctness requirement* for D5, not only an optimisation — see §D4.
+   It is what makes comparing a few opponent archetypes, which is the actual use
+   case, instant after the first look at each.
+3. **Cheap and unglamorous: `round()` is called 1.7 million times and costs
+   about 8% of the run.** Rounding inside the solver's inner loop is the bulk of
+   it.
+4. **Consider pinning the *potential* pass to a neutral opponent.** It is half
+   the work, and training targets are a squad-development question rather than
+   an opponent one. Decide it explicitly rather than paying for it by default.
+5. **Last, and most invasive: the weakest-slot sweep itself.** Options include
+   bounding the threshold list, starting from the unconstrained solve and only
+   testing thresholds that could beat the incumbent, or changing the objective
+   (roadmap item 5). Do this only with a benchmark in place, and only if the
+   first four are not enough — it is the part most likely to change results.
+
+#### What this means for a slider
+
+A slider move changes attribute weights, which invalidates every role score, so
+**there is no incremental update — a new setting is a full recompute.** Mitigations
+1 and 2 are what make that acceptable: each archetype costs once, and revisiting
+it is free. Performance is therefore not a blocker for D5; the cache in
+mitigation 2 is, because of correctness.
 
 ### 7.2 Tests
 
@@ -1276,7 +1338,7 @@ Ordered so that nothing is tuned on top of a known-broken baseline.
 | 3 — done (40 tactics, 65/65 roles) | A6 expand to 40+, with B2 justifications authored alongside (31 now; see §2d) | Now safe: the load-time invariants from phase 1 catch a mis-authored tactic. |
 | 4 — partly done | B3 surface justifications (done for the existing 25; better shortfall messages still to do) | The manager can now read why, which is also how you review phases 1–3. |
 | 5 — done | C1–C4 per-tactic attribute emphasis (see §2f) | Needs a correct system model and a settled tactic list. |
-| 6 — partly done | D1–D3 and the plumbing of D4 done in analytics (see §2j); CLI flags, `/tactics` sliders and the delta view still to do | Reuses C3's emphasis mechanism; last per the roadmap's ordering advice. |
+| 6 — partly done | D1–D4 done, CLI included (see §2j); `/tactics` sliders and the delta view still to do, and the bundle cache must be keyed on the profile first | Reuses C3's emphasis mechanism; last per the roadmap's ordering advice. |
 | 7 | 7.1 performance pass and re-benchmark | After the catalogue and scoring have stopped moving. Re-baseline first: §1.7's figures do not reproduce (§2k). |
 
 Phase 0 is a pure refactor and should land on its own, proven lossless by the equality check in §2.9 — no football judgement changes in that commit.

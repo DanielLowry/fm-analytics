@@ -9,8 +9,10 @@ from typing import Sequence
 from fm_analytics.api import BridgeClient, BridgeError
 from fm_analytics.bridge import LinuxProtonDataSource
 from fm_analytics.analytics import (
+    AXIS_DEFINITIONS,
     BenchSelection,
     MVP_CATALOGUE,
+    OpponentProfile,
     RecruitmentBrief,
     RecruitmentShortlist,
     ScoreBand,
@@ -19,8 +21,10 @@ from fm_analytics.analytics import (
     TrainingTarget,
     WeaknessReport,
     overlay_squad_export,
+    opponent_system_floors,
     shortlist_candidates,
 )
+from fm_analytics.analytics.opponent import AXIS_MAXIMUM, AXIS_MINIMUM
 from fm_analytics.domain import GameState, Player, Squad
 from fm_analytics.imports import (
     FmHtmlExport,
@@ -32,6 +36,7 @@ from fm_analytics.imports import (
 )
 from fm_analytics.persistence import SnapshotStore
 from fm_analytics.reporting import (
+    RecommendationPolicy,
     build_recommendation_bundle,
     has_complete_role_attributes,
     required_role_attributes,
@@ -89,7 +94,38 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="store this observation in the specified SQLite database",
     )
+    _add_opponent_arguments(parser)
     return parser
+
+
+def _add_opponent_arguments(parser: argparse.ArgumentParser) -> None:
+    """One `--opponent-<axis>` flag per declared axis.
+
+    Generated from `AXIS_DEFINITIONS` rather than written out, so adding a
+    slider in `analytics/opponent.py` gives it a flag with no change here.
+    """
+    group = parser.add_argument_group(
+        "opponent",
+        "Your own estimate of the opposition, each -2 to +2 (0, the default, "
+        "is neutral and changes nothing). These are your judgement, not "
+        "measurements: nothing in FM is read to set them.",
+    )
+    for axis in AXIS_DEFINITIONS:
+        group.add_argument(
+            f"--opponent-{axis.key.replace('_', '-')}",
+            dest=f"opponent_{axis.key}",
+            type=int,
+            default=0,
+            choices=range(AXIS_MINIMUM, AXIS_MAXIMUM + 1),
+            metavar="N",
+            help=f"{axis.label}: -2 = {axis.low}, +2 = {axis.high}",
+        )
+
+
+def opponent_from_args(args: argparse.Namespace) -> OpponentProfile:
+    return OpponentProfile(
+        **{axis.key: getattr(args, f"opponent_{axis.key}", 0) for axis in AXIS_DEFINITIONS}
+    )
 
 
 def load_fixture(path: Path) -> tuple[GameState, Squad]:
@@ -183,6 +219,41 @@ def render_html_import(
     )
 
 
+def _opponent_lines(opponent: OpponentProfile) -> tuple[str, ...]:
+    """Say what opponent was assumed, and whose judgement it is.
+
+    Printed whenever one is set, because a reader comparing two runs needs to
+    see which assumption produced which ranking.
+    """
+    if opponent.is_neutral:
+        return ()
+    # The axis labels describe the -2/+2 extremes, so at one step they are
+    # prefixed rather than reworded -- "leaning dominant", never the nonsense
+    # that inflecting them produces ("much stronger than us, slightly").
+    settings = [
+        f"  {axis.label}: {value:+d} "
+        f"({'' if abs(value) == 2 else 'leaning '}{axis.high if value > 0 else axis.low})"
+        for axis in AXIS_DEFINITIONS
+        if (value := getattr(opponent, axis.key))
+    ]
+    # Some axes (aerial threat) only change who is picked and impose no
+    # team-shape requirement, so no opponent score is reported for them. Say so,
+    # or the reader sets a slider, sees no new number, and assumes it did nothing.
+    channel = (
+        "Effect: shifts which players suit each job, and sets team-shape "
+        "requirements scored as 'opponent' below."
+        if opponent_system_floors(opponent)
+        else "Effect: shifts which players suit each job. These settings impose no "
+        "team-shape requirement, so no 'opponent' score is shown."
+    )
+    return (
+        "",
+        "Assumed opponent (your estimate, not measured from the game)",
+        *settings,
+        channel,
+    )
+
+
 def render_recommendation(
     game: GameState,
     squad: Squad,
@@ -193,6 +264,7 @@ def render_recommendation(
     shortlists: tuple[RecruitmentShortlist, ...],
     training_targets: tuple[TrainingTarget, ...] = (),
     squad_depth: SquadDepthReport | None = None,
+    opponent: OpponentProfile = OpponentProfile.neutral(),
 ) -> str:
     selected = recommendation.selected
     club_name = squad.club.name if squad.club else "No controlled club"
@@ -229,10 +301,15 @@ def render_recommendation(
         "-----------------",
         f"Fit: {(1 - selected.fit_weakest_weight) * 100:.0f}% XI mean + "
         f"{selected.fit_weakest_weight * 100:.0f}% weakest slot (XI suitability). "
-        "Overall fit also includes tactical coherence and team-instruction suitability; "
-        "opponent suitability is not yet scored.",
+        "Overall fit also includes tactical coherence and team-instruction suitability"
+        + (
+            ", and opponent suitability against the opponent set below."
+            if not opponent.is_neutral
+            else "; no opponent is set, so opponent suitability is not scored."
+        ),
         )
     )
+    lines.extend(_opponent_lines(opponent))
     for evaluation in recommendation.evaluations:
         status = "legal XI" if evaluation.has_legal_xi else (
             "missing " + ", ".join(slot.key for slot in evaluation.unfilled_slots)
@@ -242,8 +319,14 @@ def render_recommendation(
             f"fit {_band(evaluation.score):<22} "
             f"XI {evaluation.xi_score.central:.1f}, "
             f"system {evaluation.coherence.score:.1f}, "
-            f"instructions {evaluation.instruction_suitability.score:.1f}; "
-            f"mean {evaluation.mean_score.central:.1f}, weakest {evaluation.weakest_score.central:.1f} "
+            f"instructions {evaluation.instruction_suitability.score:.1f}"
+            + (
+                f", opponent {evaluation.opponent_fit.score:.1f}"
+                if evaluation.opponent_fit.active
+                else ""
+            )
+            + f"; mean {evaluation.mean_score.central:.1f}, "
+            f"weakest {evaluation.weakest_score.central:.1f} "
             f"({', '.join(evaluation.weakest_slot_keys)}); {status}"
         )
     lines.extend(("", "Training targets", "-----------------"))
@@ -463,7 +546,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "--recommend requires complete manager-visible squad attributes; "
                         "the current source is incomplete"
                     )
-                bundle = build_recommendation_bundle(game, squad, catalogue=MVP_CATALOGUE)
+                bundle = build_recommendation_bundle(
+                    game,
+                    squad,
+                    catalogue=MVP_CATALOGUE,
+                    policy=RecommendationPolicy(opponent=opponent_from_args(args)),
+                )
                 recommendation = bundle.recommendation
                 training_targets = bundle.training_targets
                 bench = bundle.bench
@@ -527,6 +615,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 shortlists,
                 training_targets,
                 squad_depth,
+                opponent=opponent_from_args(args),
             )
         )
     else:

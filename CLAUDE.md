@@ -65,13 +65,14 @@ and then solves the player assignment, so a change that does not improve that
 end-to-end measurement has not improved the page load.
 
 Cost is driven far more by how many slots each player is eligible for than by
-the number of tactics. A 30-player squad with 2–4 positions each at full
-familiarity takes ~10s for a full effective+potential run on this machine;
-narrower squads are much faster. **Always state the squad generator with a
-timing** — figures measured against different synthetic squads are not
-comparable, which is why older numbers in
-[docs/tactical-model-upgrade-plan.md](docs/tactical-model-upgrade-plan.md) do
-not reproduce.
+the number of tactics, so **always state the squad generator with a timing** —
+figures from different synthetic squads are not comparable. About half the time
+is the assignment solver running tens of thousands of times, which is a
+consequence of the 35% weakest-slot term in the fit objective, not of the solver
+being slow. The measured cost model, its method and the ranked mitigations live
+in [docs/tactical-model-upgrade-plan.md](docs/tactical-model-upgrade-plan.md)
+§7.1 — read it before optimising, and update it there rather than copying
+numbers into other documents.
 
 ## Before editing
 

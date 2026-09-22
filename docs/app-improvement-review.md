@@ -17,6 +17,15 @@
 >   recurred twice since, and was corrected again in the 22 September pass. The
 >   suggestion there to *derive* displayed counts rather than write them down is
 >   the durable fix and has not been done.
+> - **The performance items (1.1–1.4) now have a measured basis they did not have
+>   before, and it partly redirects them.** The joint role/player beam they were
+>   written against no longer exists; the cost is now attributed to the 35%
+>   weakest-slot term in the fit objective forcing repeated assignment solves.
+>   Item 1.4 (memoise role scores) is confirmed worthwhile — 64% of role scoring
+>   is measurably redundant — and item 1.5's cache becomes a *correctness*
+>   requirement, not just a speed one, as soon as the page can set an opponent.
+>   See [tactical-model-upgrade-plan.md](tactical-model-upgrade-plan.md) §7.1 for
+>   the numbers and method; do not restate them here.
 >
 > This document stays in the active index because its recommendations are mostly
 > unstarted. Archive it once Releases A–C below are delivered or formally

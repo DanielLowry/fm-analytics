@@ -210,9 +210,19 @@ a back three") would need its own mechanism rather than being forced into -2..+2
   against a harder opponent. Explain "this got harder" from the component, never
   from the headline number.
 
-Not built yet: the CLI flags and the `/tactics` sliders (plan D4–D5). Note
-`SquadWebServer.bundle()` still caches on time alone, so it must become keyed on
-the profile before a slider can drive it.
+`fm-analytics` exposes one `--opponent-<axis>` flag per axis, generated from
+`AXIS_DEFINITIONS`, so a new slider gets a flag with no change in `cli.py`.
+
+Not built yet: the `/tactics` sliders and the delta view (plan D5). **Before
+building them, `SquadWebServer.bundle()` must be keyed on the profile** — it
+caches on time alone today, so a slider would serve the previous opponent's
+answer for the length of the TTL. That is a correctness fix, not an
+optimisation.
+
+One presentation trap the CLI already handles: an axis with emphasis but no
+floors (`aerial_threat`) changes who is picked while leaving opponent fit
+inactive, so **no opponent score appears at all**. Say so explicitly, or a
+manager sets the slider, sees no new number and concludes it did nothing.
 
 Scouted ranges follow the observation band (penalised at the low end, not the
 high); an unknown attribute is the scale minimum centrally, as everywhere.
@@ -230,6 +240,19 @@ cannot fill two slots. `assignment_solver._maximum_total_assignment` therefore u
 assignment solver rather than enumerating XIs or keeping a beam of partial
 ones. `_best_full_fit_assignment` repeats that solve at each possible weakest
 slot score, which preserves the mean/weakest-slot blend exactly.
+
+**That repeat is where the time goes, and it is worth understanding before you
+try to optimise anything here.** An assignment algorithm maximises a *total* and
+cannot also maximise a *minimum*, so the 35% weakest-slot term in
+`TacticFitPolicy` is handled by sweeping the floor: solve "best total with no
+slot below X" for every candidate X, keep the best blend. That turns one solve
+per role version into ~42, and accounts for roughly half of a full run (22,446
+solver runs in the benchmark). The solver itself is fast; it simply runs a great
+many times. So **changing the mean/weakest blend also changes the cost profile**
+— relevant to roadmap item 5, which proposes replacing that objective. Measured
+numbers, method and the ranked mitigations are in
+[tactical-model-upgrade-plan.md](../../../docs/tactical-model-upgrade-plan.md)
+§7.1; don't restate them here, they drift.
 
 Do not collapse this into greedy "best player per slot" selection: it must
 still resolve the case where the same player is best at two jobs. Do not

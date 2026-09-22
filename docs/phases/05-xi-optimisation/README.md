@@ -137,13 +137,25 @@ the joint role/player beam: tactical coherence and instruction assessment were
 each repeated 76,850 times, while state minimum/signature calculation and
 rounding accounted for millions of calls.
 
+**Superseded measurement.** That run predates the beam's replacement by the
+exact assignment solver and a catalogue now at 42 tactics and 84 roles, so its
+attribution no longer applies. The cost was re-measured on 22 September 2026 and
+**attributed to a specific design choice: the 35% weakest-slot term in the fit
+objective forces the assignment solver to be re-run once per candidate floor,
+about 42 times per role version.** The solver is fast; it runs tens of thousands
+of times. Measured numbers, the benchmark method, and mitigations ranked by value
+are in [tactical-model-upgrade-plan.md](../../tactical-model-upgrade-plan.md)
+§7.1, which is the single source for them. None are applied yet.
+
+Note this ties 05.4 to roadmap item 5: replacing the mean/weakest objective is
+both a football change and the main performance lever.
+
 The active [application improvement review](../../app-improvement-review.md)
-records the evidence and correctness gates. The immediate remedies are to
-memoise tactical assessments per tactic/role tuple, carry the beam sort fields
-without recomputing them, avoid an identical potential pass, and reuse role
-scores within a bundle. The web layer must also cache by observation identity,
-make cold builds single-flight, and recompute explicitly rather than on every
-navigation request.
+records the web-layer evidence and correctness gates. The web layer must cache by
+observation identity, make cold builds single-flight, and recompute explicitly
+rather than on every navigation request — and, once an opponent can be set from
+the page, cache per opponent profile, which is a correctness requirement rather
+than an optimisation.
 
 Maximize the versioned team objective subject to eleven unique players, filled
 slots, eligibility, and configured readiness rules. Add bench coverage,

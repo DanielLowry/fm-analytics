@@ -139,6 +139,16 @@ This should naturally penalise a disastrous centre-back fit without assigning
 one player's score a fixed 35% of the entire XI score.  The resulting terms
 must remain separately visible and testable.
 
+**This item is also the main performance lever, which was not previously
+recorded.** An assignment algorithm maximises a total and cannot maximise a
+minimum, so the weakest-slot term is currently honoured by re-solving the
+assignment once per candidate floor — about 42 solves per role version, roughly
+half of a full recommendation. Whatever replaces the objective should be chosen
+with that in mind: a formulation a single solve can optimise directly would be
+substantially cheaper, and one that couples players would be more expensive and
+would break the solver's exactness (see `analytics/CLAUDE.md`). Measurements are
+in [tactical-model-upgrade-plan.md](tactical-model-upgrade-plan.md) §7.1.
+
 ### 6. Revisit positional familiarity and eligibility
 
 Keep positional familiarity distinct from intrinsic role quality.  Replace the
@@ -197,8 +207,9 @@ ranking, XI choice, bench, substitutions, depth and weaknesses. See
 [tactical-model-upgrade-plan.md](tactical-model-upgrade-plan.md) for what was
 built and the five deviations from the original design.
 
-Still to do here: the CLI flags and `/tactics` sliders that let a manager
-actually set it, and the rank-delta view that says what changed versus neutral.
+A manager can set it today from the CLI (`--opponent-<axis>`, one flag per
+axis). Still to do here: the `/tactics` sliders and the rank-delta view that
+says what changed versus neutral.
 Deriving the profile from opposition data rather than a slider is Phase 08/D6
 and is deliberately out of scope — `OpponentProfile` is the interface an
 automatic version would substitute into without touching scoring.
