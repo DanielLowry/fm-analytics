@@ -14,6 +14,11 @@ from fm_analytics.analytics.assignment_solver import (
     state_signature,
 )
 from fm_analytics.analytics.attribute_taper import AttributeTaperPolicy, assess_tapers
+from fm_analytics.analytics.opponent import (
+    OpponentProfile,
+    assess_opponent_fit,
+    attribute_emphasis as opponent_attribute_emphasis,
+)
 from fm_analytics.analytics.role_scoring import RoleScore, ScoreBand, score_role
 from fm_analytics.analytics.selection_status import selection_unavailability_reasons
 from fm_analytics.analytics.tactical_system import (
@@ -48,6 +53,7 @@ def evaluate_tactic(
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
     system_policy: SystemFitPolicy = SystemFitPolicy(),
+    opponent: OpponentProfile = OpponentProfile.neutral(),
 ) -> TacticEvaluation:
     return _evaluate_tactic(
         tactic,
@@ -57,6 +63,7 @@ def evaluate_tactic(
         familiarity_policy=familiarity_policy,
         fit_policy=fit_policy,
         system_policy=system_policy,
+        opponent=opponent,
     )
 
 
@@ -69,12 +76,19 @@ def _evaluate_tactic(
     familiarity_policy: FamiliarityPolicy,
     fit_policy: TacticFitPolicy,
     system_policy: SystemFitPolicy,
+    # Required, like the policies above: a silent neutral default here would
+    # hide a caller that forgot to thread the opponent through.
+    opponent: OpponentProfile,
     forced_assignment: tuple[int, str, str] | None = None,
 ) -> TacticEvaluation:
     if tactic.key not in catalogue.tactics or catalogue.tactics[tactic.key] != tactic:
         raise ValueError("tactic must belong to the supplied football catalogue")
-    # Score every player through this tactic's own attribute emphasis.
-    catalogue = catalogue.for_tactic(tactic.key)
+    # Score every player through this tactic's own attribute emphasis, plus
+    # whatever this opponent adds to it -- a neutral opponent adds nothing and
+    # this is exactly `catalogue.for_tactic(tactic.key)`.
+    catalogue = catalogue.for_context(
+        tactic.key, extra_emphasis=opponent_attribute_emphasis(opponent)
+    )
     player_ids = [player.id for player in players]
     if len(player_ids) != len(set(player_ids)):
         raise ValueError("selection player ids must be unique")
@@ -98,6 +112,7 @@ def _evaluate_tactic(
         xi_score,
         coherence,
         instruction_suitability,
+        opponent_fit,
         fit_score,
     ) = _best_role_version(
         tactic,
@@ -105,6 +120,7 @@ def _evaluate_tactic(
         catalogue,
         fit_policy,
         system_policy,
+        opponent,
         forced_roles=forced_roles,
     )
     unfilled = tuple(
@@ -137,6 +153,7 @@ def _evaluate_tactic(
         xi_score=xi_score,
         coherence=coherence,
         instruction_suitability=instruction_suitability,
+        opponent_fit=opponent_fit,
         score=fit_score,
     )
 
@@ -149,6 +166,7 @@ def recommend_tactic(
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
     system_policy: SystemFitPolicy = SystemFitPolicy(),
+    opponent: OpponentProfile = OpponentProfile.neutral(),
 ) -> TacticRecommendation:
     evaluations = tuple(
         evaluate_tactic(
@@ -159,6 +177,7 @@ def recommend_tactic(
             familiarity_policy=familiarity_policy,
             fit_policy=fit_policy,
             system_policy=system_policy,
+            opponent=opponent,
         )
         for tactic in catalogue.tactics.values()
     )
@@ -186,6 +205,7 @@ def recommend_tactic_effective_and_potential(
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
     system_policy: SystemFitPolicy = SystemFitPolicy(),
+    opponent: OpponentProfile = OpponentProfile.neutral(),
 ) -> EffectiveAndPotentialRecommendation:
     """Answer both "what to play now" and "what to aim for" from one call.
 
@@ -209,6 +229,7 @@ def recommend_tactic_effective_and_potential(
         familiarity_policy=familiarity_policy,
         fit_policy=fit_policy,
         system_policy=system_policy,
+        opponent=opponent,
     )
     potential = recommend_tactic(
         players,
@@ -217,6 +238,7 @@ def recommend_tactic_effective_and_potential(
         familiarity_policy=familiarity_policy.potential(),
         fit_policy=fit_policy,
         system_policy=system_policy,
+        opponent=opponent,
     )
     return EffectiveAndPotentialRecommendation(effective=effective, potential=potential)
 
@@ -541,6 +563,7 @@ class _RoleVersionEvaluation:
     xi_score: ScoreBand
     coherence: SystemAssessment
     instruction_suitability: SystemAssessment
+    opponent_fit: SystemAssessment
     score: ScoreBand
 
 
@@ -550,6 +573,7 @@ def _best_role_version(
     catalogue: FootballCatalogue,
     fit_policy: TacticFitPolicy,
     system_policy: SystemFitPolicy,
+    opponent: OpponentProfile,
     *,
     forced_roles: dict[int, str] | None = None,
 ) -> tuple[
@@ -559,6 +583,7 @@ def _best_role_version(
     ScoreBand,
     ScoreBand,
     ScoreBand,
+    SystemAssessment,
     SystemAssessment,
     SystemAssessment,
     ScoreBand,
@@ -596,8 +621,8 @@ def _best_role_version(
         mean_score, weakest_score, xi_score = _tactic_fit(
             assignments, len(tactic.slots), fit_policy
         )
-        coherence, instruction_suitability, score = _system_fit(
-            tactic, assignments, catalogue, xi_score, system_policy
+        coherence, instruction_suitability, opponent_fit, score = _system_fit(
+            tactic, assignments, catalogue, xi_score, system_policy, opponent
         )
         candidate = _RoleVersionEvaluation(
             mask=mask,
@@ -608,6 +633,7 @@ def _best_role_version(
             xi_score=xi_score,
             coherence=coherence,
             instruction_suitability=instruction_suitability,
+            opponent_fit=opponent_fit,
             score=score,
         )
         if (
@@ -628,6 +654,7 @@ def _best_role_version(
         best.xi_score,
         best.coherence,
         best.instruction_suitability,
+        best.opponent_fit,
         best.score,
     )
 
@@ -665,13 +692,18 @@ def _system_fit(
     catalogue: FootballCatalogue,
     xi_score: ScoreBand,
     policy: SystemFitPolicy,
-) -> tuple[SystemAssessment, SystemAssessment, ScoreBand]:
+    opponent: OpponentProfile,
+) -> tuple[SystemAssessment, SystemAssessment, SystemAssessment, ScoreBand]:
     roles = tuple(
         catalogue.roles[assignment.intrinsic_role_score.role_key]
         for assignment in assignments
     )
     coherence = assess_coherence(tactic, roles)
     instruction = assess_instruction_suitability(roles, tactic.instructions)
+    # Inactive (and 100) under a neutral profile, so it drops out of the blend
+    # below exactly as coherence/instruction do when a tactic declares none of
+    # its own -- a neutral opponent leaves `component()` byte-identical.
+    opponent_fit = assess_opponent_fit(roles, opponent)
 
     def component(xi_value: float) -> float:
         weighted: list[tuple[float, float]] = [(xi_value, policy.xi_weight)]
@@ -679,6 +711,8 @@ def _system_fit(
             weighted.append((coherence.score, policy.coherence_weight))
         if instruction.active:
             weighted.append((instruction.score, policy.instruction_weight))
+        if opponent_fit.active:
+            weighted.append((opponent_fit.score, policy.opponent_weight))
         total_weight = sum(weight for _, weight in weighted)
         mean = sum(value * weight for value, weight in weighted) / total_weight
         weakest = min(value for value, _ in weighted)
@@ -688,7 +722,7 @@ def _system_fit(
             6,
         )
 
-    return coherence, instruction, ScoreBand(
+    return coherence, instruction, opponent_fit, ScoreBand(
         component(xi_score.lower),
         component(xi_score.central),
         component(xi_score.upper),

@@ -2,8 +2,19 @@
 
 ## Planning status
 
-Outline only. The available match history, opposition visibility, and evaluation
-signal must be learned from earlier phases before detailed design.
+Outline only for the evidence-driven phase below. The available match history,
+opposition visibility, and evaluation signal must be learned from earlier phases
+before detailed design.
+
+**A manual precursor already exists and is not this phase.** `analytics/opponent.py`
+scores a *manager-set* opponent profile (six -2..+2 sliders) as its own component
+beside coherence and instruction fit — see roadmap item 9 and §2j of
+[tactical-model-upgrade-plan.md](../../tactical-model-upgrade-plan.md). It is
+deliberately an estimate the manager types in, with no match history and no
+confidence model, so it satisfies none of this phase's exit criteria. Treat it as
+the interface this phase should eventually feed, not as a partial delivery of it:
+`OpponentProfile` is what a data-derived profile would substitute into without
+touching scoring.
 
 ## Outcome
 

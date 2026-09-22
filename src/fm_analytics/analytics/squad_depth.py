@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue, TacticDefinition
+from fm_analytics.analytics.opponent import OpponentProfile
 from fm_analytics.analytics.weaknesses import (
     Weakness,
     WeaknessPolicy,
@@ -98,6 +99,7 @@ def assess_squad_depth(
     *,
     weakness_policy: WeaknessPolicy = WeaknessPolicy(),
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
+    opponent: OpponentProfile = OpponentProfile.neutral(),
 ) -> SquadDepthReport:
     if not evaluations:
         raise ValueError("squad depth assessment requires at least one tactic evaluation")
@@ -117,6 +119,7 @@ def assess_squad_depth(
             catalogue,
             policy=weakness_policy,
             readiness_policy=readiness_policy,
+            opponent=opponent,
         )
         per_tactic[evaluation.tactic.key] = report
         slot_positions = _slot_positions(evaluation.tactic)

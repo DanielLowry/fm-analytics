@@ -1,6 +1,13 @@
 # Tactical model upgrade plan
 
-Status: **proposed, not implemented.** This is the plan for four related
+Status: **A, B and C are built; D is half built.** Phases 0–5 of §8 are done,
+phase 6 is done in the analytics layer but has no UI, and phase 7 has not
+started. The "as built" sections (§2 to §2k) are the record of what actually
+landed and where it departed from the proposal below; **§2k lists the counts
+and timings in the older sections that are now out of date.** The proposal text
+in §3 onwards is kept as the reasoning, not as a description of the code.
+
+This is the plan for four related
 changes to the tactical model, requested together:
 
 - **A** — audit the tactic list for gaps and for role choices made stale by
@@ -743,6 +750,118 @@ squads is under 0.6 points and at most 2 starters. The levels were set from a wi
 scouting pool, not your own squad (its capture is unreadable), so treat them as a
 starting point and tune against what the tactic page shows.
 
+## 2j. The opponent as built, part one (workstream D, phase 6)
+
+Implemented: D1–D3 plus the plumbing of D4. **Not** built: the CLI flags, the
+`/tactics` sliders and the delta view (the rest of D4, and D5).
+
+`analytics/opponent.py` holds `OpponentProfile` — the six axes of §D1, each
+-2..+2 and 0 by default — and the declared effects, as one `OpponentAxis` entry
+per axis carrying its own labels, `EmphasisRule`s and `FloorRule`s.
+`assess_opponent_fit` scores the floors via a new shared
+`tactical_system.assess_demands`, which instruction fit now also uses, so the
+two cannot drift apart. `SystemFitPolicy.opponent_weight` is 0.20 as proposed,
+and opponent fit is reported as its own component on `TacticEvaluation`
+alongside coherence and instruction fit.
+
+`RecommendationPolicy.opponent` carries it, and it is threaded through every
+tactic-specific consumer (`evaluate_tactic`, `recommend_tactic`, `select_bench`,
+`build_substitution_board`, `assess_weaknesses`, `assess_squad_depth`,
+`explain_tactic_selection`, `evaluate_tactic_with_forced_assignment`), so the
+one-path rule holds by construction. Tactic-free pages never see it.
+
+**Five deviations from §6, each for a reason found while building:**
+
+1. **Floors are absolute, not deltas on each tactic's own minimums** (§D2 said
+   deltas). A delta breaks on the very comparison the feature exists to make: a
+   gegenpress declares low `defensiveCover` and a low block high, so +2 to both
+   pushes the low block past its own bar while the gegenpress still looks fine.
+   A shared floor ("against this side everyone needs 6.5") only bites the tactic
+   with no slack, which is the intended discrimination and easier to explain.
+2. **`tag_affinity` is dropped.** §D2's third channel keys score deltas off
+   tactic tags. The tags are not a controlled vocabulary — 61 distinct tags
+   across 42 tactics, most appearing once, mixing shape (`433`), style
+   (`counter`) and traits (`aerial`). "Penalise counter tactics against a deep
+   block" would hit the four tagged `counter` and miss `fluid-counter`,
+   `direct-counter` and `transition`. The same football effect is available
+   through the floors, which are consistent and already populated. Reinstating
+   it needs an agreed small tag set first.
+3. **`catalogue.for_context(key, extra_emphasis=...)` rather than
+   `for_context(tactic_key, opponent_profile)`** (§C3). `catalogue.py` stays
+   ignorant of opponents and takes plain emphasis blocks, which avoids a
+   circular import and keeps the data layer free of football policy. The
+   opponent-augmented view is deliberately **not** cached (the tactic-only path
+   still is), which is fine today and is a phase 7 item.
+4. **`quality` is stated as relative to us, and moves no attribute.** It cannot
+   be computed — our own strength is not derivable without the hidden ratings —
+   so it is the manager's judgement, and the UI must say so. It acts only on how
+   solid or open the system must be.
+5. **`aerial_threat` carries no floor.** The system model has no aerial-defence
+   dimension (`aerialOutlet` is about our attacking), so it acts entirely
+   through who is picked. Worth revisiting if a dimension is ever added.
+
+**Two findings that change how this should be presented.**
+
+- **The blended score is not monotonic in opponent difficulty.** Opponent fit,
+  like coherence and instruction fit, measures whether the *roles* clear a bar,
+  not whether the players are good. For a weak squad it can sit well above
+  `xi_score`, so activating it can *raise* the total score against a harder
+  opponent. This is the same property §2b documented for the other two
+  components, and it means D5's delta view must be built on **rank** movement,
+  and any "why did this get harder" line on the component, never on the headline
+  number.
+- **The first draft of the floors was unreachable**, exactly the §1.1 failure:
+  40 of 42 tactics could not meet the attacking minimums. They were rescaled
+  against what the catalogue actually supplies, and
+  `tests/test_opponent.py::ReachabilityTests` now guards every axis and setting.
+  At one step from neutral essentially every tactic can comply; at two steps the
+  defensive floors exclude 4–7 attack-minded shapes, which is the point.
+
+**Adding a seventh slider** is two pure-data edits — a field on
+`OpponentProfile` and its `OpponentAxis` entry — and a load-time check refuses
+to import if either half is missing. The shape suits another scalar axis; a
+categorical signal ("they play a back three") would need its own mechanism.
+
+**A pre-existing bug this work found and fixed.** Deriving a tactic view twice
+applies its emphasis twice, because the deltas are recomputed from the unchanged
+`TacticDefinition` and added to already-emphasised weights.
+`explain_tactic_selection` did exactly that: it derived a view, then passed the
+derived catalogue into `evaluate_tactic_with_forced_assignment`, which derived
+again. Every counterfactual score behind the tactic page's "why this player, not
+that one" alternatives was therefore computed at **double** the tactic's
+emphasis. It predates this workstream, was untested, and is now fixed and
+guarded by `NoDoubleApplicationRegressionTests`.
+
+## 2k. Where the catalogue has moved since the sections above
+
+The as-built sections above record the state at the time each landed. Current
+shipped state, for anything that reads a count:
+
+- **42 tactics** (not 40). `balanced_433dm` and `vertical_442` were added in
+  commit `e863274`, whose message is about emphasis; both do carry their full
+  justification text, `system` block and emphasis, per the §A6 rule.
+- **84 roles** (not 65), of which **66 are named by a tactic and 18 are not**.
+  So §2e's "all 65 roles in use" no longer holds: roles have since been added
+  ahead of tactics that field them. The unused 18 are mostly DC and MC variants
+  (No-Nonsense Centre-Backs, Ball-Playing Defender Cover/Stopper, Wide and
+  Roaming Playmakers, Defensive Wingers, Inverted Wingers at ML/MR). They all
+  carry traits, so they are safe to field; they are simply unreached. The
+  Cover/Stopper additions **were** correctly added to exclusion groups (there is
+  now a Stopper centre-back group beside the Cover one).
+- **Six alternate role sets**, not four, and one of them is a *triple*
+  (`dlf_support`/`pf_support`/`cf_support`); `cm_support`/`b2b_support` is the
+  other addition.
+- **Four tactics carry tapers**, not three (§2i) — `vertical_442` joined them.
+- **Three tactics carry hand-authored position-scoped emphasis**
+  (`balanced_442`, `balanced_433dm`, `vertical_442`), so §2f's "the shipped seed
+  is still one whole-team block per tactic" describes the seed, not the tree.
+- **Timings in §1.7 and §2f do not reproduce** and should not be compared
+  against. They do not state their squad generator, and cost depends far more on
+  how many slots each player is eligible for than on the tactic count. A
+  30-player squad with 2–4 positions each at full familiarity now takes ~10s for
+  a full effective+potential run. Re-baseline with a stated generator before
+  phase 7.
+
 ## 3. Workstream A — the catalogue
 
 ### A1. Give all 65 roles system traits
@@ -1157,8 +1276,8 @@ Ordered so that nothing is tuned on top of a known-broken baseline.
 | 3 — done (40 tactics, 65/65 roles) | A6 expand to 40+, with B2 justifications authored alongside (31 now; see §2d) | Now safe: the load-time invariants from phase 1 catch a mis-authored tactic. |
 | 4 — partly done | B3 surface justifications (done for the existing 25; better shortfall messages still to do) | The manager can now read why, which is also how you review phases 1–3. |
 | 5 — done | C1–C4 per-tactic attribute emphasis (see §2f) | Needs a correct system model and a settled tactic list. |
-| 6 | D1–D5 opponent model and slider | Reuses C3's emphasis mechanism; last per the roadmap's ordering advice. |
-| 7 | 7.1 performance pass and re-benchmark | After the catalogue and scoring have stopped moving. |
+| 6 — partly done | D1–D3 and the plumbing of D4 done in analytics (see §2j); CLI flags, `/tactics` sliders and the delta view still to do | Reuses C3's emphasis mechanism; last per the roadmap's ordering advice. |
+| 7 | 7.1 performance pass and re-benchmark | After the catalogue and scoring have stopped moving. Re-baseline first: §1.7's figures do not reproduce (§2k). |
 
 Phase 0 is a pure refactor and should land on its own, proven lossless by the equality check in §2.9 — no football judgement changes in that commit.
 

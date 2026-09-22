@@ -171,6 +171,11 @@ class SystemFitPolicy:
     xi_weight: float = 0.60
     coherence_weight: float = 0.25
     instruction_weight: float = 0.15
+    # Opponent fit is inactive (and excluded from the blend) under a neutral
+    # profile, per `analytics/opponent.py`, so this weight only ever bites once
+    # a manager has actually set a slider -- a neutral profile is byte-identical
+    # to today regardless of its value.
+    opponent_weight: float = 0.20
     weakest_component_weight: float = 0.20
 
     def __post_init__(self) -> None:
@@ -179,6 +184,8 @@ class SystemFitPolicy:
         weights = (self.xi_weight, self.coherence_weight, self.instruction_weight)
         if not all(isfinite(weight) and weight >= 0 for weight in weights) or not any(weights):
             raise ValueError("system-fit component weights must be finite and total above zero")
+        if not isfinite(self.opponent_weight) or self.opponent_weight < 0:
+            raise ValueError("opponent weight must be finite and non-negative")
         if not isfinite(self.weakest_component_weight) or not 0 <= self.weakest_component_weight <= 1:
             raise ValueError("weakest component weight must be finite and between 0 and 1")
 
@@ -251,6 +258,10 @@ class TacticEvaluation:
     xi_score: ScoreBand
     coherence: SystemAssessment
     instruction_suitability: SystemAssessment
+    # Whether the eleven's roles meet this opponent's system floors (see
+    # `analytics/opponent.py`). Inactive, and scored 100, under a neutral
+    # profile -- the default for every evaluation that does not ask for one.
+    opponent_fit: SystemAssessment
     score: ScoreBand
 
     @property

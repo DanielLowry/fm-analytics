@@ -20,6 +20,7 @@ from fm_analytics.analytics import (
     MVP_CATALOGUE,
     FootballCatalogue,
     FamiliarityPolicy,
+    OpponentProfile,
     PlayerSelectionInput,
     ReadinessPolicy,
     RecruitmentBrief,
@@ -76,6 +77,9 @@ class RecommendationPolicy:
     familiarity: FamiliarityPolicy = FamiliarityPolicy()
     tactic_fit: TacticFitPolicy = TacticFitPolicy()
     system_fit: SystemFitPolicy = SystemFitPolicy()
+    # The manager's own read of the opposition; neutral by default, which
+    # leaves every score exactly as it was before this existed.
+    opponent: OpponentProfile = OpponentProfile.neutral()
     bench_size: int = 7
 
     def __post_init__(self) -> None:
@@ -207,6 +211,7 @@ def build_recommendation_bundle(
         familiarity_policy=policy.familiarity,
         fit_policy=policy.tactic_fit,
         system_policy=policy.system_fit,
+        opponent=policy.opponent,
     )
     recommendation = effective_and_potential.effective
     bench = select_bench(
@@ -216,6 +221,7 @@ def build_recommendation_bundle(
         bench_size=policy.bench_size,
         readiness_policy=policy.readiness,
         familiarity_policy=policy.familiarity,
+        opponent=policy.opponent,
     )
     substitution_board = build_substitution_board(
         recommendation.selected,
@@ -224,9 +230,14 @@ def build_recommendation_bundle(
         catalogue,
         readiness_policy=policy.readiness,
         familiarity_policy=policy.familiarity,
+        opponent=policy.opponent,
     )
-    weakness_report = assess_weaknesses(recommendation.selected, selection_players, catalogue)
-    squad_depth = assess_squad_depth(recommendation.evaluations, selection_players, catalogue)
+    weakness_report = assess_weaknesses(
+        recommendation.selected, selection_players, catalogue, opponent=policy.opponent
+    )
+    squad_depth = assess_squad_depth(
+        recommendation.evaluations, selection_players, catalogue, opponent=policy.opponent
+    )
     role_matrix = build_squad_role_matrix(squad, catalogue=catalogue)
     briefs = build_recruitment_briefs(weakness_report, catalogue)
     return RecommendationBundle(
@@ -267,6 +278,7 @@ def build_tactic_matchday_report(
         bench_size=resolved_bench_size,
         readiness_policy=bundle.policy.readiness,
         familiarity_policy=bundle.policy.familiarity,
+        opponent=bundle.policy.opponent,
     )
     substitution_board = build_substitution_board(
         evaluation,
@@ -275,6 +287,7 @@ def build_tactic_matchday_report(
         catalogue,
         readiness_policy=bundle.policy.readiness,
         familiarity_policy=bundle.policy.familiarity,
+        opponent=bundle.policy.opponent,
     )
     selection_explanation = explain_tactic_selection(
         evaluation,
@@ -284,6 +297,7 @@ def build_tactic_matchday_report(
         familiarity_policy=bundle.policy.familiarity,
         fit_policy=bundle.policy.tactic_fit,
         system_policy=bundle.policy.system_fit,
+        opponent=bundle.policy.opponent,
     )
     return TacticMatchdayReport(
         evaluation=evaluation,

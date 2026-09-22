@@ -7,6 +7,7 @@ from typing import Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue, TacticSlot
 from fm_analytics.analytics.attribute_taper import assess_tapers, taper_role_score
+from fm_analytics.analytics.opponent import OpponentProfile, attribute_emphasis
 from fm_analytics.analytics.role_scoring import RoleDefinition, RoleScore, score_role
 from fm_analytics.analytics.xi_selection import (
     PlayerSelectionInput,
@@ -97,10 +98,13 @@ def assess_weaknesses(
     *,
     policy: WeaknessPolicy = WeaknessPolicy(),
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
+    opponent: OpponentProfile = OpponentProfile.neutral(),
 ) -> WeaknessReport:
     if evaluation.tactic.key not in catalogue.tactics:
         raise ValueError("evaluation tactic does not belong to the catalogue")
-    catalogue = catalogue.for_tactic(evaluation.tactic.key)
+    catalogue = catalogue.for_context(
+        evaluation.tactic.key, extra_emphasis=attribute_emphasis(opponent)
+    )
     starters = {assignment.slot.key: assignment for assignment in evaluation.assignments}
     starter_ids = {assignment.player_id for assignment in evaluation.assignments}
     reference = round(

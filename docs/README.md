@@ -15,9 +15,12 @@
 - [Tactic catalogue](tactic-catalogue.md) is the generated one-page index of
   every tactic: shape, roles by line, the attributes it leans on and what it
   needs. Per-tactic detail lives in the tactic's own data file.
-- [Tactical model upgrade plan](tactical-model-upgrade-plan.md) is the
-  proposed (not yet implemented) plan for the catalogue audit, per-tactic
-  attribute weighting and opponent-aware tactic selection.
+- [Tactical model upgrade plan](tactical-model-upgrade-plan.md) covers the
+  catalogue audit, per-tactic attribute weighting and opponent-aware tactic
+  selection. Its catalogue, justification, emphasis and taper work is **built**;
+  the opponent is built in analytics but has no UI yet. Read its §2–§2k "as
+  built" sections for current behaviour, and §2k for the counts and timings in
+  the older sections that have since drifted.
 
 ## Current operating and research references
 

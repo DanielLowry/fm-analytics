@@ -21,7 +21,8 @@ The following remain intentionally provisional:
 - team instructions are assessed from role capability tags, not the selected
   players' detailed attributes;
 - the XI component still uses the legacy mean/weakest-player objective;
-- opponent suitability and whole-tactic familiarity are not scored;
+- whole-tactic familiarity is not scored, and opponent suitability is scored
+  only from a manager-set profile (see item 9), not from opposition data;
 - role weighting is per role/duty only, not per tactic: a Deep-Lying
   Playmaker is weighted identically in every tactic that selects one, even
   where one tactic's build-up depends on that passing more than another's.
@@ -184,10 +185,26 @@ expected match effectiveness =
 This should capture the cost of changing shape or instructions frequently while
 preserving the ability to compare the underlying tactical designs fairly.
 
-### 9. Opponent-specific tactical evaluation
+### 9. Opponent-specific tactical evaluation — **partly implemented**
 
-Do this only after role attributes, player-instruction suitability and
-coherence have been strengthened.  The eventual target is:
+A **manager-set** opponent now exists: six sliders (`OpponentProfile` in
+`analytics/opponent.py`), each -2..+2, which shift attribute emphasis by
+position and impose absolute team-balance floors. Opponent fit is reported as
+its own component beside coherence and instruction fit, never folded invisibly
+into one number, and a neutral profile is provably inert. It reaches tactic
+ranking, XI choice, bench, substitutions, depth and weaknesses. See
+`analytics/CLAUDE.md` and §2j of
+[tactical-model-upgrade-plan.md](tactical-model-upgrade-plan.md) for what was
+built and the five deviations from the original design.
+
+Still to do here: the CLI flags and `/tactics` sliders that let a manager
+actually set it, and the rank-delta view that says what changed versus neutral.
+Deriving the profile from opposition data rather than a slider is Phase 08/D6
+and is deliberately out of scope — `OpponentProfile` is the interface an
+automatic version would substitute into without touching scoring.
+
+Note the ordering advice below still applies to everything *beyond* the manual
+sliders. The eventual target is:
 
 ```
 expected effectiveness(

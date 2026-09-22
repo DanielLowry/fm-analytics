@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
+from fm_analytics.analytics.opponent import OpponentProfile, attribute_emphasis
 from fm_analytics.analytics.role_scoring import ScoreBand
 from fm_analytics.analytics.xi_models import (
     FamiliarityPolicy,
@@ -57,6 +58,7 @@ def explain_tactic_selection(
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
     system_policy: SystemFitPolicy = SystemFitPolicy(),
+    opponent: OpponentProfile = OpponentProfile.neutral(),
 ) -> TacticSelectionExplanation:
     """Explain each starter with like-for-like and whole-XI comparisons.
 
@@ -64,8 +66,15 @@ def explain_tactic_selection(
     Each of the strongest alternatives is then forced into that job while the
     normal optimiser reallocates every other player.  This distinguishes
     "weaker in this job" from "stronger here, but needed elsewhere".
+
+    `catalogue` is deliberately kept plain (not re-derived) for the
+    `evaluate_tactic_with_forced_assignment` call below: that function derives
+    its own tactic-and-opponent view internally, and handing it an
+    already-derived catalogue would apply the same emphasis a second time.
     """
-    catalogue = catalogue.for_tactic(evaluation.tactic.key)
+    tactic_view = catalogue.for_context(
+        evaluation.tactic.key, extra_emphasis=attribute_emphasis(opponent)
+    )
     if alternative_limit < 0:
         raise ValueError("alternative limit cannot be negative")
     current_slots = {
@@ -80,7 +89,7 @@ def explain_tactic_selection(
             assignment = score_player_for_slot(
                 player,
                 starter.slot,
-                catalogue,
+                tactic_view,
                 readiness_policy=readiness_policy,
                 familiarity_policy=familiarity_policy,
                 role_key=starter.intrinsic_role_score.role_key,
@@ -108,6 +117,7 @@ def explain_tactic_selection(
                 familiarity_policy=familiarity_policy,
                 fit_policy=fit_policy,
                 system_policy=system_policy,
+                opponent=opponent,
             )
             alternatives.append(
                 SelectionAlternative(

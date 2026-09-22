@@ -8,7 +8,7 @@ never hidden Current Ability, Potential Ability, or other internal values.
 
 ```
 src/fm_analytics/            CLI, the reporting path, the bridge contract
-src/fm_analytics/analytics/  role/tactic scoring, catalogue, depth, weaknesses — see analytics/CLAUDE.md
+src/fm_analytics/analytics/  role/tactic scoring, catalogue, depth, weaknesses, opponent — see analytics/CLAUDE.md
 src/fm_analytics/bridge/     HTTP boundary onto the game process — see bridge/CLAUDE.md
 src/fm_analytics/domain/     Player/Squad/GameState and Visibility — the shared vocabulary
 src/fm_analytics/api/        HTTP client for the bridge
@@ -59,9 +59,19 @@ there are no migrations, so an old capture is simply unreadable.
 
 For performance work, generate a synthetic squad of the size you care about
 rather than reaching for the fixture or a capture. Measure the full bundle
-against the 25-tactic catalogue: it evaluates every permitted role version
+against the whole shipped catalogue (42 tactics, 84 roles, 265 legal role
+versions in total): it evaluates every permitted role version for every tactic
 and then solves the player assignment, so a change that does not improve that
 end-to-end measurement has not improved the page load.
+
+Cost is driven far more by how many slots each player is eligible for than by
+the number of tactics. A 30-player squad with 2–4 positions each at full
+familiarity takes ~10s for a full effective+potential run on this machine;
+narrower squads are much faster. **Always state the squad generator with a
+timing** — figures measured against different synthetic squads are not
+comparable, which is why older numbers in
+[docs/tactical-model-upgrade-plan.md](docs/tactical-model-upgrade-plan.md) do
+not reproduce.
 
 ## Before editing
 

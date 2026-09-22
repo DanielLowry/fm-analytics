@@ -100,7 +100,7 @@ A compact narrow 4-1-2-1-2 built around central combinations, two strikers and f
 - **Attack:** Attacking Midfielder (Support), Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
 - **Leans on:** teamwork +2, first touch +2, positioning +2, pace +2 (whole team)
-- **Expects at least (tapers below):** passing 8 (MC); first touch 8 (MC); stamina 8 (DL, DR)
+- **Expects at least (tapers below):** passing 8 (MC); first touch 8 (MC); vision 8 (AMC); first touch 8 (AMC); stamina 8 (DL, DR); crossing 7 (DL, DR)
 - **Needs:** Full-backs with stamina/crossing; Disciplined DM; Creative AMC; Complementary strikers
 - **Instructions:** Fairly Narrow; Shorter Passing; Counter; Regroup; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against teams that attack down the flanks and outnumber your full-backs, or when your full-backs lack the stamina to cover the whole side of the pitch
@@ -213,6 +213,7 @@ A simple lower-league 4-4-2 that keeps two banks of four but attacks more vertic
 - **Attack:** Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
 - **Leans on:** teamwork +2 (whole team); positioning +2, concentration +2, jumping reach +1 (DC); stamina +2, work rate +1, crossing +1 (DL, DR); pace +2, acceleration +2, crossing +2, work rate +1 (ML, MR); work rate +2, stamina +2, positioning +1, off the ball +1 (MC); off the ball +2, anticipation +2, acceleration +2 (ST)
+- **Expects at least (tapers below):** positioning 7 (DC); pace 7 (ML, MR); crossing 7 (ML, MR); stamina 7 (MC); work rate 7 (MC); off the ball 7 (ST); acceleration 7 (ST)
 - **Needs:** One holding central midfielder and one energetic runner; Wide players with enough pace and crossing to deliver early; A linking striker paired with a forward who attacks space; Disciplined back four; Enough stamina and work rate to support quick transitions
 - **Instructions:** Fairly Wide; Slightly More Direct Passing; Higher Tempo; Pass Into Space; Hit Early Crosses; Counter; Regroup; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against a side that dominates central midfield with three strong midfielders, or when your forwards lack pace and movement to exploit earlier, more vertical service
@@ -597,7 +598,7 @@ A narrow 4-3-1-2 using three central midfielders and an advanced playmaker behin
 - **Attack:** Advanced Playmaker (Attack) [AMC], Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
 - **Leans on:** stamina +2, crossing +2, first touch +2, teamwork +2 (whole team)
-- **Expects at least (tapers below):** passing 8 (MC); vision 8 (AMC); stamina 9 (DL, DR)
+- **Expects at least (tapers below):** passing 8 (MC); vision 8 (AMC); first touch 8 (AMC); technique 8 (AMC); stamina 9 (DL, DR); crossing 8 (DL, DR)
 - **Needs:** Excellent attacking full-backs; Three capable central midfielders; Creative AMC; Complementary strikers
 - **Instructions:** Fairly Narrow; Shorter Passing; Work Ball Into Box; Overlap Left; Overlap Right; Counter-Press; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against sides that attack the flanks, since your full-backs are the only wide players and will be stretched
@@ -662,7 +663,7 @@ A narrow 4-3-1-2 with one trequartista who roams freely behind two strikers, and
 - **Attack:** Trequartista (Attack) [AMC], Pressing Forward (Support), Advanced Forward (Attack) *
 
 - **Leans on:** first touch +2, teamwork +2, technique +2, composure +2 (whole team)
-- **Expects at least (tapers below):** vision 8 (AMC); technique 9 (AMC); stamina 8 (DL, DR)
+- **Expects at least (tapers below):** vision 10 (AMC); technique 10 (AMC); first touch 9 (AMC); composure 9 (AMC); stamina 8 (DL, DR)
 - **Needs:** An exceptional creative player with vision and technique; A pressing forward with high work rate; A ball-winning midfielder; Full-backs who provide all the width
 - **Instructions:** Fairly Narrow; Shorter Passing; Work Ball Into Box; Counter-Press; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against teams that man-mark the playmaker or overload the flanks, since the full-backs are your only wide players

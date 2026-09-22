@@ -27,19 +27,23 @@ and suspension are not accepted by the intrinsic role scorer. This preserves
 the distinction needed by the eventual XI selector between player quality,
 positional fit, current readiness, and availability.
 
-The current catalogue (`fm20-expanded-tactics-v1`) contains 28 roles and 25
-materially different opponent-neutral templates. It is loaded from versioned
-JSON, with eleven slots, mentality, instructions, structural requirements, and
-explicit per-slot role alternatives. These remain provisional football
+The current catalogue (`fm20-expanded-tactics-v2-position-weights`) contains 84
+roles — 66 of them named by a tactic — and 42 opponent-neutral templates. It is
+loaded from versioned JSON split one file per tactic and one per position group,
+with eleven slots, mentality, instructions, structural requirements, explicit
+per-slot role alternatives, per-tactic attribute emphasis, attribute tapers and
+manager-facing justification text. These remain provisional football
 hypotheses; changes create a new catalogue version rather than silently
-changing old recommendations.
+changing old recommendations. See
+[tactical-model-upgrade-plan.md](../../tactical-model-upgrade-plan.md) §2–§2k for
+how it got here and what each part does.
 
 The first direct live owned-squad recommendation showed why breadth matters:
 the managed 17-player Hungerford squad had no left-sided wide player, so the
 original wide templates produced partial XIs. A balanced 4-1-2-1-2 DM narrow
 diamond then produced a legal live XI on 24 June 2019. The catalogue has grown
-substantially since that run, so its 25-tactic output still needs fresh live
-and expert review.
+from 25 to 42 tactics since that run and has gained emphasis and taper scoring,
+so its output still needs fresh live and expert review.
 
 The first tactic-aware weakness pass now keeps starter quality, available
 backup quality, structural gaps, temporary availability gaps, and shared

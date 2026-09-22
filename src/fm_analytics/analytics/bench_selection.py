@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
+from fm_analytics.analytics.opponent import OpponentProfile, attribute_emphasis
 from fm_analytics.analytics.xi_selection import (
     FamiliarityPolicy,
     PlayerSelectionInput,
@@ -45,6 +46,7 @@ def select_bench(
     bench_size: int = 7,
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
+    opponent: OpponentProfile = OpponentProfile.neutral(),
 ) -> BenchSelection:
     """Choose selectable non-starters for slot coverage, then playing quality."""
     if bench_size < 0:
@@ -54,7 +56,9 @@ def select_bench(
         or catalogue.tactics[evaluation.tactic.key] != evaluation.tactic
     ):
         raise ValueError("evaluated tactic must belong to the supplied catalogue")
-    catalogue = catalogue.for_tactic(evaluation.tactic.key)
+    catalogue = catalogue.for_context(
+        evaluation.tactic.key, extra_emphasis=attribute_emphasis(opponent)
+    )
     player_ids = [player.id for player in players]
     if len(player_ids) != len(set(player_ids)):
         raise ValueError("bench player ids must be unique")

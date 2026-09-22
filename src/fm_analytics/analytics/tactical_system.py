@@ -125,11 +125,20 @@ def assess_coherence(
 
 
 def assess_instruction_suitability(roles: Sequence[RoleDefinition], instructions: Sequence[str]) -> SystemAssessment:
-    contributions = _contributions(roles)
     demands: dict[str, float] = {}
     for instruction in instructions:
         for dimension, minimum in _INSTRUCTION_REQUIREMENTS.get(instruction, {}).items():
             demands[dimension] = max(demands.get(dimension, 0.0), minimum)
+    return assess_demands(roles, demands)
+
+
+def assess_demands(roles: Sequence[RoleDefinition], demands: Mapping[str, float]) -> SystemAssessment:
+    """How fully the eleven's combined traits meet a set of minimums.
+
+    Inactive (and 100) when nothing is demanded, which is what lets a component
+    built on it drop out of a blend entirely rather than dilute it.
+    """
+    contributions = _contributions(roles)
     attack_duties = round(contributions.pop("attackDuty", 0.0))
     creators = sum(role_traits(role).get("creativity", 0) >= 1.2 for role in roles)
     if not demands:

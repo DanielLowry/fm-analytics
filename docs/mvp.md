@@ -41,6 +41,13 @@ encode every FM20 choice:
 - a small set of compatible team instructions and mentality choices;
 - explicit role eligibility and required/desirable attribute weights.
 
+> This describes the deliberately small *starting* catalogue, and the shipped one
+> has long outgrown it: 42 tactics and 84 roles, with per-attribute weights on a
+> 0–10 scale (the `required`/`desirable` flat weighting was removed), per-tactic
+> attribute emphasis, and attribute tapers. The MVP *decision boundary* in this
+> document still holds; these bullets no longer describe the data. See
+> [tactical-model-upgrade-plan.md](tactical-model-upgrade-plan.md).
+
 A tactic template is a complete baseline setup, not an opponent-specific game
 plan. The MVP evaluates the tactic and XI jointly because the best eleven is
 conditional on the shape and roles, while the best shape is conditional on the

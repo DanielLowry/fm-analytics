@@ -69,6 +69,12 @@ before equivalent controller recipes exist would break working evidence paths.
 - `phase00_validate.py` captures or compares the established environment
   baseline.
 - `validate_research_catalog.py` validates the semantic registry and corpus.
+- `tactic_index.py` regenerates `docs/tactic-catalogue.md` from the shipped
+  catalogue. Never hand-edit that file; `tests/test_tactic_index.py` fails when
+  it is stale, so run this after any tactic data change.
+- `seed_tactic_emphasis.py` wrote the original per-tactic `attributeEmphasis`
+  blocks. The blocks are hand-owned now, so it refuses to overwrite tuning
+  without `--force` — it is kept for reference, not part of any normal workflow.
 
 ## Archive rule
 

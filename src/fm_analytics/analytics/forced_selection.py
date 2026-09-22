@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue, TacticDefinition
+from fm_analytics.analytics.opponent import OpponentProfile
 from fm_analytics.analytics.xi_models import (
     FamiliarityPolicy,
     PlayerSelectionInput,
@@ -28,6 +29,7 @@ def evaluate_tactic_with_forced_assignment(
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
     system_policy: SystemFitPolicy = SystemFitPolicy(),
+    opponent: OpponentProfile = OpponentProfile.neutral(),
 ) -> TacticEvaluation:
     """Re-optimise the other ten slots with one player locked into one role."""
     slot_indexes = [
@@ -46,5 +48,6 @@ def evaluate_tactic_with_forced_assignment(
         familiarity_policy=familiarity_policy,
         fit_policy=fit_policy,
         system_policy=system_policy,
+        opponent=opponent,
         forced_assignment=(slot_index, player_id, role_key),
     )

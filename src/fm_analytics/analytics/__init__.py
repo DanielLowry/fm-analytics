@@ -22,6 +22,17 @@ from fm_analytics.analytics.catalogue import (
     TacticSystemRequirements,
 )
 from fm_analytics.analytics.attribute_taper import AttributeTaperPolicy
+from fm_analytics.analytics.opponent import (
+    AXES,
+    AXIS_DEFINITIONS,
+    EmphasisRule,
+    FloorRule,
+    OpponentAxis,
+    OpponentProfile,
+    assess_opponent_fit,
+    attribute_emphasis as opponent_attribute_emphasis,
+    system_floors as opponent_system_floors,
+)
 from fm_analytics.analytics.xi_selection import (
     EffectiveAndPotentialRecommendation,
     FamiliarityPolicy,
@@ -129,6 +140,8 @@ from fm_analytics.analytics.set_pieces import (
 
 __all__ = [
     "AttributeContribution",
+    "AXES",
+    "AXIS_DEFINITIONS",
     "BenchEntry",
     "BenchSelection",
     "CandidateRoleScore",
@@ -138,7 +151,11 @@ __all__ = [
     "FootballCatalogue",
     "DepthCandidate",
     "DELIVERY_STYLES",
+    "EmphasisRule",
+    "FloorRule",
     "MVP_CATALOGUE",
+    "OpponentAxis",
+    "OpponentProfile",
     "PlayerRoleFit",
     "PlayerRoleProfile",
     "PositionAdjustedRoleFit",
@@ -201,6 +218,7 @@ __all__ = [
     "WeaknessReport",
     "assess_squad_depth",
     "assess_scouting_candidates",
+    "assess_opponent_fit",
     "available_fact_values",
     "filter_scouting_candidates",
     "rank_for_position",
@@ -212,6 +230,8 @@ __all__ = [
     "build_role_matrix",
     "compare_role_scores",
     "compare_players_at_position",
+    "opponent_attribute_emphasis",
+    "opponent_system_floors",
     "evaluate_tactic",
     "evaluate_tactic_with_forced_assignment",
     "explain_tactic_selection",

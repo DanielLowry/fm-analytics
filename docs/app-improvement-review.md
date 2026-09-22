@@ -1,5 +1,27 @@
 # Application improvement review
 
+> **Evidence re-checked 22 September 2026. The recommendations still stand; the
+> "Evidence checked" figures below do not.** What changed:
+>
+> - The catalogue is now `fm20-expanded-tactics-v2-position-weights` with **42
+>   tactics and 84 roles**, not the 25 and 28 recorded below. Any timing or
+>   profile count measured against the old catalogue is void.
+> - The suite is **703 tests**, not 443.
+> - `SCHEMA_VERSION` is now **4**. Item 3.1 is still open and still P0: there is
+>   no migration path at all, so an older capture remains simply unreadable.
+> - Still open and unchanged in substance: **1.5 / additional finding 1**
+>   (`SquadWebServer.bundle()` still keys on time alone and still computes
+>   outside the lock), **2.4** (there is no `/player` route), and **2.2 / 3.3**
+>   (recruitment still has two models and two entry paths).
+> - Its own **finding 5** — catalogue growth silently invalidating docs — has
+>   recurred twice since, and was corrected again in the 22 September pass. The
+>   suggestion there to *derive* displayed counts rather than write them down is
+>   the durable fix and has not been done.
+>
+> This document stays in the active index because its recommendations are mostly
+> unstarted. Archive it once Releases A–C below are delivered or formally
+> dropped, rather than letting it decay further.
+
 **Reviewed:** 19 September 2026  
 **Scope:** the supplied performance/product feedback, current implementation,
 tests, the local 17-player capture, and maintained documentation.

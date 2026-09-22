@@ -13,6 +13,7 @@ from typing import Sequence
 
 from fm_analytics.analytics.bench_selection import BenchSelection
 from fm_analytics.analytics.catalogue import FootballCatalogue
+from fm_analytics.analytics.opponent import OpponentProfile, attribute_emphasis
 from fm_analytics.analytics.xi_selection import (
     FamiliarityPolicy,
     PlayerSelectionInput,
@@ -57,6 +58,7 @@ def build_substitution_board(
     *,
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
+    opponent: OpponentProfile = OpponentProfile.neutral(),
 ) -> SubstitutionBoard:
     """Rank named substitutes for each selected starter's actual role/slot.
 
@@ -69,7 +71,9 @@ def build_substitution_board(
         or catalogue.tactics[evaluation.tactic.key] != evaluation.tactic
     ):
         raise ValueError("evaluated tactic must belong to the supplied catalogue")
-    catalogue = catalogue.for_tactic(evaluation.tactic.key)
+    catalogue = catalogue.for_context(
+        evaluation.tactic.key, extra_emphasis=attribute_emphasis(opponent)
+    )
 
     players_by_id = {player.id: player for player in players}
     if len(players_by_id) != len(players):

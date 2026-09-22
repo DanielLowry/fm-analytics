@@ -365,21 +365,35 @@ class FootballCatalogue:
         that declares no emphasis returns this catalogue unchanged, which is
         what keeps the no-emphasis case exactly as it scored before.
         """
+        if (cached := self._derived.get(tactic_key)) is not None:
+            return cached
         tactic = self.tactics[tactic_key]
-        # What every slot gets regardless of position, and what each slot gets
-        # once position blocks and its own block are added. Only a slot whose
-        # total differs from the whole-team one needs its own re-weighted roles.
-        whole_team = _sum_emphasis(
-            *(block.attributes for block in tactic.attribute_emphasis if not block.positions)
-        )
+        # Worst case under threading is building this twice; both are equal.
+        derived = self._derive_view(tactic, tactic.attribute_emphasis) or self
+        self._derived[tactic_key] = derived
+        return derived
+
+    def for_context(
+        self, tactic_key: str, *, extra_emphasis: tuple[AttributeEmphasis, ...] = ()
+    ) -> "FootballCatalogue":
+        """`for_tactic` plus more blocks on top (an opponent's; see
+        `analytics/opponent.attribute_emphasis`). No extra is `for_tactic`,
+        cache included; with some, uncached (analytics/CLAUDE.md Phase 7)."""
+        if not extra_emphasis:
+            return self.for_tactic(tactic_key)
+        tactic = self.tactics[tactic_key]
+        return self._derive_view(tactic, tuple(tactic.attribute_emphasis) + extra_emphasis) or self
+
+    def _derive_view(
+        self, tactic: TacticDefinition, blocks: tuple[AttributeEmphasis, ...]
+    ) -> "FootballCatalogue | None":
+        """Roles re-weighted by `blocks` (the tactic's, plus an opponent's if
+        any), or None if unchanged. Tapers are always the tactic's own."""
+        whole_team = _sum_emphasis(*(block.attributes for block in blocks if not block.positions))
         slot_totals = {}
         for slot in tactic.slots:
             total = _sum_emphasis(
-                *(
-                    block.attributes
-                    for block in tactic.attribute_emphasis
-                    if block.applies_to(slot.position)
-                ),
+                *(block.attributes for block in blocks if block.applies_to(slot.position)),
                 slot.attribute_emphasis,
             )
             if total != whole_team:
@@ -387,15 +401,10 @@ class FootballCatalogue:
         slot_tapers = {
             slot.key: applicable
             for slot in tactic.slots
-            if (applicable := tuple(
-                taper for taper in tactic.attribute_taper if taper.applies_to(slot.position)
-            ))
+            if (applicable := tuple(t for t in tactic.attribute_taper if t.applies_to(slot.position)))
         }
         if not whole_team and not slot_totals and not slot_tapers:
-            return self
-        cached = self._derived.get(tactic_key)
-        if cached is not None:
-            return cached
+            return None
         roles = {key: _emphasised(role, whole_team) for key, role in self.roles.items()}
         slot_roles = {
             (slot.key, role_key): _emphasised(self.roles[role_key], slot_totals[slot.key])
@@ -403,12 +412,7 @@ class FootballCatalogue:
             if slot.key in slot_totals
             for role_key in slot.role_keys
         }
-        derived = replace(
-            self, roles=roles, slot_roles=slot_roles, slot_tapers=slot_tapers, tactic_view=True
-        )
-        # Worst case under threading is building this twice; both are equal.
-        self._derived[tactic_key] = derived
-        return derived
+        return replace(self, roles=roles, slot_roles=slot_roles, slot_tapers=slot_tapers, tactic_view=True)
 
     def tapers_for_slot(self, slot: TacticSlot) -> tuple[AttributeTaper, ...]:
         """The attribute tapers that apply to whoever fills this slot."""

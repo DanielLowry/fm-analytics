@@ -22,12 +22,12 @@ are hypotheses, not promises about implementation.
 | [01 — Extraction API](01-extraction-api/README.md) | Supply stable, observable inputs for the MVP | In progress | Execution-ready | 00 |
 | [02 — Persistence](02-persistence/README.md) | Retain the observations and provenance needed to reproduce decisions | In progress | Detailed | 01 |
 | [03 — Information visibility](03-information-visibility/README.md) | Enforce field knowledge and the discoverable-player boundary | In progress | Native off-screen attribute query validated; manager-rooted search source callable; exact discoverable set and bridge integration remain | 00–02 |
-| [04 — Squad model](04-squad-analytics/README.md) | Explain role suitability, baseline-tactic fit, depth, and weaknesses | In progress | 28 roles, 25 tactics, role matrix, and squad-wide depth implemented; football calibration remains | 02–03 |
-| [05 — Tactic and XI selection](05-xi-optimisation/README.md) | Recommend a valid baseline tactic and lineup jointly | In progress | Joint role/player search works; current 25-tactic bundle cost is an interactive bottleneck | 04 |
+| [04 — Squad model](04-squad-analytics/README.md) | Explain role suitability, baseline-tactic fit, depth, and weaknesses | In progress | 84 roles, 42 tactics, role matrix, and squad-wide depth implemented; per-tactic attribute emphasis and tapers added; football calibration remains | 02–03 |
+| [05 — Tactic and XI selection](05-xi-optimisation/README.md) | Recommend a valid baseline tactic and lineup jointly | In progress | Joint role/player search works; full-catalogue bundle cost is still an interactive bottleneck and needs re-baselining | 04 |
 | [06 — Recruitment](06-recruitment/README.md) | Convert weaknesses into uncertainty-aware visible-player shortlists | In progress | Brief/HTML CLI path and richer JSON web path work separately; unification remains | 03–05 |
 | [07 — Match database](07-match-database/README.md) | Build a trustworthy history of matches and decisions | Planned | Provisional | 01–03 |
 | [08 — Opposition analysis](08-opposition-analysis/README.md) | Produce evidence-backed pre-match reports | Planned | Outline | 07 |
-| [09 — Opposition-specific tactics](09-tactical-recommendations/README.md) | Adjust the baseline tactic for a particular matchup | Planned | Outline | 05, 07–08 |
+| [09 — Opposition-specific tactics](09-tactical-recommendations/README.md) | Adjust the baseline tactic for a particular matchup | Planned | Outline. A manager-set opponent profile exists in analytics (roadmap item 9) but meets none of this phase's evidence criteria | 05, 07–08 |
 | [10 — Machine learning](10-machine-learning/README.md) | Learn calibrated models only where they beat baselines | Planned | Outline | 04, 06–09 |
 | [11 — Automation and UI](11-automation-and-ui/README.md) | Deliver timely decisions in the normal play loop | In progress | Thin local web app exists; cache, refresh jobs, player navigation, and decision dashboard remain | Capabilities from earlier phases |
 

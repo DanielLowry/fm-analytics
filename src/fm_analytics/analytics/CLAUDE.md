@@ -50,9 +50,11 @@ slot plays is usually what makes a tactic *that* tactic (a deep playmaker
 vs. a ball-winner as the DM defines two different systems), so a slot stays
 single-role unless a human decided otherwise for it specifically.
 
-The catalogue currently declares alternatives for four role pairs
-— `cd_defend`/`cd_cover`, `af_attack`/`p_attack`, `dlf_support`/`cf_support`,
-and `pf_attack`/`af_attack` — the first three chosen because their `tactical_system.py` trait contributions are nearly
+The catalogue declares alternatives for six distinct role sets:
+`cd_defend`/`cd_cover`, `af_attack`/`p_attack`, `dlf_support`/`cf_support`,
+`cm_support`/`b2b_support`, the one three-role set
+`dlf_support`/`pf_support`/`cf_support`, and `pf_attack`/`af_attack`. All but
+the last are chosen because their `tactical_system.py` trait contributions are nearly
 identical (see each role's `system` traits in `data/roles/`): swapping one for the other changes
 which specific player profile fits the slot, not what the team's system
 does. `pf_attack`/`af_attack` (only in the two gegenpress tactics) is the
@@ -71,12 +73,15 @@ similar in name.
 Slot alternatives are chosen independently, so a tactic can name the same
 role in two slots on one line. `data/catalogue.json`'s `exclusiveRoleGroups` rules
 those out: each group names roles of which at most one slot may play, at one
-position (today: one Cover centre-back, `cd_cover`) or, with no `position`,
-anywhere in the eleven (today: one of Trequartista, Enganche, Raumdeuter). Roles in a
+position or, with no `position`, anywhere in the eleven. Three groups ship
+today: **Cover centre-back** (`cd_cover`, `bpd_cover`, `nncb_cover`) and
+**Stopper centre-back** (`cd_stopper`, `bpd_stopper`, `nncb_stopper`), both
+scoped to DC, and **Free roles** across the whole XI (the three Trequartistas,
+Enganche, Raumdeuter). Roles in a
 group are the ones that only make sense alongside a partner who isn't in it.
 `_best_role_version` skips any role version that breaks a group, and
 `FootballCatalogue` refuses to load a tactic with no legal version. When a new
-Cover (or Stopper) role is added at DC, put it in the group.
+Cover or Stopper role is added at DC, put it in the matching group.
 
 ## Per-tactic attribute emphasis
 
@@ -93,16 +98,34 @@ the total is clamped to 0-10. Positions are slot positions, not slot keys
 
 `catalogue.for_tactic(key)` returns the catalogue with roles re-weighted for one
 tactic, keeping every key, name, position, system trait and the version, so
-lookups and exclusion groups keep working. Score through
+lookups and exclusion groups keep working. `catalogue.for_context(key,
+extra_emphasis=...)` is the same thing with further blocks layered on top, which
+is how an opponent reaches player scoring (see "The opponent" below); with no
+extra blocks it *is* `for_tactic`, cache included. Score through
 `catalogue.role_for_slot(slot, role_key)`, never `catalogue.roles[...]`, anywhere
-a slot is in hand. Each per-tactic entry point derives its own view, so callers
-pass the plain catalogue as before.
+a slot is in hand.
+
+**Derive a view once, and never pass a derived catalogue to something that
+derives its own.** Each per-tactic entry point (`evaluate_tactic`,
+`select_bench`, `build_substitution_board`, `assess_weaknesses`,
+`explain_tactic_selection`) calls `for_context` itself, so callers hand it the
+plain catalogue. Deriving twice for the same tactic applies its emphasis
+*twice*: the deltas are recomputed from the unchanged `TacticDefinition` and
+added to already-emphasised weights. This was a real bug —
+`explain_tactic_selection` derived a view and then passed it into
+`evaluate_tactic_with_forced_assignment`, which derived again, so every
+counterfactual score in the "why this player" alternatives was computed at
+double emphasis. Fixed, and guarded by
+`tests/test_opponent_integration.py::NoDoubleApplicationRegressionTests`.
 
 The blocks were seeded once by `tools/seed_tactic_emphasis.py` and are now
 hand-owned; re-running it discards tuning unless you pass `--force`. Keep them
 soft (the shipped seed is +2 on at most four attributes, and a test enforces
 that band) — the emphasis is meant to separate close candidates, not to
-overturn what a role fundamentally asks for.
+overturn what a role fundamentally asks for. The seed was whole-team only;
+three tactics (`balanced_442`, `balanced_433dm`, `vertical_442`) have since been
+given hand-authored position-scoped blocks. No slot-level block is seeded and a
+test enforces that, so every one in the tree is deliberate.
 
 Tactic-free surfaces (the Squad roster, Roles, Scouting) deliberately stay on
 base weights, so a player's best role does not move between pages.
@@ -138,6 +161,58 @@ bench, substitution cover, explanations, and the depth/weakness report (starter
 and cover are both tapered, or a penalised starter would look better than his
 cover). A group rule such as "at least one midfielder with passing 12" would
 couple players and is deliberately not supported.
+
+## The opponent
+
+`opponent.py` holds an `OpponentProfile`: six sliders, each an integer -2..+2,
+all 0 by default. It is the manager's **own estimate** of the opposition, never
+derived from anything hidden — `quality` in particular is relative to *us*,
+which only the manager can judge, so it is set, not computed. Roadmap item 9 and
+the upgrade plan's workstream D are the background.
+
+An opponent acts through exactly two channels, both declared as reviewable data
+in `AXIS_DEFINITIONS` in the same spirit as `_INSTRUCTION_REQUIREMENTS`:
+
+- **`EmphasisRule`** — attribute emphasis blocks scoped to positions, composed
+  with the tactic's own via `for_context`. This is what changes *who is picked*
+  (an aerial threat raises `heading`/`jumpingReach`/`strength` for DC).
+- **`FloorRule`** — absolute minimums the eleven's roles must jointly supply,
+  scored by `assess_opponent_fit` and reported as a fourth component alongside
+  coherence and instruction fit (`SystemFitPolicy.opponent_weight`, 0.20).
+  Absolute, **not** a delta on each tactic's own minimums: adding to a
+  gegenpress's deliberately low `defensiveCover` and a low block's high one
+  would penalise both, where a shared floor correctly only bites the tactic
+  with no slack.
+
+**A neutral profile is provably inert.** It produces no blocks and no floors, so
+`for_context` returns the plain `for_tactic` view and `assess_opponent_fit` is
+`active=False`, dropping out of the blend exactly as coherence does for a tactic
+with no requirements. `tests/test_opponent_integration.py` asserts byte-identical
+results — evaluation, ranking, bench, substitution board, weakness and depth
+reports — with and without an explicit neutral profile.
+
+**Adding a slider** is two edits, both pure data: a field on `OpponentProfile`,
+and its `OpponentAxis` entry. `_check_profile_matches_axes()` runs at import and
+refuses to load if either half is missing, so a slider cannot silently do
+nothing. The shape suits another *scalar* axis; a categorical signal ("they play
+a back three") would need its own mechanism rather than being forced into -2..+2.
+
+**Two things to know before tuning the numbers.**
+
+- Floors must stay reachable. The first draft was on the wrong scale and 40 of
+  42 tactics could not meet it — the same failure `test_tactical_calibration.py`
+  exists to prevent. `tests/test_opponent.py::ReachabilityTests` now guards every
+  axis and setting against what the catalogue can actually supply.
+- **The blended score is not monotonic in opponent difficulty**, and that is not
+  a bug. Opponent fit, like coherence and instruction fit, measures whether the
+  *roles* clear a bar — not whether your players are good. For a weak squad it
+  can sit well above `xi_score`, so activating it can raise the total even
+  against a harder opponent. Explain "this got harder" from the component, never
+  from the headline number.
+
+Not built yet: the CLI flags and the `/tactics` sliders (plan D4–D5). Note
+`SquadWebServer.bundle()` still caches on time alone, so it must become keyed on
+the profile before a slider can drive it.
 
 Scouted ranges follow the observation band (penalised at the low end, not the
 high); an unknown attribute is the scale minimum centrally, as everywhere.
@@ -175,7 +250,12 @@ silently treating it as independent.
   fails a tactic whose demands no legal XI can meet. These are
   declared, reviewable football hypotheses, not tuned/learned weights —
   changing one is a football judgment call, worth calling out as such in
-  the commit rather than treating as a pure bugfix.
+  the commit rather than treating as a pure bugfix. `assess_demands` is the
+  shared "how fully do these roles meet these minimums" scorer; instruction fit
+  and opponent fit are both built on it, so they cannot drift apart.
+- `opponent.py` — the manager-set opponent profile and its declared effects;
+  see "The opponent" above. Imports from `catalogue`/`tactical_system` and is
+  imported by the tactic-specific entry points, so it must not import them back.
 - `role_weights.py` — validates per-role attribute weights, which are authored
   inline in each role's entry under `data/roles/<position>.json` as a plain
   `{"passing": 9}` map (one file per position group; the JSON is the source of
