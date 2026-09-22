@@ -1,0 +1,23 @@
+{
+  "key":"wide_control_4141", "name":"Wide Control 4-1-4-1", "formation":"4-1-4-1", "mentality":"Positive",
+  "instructions":["Fairly Wide","Shorter Passing","Play Out Of Defence","Work Ball Into Box","Hold Shape","Standard Line of Engagement","Standard Defensive Line"],
+  "slots":[
+    {"key":"GK","position":"GK","role":"sk_defend","why":"The sweeper keeper joins the first line of patient build-up."},
+    {"key":"DL","position":"DL","role":"wb_dl_dr_support","why":"The support wing-back offers the outside width beside the wide playmaker."},
+    {"key":"DCL","position":"DC","role":"bpd_defend","why":"The ball-playing defender starts switches toward either wide creator."},
+    {"key":"DCR","position":"DC","role":"cd_cover","roles":["cd_defend"],"why":"The cover defender protects the circulation structure against a direct ball; Defend is the alternate."},
+    {"key":"DR","position":"DR","role":"fb_support","why":"The right-back supports the inverted winger without racing beyond the rest-defence."},
+    {"key":"DM","position":"DM","role":"dlp_dm_support","why":"The deep-lying playmaker is the secure central outlet beneath the midfield line."},
+    {"key":"ML","position":"ML","role":"wp_support","why":"The wide playmaker creates from a deeper left starting point and draws play toward the inside channel."},
+    {"key":"MCL","position":"MC","role":"cm_defend","why":"The defensive central midfielder protects the left side when the playmaker roams inside."},
+    {"key":"MCR","position":"MC","role":"b2b_support","why":"The box-to-box midfielder connects the possession line with the lone forward and arrives to support the box."},
+    {"key":"MR","position":"MR","role":"iw_ml_mr_support","why":"The inverted winger joins central combinations from the right while retaining a supporting duty."},
+    {"key":"ST","position":"ST","role":"cf_support","why":"The complete forward links with the creators and supplies enough box presence for patient attacks."}
+  ],
+  "system":{"minimums":{"width":2.5,"defensiveCover":7.0,"ballProgression":6.5,"creativity":4.0,"runners":1.5,"boxPresence":1.5,"restDefence":6.5},"maximumAttackDuties":3,"maximumCreators":3},
+  "style":"Flat-wide possession", "description":"A 4-1-4-1 that controls the ball through a Wide Playmaker and flat Inverted Winger, rather than relying on AML/AMR roles.", "whyGood":"It lets a technical ML/MR player dictate from wide while the 4-1-4-1 keeps a stable defensive screen behind the creators.", "whyThisShape":"The wide playmaker moves inside to connect with the DLP, while the inverted winger makes a second central lane. Full-backs retain conventional support duties so the flat midfield has width without losing rest-defence.", "whenToUse":"When your best technical players are natural ML/MR positions and you want a controlled, low-risk way to use them.", "whenNotToUse":"When you need constant runners beyond the striker, or when the full-backs cannot provide the width the creators leave behind.",
+  "instructionRationale":{"Fairly Wide":"Full-backs stretch the pitch around two wide players who may move inside.","Shorter Passing":"Lets the DLP, playmaker and inverted winger combine in small spaces.","Play Out Of Defence":"The keeper, ball-playing defender and DLP form a reliable first build-up line.","Work Ball Into Box":"The team waits for a creator to find the complete forward or a late midfield run.","Hold Shape":"Keeps the four-man midfield line and defensive screen in place around the ball.","Standard Line of Engagement":"Preserves a compact possession block instead of chasing high.","Standard Defensive Line":"Maintains cover for the full-backs while the wide roles drift inside."},
+  "attributeEmphasis":[{"attributes":{"composure":2,"decisions":2,"technique":2,"passing":2}},{"attributes":{"vision":2,"firstTouch":2},"positions":["ML"]},{"attributes":{"dribbling":2,"offTheBall":2},"positions":["MR"]}],
+  "attributeTaper":[{"attribute":"passing","taperBelow":8,"positions":["ML"]},{"attribute":"vision","taperBelow":8,"positions":["ML"]},{"attribute":"firstTouch","taperBelow":8,"positions":["ML"]},{"attribute":"technique","taperBelow":8,"positions":["ML"]}],
+  "keyRequirements":["A genuine flat wide playmaker","A supporting inverted winger","A deep distributor","Full-backs with disciplined width"], "tags":["4141","possession","wide-playmaker","inverted-winger"]
+}

@@ -1,6 +1,6 @@
 # Tactical role coverage audit
 
-Status: **Phase 1 delivered.** This records the catalogue audit undertaken
+Status: **Role-coverage delivery complete.** This records the catalogue audit undertaken
 in September 2026 and the expansion work it recommends. It complements the
 [tactical model upgrade plan](tactical-model-upgrade-plan.md): that document
 describes the model and its calibration; this one focuses on whether every
@@ -96,7 +96,7 @@ the relevant position group and calibrated using the existing taper policy;
 they are not hard selection floors. Balanced fallback systems should not
 acquire arbitrary tapers simply because the mechanism exists.
 
-## Delivery plan
+## Delivery completed
 
 Phase 1 adds three templates that create meaningful homes for eight missing
 roles, rather than merely adding labels:
@@ -111,18 +111,32 @@ roles, rather than merely adding labels:
    deliberately a direct, deep defensive alternative, not a ball-playing
    duplication of the existing 5-3-2.
 
-This raises the shipped catalogue to 45 tactics. Ten roles remain without a
-default tactical home: BWM(D), RPM(S), AP(S), DW(D), WP(S), IW(S), IW(A),
-CD(Stopper), BPD(Stopper), and BPD(Cover).
+Phase 2 completed the remaining coverage work:
 
-The remaining work should then add:
+4. **Roaming Playmaker 4-3-3** — BWM(D), RPM(S), AP(S). The two creators
+   are balanced by a genuine defensive ball-winner, with technical and
+   stamina tapers across midfield.
+5. **Inverted Wide 4-4-2** — DW(D) and IW(A). One flank stays secure while
+   the other has an overlapping wing-back and an inverted runner.
+6. **Wide Control 4-1-4-1** — WP(S) and IW(S). This is a controlled
+   possession home for genuine flat-wide creators rather than AML/AMR
+   approximations.
+7. **Aggressive Playing 3-4-3** — BPD(Stopper) and BPD(Cover). The
+   stopper-and-cover pairing is legal and purpose-built for a high line.
+8. **Front-Foot 4-4-2** — CD(Stopper). It pairs the stopper with a Cover
+   defender behind a two-forward press.
 
-- a roaming 4-3-3 for BWM(D), RPM(S), and AP(S);
-- two flat-wide asymmetric systems for DW(D), WP(S), IW(S), and IW(A);
-- an aggressive playing back three for CD(Stopper), BPD(Stopper), and
-  BPD(Cover);
-- the targeted variants listed above, only when they yield a recognisably
-  different player-search outcome.
+The catalogue now contains 50 tactics and **every one of the 84 permitted
+roles appears as a tactic default**. The two stopper types intentionally sit
+in separate tactics: the exclusion groups prohibit two stopper centre-backs
+in the same XI, which is football-correct as well as a catalogue invariant.
+
+## Further expansion
+
+Further additions should be driven by a distinct player-search outcome, not
+coverage for its own sake. The existing-template opportunities above remain
+good candidates, especially a patient AP(S) possession 4-2-3-1 and an
+asymmetric Carrilero inverted-wing-back 4-3-3.
 
 Every addition must pass the shared-scale calibration tests, document its role
 rationale and instructions, and regenerate `docs/tactic-catalogue.md`.

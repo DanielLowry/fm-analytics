@@ -1,0 +1,23 @@
+{
+  "key":"aggressive_playing_343", "name":"Aggressive Playing 3-4-3", "formation":"3-4-3", "mentality":"Positive",
+  "instructions":["Much Higher Line of Engagement","Higher Defensive Line","Shorter Passing","Play Out Of Defence","Counter-Press"],
+  "slots":[
+    {"key":"GK","position":"GK","role":"sk_defend","why":"The sweeper keeper covers the high space behind the three defenders."},
+    {"key":"DCL","position":"DC","role":"bpd_stopper","why":"The ball-playing stopper steps into duels and carries the ball into midfield when space opens."},
+    {"key":"DCC","position":"DC","role":"bpd_cover","why":"The ball-playing cover defender sweeps behind the press and begins the next attack calmly."},
+    {"key":"DCR","position":"DC","role":"bpd_defend","why":"The remaining defender provides a stable passing outlet beside the stopper-cover pair."},
+    {"key":"WBL","position":"WBL","role":"wb_wbl_wbr_attack","why":"The attacking wing-back supplies the left-side width of the five-lane attack."},
+    {"key":"WBR","position":"WBR","role":"wb_wbl_wbr_attack","why":"The right wing-back mirrors the aggressive width on the other side."},
+    {"key":"MCL","position":"MC","role":"b2b_support","why":"The box-to-box midfielder supports the press and arrives around the box."},
+    {"key":"MCR","position":"MC","role":"dlp_mc_support","why":"The deep-lying playmaker connects the back three to the forward line."},
+    {"key":"AML","position":"AML","role":"winger_aml_amr_attack","why":"The winger holds the left lane while the wing-back overlaps underneath."},
+    {"key":"AMR","position":"AMR","role":"if_attack","why":"The inside forward attacks the box from the right."},
+    {"key":"ST","position":"ST","role":"pf_attack","why":"The pressing forward starts the press and leads the runs beyond the defence."}
+  ],
+  "system":{"minimums":{"width":4.0,"defensiveCover":4.5,"ballProgression":6.0,"runners":5.0,"penetration":3.5,"boxPresence":2.5,"restDefence":5.0,"pressing":3.0},"maximumAttackDuties":6,"maximumCreators":3},
+  "style":"Stopper-cover build-up", "description":"A high-line 3-4-3 that pairs an aggressive ball-playing stopper with a ball-playing cover defender and attacks through wing-backs.", "whyGood":"It offers an actual tactical home to proactive centre-backs who can both defend forward and progress possession.", "whyThisShape":"The stopper attacks the first duel, the cover defender protects behind him, and the third defender keeps the build-up stable. Wing-backs create the width while the front three press and occupy the final line.", "whenToUse":"When your centre-backs are quick, brave and technically secure, and you want to dominate territory with a back three.", "whenNotToUse":"Against quick direct counters if the cover defender lacks pace or the wing-backs cannot recover.",
+  "instructionRationale":{"Much Higher Line of Engagement":"Starts the press close to the opponent so the stopper can defend forward.","Higher Defensive Line":"Keeps the back three connected to midfield, but makes pace and anticipation essential.","Shorter Passing":"Uses the three ball-playing defenders and DLP to retain the ball after regains.","Play Out Of Defence":"Creates several technically capable first-line passers.","Counter-Press":"Wins the ball back before space behind the wing-backs can be attacked."},
+  "attributeEmphasis":[{"attributes":{"anticipation":2,"pace":2,"composure":2,"passing":2}},{"attributes":{"acceleration":2,"concentration":2,"positioning":2},"positions":["DC"]}],
+  "attributeTaper":[{"attribute":"pace","taperBelow":8,"positions":["DC"]},{"attribute":"acceleration","taperBelow":8,"positions":["DC"]},{"attribute":"anticipation","taperBelow":8,"positions":["DC"]},{"attribute":"passing","taperBelow":8,"positions":["DC"]}],
+  "keyRequirements":["A ball-playing stopper","A fast ball-playing cover defender","Aggressive wing-backs","A pressing forward"], "tags":["343","high-line","ball-playing-defenders","counterpress"]
+}

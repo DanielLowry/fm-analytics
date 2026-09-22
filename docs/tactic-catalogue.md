@@ -5,7 +5,7 @@ after changing any tactic. Each tactic's full detail (per-slot reasoning,
 per-instruction rationale, balance requirements) lives in its own file under
 `src/fm_analytics/analytics/data/tactics/`.
 
-45 tactics, 84 roles.
+50 tactics, 84 roles.
 
 ## At a glance
 
@@ -33,14 +33,17 @@ per-instruction rationale, balance requirements) lives in its own file under
 | [Low-Block 4-4-2](#lowblock-442) | 4-4-2 (Low Block) | Defensive | positioning, concentration, marking, teamwork | Protecting a lead, or away against a stronger side |
 | [No-Nonsense 5-3-2](#no-nonsense-532) | 5-3-2 | Defensive | positioning, concentration, marking, heading, jumping reach, strength, bravery | When protecting a result against stronger opposition, particularly with dominant aerial centre-backs and a forward able to hold direct passes |
 | [Aerial 3-4-3](#aerial-343) | 3-4-3 | Positive | crossing, anticipation, off the ball, heading | When you have two wing-backs who cross well and three tall forwards, especially against a back four that struggles with aerial balls |
+| [Aggressive Playing 3-4-3](#aggressive-playing-343) | 3-4-3 | Positive | anticipation, pace, composure, passing, acceleration, concentration, positioning | When your centre-backs are quick, brave and technically secure, and you want to dominate territory with a back three |
 | [Attacking 3-4-3 Wing-Back](#attacking-343) | 3-4-3 | Positive | stamina, anticipation, work rate, passing | When you are clearly the stronger side and expect the opponent to sit deep, or you need goals late |
 | [Box Midfield 4-2-3-1](#box-midfield-4231) | 4-2-3-1 DM AM Wide | Positive | composure, technique, positioning, passing | When you want to control the middle of the pitch against a side that defends in a narrow block, and your full-backs are comfortable on the ball |
 | [Complete Wing-Back 4-2-3-1](#complete-wingback-4231) | 4-2-3-1 DM AM Wide | Positive | stamina, composure, technique, crossing | When your two full-backs are among your best attacking players, or against a team that defends narrowly and leaves the flanks open |
 | [Control Possession 4-2-3-1](#control-possession-4231) | 4-2-3-1 DM AM Wide | Positive | composure, decisions, technique, positioning | When your squad is technically better than the opponent's and you expect them to sit deep, or when you want to protect a lead by keeping the ball |
 | [Crossing 4-3-3](#crossing-433) | 4-3-3 | Positive | crossing, stamina, heading, jumping reach | When you have two tall forwards who can play wide, a strong central striker, and full-backs who can cross, especially against defences that are short or slow to turn |
 | [False Nine 4-3-3](#false-nine-433) | 4-3-3 DM Wide | Positive | composure, technique, anticipation, stamina | Against a back four that defends deep and narrow, when you have a striker who is a better passer than a finisher and two wingers who can score |
+| [Front-Foot 4-4-2](#front-foot-442) | 4-4-2 | Positive | stamina, work rate, aggression, anticipation, pace, acceleration, concentration | When you have an aggressive, aerial stopper, a quick covering partner and forwards able to sustain the first press |
 | [Gegenpress 4-2-3-1](#gegenpress-4231) | 4-2-3-1 DM AM Wide | Positive | work rate, aggression, stamina, anticipation | When you have fit, aggressive players with high work rate and stamina, and you want to play in the opponent's half against sides that struggle to play out from the back |
 | [High-Press 4-3-3](#highpress-433) | 4-3-3 (High Press) | Positive | stamina, work rate, anticipation, aggression | When you have fit, energetic players and want to play in the opponent's half, especially against sides that build slowly from the back |
+| [Inverted Wide 4-4-2](#inverted-wide-442) | 4-4-2 | Positive | stamina, work rate, anticipation, positioning, tackling, marking, acceleration, dribbling, off the ball | When you have a natural flat inverted winger, an energetic attacking full-back and a wide defensive specialist on the opposite side |
 | [Inverted Wing-Back 4-3-3](#inverted-wingback-433) | 4-3-3 DM Wide | Positive | composure, technique, stamina, passing | When your full-backs are better passers than crossers, you want to dominate the centre of the pitch, and you have two wingers who are happy to stay wide |
 | [Narrow 4-2-2-2](#narrow-4222) | 4-2-2-2 | Positive | first touch, teamwork, stamina, work rate | When your best players are central and you lack wingers, especially against a team with two central midfielders who will be overrun |
 | [Positional Play 4-3-3](#positional-play-433) | 4-3-3 | Positive | composure, decisions, technique, passing, positioning, teamwork | When you have a composed central organiser, a hard-working channel midfielder, and a technical half-space player |
@@ -50,9 +53,11 @@ per-instruction rationale, balance requirements) lives in its own file under
 | [Positive 4-3-3 DM Wide](#positive-433dm) | 4-3-3 DM Wide | Positive | composure, technique, stamina, passing | A good all-round attacking system when you have a reliable holding midfielder and two forwards who can score, against opponents who defend with two banks of four |
 | [Possession 4-1-4-1](#possession-4141) | 4-1-4-1 | Positive | composure, decisions, technique, positioning | When your squad is technically better than the opponent's and you want to control the game, or when protecting a lead |
 | [High-Press 4-4-2](#pressing-442) | 4-4-2 | Positive | stamina, work rate, aggression, anticipation | When you have fit, energetic forwards and midfielders and want to press the opponent's build-up, especially against a side that plays short from the back |
+| [Roaming Playmaker 4-3-3](#roaming-playmaker-433) | 4-3-3 | Positive | stamina, work rate, technique, passing, decisions, composure | When a roaming, high-stamina playmaker is one of your best players and you can protect him with a disciplined ball-winner |
 | [Trequartista 4-3-1-2](#trequartista-4312) | 4-3-1-2 | Positive | first touch, teamwork, technique, composure | When you have one player of clearly superior creativity who is not suited to a fixed role, and a striker partner who will run and press for him |
 | [Trequartista 4-4-2](#trequartista-442) | 4-4-2 | Positive | crossing, pace, composure, decisions | When you have a creative forward who is not a natural goalscorer, and a partner with pace and work rate |
 | [Vertical Tiki-Taka 4-3-3 DM](#vertical-tikitaka-433dm) | 4-3-3 DM Wide | Positive | anticipation, first touch, technique, pace | When you have good passers and quick forwards, against teams that sit in a mid-block and leave space behind their line |
+| [Wide Control 4-1-4-1](#wide-control-4141) | 4-1-4-1 | Positive | composure, decisions, technique, passing, vision, first touch, dribbling, off the ball | When your best technical players are natural ML/MR positions and you want a controlled, low-risk way to use them |
 | [Wide Creator 4-4-2](#wide-creator-442) | 4-4-2 | Positive | stamina, work rate, teamwork, passing, vision, technique, first touch, positioning, tackling | When one of your best creators is a natural ML/MR rather than an attacking winger, and you have a tireless defensive wide player to balance him |
 | [Wide Playmakers 4-3-3](#wide-playmakers-433) | 4-3-3 DM Wide | Positive | stamina, work rate, technique, composure | When your best creative players are wingers or attacking midfielders rather than central playmakers, against sides that defend in a mid-block |
 | [Wing Play 4-4-2](#wing-play-442) | 4-4-2 | Positive | crossing, stamina, pace, heading | When you have two good wingers, full-backs with stamina, and a striker who wins headers |
@@ -414,6 +419,23 @@ A 3-4-3 with attacking wing-backs supplying crosses for two wide target men and 
 - **Instructions:** Fairly Wide; More Direct Passing; Hit Early Crosses; Higher Tempo; Regroup
 - **Avoid when:** Against quick counter-attackers who target the space behind the wing-backs
 
+### Aggressive Playing 3-4-3
+
+`aggressive_playing_343` · 3-4-3 · Positive · Stopper-cover build-up
+
+A high-line 3-4-3 that pairs an aggressive ball-playing stopper with a ball-playing cover defender and attacks through wing-backs.
+
+- **Goal:** Sweeper Keeper (Defend)
+- **Defence:** Ball-Playing Defender (Stopper), Ball-Playing Defender (Cover), Ball-Playing Defender (Defend), Wing-Back (Attack) [WBL/WBR] ×2
+- **Midfield:** Box-to-Box Midfielder (Support), Deep-Lying Playmaker (Support) [MC]
+- **Attack:** Winger (Attack) [AML/AMR], Inside Forward (Attack), Pressing Forward (Attack)
+
+- **Leans on:** anticipation +2, pace +2, composure +2, passing +2 (whole team); acceleration +2, concentration +2, positioning +2 (DC)
+- **Expects at least (tapers below):** pace 8 (DC); acceleration 8 (DC); anticipation 8 (DC); passing 8 (DC)
+- **Needs:** A ball-playing stopper; A fast ball-playing cover defender; Aggressive wing-backs; A pressing forward
+- **Instructions:** Much Higher Line of Engagement; Higher Defensive Line; Shorter Passing; Play Out Of Defence; Counter-Press
+- **Avoid when:** Against quick direct counters if the cover defender lacks pace or the wing-backs cannot recover
+
 ### Attacking 3-4-3 Wing-Back
 
 `attacking_343` · 3-4-3 · Positive · Attacking 3-4-3
@@ -510,6 +532,23 @@ A possession 4-3-3 whose striker drops into midfield, dragging a centre-back wit
 - **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Counter-Press; Higher Line of Engagement; Higher Defensive Line
 - **Avoid when:** Against a back three, or a side that keeps its centre-backs in position, since there is no gap to exploit
 
+### Front-Foot 4-4-2
+
+`front_foot_442` · 4-4-2 · Positive · Stopper-cover high press
+
+A front-foot 4-4-2 that uses a stopper-cover centre-back partnership to squeeze play behind an aggressive two-forward press.
+
+- **Goal:** Sweeper Keeper (Defend)
+- **Defence:** Full-Back (Support) ×2, Central Defender (Stopper), Central Defender (Cover)
+- **Midfield:** Wide Midfielder (Support) ×2, Ball-Winning Midfielder (Support) [MC], Box-to-Box Midfielder (Support)
+- **Attack:** Pressing Forward (Defend), Advanced Forward (Attack)
+
+- **Leans on:** stamina +2, work rate +2, aggression +2, anticipation +2 (whole team); pace +2, acceleration +2, concentration +2 (DC)
+- **Expects at least (tapers below):** pace 8 (DC); anticipation 8 (DC); stamina 8 (ML, MR, MC, ST); work rate 8 (ML, MR, MC, ST)
+- **Needs:** An aggressive stopper and quick cover defender; Two energetic forwards; Hard-working wide midfielders; A ball-winning midfielder
+- **Instructions:** Higher Line of Engagement; Higher Defensive Line; Much More Urgent Pressing; Slightly More Direct Passing; Higher Tempo; Counter-Press
+- **Avoid when:** Against direct sides if the cover defender is slow, or when the squad lacks the stamina to press for a full match
+
 ### Gegenpress 4-2-3-1
 
 `gegenpress_4231` · 4-2-3-1 DM AM Wide · Positive · Gegenpress
@@ -541,6 +580,23 @@ An aggressive 4-3-3 designed to regain possession high and sustain pressure in t
 - **Needs:** High work rate/stamina; Fast centre-backs; Sweeper keeper; Squad depth
 - **Instructions:** Much Higher Line of Engagement; Much More Urgent Pressing; Higher Defensive Line; Shorter Passing; Counter-Press
 - **Avoid when:** Against sides that play long over the press, or when your players lack stamina: the press cannot be kept up for 90 minutes
+
+### Inverted Wide 4-4-2
+
+`inverted_wide_442` · 4-4-2 · Positive · Asymmetric inverted counter
+
+A 4-4-2 with a defensive winger securing one side and an inverted winger plus attacking wing-back creating a counter-attacking overload on the other.
+
+- **Goal:** Goalkeeper (Defend)
+- **Defence:** Full Back (Defend), Central Defender (Defend) *, Ball-Playing Defender (Defend), Wing-Back (Attack) [DL/DR]
+- **Midfield:** Defensive Winger (Defend) [ML/MR], Central Midfielder (Defend), Box-to-Box Midfielder (Support), Inverted Winger (Attack) [ML/MR]
+- **Attack:** Deep-Lying Forward (Support), Advanced Forward (Attack)
+
+- **Leans on:** stamina +2, work rate +2, anticipation +2 (whole team); positioning +2, tackling +2, marking +2 (ML); acceleration +2, dribbling +2, off the ball +2 (MR)
+- **Expects at least (tapers below):** work rate 8 (ML); positioning 8 (ML); acceleration 8 (MR); off the ball 8 (MR)
+- **Needs:** A defensive winger; A flat inverted winger; An attacking right wing-back; Complementary forwards
+- **Instructions:** Fairly Wide; Slightly More Direct Passing; Pass Into Space; Overlap Right; Counter; Regroup; Standard Line of Engagement; Standard Defensive Line
+- **Avoid when:** Against an opponent that can repeatedly isolate the attacking right-back, or when the defensive winger cannot carry his side's defensive load
 
 ### Inverted Wing-Back 4-3-3
 
@@ -688,6 +744,23 @@ A 4-4-2 that presses from the front with two pressing forwards, a ball-winning m
 - **Instructions:** Higher Line of Engagement; Much More Urgent Pressing; Counter-Press; Slightly More Direct Passing; Higher Tempo; Standard Defensive Line
 - **Avoid when:** Against sides that play long over the press, or when your players are tired: a two-man press leaves gaps behind it if it is beaten
 
+### Roaming Playmaker 4-3-3
+
+`roaming_playmaker_433` · 4-3-3 · Positive · Mobile midfield creator
+
+A 4-3-3 built to give an elite roaming playmaker freedom while a ball-winner and an advanced playmaker keep the midfield coherent.
+
+- **Goal:** Sweeper Keeper (Defend)
+- **Defence:** Wing-Back (Support) [DL/DR] ×2, Ball-Playing Defender (Defend), Central Defender (Cover) *
+- **Midfield:** Ball-Winning Midfielder (Defend) [MC], Roaming Playmaker (Support) [MC], Advanced Playmaker (Support) [MC]
+- **Attack:** Inverted Winger (Attack) [AML/AMR], Winger (Attack) [AML/AMR], Pressing Forward (Attack)
+
+- **Leans on:** stamina +2, work rate +2, technique +2, passing +2 (whole team); decisions +2, composure +2 (MC)
+- **Expects at least (tapers below):** stamina 8 (MC); work rate 8 (MC); passing 8 (MC)
+- **Needs:** An elite roaming playmaker; A disciplined ball-winner; A second creative midfielder; Energetic pressing support
+- **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Counter-Press; Higher Line of Engagement; Standard Defensive Line
+- **Avoid when:** Against sides that can exploit a midfield that follows the roaming playmaker away from its defensive position, or when the squad lacks work rate
+
 ### Trequartista 4-3-1-2
 
 `trequartista_4312` · 4-3-1-2 · Positive · One free creator, everyone else works
@@ -736,6 +809,23 @@ Short combinations are used to progress quickly rather than simply retain posses
 - **Needs:** Excellent first touch/passing; Mobile midfield; Fast attacking movement; Quick defenders
 - **Instructions:** Shorter Passing; Play Out Of Defence; Higher Tempo; Pass Into Space; Counter-Press; Counter; Higher Line of Engagement; Higher Defensive Line
 - **Avoid when:** Against sides that press well, or when your defenders are not comfortable on the ball or with a high line
+
+### Wide Control 4-1-4-1
+
+`wide_control_4141` · 4-1-4-1 · Positive · Flat-wide possession
+
+A 4-1-4-1 that controls the ball through a Wide Playmaker and flat Inverted Winger, rather than relying on AML/AMR roles.
+
+- **Goal:** Sweeper Keeper (Defend)
+- **Defence:** Wing-Back (Support) [DL/DR], Ball-Playing Defender (Defend), Central Defender (Cover) *, Full-Back (Support)
+- **Midfield:** Deep-Lying Playmaker (Support) [DM], Wide Playmaker (Support) [ML/MR], Central Midfielder (Defend), Box-to-Box Midfielder (Support), Inverted Winger (Support) [ML/MR]
+- **Attack:** Complete Forward (Support)
+
+- **Leans on:** composure +2, decisions +2, technique +2, passing +2 (whole team); vision +2, first touch +2 (ML); dribbling +2, off the ball +2 (MR)
+- **Expects at least (tapers below):** passing 8 (ML); vision 8 (ML); first touch 8 (ML); technique 8 (ML)
+- **Needs:** A genuine flat wide playmaker; A supporting inverted winger; A deep distributor; Full-backs with disciplined width
+- **Instructions:** Fairly Wide; Shorter Passing; Play Out Of Defence; Work Ball Into Box; Hold Shape; Standard Line of Engagement; Standard Defensive Line
+- **Avoid when:** When you need constant runners beyond the striker, or when the full-backs cannot provide the width the creators leave behind
 
 ### Wide Creator 4-4-2
 

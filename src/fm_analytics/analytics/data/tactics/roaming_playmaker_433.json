@@ -1,0 +1,23 @@
+{
+  "key": "roaming_playmaker_433", "name": "Roaming Playmaker 4-3-3", "formation": "4-3-3", "mentality": "Positive",
+  "instructions": ["Shorter Passing", "Play Out Of Defence", "Work Ball Into Box", "Counter-Press", "Higher Line of Engagement", "Standard Defensive Line"],
+  "slots": [
+    {"key":"GK","position":"GK","role":"sk_defend","why":"The sweeper keeper provides a short option behind the midfield triangle."},
+    {"key":"DL","position":"DL","role":"wb_dl_dr_support","why":"The wing-back supports circulation and presses the flank."},
+    {"key":"DCL","position":"DC","role":"bpd_defend","why":"The ball-playing defender starts attacks through the midfield."},
+    {"key":"DCR","position":"DC","role":"cd_cover","roles":["cd_defend"],"why":"The cover defender protects the space behind the active midfield; Defend is the alternate."},
+    {"key":"DR","position":"DR","role":"wb_dl_dr_support","why":"The right wing-back supplies width while the midfield creators move inside."},
+    {"key":"MCL","position":"MC","role":"bwm_mc_defend","why":"The ball-winner stays disciplined and wins the ball for the two creative midfielders."},
+    {"key":"MCC","position":"MC","role":"rpm_mc_support","why":"The roaming playmaker carries and receives across the midfield, connecting each phase of the attack."},
+    {"key":"MCR","position":"MC","role":"ap_mc_support","why":"The advanced playmaker offers a stable creative receiving point while the RPM roams."},
+    {"key":"AML","position":"AML","role":"iw_attack","why":"The inverted winger attacks the box from the left when the playmakers draw opponents inside."},
+    {"key":"AMR","position":"AMR","role":"winger_aml_amr_attack","why":"The winger keeps the right side wide and creates room for the playmakers."},
+    {"key":"ST","position":"ST","role":"pf_attack","why":"The pressing forward leads the counter-press and runs beyond the midfield creators."}
+  ],
+  "system":{"minimums":{"width":3.0,"defensiveCover":5.5,"ballProgression":6.5,"creativity":3.5,"runners":3.0,"penetration":2.0,"boxPresence":1.5,"restDefence":5.0,"pressing":3.0},"maximumAttackDuties":5,"maximumCreators":3},
+  "style":"Mobile midfield creator", "description":"A 4-3-3 built to give an elite roaming playmaker freedom while a ball-winner and an advanced playmaker keep the midfield coherent.", "whyGood":"It gives the roaming player passing options and runners around him without leaving the centre unguarded.", "whyThisShape":"The BWM holds his zone, the AP remains a reliable creative reference, and the RPM is free to find the overload. Width comes from the wing-backs and wingers, so the central three do not need to stay flat.", "whenToUse":"When a roaming, high-stamina playmaker is one of your best players and you can protect him with a disciplined ball-winner.", "whenNotToUse":"Against sides that can exploit a midfield that follows the roaming playmaker away from its defensive position, or when the squad lacks work rate.",
+  "instructionRationale":{"Shorter Passing":"The three midfield roles create short combinations around the ball.","Play Out Of Defence":"The goalkeeper and ball-playing defender can find the BWM, AP or RPM.","Work Ball Into Box":"The creators wait for a winger or pressing-forward run rather than forcing early crosses.","Counter-Press":"The BWM and pressing forward recover the ball while the AP and RPM close the surrounding space.","Higher Line of Engagement":"Keeps the creative midfield close enough to attacks to regain loose balls.","Standard Defensive Line":"Protects the roaming midfielder without demanding a high defensive recovery line."},
+  "attributeEmphasis":[{"attributes":{"stamina":2,"workRate":2,"technique":2,"passing":2}},{"attributes":{"decisions":2,"composure":2},"positions":["MC"]}],
+  "attributeTaper":[{"attribute":"stamina","taperBelow":8,"positions":["MC"]},{"attribute":"workRate","taperBelow":8,"positions":["MC"]},{"attribute":"passing","taperBelow":8,"positions":["MC"]}],
+  "keyRequirements":["An elite roaming playmaker","A disciplined ball-winner","A second creative midfielder","Energetic pressing support"], "tags":["433","roaming-playmaker","possession","counterpress"]
+}

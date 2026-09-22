@@ -1,0 +1,23 @@
+{
+  "key":"inverted_wide_442", "name":"Inverted Wide 4-4-2", "formation":"4-4-2", "mentality":"Positive",
+  "instructions":["Fairly Wide","Slightly More Direct Passing","Pass Into Space","Overlap Right","Counter","Regroup","Standard Line of Engagement","Standard Defensive Line"],
+  "slots":[
+    {"key":"GK","position":"GK","role":"gk_defend","why":"The goalkeeper distributes simply into a compact defensive shape."},
+    {"key":"DL","position":"DL","role":"fb_defend","why":"The defensive full-back stays behind the defensive winger to keep one flank secure."},
+    {"key":"DCL","position":"DC","role":"cd_defend","roles":["cd_cover"],"why":"The central defender protects the box; Cover is available for a faster player."},
+    {"key":"DCR","position":"DC","role":"bpd_defend","why":"The ball-playing defender can switch the counter toward the open right flank."},
+    {"key":"DR","position":"DR","role":"wb_dl_dr_attack","why":"The attacking wing-back overlaps after the inverted winger moves inside."},
+    {"key":"ML","position":"ML","role":"dw_defend","why":"The defensive winger forms a protective unit with the left-back and prevents both flanks from being exposed."},
+    {"key":"MCL","position":"MC","role":"cm_defend","why":"The holding midfielder covers the attacking wing-back and protects central transitions."},
+    {"key":"MCR","position":"MC","role":"b2b_support","why":"The box-to-box midfielder carries support into the counter."},
+    {"key":"MR","position":"MR","role":"iw_ml_mr_attack","why":"The inverted winger attacks the inside channel, creating the outside lane for the wing-back."},
+    {"key":"STL","position":"ST","role":"dlf_support","why":"The deep-lying forward connects the break and releases the runner."},
+    {"key":"STR","position":"ST","role":"af_attack","why":"The advanced forward runs into the space opened by the inverted right side."}
+  ],
+  "system":{"minimums":{"width":3.0,"defensiveCover":6.5,"ballProgression":4.0,"runners":3.0,"penetration":2.5,"boxPresence":1.5,"restDefence":6.0},"maximumAttackDuties":4,"maximumCreators":3},
+  "style":"Asymmetric inverted counter", "description":"A 4-4-2 with a defensive winger securing one side and an inverted winger plus attacking wing-back creating a counter-attacking overload on the other.", "whyGood":"It gives a flat inverted winger a clear overlapping partner without asking both wide players to abandon defensive work.", "whyThisShape":"The left flank protects the block, while the right creates a three-player attack: the inverted winger comes inside, the wing-back overlaps and the box-to-box midfielder supports. The two strikers give each counter a link and a runner.", "whenToUse":"When you have a natural flat inverted winger, an energetic attacking full-back and a wide defensive specialist on the opposite side.", "whenNotToUse":"Against an opponent that can repeatedly isolate the attacking right-back, or when the defensive winger cannot carry his side's defensive load.",
+  "instructionRationale":{"Fairly Wide":"The wing-back and defensive winger maintain useful width despite the inverted role.","Slightly More Direct Passing":"Moves the ball to the forwards and right-sided overload quickly.","Pass Into Space":"Finds the advanced forward and wing-back beyond the opponent's line.","Overlap Right":"Makes the intended outside run explicit after the inverted winger moves infield.","Counter":"Uses the striker pair and right-side runners immediately after a regain.","Regroup":"Restores the left-side defensive unit before the next transition.","Standard Line of Engagement":"Keeps the block compact without overcommitting the asymmetric flank.","Standard Defensive Line":"Leaves cover behind the wing-back while retaining a conventional defensive line."},
+  "attributeEmphasis":[{"attributes":{"stamina":2,"workRate":2,"anticipation":2}},{"attributes":{"positioning":2,"tackling":2,"marking":2},"positions":["ML"]},{"attributes":{"acceleration":2,"dribbling":2,"offTheBall":2},"positions":["MR"]}],
+  "attributeTaper":[{"attribute":"workRate","taperBelow":8,"positions":["ML"]},{"attribute":"positioning","taperBelow":8,"positions":["ML"]},{"attribute":"acceleration","taperBelow":8,"positions":["MR"]},{"attribute":"offTheBall","taperBelow":8,"positions":["MR"]}],
+  "keyRequirements":["A defensive winger","A flat inverted winger","An attacking right wing-back","Complementary forwards"], "tags":["442","asymmetric","inverted-winger","counter"]
+}
