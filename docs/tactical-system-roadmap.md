@@ -147,7 +147,9 @@ half of a full recommendation. Whatever replaces the objective should be chosen
 with that in mind: a formulation a single solve can optimise directly would be
 substantially cheaper, and one that couples players would be more expensive and
 would break the solver's exactness (see `analytics/CLAUDE.md`). Measurements are
-in [tactical-model-upgrade-plan.md](tactical-model-upgrade-plan.md) §7.1.
+in [analytics-performance.md](analytics-performance.md); the earlier
+assignment-objective and MILP history remains in
+[tactical-model-upgrade-plan.md](tactical-model-upgrade-plan.md) §7.1.
 
 ### 6. Revisit positional familiarity and eligibility
 

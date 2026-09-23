@@ -1224,9 +1224,12 @@ the automatic version substitutes for the sliders without touching scoring.
 
 ### 7.1 Performance
 
-**This section supersedes §1.7's figures, which do not reproduce (§2k).** It is
-the single place the measured cost model lives; other documents should point
-here rather than restate numbers.
+**Historical baseline.** This section supersedes §1.7's figures, which do not
+reproduce (§2k), and remains the detailed record of why the weakest-slot
+objective repeats assignment solves and how the joint MILP prototype behaved.
+It describes the earlier 42-tactic catalogue. The current 50-tactic cost model,
+package experiments, exact-output checks, and implementation recommendation are
+in [analytics-performance.md](analytics-performance.md).
 
 #### Method (state this with any timing, or it is not comparable)
 

@@ -114,22 +114,147 @@
   "attributeEmphasis": [
     {
       "attributes": {
+        "teamwork": 1
+      }
+    },
+    {
+      "attributes": {
+        "stamina": 1,
+        "workRate": 1,
+        "positioning": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
+        "anticipation": 1,
+        "concentration": 1,
+        "positioning": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "stamina": 2,
+        "workRate": 2,
+        "teamwork": 2,
+        "aggression": 1,
+        "anticipation": 1
+      },
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attributes": {
         "stamina": 2,
         "workRate": 2,
         "aggression": 2,
-        "anticipation": 2
-      }
+        "anticipation": 1,
+        "teamwork": 1
+      },
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attributes": {
+        "stamina": 2,
+        "workRate": 2,
+        "aggression": 2,
+        "anticipation": 2,
+        "offTheBall": 1
+      },
+      "positions": [
+        "ST"
+      ]
     }
   ],
   "keyRequirements": [
-    "Two forwards with high work rate and stamina",
-    "A ball-winning midfielder",
-    "Wide midfielders who work hard",
-    "Fit players who can press for the whole game"
+    "Two forwards with high stamina and work rate to initiate the press",
+    "Central midfielders with the engine and aggression to support the first line",
+    "Wide midfielders who can repeatedly recover and press the flanks",
+    "Full-backs fit enough to step forward behind the wide midfielders",
+    "Enough squad depth and fitness to sustain the intensity across a season"
   ],
   "tags": [
     "gegenpress",
     "442",
     "high-press"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "stamina",
+      "taperBelow": 7,
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ]
+    },
+    {
+      "attribute": "aggression",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ]
+    }
   ]
 }

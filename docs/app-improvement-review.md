@@ -24,8 +24,10 @@
 >   Item 1.4 (memoise role scores) is confirmed worthwhile — 64% of role scoring
 >   is measurably redundant — and item 1.5's cache becomes a *correctness*
 >   requirement, not just a speed one, as soon as the page can set an opponent.
->   See [tactical-model-upgrade-plan.md](tactical-model-upgrade-plan.md) §7.1 for
->   the numbers and method; do not restate them here.
+>   See [analytics-performance.md](analytics-performance.md) for the current
+>   50-tactic numbers, package experiments, and method. The older assignment
+>   objective and MILP history remains in
+>   [tactical-model-upgrade-plan.md](tactical-model-upgrade-plan.md) §7.1.
 >
 > This document stays in the active index because its recommendations are mostly
 > unstarted. Archive it once Releases A–C below are delivered or formally

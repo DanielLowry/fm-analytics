@@ -8,6 +8,9 @@
   boundaries.
 - [Application improvement review](app-improvement-review.md) is the active
   performance, integration, and product-polish backlog.
+- [Analytics performance investigation](analytics-performance.md) is the
+  current measured cost model and records the package, vectorisation, and
+  process-parallel experiments for tactic ranking.
 - [Delivery roadmap](phases/README.md) tracks capability gates, evidence, and
   intentional deferrals.
 - [Tactical-system roadmap](tactical-system-roadmap.md) tracks deliberate
