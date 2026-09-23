@@ -89,7 +89,7 @@
       "width": 4.0,
       "defensiveCover": 7.0,
       "ballProgression": 3.5,
-      "creativity": 1.5,
+      "creativity": 2.5,
       "runners": 1.5,
       "boxPresence": 1.5,
       "restDefence": 6.0,
@@ -114,22 +114,127 @@
   "attributeEmphasis": [
     {
       "attributes": {
-        "crossing": 2,
-        "pace": 2,
-        "composure": 2,
-        "decisions": 2
+        "teamwork": 1
       }
+    },
+    {
+      "attributes": {
+        "positioning": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "stamina": 1,
+        "teamwork": 1,
+        "positioning": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "teamwork": 2,
+        "stamina": 2,
+        "positioning": 1
+      },
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "teamwork": 1,
+        "positioning": 1
+      },
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attributes": {
+        "firstTouch": 2,
+        "decisions": 2,
+        "composure": 2,
+        "offTheBall": 1
+      },
+      "positions": [
+        "ST"
+      ]
     }
   ],
   "keyRequirements": [
-    "A creative forward who is better at creating than finishing",
-    "A pressing forward partner",
-    "Wide midfielders who work back",
-    "A box-to-box midfielder"
+    "A genuinely high-quality creative forward capable of playing Trequartista",
+    "A hard-working strike partner who can press and link play",
+    "Wide midfielders with the stamina and work rate to cover the creator's defensive freedom",
+    "An energetic midfield pair, especially the box-to-box runner",
+    "Enough technical quality in the front pair to make Work Ball Into Box worthwhile"
   ],
   "tags": [
     "positive",
     "442",
     "trequartista"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ]
+    },
+    {
+      "attribute": "composure",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    }
   ]
 }

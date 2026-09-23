@@ -309,8 +309,9 @@ The standard library is sufficient for this safely bounded first step:
 - `TacticRankingExecutor` owns a reusable `ProcessPoolExecutor`, with an
   explicit `spawn` start method so it is safe alongside the web server's
   background health and refresh threads.
-- The web entry point warms that executor before accepting requests, retains it
-  for the server lifetime, and shuts it down with the HTTP server. Its new
+- The web entry point derives its immutable tactic-specific catalogue views and
+  warms that executor before accepting requests, retains both for the server
+  lifetime, and shuts the executor down with the HTTP server. Its new
   `--ranking-workers` option defaults to no more than four processes; `1`
   retains the former sequential calculation.
 - Each worker receives an immutable slice of tactics and evaluates both its
@@ -325,14 +326,26 @@ The standard library is sufficient for this safely bounded first step:
   projection. A separate tied two-tactic test proves that process scheduling
   does not change the existing alphabetical tie-break.
 
-On this working tree, using the benchmark's 30-player seed-7 input and four
-warmed processes, the complete effective-plus-potential ranking took **25.869
-seconds sequentially** and **7.686 seconds in parallel** (3.37x), with exact
-object equality. This is not directly comparable with the earlier prototype's
-13.017-second measurement: the current working tree includes additional tactic
-weighting and taper work. It is clear evidence that Phase 1 helps, but it also
-confirms that it is not enough to achieve the under-five-second target; Phase 2
-remains the next performance lever.
+On this working tree, using the benchmark's 30-player seed-7 input, four
+warmed processes, and pre-derived tactic catalogue views, the complete
+effective-plus-potential ranking took **16.638 seconds sequentially** and
+**5.405 seconds in parallel** (3.08x), with exact object equality. This is not
+directly comparable with the earlier prototype's 13.017-second measurement:
+the current working tree includes additional tactic weighting and taper work.
+It is clear evidence that Phase 1 helps, but it also confirms that it is not
+enough to achieve the under-five-second target for this deliberately harder
+30-player input; Phase 2 remains the next performance lever.
+
+The same benchmark was then run against a read-only snapshot of the live FM20
+session on 23 September: 17 players at game date 24 June 2019. The snapshot
+capture itself took **5.828 seconds** and is deliberately separate from this
+comparison. On that fixed snapshot, the full effective-plus-potential tactic
+ranking fell from **6.706 seconds sequentially** to **3.529 seconds with four
+warmed workers** (1.90x), again with exact object equality. This meets the
+under-five-second target for ranking already-captured live data. It does not
+claim a sub-five-second cold refresh: snapshot capture and the rest of the
+recommendation bundle are separate work, and the UI should continue serving the
+previous snapshot while that background refresh completes.
 
 ## Recommended implementation order
 

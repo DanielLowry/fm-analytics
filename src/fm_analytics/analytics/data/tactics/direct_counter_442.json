@@ -122,22 +122,136 @@
   "attributeEmphasis": [
     {
       "attributes": {
-        "offTheBall": 2,
-        "positioning": 2,
-        "anticipation": 2,
-        "concentration": 2
+        "teamwork": 1
       }
+    },
+    {
+      "attributes": {
+        "positioning": 1,
+        "concentration": 1,
+        "anticipation": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 1,
+        "stamina": 1,
+        "teamwork": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "acceleration": 2,
+        "offTheBall": 2,
+        "crossing": 1
+      },
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "anticipation": 1,
+        "offTheBall": 1
+      },
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 2,
+        "anticipation": 2,
+        "acceleration": 1,
+        "pace": 1
+      },
+      "positions": [
+        "ST"
+      ]
     }
   ],
   "keyRequirements": [
-    "Pace in attack",
-    "Hold-up forward",
-    "Disciplined two banks of four",
-    "Midfield runners"
+    "Quick wide players who can attack space immediately after regains",
+    "A mobile strike pair with enough movement to make direct transitions dangerous",
+    "One midfielder able to hold position and one with the engine to join counters",
+    "A compact back four comfortable defending without the ball",
+    "Opponents willing to leave space behind or around their defensive shape"
   ],
   "tags": [
     "counter",
     "442",
     "direct"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ]
+    }
   ]
 }

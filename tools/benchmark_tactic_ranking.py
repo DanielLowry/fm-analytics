@@ -18,6 +18,7 @@ from fm_analytics.analytics import (
     TacticRankingExecutor,
     recommend_tactic_effective_and_potential,
 )
+from fm_analytics.bridge.linux_proton import LinuxProtonDataSource
 from fm_analytics.domain import AttributeObservation, Visibility
 
 
@@ -68,18 +69,43 @@ def _timed(call):
     return result, perf_counter() - started
 
 
+def _warm_catalogue() -> None:
+    """Exclude one-time tactic-view derivation from both ranking timings."""
+    for tactic_key in MVP_CATALOGUE.tactics:
+        MVP_CATALOGUE.for_tactic(tactic_key)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--players", type=int, default=30)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument(
+        "--direct-live",
+        action="store_true",
+        help="capture the managed FM20 squad once, then benchmark that immutable snapshot",
+    )
     args = parser.parse_args(argv)
     if args.players < 1:
         parser.error("--players must be at least 1")
     if args.workers < 1:
         parser.error("--workers must be at least 1")
 
-    players = synthetic_players(args.players, args.seed)
+    capture_seconds: float | None = None
+    if args.direct_live:
+        (game, squad), capture_seconds = _timed(LinuxProtonDataSource().read_snapshot)
+        players = tuple(PlayerSelectionInput.from_player(player) for player in squad.players)
+        description = (
+            f"live snapshot: {len(players)} players, {len(MVP_CATALOGUE.tactics)} tactics, "
+            f"game date {game.game_date.isoformat()}"
+        )
+    else:
+        players = synthetic_players(args.players, args.seed)
+        description = (
+            f"synthetic snapshot: {args.players} players, seed {args.seed}, "
+            f"{len(MVP_CATALOGUE.tactics)} tactics"
+        )
+    _warm_catalogue()
     sequential, sequential_seconds = _timed(
         lambda: recommend_tactic_effective_and_potential(players, MVP_CATALOGUE)
     )
@@ -99,13 +125,16 @@ def main(argv: list[str] | None = None) -> int:
     if parallel != sequential:
         raise AssertionError("parallel ranking changed the sequential result")
     speedup = sequential_seconds / parallel_seconds if parallel_seconds else float("inf")
-    print(
-        f"{args.players} players, seed {args.seed}, {len(MVP_CATALOGUE.tactics)} tactics\n"
+    output = f"{description}\n"
+    if capture_seconds is not None:
+        output += f"snapshot capture (excluded): {capture_seconds:.3f}s\n"
+    output += (
         f"sequential: {sequential_seconds:.3f}s\n"
         f"parallel ({args.workers} workers, warmed): {parallel_seconds:.3f}s\n"
         f"speed-up: {speedup:.2f}x\n"
         "exact result: yes"
     )
+    print(output)
     return 0
 
 

@@ -398,6 +398,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     ranking_executor = TacticRankingExecutor(workers=args.ranking_workers)
     try:
+        # These immutable tactic views are shared by every future snapshot.
+        # Preparing them here keeps the first user-visible ranking comparable
+        # with later warm refreshes; workers receive the completed catalogue.
+        for tactic_key in MVP_CATALOGUE.tactics:
+            MVP_CATALOGUE.for_tactic(tactic_key)
         ranking_executor.warm()
     except (OSError, RuntimeError) as exc:
         # The server remains usable on constrained systems: ranking falls
