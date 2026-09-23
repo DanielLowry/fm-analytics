@@ -10,6 +10,7 @@ from fm_analytics.analytics import (
     RoleDefinition,
     TacticDefinition,
     TacticFitPolicy,
+    TacticRankingExecutor,
     TacticSlot,
     evaluate_tactic,
     best_position_adjusted_role,
@@ -586,6 +587,45 @@ class FamiliarityTests(unittest.TestCase):
 
         self.assertIsNotNone(target)
         self.assertGreater(target.score_gap, 0)
+
+class ParallelTacticRankingTests(unittest.TestCase):
+    def test_parallel_ranking_is_exact_and_reuses_the_same_executor(self) -> None:
+        # A tied pair makes the alphabetical tactic-key tie-break visible. The
+        # sequential answer is the full compatibility oracle: evaluations,
+        # assignments, score bands, and order must all be identical.
+        other_tactic = replace(TACTIC, key="other", name="other")
+        catalogue = FootballCatalogue(
+            version=VERSION,
+            roles={ROLE.key: ROLE},
+            tactics={TACTIC.key: TACTIC, other_tactic.key: other_tactic},
+        )
+        squad = legal_squad()
+        expected = recommend_tactic_effective_and_potential(
+            squad, catalogue, familiarity_policy=NO_FAMILIARITY_DISCOUNT
+        )
+        executor = TacticRankingExecutor(workers=2)
+        try:
+            first = recommend_tactic_effective_and_potential(
+                squad,
+                catalogue,
+                familiarity_policy=NO_FAMILIARITY_DISCOUNT,
+                ranking_executor=executor,
+            )
+            second = recommend_tactic_effective_and_potential(
+                squad,
+                catalogue,
+                familiarity_policy=NO_FAMILIARITY_DISCOUNT,
+                ranking_executor=executor,
+            )
+        finally:
+            executor.shutdown()
+
+        self.assertEqual(first, expected)
+        self.assertEqual(second, expected)
+        self.assertEqual(
+            tuple(evaluation.tactic.key for evaluation in first.effective.evaluations),
+            ("other", "test"),
+        )
 
 
 if __name__ == "__main__":

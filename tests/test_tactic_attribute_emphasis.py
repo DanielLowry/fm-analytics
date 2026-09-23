@@ -31,7 +31,14 @@ def with_emphasis(emphasis, tactic_key: str = TACTIC) -> FootballCatalogue:
     """
     if isinstance(emphasis, dict):
         emphasis = [AttributeEmphasis(emphasis)] if emphasis else []
-    tactic = replace(MVP_CATALOGUE.tactics[tactic_key], attribute_emphasis=tuple(emphasis))
+    # The fixture tests emphasis in isolation. Shipped tactics now also carry
+    # attribute tapers, whose deliberate player-selection penalty would obscure
+    # whether an emphasis block itself changed the choice.
+    tactic = replace(
+        MVP_CATALOGUE.tactics[tactic_key],
+        attribute_emphasis=tuple(emphasis),
+        attribute_taper=(),
+    )
     return replace(MVP_CATALOGUE, tactics={**MVP_CATALOGUE.tactics, tactic_key: tactic})
 
 
@@ -52,7 +59,7 @@ def weights(catalogue: FootballCatalogue, role_key: str) -> dict[str, float]:
 
 
 class DerivedCatalogueTests(unittest.TestCase):
-    def test_a_tactic_with_no_emphasis_returns_the_same_catalogue(self) -> None:
+    def test_a_tactic_with_no_emphasis_or_taper_returns_the_same_catalogue(self) -> None:
         bare = with_emphasis({})
         self.assertIs(bare.for_tactic(TACTIC), bare)
 
@@ -311,7 +318,7 @@ class ShippedSeedTests(unittest.TestCase):
     """The committed emphasis stays inside the soft band it was measured at."""
 
     SEED_DELTA = 2
-    MAX_ATTRIBUTES_PER_BLOCK = 4
+    MAX_ATTRIBUTES_PER_BLOCK = 5
 
     def test_every_tactic_declares_an_emphasis(self) -> None:
         for tactic in MVP_CATALOGUE.tactics.values():

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import os
 import subprocess
 import sys
 import threading
@@ -30,6 +31,7 @@ from fm_analytics.analytics import (
     ScoutRecommendation,
     ScoutingFilters,
     TacticDefinition,
+    TacticRankingExecutor,
     WeaknessKind,
     WeaknessReport,
     assess_scouting_candidates,
@@ -106,6 +108,7 @@ class SquadWebServer(ThreadingHTTPServer):
         scouting_refresh: Callable[..., str] | None = None,
         cache_ttl_seconds: float = 8.0,
         health_interval_seconds: float = 30.0,
+        ranking_executor: TacticRankingExecutor | None = None,
     ):
         self.provider = provider
         self.scouting_provider = scouting_provider or empty_scouting_provider()
@@ -113,6 +116,7 @@ class SquadWebServer(ThreadingHTTPServer):
         self._scouting_refresh_lock = threading.Lock()
         self.cache_ttl_seconds = cache_ttl_seconds
         self.health_interval_seconds = health_interval_seconds
+        self.ranking_executor = ranking_executor
         self._lock = threading.Lock()
         self._read_at = 0.0
         self._read_result: tuple[object, object] | None = None
@@ -173,7 +177,9 @@ class SquadWebServer(ThreadingHTTPServer):
                     "This source has not supplied every role-scoring attribute yet; "
                     "see the Data page for exactly what is missing."
                 )
-            built = build_recommendation_bundle(game, squad)
+            built = build_recommendation_bundle(
+                game, squad, ranking_executor=self.ranking_executor
+            )
         except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
             with self._lock:
                 self._bundle_result, self._bundle_error, self._bundle_at = None, exc, time.monotonic()
@@ -199,7 +205,9 @@ class SquadWebServer(ThreadingHTTPServer):
             validate_recommendation_snapshot(game, squad)
             if not has_complete_role_attributes(squad):
                 raise ValueError("This source has not supplied every role-scoring attribute yet.")
-            built = build_recommendation_bundle(game, squad)
+            built = build_recommendation_bundle(
+                game, squad, ranking_executor=self.ranking_executor
+            )
         except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
             with self._lock:
                 self._refreshing, self._refresh_error = False, exc
@@ -273,6 +281,12 @@ class SquadWebServer(ThreadingHTTPServer):
         self._health_stop.set()
         super().shutdown()
 
+    def server_close(self) -> None:
+        self._health_stop.set()
+        if self.ranking_executor is not None:
+            self.ranking_executor.shutdown()
+        super().server_close()
+
     def tactic_report(
         self, tactic_key: str, *, bench_size: int | None = None
     ) -> TacticMatchdayReport:
@@ -302,6 +316,15 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=8.0,
         help="how long to reuse a computed recommendation before recomputing it (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--ranking-workers",
+        type=int,
+        default=min(4, os.cpu_count() or 1),
+        help=(
+            "bounded worker processes for tactic ranking; use 1 for the "
+            "existing sequential calculation (default: %(default)s)"
+        ),
     )
     source = parser.add_mutually_exclusive_group()
     source.add_argument(
@@ -363,6 +386,8 @@ def _build_provider(args: argparse.Namespace) -> GameSquadProvider:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.ranking_workers < 1:
+        raise SystemExit("--ranking-workers must be at least 1")
     provider = _build_provider(args)
     default_scouting_path = _default_scouting_path()
     scouting_path = args.scouting_json or default_scouting_path
@@ -371,11 +396,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         if scouting_path is not None
         else Path(__file__).resolve().parents[3] / "data" / "scouting-capture.json"
     )
+    ranking_executor = TacticRankingExecutor(workers=args.ranking_workers)
+    try:
+        ranking_executor.warm()
+    except (OSError, RuntimeError) as exc:
+        # The server remains usable on constrained systems: ranking falls
+        # back to the existing sequential implementation rather than failing
+        # to start its read-only UI.
+        print(f"Could not start tactic-ranking workers; using sequential ranking: {exc}")
+        ranking_executor.shutdown(wait=False)
+        ranking_executor = None
     server = SquadWebServer(
         (args.host, args.port), provider,
         scouting_provider=(scouting_json_provider(scouting_path) if scouting_path else None),
         scouting_refresh=_scouting_refresh_command(refresh_path),
         cache_ttl_seconds=args.cache_ttl_seconds,
+        ranking_executor=ranking_executor,
     )
     print(f"FM Analytics web view listening on http://{args.host}:{args.port}")
     try:

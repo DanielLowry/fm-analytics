@@ -1,11 +1,15 @@
 import unittest
-from dataclasses import replace
+import json
+from dataclasses import asdict, replace
+from datetime import date, datetime
+from enum import Enum
 from pathlib import Path
 
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
     PlayerSelectionInput,
     RoleScoreCache,
+    TacticRankingExecutor,
     recommend_tactic_effective_and_potential,
 )
 from fm_analytics.cli import load_fixture
@@ -39,6 +43,20 @@ def _complete_owned_snapshot():
         for index, slot in enumerate(MVP_CATALOGUE.tactics["balanced_442"].slots, start=1)
     )
     return game, replace(squad, players=players)
+
+
+def _canonical_bundle_json(bundle) -> str:
+    """A stable, human-inspectable companion to direct dataclass equality."""
+    def encode(value):
+        if isinstance(value, Enum):
+            return value.value
+        if isinstance(value, (date, datetime)):
+            return value.isoformat()
+        if isinstance(value, frozenset):
+            return sorted(value)
+        raise TypeError(f"cannot canonically encode {type(value).__name__}")
+
+    return json.dumps(asdict(bundle), sort_keys=True, separators=(",", ":"), default=encode)
 
 
 class ReportingTests(unittest.TestCase):
@@ -90,6 +108,20 @@ class ReportingTests(unittest.TestCase):
         )
 
         self.assertEqual(cached, uncached)
+
+    def test_parallel_ranking_preserves_the_complete_recommendation_bundle(self) -> None:
+        game, squad = _complete_owned_snapshot()
+        expected = build_recommendation_bundle(game, squad)
+        executor = TacticRankingExecutor(workers=2)
+        try:
+            actual = build_recommendation_bundle(
+                game, squad, ranking_executor=executor
+            )
+        finally:
+            executor.shutdown()
+
+        self.assertEqual(actual, expected)
+        self.assertEqual(_canonical_bundle_json(actual), _canonical_bundle_json(expected))
 
     def test_matchday_detail_reuses_the_bundle_policy_profile(self) -> None:
         game, squad = _complete_owned_snapshot()

@@ -301,25 +301,49 @@ Pandas, Polars, and faster JSON libraries do not target the measured hot path.
 The cost is many small candidate objects and exact combinatorial assignments,
 not loading tactic JSON or aggregating large tables.
 
+## Phase 1 implementation — 23 September 2026
+
+Phase 1 is now implemented without adding a production third-party package.
+The standard library is sufficient for this safely bounded first step:
+
+- `TacticRankingExecutor` owns a reusable `ProcessPoolExecutor`, with an
+  explicit `spawn` start method so it is safe alongside the web server's
+  background health and refresh threads.
+- The web entry point warms that executor before accepting requests, retains it
+  for the server lifetime, and shuts it down with the HTTP server. Its new
+  `--ranking-workers` option defaults to no more than four processes; `1`
+  retains the former sequential calculation.
+- Each worker receives an immutable slice of tactics and evaluates both its
+  effective and potential passes with one local `RoleScoreCache`. The parent
+  applies the unchanged deterministic sort once all evaluations return.
+- A broken worker pool falls back to the former sequential code path. Small
+  catalogues and one-worker configuration use that same path directly.
+- `tools/benchmark_tactic_ranking.py` supplies the documented deterministic
+  30-player, seed-7 benchmark and rejects any non-identical result.
+- Regression tests compare a complete sequential and two-worker
+  `RecommendationBundle` both with dataclass equality and a canonical JSON
+  projection. A separate tied two-tactic test proves that process scheduling
+  does not change the existing alphabetical tie-break.
+
+On this working tree, using the benchmark's 30-player seed-7 input and four
+warmed processes, the complete effective-plus-potential ranking took **25.869
+seconds sequentially** and **7.686 seconds in parallel** (3.37x), with exact
+object equality. This is not directly comparable with the earlier prototype's
+13.017-second measurement: the current working tree includes additional tactic
+weighting and taper work. It is clear evidence that Phase 1 helps, but it also
+confirms that it is not enough to achieve the under-five-second target; Phase 2
+remains the next performance lever.
+
 ## Recommended implementation order
 
-### Phase 1 — exact parallel ranking
+### Phase 1 — exact parallel ranking (implemented)
 
-1. Add a canonical equality projection for a complete recommendation bundle.
-2. Add the 30-player deterministic benchmark outside the normal unit-test
-   runtime.
-3. Introduce a persistent, bounded four-process ranking executor.
-4. Make one worker task evaluate both effective and potential versions of one
-   tactic with one local `RoleScoreCache`.
-5. Assemble and sort all evaluations in the parent using the existing keys.
-6. Keep the existing sequential path available for small catalogues, one-CPU
-   systems, tests, and safe fallback after worker failure.
-7. Measure cold startup, warm refresh, shutdown, exception propagation, and
-   concurrent web refresh behaviour.
-
-Expected result from the prototype evidence: approximately 1.5 seconds for the
-current live ranking and under five seconds for the deterministic 30-player
-case. Do not turn those indicative local numbers into hard CI limits.
+The implementation above covers equality verification, the deterministic
+benchmark, worker lifetime, warm ranking, normal shutdown, and sequential
+fallback. Exception propagation from the actual scoring code remains intact:
+only an unavailable process pool is retried sequentially. Concurrent refresh
+load is intentionally left to an application-level measurement with a live
+snapshot, rather than simulated with a brittle CI timing test.
 
 ### Phase 2 — compact numeric scoring
 

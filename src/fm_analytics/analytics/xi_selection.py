@@ -26,6 +26,7 @@ from fm_analytics.analytics.tactical_system import (
     assess_coherence,
     assess_instruction_suitability,
 )
+from fm_analytics.analytics.tactic_ranking import TacticRankingExecutor, rank_evaluations
 from fm_analytics.analytics.selection_constraints import apply_forced_assignment_choices
 from fm_analytics.domain import Player
 from fm_analytics.analytics.xi_models import (
@@ -186,20 +187,7 @@ def recommend_tactic(
         )
         for tactic in catalogue.tactics.values()
     )
-    return TacticRecommendation(
-        evaluations=tuple(
-            sorted(
-                evaluations,
-                key=lambda item: (
-                    not item.has_legal_xi,
-                    -len(item.assignments),
-                    -item.score.central,
-                    -item.score.lower,
-                    item.tactic.key,
-                ),
-            )
-        )
-    )
+    return rank_evaluations(evaluations)
 
 
 def recommend_tactic_effective_and_potential(
@@ -212,6 +200,7 @@ def recommend_tactic_effective_and_potential(
     system_policy: SystemFitPolicy = SystemFitPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
     role_score_cache: RoleScoreCache | None = None,
+    ranking_executor: TacticRankingExecutor | None = None,
 ) -> EffectiveAndPotentialRecommendation:
     """Answer both "what to play now" and "what to aim for" from one call.
 
@@ -228,6 +217,20 @@ def recommend_tactic_effective_and_potential(
     is one where retraining individual players into their slots would help;
     it is not evidence the squad already knows how to play that shape.
     """
+    if ranking_executor is not None:
+        # A parent-process score cache is keyed by object identity, so it
+        # cannot safely cross process boundaries. Workers use their own
+        # request-local caches; callers can still retain the supplied cache
+        # for downstream reports built in this process.
+        return ranking_executor.rank(
+            players,
+            catalogue,
+            readiness_policy=readiness_policy,
+            familiarity_policy=familiarity_policy,
+            fit_policy=fit_policy,
+            system_policy=system_policy,
+            opponent=opponent,
+        )
     effective = recommend_tactic(
         players,
         catalogue,

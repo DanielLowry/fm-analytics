@@ -716,7 +716,7 @@ class TacticsAndDepthPageTests(unittest.TestCase):
 
 
 class CachingTests(unittest.TestCase):
-    def test_repeated_reads_within_the_ttl_do_not_call_the_provider_again(self) -> None:
+    def test_repeated_reads_reuse_the_captured_snapshot(self) -> None:
         calls = {"count": 0}
 
         def provider():
@@ -732,7 +732,7 @@ class CachingTests(unittest.TestCase):
 
         self.assertEqual(calls["count"], 1)
 
-    def test_read_is_recomputed_once_the_ttl_elapses(self) -> None:
+    def test_read_is_not_recomputed_when_the_legacy_ttl_elapses(self) -> None:
         calls = {"count": 0}
 
         def provider():
@@ -748,9 +748,12 @@ class CachingTests(unittest.TestCase):
         time.sleep(0.1)
         server.read()
 
-        self.assertEqual(calls["count"], 2)
+        # A tactic recommendation is an immutable observation. The interval is
+        # now reserved for background health checks; only an explicit squad
+        # refresh may capture a new game/squad snapshot.
+        self.assertEqual(calls["count"], 1)
 
-    def test_a_provider_error_is_also_cached_within_the_ttl(self) -> None:
+    def test_a_provider_error_is_retried_on_the_next_read(self) -> None:
         calls = {"count": 0}
 
         def provider():
@@ -765,7 +768,9 @@ class CachingTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             server.read()
 
-        self.assertEqual(calls["count"], 1)
+        # There is no good snapshot to preserve after a first-read failure, so
+        # keep trying rather than trapping the UI behind a timed error cache.
+        self.assertEqual(calls["count"], 2)
 
 
 class BuildProviderTests(unittest.TestCase):

@@ -30,6 +30,7 @@ from fm_analytics.analytics import (
     SubstitutionBoard,
     TacticEvaluation,
     TacticFitPolicy,
+    TacticRankingExecutor,
     TacticRecommendation,
     TacticSelectionExplanation,
     SystemFitPolicy,
@@ -197,6 +198,7 @@ def build_recommendation_bundle(
     *,
     catalogue: FootballCatalogue = MVP_CATALOGUE,
     policy: RecommendationPolicy = RecommendationPolicy(),
+    ranking_executor: TacticRankingExecutor | None = None,
 ) -> RecommendationBundle:
     """Run every analytics pass a squad recommendation needs, once.
 
@@ -218,6 +220,7 @@ def build_recommendation_bundle(
         system_policy=policy.system_fit,
         opponent=policy.opponent,
         role_score_cache=role_score_cache,
+        ranking_executor=ranking_executor,
     )
     recommendation = effective_and_potential.effective
     bench = select_bench(

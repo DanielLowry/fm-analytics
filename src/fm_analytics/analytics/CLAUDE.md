@@ -120,7 +120,7 @@ double emphasis. Fixed, and guarded by
 
 The blocks were seeded once by `tools/seed_tactic_emphasis.py` and are now
 hand-owned; re-running it discards tuning unless you pass `--force`. Keep them
-soft (the shipped seed is +2 on at most four attributes, and a test enforces
+soft (the shipped seed is +2 on at most five attributes, and a test enforces
 that band) — the emphasis is meant to separate close candidates, not to
 overturn what a role fundamentally asks for. The seed was whole-team only;
 three tactics (`balanced_442`, `balanced_433dm`, `vertical_442`) have since been

@@ -117,22 +117,179 @@
   "attributeEmphasis": [
     {
       "attributes": {
-        "passing": 2,
-        "firstTouch": 2,
-        "positioning": 2,
-        "offTheBall": 2
+        "teamwork": 1
       }
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 1,
+        "anticipation": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 1,
+        "stamina": 1,
+        "teamwork": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "passing": 2,
+        "decisions": 2,
+        "firstTouch": 1,
+        "teamwork": 1
+      },
+      "positions": [
+        "DM"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "passing": 2,
+        "firstTouch": 1,
+        "offTheBall": 1,
+        "decisions": 1
+      },
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "acceleration": 2,
+        "offTheBall": 2,
+        "firstTouch": 1
+      },
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attributes": {
+        "acceleration": 2,
+        "pace": 2,
+        "offTheBall": 2,
+        "anticipation": 2
+      },
+      "positions": [
+        "ST"
+      ]
     }
   ],
   "keyRequirements": [
-    "Mobile midfield",
-    "Pacy striker",
-    "Reliable DM",
-    "Good transition decisions"
+    "Reliable holding midfielder with enough positioning, passing and decisions to start counters cleanly",
+    "Central midfielders comfortable enough technically to combine through pressure",
+    "At least one energetic midfield runner who can join the break",
+    "Quick wide players who recognise and attack transition space",
+    "A fast, mobile lone striker who can threaten in behind without support already alongside him",
+    "Compact defensive structure while waiting for transition opportunities"
   ],
   "tags": [
     "fluid-counter",
     "4141",
     "transition"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ]
+    }
   ]
 }

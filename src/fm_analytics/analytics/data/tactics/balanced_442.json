@@ -135,8 +135,9 @@
     },
     {
       "attributes": {
-        "crossing": 2,
-        "stamina": 2
+        "stamina": 2,
+        "positioning": 1,
+        "crossing": 1
       },
       "positions": [
         "DL",
@@ -175,14 +176,53 @@
     }
   ],
   "keyRequirements": [
-    "Hard-working wide midfielders",
-    "Balanced CM pair",
-    "Complementary strikers",
-    "Disciplined full-backs"
+    "Two complementary strikers, with one linking and one attacking space",
+    "Wingers with enough crossing to supply the front two",
+    "A disciplined central midfielder paired with a reliable support midfielder",
+    "Centre-backs with basic positional discipline",
+    "Full-backs able to support without being the main attacking outlet"
   ],
   "tags": [
     "balanced",
     "442",
     "lower-league-friendly"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "positioning",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 7,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ]
+    }
   ]
 }

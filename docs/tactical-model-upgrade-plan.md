@@ -1085,7 +1085,7 @@ uses, and the extra capability is reserved for your hand edits:
    invents a requirement a role does not have — a Central Defender that
    ignores crossing keeps ignoring it. The file format permits introducing
    an attribute from zero (§2.4); the automated draft simply declines to.
-4. **At most four attributes per tactic**, taken from the instruction and
+4. **At most five attributes per positional or whole-team block**, taken from the instruction and
    mentality mapping. A tactic that emphasises everything emphasises nothing.
 
 A seeded tactic therefore carries three or four numbers in one block —

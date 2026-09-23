@@ -54,6 +54,7 @@ from fm_analytics.analytics.xi_selection import (
     recommend_tactic_effective_and_potential,
     score_player_for_slot,
 )
+from fm_analytics.analytics.tactic_ranking import TacticRankingExecutor
 from fm_analytics.analytics.forced_selection import evaluate_tactic_with_forced_assignment
 from fm_analytics.analytics.selection_explanation import (
     SelectionAlternative,
@@ -243,6 +244,7 @@ __all__ = [
     "overlay_squad_export",
     "recommend_tactic",
     "recommend_tactic_effective_and_potential",
+    "TacticRankingExecutor",
     "recommend_set_pieces",
     "score_player_for_slot",
     "select_bench",
