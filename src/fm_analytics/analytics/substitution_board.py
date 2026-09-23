@@ -22,6 +22,7 @@ from fm_analytics.analytics.xi_selection import (
     TacticEvaluation,
     score_player_for_slot,
 )
+from fm_analytics.analytics.role_scoring import RoleScoreCache
 
 
 @dataclass(frozen=True)
@@ -59,6 +60,7 @@ def build_substitution_board(
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
+    role_score_cache: RoleScoreCache | None = None,
 ) -> SubstitutionBoard:
     """Rank named substitutes for each selected starter's actual role/slot.
 
@@ -93,6 +95,7 @@ def build_substitution_board(
                 catalogue,
                 readiness_policy=readiness_policy,
                 familiarity_policy=familiarity_policy,
+                role_score_cache=role_score_cache,
             )
             if assignment is None:
                 continue

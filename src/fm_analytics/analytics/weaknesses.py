@@ -8,7 +8,7 @@ from typing import Sequence
 from fm_analytics.analytics.catalogue import FootballCatalogue, TacticSlot
 from fm_analytics.analytics.attribute_taper import assess_tapers, taper_role_score
 from fm_analytics.analytics.opponent import OpponentProfile, attribute_emphasis
-from fm_analytics.analytics.role_scoring import RoleDefinition, RoleScore, score_role
+from fm_analytics.analytics.role_scoring import RoleDefinition, RoleScore, RoleScoreCache, score_role
 from fm_analytics.analytics.xi_selection import (
     PlayerSelectionInput,
     ReadinessPolicy,
@@ -99,6 +99,7 @@ def assess_weaknesses(
     policy: WeaknessPolicy = WeaknessPolicy(),
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
+    role_score_cache: RoleScoreCache | None = None,
 ) -> WeaknessReport:
     if evaluation.tactic.key not in catalogue.tactics:
         raise ValueError("evaluation tactic does not belong to the catalogue")
@@ -136,6 +137,7 @@ def assess_weaknesses(
             starter_ids,
             catalogue,
             readiness_policy,
+            role_score_cache,
         )
         occupied = _occupied_starter_cover(
             slot,
@@ -143,6 +145,7 @@ def assess_weaknesses(
             players,
             starter_ids,
             catalogue,
+            role_score_cache,
         )
         slot_depth = SlotDepth(
             slot=slot,
@@ -249,6 +252,7 @@ def _tactic_role_score(
     slot: TacticSlot,
     role: RoleDefinition,
     player: PlayerSelectionInput,
+    role_score_cache: RoleScoreCache | None = None,
 ) -> RoleScore:
     """A player's role score in this tactic's slot, with its attribute taper applied.
 
@@ -256,7 +260,7 @@ def _tactic_role_score(
     (`SlotAssignment.tapered_attribute_score`) carries the same taper.
     """
     return taper_role_score(
-        score_role(role, player.attributes),
+        score_role(role, player.attributes, cache=role_score_cache),
         assess_tapers(catalogue.tapers_for_slot(slot), player.attributes),
     )
 
@@ -268,6 +272,7 @@ def _backups_for_slot(
     starter_ids: set[str],
     catalogue: FootballCatalogue,
     readiness_policy: ReadinessPolicy,
+    role_score_cache: RoleScoreCache | None,
 ) -> tuple[tuple[DepthCandidate, ...], tuple[DepthCandidate, ...]]:
     role = catalogue.role_for_slot(slot, role_key)
     available: list[DepthCandidate] = []
@@ -278,7 +283,7 @@ def _backups_for_slot(
         candidate = DepthCandidate(
             player_id=player.id,
             player_name=player.name,
-            role_score=_tactic_role_score(catalogue, slot, role, player),
+            role_score=_tactic_role_score(catalogue, slot, role, player, role_score_cache),
         )
         target = (
             available
@@ -301,13 +306,14 @@ def _occupied_starter_cover(
     players: Sequence[PlayerSelectionInput],
     starter_ids: set[str],
     catalogue: FootballCatalogue,
+    role_score_cache: RoleScoreCache | None,
 ) -> tuple[DepthCandidate, ...]:
     role = catalogue.role_for_slot(slot, role_key)
     candidates = (
         DepthCandidate(
             player_id=player.id,
             player_name=player.name,
-            role_score=_tactic_role_score(catalogue, slot, role, player),
+            role_score=_tactic_role_score(catalogue, slot, role, player, role_score_cache),
         )
         for player in players
         if player.id in starter_ids and slot.position in player.positions

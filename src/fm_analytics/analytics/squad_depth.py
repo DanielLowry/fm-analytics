@@ -11,6 +11,7 @@ from fm_analytics.analytics.weaknesses import (
     WeaknessReport,
     assess_weaknesses,
 )
+from fm_analytics.analytics.role_scoring import RoleScoreCache
 from fm_analytics.analytics.xi_selection import (
     PlayerSelectionInput,
     ReadinessPolicy,
@@ -100,6 +101,7 @@ def assess_squad_depth(
     weakness_policy: WeaknessPolicy = WeaknessPolicy(),
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
+    role_score_cache: RoleScoreCache | None = None,
 ) -> SquadDepthReport:
     if not evaluations:
         raise ValueError("squad depth assessment requires at least one tactic evaluation")
@@ -120,6 +122,7 @@ def assess_squad_depth(
             policy=weakness_policy,
             readiness_policy=readiness_policy,
             opponent=opponent,
+            role_score_cache=role_score_cache,
         )
         per_tactic[evaluation.tactic.key] = report
         slot_positions = _slot_positions(evaluation.tactic)

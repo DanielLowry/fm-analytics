@@ -2,7 +2,12 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 
-from fm_analytics.analytics import MVP_CATALOGUE
+from fm_analytics.analytics import (
+    MVP_CATALOGUE,
+    PlayerSelectionInput,
+    RoleScoreCache,
+    recommend_tactic_effective_and_potential,
+)
 from fm_analytics.cli import load_fixture
 from fm_analytics.domain import AttributeObservation, Visibility
 from fm_analytics.reporting import (
@@ -74,6 +79,17 @@ class ReportingTests(unittest.TestCase):
         self.assertEqual(bundle.squad_depth.tactic_keys, tuple(
             evaluation.tactic.key for evaluation in bundle.recommendation.evaluations
         ))
+
+    def test_role_score_cache_preserves_effective_and_potential_recommendation(self) -> None:
+        _game, squad = _complete_owned_snapshot()
+        players = tuple(PlayerSelectionInput.from_player(player) for player in squad.players)
+
+        uncached = recommend_tactic_effective_and_potential(players, MVP_CATALOGUE)
+        cached = recommend_tactic_effective_and_potential(
+            players, MVP_CATALOGUE, role_score_cache=RoleScoreCache()
+        )
+
+        self.assertEqual(cached, uncached)
 
     def test_matchday_detail_reuses_the_bundle_policy_profile(self) -> None:
         game, squad = _complete_owned_snapshot()

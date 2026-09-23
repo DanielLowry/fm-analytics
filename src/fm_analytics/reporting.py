@@ -25,6 +25,7 @@ from fm_analytics.analytics import (
     ReadinessPolicy,
     RecruitmentBrief,
     RoleMatrix,
+    RoleScoreCache,
     SquadDepthReport,
     SubstitutionBoard,
     TacticEvaluation,
@@ -113,7 +114,10 @@ def has_complete_role_attributes(
 
 
 def build_squad_role_matrix(
-    squad: Squad, *, catalogue: FootballCatalogue = MVP_CATALOGUE
+    squad: Squad,
+    *,
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+    role_score_cache: RoleScoreCache | None = None,
 ) -> RoleMatrix:
     """Build the player-by-role view without evaluating tactics or XIs.
 
@@ -124,7 +128,7 @@ def build_squad_role_matrix(
     selection_players = tuple(
         PlayerSelectionInput.from_player(player) for player in squad.players
     )
-    return build_role_matrix(selection_players, catalogue)
+    return build_role_matrix(selection_players, catalogue, role_score_cache=role_score_cache)
 
 
 def build_squad_position_comparison(
@@ -204,6 +208,7 @@ def build_recommendation_bundle(
     selection_players = tuple(
         PlayerSelectionInput.from_player(player) for player in squad.players
     )
+    role_score_cache = RoleScoreCache()
     effective_and_potential = recommend_tactic_effective_and_potential(
         selection_players,
         catalogue,
@@ -212,6 +217,7 @@ def build_recommendation_bundle(
         fit_policy=policy.tactic_fit,
         system_policy=policy.system_fit,
         opponent=policy.opponent,
+        role_score_cache=role_score_cache,
     )
     recommendation = effective_and_potential.effective
     bench = select_bench(
@@ -222,6 +228,7 @@ def build_recommendation_bundle(
         readiness_policy=policy.readiness,
         familiarity_policy=policy.familiarity,
         opponent=policy.opponent,
+        role_score_cache=role_score_cache,
     )
     substitution_board = build_substitution_board(
         recommendation.selected,
@@ -231,14 +238,19 @@ def build_recommendation_bundle(
         readiness_policy=policy.readiness,
         familiarity_policy=policy.familiarity,
         opponent=policy.opponent,
+        role_score_cache=role_score_cache,
     )
     weakness_report = assess_weaknesses(
-        recommendation.selected, selection_players, catalogue, opponent=policy.opponent
+        recommendation.selected, selection_players, catalogue,
+        opponent=policy.opponent, role_score_cache=role_score_cache,
     )
     squad_depth = assess_squad_depth(
-        recommendation.evaluations, selection_players, catalogue, opponent=policy.opponent
+        recommendation.evaluations, selection_players, catalogue,
+        opponent=policy.opponent, role_score_cache=role_score_cache,
     )
-    role_matrix = build_squad_role_matrix(squad, catalogue=catalogue)
+    role_matrix = build_squad_role_matrix(
+        squad, catalogue=catalogue, role_score_cache=role_score_cache
+    )
     briefs = build_recruitment_briefs(weakness_report, catalogue)
     return RecommendationBundle(
         game=game,

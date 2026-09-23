@@ -13,6 +13,7 @@ from fm_analytics.analytics.xi_selection import (
     TacticEvaluation,
     score_player_for_slot,
 )
+from fm_analytics.analytics.role_scoring import RoleScoreCache
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,7 @@ def select_bench(
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
+    role_score_cache: RoleScoreCache | None = None,
 ) -> BenchSelection:
     """Choose selectable non-starters for slot coverage, then playing quality."""
     if bench_size < 0:
@@ -78,6 +80,7 @@ def select_bench(
                     catalogue,
                     readiness_policy=readiness_policy,
                     familiarity_policy=familiarity_policy,
+                    role_score_cache=role_score_cache,
                 )
             )
             is not None

@@ -19,7 +19,7 @@ from fm_analytics.analytics.opponent import (
     assess_opponent_fit,
     attribute_emphasis as opponent_attribute_emphasis,
 )
-from fm_analytics.analytics.role_scoring import RoleScore, ScoreBand, score_role
+from fm_analytics.analytics.role_scoring import RoleScore, RoleScoreCache, ScoreBand, score_role
 from fm_analytics.analytics.selection_status import selection_unavailability_reasons
 from fm_analytics.analytics.tactical_system import (
     SystemAssessment,
@@ -54,6 +54,7 @@ def evaluate_tactic(
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
     system_policy: SystemFitPolicy = SystemFitPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
+    role_score_cache: RoleScoreCache | None = None,
 ) -> TacticEvaluation:
     return _evaluate_tactic(
         tactic,
@@ -64,6 +65,7 @@ def evaluate_tactic(
         fit_policy=fit_policy,
         system_policy=system_policy,
         opponent=opponent,
+        role_score_cache=role_score_cache,
     )
 
 
@@ -79,6 +81,7 @@ def _evaluate_tactic(
     # Required, like the policies above: a silent neutral default here would
     # hide a caller that forgot to thread the opponent through.
     opponent: OpponentProfile,
+    role_score_cache: RoleScoreCache | None = None,
     forced_assignment: tuple[int, str, str] | None = None,
 ) -> TacticEvaluation:
     if tactic.key not in catalogue.tactics or catalogue.tactics[tactic.key] != tactic:
@@ -95,7 +98,7 @@ def _evaluate_tactic(
 
     ordered_players = tuple(sorted(players, key=lambda item: (item.name.casefold(), item.id)))
     choices = _build_choices(
-        tactic, ordered_players, catalogue, readiness_policy, familiarity_policy
+        tactic, ordered_players, catalogue, readiness_policy, familiarity_policy, role_score_cache
     )
     forced_roles: dict[int, str] = {}
     if forced_assignment is not None:
@@ -167,6 +170,7 @@ def recommend_tactic(
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
     system_policy: SystemFitPolicy = SystemFitPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
+    role_score_cache: RoleScoreCache | None = None,
 ) -> TacticRecommendation:
     evaluations = tuple(
         evaluate_tactic(
@@ -178,6 +182,7 @@ def recommend_tactic(
             fit_policy=fit_policy,
             system_policy=system_policy,
             opponent=opponent,
+            role_score_cache=role_score_cache,
         )
         for tactic in catalogue.tactics.values()
     )
@@ -206,6 +211,7 @@ def recommend_tactic_effective_and_potential(
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
     system_policy: SystemFitPolicy = SystemFitPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
+    role_score_cache: RoleScoreCache | None = None,
 ) -> EffectiveAndPotentialRecommendation:
     """Answer both "what to play now" and "what to aim for" from one call.
 
@@ -230,6 +236,7 @@ def recommend_tactic_effective_and_potential(
         fit_policy=fit_policy,
         system_policy=system_policy,
         opponent=opponent,
+        role_score_cache=role_score_cache,
     )
     potential = recommend_tactic(
         players,
@@ -239,6 +246,7 @@ def recommend_tactic_effective_and_potential(
         fit_policy=fit_policy,
         system_policy=system_policy,
         opponent=opponent,
+        role_score_cache=role_score_cache,
     )
     return EffectiveAndPotentialRecommendation(effective=effective, potential=potential)
 
@@ -397,6 +405,7 @@ def score_player_for_slot(
     role_key: str | None = None,
     require_selectable: bool = True,
     taper_policy: AttributeTaperPolicy = AttributeTaperPolicy(),
+    role_score_cache: RoleScoreCache | None = None,
 ) -> SlotAssignment | None:
     """Score a legal player/slot pairing for one allowed role.
 
@@ -427,7 +436,10 @@ def score_player_for_slot(
 
     assignments = []
     for candidate_role in candidate_roles:
-        intrinsic = score_role(catalogue.role_for_slot(slot, candidate_role), player.attributes)
+        intrinsic = score_role(
+            catalogue.role_for_slot(slot, candidate_role), player.attributes,
+            cache=role_score_cache,
+        )
         assignments.append(
             SlotAssignment(
                 slot=slot,
@@ -472,6 +484,7 @@ def _build_choices(
     catalogue: FootballCatalogue,
     policy: ReadinessPolicy,
     familiarity_policy: FamiliarityPolicy,
+    role_score_cache: RoleScoreCache | None = None,
 ) -> tuple[tuple[_CandidateAssignment, ...], ...]:
     choices: list[tuple[_CandidateAssignment, ...]] = []
     for player_index, player in enumerate(players):
@@ -488,6 +501,7 @@ def _build_choices(
                     readiness_policy=policy,
                     familiarity_policy=familiarity_policy,
                     role_key=role_key,
+                    role_score_cache=role_score_cache,
                 )
                 if assignment is None:
                     continue

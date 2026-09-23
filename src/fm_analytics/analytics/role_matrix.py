@@ -11,6 +11,7 @@ from fm_analytics.analytics.role_comparison import (
 )
 from fm_analytics.analytics.role_scoring import (
     RoleScore,
+    RoleScoreCache,
     ScoringPolicy,
     is_position_eligible,
     score_role,
@@ -80,6 +81,7 @@ def build_role_matrix(
     catalogue: FootballCatalogue,
     *,
     scoring_policy: ScoringPolicy = ScoringPolicy(),
+    role_score_cache: RoleScoreCache | None = None,
 ) -> RoleMatrix:
     player_ids = [player.id for player in players]
     if len(player_ids) != len(set(player_ids)):
@@ -94,7 +96,9 @@ def build_role_matrix(
         for player in players:
             if not is_position_eligible(role, player.positions):
                 continue
-            role_score = score_role(role, player.attributes, policy=scoring_policy)
+            role_score = score_role(
+                role, player.attributes, policy=scoring_policy, cache=role_score_cache
+            )
             candidates.append(
                 CandidateRoleScore(
                     player_id=player.id, player_name=player.name, role_score=role_score

@@ -125,6 +125,51 @@ class RoleScore:
         )
 
 
+class RoleScoreCache:
+    """Short-lived cache for immutable role-score inputs.
+
+    A score contains detailed evidence as well as its numeric band, so sharing
+    it is safe only when the scoring-relevant role fields and exact observation
+    mapping are unchanged.  Callers create this per recommendation build; it
+    intentionally has no cross-request lifetime.
+    """
+
+    def __init__(self) -> None:
+        self._scores: dict[
+            tuple[tuple[str, str, str, tuple[RoleAttribute, ...]], int, ScoringPolicy],
+            tuple[Mapping[str, AttributeObservation], RoleScore],
+        ] = {}
+
+    @staticmethod
+    def _role_key(role: RoleDefinition) -> tuple[str, str, str, tuple[RoleAttribute, ...]]:
+        # System traits do not influence `score_role`; including them would
+        # prevent safe reuse of two independently-derived but identically
+        # weighted views of the same role.
+        return role.key, role.name, role.catalogue_version, role.attributes
+
+    def get(
+        self,
+        role: RoleDefinition,
+        observations: Mapping[str, AttributeObservation],
+        policy: ScoringPolicy,
+    ) -> RoleScore | None:
+        entry = self._scores.get((self._role_key(role), id(observations), policy))
+        if entry is None:
+            return None
+        cached_observations, score = entry
+        return score if cached_observations is observations else None
+
+    def put(
+        self,
+        role: RoleDefinition,
+        observations: Mapping[str, AttributeObservation],
+        policy: ScoringPolicy,
+        score: RoleScore,
+    ) -> RoleScore:
+        self._scores[(self._role_key(role), id(observations), policy)] = (observations, score)
+        return score
+
+
 def is_position_eligible(
     role: RoleDefinition, player_positions: tuple[str, ...]
 ) -> bool:
@@ -138,6 +183,7 @@ def score_role(
     observations: Mapping[str, AttributeObservation],
     *,
     policy: ScoringPolicy = ScoringPolicy(),
+    cache: RoleScoreCache | None = None,
 ) -> RoleScore:
     """Score manager-visible observations while retaining their uncertainty.
 
@@ -147,6 +193,11 @@ def score_role(
     upper bound remains the scale maximum to show where more scouting could
     still change a decision.
     """
+
+    if cache is not None:
+        cached = cache.get(role, observations, policy)
+        if cached is not None:
+            return cached
 
     total_weight = sum(attribute.weight for attribute in role.attributes)
     contributions: list[AttributeContribution] = []
@@ -187,7 +238,7 @@ def score_role(
             )
         )
 
-    return RoleScore(
+    result = RoleScore(
         role_key=role.key,
         role_name=role.name,
         catalogue_version=role.catalogue_version,
@@ -200,6 +251,7 @@ def score_role(
         contributions=tuple(contributions),
         median=_median_score(role, observations, total_weight, policy),
     )
+    return cache.put(role, observations, policy, result) if cache is not None else result
 
 
 def _median_score(
@@ -282,4 +334,3 @@ def _score_points(
     scale_span = policy.scale_maximum - policy.scale_minimum
     normalized = (raw_value - policy.scale_minimum) / scale_span
     return normalized * weight_share * 100
-
