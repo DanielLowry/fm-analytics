@@ -261,7 +261,7 @@ def _tactic_role_score(
     """
     return taper_role_score(
         score_role(role, player.attributes, cache=role_score_cache),
-        assess_tapers(catalogue.tapers_for_slot(slot), player.attributes),
+        assess_tapers(catalogue.tapers_for_slot(slot, role.key), player.attributes),
     )
 
 

@@ -80,13 +80,16 @@ class AttributeTaper:
     that falls smoothly with the shortfall (see `attribute_taper`), so a player
     whose other attributes are strong enough can still be the best available.
 
-    With no `positions` it applies to the whole team; with positions, only to
-    slots at those positions, exactly as an emphasis block does.
+    `positions` and `roles` are independent optional filters. With neither it
+    applies to the whole team; with both it applies only where both match. Role
+    scope is what lets two slots at the same position ask different things of
+    different jobs, and lets alternate roles in one slot carry different bars.
     """
 
     attribute: str
     below: int
     positions: tuple[str, ...] = ()
+    roles: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.attribute:
@@ -104,8 +107,16 @@ class AttributeTaper:
             )
         if len(self.positions) != len(set(self.positions)) or not all(self.positions):
             raise ValueError("taper positions must be unique, non-empty names")
+        if len(self.roles) != len(set(self.roles)) or not all(self.roles):
+            raise ValueError("taper roles must be unique, non-empty keys")
 
-    def applies_to(self, position: str) -> bool:
+    def applies_to(self, position: str, role_key: str) -> bool:
+        return (
+            (not self.positions or position in self.positions)
+            and (not self.roles or role_key in self.roles)
+        )
+
+    def covers_position(self, position: str) -> bool:
         return not self.positions or position in self.positions
 
 
@@ -249,18 +260,36 @@ class TacticDefinition:
                     f"tactic {self.key!r} tapers {taper.attribute!r} at positions it does "
                     f"not field: {unfielded!r} (it fields {sorted(fielded)!r})"
                 )
-        for position in fielded:
-            seen: set[str] = set()
-            for taper in self.attribute_taper:
-                if not taper.applies_to(position):
-                    continue
-                if taper.attribute in seen:
-                    # Applying it twice would quietly double the penalty.
-                    raise ValueError(
-                        f"tactic {self.key!r} tapers {taper.attribute!r} more than once "
-                        f"for position {position!r}"
-                    )
-                seen.add(taper.attribute)
+            unused_roles = sorted(set(taper.roles) - {
+                role_key for slot in self.slots for role_key in slot.role_keys
+            })
+            if unused_roles:
+                raise ValueError(
+                    f"tactic {self.key!r} tapers {taper.attribute!r} for roles it does "
+                    f"not use: {unused_roles!r}"
+                )
+            if not any(
+                taper.applies_to(slot.position, role_key)
+                for slot in self.slots
+                for role_key in slot.role_keys
+            ):
+                raise ValueError(
+                    f"tactic {self.key!r} taper for {taper.attribute!r} matches no "
+                    "permitted slot/role"
+                )
+        for slot in self.slots:
+            for role_key in slot.role_keys:
+                seen: set[str] = set()
+                for taper in self.attribute_taper:
+                    if not taper.applies_to(slot.position, role_key):
+                        continue
+                    if taper.attribute in seen:
+                        # Applying it twice would quietly double the penalty.
+                        raise ValueError(
+                            f"tactic {self.key!r} tapers {taper.attribute!r} more than "
+                            f"once for slot {slot.key!r}, role {role_key!r}"
+                        )
+                    seen.add(taper.attribute)
         for slot in self.slots:
             for attribute, delta in slot.attribute_emphasis.items():
                 if not isinstance(delta, int) or isinstance(delta, bool):
@@ -401,7 +430,9 @@ class FootballCatalogue:
         slot_tapers = {
             slot.key: applicable
             for slot in tactic.slots
-            if (applicable := tuple(t for t in tactic.attribute_taper if t.applies_to(slot.position)))
+            if (applicable := tuple(
+                t for t in tactic.attribute_taper if t.covers_position(slot.position)
+            ))
         }
         if not whole_team and not slot_totals and not slot_tapers:
             return None
@@ -414,9 +445,15 @@ class FootballCatalogue:
         }
         return replace(self, roles=roles, slot_roles=slot_roles, slot_tapers=slot_tapers, tactic_view=True)
 
-    def tapers_for_slot(self, slot: TacticSlot) -> tuple[AttributeTaper, ...]:
-        """The attribute tapers that apply to whoever fills this slot."""
-        return self.slot_tapers.get(slot.key, ())
+    def tapers_for_slot(
+        self, slot: TacticSlot, role_key: str
+    ) -> tuple[AttributeTaper, ...]:
+        """The attribute tapers that apply to this exact slot/role pairing."""
+        return tuple(
+            taper
+            for taper in self.slot_tapers.get(slot.key, ())
+            if taper.applies_to(slot.position, role_key)
+        )
 
     def role_for_slot(self, slot: TacticSlot, role_key: str) -> RoleDefinition:
         """The role as this slot weights it: a slot override, else the role."""
@@ -466,6 +503,34 @@ class FootballCatalogue:
                 raise ValueError(
                     f"tactic {key!r} references unknown roles {sorted(unknown_roles)!r}"
                 )
+            if not self.tactic_view:
+                for block in tactic.attribute_emphasis:
+                    covered = tuple(
+                        role_key
+                        for slot in tactic.slots
+                        if block.applies_to(slot.position)
+                        for role_key in slot.role_keys
+                    )
+                    for attribute in block.attributes:
+                        if not any(
+                            attribute in {item.name for item in self.roles[role_key].attributes}
+                            for role_key in covered
+                        ):
+                            scope = ", ".join(block.positions) or "whole team"
+                            raise ValueError(
+                                f"tactic {key!r} emphasises {attribute!r} for {scope}, "
+                                "but none of the covered roles weights it"
+                            )
+                for slot in tactic.slots:
+                    for attribute in slot.attribute_emphasis:
+                        if not any(
+                            attribute in {item.name for item in self.roles[role_key].attributes}
+                            for role_key in slot.role_keys
+                        ):
+                            raise ValueError(
+                                f"tactic {key!r} slot {slot.key!r} emphasises "
+                                f"{attribute!r}, but none of its permitted roles weights it"
+                            )
             incompatible_slots = [
                 slot.key
                 for slot in tactic.slots
@@ -733,7 +798,7 @@ _TACTIC_KEYS = frozenset({
     "instructionRationale", "keyRequirements", "tags", "attributeEmphasis",
     "attributeTaper",
 })
-_TAPER_KEYS = frozenset({"attribute", "taperBelow", "positions"})
+_TAPER_KEYS = frozenset({"attribute", "taperBelow", "positions", "roles"})
 _SLOT_KEYS = frozenset({"key", "position", "role", "roles", "why", "attributeEmphasis"})
 _SYSTEM_KEYS = frozenset({"minimums", "maximumAttackDuties", "maximumCreators"})
 _EXCLUSION_KEYS = frozenset({"name", "position", "roles"})
@@ -781,6 +846,7 @@ def _taper_blocks(value: Any, tactic_key: str) -> tuple[AttributeTaper, ...]:
                 attribute=_str(raw, "attribute"),
                 below=raw.get("taperBelow"),
                 positions=_str_tuple(raw, "positions") if "positions" in raw else (),
+                roles=_str_tuple(raw, "roles") if "roles" in raw else (),
             )
         )
     return tuple(tapers)

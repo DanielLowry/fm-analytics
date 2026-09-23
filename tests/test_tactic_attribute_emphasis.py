@@ -177,10 +177,26 @@ class PositionBlockTests(unittest.TestCase):
             slot_weights(with_emphasis([a, b]), "DCL"), slot_weights(with_emphasis([b, a]), "DCL")
         )
 
-    def test_a_position_block_never_gives_a_role_an_attribute_it_ignores(self) -> None:
+    def test_a_position_block_that_affects_no_covered_role_is_refused(self) -> None:
         self.assertNotIn("stamina", base_slot_weights("DCL"))
-        catalogue = with_emphasis([AttributeEmphasis({"stamina": 2}, ("DC",))])
+        with self.assertRaisesRegex(ValueError, "none of the covered roles"):
+            with_emphasis([AttributeEmphasis({"stamina": 2}, ("DC",))])
+
+    def test_a_broad_block_may_skip_roles_as_long_as_it_affects_somebody(self) -> None:
+        catalogue = with_emphasis({"stamina": 2})
         self.assertNotIn("stamina", slot_weights(catalogue, "DCL"))
+        self.assertGreater(
+            slot_weights(catalogue, "MCL")["stamina"],
+            base_slot_weights("MCL")["stamina"],
+        )
+
+    def test_a_slot_block_that_affects_no_permitted_role_is_refused(self) -> None:
+        tactic = MVP_CATALOGUE.tactics[TACTIC]
+        slots = list(tactic.slots)
+        slots[2] = replace(slots[2], attribute_emphasis={"stamina": 2})
+        changed = replace(tactic, slots=tuple(slots), attribute_emphasis=())
+        with self.assertRaisesRegex(ValueError, "none of its permitted roles"):
+            replace(MVP_CATALOGUE, tactics={**MVP_CATALOGUE.tactics, TACTIC: changed})
 
     def test_a_tactic_with_only_position_blocks_still_leaves_other_slots_alone(self) -> None:
         catalogue = with_emphasis([AttributeEmphasis({"pace": 2}, self.BACK_LINE)])

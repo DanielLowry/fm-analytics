@@ -699,12 +699,21 @@ A weighted average cannot express that. A midfielder on passing 4 in a role that
 gives passing a tenth of its weight loses only about 8% of his score, so a
 position-scoped emphasis of +2 cannot fix it either.
 
-**Design (agreed in review).** A tactic declares levels, per attribute and
-optionally per position:
+**Design (agreed in review, since extended).** A tactic declares levels per
+attribute, optionally filtered by position and/or permitted role:
 
 ```json
-"attributeTaper": [{"attribute": "passing", "taperBelow": 12, "positions": ["MC"]}]
+"attributeTaper": [{
+  "attribute": "passing",
+  "taperBelow": 12,
+  "positions": ["MC"],
+  "roles": ["dlp_mc_support"]
+}]
 ```
+
+The two filters combine: both must match when both are present. Role scope is
+resolved against the role actually selected, so it works both for distinct
+same-position slots and for alternate roles in one flexible slot.
 
 Below the level the slot score is multiplied by `max(0.5, 1 - 0.06 * shortfall)`.
 Several multiply, floored at 0.35. It is a smooth penalty, not a rule-out, and it
@@ -719,9 +728,10 @@ page shows the taper as its own step in the score path (not booked as a readines
 cost, which is computed as a difference and would otherwise have swallowed it) and
 says in words what fell short.
 
-**Kept exact.** The penalty is per player and slot, independent of the other ten,
-so the exact assignment is untouched. A group rule ("at least one midfielder with
-passing 12") would couple players and break that; it is deliberately out of scope.
+**Kept exact.** The penalty is per player, slot and candidate role, independent
+of the other ten, so the exact assignment is untouched. A group rule ("at least
+one midfielder with passing 12") would couple players and break that; it is
+deliberately out of scope.
 
 **A calibration finding, reported rather than hidden.** With the agreed 6%/point,
 the maximum score of 100 limits how far a short player's other attributes can make

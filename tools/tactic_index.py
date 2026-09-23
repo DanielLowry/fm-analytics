@@ -64,9 +64,17 @@ def leans_detail(tactic: TacticDefinition) -> str:
 
 
 def taper_detail(tactic: TacticDefinition) -> str:
-    """`passing 12 (MC); stamina 12 (whole team)`."""
+    """`passing 12 (MC; Deep-Lying Playmaker (Support) [MC])`."""
+    def scope(taper) -> str:
+        parts = [", ".join(taper.positions) or "whole team"]
+        if taper.roles:
+            parts.append(
+                ", ".join(MVP_CATALOGUE.roles[role_key].name for role_key in taper.roles)
+            )
+        return "; ".join(parts)
+
     return "; ".join(
-        f"{readable(t.attribute)} {t.below} ({', '.join(t.positions) or 'whole team'})"
+        f"{readable(t.attribute)} {t.below} ({scope(t)})"
         for t in tactic.attribute_taper
     ) or "—"
 

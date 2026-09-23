@@ -95,6 +95,10 @@ positions; without it the block covers the whole team. **Every block that covers
 a slot is added together**, along with the slot's own `attributeEmphasis`, and
 the total is clamped to 0-10. Positions are slot positions, not slot keys
 (`"DC"`, not `"DCL"`), and naming one the tactic does not field is an error.
+Loading the catalogue also rejects an emphasis attribute when none of the roles
+in its scope weights that attribute. This catches misspellings and genuinely
+inert configuration while still allowing a broad block to affect only the
+covered roles that already care about an attribute.
 
 `catalogue.for_tactic(key)` returns the catalogue with roles re-weighted for one
 tactic, keeping every key, name, position, system trait and the version, so
@@ -133,13 +137,18 @@ base weights, so a player's best role does not move between pages.
 ## Attribute taper
 
 A tactic may declare `attributeTaper`: a list of `{"attribute": "passing",
-"taperBelow": 12, "positions": ["MC"]}` (positions optional, as for emphasis).
+"taperBelow": 12, "positions": ["MC"], "roles": ["dlp_mc_support"]}`.
+`positions` and `roles` are both optional filters. If both are present, both
+must match; with neither, the taper covers the whole team. Role scope can
+distinguish two jobs at the same position and can distinguish alternate roles
+inside one flexible slot.
 Below the level a player's slot score is multiplied by
 `max(0.5, 1 - 0.06 * shortfall)`; at or above it he is untouched. The name is
 deliberate: this is a **taper, not a minimum**. There is no cliff and nobody is
 ruled out. Several tapers multiply, floored at 0.35 so no one is scored to zero.
 `taperBelow` is a whole number 2-20; naming an unfielded position, a misspelled
-attribute, or tapering one attribute twice for a position is an error.
+attribute, an unused role, an empty position/role intersection, or overlapping
+tapers for the same attribute and exact slot/role is an error.
 
 Why it exists: a weighted average can never say "this tactic does not work
 without passing" (a midfielder on passing 4 costs ~8% of his score however much
@@ -155,8 +164,9 @@ short and behave as a bar beyond that. The knob is
 not yet part of `RecommendationPolicy`, so it is a default argument, not a UI
 setting.
 
-The taper is applied per player and slot, independent of the other ten, which
-keeps the exact assignment in `assignment_solver` exact. It reaches selection,
+The taper is applied per player, slot and candidate role, independent of the
+other ten, which keeps the exact assignment in `assignment_solver` exact. It
+reaches selection,
 bench, substitution cover, explanations, and the depth/weakness report (starter
 and cover are both tapered, or a penalised starter would look better than his
 cover). A group rule such as "at least one midfielder with passing 12" would

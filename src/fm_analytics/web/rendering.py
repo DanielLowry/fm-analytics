@@ -10,6 +10,7 @@ from typing import Callable, Sequence
 from urllib.parse import urlencode
 
 from fm_analytics.analytics import (
+    MVP_CATALOGUE,
     ScoutingFilters,
     TacticDefinition,
     TacticSlot,
@@ -310,9 +311,19 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
             "differently from the same role in another tactic.</p>"
         )
     if tactic.attribute_taper:
+        def taper_scope(taper) -> str:
+            parts = [", ".join(taper.positions) or "whole team"]
+            if taper.roles:
+                parts.append(
+                    ", ".join(
+                        MVP_CATALOGUE.roles[role_key].name for role_key in taper.roles
+                    )
+                )
+            return "; ".join(parts)
+
         levels = "; ".join(
             f"{html.escape(_readable_attribute(t.attribute))} {t.below}"
-            f" <span class='muted'>({html.escape(', '.join(t.positions) or 'whole team')})</span>"
+            f" <span class='muted'>({html.escape(taper_scope(t))})</span>"
             for t in tactic.attribute_taper
         )
         parts.append(

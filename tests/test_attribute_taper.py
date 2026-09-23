@@ -118,6 +118,10 @@ class TaperDefinitionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unique"):
             AttributeTaper("passing", 12, ("MC", "MC"))
 
+    def test_roles_must_be_unique(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unique"):
+            AttributeTaper("passing", 12, roles=("cm_support", "cm_support"))
+
     def test_an_unknown_attribute_is_refused(self) -> None:
         with self.assertRaisesRegex(ValueError, "unknown attributes"):
             with_tapers(AttributeTaper("pasing", 12))
@@ -134,16 +138,36 @@ class TaperDefinitionTests(unittest.TestCase):
     def test_the_same_attribute_at_different_positions_is_fine(self) -> None:
         with_tapers(AttributeTaper("passing", 12, ("MC",)), AttributeTaper("passing", 10, ("DC",)))
 
+    def test_a_role_the_tactic_does_not_use_is_refused(self) -> None:
+        with self.assertRaisesRegex(ValueError, "roles it does not use"):
+            with_tapers(AttributeTaper("passing", 12, roles=("treq_amc_attack",)))
+
+    def test_position_and_role_filters_must_overlap(self) -> None:
+        with self.assertRaisesRegex(ValueError, "matches no permitted slot/role"):
+            with_tapers(
+                AttributeTaper("passing", 12, ("MC",), roles=("af_attack",))
+            )
+
+    def test_the_same_attribute_can_have_disjoint_role_scopes(self) -> None:
+        with_tapers(
+            AttributeTaper("passing", 12, ("MC",), ("cm_support",)),
+            AttributeTaper("passing", 10, ("MC",), ("cm_defend",)),
+        )
+
 
 class LoaderTests(unittest.TestCase):
-    def test_entries_load_with_and_without_positions(self) -> None:
+    def test_entries_load_with_position_and_role_filters(self) -> None:
         from fm_analytics.analytics.catalogue import _taper_blocks
 
         tapers = _taper_blocks(
-            [{"attribute": "passing", "taperBelow": 12, "positions": ["MC"]},
+            [{"attribute": "passing", "taperBelow": 12, "positions": ["MC"],
+              "roles": ["cm_support"]},
              {"attribute": "stamina", "taperBelow": 11}], "t")
-        self.assertEqual(tapers[0], AttributeTaper("passing", 12, ("MC",)))
+        self.assertEqual(
+            tapers[0], AttributeTaper("passing", 12, ("MC",), ("cm_support",))
+        )
         self.assertEqual(tapers[1].positions, ())
+        self.assertEqual(tapers[1].roles, ())
 
     def test_the_word_minimum_is_not_accepted(self) -> None:
         # The name is the contract: this is a taper, not a hard minimum.
@@ -273,6 +297,25 @@ class SelectionTests(unittest.TestCase):
             self.assertEqual(a.taper_notes, ())
             self.assertEqual(a.tapered_score, a.in_position_score)
 
+    def test_a_role_filter_only_penalises_that_role_in_a_flexible_slot(self) -> None:
+        from fm_analytics.analytics import score_player_for_slot
+
+        catalogue = with_tapers(
+            AttributeTaper("passing", 20, ("ST",), ("dlf_support",))
+        )
+        player = next(p for p in self._players() if "ST" in p.positions)
+        slot = next(s for s in catalogue.tactics[TACTIC].slots if s.key == "STL")
+        view = catalogue.for_tactic(TACTIC)
+        deep_lying = score_player_for_slot(
+            player, slot, view, role_key="dlf_support"
+        )
+        complete = score_player_for_slot(
+            player, slot, view, role_key="cf_support"
+        )
+        assert deep_lying is not None and complete is not None
+        self.assertLess(deep_lying.taper_multiplier.central, 1.0)
+        self.assertEqual(complete.taper_multiplier.central, 1.0)
+
 
 class ConsistencyTests(unittest.TestCase):
     """A starter and the cover for his slot must be judged the same way."""
@@ -335,6 +378,24 @@ class PresentationTests(unittest.TestCase):
         from tools.tactic_index import taper_detail
 
         self.assertEqual(taper_detail(self._tactic()), "passing 12 (MC); stamina 11 (whole team)")
+
+    def test_role_scopes_are_named_in_the_page_and_index(self) -> None:
+        import re
+        from fm_analytics.web.rendering import _tactic_notes
+        from tools.tactic_index import taper_detail
+
+        tactic = replace(
+            MVP_CATALOGUE.tactics[TACTIC],
+            attribute_taper=(
+                AttributeTaper(
+                    "passing", 12, ("MC",), ("cm_support",)
+                ),
+            ),
+        )
+        expected = "passing 12 (MC; Central Midfielder (Support))"
+        self.assertEqual(taper_detail(tactic), expected)
+        text = re.sub(r"<[^>]+>", "", _tactic_notes(tactic))
+        self.assertIn(expected, text)
 
     def test_no_shipped_tactic_uses_the_word_minimum_for_a_taper(self) -> None:
         # The loader refuses the key; this names the intent.

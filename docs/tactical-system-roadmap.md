@@ -81,13 +81,15 @@ if key_attribute < role_threshold:
 Thresholds should be limited to genuinely core requirements and should explain
 the exact cause of the penalty in the UI.
 
-A **per-tactic** version is being implemented: a tactic declares, per attribute
-and optionally per position, a level below which a player's fit tapers away (see
-`attributeTaper` in `src/fm_analytics/analytics/CLAUDE.md`). The **per-role**
-version is not: a per-attribute soft-floor table used to ship in the role files
+A **per-tactic** version is implemented: a tactic declares, per attribute and
+optionally per position and/or permitted role, a level below which a player's
+fit tapers away (see `attributeTaper` in
+`src/fm_analytics/analytics/CLAUDE.md`). A global **base-role** version is not:
+a per-attribute soft-floor table used to ship in the role files
 (`coreSoftFloorApplies`, `softFloorIfAttrLt6/8/10`, `normalMultiplierIfAttrGe10`)
 but nothing read it, so it was removed rather than left as reserved config. A
-role-level taper would reuse the same mechanism.
+role can now be scoped within a tactic without bringing that dead global table
+back.
 
 ### 1b. Per-tactic role weighting (new)
 

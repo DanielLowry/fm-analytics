@@ -433,12 +433,13 @@ def score_player_for_slot(
     familiarity_multiplier, familiarity_warnings = _familiarity(
         player, slot, familiarity_policy
     )
-    # Independent of the role chosen (a player's attributes are what they are),
-    # so worked out once per player and slot.
-    taper = assess_tapers(catalogue.tapers_for_slot(slot), player.attributes, taper_policy)
-
     assignments = []
     for candidate_role in candidate_roles:
+        taper = assess_tapers(
+            catalogue.tapers_for_slot(slot, candidate_role),
+            player.attributes,
+            taper_policy,
+        )
         intrinsic = score_role(
             catalogue.role_for_slot(slot, candidate_role), player.attributes,
             cache=role_score_cache,
