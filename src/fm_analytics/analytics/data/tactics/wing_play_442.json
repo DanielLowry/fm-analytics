@@ -103,7 +103,7 @@
   },
   "style": "Wing Play",
   "description": "A width-first 4-4-2 designed to stretch the opponent and generate repeated crossing opportunities for two forwards.",
-  "whyGood": "Wide midfielders and overlapping full-backs create outside overloads, with a Target Man giving crosses a clear focal point.",
+  "whyGood": "The wingers provide the primary delivery while the supporting full-backs create additional wide options. Two forwards give repeated targets for crosses, with the Target Man occupying centre-backs and the Advanced Forward attacking space around him.",
   "whyThisShape": "A 4-4-2 that attacks down the flanks: wingers and overlapping full-backs supply crosses for a target man and a second striker. It is a direct, physical style that suits a strong pair of forwards.",
   "whenToUse": "When you have two good wingers, full-backs with stamina, and a striker who wins headers; against teams that defend narrowly.",
   "whenNotToUse": "Against tall centre-backs who win the crosses, or when your full-backs cannot get back, since the flanks are left open.",
@@ -119,22 +119,112 @@
   "attributeEmphasis": [
     {
       "attributes": {
-        "crossing": 2,
-        "stamina": 2,
-        "pace": 2,
-        "heading": 2
+        "teamwork": 1
       }
+    },
+    {
+      "attributes": {
+        "positioning": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "stamina": 2,
+        "crossing": 2,
+        "workRate": 1,
+        "pace": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 2,
+        "pace": 2,
+        "acceleration": 1,
+        "dribbling": 1
+      },
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 1,
+        "teamwork": 1
+      },
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 2,
+        "anticipation": 2
+      },
+      "positions": [
+        "ST"
+      ]
     }
   ],
   "keyRequirements": [
-    "Good crossing",
-    "Fast wide players",
-    "Stamina at full-back",
-    "Aerially strong striker"
+    "Wingers with reliable crossing and enough pace to create separation",
+    "Full-backs with the stamina to support repeated wide attacks",
+    "An aerially strong Target Man",
+    "A mobile second striker",
+    "Central midfielders disciplined enough to protect the space behind the wide attacks"
   ],
   "tags": [
     "wing-play",
     "442",
     "crossing"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 7,
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 7,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ]
+    }
   ]
 }

@@ -103,7 +103,7 @@
   },
   "style": "Route One",
   "description": "A deliberately direct system that moves the ball forward early toward a physical target and runners attacking second balls.",
-  "whyGood": "The Target Man gives long passes a destination while the AF, wide players and midfield compete for territory and knockdowns.",
+  "whyGood": "The Target Man gives direct balls a reliable destination, the Advanced Forward attacks the space created by knock-downs, and the midfield is selected to compete aggressively for second balls. The system avoids asking weak technical players to build through pressure.",
   "whyThisShape": "A direct 4-4-2 that skips the midfield: long balls to a target man, with a second striker running onto flick-ons, and wingers crossing early. It is the least subtle system in the catalogue, and works when the forwards are physically stronger than the defenders.",
   "whenToUse": "When you have a big target man and a quick second striker, but weak technical midfielders; or against teams with small defenders.",
   "whenNotToUse": "Against tall, strong centre-backs who win the aerial duels, or when your squad is technical and would waste its passing.",
@@ -118,22 +118,116 @@
   "attributeEmphasis": [
     {
       "attributes": {
-        "jumpingReach": 2,
-        "heading": 2,
-        "strength": 2,
-        "offTheBall": 2
+        "teamwork": 1
       }
+    },
+    {
+      "attributes": {
+        "kicking": 2
+      },
+      "positions": [
+        "GK"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 1,
+        "stamina": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 2,
+        "pace": 1,
+        "workRate": 1
+      },
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "aggression": 2,
+        "anticipation": 1,
+        "strength": 1
+      },
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 2,
+        "anticipation": 2
+      },
+      "positions": [
+        "ST"
+      ]
     }
   ],
   "keyRequirements": [
-    "Dominant aerial striker",
-    "Fast strike partner",
-    "Strong midfield",
-    "Reliable crossing"
+    "A genuinely strong aerial Target Man",
+    "A mobile strike partner who attacks flick-ons and space",
+    "Midfielders who compete hard for second balls",
+    "Wide players capable of delivering early crosses",
+    "A goalkeeper capable of useful long distribution"
   ],
   "tags": [
     "route-one",
     "442",
     "physical"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "kicking",
+      "taperBelow": 7,
+      "positions": [
+        "GK"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 7,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "aggression",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ]
+    }
   ]
 }
