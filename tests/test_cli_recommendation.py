@@ -62,6 +62,7 @@ class RecommendationCliTests(unittest.TestCase):
             source.get_health.return_value = SourceHealth("ready", "linux-proton")
             source.get_game.return_value = game
             source.get_squad.return_value = squad
+            source.read_snapshot.return_value = game, squad
             status = main(["--direct-live", "--recommend"])
 
         self.assertEqual(status, 0)
@@ -70,7 +71,7 @@ class RecommendationCliTests(unittest.TestCase):
         self.assertIn("Fit: 65% XI mean + 35% weakest slot", output.getvalue())
         self.assertIn("Weak points", output.getvalue())
         self.assertIn("Squad depth across evaluated tactics", output.getvalue())
-        source.get_squad.assert_called_once_with()
+        source.read_snapshot.assert_called_once_with()
 
     def test_direct_live_refuses_mismatched_game_and_squad_dates(self) -> None:
         game, squad = self._complete_owned_snapshot()
@@ -83,6 +84,7 @@ class RecommendationCliTests(unittest.TestCase):
                 game, game_date=game.game_date + timedelta(days=1)
             )
             source.get_squad.return_value = squad
+            source.read_snapshot.return_value = source.get_game.return_value, squad
             status = main(["--direct-live", "--recommend"])
 
         self.assertEqual(status, 1)
@@ -270,6 +272,7 @@ class RecommendationCliTests(unittest.TestCase):
             source.get_health.return_value = SourceHealth("ready", "linux-proton")
             source.get_game.return_value = game
             source.get_squad.return_value = squad
+            source.read_snapshot.return_value = game, squad
             status = main(["--direct-live", "--recommend"])
 
         self.assertEqual(status, 0)

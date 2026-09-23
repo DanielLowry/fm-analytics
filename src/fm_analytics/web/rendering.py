@@ -170,6 +170,10 @@ _STYLE = """
   nav { background: #1a2b3c; padding: 0.75rem 1.5rem; }
   nav a { color: #cdd8e3; text-decoration: none; margin-right: 1.25rem; font-size: 0.95rem; }
   nav a.active, nav a:hover { color: #ffffff; font-weight: 600; }
+  .fm-status { float: right; color: #cdd8e3; font-size: 0.72rem; line-height: 1.35; text-align: right; }
+  .fm-status b { color: #ffffff; }
+  .fm-status form { margin: 0.25rem 0 0; }
+  .fm-status button { font-size: 0.72rem; cursor: pointer; }
   main { padding: 1.5rem 2rem; max-width: 1100px; margin: 0 auto; }
   h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
   h2 { font-size: 1.1rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }

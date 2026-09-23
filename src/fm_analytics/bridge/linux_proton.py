@@ -93,7 +93,8 @@ class LinuxProtonDataSource:
         self._cached_document: dict[str, Any] | None = None
         self._cached_at = 0.0
 
-    def get_health(self) -> SourceHealth:
+    def get_health(self, *, force: bool = False) -> SourceHealth:
+        del force  # The web server, not this low-level source, schedules checks.
         try:
             self._read_probe()
             if not self.owned_source_path.is_file():
@@ -107,6 +108,21 @@ class LinuxProtonDataSource:
 
     def get_game(self) -> GameState:
         document = self._read_probe()
+        return self._game_from_document(document)
+
+    def read_snapshot(self) -> tuple[GameState, Squad]:
+        """Read one coherent, immutable game-and-squad observation.
+
+        This is the refresh entry point.  Unlike the old public sequence of
+        ``get_health()``, ``get_game()``, then ``get_squad()``, it does not run
+        a separate readiness probe before collecting the actual observation.
+        ``_validate_owned_source`` still rejects mixed game/club/player data.
+        """
+        document = self._read_probe()
+        return self._game_from_document(document), self._squad_from_document(document)
+
+    @staticmethod
+    def _game_from_document(document: Mapping[str, Any]) -> GameState:
         manager = _active_manager(document)
         return GameState(
             game_date=_parse_date(document["game_date"]),
@@ -116,6 +132,9 @@ class LinuxProtonDataSource:
 
     def get_squad(self) -> Squad:
         document = self._read_probe()
+        return self._squad_from_document(document)
+
+    def _squad_from_document(self, document: Mapping[str, Any]) -> Squad:
         manager = _active_manager(document)
         club = _map_club(manager.get("club"))
         if club is None:

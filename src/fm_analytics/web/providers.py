@@ -18,7 +18,7 @@ from fm_analytics.api import BridgeClient
 from fm_analytics.bridge import LinuxProtonDataSource
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.analytics.scouting import ScoutingCandidate
-from fm_analytics.domain import GameState, Squad
+from fm_analytics.domain import GameState, SourceHealth, Squad
 from fm_analytics.imports import merge_fm_squad_html_exports, parse_fm_squad_html_export
 from fm_analytics.persistence import SnapshotStore
 
@@ -86,17 +86,32 @@ def snapshot_provider(
     return provide
 
 
-def live_provider(*, base_url: str | None = None, direct: bool = False) -> GameSquadProvider:
+class LiveGameSquadProvider:
+    """A callable provider that also exposes an independent health check."""
+
+    def __init__(self, source) -> None:
+        self.source = source
+
+    def __call__(self) -> tuple[GameState, Squad]:
+        if isinstance(self.source, LinuxProtonDataSource):
+            return self.source.read_snapshot()
+        health = self.source.get_health()
+        if not health.is_ready:
+            raise BridgeSourceError(health.status, health.detail or health.status)
+        return self.source.get_game(), self.source.get_squad()
+
+    def health(self, *, force: bool = False) -> SourceHealth:
+        try:
+            return self.source.get_health(force=force)
+        except TypeError:  # HTTP bridge and older sources have no force option.
+            return self.source.get_health()
+
+
+def live_provider(*, base_url: str | None = None, direct: bool = False) -> LiveGameSquadProvider:
     """Read the current squad straight from the running game or its bridge."""
     source = LinuxProtonDataSource() if direct else BridgeClient(base_url or "http://localhost:5072")
 
-    def provide() -> tuple[GameState, Squad]:
-        health = source.get_health()
-        if not health.is_ready:
-            raise BridgeSourceError(health.status, health.detail or health.status)
-        return source.get_game(), source.get_squad()
-
-    return provide
+    return LiveGameSquadProvider(source)
 
 
 def html_overlay_provider(

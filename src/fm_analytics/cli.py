@@ -517,11 +517,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                     LinuxProtonDataSource() if args.direct_live
                     else BridgeClient(args.base_url)
                 )
-                health = live_source.get_health()
-                if not health.is_ready:
-                    raise BridgeError(health.detail or health.status)
-                game, squad = live_source.get_game(), live_source.get_squad()
-                source_name = health.source
+                if args.direct_live:
+                    game, squad = live_source.read_snapshot()
+                    source_name = live_source.name
+                else:
+                    health = live_source.get_health()
+                    if not health.is_ready:
+                        raise BridgeError(health.detail or health.status)
+                    game, squad = live_source.get_game(), live_source.get_squad()
+                    source_name = health.source
             recommendation = None
             training_targets = ()
             bench = None

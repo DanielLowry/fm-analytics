@@ -18,6 +18,7 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -36,7 +37,7 @@ from fm_analytics.analytics import (
     filter_scouting_candidates,
 )
 from fm_analytics.bridge.errors import BridgeSourceError
-from fm_analytics.domain import Squad
+from fm_analytics.domain import SourceHealth, Squad
 from fm_analytics.reporting import (
     RecommendationBundle,
     TacticMatchdayReport,
@@ -104,12 +105,14 @@ class SquadWebServer(ThreadingHTTPServer):
         scouting_provider=None,
         scouting_refresh: Callable[..., str] | None = None,
         cache_ttl_seconds: float = 8.0,
+        health_interval_seconds: float = 30.0,
     ):
         self.provider = provider
         self.scouting_provider = scouting_provider or empty_scouting_provider()
         self.scouting_refresh = scouting_refresh
         self._scouting_refresh_lock = threading.Lock()
         self.cache_ttl_seconds = cache_ttl_seconds
+        self.health_interval_seconds = health_interval_seconds
         self._lock = threading.Lock()
         self._read_at = 0.0
         self._read_result: tuple[object, object] | None = None
@@ -118,7 +121,15 @@ class SquadWebServer(ThreadingHTTPServer):
         self._bundle_result: RecommendationBundle | None = None
         self._bundle_error: Exception | None = None
         self._tactic_report_cache: dict[tuple[int, str, int | None], TacticMatchdayReport] = {}
+        self._snapshot_at: datetime | None = None
+        self._refreshing = False
+        self._refresh_error: Exception | None = None
+        self._health = SourceHealth("unknown", "not checked")
+        self._health_at: datetime | None = None
+        self._health_checking = False
+        self._health_stop = threading.Event()
         super().__init__(address, SquadWebHandler)
+        threading.Thread(target=self._health_loop, daemon=True, name="fm-health").start()
 
     def scouting(self):
         # A refresh overwrites the capture file. Do not let another request
@@ -138,12 +149,8 @@ class SquadWebServer(ThreadingHTTPServer):
 
     def read(self):
         with self._lock:
-            now = time.monotonic()
-            if now - self._read_at < self.cache_ttl_seconds:
-                if self._read_error is not None:
-                    raise self._read_error
-                if self._read_result is not None:
-                    return self._read_result
+            if self._read_result is not None:
+                return self._read_result
         try:
             result = self.provider()
         except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
@@ -156,12 +163,8 @@ class SquadWebServer(ThreadingHTTPServer):
 
     def bundle(self) -> RecommendationBundle:
         with self._lock:
-            now = time.monotonic()
-            if now - self._bundle_at < self.cache_ttl_seconds:
-                if self._bundle_error is not None:
-                    raise self._bundle_error
-                if self._bundle_result is not None:
-                    return self._bundle_result
+            if self._bundle_result is not None:
+                return self._bundle_result
         game, squad = self.read()
         try:
             validate_recommendation_snapshot(game, squad)
@@ -177,8 +180,98 @@ class SquadWebServer(ThreadingHTTPServer):
             raise
         with self._lock:
             self._bundle_result, self._bundle_error, self._bundle_at = built, None, time.monotonic()
+            self._snapshot_at = datetime.now(timezone.utc)
             self._tactic_report_cache.clear()
         return built
+
+    def request_refresh(self) -> bool:
+        """Start a full snapshot refresh without blocking an HTTP request."""
+        with self._lock:
+            if self._refreshing:
+                return False
+            self._refreshing, self._refresh_error = True, None
+        threading.Thread(target=self._refresh_snapshot, daemon=True, name="fm-refresh").start()
+        return True
+
+    def _refresh_snapshot(self) -> None:
+        try:
+            game, squad = self.provider()
+            validate_recommendation_snapshot(game, squad)
+            if not has_complete_role_attributes(squad):
+                raise ValueError("This source has not supplied every role-scoring attribute yet.")
+            built = build_recommendation_bundle(game, squad)
+        except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
+            with self._lock:
+                self._refreshing, self._refresh_error = False, exc
+            return
+        with self._lock:
+            self._read_result, self._read_error, self._read_at = (game, squad), None, time.monotonic()
+            self._bundle_result, self._bundle_error, self._bundle_at = built, None, time.monotonic()
+            self._snapshot_at = datetime.now(timezone.utc)
+            self._tactic_report_cache.clear()
+            self._refreshing = False
+
+    def _health_loop(self) -> None:
+        while not self._health_stop.is_set():
+            self.check_health()
+            self._health_stop.wait(self.health_interval_seconds)
+
+    def check_health(self) -> None:
+        with self._lock:
+            if self._health_checking:
+                return
+            self._health_checking = True
+        try:
+            health_method = getattr(self.provider, "health", None)
+            health = health_method() if health_method is not None else SourceHealth("ready", "snapshot")
+        except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
+            health = SourceHealth("unavailable", "provider", str(exc))
+        with self._lock:
+            self._health, self._health_at, self._health_checking = health, datetime.now(timezone.utc), False
+
+    def request_health_check(self) -> bool:
+        with self._lock:
+            if self._health_checking:
+                return False
+            self._health_checking = True
+        threading.Thread(target=self._forced_health_check, daemon=True, name="fm-health-manual").start()
+        return True
+
+    def _forced_health_check(self) -> None:
+        try:
+            health_method = getattr(self.provider, "health", None)
+            health = health_method(force=True) if health_method is not None else SourceHealth("ready", "snapshot")
+        except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
+            health = SourceHealth("unavailable", "provider", str(exc))
+        with self._lock:
+            self._health, self._health_at, self._health_checking = health, datetime.now(timezone.utc), False
+
+    def status_html(self) -> str:
+        with self._lock:
+            health = self._health
+            checked = self._health_at.isoformat(timespec="seconds") if self._health_at else "not yet"
+            snapshot = self._snapshot_at.isoformat(timespec="seconds") if self._snapshot_at else "not yet"
+            game_date = self._read_result[0].game_date.isoformat() if self._read_result else "not yet"
+            refreshing = self._refreshing
+            health_checking = self._health_checking
+            error = str(self._refresh_error) if self._refresh_error else ""
+        detail = "refreshing…" if refreshing else ("refresh failed: " + error if error else "")
+        return (
+            "<aside class='fm-status'><b>FM: " + html.escape(health.status) + "</b>"
+            + f"<br>Health checked: {html.escape(checked)}"
+            + f"<br>Recommendation snapshot: {html.escape(game_date)} ({html.escape(snapshot)})"
+            + (f"<br><span class='warn'>{html.escape(detail)}</span>" if detail else "")
+            + "<form method='post' action='/health/refresh'><button type='submit'"
+            + (" disabled" if health_checking else "")
+            + ">Check connection</button></form>"
+            + "<form method='post' action='/refresh'><button type='submit'"
+            + (" disabled" if refreshing else "")
+            + ">Refresh squad data</button></form></aside>"
+        )
+
+    def shutdown(self) -> None:
+        self._health_stop.set()
+        super().shutdown()
 
     def tactic_report(
         self, tactic_key: str, *, bench_size: int | None = None

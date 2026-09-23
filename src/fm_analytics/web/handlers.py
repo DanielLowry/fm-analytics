@@ -77,6 +77,18 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
+        if parsed.path == "/health/refresh":
+            started = self.server.request_health_check()  # type: ignore[attr-defined]
+            self.send_response(HTTPStatus.SEE_OTHER)
+            self.send_header("Location", "/?health=" + ("started" if started else "running"))
+            self.end_headers()
+            return
+        if parsed.path == "/refresh":
+            started = self.server.request_refresh()  # type: ignore[attr-defined]
+            self.send_response(HTTPStatus.SEE_OTHER)
+            self.send_header("Location", "/?refresh=" + ("started" if started else "running"))
+            self.end_headers()
+            return
         if parsed.path != "/scouting/refresh":
             self._send(
                 _error_page("Not found", "No such action.", parsed.path),
@@ -891,6 +903,8 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
         self._send(_layout("Data", path, body))
 
     def _send(self, body: str, status: HTTPStatus = HTTPStatus.OK) -> None:
+        status_html = self.server.status_html()  # type: ignore[attr-defined]
+        body = body.replace("</nav>", status_html + "</nav>", 1)
         encoded = body.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
