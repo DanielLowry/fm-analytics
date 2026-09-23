@@ -33,7 +33,7 @@ from tools.fm20_linux_probe import (
     read_u64,
     validate_executable,
 )
-from tools.fm20_linux_probe_runtime import choose_pid, probe
+from tools.fm20_linux_probe_runtime import choose_pid, decode_fm_date, probe
 from tools.fm20_visibility_trace import (
     ATTRIBUTE_OFFSETS,
     DISPLAY_ATTRIBUTE_IDS,
@@ -333,16 +333,30 @@ def source_owned_visible_data(
             }
             for player in selected
         ]
+        # The starting probe is the declared snapshot boundary.  Before
+        # accepting its attributes, cheaply prove that its date and each
+        # selected player identity survived the very short attribute read.
+        # Do this through the already-open memory handle: a second full team
+        # traversal would merely repeat contracts/fitness/positions we never
+        # use for this integrity check.
+        after_date = decode_fm_date(
+            read_exact(
+                memory_fd,
+                module_base + FM20_4_4_STEAM.current_date_offset,
+                4,
+            ),
+            minimum_year=2018,
+        ).isoformat()
+        after_ids = {
+            str(read_i32(memory_fd, addresses[int(player.id)] + PLAYER_FROM_PERSON_OFFSET + 0xC))
+            for player in selected
+        }
     finally:
         os.close(memory_fd)
-    after = probe(pid, proc_root)
-
-    def _all_ids(result: object) -> set[str]:
-        return {player.id for player in result.first_team_squad} | {
-            player.id for team in result.other_club_teams for player in team.players
-        }
-
-    if after.game_date != before.game_date or _all_ids(after) != _all_ids(before):
+    if (
+        after_date != before.game_date
+        or after_ids != {player.id for player in selected}
+    ):
         raise ProbeError("FM20 changed during the read; discard this snapshot")
     return {
         "source": "live-owned-squad",

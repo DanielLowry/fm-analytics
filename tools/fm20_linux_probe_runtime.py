@@ -7,7 +7,7 @@ import json
 import os
 import struct
 import sys
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Sequence
@@ -24,8 +24,10 @@ find_fm20_processes = _probe_module.find_fm20_processes
 parse_module_mapping = _probe_module.parse_module_mapping
 read_exact = _probe_module.read_exact
 read_first_team_squad = _probe_module.read_first_team_squad
+read_first_team_ids = _probe_module.read_first_team_ids
 read_human_manager_contexts = _probe_module.read_human_manager_contexts
 read_other_club_teams = _probe_module.read_other_club_teams
+read_other_club_team_ids = _probe_module.read_other_club_team_ids
 validate_executable = _probe_module.validate_executable
 
 
@@ -51,6 +53,37 @@ def decode_fm_date(
 # Install the orchestration implementation there after the responsibilities are
 # split, while preserving the original public tool imports.
 _probe_module.decode_fm_date = decode_fm_date
+
+
+@dataclass(frozen=True)
+class SnapshotMarker:
+    game_date: str
+    manager_id: str
+    club_id: str
+    player_ids: frozenset[str]
+
+
+def snapshot_marker(pid: int, proc_root: Path = Path("/proc")) -> SnapshotMarker:
+    """Cheap enough post-read consistency marker for an owned squad snapshot."""
+    process_dir = proc_root / str(pid)
+    with (process_dir / "maps").open(encoding="utf-8") as maps_file:
+        module_base, executable = parse_module_mapping(maps_file)
+    validate_executable(executable)
+    memory_fd = os.open(process_dir / "mem", os.O_RDONLY | os.O_CLOEXEC)
+    try:
+        game_date = decode_fm_date(
+            read_exact(memory_fd, module_base + FM20_4_4_STEAM.current_date_offset, 4),
+            minimum_year=2018,
+        ).isoformat()
+        contexts = read_human_manager_contexts(memory_fd, module_base)
+        active = next((item for item in contexts if item.manager.active), None)
+        if active is None or active.manager.club is None or active.team_address is None:
+            raise ProbeError("FM20 has no active employed human manager")
+        ids = set(read_first_team_ids(memory_fd, module_base, active.team_address))
+        ids.update(read_other_club_team_ids(memory_fd, module_base, active.manager.club.id))
+    finally:
+        os.close(memory_fd)
+    return SnapshotMarker(game_date, active.manager.id, active.manager.club.id, frozenset(ids))
 
 
 def probe(pid: int, proc_root: Path = Path("/proc")) -> ProbeResult:

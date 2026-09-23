@@ -694,6 +694,43 @@ def read_first_team_squad(
     )
 
 
+def read_team_player_ids(
+    memory_fd: int, module_base: int, start: int, end: int, *, squad_label: str
+) -> frozenset[str]:
+    """Read just the stable identity of each player in a team vector.
+
+    This is intentionally the small counterpart to ``_read_team_squad_players``:
+    snapshot validation needs IDs, not names, contracts, fitness, or positions.
+    """
+    if start == 0 or end < start or (end - start) % 8 != 0:
+        raise ProbeError(f"invalid squad bounds 0x{start:x}-0x{end:x}")
+    count = (end - start) // 8
+    if count > 200:
+        raise ProbeError(f"implausible {squad_label} size {count}")
+    expected_type = module_base + FM20_4_4_STEAM.player_type_offset
+    ids: set[str] = set()
+    for index in range(count):
+        slot_address = read_u64(memory_fd, start + index * 8)
+        player_address = slot_address + 0x8
+        person_address = player_address + 0x1C0
+        if read_u64(memory_fd, person_address) != expected_type:
+            continue
+        player_id = str(read_i32(memory_fd, person_address + 0xC))
+        if player_id in ids:
+            raise ProbeError(f"duplicate player ID {player_id} in {squad_label}")
+        ids.add(player_id)
+    return frozenset(ids)
+
+
+def read_first_team_ids(memory_fd: int, module_base: int, team_address: int) -> frozenset[str]:
+    if read_exact(memory_fd, team_address + 0x30, 1) != b"\x00":
+        raise ProbeError("active manager contract does not point to a first team")
+    return read_team_player_ids(
+        memory_fd, module_base, read_u64(memory_fd, team_address + 0x38),
+        read_u64(memory_fd, team_address + 0x40), squad_label="first-team squad",
+    )
+
+
 MAX_CLUB_TEAMS = 24
 # FM identifies each of a club's teams with a single byte at team + 0x30: 0
 # is always the first team (read_first_team_squad above), and every other
@@ -746,6 +783,33 @@ def read_other_club_teams(
         if players:
             found.append(ClubTeamResult(marker=marker, players=players))
     return tuple(sorted(found, key=lambda team: team.marker))
+
+
+def read_other_club_team_ids(
+    memory_fd: int, module_base: int, club_id: str
+) -> frozenset[str]:
+    """The managed club's non-first-team IDs, without full player records."""
+    teams = read_pointer_collection(
+        memory_fd, module_base, FM20_4_4_STEAM.main_address_offset,
+        FM20_4_4_STEAM.team_collection_offset, FM20_4_4_STEAM.collection_indirection_offset,
+    )
+    ids: set[str] = set()
+    for team_address in teams:
+        if not team_address:
+            continue
+        try:
+            if read_exact(memory_fd, team_address + 0x30, 1) == b"\x00":
+                continue
+            club = read_club_from_team(memory_fd, team_address)
+            if club is None or club.id != club_id:
+                continue
+            ids.update(read_team_player_ids(
+                memory_fd, module_base, read_u64(memory_fd, team_address + 0x38),
+                read_u64(memory_fd, team_address + 0x40), squad_label="club team",
+            ))
+        except (OSError, ProbeError):
+            continue
+    return frozenset(ids)
 
 
 def find_managed_club(
