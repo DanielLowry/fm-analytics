@@ -120,22 +120,130 @@
   "attributeEmphasis": [
     {
       "attributes": {
+        "teamwork": 1
+      }
+    },
+    {
+      "attributes": {
         "positioning": 2,
         "concentration": 2,
         "marking": 2,
-        "teamwork": 2
-      }
+        "anticipation": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "marking": 1,
+        "concentration": 1,
+        "teamwork": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "teamwork": 2,
+        "stamina": 1,
+        "positioning": 1
+      },
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "workRate": 2,
+        "teamwork": 1,
+        "tackling": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 1,
+        "anticipation": 1
+      },
+      "positions": [
+        "ST"
+      ]
     }
   ],
   "keyRequirements": [
-    "Disciplined block",
-    "Wide midfield recovery",
-    "One hold-up forward",
-    "One runner"
+    "Centre-backs with reliable positioning and concentration",
+    "Wide midfielders willing and able to recover into the defensive bank",
+    "Central midfielders disciplined enough to protect the space in front of the box",
+    "One forward who can hold the ball up",
+    "One forward who can attack space on the counter"
   ],
   "tags": [
     "defensive",
     "442",
     "direct-counter"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "positioning",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 7,
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "teamwork",
+      "taperBelow": 7,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ]
+    }
   ]
 }

@@ -111,22 +111,138 @@
   "attributeEmphasis": [
     {
       "attributes": {
+        "teamwork": 1
+      }
+    },
+    {
+      "attributes": {
+        "positioning": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "stamina": 1,
+        "teamwork": 1,
+        "positioning": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
         "positioning": 2,
         "teamwork": 2,
+        "passing": 2,
+        "decisions": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DM"
+      ]
+    },
+    {
+      "attributes": {
         "workRate": 2,
-        "passing": 2
-      }
+        "stamina": 2,
+        "passing": 1,
+        "teamwork": 1,
+        "positioning": 1
+      },
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "teamwork": 2,
+        "stamina": 1
+      },
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 2,
+        "anticipation": 2,
+        "acceleration": 1
+      },
+      "positions": [
+        "ST"
+      ]
     }
   ],
   "keyRequirements": [
-    "Disciplined DM",
-    "Hard-working wide players",
-    "CM support for lone striker",
-    "Self-sufficient striker"
+    "Disciplined holding midfielder who can also circulate the ball",
+    "Hard-working wide midfielders who recover into shape",
+    "One central midfielder able to cover ground and support the lone striker",
+    "Compact defensive spacing",
+    "A self-sufficient striker with good movement"
   ],
   "tags": [
     "balanced",
     "4141",
     "compact"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "positioning",
+      "taperBelow": 7,
+      "positions": [
+        "DM"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 7,
+      "positions": [
+        "DM"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "teamwork",
+      "taperBelow": 7,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ]
+    }
   ]
 }
