@@ -25,3 +25,8 @@ packages = ["src/fm_analytics"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/fm_analytics/fixtures/sample-game.json" = "fm_analytics/fixtures/sample-game.json"
+
+[dependency-groups]
+dev = [
+    "scipy>=1.16,<2",
+]

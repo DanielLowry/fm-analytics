@@ -1297,6 +1297,53 @@ should know it is also the performance lever.
    (roadmap item 5). Do this only with a benchmark in place, and only if the
    first four are not enough — it is the part most likely to change results.
 
+#### Joint role/player MILP prototype (23 September 2026)
+
+`analytics/joint_optimizer.py` and `tools/benchmark_joint_optimizer.py` test the
+alternative formulation directly. One binary variable means “this player fills
+this slot in this role”; slot, player-uniqueness and exclusive-role rules are
+linear constraints. Continuous variables represent the weakest selected player
+and weakest final component. Role-system minimums are also linear, while the
+integer attack-duty/creator caps use small one-hot count variables only when the
+cap can actually bind. SciPy's HiGHS-backed `milp` solver is a development
+dependency. The production selector is unchanged.
+
+The prototype is deliberately narrower than production: it solves a legal full
+XI's central score, not partial-XI fallback or lower/upper score bands. On the
+same deterministic 30-player generator described above, updated for the current
+50-tactic catalogue and running one full-familiarity evaluation per tactic:
+
+| | Production role-version loop | Joint MILP |
+| --- | ---: | ---: |
+| Full catalogue, run 1 | 7.23 s | 15.63 s |
+| Full catalogue, run 2 | 15.82 s | 33.51 s |
+| Central objectives equal | | 50/50 tactics |
+
+The clock varied substantially, but the ratio was stable: the MILP took about
+2.15 times as long. Today's catalogue has only 278 legal role versions, so the
+fixed cost of starting HiGHS once per tactic outweighs the search saved. Equal
+objectives sometimes produced different players or interchangeable roles because
+the production solver has a deterministic signature tie-break which the
+prototype does not yet reproduce.
+
+The intended scaling case tells the other half of the story. A synthetic tactic
+with seven two-role slots, three three-role slots and one pinned slot has 3,456
+role versions. With 30 players eligible for every slot:
+
+| Production | Joint MILP | Speed-up | Objective |
+| ---: | ---: | ---: | ---: |
+| 120.63 s | 11.26 s | 10.71× | equal to 6 decimal places |
+
+So this is a demonstrated escape hatch for materially broader role flexibility,
+not a win for the shipped catalogue today. Before production integration it
+would need partial-XI semantics, score bands, deterministic tie-breaking and
+broader tests over opponent profiles. Re-run with:
+
+```bash
+uv run python tools/benchmark_joint_optimizer.py
+uv run python tools/benchmark_joint_optimizer.py --stress
+```
+
 #### What this means for a slider
 
 A slider move changes attribute weights, which invalidates every role score, so
