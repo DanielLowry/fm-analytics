@@ -625,8 +625,8 @@ def _best_role_version(
         mean_score, weakest_score, xi_score = _tactic_fit(
             assignments, len(tactic.slots), fit_policy
         )
-        coherence, instruction_suitability, opponent_fit, score = _system_fit(
-            tactic, assignments, catalogue, xi_score, opponent
+        coherence, instruction_suitability, opponent_fit = _role_structure_checks(
+            tactic, assignments, catalogue, opponent
         )
         candidate = _RoleVersionEvaluation(
             mask=mask,
@@ -638,7 +638,7 @@ def _best_role_version(
             coherence=coherence,
             instruction_suitability=instruction_suitability,
             opponent_fit=opponent_fit,
-            score=score,
+            score=xi_score,
         )
         if (
             best is None
@@ -690,14 +690,13 @@ def _choices_for_role_version(
     )
 
 
-def _system_fit(
+def _role_structure_checks(
     tactic: TacticDefinition,
     assignments: tuple[SlotAssignment, ...],
     catalogue: FootballCatalogue,
-    xi_score: ScoreBand,
     opponent: OpponentProfile,
-) -> tuple[SystemAssessment, SystemAssessment, SystemAssessment, ScoreBand]:
-    """Assess the selected roles, while keeping the player score unchanged.
+) -> tuple[SystemAssessment, SystemAssessment, SystemAssessment]:
+    """Run advisory checks on the selected roles.
 
     These checks are advisory because they use fixed values attached to roles,
     not the abilities of the selected players. They must not affect a ranking
@@ -710,7 +709,7 @@ def _system_fit(
     coherence = assess_coherence(tactic, roles)
     instruction = assess_instruction_suitability(roles, tactic.instructions)
     opponent_fit = assess_opponent_fit(roles, opponent)
-    return coherence, instruction, opponent_fit, xi_score
+    return coherence, instruction, opponent_fit
 
 
 def _tactic_fit(

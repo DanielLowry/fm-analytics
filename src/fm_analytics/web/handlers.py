@@ -609,7 +609,8 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
         )
         structural_warning = (
             "<div class='advisory-banner'><b>Selected roles miss a structural check</b>"
-            + html.escape("; ".join(structural_problems))
+            "Falls short on "
+            + html.escape(_tactical_shortfalls(structural_problems))
             + ". This is advisory and does not affect the squad-fit score. "
             f"<a href='/tactic-checks#{quote(tactic_key, safe='')}'>Review tactic checks →</a>"
             "</div>"

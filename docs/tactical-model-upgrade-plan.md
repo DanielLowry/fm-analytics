@@ -1139,7 +1139,7 @@ catalogue.for_context(tactic_key, opponent_profile) -> FootballCatalogue
 
 Returns a catalogue whose `roles` carry re-weighted `attributes` but
 **identical keys, positions and version**. That invariant is what makes it
-cheap: `_system_fit`'s `catalogue.roles[...]` lookup, `role_keys_for_slot`,
+cheap: `_role_structure_checks`'s `catalogue.roles[...]` lookup, `role_keys_for_slot`,
 the exclusion groups and the `role.catalogue_version == self.version` check
 all keep working untouched, and every function already taking
 `(catalogue, tactic)` works with no signature change.

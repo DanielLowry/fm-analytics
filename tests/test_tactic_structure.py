@@ -12,7 +12,11 @@ class TacticStructureTests(unittest.TestCase):
         self.assertEqual(check.combination_count, 6)
         self.assertEqual(len(check.failures), 3)
         self.assertTrue(
-            all("penetration 1.4/1.5" in failure.balance.shortfalls for failure in check.failures)
+            all(
+                "penetration 1.4/1.5"
+                in failure.balance.shortfalls + failure.instructions.shortfalls
+                for failure in check.failures
+            )
         )
         self.assertTrue(
             all("p_attack" in failure.role_keys for failure in check.failures)

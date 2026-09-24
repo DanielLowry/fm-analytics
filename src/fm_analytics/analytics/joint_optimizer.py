@@ -33,7 +33,11 @@ from fm_analytics.analytics.xi_models import (
     TacticFitPolicy,
     _CandidateAssignment,
 )
-from fm_analytics.analytics.xi_selection import _build_choices, _system_fit, _tactic_fit
+from fm_analytics.analytics.xi_selection import (
+    _build_choices,
+    _role_structure_checks,
+    _tactic_fit,
+)
 
 
 @dataclass(frozen=True)
@@ -218,12 +222,12 @@ def optimise_tactic_jointly(
         for candidate in sorted(selected_candidates, key=lambda item: item.slot_index)
     )
     _, _, exact_xi = _tactic_fit(assignments, len(tactic.slots), fit_policy)
-    exact_coherence, exact_instruction, exact_opponent, exact_score = _system_fit(
-        tactic, assignments, derived, exact_xi, opponent
+    exact_coherence, exact_instruction, exact_opponent = _role_structure_checks(
+        tactic, assignments, derived, opponent
     )
     return JointOptimisationResult(
         assignments=assignments,
-        objective=exact_score.central,
+        objective=exact_xi.central,
         xi_score=exact_xi.central,
         coherence_score=exact_coherence.score,
         instruction_score=exact_instruction.score,

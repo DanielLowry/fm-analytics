@@ -85,7 +85,7 @@ The recommended order is:
 
 | Item | Verdict | Review note |
 | --- | --- | --- |
-| 1.1 Memoise system fit | Agree; first compute optimisation | Cache `assess_coherence` and `assess_instruction_suitability` by tactic plus canonical role tuple. Do not cache the complete `_system_fit` result because its final combination also depends on `xi_score` and policy. |
+| 1.1 Memoise role checks | Reassess if checks become slow | Cache `assess_coherence` and `assess_instruction_suitability` by tactic plus canonical role tuple. These checks are now advisory and have no score-combination step. |
 | 1.2 Incremental beam sort key | Agree, with a correctness caveat | Carry assignment count, total, and weakest score. Preserve exactly the current canonical signature: assignments are appended in candidate-count `slot_order`, not necessarily slot-index order, so simple tuple append is not automatically equivalent. Keep `test_joint_search_can_trade_individual_role_fit_for_system_coherence` and add before/after bundle equality. |
 | 1.3 Skip an identical potential pass | Agree | Use a proof over every selectable player/slot candidate that the effective familiarity multiplier is already `1.0`. “All listed positions are 20” is insufficient when a reading is missing and the policy substitutes `unknown_rating=10`. Return the same recommendation only after that proof. |
 | 1.4 Memoise role scores | Agree | Scope the cache to one bundle (or a bundle-owned role-score index), where catalogue and scoring policy are fixed. Avoid a process-global `(role_key, player_id)` cache because observations change across captures. Feed the shared index to XI, depth, bench, substitution, role-matrix, and recruitment calculations where practical. |
