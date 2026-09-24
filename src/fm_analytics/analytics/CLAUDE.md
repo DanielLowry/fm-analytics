@@ -194,8 +194,7 @@ in `AXIS_DEFINITIONS` in the same spirit as `_INSTRUCTION_REQUIREMENTS`:
   with the tactic's own via `for_context`. This is what changes *who is picked*
   (an aerial threat raises `heading`/`jumpingReach`/`strength` for DC).
 - **`FloorRule`** — absolute minimums the eleven's roles must jointly supply,
-  scored by `assess_opponent_fit` and reported as a fourth component alongside
-  coherence and instruction fit (`SystemFitPolicy.opponent_weight`, 0.20).
+  scored by `assess_opponent_fit` and reported as an advisory structural check.
   Absolute, **not** a delta on each tactic's own minimums: adding to a
   gegenpress's deliberately low `defensiveCover` and a low block's high one
   would penalise both, where a shared floor correctly only bites the tactic
@@ -203,8 +202,7 @@ in `AXIS_DEFINITIONS` in the same spirit as `_INSTRUCTION_REQUIREMENTS`:
 
 **A neutral profile is provably inert.** It produces no blocks and no floors, so
 `for_context` returns the plain `for_tactic` view and `assess_opponent_fit` is
-`active=False`, dropping out of the blend exactly as coherence does for a tactic
-with no requirements. `tests/test_opponent_integration.py` asserts byte-identical
+`active=False`. `tests/test_opponent_integration.py` asserts byte-identical
 results — evaluation, ranking, bench, substitution board, weakness and depth
 reports — with and without an explicit neutral profile.
 
@@ -220,12 +218,10 @@ a back three") would need its own mechanism rather than being forced into -2..+2
   42 tactics could not meet it — the same failure `test_tactical_calibration.py`
   exists to prevent. `tests/test_opponent.py::ReachabilityTests` now guards every
   axis and setting against what the catalogue can actually supply.
-- **The blended score is not monotonic in opponent difficulty**, and that is not
-  a bug. Opponent fit, like coherence and instruction fit, measures whether the
-  *roles* clear a bar — not whether your players are good. For a weak squad it
-  can sit well above `xi_score`, so activating it can raise the total even
-  against a harder opponent. Explain "this got harder" from the component, never
-  from the headline number.
+- Opponent fit, like coherence and instruction fit, measures whether the
+  *roles* clear a bar, not whether your players are good. It is therefore
+  advisory and does not affect the squad-fit score. Opponent attribute emphasis
+  can still change that score by changing which player attributes matter.
 
 `fm-analytics` exposes one `--opponent-<axis>` flag per axis, generated from
 `AXIS_DEFINITIONS`, so a new slider gets a flag with no change in `cli.py`.
@@ -249,7 +245,9 @@ high); an unknown attribute is the scale minimum centrally, as everywhere.
 `_best_role_version` first enumerates every role combination that a tactic
 explicitly permits. This is deliberately small: slots are pinned by default,
 and a slot only has alternatives named in its `roles` array. Each complete
-role version receives its own team-coherence and instruction assessment.
+role version receives its own team-coherence and instruction assessment for
+reporting. These player-independent assessments are advisory: they do not
+choose the role version or contribute to the squad-fit score.
 
 For a fixed role version, a player's score for a slot is independent of the
 other selected players. The remaining constraint is simply that a player
@@ -272,9 +270,11 @@ numbers, method and the ranked mitigations are in
 §7.1; don't restate them here, they drift.
 
 Do not collapse this into greedy "best player per slot" selection: it must
-still resolve the case where the same player is best at two jobs. Do not
-discard role versions before their system score is assessed either; see
-`tests/test_joint_role_system.py::test_joint_search_can_trade_individual_role_fit_for_system_coherence`.
+still resolve the case where the same player is best at two jobs. Do not discard
+a permitted role version because an advisory structural check fails. The
+selected version is the one that best fits the available players; the failure
+is reported separately and may become a hard rule only after the authored
+thresholds have been reviewed.
 
 This approach is exact only while team-system scoring depends on selected
 roles, not on particular player pairings. If a future feature adds a
@@ -283,12 +283,13 @@ silently treating it as independent.
 
 ## Everything else in here
 
-- `tactical_system.py` — team-balance ("coherence") and instruction-fit
-  scoring, off explicit per-role `system` traits (in the role files) and
+- `tactical_system.py` — advisory team-balance ("coherence") and instruction-fit
+  checks, off explicit per-role `system` traits (in the role files) and
   per-instruction requirements (`_INSTRUCTION_REQUIREMENTS`). Traits supply
   and instruction demands share one scale; `tests/test_tactical_calibration.py`
   fails a tactic whose demands no legal XI can meet. These are
-  declared, reviewable football hypotheses, not tuned/learned weights —
+  declared, reviewable football hypotheses, not tuned/learned weights. They do
+  not contribute to squad-fit scoring —
   changing one is a football judgment call, worth calling out as such in
   the commit rather than treating as a pure bugfix. `assess_demands` is the
   shared "how fully do these roles meet these minimums" scorer; instruction fit

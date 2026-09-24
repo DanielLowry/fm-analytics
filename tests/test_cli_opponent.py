@@ -86,18 +86,19 @@ class OutputTests(unittest.TestCase):
         output = run_cli("--opponent-quality", "1")
         self.assertIn("Quality: +1 (leaning much stronger than us)", output)
 
-    def test_an_axis_with_team_shape_floors_adds_a_score_component(self) -> None:
+    def test_an_axis_with_team_shape_floors_adds_an_advisory_check(self) -> None:
         output = run_cli("--opponent-quality", "2")
-        self.assertIn(", opponent ", output)
-        self.assertIn("scored as 'opponent' below", output)
+        self.assertIn("advisory opponent check", output)
+        self.assertIn("shown as an advisory check below", output)
+        self.assertIn("does not affect the tactic score", output)
 
     def test_an_axis_that_only_moves_selection_says_so_instead(self) -> None:
         # Aerial threat deliberately imposes no team-shape floor (the system
-        # model has no aerial-defence dimension), so no opponent score is
+        # model has no aerial-defence dimension), so no opponent check is
         # reported. Without the explanation a manager would set the slider, see
         # no new number, and reasonably conclude it did nothing.
         output = run_cli("--opponent-aerial-threat", "2")
-        self.assertNotIn(", opponent ", output)
+        self.assertNotIn("advisory opponent check", output)
         self.assertIn("impose no team-shape requirement", output)
 
     def test_only_the_axes_actually_set_are_listed(self) -> None:

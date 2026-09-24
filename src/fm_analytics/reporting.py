@@ -33,7 +33,6 @@ from fm_analytics.analytics import (
     TacticRankingExecutor,
     TacticRecommendation,
     TacticSelectionExplanation,
-    SystemFitPolicy,
     TrainingTarget,
     WeaknessReport,
     assess_squad_depth,
@@ -78,7 +77,6 @@ class RecommendationPolicy:
     readiness: ReadinessPolicy = ReadinessPolicy()
     familiarity: FamiliarityPolicy = FamiliarityPolicy()
     tactic_fit: TacticFitPolicy = TacticFitPolicy()
-    system_fit: SystemFitPolicy = SystemFitPolicy()
     # The manager's own read of the opposition; neutral by default, which
     # leaves every score exactly as it was before this existed.
     opponent: OpponentProfile = OpponentProfile.neutral()
@@ -217,7 +215,6 @@ def build_recommendation_bundle(
         readiness_policy=policy.readiness,
         familiarity_policy=policy.familiarity,
         fit_policy=policy.tactic_fit,
-        system_policy=policy.system_fit,
         opponent=policy.opponent,
         role_score_cache=role_score_cache,
         ranking_executor=ranking_executor,
@@ -311,7 +308,6 @@ def build_tactic_matchday_report(
         readiness_policy=bundle.policy.readiness,
         familiarity_policy=bundle.policy.familiarity,
         fit_policy=bundle.policy.tactic_fit,
-        system_policy=bundle.policy.system_fit,
         opponent=bundle.policy.opponent,
     )
     return TacticMatchdayReport(

@@ -24,15 +24,12 @@ from fm_analytics.analytics.catalogue import FootballCatalogue, TacticDefinition
 from fm_analytics.analytics.opponent import (
     OpponentProfile,
     attribute_emphasis as opponent_attribute_emphasis,
-    system_floors,
 )
-from fm_analytics.analytics.tactical_system import _INSTRUCTION_REQUIREMENTS
 from fm_analytics.analytics.xi_models import (
     FamiliarityPolicy,
     PlayerSelectionInput,
     ReadinessPolicy,
     SlotAssignment,
-    SystemFitPolicy,
     TacticFitPolicy,
     _CandidateAssignment,
 )
@@ -132,161 +129,6 @@ def _scale(expression: _Expression, factor: float) -> _Expression:
     )
 
 
-def _role_count_expression(
-    candidate_variables: Sequence[tuple[_CandidateAssignment, int]],
-    catalogue: FootballCatalogue,
-    value,
-) -> _Expression:
-    coefficients: dict[int, float] = {}
-    for candidate, variable in candidate_variables:
-        role = catalogue.roles[candidate.assignment.intrinsic_role_score.role_key]
-        coefficients[variable] = float(value(role))
-    return _Expression(coefficients)
-
-
-def _demand_score(
-    model: _Model,
-    candidate_variables: Sequence[tuple[_CandidateAssignment, int]],
-    catalogue: FootballCatalogue,
-    demands: Mapping[str, float],
-) -> _Expression:
-    if not demands:
-        return _Expression({}, 100.0)
-    component_expressions: list[_Expression] = []
-    for dimension, minimum in demands.items():
-        if not minimum:
-            component_expressions.append(_Expression({}, 1.0))
-            continue
-        by_slot: dict[int, set[float]] = {}
-        for candidate, _ in candidate_variables:
-            role = catalogue.roles[candidate.assignment.intrinsic_role_score.role_key]
-            by_slot.setdefault(candidate.slot_index, set()).add(
-                role.system_traits.get(dimension, 0.0)
-            )
-        guaranteed = sum(min(values) for values in by_slot.values())
-        if guaranteed >= minimum:
-            component_expressions.append(_Expression({}, 1.0))
-            continue
-        supplied = _role_count_expression(
-            candidate_variables,
-            catalogue,
-            lambda role, dimension=dimension: role.system_traits.get(dimension, 0.0),
-        )
-        fraction = model.variable(lower=0.0, upper=1.0)
-        row = {fraction: minimum}
-        for index, coefficient in supplied.coefficients.items():
-            row[index] = row.get(index, 0.0) - coefficient
-        model.constraint(row, upper=0.0)
-        component_expressions.append(_Expression({fraction: 1.0}))
-    total = _Expression({})
-    for component in component_expressions:
-        total = _add(total, component)
-    return _scale(total, 100.0 / len(component_expressions))
-
-
-def _discrete_cap_score(
-    model: _Model,
-    count: _Expression,
-    limit: int,
-    slot_count: int,
-) -> _Expression:
-    selectors = [model.variable(lower=0.0, upper=1.0, binary=True) for _ in range(slot_count + 1)]
-    model.constraint({index: 1.0 for index in selectors}, lower=1.0, upper=1.0)
-    row = {index: float(number) for number, index in enumerate(selectors)}
-    for index, coefficient in count.coefficients.items():
-        row[index] = row.get(index, 0.0) - coefficient
-    model.constraint(row, lower=0.0, upper=0.0)
-    return _Expression(
-        {
-            index: 1.0 if number == 0 else min(1.0, limit / number)
-            for number, index in enumerate(selectors)
-        }
-    )
-
-
-def _maximum_count(
-    candidate_variables: Sequence[tuple[_CandidateAssignment, int]],
-    catalogue: FootballCatalogue,
-    value,
-) -> float:
-    by_slot: dict[int, set[float]] = {}
-    for candidate, _ in candidate_variables:
-        role = catalogue.roles[candidate.assignment.intrinsic_role_score.role_key]
-        by_slot.setdefault(candidate.slot_index, set()).add(float(value(role)))
-    return sum(max(values) for values in by_slot.values())
-
-
-def _coherence_score(
-    model: _Model,
-    tactic: TacticDefinition,
-    candidate_variables: Sequence[tuple[_CandidateAssignment, int]],
-    catalogue: FootballCatalogue,
-) -> tuple[_Expression, bool]:
-    requirements = tactic.system_requirements
-    active = bool(
-        requirements.minimums
-        or requirements.maximum_attack_duties is not None
-        or requirements.maximum_creators is not None
-    )
-    if not active:
-        return _Expression({}, 100.0), False
-
-    components: list[_Expression] = []
-    for dimension, minimum in requirements.minimums.items():
-        components.append(
-            _scale(
-                _demand_score(
-                    model, candidate_variables, catalogue, {dimension: minimum}
-                ),
-                0.01,
-            )
-        )
-    if requirements.maximum_attack_duties is not None:
-        attack_value = lambda role: role.system_traits.get("attackDuty", 0.0)
-        if _maximum_count(candidate_variables, catalogue, attack_value) <= requirements.maximum_attack_duties:
-            components.append(_Expression({}, 1.0))
-        else:
-            attack_count = _role_count_expression(
-                candidate_variables, catalogue, attack_value
-            )
-            components.append(
-                _discrete_cap_score(
-                    model,
-                    attack_count,
-                    requirements.maximum_attack_duties,
-                    len(tactic.slots),
-                )
-            )
-    if requirements.maximum_creators is not None:
-        creator_value = lambda role: role.system_traits.get("creativity", 0.0) >= 1.2
-        if _maximum_count(candidate_variables, catalogue, creator_value) <= requirements.maximum_creators:
-            components.append(_Expression({}, 1.0))
-        else:
-            creator_count = _role_count_expression(
-                candidate_variables, catalogue, creator_value
-            )
-            components.append(
-                _discrete_cap_score(
-                    model,
-                    creator_count,
-                    requirements.maximum_creators,
-                    len(tactic.slots),
-                )
-            )
-    total = _Expression({})
-    for component in components:
-        total = _add(total, component)
-    return _scale(total, 100.0 / len(components)), True
-
-
-def _instruction_demands(tactic: TacticDefinition) -> dict[str, float]:
-    demands: dict[str, float] = {}
-    for instruction in tactic.instructions:
-        for dimension, minimum in _INSTRUCTION_REQUIREMENTS.get(instruction, {}).items():
-            demands[dimension] = max(demands.get(dimension, 0.0), minimum)
-    return demands
-
-
 def optimise_tactic_jointly(
     tactic: TacticDefinition,
     players: Sequence[PlayerSelectionInput],
@@ -295,7 +137,6 @@ def optimise_tactic_jointly(
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
-    system_policy: SystemFitPolicy = SystemFitPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
 ) -> JointOptimisationResult | None:
     """Solve role choice and full-XI assignment in one mixed-integer model."""
@@ -362,45 +203,7 @@ def optimise_tactic_jointly(
         _scale(mean, 1.0 - fit_policy.weakest_slot_weight),
         _Expression({weakest: fit_policy.weakest_slot_weight}),
     )
-    coherence, coherence_active = _coherence_score(
-        model, tactic, candidate_variables, derived
-    )
-    instruction_demands = _instruction_demands(tactic)
-    instruction = _demand_score(
-        model, candidate_variables, derived, instruction_demands
-    )
-    instruction_active = bool(instruction_demands)
-    floors = system_floors(opponent)
-    opponent_fit = _demand_score(model, candidate_variables, derived, floors)
-    opponent_active = bool(floors)
-
-    weighted = [(xi, system_policy.xi_weight)]
-    components = [xi]
-    if coherence_active:
-        weighted.append((coherence, system_policy.coherence_weight))
-        components.append(coherence)
-    if instruction_active:
-        weighted.append((instruction, system_policy.instruction_weight))
-        components.append(instruction)
-    if opponent_active:
-        weighted.append((opponent_fit, system_policy.opponent_weight))
-        components.append(opponent_fit)
-    total_weight = sum(weight for _, weight in weighted)
-    weighted_mean = _Expression({})
-    for expression, weight in weighted:
-        weighted_mean = _add(weighted_mean, _scale(expression, weight / total_weight))
-
-    weakest_component = model.variable(lower=0.0, upper=100.0)
-    for component in components:
-        row = {weakest_component: 1.0}
-        for index, coefficient in component.coefficients.items():
-            row[index] = row.get(index, 0.0) - coefficient
-        model.constraint(row, upper=component.constant)
-    final = _add(
-        _scale(weighted_mean, 1.0 - system_policy.weakest_component_weight),
-        _Expression({weakest_component: system_policy.weakest_component_weight}),
-    )
-    model.maximise(final)
+    model.maximise(xi)
     solved = model.solve()
     if not solved.success or solved.x is None:
         return None
@@ -416,7 +219,7 @@ def optimise_tactic_jointly(
     )
     _, _, exact_xi = _tactic_fit(assignments, len(tactic.slots), fit_policy)
     exact_coherence, exact_instruction, exact_opponent, exact_score = _system_fit(
-        tactic, assignments, derived, exact_xi, system_policy, opponent
+        tactic, assignments, derived, exact_xi, opponent
     )
     return JointOptimisationResult(
         assignments=assignments,

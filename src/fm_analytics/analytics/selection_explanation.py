@@ -13,7 +13,6 @@ from fm_analytics.analytics.xi_models import (
     PlayerSelectionInput,
     ReadinessPolicy,
     SlotAssignment,
-    SystemFitPolicy,
     TacticEvaluation,
     TacticFitPolicy,
 )
@@ -57,7 +56,6 @@ def explain_tactic_selection(
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
-    system_policy: SystemFitPolicy = SystemFitPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
 ) -> TacticSelectionExplanation:
     """Explain each starter with like-for-like and whole-XI comparisons.
@@ -116,7 +114,6 @@ def explain_tactic_selection(
                 readiness_policy=readiness_policy,
                 familiarity_policy=familiarity_policy,
                 fit_policy=fit_policy,
-                system_policy=system_policy,
                 opponent=opponent,
             )
             alternatives.append(

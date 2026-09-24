@@ -158,39 +158,6 @@ class TacticFitPolicy:
 
 
 @dataclass(frozen=True)
-class SystemFitPolicy:
-    """Combine XI suitability with role-system and instruction suitability.
-
-    The weakest-component term prevents a formation with excellent individual
-    fits from ranking highly when its selected roles make a visibly lopsided
-    football system.  Opponent suitability is intentionally absent: the app
-    does not yet hold opponent evidence good enough to score it.
-    """
-
-    version: str = "system-fit-v1"
-    xi_weight: float = 0.60
-    coherence_weight: float = 0.25
-    instruction_weight: float = 0.15
-    # Opponent fit is inactive (and excluded from the blend) under a neutral
-    # profile, per `analytics/opponent.py`, so this weight only ever bites once
-    # a manager has actually set a slider -- a neutral profile is byte-identical
-    # to today regardless of its value.
-    opponent_weight: float = 0.20
-    weakest_component_weight: float = 0.20
-
-    def __post_init__(self) -> None:
-        if not self.version:
-            raise ValueError("system-fit policy version is required")
-        weights = (self.xi_weight, self.coherence_weight, self.instruction_weight)
-        if not all(isfinite(weight) and weight >= 0 for weight in weights) or not any(weights):
-            raise ValueError("system-fit component weights must be finite and total above zero")
-        if not isfinite(self.opponent_weight) or self.opponent_weight < 0:
-            raise ValueError("opponent weight must be finite and non-negative")
-        if not isfinite(self.weakest_component_weight) or not 0 <= self.weakest_component_weight <= 1:
-            raise ValueError("weakest component weight must be finite and between 0 and 1")
-
-
-@dataclass(frozen=True)
 class SlotAssignment:
     slot: TacticSlot
     player_id: str
@@ -248,12 +215,6 @@ class TacticEvaluation:
     familiarity_floor: float
     fit_version: str
     fit_weakest_weight: float
-    system_version: str
-    system_xi_weight: float
-    system_coherence_weight: float
-    system_instruction_weight: float
-    system_opponent_weight: float
-    system_weakest_component_weight: float
     assignments: tuple[SlotAssignment, ...]
     unfilled_slots: tuple[TacticSlot, ...]
     mean_score: ScoreBand

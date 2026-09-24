@@ -226,7 +226,7 @@ def _opponent_lines(opponent: OpponentProfile) -> tuple[str, ...]:
     see which assumption produced which ranking.
     """
     if opponent.is_neutral:
-        return ()
+        return ("", "Opponent: no opponent is set.")
     # The axis labels describe the -2/+2 extremes, so at one step they are
     # prefixed rather than reworded -- "leaning dominant", never the nonsense
     # that inflecting them produces ("much stronger than us, slightly").
@@ -237,14 +237,15 @@ def _opponent_lines(opponent: OpponentProfile) -> tuple[str, ...]:
         if (value := getattr(opponent, axis.key))
     ]
     # Some axes (aerial threat) only change who is picked and impose no
-    # team-shape requirement, so no opponent score is reported for them. Say so,
-    # or the reader sets a slider, sees no new number, and assumes it did nothing.
+    # team-shape requirement. Say so, or the reader sets a slider, sees no
+    # advisory check, and assumes it did nothing.
     channel = (
         "Effect: shifts which players suit each job, and sets team-shape "
-        "requirements scored as 'opponent' below."
+        "requirements shown as an advisory check below. The check does not "
+        "affect the tactic score."
         if opponent_system_floors(opponent)
         else "Effect: shifts which players suit each job. These settings impose no "
-        "team-shape requirement, so no 'opponent' score is shown."
+        "team-shape requirement, so no opponent check is shown."
     )
     return (
         "",
@@ -300,13 +301,8 @@ def render_recommendation(
         "Tactic comparison",
         "-----------------",
         f"Fit: {(1 - selected.fit_weakest_weight) * 100:.0f}% XI mean + "
-        f"{selected.fit_weakest_weight * 100:.0f}% weakest slot (XI suitability). "
-        "Overall fit also includes tactical coherence and team-instruction suitability"
-        + (
-            ", and opponent suitability against the opponent set below."
-            if not opponent.is_neutral
-            else "; no opponent is set, so opponent suitability is not scored."
-        ),
+        f"{selected.fit_weakest_weight * 100:.0f}% weakest slot. "
+        "Role-structure checks are advisory and do not affect this score.",
         )
     )
     lines.extend(_opponent_lines(opponent))
@@ -317,12 +313,20 @@ def render_recommendation(
         lines.append(
             f"{evaluation.tactic.name:<26} "
             f"fit {_band(evaluation.score):<22} "
-            f"XI {evaluation.xi_score.central:.1f}, "
-            f"system {evaluation.coherence.score:.1f}, "
-            f"instructions {evaluation.instruction_suitability.score:.1f}"
+            f"XI {evaluation.xi_score.central:.1f}"
             + (
-                f", opponent {evaluation.opponent_fit.score:.1f}"
+                f", advisory opponent check {evaluation.opponent_fit.score:.1f}"
                 if evaluation.opponent_fit.active
+                else ""
+            )
+            + (
+                "; advisory role warning: "
+                + ", ".join(
+                    evaluation.coherence.shortfalls
+                    + evaluation.instruction_suitability.shortfalls
+                )
+                if evaluation.coherence.shortfalls
+                or evaluation.instruction_suitability.shortfalls
                 else ""
             )
             + f"; mean {evaluation.mean_score.central:.1f}, "
@@ -398,7 +402,6 @@ def render_recommendation(
     lines.append(
         f"Versions: catalogue {selected.tactic.catalogue_version}; "
         f"readiness {selected.readiness_version}; fit {selected.fit_version}; "
-        f"system {selected.system_version}; "
         f"bench {bench.policy_version}"
     )
     lines.extend(("", "Weak points", "-----------"))

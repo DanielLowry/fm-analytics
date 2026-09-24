@@ -10,7 +10,6 @@ from fm_analytics.analytics.xi_models import (
     FamiliarityPolicy,
     PlayerSelectionInput,
     ReadinessPolicy,
-    SystemFitPolicy,
     TacticEvaluation,
     TacticFitPolicy,
 )
@@ -28,7 +27,6 @@ def evaluate_tactic_with_forced_assignment(
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
-    system_policy: SystemFitPolicy = SystemFitPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
 ) -> TacticEvaluation:
     """Re-optimise the other ten slots with one player locked into one role."""
@@ -47,7 +45,6 @@ def evaluate_tactic_with_forced_assignment(
         readiness_policy=readiness_policy,
         familiarity_policy=familiarity_policy,
         fit_policy=fit_policy,
-        system_policy=system_policy,
         opponent=opponent,
         forced_assignment=(slot_index, player_id, role_key),
     )

@@ -18,7 +18,6 @@ from fm_analytics.analytics.xi_models import (
     FamiliarityPolicy,
     PlayerSelectionInput,
     ReadinessPolicy,
-    SystemFitPolicy,
     TacticEvaluation,
     TacticFitPolicy,
     TacticRecommendation,
@@ -51,7 +50,6 @@ class _TacticRankingJob:
     readiness_policy: ReadinessPolicy
     familiarity_policy: FamiliarityPolicy
     fit_policy: TacticFitPolicy
-    system_policy: SystemFitPolicy
     opponent: OpponentProfile
 
 
@@ -74,7 +72,7 @@ def _evaluate_tactic_ranking_job(
                 tactic, job.players, job.catalogue,
                 readiness_policy=job.readiness_policy,
                 familiarity_policy=job.familiarity_policy,
-                fit_policy=job.fit_policy, system_policy=job.system_policy,
+                fit_policy=job.fit_policy,
                 opponent=job.opponent, role_score_cache=cache,
             )
         )
@@ -83,7 +81,7 @@ def _evaluate_tactic_ranking_job(
                 tactic, job.players, job.catalogue,
                 readiness_policy=job.readiness_policy,
                 familiarity_policy=potential_familiarity,
-                fit_policy=job.fit_policy, system_policy=job.system_policy,
+                fit_policy=job.fit_policy,
                 opponent=job.opponent, role_score_cache=cache,
             )
         )
@@ -137,13 +135,12 @@ class TacticRankingExecutor:
         readiness_policy: ReadinessPolicy = ReadinessPolicy(),
         familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
         fit_policy: TacticFitPolicy = TacticFitPolicy(),
-        system_policy: SystemFitPolicy = SystemFitPolicy(),
         opponent: OpponentProfile = OpponentProfile.neutral(),
     ) -> EffectiveAndPotentialRecommendation:
         if not self.is_parallel or len(catalogue.tactics) < 2:
             return self._sequential(
                 players, catalogue, readiness_policy, familiarity_policy,
-                fit_policy, system_policy, opponent,
+                fit_policy, opponent,
             )
         player_tuple = tuple(players)
         tactic_keys = tuple(catalogue.tactics)
@@ -153,7 +150,7 @@ class TacticRankingExecutor:
                 tactic_keys=tactic_keys[index::worker_count], players=player_tuple,
                 catalogue=catalogue, readiness_policy=readiness_policy,
                 familiarity_policy=familiarity_policy, fit_policy=fit_policy,
-                system_policy=system_policy, opponent=opponent,
+                opponent=opponent,
             )
             for index in range(worker_count)
         )
@@ -165,7 +162,7 @@ class TacticRankingExecutor:
             self._discard_broken_executor()
             return self._sequential(
                 players, catalogue, readiness_policy, familiarity_policy,
-                fit_policy, system_policy, opponent,
+                fit_policy, opponent,
             )
         return EffectiveAndPotentialRecommendation(
             effective=rank_evaluations(
@@ -180,7 +177,7 @@ class TacticRankingExecutor:
     def _sequential(
         players: Sequence[PlayerSelectionInput], catalogue: FootballCatalogue,
         readiness_policy: ReadinessPolicy, familiarity_policy: FamiliarityPolicy,
-        fit_policy: TacticFitPolicy, system_policy: SystemFitPolicy,
+        fit_policy: TacticFitPolicy,
         opponent: OpponentProfile,
     ) -> EffectiveAndPotentialRecommendation:
         from fm_analytics.analytics.xi_selection import recommend_tactic_effective_and_potential
@@ -188,7 +185,7 @@ class TacticRankingExecutor:
         return recommend_tactic_effective_and_potential(
             players, catalogue, readiness_policy=readiness_policy,
             familiarity_policy=familiarity_policy, fit_policy=fit_policy,
-            system_policy=system_policy, opponent=opponent,
+            opponent=opponent,
         )
 
     def shutdown(self, *, wait: bool = True) -> None:

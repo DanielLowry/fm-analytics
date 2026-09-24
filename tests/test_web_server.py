@@ -85,7 +85,7 @@ class SquadWebServerTests(unittest.TestCase):
             fixture_path = _write_complete_fixture(Path(directory))
             port = self._serve(fixture_path)
 
-            for path in ("/", "/squad", "/roles", "/tactics", "/set-pieces", "/depth", "/scouting", "/data"):
+            for path in ("/", "/squad", "/roles", "/tactics", "/tactic-checks", "/set-pieces", "/depth", "/scouting", "/data"):
                 with self.subTest(path=path):
                     status, body = self._get(port, path)
                     self.assertEqual(status, 200)
@@ -165,8 +165,8 @@ class SquadWebServerTests(unittest.TestCase):
             _status, set_pieces = self._get(port, "/set-pieces")
 
             self.assertIn("Attribute-based role score", roles)
-            self.assertIn("In-position role score", tactic)
-            self.assertIn("Today’s selection score", tactic)
+            self.assertIn("in-position familiarity", tactic)
+            self.assertIn("selection score", tactic)
             self.assertIn("Play-now tactic score", tactics)
             self.assertIn("Set-piece attribute score", set_pieces)
 
@@ -232,8 +232,8 @@ class SquadWebServerTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn("Matchday bench", body)
             self.assertIn("Substitution coverage", body)
-            coverage = body.split("Substitution coverage", 1)[1].split("</table>", 1)[0]
-            self.assertEqual(coverage.count("<tr>"), 12)  # header plus all eleven slots
+            coverage = body.split("Substitution coverage", 1)[1].split("</details>", 1)[0]
+            self.assertEqual(coverage.count("coverage-card"), 11)
 
     def test_unknown_tactic_detail_is_not_found(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -617,6 +617,7 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.fixture_path = _write_complete_fixture(Path(directory.name))
         server = SquadWebServer(("127.0.0.1", 0), fixture_provider(self.fixture_path))
+        self.server = server
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         self.addCleanup(server.shutdown)
@@ -651,13 +652,35 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertIn("attribute-based", body)
         self.assertIn("in-position", body)
         self.assertIn("readiness", body)
-        self.assertIn("re-optimising the other ten positions", body)
-        self.assertIn("Team balance", body)
-        self.assertIn("Game-plan support", body)
-        self.assertIn("How the overall tactic score is derived", body)
-        self.assertIn("Player-role fit:", body)
-        self.assertIn("Overall score:", body)
-        self.assertIn("weighted component average", body)
+        self.assertIn("other ten slots are", body)
+        self.assertIn("Squad-fit score", body)
+        self.assertIn("Player scores", body)
+        self.assertIn("Score details", body)
+        self.assertIn("only uses the selected players", body)
+
+    def test_tactic_checks_page_lists_player_independent_failures(self) -> None:
+        status, body = self._get("/tactic-checks")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Experimental, player-independent checks", body)
+        self.assertIn("do not affect tactic rankings", body)
+        self.assertIn("Fluid Counter 4-1-4-1", body)
+        self.assertIn("Failing combination", body)
+        self.assertIn("Forward threat: roles provide 1.4; standard is 1.5", body)
+
+    def test_tactic_detail_warns_when_its_selected_roles_fail_a_check(self) -> None:
+        evaluation = next(
+            item
+            for item in self.server.bundle().recommendation.evaluations
+            if item.coherence.shortfalls or item.instruction_suitability.shortfalls
+        )
+
+        status, body = self._get(f"/tactics/{evaluation.tactic.key}")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Selected roles miss a structural check", body)
+        self.assertIn("does not affect the squad-fit score", body)
+        self.assertIn(f"/tactic-checks#{evaluation.tactic.key}", body)
 
     def test_tactic_detail_justifies_the_shape_and_every_slot(self) -> None:
         tactic = MVP_CATALOGUE.tactics["balanced_442"]

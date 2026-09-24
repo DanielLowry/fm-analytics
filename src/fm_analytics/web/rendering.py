@@ -24,6 +24,7 @@ _NAV: tuple[tuple[str, str], ...] = (
     ("/squad", "Squad"),
     ("/roles", "Roles"),
     ("/tactics", "Tactics"),
+    ("/tactic-checks", "Tactic checks"),
     ("/set-pieces", "Set pieces"),
     ("/depth", "Depth"),
     ("/scouting", "Scouting"),
@@ -153,15 +154,15 @@ _SCOUTING_LIVE_FILTER_SCRIPT = """
 _TACTICAL_DIMENSION_LABELS = {
     "aerialOutlet": "aerial outlet",
     "attack duties": "attacking duties",
-    "ballProgression": "ball progression",
-    "boxPresence": "presence in the box",
-    "creativity": "creativity",
+    "ballProgression": "moving the ball forward",
+    "boxPresence": "players getting into the box",
+    "creativity": "creative roles",
     "creators": "creative roles",
     "defensiveCover": "defensive cover",
-    "penetration": "penetration",
-    "pressing": "pressing",
-    "restDefence": "defensive security after losing the ball",
-    "runners": "forward runners",
+    "penetration": "forward threat",
+    "pressing": "players applying pressure",
+    "restDefence": "cover when possession is lost",
+    "runners": "players making forward runs",
     "width": "width",
 }
 
@@ -229,12 +230,56 @@ _STYLE = """
   .tactic-hero { margin: 1rem 0 1.5rem; padding: 1rem 1.2rem; background: #eef3f7; border-left: 4px solid #1a2b3c; border-radius: 0.3rem; }
   .tactic-hero h2 { margin: 0.2rem 0; border: 0; padding: 0; font-size: 1.35rem; }
   .tactic-hero p { margin: 0.45rem 0; }
+  .tactic-headline { font-weight: 600; }
   .eyebrow { color: #566; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
   .button-link { display: inline-block; padding: 0.4rem 0.7rem; border-radius: 0.25rem; background: #1a2b3c; color: white; text-decoration: none; }
   .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 0.65rem; margin: 1rem 0; }
   .metric-grid div { display: grid; gap: 0.2rem; padding: 0.75rem; border: 1px solid #dfe3e7; border-radius: 0.3rem; background: white; }
   .metric-grid span { color: #667; font-size: 0.8rem; }
   .metric-grid b { font-size: 1.15rem; }
+  .score-summary { display: grid; grid-template-columns: minmax(150px, 0.7fr) minmax(0, 2.3fr); gap: 1rem; margin: 1rem 0 0.6rem; padding: 1rem; background: white; border: 1px solid #dfe3e7; border-radius: 0.4rem; }
+  .overall-score { display: grid; align-content: center; border-right: 1px solid #dfe3e7; padding-right: 1rem; }
+  .overall-score span, .score-driver span, .score-drivers-title span { color: #667; font-size: 0.8rem; }
+  .overall-score b { font-size: 2.4rem; line-height: 1.1; color: #1a2b3c; }
+  .overall-score small, .score-driver small { color: #667; font-size: 0.75rem; }
+  .score-drivers { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 0.6rem; }
+  .score-drivers-title { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 1rem; }
+  .score-driver { display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 0.5rem; }
+  .score-driver b { font-size: 1.2rem; }
+  .score-driver small, .score-driver i { grid-column: 1 / -1; }
+  .score-driver i { height: 0.3rem; overflow: hidden; background: #e8ecef; border-radius: 1rem; }
+  .score-driver i em { display: block; height: 100%; background: #5c849f; border-radius: inherit; }
+  .score-breakdown, .tactic-rationale { margin: 0.6rem 0; background: white; }
+  .score-detail-grid, .score-guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.6rem; margin: 0.65rem 0; }
+  .assessment-card, .score-guide-grid article { display: grid; gap: 0.2rem; padding: 0.7rem; border: 1px solid #dfe3e7; border-radius: 0.3rem; background: #fbfcfd; }
+  .assessment-card span, .assessment-card small { color: #667; font-size: 0.78rem; }
+  .assessment-card b { font-size: 1.25rem; color: #1a2b3c; }
+  .assessment-card.inactive { opacity: 0.7; }
+  .technical-formula { margin-top: 0.65rem; font-size: 0.85rem; background: #f7f8fa; }
+  .score-guide-grid article b { color: #1a2b3c; }
+  .score-guide-grid article span { color: #667; font-size: 0.84rem; line-height: 1.4; }
+  .selection-flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 0.4rem; margin: 0.5rem 0 0.7rem; }
+  .selection-flow > div { display: grid; gap: 0.15rem; padding: 0.55rem; border: 1px solid #dfe3e7; border-radius: 0.3rem; background: white; }
+  .selection-flow span, .selection-flow small { color: #667; font-size: 0.74rem; }
+  .selection-flow b { font-size: 1.05rem; }
+  .selection-flow .selection-result { background: #eef3f7; border-color: #9fb6cf; }
+  .coverage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 0.5rem; margin-top: 0.7rem; }
+  .coverage-card { display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 0.5rem; padding: 0.65rem; border: 1px solid #dfe3e7; border-radius: 0.3rem; background: white; }
+  .coverage-card > span { color: #667; font-size: 0.82rem; align-self: center; }
+  .coverage-card > div { grid-column: 1 / -1; display: grid; gap: 0.1rem; font-size: 0.86rem; }
+  .coverage-card small { color: #667; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  .tactic-rationale-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.55rem; margin: 0.6rem 0; }
+  .tactic-rationale-grid > p { margin: 0; padding: 0.65rem; border-left: 3px solid #dfe3e7; background: #fbfcfd; line-height: 1.45; font-size: 0.88rem; }
+  .tactic-rationale-grid > details { grid-column: 1 / -1; }
+  .tactic-rationale ul { columns: 2; }
+  .advisory-banner { margin: 1rem 0; padding: 0.85rem 1rem; border-left: 4px solid #b36b00; background: #fff4df; border-radius: 0.3rem; }
+  .advisory-banner b { display: block; margin-bottom: 0.2rem; }
+  .check-summary { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0; }
+  .check-summary span { padding: 0.35rem 0.6rem; background: #eef1f4; border-radius: 1rem; font-size: 0.82rem; }
+  .role-combination { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.55rem 0; }
+  .role-combination span { padding: 0.2rem 0.45rem; background: #eef1f4; border-radius: 0.25rem; font-size: 0.78rem; }
+  .check-failures { margin: 0.3rem 0 0.4rem; padding-left: 1.2rem; color: #713900; font-size: 0.86rem; }
+  @media (max-width: 600px) { .score-summary { grid-template-columns: 1fr; } .overall-score { border-right: 0; border-bottom: 1px solid #dfe3e7; padding: 0 0 0.75rem; } }
   tr.explanation-row td { padding: 0 0.6rem 0.55rem; background: #fcfcfc; }
   tr.explanation-row details { margin: 0; }
   .score-path { line-height: 1.8; }
@@ -363,7 +408,7 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
             + " ".join(f"<span class='tag'>{html.escape(tag)}</span>" for tag in tactic.tags)
             + "</p>"
         )
-    return "".join(parts)
+    return "<div class='tactic-rationale-grid'>" + "".join(parts) + "</div>"
 
 
 def _readable_attribute(name: str) -> str:

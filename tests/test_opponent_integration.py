@@ -159,12 +159,7 @@ class OpponentChangesSelectionTests(unittest.TestCase):
         self.assertLess(fast.opponent_fit.score, 100.0)
         self.assertTrue(fast.opponent_fit.shortfalls)
 
-    def test_a_demanding_opponent_lowers_the_blended_score_for_a_strong_enough_squad(self) -> None:
-        # The blended score only falls once the opponent-fit shortfall (~83
-        # here) is actually the *worst* of the active components -- for a weak
-        # synthetic squad, xi_score itself is well below that, and adding a
-        # comparatively strong opponent-fit component can pull the blend *up*.
-        # A near-maximal squad avoids that trap and isolates the intended effect.
+    def test_role_only_opponent_check_does_not_change_the_player_score(self) -> None:
         strong = tuple(
             _flat_player(f"strong-{i}", ("DL", "DR", "DC", "MC", "ML", "MR", "AML", "AMR", "ST"), **{
                 a: 20 for a in ATTRIBUTES
@@ -176,7 +171,8 @@ class OpponentChangesSelectionTests(unittest.TestCase):
         tactic = MVP_CATALOGUE.tactics["attacking_433"]
         neutral = evaluate_tactic(tactic, players, MVP_CATALOGUE, opponent=OpponentProfile.neutral())
         fast = evaluate_tactic(tactic, players, MVP_CATALOGUE, opponent=OpponentProfile(pace_in_behind=2))
-        self.assertLess(fast.score.central, neutral.score.central)
+        self.assertEqual(fast.score, neutral.score)
+        self.assertTrue(fast.opponent_fit.shortfalls)
 
 
 class NoDoubleApplicationRegressionTests(unittest.TestCase):

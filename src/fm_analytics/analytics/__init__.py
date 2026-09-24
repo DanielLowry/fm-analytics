@@ -43,7 +43,6 @@ from fm_analytics.analytics.xi_selection import (
     SlotAssignment,
     TacticEvaluation,
     TacticFitPolicy,
-    SystemFitPolicy,
     TacticRecommendation,
     TrainingTarget,
     evaluate_tactic,
@@ -55,6 +54,12 @@ from fm_analytics.analytics.xi_selection import (
     score_player_for_slot,
 )
 from fm_analytics.analytics.tactic_ranking import TacticRankingExecutor
+from fm_analytics.analytics.tactic_structure import (
+    StructuralCombinationFailure,
+    TacticStructureCheck,
+    check_catalogue_structure,
+    check_tactic_structure,
+)
 from fm_analytics.analytics.forced_selection import evaluate_tactic_with_forced_assignment
 from fm_analytics.analytics.selection_explanation import (
     SelectionAlternative,
@@ -205,13 +210,14 @@ __all__ = [
     "TacticDefinition",
     "TacticEvaluation",
     "TacticFitPolicy",
-    "SystemFitPolicy",
     "SubstitutionBoard",
     "SubstitutionTarget",
     "TacticRecommendation",
     "TacticSlot",
     "TacticSelectionExplanation",
     "TacticSystemRequirements",
+    "StructuralCombinationFailure",
+    "TacticStructureCheck",
     "AttributeTaperPolicy",
     "TaggedWeakness",
     "TrainingTarget",
@@ -226,6 +232,8 @@ __all__ = [
     "filter_scouting_candidates",
     "rank_for_position",
     "assess_weaknesses",
+    "check_catalogue_structure",
+    "check_tactic_structure",
     "best_position_adjusted_role",
     "best_selection_adjusted_role",
     "build_recruitment_briefs",

@@ -101,15 +101,15 @@ class JointRoleSystemTests(unittest.TestCase):
             tactics={item.key: item for item in (tactic(dynamic=False), tactic(dynamic=True))},
         )
 
-    def test_joint_search_can_trade_individual_role_fit_for_system_coherence(self) -> None:
+    def test_advisory_structure_does_not_override_the_better_player_fit(self) -> None:
         fixed = evaluate_tactic(tactic(dynamic=False), players(), self.catalogue)
         dynamic = evaluate_tactic(tactic(dynamic=True), players(), self.catalogue)
 
         selected_forward = next(item for item in dynamic.assignments if item.slot.key == "slot-10")
-        self.assertEqual(selected_forward.intrinsic_role_score.role_key, "runner")
-        self.assertLess(dynamic.xi_score.central, fixed.xi_score.central)
-        self.assertGreater(dynamic.coherence.score, fixed.coherence.score)
-        self.assertGreater(dynamic.score.central, fixed.score.central)
+        self.assertEqual(selected_forward.intrinsic_role_score.role_key, "creator")
+        self.assertEqual(dynamic.score, dynamic.xi_score)
+        self.assertEqual(dynamic.score, fixed.score)
+        self.assertTrue(dynamic.coherence.shortfalls)
 
     def test_every_permitted_role_version_is_considered_before_players_are_assigned(self) -> None:
         slots = tuple(
@@ -146,8 +146,9 @@ class JointRoleSystemTests(unittest.TestCase):
             for assignment in result.assignments
             if assignment.slot.position == "ST"
         )
-        self.assertEqual(selected_roles, ("runner", "runner"))
-        self.assertEqual(result.coherence.score, 100)
+        self.assertEqual(selected_roles, ("creator", "creator"))
+        self.assertEqual(result.score, result.xi_score)
+        self.assertTrue(result.coherence.shortfalls)
 
     def test_creator_redundancy_is_an_explicit_coherence_penalty(self) -> None:
         requirements = TacticSystemRequirements(maximum_creators=1)

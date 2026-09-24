@@ -29,20 +29,18 @@ because it omits a hard-to-fill position. The 35% weakest-slot weight is a
 provisional preference, not a measured win-probability coefficient. It makes
 one glaring mismatch more costly than a small increase in average quality:
 ten slots scoring about 58 and one scoring 0 have a higher mean than eleven
-slots scoring about 47, but a lower tactic fit. The selector uses that component
-together with `system-fit-v1`: 60% XI suitability, 25% tactical coherence, and
-15% instruction suitability, with a 20% weakest-component penalty. A fourth
-component, opponent fit, carries weight 0.20 but is inactive unless the manager
-sets an opponent profile, so an opponent-neutral run is unaffected by it (see
-roadmap item 9). Coherence
-scores explicit role contributions (width, cover, progression, creators,
+slots scoring about 47, but a lower tactic fit. This player-based result is the
+complete squad-fit score. Coherence scores explicit role contributions (width,
+cover, progression, creators,
 runners, penetration, aerial outlet, box presence, rest defence, and pressing)
 against the formation's requirements and caps redundant attack duties and
 creators. Instruction suitability tests the same selected system against demands
 such as counter-pressing, playing out, or counter-attacking. The role profiles
 and weights are transparent POC hypotheses, not calibrated claims about FM's
-hidden match engine. Lower and upper overall bounds use the selected XI's score
-bounds; they do not express uncertainty over which XI would be selected.
+hidden match engine. These structural checks are advisory, appear separately,
+and do not affect role selection or tactic ranking. Lower and upper overall
+bounds use the selected XI's score bounds; they do not express uncertainty over
+which XI would be selected.
 
 The selected shape now also receives an explainable seven-player bench. Only
 selectable non-starters are considered; greedy selection prioritizes new

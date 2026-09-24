@@ -35,7 +35,6 @@ from fm_analytics.analytics.xi_models import (
     PlayerSelectionInput,
     ReadinessPolicy,
     SlotAssignment,
-    SystemFitPolicy,
     TacticEvaluation,
     TacticFitPolicy,
     TacticRecommendation,
@@ -53,7 +52,6 @@ def evaluate_tactic(
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
-    system_policy: SystemFitPolicy = SystemFitPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
     role_score_cache: RoleScoreCache | None = None,
 ) -> TacticEvaluation:
@@ -64,7 +62,6 @@ def evaluate_tactic(
         readiness_policy=readiness_policy,
         familiarity_policy=familiarity_policy,
         fit_policy=fit_policy,
-        system_policy=system_policy,
         opponent=opponent,
         role_score_cache=role_score_cache,
     )
@@ -78,7 +75,6 @@ def _evaluate_tactic(
     readiness_policy: ReadinessPolicy,
     familiarity_policy: FamiliarityPolicy,
     fit_policy: TacticFitPolicy,
-    system_policy: SystemFitPolicy,
     # Required, like the policies above: a silent neutral default here would
     # hide a caller that forgot to thread the opponent through.
     opponent: OpponentProfile,
@@ -123,7 +119,6 @@ def _evaluate_tactic(
         choices,
         catalogue,
         fit_policy,
-        system_policy,
         opponent,
         forced_roles=forced_roles,
     )
@@ -147,12 +142,6 @@ def _evaluate_tactic(
         familiarity_floor=familiarity_policy.floor_multiplier,
         fit_version=fit_policy.version,
         fit_weakest_weight=fit_policy.weakest_slot_weight,
-        system_version=system_policy.version,
-        system_xi_weight=system_policy.xi_weight,
-        system_coherence_weight=system_policy.coherence_weight,
-        system_instruction_weight=system_policy.instruction_weight,
-        system_opponent_weight=system_policy.opponent_weight,
-        system_weakest_component_weight=system_policy.weakest_component_weight,
         assignments=ordered_assignments,
         unfilled_slots=unfilled,
         mean_score=mean_score,
@@ -173,7 +162,6 @@ def recommend_tactic(
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
-    system_policy: SystemFitPolicy = SystemFitPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
     role_score_cache: RoleScoreCache | None = None,
 ) -> TacticRecommendation:
@@ -185,7 +173,6 @@ def recommend_tactic(
             readiness_policy=readiness_policy,
             familiarity_policy=familiarity_policy,
             fit_policy=fit_policy,
-            system_policy=system_policy,
             opponent=opponent,
             role_score_cache=role_score_cache,
         )
@@ -201,7 +188,6 @@ def recommend_tactic_effective_and_potential(
     readiness_policy: ReadinessPolicy = ReadinessPolicy(),
     familiarity_policy: FamiliarityPolicy = FamiliarityPolicy(),
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
-    system_policy: SystemFitPolicy = SystemFitPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
     role_score_cache: RoleScoreCache | None = None,
     ranking_executor: TacticRankingExecutor | None = None,
@@ -232,7 +218,6 @@ def recommend_tactic_effective_and_potential(
             readiness_policy=readiness_policy,
             familiarity_policy=familiarity_policy,
             fit_policy=fit_policy,
-            system_policy=system_policy,
             opponent=opponent,
         )
     effective = recommend_tactic(
@@ -241,7 +226,6 @@ def recommend_tactic_effective_and_potential(
         readiness_policy=readiness_policy,
         familiarity_policy=familiarity_policy,
         fit_policy=fit_policy,
-        system_policy=system_policy,
         opponent=opponent,
         role_score_cache=role_score_cache,
     )
@@ -251,7 +235,6 @@ def recommend_tactic_effective_and_potential(
         readiness_policy=readiness_policy,
         familiarity_policy=familiarity_policy.potential(),
         fit_policy=fit_policy,
-        system_policy=system_policy,
         opponent=opponent,
         role_score_cache=role_score_cache,
     )
@@ -594,7 +577,6 @@ def _best_role_version(
     choices: tuple[tuple[_CandidateAssignment, ...], ...],
     catalogue: FootballCatalogue,
     fit_policy: TacticFitPolicy,
-    system_policy: SystemFitPolicy,
     opponent: OpponentProfile,
     *,
     forced_roles: dict[int, str] | None = None,
@@ -644,7 +626,7 @@ def _best_role_version(
             assignments, len(tactic.slots), fit_policy
         )
         coherence, instruction_suitability, opponent_fit, score = _system_fit(
-            tactic, assignments, catalogue, xi_score, system_policy, opponent
+            tactic, assignments, catalogue, xi_score, opponent
         )
         candidate = _RoleVersionEvaluation(
             mask=mask,
@@ -713,42 +695,22 @@ def _system_fit(
     assignments: tuple[SlotAssignment, ...],
     catalogue: FootballCatalogue,
     xi_score: ScoreBand,
-    policy: SystemFitPolicy,
     opponent: OpponentProfile,
 ) -> tuple[SystemAssessment, SystemAssessment, SystemAssessment, ScoreBand]:
+    """Assess the selected roles, while keeping the player score unchanged.
+
+    These checks are advisory because they use fixed values attached to roles,
+    not the abilities of the selected players. They must not affect a ranking
+    whose purpose is to say which tactic best suits the squad.
+    """
     roles = tuple(
         catalogue.roles[assignment.intrinsic_role_score.role_key]
         for assignment in assignments
     )
     coherence = assess_coherence(tactic, roles)
     instruction = assess_instruction_suitability(roles, tactic.instructions)
-    # Inactive (and 100) under a neutral profile, so it drops out of the blend
-    # below exactly as coherence/instruction do when a tactic declares none of
-    # its own -- a neutral opponent leaves `component()` byte-identical.
     opponent_fit = assess_opponent_fit(roles, opponent)
-
-    def component(xi_value: float) -> float:
-        weighted: list[tuple[float, float]] = [(xi_value, policy.xi_weight)]
-        if coherence.active:
-            weighted.append((coherence.score, policy.coherence_weight))
-        if instruction.active:
-            weighted.append((instruction.score, policy.instruction_weight))
-        if opponent_fit.active:
-            weighted.append((opponent_fit.score, policy.opponent_weight))
-        total_weight = sum(weight for _, weight in weighted)
-        mean = sum(value * weight for value, weight in weighted) / total_weight
-        weakest = min(value for value, _ in weighted)
-        return round(
-            (1 - policy.weakest_component_weight) * mean
-            + policy.weakest_component_weight * weakest,
-            6,
-        )
-
-    return coherence, instruction, opponent_fit, ScoreBand(
-        component(xi_score.lower),
-        component(xi_score.central),
-        component(xi_score.upper),
-    )
+    return coherence, instruction, opponent_fit, xi_score
 
 
 def _tactic_fit(

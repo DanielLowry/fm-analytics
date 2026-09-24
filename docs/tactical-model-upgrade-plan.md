@@ -455,12 +455,24 @@ recalibration every tactic scores 100/100 on both balance and instruction fit
 for its default role version. That is correct and also a limit: both
 components depend only on *roles*, never on *players*, so for a consistent
 tactic they are a constant. They now work as a consistency check (a slot
-alternate that breaks the tactic's balance is penalised) rather than a ranking
-signal, and tactic ranking is now driven by XI quality alone. The old spread
+alternate that breaks the tactic's balance is reported) rather than a ranking
+signal, and tactic ranking is driven by XI quality alone. The old spread
 (instruction fit ranged 60–100) was an artifact of unreachable demands, not
 information. Real discrimination between tactics has to come from the pieces
 still to be built: attribute-aware instruction suitability (roadmap item 4),
 per-tactic attribute weights (§5) and the opponent (§6).
+
+**Decision: structural checks are advisory (September 2026).** The balance,
+instruction and opponent-floor checks use fixed values attached to roles; they
+do not measure the players assigned to those roles. They have therefore been
+removed from the squad-fit score and from role-combination selection. Tactic
+ranking now uses the player-based XI score only. The checks remain visible on
+the separate `/tactic-checks` page, and a selected role combination that fails
+a tactic's own balance or instruction minimums receives a warning on its tactic
+page. They are deliberately not hard constraints yet: the authored thresholds
+need review before a near miss is allowed to rule out a combination entirely.
+The intended later decision is whether reviewed minimums should become simple
+pass/fail eligibility rules.
 
 ## 2c. Justifications as built (B2, B3 for the existing 25)
 
@@ -780,9 +792,9 @@ alone and would otherwise serve the previous opponent's answer.
 per axis carrying its own labels, `EmphasisRule`s and `FloorRule`s.
 `assess_opponent_fit` scores the floors via a new shared
 `tactical_system.assess_demands`, which instruction fit now also uses, so the
-two cannot drift apart. `SystemFitPolicy.opponent_weight` is 0.20 as proposed,
-and opponent fit is reported as its own component on `TacticEvaluation`
-alongside coherence and instruction fit.
+two cannot drift apart. Opponent fit is reported as an advisory assessment on
+`TacticEvaluation` alongside coherence and instruction fit. None of these
+player-independent assessments contributes to the tactic ranking score.
 
 `RecommendationPolicy.opponent` carries it, and it is threaded through every
 tactic-specific consumer (`evaluate_tactic`, `recommend_tactic`, `select_bench`,
@@ -820,16 +832,15 @@ one-path rule holds by construction. Tactic-free pages never see it.
    dimension (`aerialOutlet` is about our attacking), so it acts entirely
    through who is picked. Worth revisiting if a dimension is ever added.
 
-**Two findings that change how this should be presented.**
+**Two findings that changed how this is presented.**
 
-- **The blended score is not monotonic in opponent difficulty.** Opponent fit,
-  like coherence and instruction fit, measures whether the *roles* clear a bar,
-  not whether the players are good. For a weak squad it can sit well above
-  `xi_score`, so activating it can *raise* the total score against a harder
-  opponent. This is the same property §2b documented for the other two
-  components, and it means D5's delta view must be built on **rank** movement,
-  and any "why did this get harder" line on the component, never on the headline
-  number.
+- **The old blended score was not monotonic in opponent difficulty.** Opponent
+  fit, like coherence and instruction fit, measures whether the *roles* clear a
+  bar, not whether the players are good. For a weak squad it could sit well
+  above `xi_score`, so activating it could *raise* the total score against a
+  harder opponent. This helped prompt the September 2026 decision to remove all
+  three structural assessments from the ranking score. Opponent attributes can
+  still change player selection; role-only shortfalls are advisory.
 - **The first draft of the floors was unreachable**, exactly the §1.1 failure:
   40 of 42 tactics could not meet the attacking minimums. They were rescaled
   against what the catalogue actually supplies, and
@@ -1195,10 +1206,11 @@ is all zeros.
 ### D3. Scoring
 
 `assess_opponent_fit(tactic, roles, profile) -> SystemAssessment`, reusing
-the existing type and the `active` convention. `SystemFitPolicy` gains
-`opponent_weight` (proposed 0.20); `_system_fit` already excludes inactive
-components, so **a neutral profile leaves every number byte-identical to
-today**. That is a test, not an aspiration.
+the existing type and the `active` convention. This proposal originally gave
+opponent fit a 0.20 weight in the combined score. That part is superseded by the
+September 2026 advisory-check decision: role-only opponent fit is displayed but
+has zero effect on the tactic score. A neutral profile still leaves player
+selection and every score byte-identical.
 
 Reported as its own component alongside coherence and instruction fit, per
 roadmap item 9's requirement that it never be folded into a global "best

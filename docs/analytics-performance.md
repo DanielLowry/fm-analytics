@@ -405,7 +405,7 @@ Re-run the baselines whenever any of these changes:
 
 - catalogue version or tactic count;
 - role alternatives or exclusion groups;
-- `TacticFitPolicy` or `SystemFitPolicy`;
+- `TacticFitPolicy`;
 - effective/potential familiarity semantics;
 - role-score rounding or attribute representation;
 - process start method or worker grouping; or

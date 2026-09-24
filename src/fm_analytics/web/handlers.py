@@ -24,6 +24,7 @@ from fm_analytics.reporting import (
     validate_recommendation_snapshot,
 )
 from fm_analytics.web.scouting_pages import ScoutingPagesMixin
+from fm_analytics.web.tactic_checks_page import tactic_checks_body
 from fm_analytics.web.scouting_render import (
     squad_player_link,
     squad_player_report,
@@ -54,6 +55,7 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             "/squad": self._squad_page,
             "/roles": self._roles_page,
             "/tactics": self._tactics_page,
+            "/tactic-checks": self._tactic_checks_page,
             "/set-pieces": self._set_pieces_page,
             "/depth": self._depth_page,
             "/scouting": self._scouting_page,
@@ -187,8 +189,8 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
                 "<tr>"
                 f"<td>{squad_player_link(player)}</td>"
                 f"<td>{', '.join(player.positions)}</td>"
-                f"<td>{player.condition_percent if player.condition_percent is not None else '?'}%</td>"
-                f"<td>{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
+                f"<td>{player.condition_percent if player.condition_percent is not None else '?'}% / "
+                f"{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
                 f"<td>{html.escape(player.availability)}</td>"
                 f"{role_score_cells(scores)}"
                 "</tr>"
@@ -430,24 +432,21 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             + "".join(rows)
             + "</table>"
             "<details><summary>How tactics are ranked</summary>"
-            "<p class='muted'>The play-now score combines today’s player-role fit, team "
-            "balance and support for the tactic’s instructions. It is a squad-fit estimate, "
-            "not a match prediction or an opponent-specific recommendation. Open a tactic "
-            "to see those components separately.</p></details>"
+            "<p class='muted'>The play-now score uses the selected players’ fit for their "
+            "roles, adjusted for position familiarity, condition and match fitness. It also "
+            "gives extra weight to the weakest starting position. Structural role checks are "
+            "shown separately and do not affect the ranking.</p></details>"
         )
         self._send(_layout("Tactics", path, body))
+
+    def _tactic_checks_page(self, path: str, _query: dict[str, list[str]]) -> None:
+        self._send(_layout("Tactic checks", path, tactic_checks_body()))
 
     @staticmethod
     def _tactic_headline(bundle: RecommendationBundle, evaluation) -> str:
         if evaluation.unfilled_slots:
             slots = ", ".join(slot.key for slot in evaluation.unfilled_slots)
             return f"Cannot fill {slots}"
-        if evaluation.coherence.shortfalls:
-            return "Role balance: " + _tactical_shortfalls(evaluation.coherence.shortfalls)
-        if evaluation.instruction_suitability.shortfalls:
-            return "Game plan: " + _tactical_shortfalls(
-                evaluation.instruction_suitability.shortfalls
-            )
         risk = _injury_risk_count(bundle.squad_depth.per_tactic[evaluation.tactic.key])
         if risk:
             return f"{risk} starting slot{'s' if risk != 1 else ''} lack reliable cover"
@@ -490,24 +489,30 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             warnings = (
                 f"<p class='warn'>{html.escape(warning_text)}</p>" if warning_text else ""
             )
-            taper_step = (
-                f"→ ×{assignment.taper_multiplier.central:.2f} attribute taper "
-                f"→ <b>{_band(assignment.tapered_score)}</b> "
-                if assignment.taper_notes else ""
-            )
             if assignment.taper_notes:
                 warnings += (
                     "<p class='warn'>Below this tactic's attribute levels: "
                     + html.escape("; ".join(assignment.taper_notes))
                     + ". Fit tapers off gradually, so he can still be the best choice.</p>"
                 )
-            score_path = (
-                f"<b>{_band(assignment.intrinsic_role_score.score)}</b> attribute-based "
-                f"→ ×{assignment.familiarity_multiplier:.2f} familiarity "
-                f"→ <b>{_band(assignment.in_position_score)}</b> in-position "
-                f"{taper_step}"
-                f"→ −{explanation.readiness_score_cost:.1f} readiness "
-                f"→ <b>{_band(assignment.selection_score)}</b> today"
+            taper_card = (
+                "<div><span>Tactic demands</span>"
+                f"<b>×{assignment.taper_multiplier.central:.2f}</b><small>attribute taper</small></div>"
+                if assignment.taper_notes
+                else ""
+            )
+            selection_path = (
+                "<div class='selection-flow'>"
+                "<div><span>Role fit</span>"
+                f"<b>{_band(assignment.intrinsic_role_score.score)}</b><small>attribute-based</small></div>"
+                "<div><span>Position</span>"
+                f"<b>×{assignment.familiarity_multiplier:.2f}</b><small>in-position familiarity</small></div>"
+                + taper_card
+                + "<div><span>readiness</span>"
+                f"<b>−{explanation.readiness_score_cost:.1f}</b><small>condition + fitness</small></div>"
+                "<div class='selection-result'><span>Today</span>"
+                f"<b>{_band(assignment.selection_score)}</b><small>selection score</small></div>"
+                "</div>"
             )
             xi_rows.append(
                 "<tr>"
@@ -515,21 +520,20 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
                 f"<td>{html.escape(assignment.slot.position)}</td>"
                 f"<td>{html.escape(assignment.intrinsic_role_score.role_name)}</td>"
                 f"<td>{squad_player_link(player)}</td>"
-                f"<td>{player.condition_percent if player.condition_percent is not None else '?'}%</td>"
-                f"<td>{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
+                f"<td>{player.condition_percent if player.condition_percent is not None else '?'}% / "
+                f"{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
                 f"<td><b>{_band(assignment.selection_score)}</b></td>"
                 "</tr>"
-                "<tr class='explanation-row'><td colspan='7'>"
+                "<tr class='explanation-row'><td colspan='6'>"
                 + _slot_reasoning(
                     assignment.slot,
                     assignment.intrinsic_role_score.role_key,
                     assignment.intrinsic_role_score.role_name,
                 )
                 + f"<details><summary>Why {html.escape(assignment.player_name)}?</summary>"
-                f"<p class='score-path'>{score_path}</p>{warnings}"
-                "<p class='muted'>Alternatives below are evaluated in this exact slot and "
-                "role. The tactic effect comes from forcing that player here and re-optimising "
-                "the other ten positions.</p>"
+                f"{selection_path}{warnings}"
+                "<p class='muted'>Alternatives use this exact role; the other ten slots are "
+                "re-optimised for each comparison.</p>"
                 "<table><tr><th>Alternative</th><th>Role fit</th><th>In-position</th>"
                 "<th>Condition / sharpness</th><th>Today</th><th>Why not selected</th></tr>"
                 + alternatives
@@ -537,7 +541,7 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             )
         if evaluation.unfilled_slots:
             xi_rows.append(
-                "<tr><td colspan='7' class='warn'>Unfilled: "
+                "<tr><td colspan='6' class='warn'>Unfilled: "
                 + html.escape(", ".join(slot.key for slot in evaluation.unfilled_slots))
                 + "</td></tr>"
             )
@@ -553,7 +557,7 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
         ) or "<tr><td colspan='3' class='warn'>No eligible substitutes.</td></tr>"
 
         targets = {target.starter.slot.key: target for target in report.substitution_board.targets}
-        coverage_rows = []
+        coverage_cards = []
         for slot in evaluation.tactic.slots:
             target = targets.get(slot.key)
             if target is None:
@@ -573,10 +577,11 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
                     )
                 else:
                     cover = "<span class='warn'>No bench cover</span>"
-            coverage_rows.append(
-                "<tr>"
-                f"<td>{html.escape(slot.key)}</td><td>{html.escape(slot.position)}</td>"
-                f"<td>{starter}</td><td>{cover}</td></tr>"
+            coverage_cards.append(
+                "<article class='coverage-card'>"
+                f"<b>{html.escape(slot.key)}</b><span>{html.escape(slot.position)}</span>"
+                f"<div><small>Starter</small>{starter}</div>"
+                f"<div><small>Cover</small>{cover}</div></article>"
             )
 
         issue = self._tactic_headline(bundle, evaluation)
@@ -589,28 +594,44 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             f"(+{target.score_gap:.1f}). This changes positional familiarity only.</p>"
             if target else ""
         )
+        score_summary = self._tactic_score_summary(evaluation)
         score_breakdown = self._tactic_score_breakdown(evaluation)
+        tactic_notes = _tactic_notes(evaluation.tactic)
+        rationale = (
+            "<details class='tactic-rationale'><summary>Tactic rationale and requirements</summary>"
+            + tactic_notes
+            + "</details>"
+            if tactic_notes
+            else ""
+        )
+        structural_problems = tuple(evaluation.coherence.shortfalls) + tuple(
+            evaluation.instruction_suitability.shortfalls
+        )
+        structural_warning = (
+            "<div class='advisory-banner'><b>Selected roles miss a structural check</b>"
+            + html.escape("; ".join(structural_problems))
+            + ". This is advisory and does not affect the squad-fit score. "
+            f"<a href='/tactic-checks#{quote(tactic_key, safe='')}'>Review tactic checks →</a>"
+            "</div>"
+            if structural_problems
+            else ""
+        )
         body = (
             "<p><a href='/tactics'>← Back to tactics</a></p>"
             "<section class='tactic-hero'>"
             f"<span class='eyebrow'>{html.escape(evaluation.tactic.formation)}</span>"
             f"<h2>{html.escape(evaluation.tactic.name)}</h2>"
-            f"<p><b>Play-now tactic score: {_band(evaluation.score)}</b></p>"
-            f"<p>{html.escape(issue)}</p></section>"
-            + _tactic_notes(evaluation.tactic)
-            + "<div class='metric-grid'>"
-            f"<div><span>Player-role fit</span><b>{evaluation.xi_score.central:.1f}</b></div>"
-            f"<div><span>Team balance</span><b>{evaluation.coherence.score:.1f}</b></div>"
-            f"<div><span>Game-plan support</span><b>{evaluation.instruction_suitability.score:.1f}</b></div>"
-            f"<div><span>Weakest slot</span><b>{evaluation.weakest_score.central:.1f}</b></div>"
-            "</div>"
+            f"<p class='tactic-headline'>{html.escape(issue)}</p></section>"
+            + score_summary
+            + structural_warning
             + score_breakdown
+            + rationale
             + training
             + "<h2>Starting XI</h2>"
-            "<p class='muted'>Open “Why this player?” to compare like-for-like alternatives "
-            "and see the effect of reallocating the rest of the XI.</p>"
+            "<p class='muted'>Best available XI for this tactic today. Open a player for "
+            "alternatives and the selection reasoning.</p>"
             "<table><tr><th>Slot</th><th>Position</th><th>Role</th><th>Player</th>"
-            "<th>Condition</th><th>Match fitness</th><th>Today’s selection score</th></tr>"
+            "<th>Condition / fitness</th><th>Today</th></tr>"
             + "".join(xi_rows)
             + "</table>"
             "<h2>Matchday bench</h2>"
@@ -621,26 +642,42 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             + bench_rows
             + "</table>"
             "<h2>Substitution coverage</h2>"
-            "<p class='muted'>Every slot in this tactic is listed. Scores are today’s "
-            "selection scores for the exact replacement role.</p>"
-            "<table><tr><th>Slot</th><th>Position</th><th>Starter</th><th>Bench replacements</th></tr>"
-            + "".join(coverage_rows)
-            + "</table>"
-            "<details><summary>How these scores work</summary>"
-            "<p><b>Attribute-based role score</b> measures the role fit from visible player "
-            "attributes. <b>In-position role score</b> applies positional familiarity. "
-            "<b>Today’s selection score</b> then applies condition and match fitness. The "
-            "current priorities are fixed; this structure allows them to become adjustable "
-            "without changing the explanation or coverage views.</p>"
-            "<p><b>Team balance</b> evaluates whether the roles cover the jobs a functioning "
-            "XI needs. <b>Game-plan support</b> evaluates whether those roles suit the tactic’s "
-            "instructions.</p></details>"
+            "<details><summary>View cover for every position</summary>"
+            "<p class='muted'>Scores are for the exact replacement role, today.</p>"
+            "<div class='coverage-grid'>" + "".join(coverage_cards) + "</div></details>"
+            "<details class='score-guide'><summary>Score guide</summary>"
+            "<div class='score-guide-grid'>"
+            "<article><b>Role fit</b><span>How well a player’s visible attributes suit the role.</span></article>"
+            "<article><b>Position</b><span>Role fit adjusted for positional familiarity.</span></article>"
+            "<article><b>Today</b><span>Position score adjusted for condition and match fitness.</span></article>"
+            "</div></details>"
         )
         self._send(_layout(evaluation.tactic.name, "/tactics", body))
 
     @staticmethod
+    def _tactic_score_summary(evaluation) -> str:
+        """Summarise the player-based score without structural checks."""
+        drivers = [
+            ("XI average", evaluation.mean_score.central),
+            ("Weakest position", evaluation.weakest_score.central),
+        ]
+        driver_cards = "".join(
+            "<div class='score-driver'>"
+            f"<span>{html.escape(name)}</span><b>{score:.1f}</b>"
+            f"<i><em style='width: {score:.1f}%'></em></i></div>"
+            for name, score in drivers
+        )
+        return (
+            "<section class='score-summary'><div class='overall-score'>"
+            "<span>Squad-fit score</span>"
+            f"<b>{evaluation.score.central:.1f}</b><small>out of 100</small></div>"
+            "<div class='score-drivers'><div class='score-drivers-title'>"
+            f"<b>Player scores</b></div>{driver_cards}</div></section>"
+        )
+
+    @staticmethod
     def _tactic_score_breakdown(evaluation) -> str:
-        """Render the exact central-score arithmetic behind a tactic rank."""
+        """Keep score methodology available without making it the primary view."""
         xi_weight = 1 - evaluation.fit_weakest_weight
         xi_formula = (
             f"{xi_weight * 100:.0f}% × {evaluation.mean_score.central:.1f} XI average "
@@ -648,59 +685,12 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             f"{evaluation.weakest_score.central:.1f} weakest slot "
             f"= <b>{evaluation.xi_score.central:.1f}</b> player-role fit"
         )
-        components = [("Player-role fit", evaluation.xi_score.central, evaluation.system_xi_weight)]
-        if evaluation.coherence.active:
-            components.append(("Team balance", evaluation.coherence.score, evaluation.system_coherence_weight))
-        if evaluation.instruction_suitability.active:
-            components.append((
-                "Game-plan support",
-                evaluation.instruction_suitability.score,
-                evaluation.system_instruction_weight,
-            ))
-        if evaluation.opponent_fit.active:
-            components.append(("Opponent suitability", evaluation.opponent_fit.score, evaluation.system_opponent_weight))
-        total_weight = sum(weight for _, _, weight in components)
-        weighted_mean = sum(score * weight for _, score, weight in components) / total_weight
-        weakest_name, weakest_component, _ = min(components, key=lambda item: item[1])
-        component_formula = " + ".join(
-            f"{weight / total_weight * 100:.1f}% × {score:.1f} {html.escape(name)}"
-            for name, score, weight in components
-        )
-        overall_formula = (
-            f"{(1 - evaluation.system_weakest_component_weight) * 100:.0f}% × "
-            f"{weighted_mean:.1f} weighted component average + "
-            f"{evaluation.system_weakest_component_weight * 100:.0f}% × "
-            f"{weakest_component:.1f} lowest component ({html.escape(weakest_name)}) "
-            f"= <b>{evaluation.score.central:.1f}</b> overall tactic score"
-        )
-        balance = SquadWebHandler._assessment_detail("Team-balance checks", evaluation.coherence)
-        instructions = SquadWebHandler._assessment_detail(
-            "Game-plan support checks", evaluation.instruction_suitability
-        )
         return (
-            "<details class='score-breakdown'><summary>How the overall tactic score is derived</summary>"
-            "<p class='muted'>Scores use the selected XI and roles shown below. They measure "
-            "squad fit for today, rather than predicting a match result.</p>"
-            f"<p><b>1. Player-role fit:</b> {xi_formula}.</p>"
-            f"<p><b>2. Active components:</b> {component_formula} = "
-            f"<b>{weighted_mean:.1f}</b> weighted average. Components with no defined checks "
-            "are excluded rather than treated as a perfect score.</p>"
-            f"<p><b>3. Overall score:</b> {overall_formula}.</p>"
-            + balance
-            + instructions
-            + "</details>"
+            "<details class='score-breakdown'><summary>Score details</summary>"
+            "<p>This score only uses the selected players. Structural role checks are "
+            "reported separately.</p>"
+            f"<p>{xi_formula}.</p></details>"
         )
-
-    @staticmethod
-    def _assessment_detail(title: str, assessment) -> str:
-        if not assessment.active:
-            return f"<p class='muted'><b>{title}:</b> no checks defined for this tactic.</p>"
-        checks = (
-            "All defined checks are met."
-            if not assessment.shortfalls
-            else "Shortfalls: " + html.escape("; ".join(assessment.shortfalls)) + "."
-        )
-        return f"<p><b>{title} ({assessment.score:.1f}):</b> {checks}</p>"
 
     @staticmethod
     def _selection_alternative_row(option, players_by_id, starter) -> str:
