@@ -130,6 +130,21 @@
         "pace": 2,
         "stamina": 2
       }
+    },
+    {
+      "attributes": {
+        "stamina": 2
+      },
+      "roles": [
+        "cd_defend",
+        "cd_cover",
+        "if_attack",
+        "dlf_support",
+        "p_attack"
+      ],
+      "introduceAttributes": [
+        "stamina"
+      ]
     }
   ],
   "keyRequirements": [

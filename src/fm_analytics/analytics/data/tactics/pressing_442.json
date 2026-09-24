@@ -149,6 +149,12 @@
       "positions": [
         "ML",
         "MR"
+      ],
+      "roles": [
+        "wm_support"
+      ],
+      "introduceAttributes": [
+        "aggression"
       ]
     },
     {

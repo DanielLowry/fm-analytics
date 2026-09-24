@@ -25,8 +25,8 @@ The rules, and why (see docs/tactical-model-upgrade-plan.md 5.2):
   capture what *this* tactic wants more than tactics in general. It is also
   what stopped an aerial crossing tactic emphasising positioning and first
   touch over heading and jumping reach.
-* Attributes a role does not already weight are never introduced -- that is
-  enforced by the scoring mechanism (`catalogue._emphasised`), not here.
+* Attributes a role does not already weight are never introduced. That requires
+  an explicit role-scoped `introduceAttributes`, which this draft never writes.
 
 Usage:  uv run python tools/seed_tactic_emphasis.py [--force] [--check]
 """

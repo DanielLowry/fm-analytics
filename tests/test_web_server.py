@@ -677,6 +677,13 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertIn("off the ball +2", body)
         self.assertNotIn("offTheBall", body)
 
+    def test_tactic_detail_labels_an_introduced_role_requirement(self) -> None:
+        status, body = self._get("/tactics/pressing_442")
+
+        self.assertEqual(status, 200)
+        self.assertIn("aggression +1", body)
+        self.assertIn("new requirement", body)
+
     def test_tactics_overview_hints_when_each_tactic_suits(self) -> None:
         status, body = self._get("/tactics")
 

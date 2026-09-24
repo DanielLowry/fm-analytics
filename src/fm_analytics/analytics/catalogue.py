@@ -10,7 +10,13 @@ from typing import Any, Mapping
 from fm_analytics.analytics.attribute_taper import AttributeTaper
 from fm_analytics.analytics.catalogue_validation import (
     validate_emphasis_scopes,
+    validate_introduced_attributes,
     validate_taper_scopes,
+)
+from fm_analytics.analytics.emphasis import (
+    emphasised as _emphasised,
+    introduced_emphasis as _introduced_emphasis,
+    sum_emphasis as _sum_emphasis,
 )
 from fm_analytics.analytics.role_scoring import (
     RoleAttribute,
@@ -42,15 +48,16 @@ _DATA_PATH = Path(__file__).with_name("data")
 class AttributeEmphasis:
     """One block of "this tactic values these attributes more (or less)".
 
-    `attributes` are *deltas* on each role's own weight. `positions` and `roles`
-    are independent optional filters; when both are present, both must match.
-    Every block that covers an assignment adds to it, so a tactic can combine a
-    whole-team requirement with a role-specific one.
+    `attributes` are *deltas* on each role's own existing weights. `positions`
+    and `roles` are independent optional filters; when both are present, both
+    must match. `introduce_attributes` is the explicit exception: it permits a
+    positive delta to become a new requirement for the named roles.
     """
 
     attributes: Mapping[str, int]
     positions: tuple[str, ...] = ()
     roles: tuple[str, ...] = ()
+    introduce_attributes: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.attributes:
@@ -67,20 +74,31 @@ class AttributeEmphasis:
             raise ValueError("emphasis positions must be unique, non-empty names")
         if len(self.roles) != len(set(self.roles)) or not all(self.roles):
             raise ValueError("emphasis roles must be unique, non-empty keys")
+        if (
+            len(self.introduce_attributes) != len(set(self.introduce_attributes))
+            or not all(self.introduce_attributes)
+        ):
+            raise ValueError("introduced attributes must be unique, non-empty names")
+        if self.introduce_attributes and not self.roles:
+            raise ValueError("introduced attributes require an explicit roles filter")
+        unscored = sorted(set(self.introduce_attributes) - set(self.attributes))
+        if unscored:
+            raise ValueError(
+                f"introduced attributes must also be emphasised by the block: {unscored!r}"
+            )
+        non_positive = sorted(
+            name for name in self.introduce_attributes if self.attributes[name] <= 0
+        )
+        if non_positive:
+            raise ValueError(
+                f"introduced attributes must have positive deltas: {non_positive!r}"
+            )
 
     def applies_to(self, position: str, role_key: str | None = None) -> bool:
         return (
             (not self.positions or position in self.positions)
             and (not self.roles or role_key in self.roles)
         )
-
-
-def _sum_emphasis(*emphases: Mapping[str, int]) -> dict[str, int]:
-    total: dict[str, int] = {}
-    for emphasis in emphases:
-        for attribute, delta in emphasis.items():
-            total[attribute] = total.get(attribute, 0) + delta
-    return {a: d for a, d in total.items() if d}
 
 
 @dataclass(frozen=True)
@@ -176,9 +194,8 @@ class TacticDefinition:
     #
     # Deltas, not absolute weights: a block can cover several slots, and an
     # absolute "stamina: 8" would mean stamina 8 for the goalkeeper too. A delta
-    # shifts an existing weight or starts from zero when the role did not
-    # previously weight that attribute, allowing the tactic to add a genuine
-    # contextual requirement.
+    # shifts an existing weight. A block may explicitly introduce a positive
+    # weight for named roles when the tactic genuinely adds that requirement.
     # Every block covering a slot is summed, then clamped to the 0-10 scale.
     attribute_emphasis: tuple[AttributeEmphasis, ...] = ()
     # Levels below which a player's fit tapers away, per attribute and optionally
@@ -344,16 +361,24 @@ class FootballCatalogue:
         whole_team = _sum_emphasis(*(
             block.attributes for block in blocks if not block.positions and not block.roles
         ))
+        whole_team_introductions = _introduced_emphasis(
+            block for block in blocks if not block.positions and not block.roles
+        )
         assignment_totals = {}
+        assignment_introductions = {}
         for slot in tactic.slots:
             for role_key in slot.role_keys:
+                applicable = tuple(
+                    block for block in blocks if block.applies_to(slot.position, role_key)
+                )
                 total = _sum_emphasis(
-                    *(block.attributes for block in blocks
-                      if block.applies_to(slot.position, role_key)),
+                    *(block.attributes for block in applicable),
                     slot.attribute_emphasis,
                 )
-                if total != whole_team:
+                introductions = _introduced_emphasis(applicable)
+                if total != whole_team or introductions != whole_team_introductions:
                     assignment_totals[(slot.key, role_key)] = total
+                    assignment_introductions[(slot.key, role_key)] = introductions
         slot_tapers = {
             slot.key: applicable
             for slot in tactic.slots
@@ -363,9 +388,16 @@ class FootballCatalogue:
         }
         if not whole_team and not assignment_totals and not slot_tapers:
             return None
-        roles = {key: _emphasised(role, whole_team) for key, role in self.roles.items()}
+        roles = {
+            key: _emphasised(role, whole_team, whole_team_introductions)
+            for key, role in self.roles.items()
+        }
         slot_roles = {
-            assignment: _emphasised(self.roles[assignment[1]], total)
+            assignment: _emphasised(
+                self.roles[assignment[1]],
+                total,
+                assignment_introductions[assignment],
+            )
             for assignment, total in assignment_totals.items()
         }
         return replace(self, roles=roles, slot_roles=slot_roles, slot_tapers=slot_tapers, tactic_view=True)
@@ -428,6 +460,8 @@ class FootballCatalogue:
                 raise ValueError(
                     f"tactic {key!r} references unknown roles {sorted(unknown_roles)!r}"
                 )
+            if not self.tactic_view:
+                validate_introduced_attributes(tactic, self.roles)
             incompatible_slots = [
                 slot.key
                 for slot in tactic.slots
@@ -479,29 +513,6 @@ class FootballCatalogue:
             if role_key in self.roles
             and slot.position in self.roles[role_key].eligible_positions
         )
-
-
-def _emphasised(
-    role: RoleDefinition, emphasis: Mapping[str, int]
-) -> RoleDefinition:
-    """`role` with each named attribute's weight shifted, clamped to 0-10.
-
-    A missing base weight is zero, so positive emphasis can introduce a
-    tactic-specific requirement. Non-positive final weights are omitted.
-    """
-    if not emphasis:
-        return role
-    weights = {attribute.name: attribute.weight for attribute in role.attributes}
-    for name, delta in emphasis.items():
-        weights[name] = min(MAX_EFFECTIVE_WEIGHT, max(0, weights.get(name, 0) + delta))
-    attributes = tuple(
-        RoleAttribute(name=name, weight=weight)
-        for name, weight in weights.items()
-        if weight > 0
-    )
-    if not attributes:
-        raise ValueError(f"attribute emphasis leaves role {role.key!r} with no weighted attributes")
-    return replace(role, attributes=attributes)
 
 
 def _role_from_json(raw: Mapping[str, Any], *, version: str) -> RoleDefinition:
@@ -756,20 +767,27 @@ def _emphasis_blocks(value: Any, tactic_key: str) -> tuple[AttributeEmphasis, ..
     if not isinstance(value, list):
         raise ValueError(
             f"tactic {tactic_key!r}: attributeEmphasis must be a list of blocks, each "
-            '{"attributes": {...}} with optional "positions" and "roles" arrays'
+            '{"attributes": {...}} with optional "positions", "roles", and '
+            '"introduceAttributes" arrays'
         )
     blocks = []
     for index, raw in enumerate(value):
-        if not isinstance(raw, dict) or set(raw) - {"attributes", "positions", "roles"}:
+        if not isinstance(raw, dict) or set(raw) - {
+            "attributes", "positions", "roles", "introduceAttributes"
+        }:
             raise ValueError(
                 f"tactic {tactic_key!r}: attributeEmphasis block {index} may only have "
-                "'attributes', 'positions', and 'roles'"
+                "'attributes', 'positions', 'roles', and 'introduceAttributes'"
             )
         blocks.append(
             AttributeEmphasis(
                 attributes=_int_mapping(raw.get("attributes"), "emphasis attributes"),
                 positions=_str_tuple(raw, "positions") if "positions" in raw else (),
                 roles=_str_tuple(raw, "roles") if "roles" in raw else (),
+                introduce_attributes=(
+                    _str_tuple(raw, "introduceAttributes")
+                    if "introduceAttributes" in raw else ()
+                ),
             )
         )
     return tuple(blocks)

@@ -172,6 +172,17 @@
     },
     {
       "attributes": {
+        "aggression": 2
+      },
+      "roles": [
+        "cm_defend"
+      ],
+      "introduceAttributes": [
+        "aggression"
+      ]
+    },
+    {
+      "attributes": {
         "offTheBall": 2,
         "anticipation": 2
       },

@@ -75,7 +75,7 @@ A high-risk structure that immediately puts four players against the opposition 
 - **Midfield:** Ball-Winning Midfielder (Support) [MC], Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Inside Forward (Attack), Winger (Attack) [AML/AMR], Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
 
-- **Leans on:** anticipation +2, off the ball +2, pace +2, stamina +2 (whole team)
+- **Leans on:** anticipation +2, off the ball +2, pace +2, stamina +2 (whole team); stamina +2 [new requirement] (Central Defender (Defend), Central Defender (Cover), Inside Forward (Attack), Deep-Lying Forward (Support), Poacher (Attack))
 - **Needs:** Two midfielders able to cover huge spaces; Fast defenders; Four dangerous attackers; High fitness
 - **Instructions:** Fairly Wide; More Direct Passing; Higher Tempo; Pass Into Space; Counter-Press; Counter; Higher Line of Engagement; Higher Defensive Line
 - **Avoid when:** Against any side with quick forwards or good passing through the middle: two central midfielders cannot cover the space, and you will be opened up down the centre
@@ -206,7 +206,7 @@ A deliberately direct system that moves the ball forward early toward a physical
 - **Midfield:** Winger (Support) [ML/MR] ×2, Central Midfielder (Defend), Ball-Winning Midfielder (Support) [MC]
 - **Attack:** Target Man (Attack), Advanced Forward (Attack) *
 
-- **Leans on:** teamwork +1 (whole team); kicking +2 (GK); positioning +1, concentration +1 (DC); crossing +1, stamina +1 (DL, DR); crossing +2, pace +1, work rate +1 (ML, MR); work rate +2, aggression +2, anticipation +1, strength +1 (MC); off the ball +2, anticipation +2 (ST)
+- **Leans on:** teamwork +1 (whole team); kicking +2 (GK); positioning +1, concentration +1 (DC); crossing +1, stamina +1 (DL, DR); crossing +2, pace +1, work rate +1 (ML, MR); work rate +2, aggression +2, anticipation +1, strength +1 (MC); aggression +2 [new requirement] (Central Midfielder (Defend)); off the ball +2, anticipation +2 (ST)
 - **Expects at least (tapers below):** kicking 7 (GK); crossing 7 (ML, MR); work rate 7 (MC); aggression 7 (MC); off the ball 7 (ST; Advanced Forward (Attack), Poacher (Attack))
 - **Needs:** A genuinely strong aerial Target Man; A mobile strike partner who attacks flick-ons and space; Midfielders who compete hard for second balls; Wide players capable of delivering early crosses; A goalkeeper capable of useful long distribution
 - **Instructions:** Much More Direct Passing; Higher Tempo; Pass Into Space; Hit Early Crosses; Counter; Regroup
@@ -550,7 +550,7 @@ A front-foot 4-4-2 that uses a stopper-cover centre-back partnership to squeeze 
 - **Midfield:** Wide Midfielder (Support) ×2, Ball-Winning Midfielder (Support) [MC], Box-to-Box Midfielder (Support)
 - **Attack:** Pressing Forward (Defend), Advanced Forward (Attack)
 
-- **Leans on:** stamina +2, work rate +2, aggression +2, anticipation +2 (whole team); pace +2, acceleration +2, concentration +2 (DC)
+- **Leans on:** stamina +2, work rate +2, aggression +2, anticipation +2 (whole team); aggression +2 [new requirement] (Advanced Forward (Attack)); aggression +2 [new requirement] (Wide Midfielder (Support)); pace +2, acceleration +2, concentration +2 (DC)
 - **Expects at least (tapers below):** pace 8 (DC; Central Defender (Cover)); anticipation 8 (DC); stamina 8 (ML, MR, MC, ST); work rate 8 (ML, MR, MC, ST)
 - **Needs:** An aggressive stopper and quick cover defender; Two energetic forwards; Hard-working wide midfielders; A ball-winning midfielder
 - **Instructions:** Higher Line of Engagement; Higher Defensive Line; Much More Urgent Pressing; Slightly More Direct Passing; Higher Tempo; Counter-Press
@@ -567,7 +567,7 @@ An intense 4-2-3-1 intended to regain the ball immediately after losing it and a
 - **Midfield:** Ball-Winning Midfielder (Support) [DM], Deep-Lying Playmaker (Support) [DM]
 - **Attack:** Inside Forward (Attack), Shadow Striker (Attack), Winger (Attack) [AML/AMR], Pressing Forward (Attack) *
 
-- **Leans on:** work rate +2, aggression +2, stamina +2, anticipation +2 (whole team)
+- **Leans on:** work rate +2, aggression +2, stamina +2, anticipation +2 (whole team); work rate +2 [new requirement], stamina +2 [new requirement] (Ball-Playing Defender (Defend), Central Defender (Cover), Central Defender (Defend), Inside Forward (Attack)); aggression +2 [new requirement] (Wing-Back (Support) [DL/DR], Deep-Lying Playmaker (Support) [DM], Inside Forward (Attack), Winger (Attack) [AML/AMR], Advanced Forward (Attack))
 - **Needs:** High work rate/stamina; Fast defenders; Sweeper keeper; Squad depth
 - **Instructions:** Shorter Passing; Higher Tempo; Counter-Press; Counter; Much Higher Line of Engagement; Higher Defensive Line; Much More Urgent Pressing; Prevent Short GK Distribution
 - **Avoid when:** Against teams that play long balls over the press, or when your players are tired: the press falls apart quickly and leaves large spaces
@@ -583,7 +583,7 @@ An aggressive 4-3-3 designed to regain possession high and sustain pressure in t
 - **Midfield:** Ball-Winning Midfielder (Support) [DM], Box-to-Box Midfielder (Support), Mezzala (Attack)
 - **Attack:** Winger (Attack) [AML/AMR], Inside Forward (Attack), Pressing Forward (Attack) *
 
-- **Leans on:** stamina +2, work rate +2, anticipation +2, aggression +2 (whole team)
+- **Leans on:** stamina +2, work rate +2, anticipation +2, aggression +2 (whole team); stamina +2 [new requirement], work rate +2 [new requirement] (Ball-Playing Defender (Defend), Central Defender (Cover), Central Defender (Defend), Inside Forward (Attack)); aggression +2 [new requirement] (Wing-Back (Support) [DL/DR], Wing-Back (Attack) [DL/DR], Mezzala (Attack), Winger (Attack) [AML/AMR], Inside Forward (Attack), Advanced Forward (Attack))
 - **Needs:** High work rate/stamina; Fast centre-backs; Sweeper keeper; Squad depth
 - **Instructions:** Much Higher Line of Engagement; Much More Urgent Pressing; Higher Defensive Line; Shorter Passing; Counter-Press
 - **Avoid when:** Against sides that play long over the press, or when your players lack stamina: the press cannot be kept up for 90 minutes
@@ -746,7 +746,7 @@ A 4-4-2 that presses from the front with two pressing forwards, a ball-winning m
 - **Midfield:** Wide Midfielder (Support) ×2, Ball-Winning Midfielder (Support) [MC], Box-to-Box Midfielder (Support)
 - **Attack:** Pressing Forward (Defend), Pressing Forward (Attack)
 
-- **Leans on:** teamwork +1 (whole team); stamina +1, work rate +1, positioning +1 (DL, DR); anticipation +1, concentration +1, positioning +1 (DC); stamina +2, work rate +2, teamwork +2, aggression +1, anticipation +1 (ML, MR); stamina +2, work rate +2, aggression +2, anticipation +1, teamwork +1 (MC); stamina +2, work rate +2, aggression +2, anticipation +2, off the ball +1 (ST)
+- **Leans on:** teamwork +1 (whole team); stamina +1, work rate +1, positioning +1 (DL, DR); anticipation +1, concentration +1, positioning +1 (DC); stamina +2, work rate +2, teamwork +2, aggression +1 [new requirement], anticipation +1 (ML, MR; Wide Midfielder (Support)); stamina +2, work rate +2, aggression +2, anticipation +1, teamwork +1 (MC); stamina +2, work rate +2, aggression +2, anticipation +2, off the ball +1 (ST)
 - **Expects at least (tapers below):** stamina 7 (DL, DR); work rate 7 (DL, DR); stamina 8 (ML, MR); work rate 8 (ML, MR); stamina 8 (MC); work rate 8 (MC); stamina 8 (ST); work rate 8 (ST); aggression 7 (ST)
 - **Needs:** Two forwards with high stamina and work rate to initiate the press; Central midfielders with the engine and aggression to support the first line; Wide midfielders who can repeatedly recover and press the flanks; Full-backs fit enough to step forward behind the wide midfielders; Enough squad depth and fitness to sustain the intensity across a season
 - **Instructions:** Higher Line of Engagement; Much More Urgent Pressing; Counter-Press; Slightly More Direct Passing; Higher Tempo; Standard Defensive Line

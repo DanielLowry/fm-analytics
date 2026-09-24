@@ -303,13 +303,19 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
         ):
             attributes = ", ".join(
                 f"{html.escape(_readable_attribute(name))} {delta:+d}"
+                + (" <span class='muted'>(new requirement)</span>"
+                   if name in block.introduce_attributes else "")
                 for name, delta in block.attributes.items()
             )
-            where_parts = [", ".join(block.positions) or "whole team"]
+            where_parts = []
+            if block.positions:
+                where_parts.append(", ".join(block.positions))
             if block.roles:
                 where_parts.append(
                     ", ".join(MVP_CATALOGUE.roles[key].name for key in block.roles)
                 )
+            if not where_parts:
+                where_parts.append("whole team")
             where = html.escape("; ".join(where_parts))
             scopes.append(f"{attributes} <span class='muted'>({where})</span>")
         parts.append(
@@ -319,13 +325,17 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
         )
     if tactic.attribute_taper:
         def taper_scope(taper) -> str:
-            parts = [", ".join(taper.positions) or "whole team"]
+            parts = []
+            if taper.positions:
+                parts.append(", ".join(taper.positions))
             if taper.roles:
                 parts.append(
                     ", ".join(
                         MVP_CATALOGUE.roles[role_key].name for role_key in taper.roles
                     )
                 )
+            if not parts:
+                parts.append("whole team")
             return "; ".join(parts)
 
         levels = "; ".join(

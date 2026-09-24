@@ -25,6 +25,28 @@ def validate_emphasis_scopes(tactic: Any, fielded: set[str]) -> None:
             )
 
 
+def validate_introduced_attributes(tactic: Any, roles: Any) -> None:
+    """An introduction must add a genuinely absent weight to every named role."""
+    for block in tactic.attribute_emphasis:
+        matched_role_keys = {
+            role_key
+            for slot in tactic.slots
+            for role_key in slot.role_keys
+            if block.applies_to(slot.position, role_key)
+        }
+        for attribute in block.introduce_attributes:
+            already_weighted = sorted(
+                role_key
+                for role_key in matched_role_keys
+                if attribute in {item.name for item in roles[role_key].attributes}
+            )
+            if already_weighted:
+                raise ValueError(
+                    f"tactic {tactic.key!r} introduces {attribute!r} for roles that "
+                    f"already weight it: {already_weighted!r}"
+                )
+
+
 def validate_taper_scopes(tactic: Any, fielded: set[str]) -> None:
     """Reject taper scopes that are inert or overlap for an exact assignment."""
     used_roles = {role_key for slot in tactic.slots for role_key in slot.role_keys}

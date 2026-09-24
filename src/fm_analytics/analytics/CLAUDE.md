@@ -88,8 +88,10 @@ Cover or Stopper role is added at DC, put it in the matching group.
 A tactic's `attributeEmphasis` is a list of blocks that shift what it asks of
 its players: `{"attributes": {"stamina": 2}}` means +2 on each role's
 stamina weight, not stamina 8 for everybody. If a role has no base weight for
-that attribute, it starts from zero: positive emphasis therefore introduces a
-tactic-specific requirement. A
+that attribute, ordinary emphasis leaves it absent. A block may explicitly add
+a genuine tactic-specific requirement with `"introduceAttributes": ["stamina"]`;
+introductions require a `roles` filter, must have a positive delta, and are
+rejected when every named role already weights the attribute. A
 block may carry `positions` (`["DL", "DC", "DR"]`) to reach only slots at those
 positions, `roles` (`["cm_defend"]`) to reach only those candidate roles, or
 both; when both are present both must match. Without either filter the block
@@ -97,9 +99,11 @@ covers the whole team. **Every block that covers a slot/role assignment is added
 together**, along with the slot's own `attributeEmphasis`, and the total is
 clamped to 0-10. Positions are slot positions, not slot keys
 (`"DC"`, not `"DCL"`), and naming one the tactic does not field is an error.
-Loading the catalogue rejects unknown attribute names, while known attributes
-may be introduced on any covered role. An unused role filter or a combined
+Loading the catalogue rejects unknown attribute names. An unused role filter or a combined
 position/role scope that matches no permitted assignment is also an error.
+For an absent weight, only the delta from a block that lists the attribute in
+`introduceAttributes` is applied; an overlapping ordinary block does not make
+the new requirement larger.
 
 `catalogue.for_tactic(key)` returns the catalogue with roles re-weighted for one
 tactic, keeping every key, name, position, system trait and the version, so

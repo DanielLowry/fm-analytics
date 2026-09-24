@@ -60,10 +60,16 @@ def leans_detail(tactic: TacticDefinition) -> str:
     for block in sorted(
         tactic.attribute_emphasis, key=lambda b: bool(b.positions or b.roles)
     ):
-        attributes = ", ".join(f"{readable(a)} {d:+d}" for a, d in block.attributes.items())
-        where = [", ".join(block.positions) or "whole team"]
+        attributes = ", ".join(
+            f"{readable(a)} {d:+d}"
+            + (" [new requirement]" if a in block.introduce_attributes else "")
+            for a, d in block.attributes.items()
+        )
+        where = [", ".join(block.positions)] if block.positions else []
         if block.roles:
             where.append(", ".join(MVP_CATALOGUE.roles[key].name for key in block.roles))
+        if not where:
+            where.append("whole team")
         scopes.append(f"{attributes} ({'; '.join(where)})")
     return "; ".join(scopes) or "—"
 
@@ -71,11 +77,13 @@ def leans_detail(tactic: TacticDefinition) -> str:
 def taper_detail(tactic: TacticDefinition) -> str:
     """`passing 12 (MC; Deep-Lying Playmaker (Support) [MC])`."""
     def scope(taper) -> str:
-        parts = [", ".join(taper.positions) or "whole team"]
+        parts = [", ".join(taper.positions)] if taper.positions else []
         if taper.roles:
             parts.append(
                 ", ".join(MVP_CATALOGUE.roles[role_key].name for role_key in taper.roles)
             )
+        if not parts:
+            parts.append("whole team")
         return "; ".join(parts)
 
     return "; ".join(

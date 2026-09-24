@@ -1,7 +1,7 @@
 """Per-tactic attribute emphasis: a tactic shifts what it asks of its players.
 
-Emphasis is a *delta* on each role's own weight. A role that does not already
-weight the attribute starts at zero, so tactics can add contextual requirements.
+Emphasis is a *delta* on each role's own weight. Missing base weights are
+ignored unless a role-scoped block explicitly introduces a new requirement.
 """
 
 import unittest
@@ -72,10 +72,10 @@ class DerivedCatalogueTests(unittest.TestCase):
         derived = with_emphasis({"passing": -2}).for_tactic(TACTIC)
         self.assertEqual(weights(derived, "b2b_support")["passing"], base - 2)
 
-    def test_positive_emphasis_can_introduce_an_attribute(self) -> None:
+    def test_positive_emphasis_does_not_implicitly_introduce_an_attribute(self) -> None:
         self.assertNotIn("stamina", weights(MVP_CATALOGUE, "cd_defend"))
         derived = with_emphasis({"stamina": 2}).for_tactic(TACTIC)
-        self.assertEqual(weights(derived, "cd_defend")["stamina"], 2)
+        self.assertNotIn("stamina", weights(derived, "cd_defend"))
 
     def test_weights_are_clamped_to_the_scale(self) -> None:
         high = with_emphasis({"passing": MAX_EFFECTIVE_WEIGHT}).for_tactic(TACTIC)
@@ -184,26 +184,50 @@ class PositionBlockTests(unittest.TestCase):
             slot_weights(with_emphasis([a, b]), "DCL"), slot_weights(with_emphasis([b, a]), "DCL")
         )
 
-    def test_a_position_block_can_add_a_new_requirement(self) -> None:
+    def test_a_position_block_cannot_implicitly_add_a_new_requirement(self) -> None:
         self.assertNotIn("stamina", base_slot_weights("DCL"))
         catalogue = with_emphasis([AttributeEmphasis({"stamina": 2}, ("DC",))])
-        self.assertEqual(slot_weights(catalogue, "DCL")["stamina"], 2)
+        self.assertNotIn("stamina", slot_weights(catalogue, "DCL"))
 
-    def test_a_broad_block_reaches_roles_without_a_base_weight(self) -> None:
+    def test_a_broad_block_only_reaches_roles_with_a_base_weight(self) -> None:
         catalogue = with_emphasis({"stamina": 2})
-        self.assertEqual(slot_weights(catalogue, "DCL")["stamina"], 2)
+        self.assertNotIn("stamina", slot_weights(catalogue, "DCL"))
         self.assertGreater(
             slot_weights(catalogue, "MCL")["stamina"],
             base_slot_weights("MCL")["stamina"],
         )
 
-    def test_a_slot_block_can_add_a_new_requirement(self) -> None:
+    def test_a_slot_block_cannot_implicitly_add_a_new_requirement(self) -> None:
         tactic = MVP_CATALOGUE.tactics[TACTIC]
         slots = list(tactic.slots)
         slots[2] = replace(slots[2], attribute_emphasis={"stamina": 2})
         changed = replace(tactic, slots=tuple(slots), attribute_emphasis=())
         catalogue = replace(MVP_CATALOGUE, tactics={**MVP_CATALOGUE.tactics, TACTIC: changed})
-        self.assertEqual(slot_weights(catalogue, slots[2].key)["stamina"], 2)
+        self.assertNotIn("stamina", slot_weights(catalogue, slots[2].key))
+
+    def test_a_role_scoped_block_can_explicitly_add_a_new_requirement(self) -> None:
+        block = AttributeEmphasis(
+            {"stamina": 2},
+            positions=("DC",),
+            roles=("cd_defend",),
+            introduce_attributes=("stamina",),
+        )
+        catalogue = with_emphasis([block])
+        self.assertEqual(slot_weights(catalogue, "DCL")["stamina"], 2)
+        view = catalogue.for_tactic(TACTIC)
+        dcr = next(slot for slot in view.tactics[TACTIC].slots if slot.key == "DCR")
+        cover = view.role_for_slot(dcr, "cd_cover")
+        self.assertNotIn("stamina", {item.name: item.weight for item in cover.attributes})
+
+    def test_only_the_flagged_delta_introduces_a_missing_attribute(self) -> None:
+        catalogue = with_emphasis([
+            AttributeEmphasis({"stamina": 1}),
+            AttributeEmphasis(
+                {"stamina": 2}, roles=("cd_defend",),
+                introduce_attributes=("stamina",),
+            ),
+        ])
+        self.assertEqual(slot_weights(catalogue, "DCL")["stamina"], 2)
 
     def test_a_tactic_with_only_position_blocks_still_leaves_other_slots_alone(self) -> None:
         catalogue = with_emphasis([AttributeEmphasis({"pace": 2}, self.BACK_LINE)])
@@ -269,9 +293,10 @@ class LoadingTests(unittest.TestCase):
                 {"attributes": {"stamina": 2}},
                 {"attributes": {"pace": 2}, "positions": ["DC", "DL"]},
                 {
-                    "attributes": {"passing": 2},
+                    "attributes": {"passing": 2, "stamina": 1},
                     "positions": ["MC"],
                     "roles": ["cm_defend"],
+                    "introduceAttributes": ["stamina"],
                 },
             ],
             "t",
@@ -282,6 +307,7 @@ class LoadingTests(unittest.TestCase):
         self.assertTrue(blocks[1].applies_to("DC"))
         self.assertFalse(blocks[1].applies_to("ST"))
         self.assertEqual(blocks[2].roles, ("cm_defend",))
+        self.assertEqual(blocks[2].introduce_attributes, ("stamina",))
         self.assertTrue(blocks[2].applies_to("MC", "cm_defend"))
         self.assertFalse(blocks[2].applies_to("MC", "cm_support"))
 
@@ -306,6 +332,34 @@ class ValidationTests(unittest.TestCase):
     def test_an_out_of_range_delta_is_refused(self) -> None:
         with self.assertRaisesRegex(ValueError, "must be between"):
             with_emphasis({"passing": 99})
+
+    def test_introducing_an_attribute_requires_roles(self) -> None:
+        with self.assertRaisesRegex(ValueError, "roles filter"):
+            AttributeEmphasis(
+                {"stamina": 2}, introduce_attributes=("stamina",)
+            )
+
+    def test_an_introduced_attribute_must_be_in_the_block(self) -> None:
+        with self.assertRaisesRegex(ValueError, "also be emphasised"):
+            AttributeEmphasis(
+                {"pace": 2}, roles=("cd_defend",),
+                introduce_attributes=("stamina",),
+            )
+
+    def test_an_introduced_attribute_requires_a_positive_delta(self) -> None:
+        with self.assertRaisesRegex(ValueError, "positive deltas"):
+            AttributeEmphasis(
+                {"stamina": -1}, roles=("cd_defend",),
+                introduce_attributes=("stamina",),
+            )
+
+    def test_an_introduction_is_rejected_when_the_role_already_weights_it(self) -> None:
+        block = AttributeEmphasis(
+            {"passing": 2}, roles=("cm_defend",),
+            introduce_attributes=("passing",),
+        )
+        with self.assertRaisesRegex(ValueError, "already weight it"):
+            with_emphasis([block])
 
 
 class SelectionEffectTests(unittest.TestCase):
@@ -382,6 +436,15 @@ class ShippedSeedTests(unittest.TestCase):
             role = catalogue.role_for_slot(slot, slot.role_key)
             role_weights = {attribute.name: attribute.weight for attribute in role.attributes}
             self.assertEqual(role_weights["aggression"], 1, slot.key)
+
+    def test_every_introduction_is_explicitly_role_scoped(self) -> None:
+        introductions = []
+        for tactic in MVP_CATALOGUE.tactics.values():
+            for block in tactic.attribute_emphasis:
+                if block.introduce_attributes:
+                    self.assertTrue(block.roles, tactic.key)
+                    introductions.append((tactic.key, block))
+        self.assertTrue(introductions)
 
     def test_tactics_do_not_all_emphasise_the_same_attributes(self) -> None:
         # Emphasis exists to separate tactics; identical blocks everywhere would

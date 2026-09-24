@@ -118,6 +118,38 @@
         "anticipation": 2,
         "aggression": 2
       }
+    },
+    {
+      "attributes": {
+        "stamina": 2,
+        "workRate": 2
+      },
+      "roles": [
+        "bpd_defend",
+        "cd_cover",
+        "cd_defend",
+        "if_attack"
+      ],
+      "introduceAttributes": [
+        "stamina",
+        "workRate"
+      ]
+    },
+    {
+      "attributes": {
+        "aggression": 2
+      },
+      "roles": [
+        "wb_dl_dr_support",
+        "wb_dl_dr_attack",
+        "mez_attack",
+        "winger_aml_amr_attack",
+        "if_attack",
+        "af_attack"
+      ],
+      "introduceAttributes": [
+        "aggression"
+      ]
     }
   ],
   "keyRequirements": [

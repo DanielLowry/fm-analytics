@@ -572,9 +572,10 @@ differently.
    slots, so an absolute `stamina: 8` would mean stamina 8 for the goalkeeper
    too. It also cannot express the agreed seed rule, because roles list only the
    attributes they care about (a centre-back may have no `stamina` entry at
-   all). Both layers are therefore deltas, clamped to 0-10. A missing base
-   weight starts at zero, so positive emphasis can introduce a contextual
-   requirement; negative deltas work as well.
+   all). Both layers are therefore deltas, clamped to 0-10. Ordinary emphasis
+   only shifts a role's existing weights. A role-scoped block may explicitly
+   list positive `introduceAttributes` when the tactic genuinely adds a
+   contextual requirement; negative deltas work on existing weights as well.
 2. **Named `attributeEmphasis`, not `weights`.** Once the values are deltas,
    calling them weights invites reading `stamina: 2` as "stamina weight 2".
 3. **The seed weights each instruction by how rare it is** across the catalogue.
@@ -619,12 +620,18 @@ each with optional `positions` and `roles` filters:
 "attributeEmphasis": [
   {"attributes": {"stamina": 2, "workRate": 2}},
   {"attributes": {"pace": 2}, "positions": ["DL", "DC", "DR"]},
-  {"attributes": {"vision": 3}, "positions": ["ST"], "roles": ["treq_st_attack"]}
+  {"attributes": {"vision": 3}, "positions": ["ST"], "roles": ["treq_st_attack"]},
+  {"attributes": {"aggression": 2}, "roles": ["wm_support"],
+   "introduceAttributes": ["aggression"]}
 ]
 ```
 
 With both filters present, both must match the candidate assignment; with
-neither, the block covers the whole team. Every block covering a slot/role is
+neither, the block covers the whole team. `introduceAttributes` requires named
+roles and a positive delta, making additions to the base role deliberate and
+reviewable. When a base weight is absent, only explicitly introducing blocks
+contribute to its new weight; overlapping ordinary blocks remain inert for that
+attribute. Every block covering a slot/role is
 **summed**, together with that slot's own block, then clamped to 0-10. Summing
 replaced "the slot block overrides the tactic block": with a list, "which one
 wins" has no good answer, and addition is order-independent and easy to predict.
@@ -1094,8 +1101,8 @@ uses, and the extra capability is reserved for your hand edits:
 2. **+2, clamped at 10.**
 3. **Only attributes the role already weights above 0.** The seed never
    invents a requirement a role does not have — a Central Defender that
-   ignores crossing keeps ignoring it. The file format permits introducing
-   an attribute from zero (§2.4); the automated draft simply declines to.
+   ignores crossing keeps ignoring it. The file format permits an explicit,
+   role-scoped introduction (§2.4); the automated draft simply declines to.
 4. **Seed with at most five attributes per positional or whole-team block**, taken
    from the instruction and mentality mapping. This was a seeding heuristic, not
    a catalogue restriction: hand-authored tactics may name every genuine
