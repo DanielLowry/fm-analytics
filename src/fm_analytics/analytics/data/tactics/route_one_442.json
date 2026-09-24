@@ -76,7 +76,7 @@
       "key": "STL",
       "position": "ST",
       "role": "tm_attack",
-      "why": "Target man wins the long balls in the air and holds it up or flicks it on."
+      "why": "Target Man (Attack) is the primary long-ball outlet: he competes aerially, pins the centre-backs and attacks early crosses while the second striker attacks knock-downs and space around him."
     },
     {
       "key": "STR",
@@ -103,8 +103,8 @@
   },
   "style": "Route One",
   "description": "A deliberately direct system that moves the ball forward early toward a physical target and runners attacking second balls.",
-  "whyGood": "The Target Man gives direct balls a reliable destination, the Advanced Forward attacks the space created by knock-downs, and the midfield is selected to compete aggressively for second balls. The system avoids asking weak technical players to build through pressure.",
-  "whyThisShape": "A direct 4-4-2 that skips the midfield: long balls to a target man, with a second striker running onto flick-ons, and wingers crossing early. It is the least subtle system in the catalogue, and works when the forwards are physically stronger than the defenders.",
+  "whyGood": "The Target Man gives direct balls a reliable destination, the Advanced Forward attacks the space and second balls around him, and the midfield is selected to compete aggressively for loose balls. The system avoids asking weak technical players to build through pressure.",
+  "whyThisShape": "A direct 4-4-2 that deliberately bypasses midfield pressure: long balls are aimed at a physical Target Man, the second striker attacks the knock-down or space beyond, and the wingers deliver early. The CM(D) holds the centre while the BWM attacks second balls.",
   "whenToUse": "When you have a big target man and a quick second striker, but weak technical midfielders; or against teams with small defenders.",
   "whenNotToUse": "Against tall, strong centre-backs who win the aerial duels, or when your squad is technical and would waste its passing.",
   "instructionRationale": {
@@ -157,23 +157,21 @@
       "positions": [
         "ML",
         "MR"
+      ],
+      "roles": [
+        "winger_ml_mr_support"
       ]
     },
     {
       "attributes": {
-        "workRate": 2,
-        "aggression": 2,
-        "anticipation": 1,
-        "strength": 1
+        "anticipation": 2,
+        "workRate": 1,
+        "strength": 1,
+        "aggression": 1
       },
       "positions": [
         "MC"
-      ]
-    },
-    {
-      "attributes": {
-        "aggression": 2
-      },
+      ],
       "roles": [
         "cm_defend"
       ],
@@ -183,20 +181,67 @@
     },
     {
       "attributes": {
-        "offTheBall": 2,
-        "anticipation": 2
+        "workRate": 2,
+        "aggression": 2,
+        "anticipation": 2,
+        "strength": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attributes": {
+        "jumpingReach": 3,
+        "strength": 3,
+        "heading": 2,
+        "bravery": 2,
+        "firstTouch": 1
       },
       "positions": [
         "ST"
+      ],
+      "roles": [
+        "tm_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 2,
+        "anticipation": 2,
+        "acceleration": 2,
+        "pace": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 3,
+        "anticipation": 3,
+        "acceleration": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
       ]
     }
   ],
   "keyRequirements": [
-    "A genuinely strong aerial Target Man",
-    "A mobile strike partner who attacks flick-ons and space",
-    "Midfielders who compete hard for second balls",
-    "Wide players capable of delivering early crosses",
-    "A goalkeeper capable of useful long distribution"
+    "A genuinely dominant aerial Target Man who can make long distribution repeatable rather than hopeful",
+    "A fast or exceptionally well-timed second striker who attacks knock-downs and the space beyond",
+    "A BWM who aggressively competes for second balls while the CM(D) protects the centre",
+    "Wide players with reliable early delivery",
+    "A goalkeeper with adequate kicking to reach the intended outlet consistently"
   ],
   "tags": [
     "route-one",
@@ -206,24 +251,30 @@
   "attributeTaper": [
     {
       "attribute": "kicking",
-      "taperBelow": 7,
+      "taperBelow": 8,
       "positions": [
         "GK"
       ]
     },
     {
       "attribute": "crossing",
-      "taperBelow": 7,
+      "taperBelow": 8,
       "positions": [
         "ML",
         "MR"
+      ],
+      "roles": [
+        "winger_ml_mr_support"
       ]
     },
     {
-      "attribute": "workRate",
-      "taperBelow": 7,
+      "attribute": "anticipation",
+      "taperBelow": 8,
       "positions": [
         "MC"
+      ],
+      "roles": [
+        "cm_defend"
       ]
     },
     {
@@ -231,16 +282,148 @@
       "taperBelow": 7,
       "positions": [
         "MC"
+      ],
+      "roles": [
+        "cm_defend"
       ]
     },
     {
-      "attribute": "offTheBall",
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attribute": "aggression",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attribute": "jumpingReach",
+      "taperBelow": 10,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "strength",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "heading",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "bravery",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
       "taperBelow": 7,
       "positions": [
         "ST"
       ],
       "roles": [
-        "af_attack",
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
         "p_attack"
       ]
     }

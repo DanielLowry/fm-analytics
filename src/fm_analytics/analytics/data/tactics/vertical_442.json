@@ -128,7 +128,7 @@
   "attributeEmphasis": [
     {
       "attributes": {
-        "teamwork": 2
+        "teamwork": 1
       }
     },
     {
@@ -143,7 +143,7 @@
     },
     {
       "attributes": {
-        "stamina": 2,
+        "stamina": 1,
         "workRate": 1,
         "crossing": 1
       },
@@ -162,36 +162,89 @@
       "positions": [
         "ML",
         "MR"
+      ],
+      "roles": [
+        "winger_ml_mr_support"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 1,
+        "teamwork": 1,
+        "workRate": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_defend"
       ]
     },
     {
       "attributes": {
         "workRate": 2,
         "stamina": 2,
-        "positioning": 1,
-        "offTheBall": 1
+        "offTheBall": 2,
+        "anticipation": 1
       },
       "positions": [
         "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attributes": {
+        "firstTouch": 2,
+        "decisions": 1,
+        "teamwork": 1,
+        "strength": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "pf_support",
+        "cf_support"
       ]
     },
     {
       "attributes": {
         "offTheBall": 2,
         "anticipation": 2,
-        "acceleration": 2
+        "acceleration": 2,
+        "pace": 2
       },
       "positions": [
         "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 3,
+        "anticipation": 3,
+        "acceleration": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
       ]
     }
   ],
   "keyRequirements": [
-    "One holding central midfielder and one energetic runner",
-    "Wide players with enough pace and crossing to deliver early",
-    "A linking striker paired with a forward who attacks space",
-    "Disciplined back four",
-    "Enough stamina and work rate to support quick transitions"
+    "A disciplined holding midfielder paired with a genuinely energetic Box-to-Box runner",
+    "Wide players with enough pace and crossing to make early service worthwhile",
+    "A support striker who can receive and connect vertical passes without needing elite technique",
+    "A second striker with enough pace or movement to threaten the space beyond",
+    "A conventional back four capable of defending a standard line without specialist demands"
   ],
   "tags": [
     "balanced",
@@ -213,6 +266,20 @@
       "positions": [
         "ML",
         "MR"
+      ],
+      "roles": [
+        "winger_ml_mr_support"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 7,
+      "positions": [
+        "ML",
+        "MR"
+      ],
+      "roles": [
+        "winger_ml_mr_support"
       ]
     },
     {
@@ -221,27 +288,113 @@
       "positions": [
         "ML",
         "MR"
+      ],
+      "roles": [
+        "winger_ml_mr_support"
       ]
     },
     {
-      "attribute": "stamina",
+      "attribute": "positioning",
       "taperBelow": 7,
       "positions": [
         "MC"
+      ],
+      "roles": [
+        "cm_defend"
       ]
     },
     {
       "attribute": "workRate",
-      "taperBelow": 7,
+      "taperBelow": 8,
       "positions": [
         "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "pf_support",
+        "cf_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "pf_support",
+        "cf_support"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
       ]
     },
     {
       "attribute": "offTheBall",
-      "taperBelow": 7,
+      "taperBelow": 8,
       "positions": [
         "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
       ]
     },
     {
@@ -249,6 +402,9 @@
       "taperBelow": 7,
       "positions": [
         "ST"
+      ],
+      "roles": [
+        "p_attack"
       ]
     }
   ]
