@@ -654,6 +654,10 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertIn("re-optimising the other ten positions", body)
         self.assertIn("Team balance", body)
         self.assertIn("Game-plan support", body)
+        self.assertIn("How the overall tactic score is derived", body)
+        self.assertIn("Player-role fit:", body)
+        self.assertIn("Overall score:", body)
+        self.assertIn("weighted component average", body)
 
     def test_tactic_detail_justifies_the_shape_and_every_slot(self) -> None:
         tactic = MVP_CATALOGUE.tactics["balanced_442"]

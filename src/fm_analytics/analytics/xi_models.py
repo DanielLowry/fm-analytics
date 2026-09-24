@@ -249,6 +249,10 @@ class TacticEvaluation:
     fit_version: str
     fit_weakest_weight: float
     system_version: str
+    system_xi_weight: float
+    system_coherence_weight: float
+    system_instruction_weight: float
+    system_opponent_weight: float
     system_weakest_component_weight: float
     assignments: tuple[SlotAssignment, ...]
     unfilled_slots: tuple[TacticSlot, ...]

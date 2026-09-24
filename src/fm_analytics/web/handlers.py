@@ -589,6 +589,7 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             f"(+{target.score_gap:.1f}). This changes positional familiarity only.</p>"
             if target else ""
         )
+        score_breakdown = self._tactic_score_breakdown(evaluation)
         body = (
             "<p><a href='/tactics'>← Back to tactics</a></p>"
             "<section class='tactic-hero'>"
@@ -603,6 +604,7 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             f"<div><span>Game-plan support</span><b>{evaluation.instruction_suitability.score:.1f}</b></div>"
             f"<div><span>Weakest slot</span><b>{evaluation.weakest_score.central:.1f}</b></div>"
             "</div>"
+            + score_breakdown
             + training
             + "<h2>Starting XI</h2>"
             "<p class='muted'>Open “Why this player?” to compare like-for-like alternatives "
@@ -635,6 +637,70 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             "instructions.</p></details>"
         )
         self._send(_layout(evaluation.tactic.name, "/tactics", body))
+
+    @staticmethod
+    def _tactic_score_breakdown(evaluation) -> str:
+        """Render the exact central-score arithmetic behind a tactic rank."""
+        xi_weight = 1 - evaluation.fit_weakest_weight
+        xi_formula = (
+            f"{xi_weight * 100:.0f}% × {evaluation.mean_score.central:.1f} XI average "
+            f"+ {evaluation.fit_weakest_weight * 100:.0f}% × "
+            f"{evaluation.weakest_score.central:.1f} weakest slot "
+            f"= <b>{evaluation.xi_score.central:.1f}</b> player-role fit"
+        )
+        components = [("Player-role fit", evaluation.xi_score.central, evaluation.system_xi_weight)]
+        if evaluation.coherence.active:
+            components.append(("Team balance", evaluation.coherence.score, evaluation.system_coherence_weight))
+        if evaluation.instruction_suitability.active:
+            components.append((
+                "Game-plan support",
+                evaluation.instruction_suitability.score,
+                evaluation.system_instruction_weight,
+            ))
+        if evaluation.opponent_fit.active:
+            components.append(("Opponent suitability", evaluation.opponent_fit.score, evaluation.system_opponent_weight))
+        total_weight = sum(weight for _, _, weight in components)
+        weighted_mean = sum(score * weight for _, score, weight in components) / total_weight
+        weakest_name, weakest_component, _ = min(components, key=lambda item: item[1])
+        component_formula = " + ".join(
+            f"{weight / total_weight * 100:.1f}% × {score:.1f} {html.escape(name)}"
+            for name, score, weight in components
+        )
+        overall_formula = (
+            f"{(1 - evaluation.system_weakest_component_weight) * 100:.0f}% × "
+            f"{weighted_mean:.1f} weighted component average + "
+            f"{evaluation.system_weakest_component_weight * 100:.0f}% × "
+            f"{weakest_component:.1f} lowest component ({html.escape(weakest_name)}) "
+            f"= <b>{evaluation.score.central:.1f}</b> overall tactic score"
+        )
+        balance = SquadWebHandler._assessment_detail("Team-balance checks", evaluation.coherence)
+        instructions = SquadWebHandler._assessment_detail(
+            "Game-plan support checks", evaluation.instruction_suitability
+        )
+        return (
+            "<details class='score-breakdown'><summary>How the overall tactic score is derived</summary>"
+            "<p class='muted'>Scores use the selected XI and roles shown below. They measure "
+            "squad fit for today, rather than predicting a match result.</p>"
+            f"<p><b>1. Player-role fit:</b> {xi_formula}.</p>"
+            f"<p><b>2. Active components:</b> {component_formula} = "
+            f"<b>{weighted_mean:.1f}</b> weighted average. Components with no defined checks "
+            "are excluded rather than treated as a perfect score.</p>"
+            f"<p><b>3. Overall score:</b> {overall_formula}.</p>"
+            + balance
+            + instructions
+            + "</details>"
+        )
+
+    @staticmethod
+    def _assessment_detail(title: str, assessment) -> str:
+        if not assessment.active:
+            return f"<p class='muted'><b>{title}:</b> no checks defined for this tactic.</p>"
+        checks = (
+            "All defined checks are met."
+            if not assessment.shortfalls
+            else "Shortfalls: " + html.escape("; ".join(assessment.shortfalls)) + "."
+        )
+        return f"<p><b>{title} ({assessment.score:.1f}):</b> {checks}</p>"
 
     @staticmethod
     def _selection_alternative_row(option, players_by_id, starter) -> str:
