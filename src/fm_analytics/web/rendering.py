@@ -298,12 +298,19 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
         )
     if tactic.attribute_emphasis:
         scopes = []
-        for block in sorted(tactic.attribute_emphasis, key=lambda b: bool(b.positions)):
+        for block in sorted(
+            tactic.attribute_emphasis, key=lambda b: bool(b.positions or b.roles)
+        ):
             attributes = ", ".join(
                 f"{html.escape(_readable_attribute(name))} {delta:+d}"
                 for name, delta in block.attributes.items()
             )
-            where = html.escape(", ".join(block.positions)) if block.positions else "whole team"
+            where_parts = [", ".join(block.positions) or "whole team"]
+            if block.roles:
+                where_parts.append(
+                    ", ".join(MVP_CATALOGUE.roles[key].name for key in block.roles)
+                )
+            where = html.escape("; ".join(where_parts))
             scopes.append(f"{attributes} <span class='muted'>({where})</span>")
         parts.append(
             f"<p class='muted'><b>Leans on:</b> {'; '.join(scopes)}. "

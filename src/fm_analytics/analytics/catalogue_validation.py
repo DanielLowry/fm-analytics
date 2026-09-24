@@ -5,6 +5,26 @@ from __future__ import annotations
 from typing import Any
 
 
+def validate_emphasis_scopes(tactic: Any, fielded: set[str]) -> None:
+    """Reject emphasis filters that cannot match a permitted assignment."""
+    used_roles = {role_key for slot in tactic.slots for role_key in slot.role_keys}
+    for block in tactic.attribute_emphasis:
+        unused_roles = sorted(set(block.roles) - used_roles)
+        if unused_roles:
+            raise ValueError(
+                f"tactic {tactic.key!r} emphasises roles it does not use: "
+                f"{unused_roles!r}"
+            )
+        if not any(
+            block.applies_to(slot.position, role_key)
+            for slot in tactic.slots
+            for role_key in slot.role_keys
+        ):
+            raise ValueError(
+                f"tactic {tactic.key!r} emphasis matches no permitted slot/role"
+            )
+
+
 def validate_taper_scopes(tactic: Any, fielded: set[str]) -> None:
     """Reject taper scopes that are inert or overlap for an exact assignment."""
     used_roles = {role_key for slot in tactic.slots for role_key in slot.role_keys}

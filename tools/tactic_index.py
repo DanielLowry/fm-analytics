@@ -55,11 +55,16 @@ def roles_by_line(tactic: TacticDefinition) -> list[tuple[str, str]]:
 
 
 def leans_detail(tactic: TacticDefinition) -> str:
-    """`stamina +2 (whole team); pace +2 (DL, DC, DR)`."""
+    """`stamina +2 (whole team); pace +2 (DC; Central Defender (Cover))`."""
     scopes = []
-    for block in sorted(tactic.attribute_emphasis, key=lambda b: bool(b.positions)):
+    for block in sorted(
+        tactic.attribute_emphasis, key=lambda b: bool(b.positions or b.roles)
+    ):
         attributes = ", ".join(f"{readable(a)} {d:+d}" for a, d in block.attributes.items())
-        scopes.append(f"{attributes} ({', '.join(block.positions) or 'whole team'})")
+        where = [", ".join(block.positions) or "whole team"]
+        if block.roles:
+            where.append(", ".join(MVP_CATALOGUE.roles[key].name for key in block.roles))
+        scopes.append(f"{attributes} ({'; '.join(where)})")
     return "; ".join(scopes) or "—"
 
 

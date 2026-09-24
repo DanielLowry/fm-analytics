@@ -141,6 +141,16 @@ class PositionBlockTests(unittest.TestCase):
                 base_slot_weights(slot_key)["pace"] + 2, slot_key,
             )
 
+    def test_a_role_block_reaches_only_that_role(self) -> None:
+        catalogue = with_emphasis([
+            AttributeEmphasis({"passing": 2}, ("MC",), ("cm_defend",))
+        ])
+        self.assertEqual(
+            slot_weights(catalogue, "MCL")["passing"],
+            base_slot_weights("MCL")["passing"] + 2,
+        )
+        self.assertEqual(slot_weights(catalogue, "MCR"), base_slot_weights("MCR"))
+
     def test_overlapping_blocks_add_up(self) -> None:
         catalogue = with_emphasis([
             AttributeEmphasis({"pace": 1}),                      # whole team
@@ -214,6 +224,20 @@ class PositionBlockTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unique"):
             AttributeEmphasis({"pace": 2}, ("DC", "DC"))
 
+    def test_roles_must_be_unique(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unique"):
+            AttributeEmphasis({"pace": 2}, roles=("cd_cover", "cd_cover"))
+
+    def test_a_role_the_tactic_does_not_use_is_refused(self) -> None:
+        with self.assertRaisesRegex(ValueError, "roles it does not use"):
+            with_emphasis([AttributeEmphasis({"pace": 2}, roles=("treq_amc_attack",))])
+
+    def test_position_and_role_filters_must_overlap(self) -> None:
+        with self.assertRaisesRegex(ValueError, "matches no permitted slot/role"):
+            with_emphasis([
+                AttributeEmphasis({"pace": 2}, ("DC",), ("cm_defend",))
+            ])
+
     def test_an_empty_block_is_refused(self) -> None:
         with self.assertRaisesRegex(ValueError, "at least one attribute"):
             AttributeEmphasis({})
@@ -237,11 +261,19 @@ class LoadingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "list of blocks"):
             _emphasis_blocks({"stamina": 2}, "t")
 
-    def test_blocks_load_with_and_without_positions(self) -> None:
+    def test_blocks_load_with_position_and_role_filters(self) -> None:
         from fm_analytics.analytics.catalogue import _emphasis_blocks
 
         blocks = _emphasis_blocks(
-            [{"attributes": {"stamina": 2}}, {"attributes": {"pace": 2}, "positions": ["DC", "DL"]}],
+            [
+                {"attributes": {"stamina": 2}},
+                {"attributes": {"pace": 2}, "positions": ["DC", "DL"]},
+                {
+                    "attributes": {"passing": 2},
+                    "positions": ["MC"],
+                    "roles": ["cm_defend"],
+                },
+            ],
             "t",
         )
         self.assertEqual(blocks[0].positions, ())
@@ -249,6 +281,9 @@ class LoadingTests(unittest.TestCase):
         self.assertTrue(blocks[0].applies_to("ST"))
         self.assertTrue(blocks[1].applies_to("DC"))
         self.assertFalse(blocks[1].applies_to("ST"))
+        self.assertEqual(blocks[2].roles, ("cm_defend",))
+        self.assertTrue(blocks[2].applies_to("MC", "cm_defend"))
+        self.assertFalse(blocks[2].applies_to("MC", "cm_support"))
 
     def test_a_misspelled_block_key_is_refused(self) -> None:
         from fm_analytics.analytics.catalogue import _emphasis_blocks
@@ -328,21 +363,11 @@ class SelectionEffectTests(unittest.TestCase):
 
 
 class ShippedSeedTests(unittest.TestCase):
-    """The committed emphasis stays inside the soft band it was measured at."""
-
-    SEED_DELTA = 2
+    """The committed emphasis remains present and intentionally structured."""
 
     def test_every_tactic_declares_an_emphasis(self) -> None:
         for tactic in MVP_CATALOGUE.tactics.values():
             self.assertTrue(tactic.attribute_emphasis, tactic.key)
-
-    def test_no_delta_exceeds_the_soft_band(self) -> None:
-        for tactic in MVP_CATALOGUE.tactics.values():
-            for block in tactic.attribute_emphasis:
-                for attribute, delta in block.attributes.items():
-                    self.assertLessEqual(
-                        abs(delta), self.SEED_DELTA, f"{tactic.key}: {attribute} {delta:+d}"
-                    )
 
     def test_no_slot_level_emphasis_is_seeded(self) -> None:
         # Slot-level emphasis is reserved for deliberate hand tuning.

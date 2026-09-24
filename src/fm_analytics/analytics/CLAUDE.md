@@ -91,12 +91,15 @@ stamina weight, not stamina 8 for everybody. If a role has no base weight for
 that attribute, it starts from zero: positive emphasis therefore introduces a
 tactic-specific requirement. A
 block may carry `positions` (`["DL", "DC", "DR"]`) to reach only slots at those
-positions; without it the block covers the whole team. **Every block that covers
-a slot is added together**, along with the slot's own `attributeEmphasis`, and
-the total is clamped to 0-10. Positions are slot positions, not slot keys
+positions, `roles` (`["cm_defend"]`) to reach only those candidate roles, or
+both; when both are present both must match. Without either filter the block
+covers the whole team. **Every block that covers a slot/role assignment is added
+together**, along with the slot's own `attributeEmphasis`, and the total is
+clamped to 0-10. Positions are slot positions, not slot keys
 (`"DC"`, not `"DCL"`), and naming one the tactic does not field is an error.
 Loading the catalogue rejects unknown attribute names, while known attributes
-may be introduced on any covered role.
+may be introduced on any covered role. An unused role filter or a combined
+position/role scope that matches no permitted assignment is also an error.
 
 `catalogue.for_tactic(key)` returns the catalogue with roles re-weighted for one
 tactic, keeping every key, name, position, system trait and the version, so
@@ -121,11 +124,12 @@ double emphasis. Fixed, and guarded by
 `tests/test_opponent_integration.py::NoDoubleApplicationRegressionTests`.
 
 The blocks were seeded once by `tools/seed_tactic_emphasis.py` and are now
-hand-owned; re-running it discards tuning unless you pass `--force`. Keep the
-deltas soft (the shipped seed is at most +2, and a test enforces that band) —
-the emphasis is meant to separate close candidates, not to overturn what a
-role fundamentally asks for. There is deliberately no attribute-count cap on a
-block: a tactic may name every genuine requirement. The seed was whole-team only;
+hand-owned; re-running it discards tuning unless you pass `--force`. The seed
+used +2, but deliberate hand tuning may exceed that within the supported -10 to
++10 range. Keep deltas proportionate: emphasis should refine what the tactic
+asks for rather than accidentally overwhelm the base role. There is deliberately
+no attribute-count cap on a block: a tactic may name every genuine requirement.
+The seed was whole-team only;
 three tactics (`balanced_442`, `balanced_433dm`, `vertical_442`) have since been
 given hand-authored position-scoped blocks. No slot-level block is seeded and a
 test enforces that, so every one in the tree is deliberate.

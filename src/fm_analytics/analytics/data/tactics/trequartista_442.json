@@ -151,32 +151,71 @@
     },
     {
       "attributes": {
-        "workRate": 2,
-        "stamina": 2,
+        "positioning": 2,
         "teamwork": 1,
-        "positioning": 1
+        "concentration": 1
       },
       "positions": [
         "MC"
+      ],
+      "roles": [
+        "cm_defend"
       ]
     },
     {
       "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "offTheBall": 1,
+        "teamwork": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attributes": {
+        "vision": 3,
+        "technique": 3,
         "firstTouch": 2,
         "decisions": 2,
+        "flair": 2,
         "composure": 2,
+        "passing": 2,
         "offTheBall": 1
       },
       "positions": [
         "ST"
+      ],
+      "roles": [
+        "treq_st_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 3,
+        "stamina": 2,
+        "aggression": 2,
+        "teamwork": 2,
+        "anticipation": 1,
+        "offTheBall": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_support"
       ]
     }
   ],
   "keyRequirements": [
-    "A genuinely high-quality creative forward capable of playing Trequartista",
-    "A hard-working strike partner who can press and link play",
-    "Wide midfielders with the stamina and work rate to cover the creator's defensive freedom",
-    "An energetic midfield pair, especially the box-to-box runner",
+    "A genuinely high-quality Trequartista with strong vision, technique, first touch, decisions and passing",
+    "A Pressing Forward partner with exceptional work rate and enough stamina, aggression and teamwork to press for both forwards",
+    "Wide midfielders with the stamina and work rate to compensate for the Trequartista's defensive freedom",
+    "A disciplined Central Midfielder (Defend) behind an energetic Box-to-Box runner",
     "Enough technical quality in the front pair to make Work Ball Into Box worthwhile"
   ],
   "tags": [
@@ -186,10 +225,79 @@
   ],
   "attributeTaper": [
     {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_defend"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attribute": "vision",
+      "taperBelow": 10,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "treq_st_attack"
+      ]
+    },
+    {
+      "attribute": "technique",
+      "taperBelow": 10,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "treq_st_attack"
+      ]
+    },
+    {
       "attribute": "firstTouch",
       "taperBelow": 9,
       "positions": [
         "ST"
+      ],
+      "roles": [
+        "treq_st_attack"
       ]
     },
     {
@@ -197,6 +305,19 @@
       "taperBelow": 9,
       "positions": [
         "ST"
+      ],
+      "roles": [
+        "treq_st_attack"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "treq_st_attack"
       ]
     },
     {
@@ -204,36 +325,49 @@
       "taperBelow": 8,
       "positions": [
         "ST"
+      ],
+      "roles": [
+        "treq_st_attack"
       ]
     },
     {
       "attribute": "workRate",
-      "taperBelow": 8,
+      "taperBelow": 9,
       "positions": [
-        "ML",
-        "MR"
+        "ST"
+      ],
+      "roles": [
+        "pf_support"
       ]
     },
     {
       "attribute": "stamina",
       "taperBelow": 8,
       "positions": [
-        "ML",
-        "MR"
+        "ST"
+      ],
+      "roles": [
+        "pf_support"
       ]
     },
     {
-      "attribute": "workRate",
+      "attribute": "aggression",
       "taperBelow": 8,
       "positions": [
-        "MC"
+        "ST"
+      ],
+      "roles": [
+        "pf_support"
       ]
     },
     {
-      "attribute": "stamina",
+      "attribute": "teamwork",
       "taperBelow": 8,
       "positions": [
-        "MC"
+        "ST"
+      ],
+      "roles": [
+        "pf_support"
       ]
     }
   ]

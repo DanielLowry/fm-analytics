@@ -610,23 +610,25 @@ historical calibration; re-benchmark before using them to tune current
 emphasis. Full effective+potential over 40 tactics and 30 players was 2.41s,
 about 10% above the pre-emphasis cost at that point.
 
-**Position-scoped blocks (a later change, from review).** `attributeEmphasis` was
+**Position- and role-scoped blocks (later changes, from review).** `attributeEmphasis` was
 first a single whole-team block, which could not say "the back four need pace
 under a high line" without repeating it per slot. It is now a **list of blocks**,
-each with an optional `positions`:
+each with optional `positions` and `roles` filters:
 
 ```json
 "attributeEmphasis": [
   {"attributes": {"stamina": 2, "workRate": 2}},
-  {"attributes": {"pace": 2}, "positions": ["DL", "DC", "DR"]}
+  {"attributes": {"pace": 2}, "positions": ["DL", "DC", "DR"]},
+  {"attributes": {"vision": 3}, "positions": ["ST"], "roles": ["treq_st_attack"]}
 ]
 ```
 
-No `positions` means the whole team. Every block covering a slot is **summed**,
-together with that slot's own block, then clamped to 0-10. Summing replaced "the
-slot block overrides the tactic block": with a list, "which one wins" has no good
-answer, and addition is order-independent and easy to predict. (No shipped data
-used a slot-level block, so nothing changed for it.)
+With both filters present, both must match the candidate assignment; with
+neither, the block covers the whole team. Every block covering a slot/role is
+**summed**, together with that slot's own block, then clamped to 0-10. Summing
+replaced "the slot block overrides the tactic block": with a list, "which one
+wins" has no good answer, and addition is order-independent and easy to predict.
+(No shipped data used a slot-level block, so nothing changed for it.)
 
 Three guards: a block may not name a position the tactic does not field (it would
 silently do nothing, and `"DCL"` for `"DC"` is the obvious typo); an unknown key
