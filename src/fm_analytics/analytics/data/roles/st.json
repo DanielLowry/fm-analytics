@@ -3,6 +3,7 @@
     {
       "key": "dlf_support",
       "name": "Deep-Lying Forward (Support)",
+      "description": "Linking striker who comes toward midfield to receive and connect the attack; on Support duty he drops off the front line to link play, hold possession and release runners before rejoining the attack.",
       "positions": [
         "ST"
       ],
@@ -16,8 +17,8 @@
         "acceleration": 4,
         "anticipation": 6,
         "balance": 6,
-        "composure": 6,
-        "decisions": 6,
+        "composure": 8,
+        "decisions": 8,
         "dribbling": 3,
         "finishing": 6,
         "firstTouch": 9,
@@ -30,12 +31,14 @@
         "teamwork": 9,
         "technique": 8,
         "vision": 9,
-        "workRate": 3
+        "workRate": 3,
+        "flair": 5
       }
     },
     {
       "key": "af_attack",
       "name": "Advanced Forward (Attack)",
+      "description": "Line-leading striker who stretches the defence, attacks channels and space behind, and combines pace, movement, control and finishing to become the main direct threat.",
       "positions": [
         "ST"
       ],
@@ -48,11 +51,11 @@
       },
       "attributes": {
         "acceleration": 10,
-        "agility": 4,
+        "agility": 7,
         "anticipation": 8,
         "composure": 8,
         "decisions": 6,
-        "dribbling": 6,
+        "dribbling": 7,
         "finishing": 10,
         "firstTouch": 8,
         "heading": 3,
@@ -62,13 +65,16 @@
         "passing": 3,
         "strength": 3,
         "teamwork": 3,
-        "technique": 6,
-        "workRate": 3
+        "technique": 7,
+        "workRate": 5,
+        "balance": 6,
+        "stamina": 6
       }
     },
     {
       "key": "cf_support",
       "name": "Complete Forward (Support)",
+      "description": "Multi-purpose striker expected to do almost everything well rather than specialise narrowly; on Support duty he uses his all-round game to link, create, carry and compete physically before arriving in attacking areas.",
       "positions": [
         "ST"
       ],
@@ -88,27 +94,31 @@
         "finishing": 8,
         "firstTouch": 9,
         "heading": 6,
-        "jumpingReach": 3,
+        "jumpingReach": 6,
         "offTheBall": 8,
         "pace": 6,
         "passing": 9,
         "strength": 8,
-        "teamwork": 3,
+        "teamwork": 6,
         "technique": 8,
         "vision": 7,
-        "workRate": 3
+        "workRate": 5,
+        "agility": 7,
+        "longShots": 5,
+        "stamina": 6
       }
     },
     {
       "key": "p_attack",
       "name": "Poacher (Attack)",
+      "description": "Penalty-box specialist who contributes little to build-up and instead lives on anticipation, movement and finishing, constantly looking to get onto the end of chances.",
       "positions": [
         "ST"
       ],
       "system": {
         "runners": 1.4,
         "penetration": 1.4,
-        "boxPresence": 0.9,
+        "boxPresence": 1.3,
         "attackDuty": 1.0
       },
       "attributes": {
@@ -120,8 +130,8 @@
         "dribbling": 3,
         "finishing": 10,
         "firstTouch": 6,
-        "heading": 3,
-        "jumpingReach": 3,
+        "heading": 5,
+        "jumpingReach": 4,
         "offTheBall": 10,
         "pace": 8,
         "passing": 3,
@@ -134,6 +144,7 @@
     {
       "key": "tm_attack",
       "name": "Target Man (Attack)",
+      "description": "Physical focal-point striker built to receive direct and aerial service; on Attack duty he uses strength and aerial power higher up to occupy defenders, attack crosses and finish direct attacks.",
       "positions": [
         "ST"
       ],
@@ -166,6 +177,7 @@
     {
       "key": "dlf_attack",
       "name": "Deep-Lying Forward (Attack)",
+      "description": "Linking striker who comes toward midfield to receive and connect the attack; on Attack duty he still drops to connect play but then looks more readily to turn, advance and finish moves himself.",
       "positions": [
         "ST"
       ],
@@ -193,15 +205,17 @@
         "pace": 5,
         "passing": 8,
         "strength": 8,
-        "teamwork": 6,
+        "teamwork": 7,
         "technique": 8,
         "vision": 8,
-        "workRate": 3
+        "workRate": 3,
+        "flair": 5
       }
     },
     {
       "key": "tm_support",
       "name": "Target Man (Support)",
+      "description": "Physical focal-point striker built to receive direct and aerial service; on Support duty he wins and protects direct service, laying the ball off and creating a platform for runners.",
       "positions": [
         "ST"
       ],
@@ -235,6 +249,7 @@
     {
       "key": "cf_attack",
       "name": "Complete Forward (Attack)",
+      "description": "Multi-purpose striker expected to do almost everything well rather than specialise narrowly; on Attack duty he leads the line and uses the full range of technical, physical and goalscoring skills to create and finish.",
       "positions": [
         "ST"
       ],
@@ -258,20 +273,24 @@
         "finishing": 10,
         "firstTouch": 9,
         "heading": 7,
-        "jumpingReach": 5,
+        "jumpingReach": 6,
         "offTheBall": 10,
         "pace": 8,
         "passing": 8,
         "strength": 8,
-        "teamwork": 3,
+        "teamwork": 5,
         "technique": 9,
         "vision": 6,
-        "workRate": 3
+        "workRate": 5,
+        "agility": 7,
+        "longShots": 6,
+        "stamina": 6
       }
     },
     {
       "key": "pf_defend",
       "name": "Pressing Forward (Defend)",
+      "description": "High-energy striker whose first job is to pressure the opposition build-up rather than win every challenge cleanly; on Defend duty he prioritises harrying defenders, forcing rushed possession and bringing teammates into play after regains.",
       "positions": [
         "ST"
       ],
@@ -287,7 +306,7 @@
         "anticipation": 8,
         "bravery": 8,
         "composure": 4,
-        "decisions": 6,
+        "decisions": 8,
         "finishing": 3,
         "firstTouch": 6,
         "offTheBall": 5,
@@ -295,15 +314,19 @@
         "passing": 6,
         "stamina": 9,
         "strength": 7,
-        "tackling": 6,
+        "tackling": 3,
         "teamwork": 9,
         "technique": 4,
-        "workRate": 10
+        "workRate": 10,
+        "balance": 6,
+        "agility": 6,
+        "concentration": 6
       }
     },
     {
       "key": "pf_support",
       "name": "Pressing Forward (Support)",
+      "description": "High-energy striker whose first job is to pressure the opposition build-up rather than win every challenge cleanly; on Support duty he combines relentless pressure with useful link play and supporting runs.",
       "positions": [
         "ST"
       ],
@@ -321,7 +344,7 @@
         "anticipation": 8,
         "bravery": 8,
         "composure": 5,
-        "decisions": 6,
+        "decisions": 7,
         "finishing": 5,
         "firstTouch": 7,
         "offTheBall": 7,
@@ -329,15 +352,19 @@
         "passing": 6,
         "stamina": 9,
         "strength": 7,
-        "tackling": 5,
+        "tackling": 3,
         "teamwork": 9,
         "technique": 5,
-        "workRate": 10
+        "workRate": 10,
+        "balance": 6,
+        "agility": 6,
+        "concentration": 5
       }
     },
     {
       "key": "pf_attack",
       "name": "Pressing Forward (Attack)",
+      "description": "High-energy striker whose first job is to pressure the opposition build-up rather than win every challenge cleanly; on Attack duty he still leads the press but adds the movement and finishing of a direct goalscoring forward.",
       "positions": [
         "ST"
       ],
@@ -354,7 +381,7 @@
         "anticipation": 9,
         "bravery": 7,
         "composure": 8,
-        "decisions": 6,
+        "decisions": 7,
         "finishing": 9,
         "firstTouch": 7,
         "offTheBall": 10,
@@ -362,15 +389,19 @@
         "passing": 4,
         "stamina": 8,
         "strength": 6,
-        "tackling": 4,
+        "tackling": 3,
         "teamwork": 8,
         "technique": 6,
-        "workRate": 9
+        "workRate": 9,
+        "balance": 6,
+        "agility": 7,
+        "concentration": 5
       }
     },
     {
       "key": "treq_st_attack",
       "name": "Trequartista (Attack) [ST]",
+      "description": "Free-roaming creative forward who drifts away from a fixed striker position to find space, invent chances and attack goal while doing minimal structured defensive work.",
       "positions": [
         "ST"
       ],
@@ -381,10 +412,10 @@
         "attackDuty": 1.0
       },
       "attributes": {
-        "acceleration": 5,
+        "acceleration": 6,
         "agility": 8,
         "anticipation": 8,
-        "balance": 5,
+        "balance": 6,
         "composure": 9,
         "decisions": 7,
         "dribbling": 8,
@@ -403,6 +434,7 @@
     {
       "key": "f9_support",
       "name": "False Nine (Support)",
+      "description": "Creative striker who drops into midfield to receive and combine, dragging defenders out of shape and opening space for runners beyond him.",
       "positions": [
         "ST"
       ],

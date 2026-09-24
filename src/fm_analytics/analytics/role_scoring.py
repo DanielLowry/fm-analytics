@@ -33,6 +33,9 @@ class RoleDefinition:
     # role model lets future catalogue versions declare the contribution as
     # data rather than burying tactical judgement in the optimiser.
     system_traits: Mapping[str, float] = field(default_factory=dict)
+    # Manager-facing explanation of the role. It is catalogue metadata only
+    # and deliberately has no effect on player or tactical scoring.
+    description: str = ""
 
     def __post_init__(self) -> None:
         if not self.key or not self.name or not self.catalogue_version:

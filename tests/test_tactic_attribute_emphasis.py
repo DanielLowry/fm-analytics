@@ -1,8 +1,7 @@
 """Per-tactic attribute emphasis: a tactic shifts what it asks of its players.
 
-Emphasis is a *delta* on each role's own weight, applied only where the role
-already weights the attribute, so a tactic tunes what a role cares about and
-never invents a new requirement for it.
+Emphasis is a *delta* on each role's own weight. A role that does not already
+weight the attribute starts at zero, so tactics can add contextual requirements.
 """
 
 import unittest
@@ -73,12 +72,10 @@ class DerivedCatalogueTests(unittest.TestCase):
         derived = with_emphasis({"passing": -2}).for_tactic(TACTIC)
         self.assertEqual(weights(derived, "b2b_support")["passing"], base - 2)
 
-    def test_emphasis_never_gives_a_role_an_attribute_it_ignores(self) -> None:
-        # A centre-back has no stamina weight at all; a pressing tactic must not
-        # invent one for him.
+    def test_positive_emphasis_can_introduce_an_attribute(self) -> None:
         self.assertNotIn("stamina", weights(MVP_CATALOGUE, "cd_defend"))
         derived = with_emphasis({"stamina": 2}).for_tactic(TACTIC)
-        self.assertNotIn("stamina", weights(derived, "cd_defend"))
+        self.assertEqual(weights(derived, "cd_defend")["stamina"], 2)
 
     def test_weights_are_clamped_to_the_scale(self) -> None:
         high = with_emphasis({"passing": MAX_EFFECTIVE_WEIGHT}).for_tactic(TACTIC)
@@ -177,26 +174,26 @@ class PositionBlockTests(unittest.TestCase):
             slot_weights(with_emphasis([a, b]), "DCL"), slot_weights(with_emphasis([b, a]), "DCL")
         )
 
-    def test_a_position_block_that_affects_no_covered_role_is_refused(self) -> None:
+    def test_a_position_block_can_add_a_new_requirement(self) -> None:
         self.assertNotIn("stamina", base_slot_weights("DCL"))
-        with self.assertRaisesRegex(ValueError, "none of the covered roles"):
-            with_emphasis([AttributeEmphasis({"stamina": 2}, ("DC",))])
+        catalogue = with_emphasis([AttributeEmphasis({"stamina": 2}, ("DC",))])
+        self.assertEqual(slot_weights(catalogue, "DCL")["stamina"], 2)
 
-    def test_a_broad_block_may_skip_roles_as_long_as_it_affects_somebody(self) -> None:
+    def test_a_broad_block_reaches_roles_without_a_base_weight(self) -> None:
         catalogue = with_emphasis({"stamina": 2})
-        self.assertNotIn("stamina", slot_weights(catalogue, "DCL"))
+        self.assertEqual(slot_weights(catalogue, "DCL")["stamina"], 2)
         self.assertGreater(
             slot_weights(catalogue, "MCL")["stamina"],
             base_slot_weights("MCL")["stamina"],
         )
 
-    def test_a_slot_block_that_affects_no_permitted_role_is_refused(self) -> None:
+    def test_a_slot_block_can_add_a_new_requirement(self) -> None:
         tactic = MVP_CATALOGUE.tactics[TACTIC]
         slots = list(tactic.slots)
         slots[2] = replace(slots[2], attribute_emphasis={"stamina": 2})
         changed = replace(tactic, slots=tuple(slots), attribute_emphasis=())
-        with self.assertRaisesRegex(ValueError, "none of its permitted roles"):
-            replace(MVP_CATALOGUE, tactics={**MVP_CATALOGUE.tactics, TACTIC: changed})
+        catalogue = replace(MVP_CATALOGUE, tactics={**MVP_CATALOGUE.tactics, TACTIC: changed})
+        self.assertEqual(slot_weights(catalogue, slots[2].key)["stamina"], 2)
 
     def test_a_tactic_with_only_position_blocks_still_leaves_other_slots_alone(self) -> None:
         catalogue = with_emphasis([AttributeEmphasis({"pace": 2}, self.BACK_LINE)])
@@ -334,7 +331,6 @@ class ShippedSeedTests(unittest.TestCase):
     """The committed emphasis stays inside the soft band it was measured at."""
 
     SEED_DELTA = 2
-    MAX_ATTRIBUTES_PER_BLOCK = 5
 
     def test_every_tactic_declares_an_emphasis(self) -> None:
         for tactic in MVP_CATALOGUE.tactics.values():
@@ -343,9 +339,6 @@ class ShippedSeedTests(unittest.TestCase):
     def test_no_delta_exceeds_the_soft_band(self) -> None:
         for tactic in MVP_CATALOGUE.tactics.values():
             for block in tactic.attribute_emphasis:
-                self.assertLessEqual(
-                    len(block.attributes), self.MAX_ATTRIBUTES_PER_BLOCK, tactic.key
-                )
                 for attribute, delta in block.attributes.items():
                     self.assertLessEqual(
                         abs(delta), self.SEED_DELTA, f"{tactic.key}: {attribute} {delta:+d}"
@@ -356,6 +349,14 @@ class ShippedSeedTests(unittest.TestCase):
         for tactic in MVP_CATALOGUE.tactics.values():
             for slot in tactic.slots:
                 self.assertEqual(slot.attribute_emphasis, {}, f"{tactic.key}/{slot.key}")
+
+    def test_pressing_wide_midfielders_gain_the_authored_aggression_requirement(self) -> None:
+        catalogue = MVP_CATALOGUE.for_tactic("pressing_442")
+        tactic = catalogue.tactics["pressing_442"]
+        for slot in (slot for slot in tactic.slots if slot.position in {"ML", "MR"}):
+            role = catalogue.role_for_slot(slot, slot.role_key)
+            role_weights = {attribute.name: attribute.weight for attribute in role.attributes}
+            self.assertEqual(role_weights["aggression"], 1, slot.key)
 
     def test_tactics_do_not_all_emphasise_the_same_attributes(self) -> None:
         # Emphasis exists to separate tactics; identical blocks everywhere would

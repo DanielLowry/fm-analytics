@@ -3,6 +3,7 @@
     {
       "key": "winger_aml_amr_support",
       "name": "Winger (Support) [AML/AMR]",
+      "description": "Traditional advanced winger who holds width and attacks the outside channel; on Support duty he stays wide, advances the ball and supplies teammates through crossing and combinations.",
       "positions": [
         "AML",
         "AMR"
@@ -28,9 +29,9 @@
         "offTheBall": 8,
         "pace": 9,
         "passing": 6,
-        "stamina": 4,
+        "stamina": 5,
         "teamwork": 7,
-        "technique": 6,
+        "technique": 7,
         "vision": 5,
         "workRate": 6
       }
@@ -38,6 +39,7 @@
     {
       "key": "winger_aml_amr_attack",
       "name": "Winger (Attack) [AML/AMR]",
+      "description": "Traditional advanced winger who holds width and attacks the outside channel; on Attack duty he attacks the full-back and byline directly, using pace and dribbling to create high-value deliveries.",
       "positions": [
         "AML",
         "AMR"
@@ -66,13 +68,14 @@
         "passing": 4,
         "stamina": 4,
         "teamwork": 3,
-        "technique": 6,
+        "technique": 7,
         "workRate": 4
       }
     },
     {
       "key": "if_attack",
       "name": "Inside Forward (Attack)",
+      "description": "Wide attacker whose main movement is diagonally inside toward goal; on Attack duty he attacks the box and central defensive line aggressively, becoming a major scoring threat from wide.",
       "positions": [
         "AML",
         "AMR"
@@ -86,7 +89,7 @@
       },
       "attributes": {
         "acceleration": 9,
-        "agility": 5,
+        "agility": 8,
         "anticipation": 6,
         "composure": 9,
         "crossing": 3,
@@ -98,12 +101,14 @@
         "offTheBall": 9,
         "pace": 8,
         "passing": 4,
-        "technique": 8
+        "technique": 8,
+        "balance": 7
       }
     },
     {
       "key": "if_support",
       "name": "Inside Forward (Support)",
+      "description": "Wide attacker whose main movement is diagonally inside toward goal; on Support duty he cuts inside to combine, create and support central attacks rather than behaving as a pure scorer.",
       "positions": [
         "AML",
         "AMR"
@@ -117,7 +122,7 @@
       },
       "attributes": {
         "acceleration": 8,
-        "agility": 5,
+        "agility": 7,
         "anticipation": 6,
         "composure": 7,
         "crossing": 3,
@@ -132,12 +137,14 @@
         "teamwork": 6,
         "technique": 8,
         "vision": 6,
-        "workRate": 5
+        "workRate": 5,
+        "balance": 6
       }
     },
     {
       "key": "wtm_support",
       "name": "Wide Target Man (Support) [AML/AMR]",
+      "description": "Physical wide target who receives direct or aerial service and creates mismatches against full-backs; on Support duty he acts as a physical outlet, protects direct service and brings nearby runners into play.",
       "positions": [
         "AML",
         "AMR"
@@ -174,6 +181,7 @@
     {
       "key": "wtm_attack",
       "name": "Wide Target Man (Attack) [AML/AMR]",
+      "description": "Physical wide target who receives direct or aerial service and creates mismatches against full-backs; on Attack duty he uses physical and aerial superiority higher up to attack goal and create a focal point on the flank.",
       "positions": [
         "AML",
         "AMR"
@@ -211,6 +219,7 @@
     {
       "key": "raum_attack",
       "name": "Raumdeuter (Attack)",
+      "description": "Off-ball specialist who conserves involvement in build-up and instead searches constantly for exploitable space, timing runs into dangerous areas to finish attacks.",
       "positions": [
         "AML",
         "AMR"
@@ -225,7 +234,7 @@
       "attributes": {
         "acceleration": 8,
         "anticipation": 10,
-        "balance": 4,
+        "balance": 6,
         "composure": 9,
         "crossing": 4,
         "decisions": 8,
@@ -245,6 +254,7 @@
     {
       "key": "iw_support",
       "name": "Inverted Winger (Support) [AML/AMR]",
+      "description": "Advanced wide player who moves inside onto the stronger foot to progress and create; on Support duty he cuts inside to carry, combine and create, opening the outside lane for overlapping players.",
       "positions": [
         "AML",
         "AMR"
@@ -259,7 +269,7 @@
       },
       "attributes": {
         "acceleration": 9,
-        "agility": 6,
+        "agility": 7,
         "composure": 5,
         "crossing": 6,
         "decisions": 7,
@@ -281,6 +291,7 @@
     {
       "key": "iw_attack",
       "name": "Inverted Winger (Attack) [AML/AMR]",
+      "description": "Advanced wide player who moves inside onto the stronger foot to progress and create; on Attack duty he drives inside more aggressively and adds shooting threat while remaining more connective than an Inside Forward.",
       "positions": [
         "AML",
         "AMR"
@@ -296,7 +307,7 @@
       },
       "attributes": {
         "acceleration": 9,
-        "agility": 6,
+        "agility": 8,
         "composure": 7,
         "crossing": 5,
         "decisions": 6,
@@ -307,7 +318,7 @@
         "longShots": 7,
         "offTheBall": 9,
         "pace": 9,
-        "passing": 6,
+        "passing": 7,
         "stamina": 5,
         "teamwork": 4,
         "technique": 9,
@@ -318,6 +329,7 @@
     {
       "key": "ap_aml_amr_support",
       "name": "Advanced Playmaker (Support) [AML/AMR]",
+      "description": "Advanced playmaker starting wide but moving inside to create through touch, passing, technique and vision; on Support duty he drifts inside to receive between lines and prioritises linking and chance creation.",
       "positions": [
         "AML",
         "AMR"
@@ -350,6 +362,7 @@
     {
       "key": "ap_aml_amr_attack",
       "name": "Advanced Playmaker (Attack) [AML/AMR]",
+      "description": "Advanced playmaker starting wide but moving inside to create through touch, passing, technique and vision; on Attack duty he operates higher and takes more forward positions while remaining the side's creative focal point.",
       "positions": [
         "AML",
         "AMR"
@@ -376,7 +389,7 @@
         "offTheBall": 8,
         "pace": 4,
         "passing": 10,
-        "teamwork": 4,
+        "teamwork": 6,
         "technique": 10,
         "vision": 10,
         "workRate": 4
@@ -385,6 +398,7 @@
     {
       "key": "treq_aml_amr_attack",
       "name": "Trequartista (Attack) [AML/AMR]",
+      "description": "Free-roaming creative attacker starting wide, drifting inside to find space and invent chances while contributing very little structured defensive work.",
       "positions": [
         "AML",
         "AMR"
@@ -413,7 +427,8 @@
         "teamwork": 1,
         "technique": 10,
         "vision": 10,
-        "workRate": 1
+        "workRate": 1,
+        "balance": 6
       }
     }
   ]

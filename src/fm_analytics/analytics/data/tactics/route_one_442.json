@@ -227,6 +227,10 @@
       "taperBelow": 7,
       "positions": [
         "ST"
+      ],
+      "roles": [
+        "af_attack",
+        "p_attack"
       ]
     }
   ]

@@ -25,7 +25,6 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Mapping, Sequence
 
-from fm_analytics.analytics.catalogue import AttributeTaper
 from fm_analytics.analytics.role_scoring import (
     RoleScore,
     ScoreBand,
@@ -34,6 +33,52 @@ from fm_analytics.analytics.role_scoring import (
 )
 from fm_analytics.domain import AttributeObservation
 from fm_analytics.domain.models import Visibility
+
+
+TAPER_SCALE_MINIMUM = 1
+TAPER_SCALE_MAXIMUM = 20
+
+
+@dataclass(frozen=True)
+class AttributeTaper:
+    """A level below which a player's fit for this tactic tapers away.
+
+    Position and role are independent optional filters. If both are supplied,
+    both must match the candidate slot/role assignment.
+    """
+
+    attribute: str
+    below: int
+    positions: tuple[str, ...] = ()
+    roles: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.attribute:
+            raise ValueError("an attribute taper must name an attribute")
+        if (
+            not isinstance(self.below, int)
+            or isinstance(self.below, bool)
+            or not TAPER_SCALE_MINIMUM < self.below <= TAPER_SCALE_MAXIMUM
+        ):
+            raise ValueError(
+                f"taper level for {self.attribute!r} must be a whole number from "
+                f"{TAPER_SCALE_MINIMUM + 1} to {TAPER_SCALE_MAXIMUM} "
+                f"(attributes run {TAPER_SCALE_MINIMUM}-{TAPER_SCALE_MAXIMUM}, "
+                f"so nothing sits below {TAPER_SCALE_MINIMUM}), got {self.below!r}"
+            )
+        if len(self.positions) != len(set(self.positions)) or not all(self.positions):
+            raise ValueError("taper positions must be unique, non-empty names")
+        if len(self.roles) != len(set(self.roles)) or not all(self.roles):
+            raise ValueError("taper roles must be unique, non-empty keys")
+
+    def applies_to(self, position: str, role_key: str) -> bool:
+        return (
+            (not self.positions or position in self.positions)
+            and (not self.roles or role_key in self.roles)
+        )
+
+    def covers_position(self, position: str) -> bool:
+        return not self.positions or position in self.positions
 
 
 @dataclass(frozen=True)

@@ -3,6 +3,7 @@
     {
       "key": "wb_wbl_wbr_support",
       "name": "Wing-Back (Support) [WBL/WBR]",
+      "description": "Higher-starting wing-back responsible for the whole flank; on Support duty he links midfield and attack from a higher starting position while still recovering to defend.",
       "positions": [
         "WBL",
         "WBR"
@@ -33,12 +34,14 @@
         "tackling": 6,
         "teamwork": 7,
         "technique": 5,
-        "workRate": 8
+        "workRate": 8,
+        "agility": 6
       }
     },
     {
       "key": "wb_wbl_wbr_attack",
       "name": "Wing-Back (Attack) [WBL/WBR]",
+      "description": "Higher-starting wing-back responsible for the whole flank; on Attack duty he starts high and repeatedly attacks the outside channel, supplying runs and crosses into the final third.",
       "positions": [
         "WBL",
         "WBR"
@@ -71,7 +74,8 @@
         "tackling": 6,
         "teamwork": 6,
         "technique": 6,
-        "workRate": 8
+        "workRate": 8,
+        "agility": 6
       }
     }
   ]

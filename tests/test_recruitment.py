@@ -41,11 +41,11 @@ class RecruitmentTests(unittest.TestCase):
     def test_shortlist_separates_proven_and_possible_candidates(self) -> None:
         html = """
         <table>
-          <tr><th>UID</th><th>Name</th><th>Position</th><th>Pas</th><th>Vis</th><th>Fir</th><th>Dec</th><th>Cmp</th><th>Pos</th><th>Tea</th><th>Tec</th></tr>
-          <tr><td>1</td><td>Known Good</td><td>M (C)</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td></tr>
-          <tr><td>2</td><td>Ranged Prospect</td><td>M (C)</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td></tr>
-          <tr><td>3</td><td>Known Weak</td><td>M (C)</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td></tr>
-          <tr><td>4</td><td>Wrong Position</td><td>ST (C)</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td></tr>
+          <tr><th>UID</th><th>Name</th><th>Position</th><th>Pas</th><th>Vis</th><th>Fir</th><th>Dec</th><th>Cmp</th><th>Pos</th><th>Tea</th><th>Tec</th><th>Ant</th><th>Cnt</th><th>OtB</th><th>Sta</th><th>Tck</th><th>Wor</th><th>Bal</th></tr>
+          <tr><td>1</td><td>Known Good</td><td>M (C)</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td><td>15</td></tr>
+          <tr><td>2</td><td>Ranged Prospect</td><td>M (C)</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td><td>8-16</td></tr>
+          <tr><td>3</td><td>Known Weak</td><td>M (C)</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td></tr>
+          <tr><td>4</td><td>Wrong Position</td><td>ST (C)</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td></tr>
         </table>
         """
         exported = parse_fm_html_export(html)

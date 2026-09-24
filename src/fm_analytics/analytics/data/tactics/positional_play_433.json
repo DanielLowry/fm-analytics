@@ -50,7 +50,7 @@
   "attributeTaper": [
     {"attribute": "passing", "taperBelow": 8, "positions": ["MC"]},
     {"attribute": "firstTouch", "taperBelow": 8, "positions": ["MC"]},
-    {"attribute": "stamina", "taperBelow": 8, "positions": ["MC"]},
+    {"attribute": "stamina", "taperBelow": 8, "positions": ["MC"], "roles": ["car_mc_support"]},
     {"attribute": "technique", "taperBelow": 8, "positions": ["MC"]}
   ],
   "keyRequirements": ["A composed DLP at MC", "A high-stamina Carrilero", "A technical Mezzala", "Full-backs comfortable in a positional build-up"],

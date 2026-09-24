@@ -3,6 +3,7 @@
     {
       "key": "am_support",
       "name": "Attacking Midfielder (Support)",
+      "description": "Generalist number 10 who receives between the lines and combines creativity with attacking movement; on Support duty he links midfield and attack, receives between the lines and balances creation with forward movement.",
       "positions": [
         "AMC"
       ],
@@ -18,17 +19,20 @@
         "decisions": 8,
         "dribbling": 6,
         "firstTouch": 9,
-        "flair": 6,
+        "flair": 7,
         "offTheBall": 8,
         "passing": 9,
-        "teamwork": 3,
+        "teamwork": 5,
         "technique": 8,
-        "vision": 7
+        "vision": 7,
+        "agility": 6,
+        "longShots": 5
       }
     },
     {
       "key": "ap_amc_attack",
       "name": "Advanced Playmaker (Attack) [AMC]",
+      "description": "Advanced central playmaker who unlocks defences through first touch, technique, passing and vision; on Attack duty he takes higher and more aggressive positions while remaining primarily responsible for invention and final passes.",
       "positions": [
         "AMC"
       ],
@@ -50,7 +54,7 @@
         "flair": 8,
         "offTheBall": 7,
         "passing": 10,
-        "teamwork": 3,
+        "teamwork": 6,
         "technique": 10,
         "vision": 10
       }
@@ -58,6 +62,7 @@
     {
       "key": "ss_attack",
       "name": "Shadow Striker (Attack)",
+      "description": "Aggressive scoring runner from attacking midfield who bursts beyond the striker, attacks the box and presses from the front while still combining when needed.",
       "positions": [
         "AMC"
       ],
@@ -74,7 +79,7 @@
         "anticipation": 8,
         "composure": 8,
         "decisions": 6,
-        "dribbling": 6,
+        "dribbling": 7,
         "finishing": 10,
         "firstTouch": 8,
         "flair": 3,
@@ -84,12 +89,17 @@
         "teamwork": 3,
         "technique": 5,
         "vision": 5,
-        "workRate": 6
+        "workRate": 6,
+        "agility": 7,
+        "balance": 6,
+        "concentration": 5,
+        "stamina": 7
       }
     },
     {
       "key": "am_attack",
       "name": "Attacking Midfielder (Attack)",
+      "description": "Generalist number 10 who receives between the lines and combines creativity with attacking movement; on Attack duty he drives higher, makes more penetrating runs and adds direct goal threat while still creating.",
       "positions": [
         "AMC"
       ],
@@ -104,25 +114,27 @@
       },
       "attributes": {
         "acceleration": 8,
-        "anticipation": 6,
+        "anticipation": 7,
         "composure": 8,
         "decisions": 8,
         "dribbling": 8,
         "finishing": 5,
         "firstTouch": 9,
-        "flair": 6,
+        "flair": 7,
         "longShots": 6,
         "offTheBall": 10,
         "pace": 7,
         "passing": 8,
         "teamwork": 3,
         "technique": 8,
-        "vision": 6
+        "vision": 6,
+        "agility": 6
       }
     },
     {
       "key": "ap_amc_support",
       "name": "Advanced Playmaker (Support) [AMC]",
+      "description": "Advanced central playmaker who unlocks defences through first touch, technique, passing and vision; on Support duty he acts as the central creative hub, seeking possession and feeding runners from between the lines.",
       "positions": [
         "AMC"
       ],
@@ -153,6 +165,7 @@
     {
       "key": "treq_amc_attack",
       "name": "Trequartista (Attack) [AMC]",
+      "description": "Free-roaming number 10 who searches for pockets of space, creates and attacks goal with high technical freedom while offering little structured defensive work.",
       "positions": [
         "AMC"
       ],
@@ -163,10 +176,10 @@
         "attackDuty": 1.0
       },
       "attributes": {
-        "acceleration": 4,
+        "acceleration": 6,
         "agility": 8,
         "anticipation": 8,
-        "balance": 5,
+        "balance": 6,
         "composure": 9,
         "decisions": 8,
         "dribbling": 8,
@@ -185,6 +198,7 @@
     {
       "key": "eng_support",
       "name": "Enganche (Support)",
+      "description": "Static creative focal point who stays central between the lines, receives to feet and orchestrates attacks through composure, decisions, touch, passing and vision.",
       "positions": [
         "AMC"
       ],

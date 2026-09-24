@@ -67,6 +67,10 @@ class ScaleInvarianceTests(unittest.TestCase):
 
 
 class ShippedRoleTests(unittest.TestCase):
+    def test_every_shipped_role_has_a_description(self) -> None:
+        for key, role in MVP_CATALOGUE.roles.items():
+            self.assertTrue(role.description.strip(), key)
+
     def test_every_shipped_role_has_weighted_attributes_in_range(self) -> None:
         for key, role in MVP_CATALOGUE.roles.items():
             self.assertTrue(role.attributes, key)

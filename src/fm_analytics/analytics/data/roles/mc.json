@@ -3,6 +3,7 @@
     {
       "key": "cm_defend",
       "name": "Central Midfielder (Defend)",
+      "description": "Generalist central midfielder who links phases and adapts his movement to the team; on Defend duty he sits deeper, tracks midfield threats and links play with controlled passing.",
       "positions": [
         "MC"
       ],
@@ -14,8 +15,8 @@
       },
       "attributes": {
         "anticipation": 6,
-        "composure": 4,
-        "concentration": 5,
+        "composure": 5,
+        "concentration": 7,
         "decisions": 8,
         "firstTouch": 6,
         "marking": 6,
@@ -26,7 +27,7 @@
         "strength": 4,
         "tackling": 7,
         "teamwork": 8,
-        "technique": 4,
+        "technique": 5,
         "vision": 3,
         "workRate": 8
       }
@@ -34,6 +35,7 @@
     {
       "key": "cm_support",
       "name": "Central Midfielder (Support)",
+      "description": "Generalist central midfielder who links phases and adapts his movement to the team; on Support duty he acts as the balanced central link, helping both defensive circulation and attacking support.",
       "positions": [
         "MC"
       ],
@@ -45,24 +47,25 @@
       },
       "attributes": {
         "anticipation": 6,
-        "composure": 4,
-        "concentration": 3,
+        "composure": 5,
+        "concentration": 5,
         "decisions": 9,
         "firstTouch": 7,
         "offTheBall": 6,
         "passing": 9,
         "positioning": 6,
         "stamina": 6,
-        "tackling": 6,
+        "tackling": 7,
         "teamwork": 9,
-        "technique": 4,
-        "vision": 3,
+        "technique": 6,
+        "vision": 5,
         "workRate": 8
       }
     },
     {
       "key": "cm_attack",
       "name": "Central Midfielder (Attack)",
+      "description": "Generalist central midfielder who links phases and adapts his movement to the team; on Attack duty he moves beyond midfield into the final third, supporting attacks with forward runs, combinations and shots.",
       "positions": [
         "MC"
       ],
@@ -99,6 +102,7 @@
     {
       "key": "dlp_mc_defend",
       "name": "Deep-Lying Playmaker (Defend) [MC]",
+      "description": "Deep-lying playmaker who controls progression through first touch, decisions, passing and vision; on Defend duty he stays deeper, offers structure and dictates from behind the midfield line.",
       "positions": [
         "MC"
       ],
@@ -121,15 +125,17 @@
         "stamina": 4,
         "strength": 4,
         "tackling": 6,
-        "teamwork": 6,
+        "teamwork": 7,
         "technique": 9,
         "vision": 9,
-        "workRate": 5
+        "workRate": 7,
+        "balance": 5
       }
     },
     {
       "key": "dlp_mc_support",
       "name": "Deep-Lying Playmaker (Support) [MC]",
+      "description": "Deep-lying playmaker who controls progression through first touch, decisions, passing and vision; on Support duty he has a little more freedom to move for the ball and connect play while still acting as the main deep distributor.",
       "positions": [
         "MC"
       ],
@@ -149,15 +155,17 @@
         "positioning": 6,
         "stamina": 5,
         "tackling": 4,
-        "teamwork": 6,
+        "teamwork": 7,
         "technique": 9,
         "vision": 9,
-        "workRate": 6
+        "workRate": 6,
+        "balance": 5
       }
     },
     {
       "key": "ap_mc_support",
       "name": "Advanced Playmaker (Support) [MC]",
+      "description": "Creative central midfielder who turns possession into attacks through touch, technique, passing and vision; on Support duty he seeks the ball in midfield and prioritises creating chances and linking runners.",
       "positions": [
         "MC"
       ],
@@ -192,6 +200,7 @@
     {
       "key": "ap_mc_attack",
       "name": "Advanced Playmaker (Attack) [MC]",
+      "description": "Creative central midfielder who turns possession into attacks through touch, technique, passing and vision; on Attack duty he plays higher and takes more forward positions while remaining primarily a creator.",
       "positions": [
         "MC"
       ],
@@ -217,7 +226,7 @@
         "positioning": 4,
         "stamina": 5,
         "tackling": 3,
-        "teamwork": 6,
+        "teamwork": 7,
         "technique": 10,
         "vision": 10,
         "workRate": 6
@@ -226,6 +235,7 @@
     {
       "key": "rpm_mc_support",
       "name": "Roaming Playmaker (Support) [MC]",
+      "description": "All-action playmaker who roams through midfield to receive, carry and distribute, combining elite creativity with the stamina and work rate to cover large areas.",
       "positions": [
         "MC"
       ],
@@ -255,12 +265,14 @@
         "teamwork": 8,
         "technique": 9,
         "vision": 10,
-        "workRate": 10
+        "workRate": 10,
+        "balance": 6
       }
     },
     {
       "key": "bwm_mc_defend",
       "name": "Ball-Winning Midfielder (Defend) [MC]",
+      "description": "Aggressive central ball-winner who closes space and contests possession; on Defend duty he prioritises regaining the ball and protecting central space before playing simply.",
       "positions": [
         "MC"
       ],
@@ -289,12 +301,15 @@
         "teamwork": 9,
         "technique": 3,
         "vision": 2,
-        "workRate": 10
+        "workRate": 10,
+        "agility": 5,
+        "pace": 6
       }
     },
     {
       "key": "bwm_mc_support",
       "name": "Ball-Winning Midfielder (Support) [MC]",
+      "description": "Aggressive central ball-winner who closes space and contests possession; on Support duty he still presses and tackles aggressively but moves more freely to support the next phase after a regain.",
       "positions": [
         "MC"
       ],
@@ -310,7 +325,7 @@
         "anticipation": 8,
         "bravery": 8,
         "composure": 4,
-        "concentration": 4,
+        "concentration": 5,
         "decisions": 6,
         "firstTouch": 7,
         "marking": 5,
@@ -323,12 +338,15 @@
         "teamwork": 9,
         "technique": 5,
         "vision": 3,
-        "workRate": 10
+        "workRate": 10,
+        "agility": 5,
+        "pace": 6
       }
     },
     {
       "key": "b2b_support",
       "name": "Box-to-Box Midfielder (Support)",
+      "description": "End-to-end midfielder who contributes in every phase: pressing and tackling, carrying and passing through midfield, then arriving late around the penalty area.",
       "positions": [
         "MC"
       ],
@@ -342,27 +360,32 @@
       "attributes": {
         "acceleration": 6,
         "anticipation": 8,
-        "composure": 4,
+        "composure": 5,
         "concentration": 3,
-        "decisions": 6,
-        "finishing": 4,
+        "decisions": 7,
+        "finishing": 5,
         "firstTouch": 6,
-        "longShots": 4,
+        "longShots": 5,
         "offTheBall": 8,
-        "passing": 6,
+        "passing": 7,
         "positioning": 6,
         "stamina": 10,
         "strength": 6,
-        "tackling": 6,
+        "tackling": 7,
         "teamwork": 8,
-        "technique": 4,
+        "technique": 5,
         "vision": 3,
-        "workRate": 10
+        "workRate": 10,
+        "aggression": 5,
+        "balance": 6,
+        "dribbling": 6,
+        "pace": 6
       }
     },
     {
       "key": "mez_support",
       "name": "Mezzala (Support)",
+      "description": "Attack-minded central midfielder who leaves the central lane to operate in the half-space; on Support duty he drifts into the half-space to combine, carry and create while retaining some midfield responsibility.",
       "positions": [
         "MC"
       ],
@@ -392,12 +415,15 @@
         "teamwork": 7,
         "technique": 8,
         "vision": 7,
-        "workRate": 7
+        "workRate": 7,
+        "balance": 5,
+        "longShots": 5
       }
     },
     {
       "key": "mez_attack",
       "name": "Mezzala (Attack)",
+      "description": "Attack-minded central midfielder who leaves the central lane to operate in the half-space; on Attack duty he moves aggressively into the half-space and final third, carrying, creating and making penetrating runs.",
       "positions": [
         "MC"
       ],
@@ -428,13 +454,16 @@
         "tackling": 3,
         "teamwork": 6,
         "technique": 8,
-        "vision": 6,
-        "workRate": 6
+        "vision": 7,
+        "workRate": 7,
+        "balance": 5,
+        "longShots": 6
       }
     },
     {
       "key": "car_mc_support",
       "name": "Carrilero (Support) [MC]",
+      "description": "Disciplined shuttling midfielder who moves laterally to connect play, cover wide and half-space areas, and preserve team structure rather than making vertical attacking runs.",
       "positions": [
         "MC"
       ],

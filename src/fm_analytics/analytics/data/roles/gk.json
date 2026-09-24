@@ -3,6 +3,7 @@
     {
       "key": "gk_defend",
       "name": "Goalkeeper (Defend)",
+      "description": "Conventional goalkeeper focused on shot-stopping, claiming the box, organising the defence and choosing safe distribution.",
       "positions": [
         "GK"
       ],
@@ -13,13 +14,13 @@
       },
       "attributes": {
         "aerialReach": 8,
-        "agility": 6,
+        "agility": 8,
         "anticipation": 4,
         "commandOfArea": 8,
-        "communication": 6,
+        "communication": 7,
         "composure": 4,
         "concentration": 8,
-        "decisions": 6,
+        "decisions": 7,
         "firstTouch": 2,
         "handling": 10,
         "kicking": 4,
@@ -34,6 +35,7 @@
     {
       "key": "sk_defend",
       "name": "Sweeper Keeper (Defend)",
+      "description": "Goalkeeper who also sweeps behind the defensive line, rushing out to intercept danger and helping start attacks without abandoning core goalkeeping duties.",
       "positions": [
         "GK"
       ],
@@ -45,24 +47,24 @@
       },
       "attributes": {
         "acceleration": 6,
-        "aerialReach": 6,
-        "agility": 5,
+        "aerialReach": 7,
+        "agility": 7,
         "anticipation": 8,
-        "commandOfArea": 5,
-        "communication": 5,
+        "commandOfArea": 7,
+        "communication": 6,
         "composure": 8,
-        "concentration": 5,
+        "concentration": 7,
         "decisions": 8,
-        "firstTouch": 6,
+        "firstTouch": 7,
         "handling": 9,
-        "kicking": 6,
-        "oneOnOnes": 8,
+        "kicking": 7,
+        "oneOnOnes": 9,
         "pace": 6,
-        "passing": 6,
+        "passing": 7,
         "positioning": 9,
         "reflexes": 10,
         "rushingOut": 10,
-        "technique": 4,
+        "technique": 5,
         "throwing": 6
       }
     }

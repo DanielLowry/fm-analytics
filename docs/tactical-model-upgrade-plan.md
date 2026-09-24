@@ -571,11 +571,10 @@ differently.
    values. That cannot work for a tactic-wide block: one block covers all eleven
    slots, so an absolute `stamina: 8` would mean stamina 8 for the goalkeeper
    too. It also cannot express the agreed seed rule, because roles list only the
-   attributes they care about (a centre-back has no `stamina` entry at all), so
-   "+2 only where the role already values it" is only sayable as a delta. Both
-   layers are therefore deltas, clamped to 0-10, applied only where the role
-   already weights the attribute. Negative deltas work, which 2.4's absolute
-   scheme also allowed but less directly.
+   attributes they care about (a centre-back may have no `stamina` entry at
+   all). Both layers are therefore deltas, clamped to 0-10. A missing base
+   weight starts at zero, so positive emphasis can introduce a contextual
+   requirement; negative deltas work as well.
 2. **Named `attributeEmphasis`, not `weights`.** Once the values are deltas,
    calling them weights invites reading `stamina: 2` as "stamina weight 2".
 3. **The seed weights each instruction by how rare it is** across the catalogue.
@@ -605,11 +604,11 @@ Derivation happens inside each per-tactic entry point (`evaluate_tactic`,
 
 **Measured effect of the seed** (three synthetic 30-player squads, against the
 same catalogue with emphasis stripped): tactic score moves by -0.05 on average
-(range -0.44 to +0.31), 1.25 of 11 starters change on average, and 66% of the
-nudges land — 7% are already at 10 and clamp, 27% name an attribute the role
-does not have and are correctly refused. That matches the band measured when
-+2 was agreed. Full effective+potential over 40 tactics and 30 players is 2.41s,
-about 10% above the pre-emphasis cost.
+(range -0.44 to +0.31), 1.25 of 11 starters change on average. Those figures
+predate support for introducing an attribute from zero and are retained only as
+historical calibration; re-benchmark before using them to tune current
+emphasis. Full effective+potential over 40 tactics and 30 players was 2.41s,
+about 10% above the pre-emphasis cost at that point.
 
 **Position-scoped blocks (a later change, from review).** `attributeEmphasis` was
 first a single whole-team block, which could not say "the back four need pace
@@ -1095,8 +1094,10 @@ uses, and the extra capability is reserved for your hand edits:
    invents a requirement a role does not have — a Central Defender that
    ignores crossing keeps ignoring it. The file format permits introducing
    an attribute from zero (§2.4); the automated draft simply declines to.
-4. **At most five attributes per positional or whole-team block**, taken from the instruction and
-   mentality mapping. A tactic that emphasises everything emphasises nothing.
+4. **Seed with at most five attributes per positional or whole-team block**, taken
+   from the instruction and mentality mapping. This was a seeding heuristic, not
+   a catalogue restriction: hand-authored tactics may name every genuine
+   requirement while the soft-delta guard still prevents excessive weighting.
 
 A seeded tactic therefore carries three or four numbers in one block —
 small enough to read in the diff and argue with, which is the point.

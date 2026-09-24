@@ -10,7 +10,7 @@ from fm_analytics.analytics.catalogue import MVP_CATALOGUE, load_catalogue
 DATA = Path(__file__).resolve().parents[1] / "src" / "fm_analytics" / "analytics" / "data"
 
 ROLE = {
-    "key": "gk_x", "name": "Keeper", "positions": ["GK"],
+    "key": "gk_x", "name": "Keeper", "description": "Stops shots.", "positions": ["GK"],
     "system": {"defensiveCover": 0.5},
     "attributes": {"reflexes": 8},
 }
@@ -65,7 +65,28 @@ class DirectoryLoadingTests(unittest.TestCase):
         self.assertEqual(catalogue.version, "dir-v1")
         self.assertEqual([a.name for a in catalogue.roles["gk_x"].attributes], ["reflexes"])
         self.assertEqual(catalogue.roles["gk_x"].attributes[0].weight, 8)
+        self.assertEqual(catalogue.roles["gk_x"].description, "Stops shots.")
         self.assertIn("shape", catalogue.tactics)
+
+    def test_a_role_description_is_optional_for_older_catalogues(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = self.build(Path(tmp))
+            role = {key: value for key, value in ROLE.items() if key != "description"}
+            (directory / "roles" / "gk.json").write_text(
+                json.dumps({"roles": [role]}), encoding="utf-8"
+            )
+            catalogue = load_catalogue(directory)
+        self.assertEqual(catalogue.roles["gk_x"].description, "")
+
+    def test_a_role_description_must_be_a_non_empty_string(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = self.build(Path(tmp))
+            role = {**ROLE, "description": 42}
+            (directory / "roles" / "gk.json").write_text(
+                json.dumps({"roles": [role]}), encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ValueError, "'description' must be a non-empty string"):
+                load_catalogue(directory)
 
     def test_a_tactic_file_whose_name_disagrees_with_its_key_is_refused(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

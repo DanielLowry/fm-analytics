@@ -190,8 +190,8 @@ RIVALS = {
     # A specialist passer, otherwise ordinary.
     "Passer": {"passing": 17, "vision": 16, "firstTouch": 16, "technique": 16},
     # Solid all round, including passing.
-    "Steady": {"passing": 13, "workRate": 14, "stamina": 14, "tackling": 14,
-               "positioning": 14, "teamwork": 14},
+    "Steady": {"passing": 13, "workRate": 15, "stamina": 15, "tackling": 15,
+               "positioning": 15, "teamwork": 15},
 }
 
 

@@ -3,6 +3,7 @@
     {
       "key": "fb_support",
       "name": "Full-Back (Support)",
+      "description": "Primarily defensive wide player who can add width in possession; on Support duty he balances defending with overlaps, deeper crossing and support of the midfield.",
       "positions": [
         "DL",
         "DR"
@@ -15,13 +16,13 @@
       },
       "attributes": {
         "acceleration": 6,
-        "anticipation": 6,
-        "composure": 2,
-        "concentration": 4,
-        "crossing": 6,
+        "anticipation": 7,
+        "composure": 4,
+        "concentration": 5,
+        "crossing": 7,
         "decisions": 7,
-        "dribbling": 2,
-        "firstTouch": 3,
+        "dribbling": 4,
+        "firstTouch": 4,
         "marking": 8,
         "pace": 6,
         "passing": 5,
@@ -30,13 +31,14 @@
         "strength": 3,
         "tackling": 8,
         "teamwork": 7,
-        "technique": 3,
+        "technique": 4,
         "workRate": 8
       }
     },
     {
       "key": "wb_dl_dr_support",
       "name": "Wing-Back (Support) [DL/DR]",
+      "description": "Full-back-line wing-back combining wide defending with the running and delivery of a winger; on Support duty he repeatedly travels the flank to support possession, overlap and cross.",
       "positions": [
         "DL",
         "DR"
@@ -55,10 +57,10 @@
         "concentration": 5,
         "crossing": 8,
         "decisions": 7,
-        "dribbling": 6,
+        "dribbling": 7,
         "firstTouch": 5,
         "marking": 7,
-        "offTheBall": 6,
+        "offTheBall": 7,
         "pace": 8,
         "passing": 7,
         "positioning": 7,
@@ -67,12 +69,14 @@
         "tackling": 7,
         "teamwork": 7,
         "technique": 5,
-        "workRate": 8
+        "workRate": 8,
+        "agility": 6
       }
     },
     {
       "key": "wb_dl_dr_attack",
       "name": "Wing-Back (Attack) [DL/DR]",
+      "description": "Full-back-line wing-back combining wide defending with the running and delivery of a winger; on Attack duty he pushes high, overlaps aggressively and becomes a major source of width and penetration.",
       "positions": [
         "DL",
         "DR"
@@ -93,24 +97,26 @@
         "concentration": 5,
         "crossing": 9,
         "decisions": 6,
-        "dribbling": 7,
+        "dribbling": 8,
         "firstTouch": 5,
         "marking": 7,
-        "offTheBall": 7,
+        "offTheBall": 8,
         "pace": 9,
         "passing": 6,
         "positioning": 7,
         "stamina": 10,
         "strength": 3,
         "tackling": 7,
-        "teamwork": 6,
-        "technique": 6,
-        "workRate": 8
+        "teamwork": 7,
+        "technique": 7,
+        "workRate": 8,
+        "agility": 6
       }
     },
     {
       "key": "fb_defend",
       "name": "Full Back (Defend)",
+      "description": "Primarily defensive wide player who can add width in possession; on Defend duty he stays conservative, protects the flank and uses simple possession.",
       "positions": [
         "DL",
         "DR"
@@ -145,6 +151,7 @@
     {
       "key": "fb_attack",
       "name": "Full Back (Attack)",
+      "description": "Primarily defensive wide player who can add width in possession; on Attack duty he overlaps aggressively and prioritises forward running and delivery while accepting more defensive risk.",
       "positions": [
         "DL",
         "DR"
@@ -161,7 +168,7 @@
       },
       "attributes": {
         "acceleration": 8,
-        "anticipation": 5,
+        "anticipation": 6,
         "composure": 4,
         "concentration": 3,
         "crossing": 9,
@@ -178,12 +185,14 @@
         "tackling": 7,
         "teamwork": 6,
         "technique": 5,
-        "workRate": 8
+        "workRate": 8,
+        "agility": 6
       }
     },
     {
       "key": "wb_dl_dr_defend",
       "name": "Wing Back (Defend)",
+      "description": "Full-back-line wing-back combining wide defending with the running and delivery of a winger; on Defend duty he remains relatively cautious but still carries and supports from wide areas.",
       "positions": [
         "DL",
         "DR"
@@ -197,7 +206,7 @@
         "pressing": 0.6
       },
       "attributes": {
-        "acceleration": 6,
+        "acceleration": 7,
         "anticipation": 6,
         "composure": 3,
         "concentration": 5,
@@ -215,12 +224,14 @@
         "tackling": 8,
         "teamwork": 7,
         "technique": 4,
-        "workRate": 8
+        "workRate": 8,
+        "agility": 5
       }
     },
     {
       "key": "nnfb_defend",
       "name": "No-Nonsense Full Back (Defend)",
+      "description": "Safety-first full-back who stays disciplined, protects the flank, wins duels and clears danger rather than taking risks in possession.",
       "positions": [
         "DL",
         "DR"
@@ -256,6 +267,7 @@
     {
       "key": "cwb_dl_dr_support",
       "name": "Complete Wing Back (Support)",
+      "description": "Attack-minded all-action wide defender with freedom to carry, combine and create; on Support duty he uses freedom to overlap, dribble and create while retaining some awareness of defensive recovery.",
       "positions": [
         "DL",
         "DR"
@@ -275,25 +287,27 @@
         "anticipation": 5,
         "balance": 5,
         "crossing": 9,
-        "decisions": 6,
+        "decisions": 8,
         "dribbling": 9,
-        "firstTouch": 6,
+        "firstTouch": 7,
         "flair": 7,
         "marking": 4,
         "offTheBall": 9,
         "pace": 8,
-        "passing": 7,
+        "passing": 8,
         "positioning": 5,
         "stamina": 10,
         "tackling": 5,
         "teamwork": 8,
         "technique": 8,
-        "workRate": 9
+        "workRate": 9,
+        "composure": 6
       }
     },
     {
       "key": "cwb_dl_dr_attack",
       "name": "Complete Wing Back (Attack)",
+      "description": "Attack-minded all-action wide defender with freedom to carry, combine and create; on Attack duty he behaves almost like an extra wide attacker, driving high, dribbling and creating with only limited defensive restraint.",
       "positions": [
         "DL",
         "DR"
@@ -314,25 +328,27 @@
         "anticipation": 4,
         "balance": 5,
         "crossing": 10,
-        "decisions": 6,
+        "decisions": 7,
         "dribbling": 10,
-        "firstTouch": 6,
+        "firstTouch": 7,
         "flair": 9,
         "marking": 3,
         "offTheBall": 10,
         "pace": 9,
-        "passing": 6,
+        "passing": 7,
         "positioning": 4,
         "stamina": 10,
         "tackling": 4,
         "teamwork": 7,
         "technique": 9,
-        "workRate": 9
+        "workRate": 9,
+        "composure": 6
       }
     },
     {
       "key": "iwb_dl_dr_defend",
       "name": "Inverted Wing Back (Defend)",
+      "description": "Wide defender who moves into central midfield in possession rather than simply overlapping; on Defend duty he moves inside conservatively to protect central space and offer a secure build-up option.",
       "positions": [
         "DL",
         "DR"
@@ -363,12 +379,14 @@
         "teamwork": 8,
         "technique": 6,
         "vision": 5,
-        "workRate": 8
+        "workRate": 8,
+        "agility": 5
       }
     },
     {
       "key": "iwb_dl_dr_support",
       "name": "Inverted Wing Back (Support)",
+      "description": "Wide defender who moves into central midfield in possession rather than simply overlapping; on Support duty he steps into midfield in possession to circulate, progress and create central overloads.",
       "positions": [
         "DL",
         "DR"
@@ -400,12 +418,14 @@
         "teamwork": 8,
         "technique": 8,
         "vision": 8,
-        "workRate": 8
+        "workRate": 8,
+        "agility": 6
       }
     },
     {
       "key": "iwb_dl_dr_attack",
       "name": "Inverted Wing Back (Attack)",
+      "description": "Wide defender who moves into central midfield in possession rather than simply overlapping; on Attack duty he moves inside and forward, becoming an additional central runner and playmaking option around the final third.",
       "positions": [
         "DL",
         "DR"
@@ -433,17 +453,18 @@
         "firstTouch": 8,
         "flair": 6,
         "longShots": 5,
-        "marking": 5,
+        "marking": 6,
         "offTheBall": 9,
         "pace": 7,
         "passing": 9,
         "positioning": 6,
         "stamina": 9,
-        "tackling": 6,
+        "tackling": 7,
         "teamwork": 7,
         "technique": 9,
         "vision": 8,
-        "workRate": 8
+        "workRate": 8,
+        "agility": 6
       }
     }
   ]

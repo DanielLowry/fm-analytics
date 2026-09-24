@@ -7,6 +7,10 @@ from math import isfinite
 from pathlib import Path
 from typing import Any, Mapping
 
+from fm_analytics.analytics.attribute_taper import AttributeTaper
+from fm_analytics.analytics.catalogue_validation import (
+    validate_taper_scopes,
+)
 from fm_analytics.analytics.role_scoring import (
     RoleAttribute,
     RoleDefinition,
@@ -62,61 +66,6 @@ class AttributeEmphasis:
             raise ValueError("emphasis positions must be unique, non-empty names")
 
     def applies_to(self, position: str) -> bool:
-        return not self.positions or position in self.positions
-
-
-# The attribute scale a taper level is on (the same 1-20 scale as a player's
-# attributes and role_scoring.ScoringPolicy).
-TAPER_SCALE_MINIMUM = 1
-TAPER_SCALE_MAXIMUM = 20
-
-
-@dataclass(frozen=True)
-class AttributeTaper:
-    """A level below which a player's fit for this tactic tapers away.
-
-    This is deliberately not a minimum. Nobody is ruled out: a player at or above
-    `below` is unaffected, and below it his slot score is multiplied by a factor
-    that falls smoothly with the shortfall (see `attribute_taper`), so a player
-    whose other attributes are strong enough can still be the best available.
-
-    `positions` and `roles` are independent optional filters. With neither it
-    applies to the whole team; with both it applies only where both match. Role
-    scope is what lets two slots at the same position ask different things of
-    different jobs, and lets alternate roles in one slot carry different bars.
-    """
-
-    attribute: str
-    below: int
-    positions: tuple[str, ...] = ()
-    roles: tuple[str, ...] = ()
-
-    def __post_init__(self) -> None:
-        if not self.attribute:
-            raise ValueError("an attribute taper must name an attribute")
-        if (
-            not isinstance(self.below, int)
-            or isinstance(self.below, bool)
-            or not TAPER_SCALE_MINIMUM < self.below <= TAPER_SCALE_MAXIMUM
-        ):
-            raise ValueError(
-                f"taper level for {self.attribute!r} must be a whole number from "
-                f"{TAPER_SCALE_MINIMUM + 1} to {TAPER_SCALE_MAXIMUM} "
-                f"(attributes run {TAPER_SCALE_MINIMUM}-{TAPER_SCALE_MAXIMUM}, "
-                f"so nothing sits below {TAPER_SCALE_MINIMUM}), got {self.below!r}"
-            )
-        if len(self.positions) != len(set(self.positions)) or not all(self.positions):
-            raise ValueError("taper positions must be unique, non-empty names")
-        if len(self.roles) != len(set(self.roles)) or not all(self.roles):
-            raise ValueError("taper roles must be unique, non-empty keys")
-
-    def applies_to(self, position: str, role_key: str) -> bool:
-        return (
-            (not self.positions or position in self.positions)
-            and (not self.roles or role_key in self.roles)
-        )
-
-    def covers_position(self, position: str) -> bool:
         return not self.positions or position in self.positions
 
 
@@ -221,9 +170,9 @@ class TacticDefinition:
     #
     # Deltas, not absolute weights: a block can cover several slots, and an
     # absolute "stamina: 8" would mean stamina 8 for the goalkeeper too. A delta
-    # also honours the rule that a tactic may not invent a requirement a role
-    # does not have -- it applies only where the role already weights the
-    # attribute, so a centre-back that ignores crossing keeps ignoring it.
+    # shifts an existing weight or starts from zero when the role did not
+    # previously weight that attribute, allowing the tactic to add a genuine
+    # contextual requirement.
     # Every block covering a slot is summed, then clamped to the 0-10 scale.
     attribute_emphasis: tuple[AttributeEmphasis, ...] = ()
     # Levels below which a player's fit tapers away, per attribute and optionally
@@ -253,43 +202,7 @@ class TacticDefinition:
                     f"tactic {self.key!r} emphasises positions it does not field: "
                     f"{unfielded!r} (it fields {sorted(fielded)!r})"
                 )
-        for taper in self.attribute_taper:
-            unfielded = sorted(set(taper.positions) - fielded)
-            if unfielded:
-                raise ValueError(
-                    f"tactic {self.key!r} tapers {taper.attribute!r} at positions it does "
-                    f"not field: {unfielded!r} (it fields {sorted(fielded)!r})"
-                )
-            unused_roles = sorted(set(taper.roles) - {
-                role_key for slot in self.slots for role_key in slot.role_keys
-            })
-            if unused_roles:
-                raise ValueError(
-                    f"tactic {self.key!r} tapers {taper.attribute!r} for roles it does "
-                    f"not use: {unused_roles!r}"
-                )
-            if not any(
-                taper.applies_to(slot.position, role_key)
-                for slot in self.slots
-                for role_key in slot.role_keys
-            ):
-                raise ValueError(
-                    f"tactic {self.key!r} taper for {taper.attribute!r} matches no "
-                    "permitted slot/role"
-                )
-        for slot in self.slots:
-            for role_key in slot.role_keys:
-                seen: set[str] = set()
-                for taper in self.attribute_taper:
-                    if not taper.applies_to(slot.position, role_key):
-                        continue
-                    if taper.attribute in seen:
-                        # Applying it twice would quietly double the penalty.
-                        raise ValueError(
-                            f"tactic {self.key!r} tapers {taper.attribute!r} more than "
-                            f"once for slot {slot.key!r}, role {role_key!r}"
-                        )
-                    seen.add(taper.attribute)
+        validate_taper_scopes(self, fielded)
         for slot in self.slots:
             for attribute, delta in slot.attribute_emphasis.items():
                 if not isinstance(delta, int) or isinstance(delta, bool):
@@ -503,34 +416,6 @@ class FootballCatalogue:
                 raise ValueError(
                     f"tactic {key!r} references unknown roles {sorted(unknown_roles)!r}"
                 )
-            if not self.tactic_view:
-                for block in tactic.attribute_emphasis:
-                    covered = tuple(
-                        role_key
-                        for slot in tactic.slots
-                        if block.applies_to(slot.position)
-                        for role_key in slot.role_keys
-                    )
-                    for attribute in block.attributes:
-                        if not any(
-                            attribute in {item.name for item in self.roles[role_key].attributes}
-                            for role_key in covered
-                        ):
-                            scope = ", ".join(block.positions) or "whole team"
-                            raise ValueError(
-                                f"tactic {key!r} emphasises {attribute!r} for {scope}, "
-                                "but none of the covered roles weights it"
-                            )
-                for slot in tactic.slots:
-                    for attribute in slot.attribute_emphasis:
-                        if not any(
-                            attribute in {item.name for item in self.roles[role_key].attributes}
-                            for role_key in slot.role_keys
-                        ):
-                            raise ValueError(
-                                f"tactic {key!r} slot {slot.key!r} emphasises "
-                                f"{attribute!r}, but none of its permitted roles weights it"
-                            )
             incompatible_slots = [
                 slot.key
                 for slot in tactic.slots
@@ -589,19 +474,19 @@ def _emphasised(
 ) -> RoleDefinition:
     """`role` with each named attribute's weight shifted, clamped to 0-10.
 
-    Attributes the role does not weight are left out: a tactic adjusts what a
-    role already cares about, it does not give a role a new requirement.
+    A missing base weight is zero, so positive emphasis can introduce a
+    tactic-specific requirement. Non-positive final weights are omitted.
     """
     if not emphasis:
         return role
+    weights = {attribute.name: attribute.weight for attribute in role.attributes}
+    for name, delta in emphasis.items():
+        weights[name] = min(MAX_EFFECTIVE_WEIGHT, max(0, weights.get(name, 0) + delta))
     attributes = tuple(
-        RoleAttribute(
-            name=attribute.name,
-            weight=min(MAX_EFFECTIVE_WEIGHT, max(0, attribute.weight + emphasis.get(attribute.name, 0))),
-        )
-        for attribute in role.attributes
+        RoleAttribute(name=name, weight=weight)
+        for name, weight in weights.items()
+        if weight > 0
     )
-    attributes = tuple(attribute for attribute in attributes if attribute.weight > 0)
     if not attributes:
         raise ValueError(f"attribute emphasis leaves role {role.key!r} with no weighted attributes")
     return replace(role, attributes=attributes)
@@ -620,6 +505,7 @@ def _role_from_json(raw: Mapping[str, Any], *, version: str) -> RoleDefinition:
             if weight > 0
         ),
         catalogue_version=version,
+        description=_str(raw, "description") if "description" in raw else "",
         system_traits=_number_mapping(raw.get("system"), "role system"),
     )
 
@@ -791,7 +677,7 @@ def _exclusion_group_from_json(raw: Mapping[str, Any]) -> RoleExclusionGroup:
 # Every key the loader reads, per kind of entry. A key outside these is an error,
 # not a silent no-op: config that nothing reads only misleads whoever edits it
 # (a typo such as `whyThisShap` would otherwise be dropped without a word).
-_ROLE_KEYS = frozenset({"key", "name", "positions", "system", "attributes"})
+_ROLE_KEYS = frozenset({"key", "name", "description", "positions", "system", "attributes"})
 _TACTIC_KEYS = frozenset({
     "key", "name", "formation", "mentality", "instructions", "slots", "system",
     "style", "description", "whyGood", "whyThisShape", "whenToUse", "whenNotToUse",

@@ -3,6 +3,7 @@
     {
       "key": "cd_defend",
       "name": "Central Defender (Defend)",
+      "description": "Conventional centre-back focused on marking, positioning, tackling and aerial security; on Defend duty he holds the line and prioritises reliable defensive decisions.",
       "positions": [
         "DC"
       ],
@@ -18,12 +19,12 @@
         "bravery": 6,
         "composure": 4,
         "concentration": 8,
-        "decisions": 6,
+        "decisions": 7,
         "firstTouch": 2,
         "heading": 8,
         "jumpingReach": 8,
         "marking": 10,
-        "pace": 4,
+        "pace": 5,
         "passing": 2,
         "positioning": 10,
         "strength": 6,
@@ -34,6 +35,7 @@
     {
       "key": "cd_stopper",
       "name": "Central Defender (Stopper)",
+      "description": "Conventional centre-back focused on marking, positioning, tackling and aerial security; on Stopper duty he steps forward to confront attackers early and contest duels aggressively.",
       "positions": [
         "DC"
       ],
@@ -50,7 +52,7 @@
         "bravery": 8,
         "composure": 4,
         "concentration": 7,
-        "decisions": 6,
+        "decisions": 7,
         "firstTouch": 2,
         "heading": 9,
         "jumpingReach": 9,
@@ -66,6 +68,7 @@
     {
       "key": "cd_cover",
       "name": "Central Defender (Cover)",
+      "description": "Conventional centre-back focused on marking, positioning, tackling and aerial security; on Cover duty he drops behind the line to sweep up through balls and recovery situations.",
       "positions": [
         "DC"
       ],
@@ -81,7 +84,7 @@
         "bravery": 6,
         "composure": 4,
         "concentration": 9,
-        "decisions": 6,
+        "decisions": 7,
         "firstTouch": 2,
         "heading": 8,
         "jumpingReach": 8,
@@ -97,6 +100,7 @@
     {
       "key": "bpd_defend",
       "name": "Ball-Playing Defender (Defend)",
+      "description": "Ball-playing centre-back who must defend reliably while receiving and progressing possession; on Defend duty he holds the line while looking for progressive passes from the back.",
       "positions": [
         "DC"
       ],
@@ -110,26 +114,27 @@
         "acceleration": 3,
         "aggression": 3,
         "anticipation": 8,
-        "bravery": 4,
+        "bravery": 5,
         "composure": 8,
-        "concentration": 6,
+        "concentration": 7,
         "decisions": 8,
-        "firstTouch": 4,
-        "heading": 6,
-        "jumpingReach": 6,
+        "firstTouch": 6,
+        "heading": 7,
+        "jumpingReach": 7,
         "marking": 10,
         "pace": 4,
-        "passing": 8,
+        "passing": 9,
         "positioning": 10,
-        "strength": 4,
-        "tackling": 8,
-        "technique": 6,
-        "vision": 6
+        "strength": 6,
+        "tackling": 9,
+        "technique": 7,
+        "vision": 7
       }
     },
     {
       "key": "bpd_stopper",
       "name": "Ball-Playing Defender (Stopper)",
+      "description": "Ball-playing centre-back who must defend reliably while receiving and progressing possession; on Stopper duty he steps out to engage early, then uses recovered possession to progress play.",
       "positions": [
         "DC"
       ],
@@ -146,24 +151,25 @@
         "anticipation": 8,
         "bravery": 7,
         "composure": 8,
-        "concentration": 6,
+        "concentration": 7,
         "decisions": 8,
-        "firstTouch": 4,
+        "firstTouch": 6,
         "heading": 7,
         "jumpingReach": 7,
         "marking": 9,
         "pace": 4,
-        "passing": 8,
+        "passing": 9,
         "positioning": 8,
         "strength": 7,
         "tackling": 9,
-        "technique": 6,
+        "technique": 7,
         "vision": 6
       }
     },
     {
       "key": "bpd_cover",
       "name": "Ball-Playing Defender (Cover)",
+      "description": "Ball-playing centre-back who must defend reliably while receiving and progressing possession; on Cover duty he drops behind the line, protects depth and distributes from a deeper starting point.",
       "positions": [
         "DC"
       ],
@@ -178,26 +184,27 @@
         "acceleration": 7,
         "aggression": 3,
         "anticipation": 9,
-        "bravery": 4,
+        "bravery": 5,
         "composure": 8,
         "concentration": 8,
         "decisions": 8,
-        "firstTouch": 4,
-        "heading": 6,
-        "jumpingReach": 6,
+        "firstTouch": 6,
+        "heading": 7,
+        "jumpingReach": 7,
         "marking": 9,
         "pace": 8,
-        "passing": 8,
+        "passing": 9,
         "positioning": 9,
-        "strength": 4,
-        "tackling": 8,
-        "technique": 6,
-        "vision": 6
+        "strength": 5,
+        "tackling": 9,
+        "technique": 7,
+        "vision": 7
       }
     },
     {
       "key": "nncb_defend",
       "name": "No-Nonsense Centre-Back (Defend)",
+      "description": "Safety-first centre-back built around duels, positioning, aerial dominance and clearing danger; on Defend duty he holds the line and clears danger with minimal risk.",
       "positions": [
         "DC"
       ],
@@ -229,6 +236,7 @@
     {
       "key": "nncb_stopper",
       "name": "No-Nonsense Centre-Back (Stopper)",
+      "description": "Safety-first centre-back built around duels, positioning, aerial dominance and clearing danger; on Stopper duty he attacks duels early and clears decisively.",
       "positions": [
         "DC"
       ],
@@ -261,6 +269,7 @@
     {
       "key": "nncb_cover",
       "name": "No-Nonsense Centre-Back (Cover)",
+      "description": "Safety-first centre-back built around duels, positioning, aerial dominance and clearing danger; on Cover duty he drops deeper, protects space behind and clears danger rather than building play.",
       "positions": [
         "DC"
       ],
