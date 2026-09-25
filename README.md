@@ -140,6 +140,11 @@ uv run fm-web --direct-live --fm-html squad-general.html squad-physical.html \
   --fm-html-player-count 17
 ```
 
+The Scouting page can rank the external candidate pool against any selected
+tactic. It re-optimises that tactic's XI and role combination for each target,
+then shows the projected tactic score, score gain, best job, and likely
+replacement while preserving scouting floor/estimate/ceiling uncertainty.
+
 These sources are composable functions in `fm_analytics.web.providers`
 (`fixture_provider`, `snapshot_provider`, `live_provider`,
 `html_overlay_provider`), not special cases baked into the server, so a manual

@@ -203,6 +203,7 @@ def _matches_market(candidate: "ScoutingCandidate", filters: "ScoutingFilters") 
 
 @dataclass(frozen=True)
 class ScoutingFilters:
+    tactic_key: str | None = None
     position: str | None = None
     role_key: str | None = None
     minimum_age: int | None = None
@@ -321,7 +322,7 @@ def assess_scouting_candidates(
     return tuple(sorted(assessments, key=_sort_key))
 
 
-RANKING_SORTS = {
+POSITION_RANKING_SORTS = {
     "median": "Median (best guess)",
     "minimum": "Min (floor)",
     "ceiling": "Ceiling (best case)",
@@ -335,6 +336,14 @@ RANKING_SORTS = {
     "familiarity": "Position familiarity",
     "value": "Transfer value",
 }
+TACTIC_RANKING_SORTS = {
+    "tactic_gain": "XI gain (estimate)",
+    "tactic_floor_gain": "XI gain (floor)",
+    "tactic_ceiling_gain": "XI gain (ceiling)",
+    "tactic_score": "Projected tactic score",
+    "tactic_fit": "Player fit in tactic",
+}
+RANKING_SORTS = POSITION_RANKING_SORTS | TACTIC_RANKING_SORTS
 # Text columns and age read naturally smallest/first-first; everything that is
 # a score or an amount of information reads best largest-first.
 _ASCENDING_BY_DEFAULT = frozenset({"age", "name", "role", "value"})
@@ -426,12 +435,13 @@ def rank_for_position(
     pass the policy only when the raw-positions opt-in is ticked. A player
     without ratings is left unadjusted rather than assumed unfamiliar.
 
-    ``sort`` may be any key of ``RANKING_SORTS``; ``descending`` defaults to
-    the natural direction for that column. A player missing the sorted value
-    (no age, never scouted) always goes last, whichever direction is chosen.
+    ``sort`` may be any key of ``POSITION_RANKING_SORTS``; ``descending``
+    defaults to the natural direction for that column. A player missing the
+    sorted value (no age, never scouted) always goes last, whichever direction
+    is chosen.
     """
-    if sort not in RANKING_SORTS:
-        raise ValueError(f"sort must be one of {sorted(RANKING_SORTS)}")
+    if sort not in POSITION_RANKING_SORTS:
+        raise ValueError(f"sort must be one of {sorted(POSITION_RANKING_SORTS)}")
     if descending is None:
         descending = default_descending(sort)
     all_roles = list(catalogue.roles.values())

@@ -12,6 +12,7 @@ from urllib.parse import urlencode
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
     ScoutingFilters,
+    TACTIC_RANKING_SORTS,
     TacticDefinition,
     TacticSlot,
     WeaknessKind,
@@ -131,8 +132,17 @@ _SCOUTING_LIVE_FILTER_SCRIPT = """
   // column flips it, clicking another starts from that column's natural one.
   var sortSelect = form.querySelector("select[name='sort']");
   var dirInput = form.querySelector("input[name='dir']");
+  var tacticSelect = form.querySelector("select[name='tactic']");
   if (sortSelect && dirInput) {
     sortSelect.addEventListener('change', function () { dirInput.value = ''; });
+    if (tacticSelect) {
+      tacticSelect.addEventListener('change', function () {
+        var tacticSort = sortSelect.value.indexOf('tactic_') === 0;
+        if (tacticSelect.value && !tacticSort) sortSelect.value = 'tactic_gain';
+        if (!tacticSelect.value && tacticSort) sortSelect.value = 'median';
+        dirInput.value = 'desc';
+      });
+    }
     results.addEventListener('click', function (event) {
       var button = event.target.closest('button.sort-btn');
       if (!button) return;
@@ -624,7 +634,14 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         for key, value in query.items()
         if key.startswith("fact.") and value and value[0]
     }
+    tactic_key = _query_first(query, "tactic")
+    ranking_sort = _query_first(query, "sort") or (
+        "tactic_gain" if tactic_key else "median"
+    )
+    if not tactic_key and ranking_sort in TACTIC_RANKING_SORTS:
+        ranking_sort = "median"
     return ScoutingFilters(
+        tactic_key=tactic_key,
         position=_query_first(query, "position"), role_key=_query_first(query, "role"),
         minimum_age=_query_number(query, "minAge", integer=True),
         maximum_age=_query_number(query, "maxAge", integer=True),
@@ -641,7 +658,7 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         expiring_months=_query_number(query, "expiringMonths", integer=True) or 6,
         maximum_value=_query_number(query, "maxValue", integer=True),
         search_match=_query_first(query, "searchMatch") or "any",
-        ranking_sort=_query_first(query, "sort") or "median",
+        ranking_sort=ranking_sort,
         ranking_descending={"desc": True, "asc": False}.get(_query_first(query, "dir") or ""),
         facts=facts,
     )

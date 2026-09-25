@@ -16,6 +16,7 @@ from fm_analytics.analytics import (
     FamiliarityPolicy,
     PositionRanking,
     ScoutingCandidate,
+    TacticScoutingAssessment,
     contract_months_left,
     default_descending,
     is_free_agent,
@@ -109,7 +110,12 @@ def squad_player_link(player) -> str:
     )
 
 
-def player_scouting_report(candidate: ScoutingCandidate, catalogue) -> str:
+def player_scouting_report(
+    candidate: ScoutingCandidate,
+    catalogue,
+    *,
+    headline: str = "",
+) -> str:
     """Render a scouted player's exhaustive report."""
     facts = [
         ("Club", candidate.club),
@@ -129,6 +135,7 @@ def player_scouting_report(candidate: ScoutingCandidate, catalogue) -> str:
         candidate.raw_position_familiarity or {}, facts, catalogue,
         back_href="/scouting?view=scouted", back_label="Back to scouted players",
         familiarity_source="the captured raw 0–20 position rating",
+        headline=headline,
     )
 
 
@@ -430,6 +437,163 @@ def ranking_results(
             if len(rankings) > len(displayed) else ""
         )
         + f"<table>{_header(sort, descending, show_familiarity)}{rows}</table>"
+    )
+
+
+_TACTIC_COLUMNS: tuple[tuple[str, str | None], ...] = (
+    ("#", None),
+    ("Player", "name"),
+    ("Age", "age"),
+    ("Value", "value"),
+    ("Best tactic job", "role"),
+    ("Player fit", "tactic_fit"),
+    ("Projected tactic score", "tactic_score"),
+    ("XI gain", "tactic_gain"),
+    ("Outcome", None),
+    ("Scouted", "scouted"),
+)
+
+
+def tactic_ranking_results(
+    assessments: Sequence[TacticScoutingAssessment],
+    *,
+    tactic,
+    baseline,
+    sort: str,
+    sort_label: str,
+    descending: bool,
+) -> str:
+    """Render squad-relative candidate rankings for one selected tactic."""
+    heading = f"Impact on {html.escape(tactic.name)}"
+    if not assessments:
+        return f"<h2>{heading}</h2><p class='muted'>No eligible candidates match these filters.</p>"
+    displayed = assessments[:_MAX_SCOUTING_ROWS]
+
+    def header() -> str:
+        cells = []
+        for title, key in _TACTIC_COLUMNS:
+            if key is None:
+                cells.append(f"<th>{title}</th>")
+                continue
+            arrow = (" ▼" if descending else " ▲") if key == sort else ""
+            default = "desc" if default_descending(key) else "asc"
+            cells.append(
+                f"<th><button type='button' class='sort-btn' data-sort='{key}' "
+                f"data-default='{default}'>{title}{arrow}</button></th>"
+            )
+        return "<tr>" + "".join(cells) + "</tr>"
+
+    rows = []
+    for rank, item in enumerate(displayed, start=1):
+        candidate = item.candidate
+        outcome = (
+            "Starts"
+            + (
+                "<br><span class='muted'>Replaces "
+                + html.escape(", ".join(item.replaced_player_names))
+                + "</span>"
+                if item.replaced_player_names
+                else ""
+            )
+            if item.starts_at_estimate
+            else "<span class='muted'>Depth at estimate</span>"
+        )
+        rows.append(
+            "<tr>"
+            f"<td>{rank}</td>"
+            f"<td>{scouting_player_link(candidate)}<br>"
+            f"<span class='muted'>{html.escape(candidate.club or 'No club')}</span></td>"
+            f"<td>{candidate.age if candidate.age is not None else '—'}</td>"
+            f"<td>{_value_cell(candidate)}</td>"
+            f"<td><b>{html.escape(item.best_slot_key)}</b> · "
+            f"{html.escape(item.best_role_name)}</td>"
+            f"<td>{_three_scores(item.player_fit.lower, item.player_fit.central, item.player_fit.upper)}</td>"
+            f"<td>{_three_scores(item.projected_score.floor, item.projected_score.estimate, item.projected_score.ceiling)}</td>"
+            f"<td>{_three_gains(item.score_gain.floor, item.score_gain.estimate, item.score_gain.ceiling)}</td>"
+            f"<td>{outcome}</td>"
+            f"<td>{_scouting_knowledge_cell(candidate)}</td>"
+            "</tr>"
+        )
+    return (
+        f"<h2>{heading} ({len(assessments)})</h2>"
+        f"<p>Current score: <b>{baseline.score.central:.1f}</b>. Candidates are ranked by "
+        "the change to the best XI after the whole line-up and permitted roles are "
+        "re-optimised. A candidate who does not improve the XI shows +0.0.</p>"
+        "<p class='muted'><b>Player fit</b> uses this tactic’s attribute emphasis, "
+        "minimum-attribute tapers and position familiarity. Candidates are assumed "
+        "available, fully fit and match fit; owned players retain today’s readiness. "
+        "Floor / estimate / ceiling preserve scouting uncertainty, and the candidate "
+        "may enter the XI only in the scenarios where he improves it. "
+        f"Sorted by <b>{html.escape(sort_label)}</b> "
+        f"({'high to low' if descending else 'low to high'}).</p>"
+        + (
+            f"<p class='muted'>Showing the first {len(displayed)} players.</p>"
+            if len(assessments) > len(displayed)
+            else ""
+        )
+        + f"<table>{header()}{''.join(rows)}</table>"
+    )
+
+
+def tactic_player_impact(
+    assessment: TacticScoutingAssessment | None,
+    *,
+    tactic,
+    baseline,
+) -> str:
+    """Render one candidate's squad-relative value for a selected tactic."""
+    heading = f"<h3>Impact on {html.escape(tactic.name)}</h3>"
+    if assessment is None:
+        return (
+            heading
+            + "<p class='muted'>This player has no captured eligible position in "
+            "this tactic. Enable raw external positions if you want to accept that "
+            "visibility gap.</p>"
+        )
+    outcome = (
+        "Starts"
+        + (
+            " · replaces " + html.escape(", ".join(assessment.replaced_player_names))
+            if assessment.replaced_player_names
+            else ""
+        )
+        if assessment.starts_at_estimate
+        else "Depth at estimate"
+    )
+    return (
+        heading
+        + "<p>The whole XI and its permitted roles are re-optimised with this player "
+        "added to the squad.</p>"
+        + "<table><tr><th>Current tactic score</th><th>Projected tactic score</th>"
+        "<th>XI gain</th><th>Best tactic job</th><th>Outcome</th></tr><tr>"
+        f"<td>{_three_scores(baseline.score.lower, baseline.score.central, baseline.score.upper)}</td>"
+        f"<td>{_three_scores(assessment.projected_score.floor, assessment.projected_score.estimate, assessment.projected_score.ceiling)}</td>"
+        f"<td>{_three_gains(assessment.score_gain.floor, assessment.score_gain.estimate, assessment.score_gain.ceiling)}</td>"
+        f"<td><b>{html.escape(assessment.best_position)}</b> · "
+        f"{html.escape(assessment.best_role_name)}<br>"
+        "<span class='muted'>Player fit</span><br>"
+        f"{_three_scores(assessment.player_fit.lower, assessment.player_fit.central, assessment.player_fit.upper)}</td>"
+        f"<td>{outcome}</td></tr></table>"
+        "<p class='muted'>Values are floor / estimate / ceiling. The player is "
+        "assumed available, fully fit and match fit; owned players retain today’s "
+        "readiness. A player who does not improve the XI shows a gain of +0.0.</p>"
+    )
+
+
+def _three_scores(floor: float, estimate: float, ceiling: float) -> str:
+    return (
+        f"<b>{estimate:.1f}</b><br>"
+        f"<span class='muted'>{floor:.1f} / {estimate:.1f} / {ceiling:.1f}</span>"
+    )
+
+
+def _three_gains(floor: float, estimate: float, ceiling: float) -> str:
+    def value(item: float) -> str:
+        return f"{item:+.1f}"
+
+    return (
+        f"<b>{value(estimate)}</b><br>"
+        f"<span class='muted'>{value(floor)} / {value(estimate)} / {value(ceiling)}</span>"
     )
 
 

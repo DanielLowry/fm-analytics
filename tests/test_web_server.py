@@ -293,8 +293,53 @@ class SquadWebServerTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertIn("name='name'", body)
+        self.assertIn("name='tactic'", body)
+        self.assertIn("Generic position / role ranking", body)
         self.assertIn("id='scouting-results'", body)
         self.assertIn("fetch(", body)
+
+    def test_scouting_can_rank_targets_by_gain_for_a_selected_tactic(self) -> None:
+        required = required_role_attributes()
+
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="strong-target",
+                    name="Strong Target",
+                    positions=("ST",),
+                    attributes={
+                        name: AttributeObservation(Visibility.KNOWN, value=20)
+                        for name in required
+                    },
+                    age=22,
+                    scouting_knowledge=100,
+                ),
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            fixture_path = _write_complete_fixture(Path(directory))
+            port = self._serve(fixture_path, scouting_provider)
+
+            status, body = self._get(port, "/scouting?tactic=balanced_442")
+            player_status, player_body = self._get(
+                port,
+                "/scouting/player/strong-target?tactic=balanced_442",
+            )
+
+        self.assertEqual(status, 200)
+        self.assertIn("Impact on Balanced 4-4-2", body)
+        self.assertIn("Strong Target", body)
+        self.assertIn("Current score:", body)
+        self.assertIn("XI gain", body)
+        self.assertIn("Starts", body)
+        self.assertIn("Sorted by <b>XI gain (estimate)</b>", body)
+        self.assertEqual(player_status, 200)
+        self.assertIn("Tactic impact", player_body)
+        self.assertIn("name='tactic'", player_body)
+        self.assertIn("Impact on Balanced 4-4-2", player_body)
+        self.assertIn("Projected tactic score", player_body)
+        self.assertIn("XI gain", player_body)
+        self.assertIn("Starts", player_body)
 
     def test_scouting_results_fragment_matches_the_full_page_for_the_same_filters(self) -> None:
         """The live-filter endpoint must compute the same thing the full page does."""
@@ -467,6 +512,8 @@ class SquadWebServerTests(unittest.TestCase):
         self.assertIn("href='/scouting/player/report%20player%2F1'", listing)
         self.assertEqual(status, 200)
         self.assertIn("All captured attributes", report)
+        self.assertIn("Tactic impact", report)
+        self.assertIn("Analyse player", report)
         self.assertIn("Pace", report)
         self.assertIn("16", report)
         self.assertIn("12-16", report)

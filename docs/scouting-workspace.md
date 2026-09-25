@@ -6,6 +6,8 @@ or FM's raw player structures as a recruitment universe.
 
 ## What it does
 
+- lets the manager select a tactic and ranks targets by the change they make to
+  that tactic's best XI;
 - filters candidates by position and role, then scores the selected role;
 - shows a score **floor / estimate / ceiling** whenever the manager sees a
   range rather than an exact attribute;
@@ -19,6 +21,37 @@ or FM's raw player structures as a recruitment universe.
 unknown player is good. Unknown attributes receive a conservative central score
 while retaining their possible ceiling, so they neither leapfrog known players
 on an invented rating nor disappear from the shortlist.
+
+## Tactic impact
+
+Choosing a tactic changes the ranking from a generic position/role comparison
+to a squad-relative question: **how much would this player improve this
+tactic's score?** For each candidate the optimiser adds him to the current
+squad, reselects the complete XI and its permitted role combination, and shows:
+
+- the candidate's best job in the tactic;
+- his tactic-specific player-fit floor, estimate, and ceiling;
+- the projected tactic score and the gain over the current XI;
+- whether he starts at the central estimate, and whom he replaces.
+
+The same analysis is available on every individual scouting report. Its tactic
+selector answers the question for that player directly; the main Scouting page
+keeps the corresponding ranked comparison across the whole candidate pool.
+
+The candidate is assumed available, at 100% condition and 100% match fitness.
+Owned players keep their current readiness. A player who does not beat the
+current XI is retained as depth and shows a gain of zero; adding a target can
+therefore never make the projection worse. Attribute ranges remain ranges, so a
+target can have no estimated gain while still showing meaningful ceiling
+upside. Position and role filters narrow the tactic jobs the candidate is
+allowed to fill, while all the existing market and identity filters continue
+to narrow the candidate pool.
+
+The implementation precomputes the best owned-player allocation for the other
+ten slots in each legal role version, then reuses those allocations across the
+candidate pool. This gives the same central result as adding each player to the
+squad and running the full optimiser again, without repeating all owned-squad
+work for every target.
 
 ## Two tabs: Scouted players, and All players
 
