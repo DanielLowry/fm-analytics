@@ -11,6 +11,7 @@ from fm_analytics.analytics import (
     evaluate_tactic,
 )
 from fm_analytics.analytics.tactical_system import assess_coherence
+from fm_analytics.analytics.joint_optimizer import optimise_tactic_jointly
 from fm_analytics.domain import AttributeObservation, Visibility
 
 
@@ -101,15 +102,27 @@ class JointRoleSystemTests(unittest.TestCase):
             tactics={item.key: item for item in (tactic(dynamic=False), tactic(dynamic=True))},
         )
 
-    def test_advisory_structure_does_not_override_the_better_player_fit(self) -> None:
+    def test_tactic_balance_can_override_better_individual_role_fit(self) -> None:
         fixed = evaluate_tactic(tactic(dynamic=False), players(), self.catalogue)
         dynamic = evaluate_tactic(tactic(dynamic=True), players(), self.catalogue)
 
         selected_forward = next(item for item in dynamic.assignments if item.slot.key == "slot-10")
-        self.assertEqual(selected_forward.intrinsic_role_score.role_key, "creator")
-        self.assertEqual(dynamic.score, dynamic.xi_score)
-        self.assertEqual(dynamic.score, fixed.score)
-        self.assertTrue(dynamic.coherence.shortfalls)
+        self.assertEqual(selected_forward.intrinsic_role_score.role_key, "runner")
+        self.assertEqual(dynamic.tactic_balance_multiplier, 1.0)
+        self.assertGreater(dynamic.score.central, fixed.score.central)
+
+    def test_joint_model_optimises_the_same_balance_multiplier(self) -> None:
+        shaped = tactic(dynamic=True)
+        production = evaluate_tactic(shaped, players(), self.catalogue)
+        joint = optimise_tactic_jointly(shaped, players(), self.catalogue)
+
+        self.assertIsNotNone(joint)
+        assert joint is not None
+        selected_forward = next(
+            item for item in joint.assignments if item.slot.key == "slot-10"
+        )
+        self.assertEqual(selected_forward.intrinsic_role_score.role_key, "runner")
+        self.assertAlmostEqual(joint.objective, production.score.central)
 
     def test_every_permitted_role_version_is_considered_before_players_are_assigned(self) -> None:
         slots = tuple(
@@ -146,9 +159,9 @@ class JointRoleSystemTests(unittest.TestCase):
             for assignment in result.assignments
             if assignment.slot.position == "ST"
         )
-        self.assertEqual(selected_roles, ("creator", "creator"))
+        self.assertEqual(selected_roles, ("runner", "runner"))
         self.assertEqual(result.score, result.xi_score)
-        self.assertTrue(result.coherence.shortfalls)
+        self.assertEqual(result.tactic_balance_multiplier, 1.0)
 
     def test_creator_redundancy_is_an_explicit_coherence_penalty(self) -> None:
         requirements = TacticSystemRequirements(maximum_creators=1)

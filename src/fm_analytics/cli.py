@@ -300,9 +300,9 @@ def render_recommendation(
         "",
         "Tactic comparison",
         "-----------------",
-        f"Fit: {(1 - selected.fit_weakest_weight) * 100:.0f}% XI mean + "
-        f"{selected.fit_weakest_weight * 100:.0f}% weakest slot. "
-        "Role-structure checks are advisory and do not affect this score.",
+        "Fit: balanced player score × tactic-balance multiplier. "
+        "The player score rises in direct proportion when every player improves, "
+        "and rewards a more even XI.",
         )
     )
     lines.extend(_opponent_lines(opponent))
@@ -313,14 +313,15 @@ def render_recommendation(
         lines.append(
             f"{evaluation.tactic.name:<26} "
             f"fit {_band(evaluation.score):<22} "
-            f"XI {evaluation.xi_score.central:.1f}"
+            f"players {evaluation.xi_score.central:.1f}, "
+            f"balance ×{evaluation.tactic_balance_multiplier:.3f}"
             + (
                 f", advisory opponent check {evaluation.opponent_fit.score:.1f}"
                 if evaluation.opponent_fit.active
                 else ""
             )
             + (
-                "; advisory role warning: "
+                "; role-balance warning: "
                 + ", ".join(
                     evaluation.coherence.shortfalls
                     + evaluation.instruction_suitability.shortfalls

@@ -20,6 +20,7 @@ from fm_analytics.analytics import (
     score_player_for_slot,
 )
 from fm_analytics.domain import AttributeObservation, Visibility
+from fm_analytics.analytics.xi_selection import _balanced_player_score
 
 
 VERSION = "selection-test-v1"
@@ -136,12 +137,18 @@ class XiSelectionTests(unittest.TestCase):
         )
 
     def test_one_weak_slot_outweighs_a_better_average(self) -> None:
-        uneven = legal_squad()
+        uneven = [
+            replace(
+                item,
+                attributes={"quality": AttributeObservation(Visibility.KNOWN, value=13)},
+            )
+            for item in legal_squad()
+        ]
         uneven[0] = player(1, "GK", 1)
         steady = [
             replace(
                 item,
-                attributes={"quality": AttributeObservation(Visibility.KNOWN, value=10)},
+                attributes={"quality": AttributeObservation(Visibility.KNOWN, value=11)},
             )
             for item in legal_squad()
         ]
@@ -192,8 +199,8 @@ class XiSelectionTests(unittest.TestCase):
         )
         squad = [
             replace(item, attributes={
-                "quality": AttributeObservation(Visibility.KNOWN, value=12),
-                "steady": AttributeObservation(Visibility.KNOWN, value=10),
+                "quality": AttributeObservation(Visibility.KNOWN, value=13),
+                "steady": AttributeObservation(Visibility.KNOWN, value=11),
                 "weak": AttributeObservation(Visibility.KNOWN, value=1),
             })
             for item in legal_squad()
@@ -250,24 +257,38 @@ class XiSelectionTests(unittest.TestCase):
             }),
         ]
 
-        mean_best = evaluate_tactic(
-            shaped, squad, catalogue, familiarity_policy=NO_FAMILIARITY_DISCOUNT,
-            fit_policy=TacticFitPolicy(weakest_slot_weight=0),
-        )
         balanced = evaluate_tactic(
             shaped, squad, catalogue, familiarity_policy=NO_FAMILIARITY_DISCOUNT
         )
 
-        mean_ids = {item.slot.key: item.player_id for item in mean_best.assignments}
         balanced_ids = {item.slot.key: item.player_id for item in balanced.assignments}
-        self.assertEqual((mean_ids["slot-9"], mean_ids["slot-10"]), ("10", "11"))
         self.assertEqual(
             (balanced_ids["slot-9"], balanced_ids["slot-10"]),
             ("11", "10"),
         )
-        self.assertLess(balanced.mean_score.central, mean_best.mean_score.central)
-        self.assertGreater(balanced.weakest_score.central, mean_best.weakest_score.central)
-        self.assertEqual(balanced.fit_weakest_weight, 0.35)
+
+    def test_balanced_player_score_scales_in_direct_proportion(self) -> None:
+        self.assertEqual(_balanced_player_score((50, 50), 2), 50)
+        self.assertEqual(_balanced_player_score((51, 51), 2), 51)
+        self.assertAlmostEqual(
+            _balanced_player_score((51, 51), 2)
+            / _balanced_player_score((50, 50), 2),
+            1.02,
+        )
+
+    def test_balanced_player_score_penalises_an_uneven_pair(self) -> None:
+        even = _balanced_player_score((50, 50), 2)
+        uneven = _balanced_player_score((25, 75), 2)
+
+        self.assertEqual(even, 50)
+        self.assertAlmostEqual(uneven, 46.650635)
+        self.assertLess(uneven, even)
+
+    def test_balanced_player_score_increases_when_either_player_improves(self) -> None:
+        baseline = _balanced_player_score((25, 75), 2)
+
+        self.assertGreater(_balanced_player_score((26, 75), 2), baseline)
+        self.assertGreater(_balanced_player_score((25, 76), 2), baseline)
 
     def test_missing_slot_has_zero_weakest_score(self) -> None:
         evaluation = evaluate_tactic(TACTIC, legal_squad()[:-1], CATALOGUE, familiarity_policy=NO_FAMILIARITY_DISCOUNT)
@@ -281,13 +302,15 @@ class XiSelectionTests(unittest.TestCase):
         self.assertEqual(len(evaluation.weakest_slot_keys), 1)
         self.assertEqual(
             evaluation.score.central,
-            round(0.65 * evaluation.mean_score.central, 6),
+            _balanced_player_score(
+                tuple(item.selection_score.central for item in evaluation.assignments),
+                len(TACTIC.slots),
+            ),
         )
 
-    def test_fit_policy_rejects_invalid_weight(self) -> None:
-        for weight in (-0.1, 1.1, float("nan"), float("inf")):
-            with self.subTest(weight=weight), self.assertRaises(ValueError):
-                TacticFitPolicy(weakest_slot_weight=weight)
+    def test_fit_policy_requires_a_version(self) -> None:
+        with self.assertRaises(ValueError):
+            TacticFitPolicy(version="")
 
     def test_narrow_squad_gets_legal_diamond_instead_of_partial_wide_xi(self) -> None:
         required = {

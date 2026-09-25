@@ -13,7 +13,8 @@ responsible for explainable partial XIs and lower/upper score bands.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import inf
+from itertools import product
+from math import inf, sqrt
 from typing import Mapping, Sequence
 
 import numpy as np
@@ -34,9 +35,15 @@ from fm_analytics.analytics.xi_models import (
     _CandidateAssignment,
 )
 from fm_analytics.analytics.xi_selection import (
+    _apply_balance_multiplier,
     _build_choices,
     _role_structure_checks,
+    _tactic_balance_multiplier,
     _tactic_fit,
+)
+from fm_analytics.analytics.tactical_system import (
+    assess_coherence,
+    assess_instruction_suitability,
 )
 
 
@@ -119,20 +126,6 @@ class _Model:
         )
 
 
-def _add(left: _Expression, right: _Expression, scale: float = 1.0) -> _Expression:
-    coefficients = dict(left.coefficients)
-    for index, value in right.coefficients.items():
-        coefficients[index] = coefficients.get(index, 0.0) + scale * value
-    return _Expression(coefficients, left.constant + scale * right.constant)
-
-
-def _scale(expression: _Expression, factor: float) -> _Expression:
-    return _Expression(
-        {index: factor * value for index, value in expression.coefficients.items()},
-        factor * expression.constant,
-    )
-
-
 def optimise_tactic_jointly(
     tactic: TacticDefinition,
     players: Sequence[PlayerSelectionInput],
@@ -192,22 +185,68 @@ def optimise_tactic_jointly(
         if variables:
             model.constraint(variables, upper=1.0)
 
-    weakest = model.variable(lower=0.0, upper=100.0)
-    for candidate, variable in candidate_variables:
-        score = candidate.assignment.selection_score.central
-        model.constraint({weakest: 1.0, variable: 100.0}, upper=score + 100.0)
+    # Select one complete legal role version. These constraints also stop the
+    # joint model from assembling an unlisted mixture of slot alternatives.
+    role_versions: list[tuple[tuple[str, ...], float, int]] = []
+    role_options = tuple(derived.role_keys_for_slot(slot) for slot in tactic.slots)
+    for role_keys in product(*role_options):
+        if not derived.role_version_is_legal(tactic, role_keys):
+            continue
+        roles = tuple(derived.roles[role_key] for role_key in role_keys)
+        balance_multiplier = _tactic_balance_multiplier(
+            assess_coherence(tactic, roles),
+            assess_instruction_suitability(roles, tactic.instructions),
+        )
+        role_versions.append(
+            (role_keys, balance_multiplier, model.variable(upper=1.0, binary=True))
+        )
+    if not role_versions:
+        return None
+    model.constraint(
+        {version_variable: 1.0 for _, _, version_variable in role_versions},
+        lower=1.0,
+        upper=1.0,
+    )
+    for role_keys, _balance, version_variable in role_versions:
+        for slot_index, role_key in enumerate(role_keys):
+            matching = {
+                variable: 1.0
+                for candidate, variable in candidate_variables
+                if candidate.slot_index == slot_index
+                and candidate.assignment.intrinsic_role_score.role_key == role_key
+            }
+            matching[version_variable] = -1.0
+            model.constraint(matching, lower=0.0)
 
-    mean = _Expression(
-        {
-            variable: candidate.assignment.selection_score.central / len(tactic.slots)
-            for candidate, variable in candidate_variables
-        }
-    )
-    xi = _add(
-        _scale(mean, 1.0 - fit_policy.weakest_slot_weight),
-        _Expression({weakest: fit_policy.weakest_slot_weight}),
-    )
-    model.maximise(xi)
+    # Let U be the mean square-root player utility. For each role version,
+    # version_utility is U when that version is selected and zero otherwise.
+    # Maximising sqrt(balance) * U is exactly equivalent to maximising the final
+    # balance * U² score, while keeping the model linear.
+    utility_coefficients = {
+        variable: sqrt(candidate.assignment.selection_score.central)
+        / len(tactic.slots)
+        for candidate, variable in candidate_variables
+    }
+    utility_bound = 10.0  # sqrt(100), the maximum possible mean utility.
+    objective_coefficients: dict[int, float] = {}
+    for _role_keys, balance_multiplier, version_variable in role_versions:
+        version_utility = model.variable(lower=0.0, upper=utility_bound)
+        model.constraint(
+            {version_utility: 1.0, version_variable: -utility_bound},
+            upper=0.0,
+        )
+        model.constraint(
+            {version_utility: 1.0}
+            | {index: -value for index, value in utility_coefficients.items()},
+            upper=0.0,
+        )
+        model.constraint(
+            {version_utility: 1.0, version_variable: -utility_bound}
+            | {index: -value for index, value in utility_coefficients.items()},
+            lower=-utility_bound,
+        )
+        objective_coefficients[version_utility] = sqrt(balance_multiplier)
+    model.maximise(_Expression(objective_coefficients))
     solved = model.solve()
     if not solved.success or solved.x is None:
         return None
@@ -221,13 +260,17 @@ def optimise_tactic_jointly(
         candidate.assignment
         for candidate in sorted(selected_candidates, key=lambda item: item.slot_index)
     )
-    _, _, exact_xi = _tactic_fit(assignments, len(tactic.slots), fit_policy)
+    _, _, exact_xi = _tactic_fit(assignments, len(tactic.slots))
     exact_coherence, exact_instruction, exact_opponent = _role_structure_checks(
         tactic, assignments, derived, opponent
     )
+    balance_multiplier = _tactic_balance_multiplier(
+        exact_coherence, exact_instruction
+    )
+    exact_score = _apply_balance_multiplier(exact_xi, balance_multiplier)
     return JointOptimisationResult(
         assignments=assignments,
-        objective=exact_xi.central,
+        objective=exact_score.central,
         xi_score=exact_xi.central,
         coherence_score=exact_coherence.score,
         instruction_score=exact_instruction.score,

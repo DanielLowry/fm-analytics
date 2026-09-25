@@ -17,30 +17,30 @@ suspension, explicit availability, and minimum readiness thresholds are hard
 constraints. Condition and match fitness apply a separately versioned,
 separately reported penalty; they never alter intrinsic role quality.
 
-The current opponent-neutral **XI suitability** policy (`tactic-fit-v1`) scores
+The current opponent-neutral **XI suitability** policy (`tactic-fit-v2`) scores
 each possible XI from its eleven post-readiness player/role selection scores:
 
 ```text
-tactic fit = 0.65 × mean(XI slots) + 0.35 × minimum(XI slots)
+player score = mean(sqrt(XI slots))²
+tactic balance = min(coherence, instruction suitability) / 100
+tactic fit = player score × tactic balance
 ```
 
-An unfilled slot contributes zero, so a partial XI cannot look strong just
-because it omits a hard-to-fill position. The 35% weakest-slot weight is a
-provisional preference, not a measured win-probability coefficient. It makes
-one glaring mismatch more costly than a small increase in average quality:
-ten slots scoring about 58 and one scoring 0 have a higher mean than eleven
-slots scoring about 47, but a lower tactic fit. This player-based result is the
-complete squad-fit score. Coherence scores explicit role contributions (width,
-cover, progression, creators,
+The square-root mean strictly increases when any player improves, scales in
+direct proportion when every player improves, and scores an uneven XI below an
+even XI with the same arithmetic mean (50/50 scores 50; 25/75 scores 46.7).
+An unfilled slot contributes zero. Coherence scores explicit role contributions
+(width, cover, progression, creators,
 runners, penetration, aerial outlet, box presence, rest defence, and pressing)
 against the formation's requirements and caps redundant attack duties and
 creators. Instruction suitability tests the same selected system against demands
 such as counter-pressing, playing out, or counter-attacking. The role profiles
 and weights are transparent POC hypotheses, not calibrated claims about FM's
-hidden match engine. These structural checks are advisory, appear separately,
-and do not affect role selection or tactic ranking. Lower and upper overall
-bounds use the selected XI's score bounds; they do not express uncertainty over
-which XI would be selected.
+hidden match engine. Coherence and instruction sufficiency now form the single
+tactic-balance multiplier, so they can affect role selection and ranking.
+Opponent-specific role checks remain advisory. Lower and upper overall bounds
+use the selected XI's score bounds; they do not express uncertainty over which
+XI would be selected.
 
 The selected shape now also receives an explainable seven-player bench. Only
 selectable non-starters are considered; greedy selection prioritizes new
@@ -135,18 +135,13 @@ the joint role/player beam: tactical coherence and instruction assessment were
 each repeated 76,850 times, while state minimum/signature calculation and
 rounding accounted for millions of calls.
 
-**Superseded measurement.** That run predates the beam's replacement by the
-exact assignment solver and a catalogue now at 42 tactics and 84 roles, so its
-attribution no longer applies. The cost was re-measured on 22 September 2026 and
-**attributed to a specific design choice: the 35% weakest-slot term in the fit
-objective forces the assignment solver to be re-run once per candidate floor,
-about 42 times per role version.** The solver is fast; it runs tens of thousands
-of times. Measured numbers, the benchmark method, and mitigations ranked by value
-are in [tactical-model-upgrade-plan.md](../../tactical-model-upgrade-plan.md)
-§7.1, which is the single source for them. None are applied yet.
-
-Note this ties 05.4 to roadmap item 5: replacing the mean/weakest objective is
-both a football change and the main performance lever.
+**Superseded measurements.** That run predates the beam's replacement by the
+exact assignment solver. A later 22 September measurement then attributed most
+cost to the 35% weakest-slot term, which required about 42 assignment solves per
+role version. The `tactic-fit-v2` square-root mean removed that threshold sweep:
+maximising the score is equivalent to maximising summed square roots, so each
+role version now needs one assignment solve. The historical measurements remain
+in [tactical-model-upgrade-plan.md](../../tactical-model-upgrade-plan.md) §7.1.
 
 The active [application improvement review](../../app-improvement-review.md)
 records the web-layer evidence and correctness gates. The web layer must cache by

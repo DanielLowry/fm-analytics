@@ -18,10 +18,10 @@
 >   suggestion there to *derive* displayed counts rather than write them down is
 >   the durable fix and has not been done.
 > - **The performance items (1.1–1.4) now have a measured basis they did not have
->   before, and it partly redirects them.** The joint role/player beam they were
->   written against no longer exists; the cost is now attributed to the 35%
->   weakest-slot term in the fit objective forcing repeated assignment solves.
->   Item 1.4 (memoise role scores) is confirmed worthwhile — 64% of role scoring
+>   before, and it partly redirects them.** The joint role/player beam and the
+>   later weakest-slot threshold sweep no longer exist; `tactic-fit-v2` needs one
+>   assignment solve per role version. Item 1.4 (memoise role scores) remains
+>   worthwhile — the earlier profile found 64% of role scoring
 >   is measurably redundant — and item 1.5's cache becomes a *correctness*
 >   requirement, not just a speed one, as soon as the page can set an opponent.
 >   See [analytics-performance.md](analytics-performance.md) for the current
@@ -85,7 +85,7 @@ The recommended order is:
 
 | Item | Verdict | Review note |
 | --- | --- | --- |
-| 1.1 Memoise role checks | Reassess if checks become slow | Cache `assess_coherence` and `assess_instruction_suitability` by tactic plus canonical role tuple. These checks are now advisory and have no score-combination step. |
+| 1.1 Memoise role checks | Reassess if checks become slow | Cache `assess_coherence` and `assess_instruction_suitability` by tactic plus canonical role tuple. They now supply the tactic-balance multiplier, but remain player-independent. |
 | 1.2 Incremental beam sort key | Agree, with a correctness caveat | Carry assignment count, total, and weakest score. Preserve exactly the current canonical signature: assignments are appended in candidate-count `slot_order`, not necessarily slot-index order, so simple tuple append is not automatically equivalent. Keep `test_joint_search_can_trade_individual_role_fit_for_system_coherence` and add before/after bundle equality. |
 | 1.3 Skip an identical potential pass | Agree | Use a proof over every selectable player/slot candidate that the effective familiarity multiplier is already `1.0`. “All listed positions are 20” is insufficient when a reading is missing and the policy substitutes `unknown_rating=10`. Return the same recommendation only after that proof. |
 | 1.4 Memoise role scores | Agree | Scope the cache to one bundle (or a bundle-owned role-score index), where catalogue and scoring policy are fixed. Avoid a process-global `(role_key, player_id)` cache because observations change across captures. Feed the shared index to XI, depth, bench, substitution, role-matrix, and recruitment calculations where practical. |

@@ -220,8 +220,8 @@ a back three") would need its own mechanism rather than being forced into -2..+2
   axis and setting against what the catalogue can actually supply.
 - Opponent fit, like coherence and instruction fit, measures whether the
   *roles* clear a bar, not whether your players are good. It is therefore
-  advisory and does not affect the squad-fit score. Opponent attribute emphasis
-  can still change that score by changing which player attributes matter.
+  advisory and does not affect the tactic-balance multiplier. Opponent attribute
+  emphasis can still change the score by changing which player attributes matter.
 
 `fm-analytics` exposes one `--opponent-<axis>` flag per axis, generated from
 `AXIS_DEFINITIONS`, so a new slider gets a flag with no change in `cli.py`.
@@ -246,35 +246,20 @@ high); an unknown attribute is the scale minimum centrally, as everywhere.
 explicitly permits. This is deliberately small: slots are pinned by default,
 and a slot only has alternatives named in its `roles` array. Each complete
 role version receives its own team-coherence and instruction assessment for
-reporting. These player-independent assessments are advisory: they do not
-choose the role version or contribute to the squad-fit score.
+scoring and reporting. Their lower score becomes a 0..1 tactic-balance
+multiplier, so a version clears the factor at 1.0 only when both assessments
+meet every declared requirement.
 
 For a fixed role version, a player's score for a slot is independent of the
-other selected players. The remaining constraint is simply that a player
-cannot fill two slots. `assignment_solver._maximum_total_assignment` therefore uses an exact
-assignment solver rather than enumerating XIs or keeping a beam of partial
-ones. `_best_full_fit_assignment` repeats that solve at each possible weakest
-slot score, which preserves the mean/weakest-slot blend exactly.
-
-**That repeat is where the time goes, and it is worth understanding before you
-try to optimise anything here.** An assignment algorithm maximises a *total* and
-cannot also maximise a *minimum*, so the 35% weakest-slot term in
-`TacticFitPolicy` is handled by sweeping the floor: solve "best total with no
-slot below X" for every candidate X, keep the best blend. That turns one solve
-per role version into ~42, and accounts for roughly half of a full run (22,446
-solver runs in the benchmark). The solver itself is fast; it simply runs a great
-many times. So **changing the mean/weakest blend also changes the cost profile**
-— relevant to roadmap item 5, which proposes replacing that objective. Measured
-numbers, method and the ranked mitigations are in
-[tactical-model-upgrade-plan.md](../../../docs/tactical-model-upgrade-plan.md)
-§7.1; don't restate them here, they drift.
+other selected players. The player score is `mean(sqrt(slot scores))²`.
+Maximising it is equivalent to maximising the sum of square roots, so the
+remaining one-player-per-slot constraint takes one exact assignment solve per
+role version; no XI enumeration or weakest-score threshold sweep is needed.
 
 Do not collapse this into greedy "best player per slot" selection: it must
 still resolve the case where the same player is best at two jobs. Do not discard
-a permitted role version because an advisory structural check fails. The
-selected version is the one that best fits the available players; the failure
-is reported separately and may become a hard rule only after the authored
-thresholds have been reviewed.
+a permitted role version because a structural check fails. It remains legal,
+but its player score is reduced by the tactic-balance multiplier.
 
 This approach is exact only while team-system scoring depends on selected
 roles, not on particular player pairings. If a future feature adds a
@@ -283,13 +268,13 @@ silently treating it as independent.
 
 ## Everything else in here
 
-- `tactical_system.py` — advisory team-balance ("coherence") and instruction-fit
+- `tactical_system.py` — team-balance ("coherence") and instruction-fit
   checks, off explicit per-role `system` traits (in the role files) and
   per-instruction requirements (`_INSTRUCTION_REQUIREMENTS`). Traits supply
   and instruction demands share one scale; `tests/test_tactical_calibration.py`
   fails a tactic whose demands no legal XI can meet. These are
   declared, reviewable football hypotheses, not tuned/learned weights. They do
-  not contribute to squad-fit scoring —
+  contribute through the single tactic-balance multiplier —
   changing one is a football judgment call, worth calling out as such in
   the commit rather than treating as a pure bugfix. `assess_demands` is the
   shared "how fully do these roles meet these minimums" scorer; instruction fit

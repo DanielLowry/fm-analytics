@@ -432,10 +432,10 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             + "".join(rows)
             + "</table>"
             "<details><summary>How tactics are ranked</summary>"
-            "<p class='muted'>The play-now score uses the selected players’ fit for their "
-            "roles, adjusted for position familiarity, condition and match fitness. It also "
-            "gives extra weight to the weakest starting position. Structural role checks are "
-            "shown separately and do not affect the ranking.</p></details>"
+            "<p class='muted'>The play-now score is the balanced player score multiplied "
+            "by the selected roles’ tactic-balance factor. Player fit includes position "
+            "familiarity, condition and match fitness. The balance factor is 1.0 only when "
+            "the roles meet every structural and instruction requirement.</p></details>"
         )
         self._send(_layout("Tactics", path, body))
 
@@ -611,7 +611,8 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
             "<div class='advisory-banner'><b>Selected roles miss a structural check</b>"
             "Falls short on "
             + html.escape(_tactical_shortfalls(structural_problems))
-            + ". This is advisory and does not affect the squad-fit score. "
+            + f". This reduces the tactic-balance factor to "
+            f"{evaluation.tactic_balance_multiplier:.3f}. "
             f"<a href='/tactic-checks#{quote(tactic_key, safe='')}'>Review tactic checks →</a>"
             "</div>"
             if structural_problems
@@ -657,10 +658,12 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
 
     @staticmethod
     def _tactic_score_summary(evaluation) -> str:
-        """Summarise the player-based score without structural checks."""
+        """Summarise the player and role-balance parts of the tactic score."""
         drivers = [
             ("XI average", evaluation.mean_score.central),
             ("Weakest position", evaluation.weakest_score.central),
+            ("Balanced player score", evaluation.xi_score.central),
+            ("Tactic balance", evaluation.tactic_balance_multiplier * 100),
         ]
         driver_cards = "".join(
             "<div class='score-driver'>"
@@ -670,7 +673,7 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
         )
         return (
             "<section class='score-summary'><div class='overall-score'>"
-            "<span>Squad-fit score</span>"
+            "<span>Tactic score</span>"
             f"<b>{evaluation.score.central:.1f}</b><small>out of 100</small></div>"
             "<div class='score-drivers'><div class='score-drivers-title'>"
             f"<b>Player scores</b></div>{driver_cards}</div></section>"
@@ -679,17 +682,18 @@ class SquadWebHandler(ScoutingPagesMixin, BaseHTTPRequestHandler):
     @staticmethod
     def _tactic_score_breakdown(evaluation) -> str:
         """Keep score methodology available without making it the primary view."""
-        xi_weight = 1 - evaluation.fit_weakest_weight
         xi_formula = (
-            f"{xi_weight * 100:.0f}% × {evaluation.mean_score.central:.1f} XI average "
-            f"+ {evaluation.fit_weakest_weight * 100:.0f}% × "
-            f"{evaluation.weakest_score.central:.1f} weakest slot "
-            f"= <b>{evaluation.xi_score.central:.1f}</b> player-role fit"
+            "square of the average square root of each player score "
+            f"= <b>{evaluation.xi_score.central:.1f}</b>; then × "
+            f"<b>{evaluation.tactic_balance_multiplier:.3f}</b> tactic balance "
+            f"= <b>{evaluation.score.central:.1f}</b>"
         )
         return (
             "<details class='score-breakdown'><summary>Score details</summary>"
-            "<p>This score only uses the selected players. Structural role checks are "
-            "reported separately.</p>"
+            "<p>The player calculation rewards an even XI while remaining proportional: "
+            "if every player score rises by 2%, the player score rises by exactly 2%. "
+            "The tactic-balance factor is 1.0 only when the roles meet all balance and "
+            "instruction requirements.</p>"
             f"<p>{xi_formula}.</p></details>"
         )
 

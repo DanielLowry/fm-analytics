@@ -89,16 +89,15 @@ now covers 25 tactics and 28 roles (`fm20-expanded-tactics-v1`, defined as data 
 so a fresh live run would compare more shapes than the four described above.
 
 Each formation slot now has a small permissible family of role/duty choices.
-The selector jointly chooses player, role, and slot, then reports three
-separate components: **XI suitability** (65% mean selection score plus 35%
-weakest slot), **tactical coherence** (width, defensive cover, progression,
-runners, penetration, box presence, rest defence, and redundancy limits), and
-**instruction suitability**. The overall score combines the active components
-and penalizes its weakest one, so an individually strong but lopsided XI cannot
-win merely on player fit. These system profiles and weights are transparent POC
-hypotheses, not a reproduction of FM's hidden match engine. Team *tactic*
-familiarity (fluency with a shape as a whole) and opponent suitability are not
-yet included; each needs a trustworthy, separately sourced policy.
+The selector jointly chooses player, role, and slot. It combines the eleven
+player scores with a square-root mean, which rewards an evenly strong XI while
+remaining proportional: a 2% improvement to every player produces exactly a
+2% improvement in the player score. That result is multiplied by a single
+**tactic-balance factor**, which is 1.0 only when the chosen roles meet the
+tactic's coherence and instruction requirements. These system profiles are
+transparent POC hypotheses, not a reproduction of FM's hidden match engine.
+Team *tactic* familiarity (fluency with a shape as a whole) is not yet included.
+Opponent-specific role checks remain separate from the inherent tactic balance.
 
 *Position* familiarity is included: the recommendation output now also shows
 **training targets** -- tactics whose fit would improve materially once

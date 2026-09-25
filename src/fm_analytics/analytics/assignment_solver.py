@@ -15,10 +15,10 @@ revisiting rather than being quietly treated as independent.
 
 from __future__ import annotations
 
+from math import sqrt
 from typing import Sequence
 
 from fm_analytics.analytics.xi_models import (
-    TacticFitPolicy,
     _AssignmentState,
     _CandidateAssignment,
 )
@@ -38,10 +38,9 @@ def state_signature(state: _AssignmentState) -> tuple[tuple[int, str, str], ...]
 def best_assignment_for_role_version(
     choices: tuple[tuple[_CandidateAssignment, ...], ...],
     full_mask: int,
-    policy: TacticFitPolicy,
 ) -> _AssignmentState:
     """Return the exact best full XI, or the best explainable partial XI."""
-    full = _best_full_fit_assignment(choices, full_mask, policy)
+    full = _best_full_fit_assignment(choices, full_mask)
     if full is not None:
         return full
     return _best_partial_assignment(
@@ -52,59 +51,23 @@ def best_assignment_for_role_version(
 def _best_full_fit_assignment(
     choices: tuple[tuple[_CandidateAssignment, ...], ...],
     full_mask: int,
-    policy: TacticFitPolicy,
 ) -> _AssignmentState | None:
-    """Optimize the mean/weakest blend without enumerating full XIs.
+    """Optimize the square-root mean without enumerating full XIs.
 
-    For each possible weakest score, an exact assignment solver finds the
-    highest-total XI that clears it. That candidate dominates every other XI
-    with the same or a higher weakest score, so this covers the full objective
-    without listing player combinations.
+    Squaring is monotonic, so maximizing the finished score is equivalent to
+    maximizing the sum of the square roots of the eleven player scores. That
+    remains a standard linear assignment problem.
     """
     slot_count = full_mask.bit_count()
-    best = _maximum_total_assignment(
-        choices, slot_count=slot_count, minimum_score=0
-    )
-    if best is None:
-        return None
-
-    def key(state: _AssignmentState) -> tuple[float, float, tuple[tuple[int, str, str], ...]]:
-        weakest = min(
-            choice.assignment.selection_score.central for choice in state.assignments
-        )
-        fit = round(
-            (1 - policy.weakest_slot_weight) * state.total / slot_count
-            + policy.weakest_slot_weight * weakest,
-            6,
-        )
-        return -fit, -state.total, state_signature(state)
-
-    best_key = key(best)
-    thresholds = sorted({
-        choice.assignment.selection_score.central
-        for player_choices in choices
-        for choice in player_choices
-        if choice.assignment.selection_score.central > 0
-    })
-    for threshold in thresholds:
-        candidate = _maximum_total_assignment(
-            choices, slot_count=slot_count, minimum_score=threshold
-        )
-        if candidate is None:
-            break
-        candidate_key = key(candidate)
-        if candidate_key < best_key:
-            best, best_key = candidate, candidate_key
-    return best
+    return _maximum_balanced_assignment(choices, slot_count=slot_count)
 
 
-def _maximum_total_assignment(
+def _maximum_balanced_assignment(
     choices: tuple[tuple[_CandidateAssignment, ...], ...],
     *,
     slot_count: int,
-    minimum_score: float,
 ) -> _AssignmentState | None:
-    """Find the highest-total legal full XI above a score floor.
+    """Find the legal full XI with the greatest square-root utility.
 
     The Hungarian assignment algorithm solves the fixed-role problem directly:
     every slot gets one player, and no player can be selected twice.  It is
@@ -113,14 +76,12 @@ def _maximum_total_assignment(
     """
     if slot_count == 0 or len(choices) < slot_count:
         return None
-    by_slot = _choices_by_slot(
-        choices, slot_count=slot_count, minimum_score=minimum_score
-    )
+    by_slot = _choices_by_slot(choices, slot_count=slot_count)
     if any(not candidates for candidates in by_slot):
         return None
 
-    highest_score = max(
-        choice.assignment.selection_score.central
+    highest_utility = max(
+        sqrt(choice.assignment.selection_score.central)
         for candidates in by_slot
         for choice in candidates.values()
     )
@@ -128,8 +89,8 @@ def _maximum_total_assignment(
         [
             (
                 round(
-                    highest_score
-                    - candidates[player_index].assignment.selection_score.central,
+                    highest_utility
+                    - sqrt(candidates[player_index].assignment.selection_score.central),
                     6,
                 )
                 if player_index in candidates
@@ -165,19 +126,22 @@ def _best_partial_assignment(
     then player score. This keeps incomplete tactic results useful without
     returning to exponential partial-XI enumeration.
     """
-    by_slot = _choices_by_slot(choices, slot_count=slot_count, minimum_score=0)
+    by_slot = _choices_by_slot(choices, slot_count=slot_count)
     player_count = len(choices)
-    best_possible_total = sum(
+    best_possible_utility = sum(
         max(
-            (choice.assignment.selection_score.central for choice in candidates.values()),
+            (
+                sqrt(choice.assignment.selection_score.central)
+                for choice in candidates.values()
+            ),
             default=0.0,
         )
         for candidates in by_slot
     )
-    filled_slot_bonus = best_possible_total + 1
+    filled_slot_bonus = best_possible_utility + 1
     highest_weight = filled_slot_bonus + max(
         (
-            choice.assignment.selection_score.central
+            sqrt(choice.assignment.selection_score.central)
             for candidates in by_slot
             for choice in candidates.values()
         ),
@@ -191,7 +155,7 @@ def _best_partial_assignment(
                 round(
                     highest_weight
                     - filled_slot_bonus
-                    - candidates[player_index].assignment.selection_score.central,
+                    - sqrt(candidates[player_index].assignment.selection_score.central),
                     6,
                 )
                 if player_index in candidates
@@ -223,13 +187,11 @@ def _choices_by_slot(
     choices: tuple[tuple[_CandidateAssignment, ...], ...],
     *,
     slot_count: int,
-    minimum_score: float,
 ) -> list[dict[int, _CandidateAssignment]]:
     by_slot: list[dict[int, _CandidateAssignment]] = [dict() for _ in range(slot_count)]
     for player_choices in choices:
         for choice in player_choices:
-            if choice.assignment.selection_score.central >= minimum_score:
-                by_slot[choice.slot_index][choice.player_index] = choice
+            by_slot[choice.slot_index][choice.player_index] = choice
     return by_slot
 
 

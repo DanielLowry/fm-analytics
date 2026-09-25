@@ -462,17 +462,14 @@ information. Real discrimination between tactics has to come from the pieces
 still to be built: attribute-aware instruction suitability (roadmap item 4),
 per-tactic attribute weights (§5) and the opponent (§6).
 
-**Decision: structural checks are advisory (September 2026).** The balance,
-instruction and opponent-floor checks use fixed values attached to roles; they
-do not measure the players assigned to those roles. They have therefore been
-removed from the squad-fit score and from role-combination selection. Tactic
-ranking now uses the player-based XI score only. The checks remain visible on
-the separate `/tactic-checks` page, and a selected role combination that fails
-a tactic's own balance or instruction minimums receives a warning on its tactic
-page. They are deliberately not hard constraints yet: the authored thresholds
-need review before a near miss is allowed to rule out a combination entirely.
-The intended later decision is whether reviewed minimums should become simple
-pass/fail eligibility rules.
+**Decision updated 25 September 2026: structural sufficiency is a soft
+multiplier.** Balance and instruction checks still use fixed values attached to
+roles rather than player abilities, so they remain visible separately and do
+not make a role combination illegal. Their lower percentage now becomes one
+0..1 tactic-balance factor multiplied by the player score. A factor of 1.0 means
+the selected roles meet both requirement sets; a near miss reduces rather than
+rules out the combination. Opponent-floor checks remain advisory because they
+describe a particular matchup rather than the tactic's inherent balance.
 
 ## 2c. Justifications as built (B2, B3 for the existing 25)
 

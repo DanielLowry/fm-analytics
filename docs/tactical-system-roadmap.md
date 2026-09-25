@@ -20,7 +20,7 @@ The following remain intentionally provisional:
   multiplier;
 - team instructions are assessed from role capability tags, not the selected
   players' detailed attributes;
-- the XI component still uses the legacy mean/weakest-player objective;
+- the XI component uses a proportional square-root mean that rewards balance;
 - whole-tactic familiarity is not scored, and opponent suitability is scored
   only from a manager-set profile (see item 9), not from opposition data;
 - role weighting is per role/duty only, not per tactic: a Deep-Lying
@@ -125,32 +125,19 @@ attributes and relevant roles:
 This makes instruction suitability a true player-role-instruction interaction,
 rather than a label attached to a tactic template.
 
-### 5. Replace the 65% mean / 35% weakest-player XI objective
+### 5. Replace the 65% mean / 35% weakest-player XI objective — completed
 
-The current weakest-link component is a useful POC signal but is arbitrary.
-Evolve XI suitability into an explicit accounting of quality and deficiencies:
+The fixed weakest-link weight was replaced with a square-root mean:
 
 ```
-XI quality
-- severe player-role mismatch penalties
-- tactical requirement deficits
-- structural weakness penalties
+player score = mean(sqrt(XI slots))²
 ```
 
-This should naturally penalise a disastrous centre-back fit without assigning
-one player's score a fixed 35% of the entire XI score.  The resulting terms
-must remain separately visible and testable.
-
-**This item is also the main performance lever, which was not previously
-recorded.** An assignment algorithm maximises a total and cannot maximise a
-minimum, so the weakest-slot term is currently honoured by re-solving the
-assignment once per candidate floor — about 42 solves per role version, roughly
-half of a full recommendation. Whatever replaces the objective should be chosen
-with that in mind: a formulation a single solve can optimise directly would be
-substantially cheaper, and one that couples players would be more expensive and
-would break the solver's exactness (see `analytics/CLAUDE.md`). Measurements are
-in [analytics-performance.md](analytics-performance.md); the earlier
-assignment-objective and MILP history remains in
+It strictly increases with every player improvement, scales proportionally, and
+penalises uneven XIs without assigning one player a fixed share of the result.
+Because maximising it is equivalent to maximising summed square roots, it also
+reduced the optimiser from a sweep of score floors to one assignment solve per
+role version. The earlier objective and benchmark history remains in
 [tactical-model-upgrade-plan.md](tactical-model-upgrade-plan.md) §7.1.
 
 ### 6. Revisit positional familiarity and eligibility

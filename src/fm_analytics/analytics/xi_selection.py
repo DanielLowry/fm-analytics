@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from itertools import product
+from math import sqrt
 from typing import Sequence
 
 from fm_analytics.analytics.catalogue import (
@@ -118,7 +119,6 @@ def _evaluate_tactic(
         tactic,
         choices,
         catalogue,
-        fit_policy,
         opponent,
         forced_roles=forced_roles,
     )
@@ -141,7 +141,6 @@ def _evaluate_tactic(
         familiarity_version=familiarity_policy.version,
         familiarity_floor=familiarity_policy.floor_multiplier,
         fit_version=fit_policy.version,
-        fit_weakest_weight=fit_policy.weakest_slot_weight,
         assignments=ordered_assignments,
         unfilled_slots=unfilled,
         mean_score=mean_score,
@@ -150,6 +149,9 @@ def _evaluate_tactic(
         xi_score=xi_score,
         coherence=coherence,
         instruction_suitability=instruction_suitability,
+        tactic_balance_multiplier=_tactic_balance_multiplier(
+            coherence, instruction_suitability
+        ),
         opponent_fit=opponent_fit,
         score=fit_score,
     )
@@ -576,7 +578,6 @@ def _best_role_version(
     tactic: TacticDefinition,
     choices: tuple[tuple[_CandidateAssignment, ...], ...],
     catalogue: FootballCatalogue,
-    fit_policy: TacticFitPolicy,
     opponent: OpponentProfile,
     *,
     forced_roles: dict[int, str] | None = None,
@@ -614,20 +615,22 @@ def _best_role_version(
         if not catalogue.role_version_is_legal(tactic, role_keys):
             continue
         version_choices = _choices_for_role_version(choices, role_keys)
-        state = best_assignment_for_role_version(
-            version_choices, full_mask, fit_policy
-        )
+        state = best_assignment_for_role_version(version_choices, full_mask)
         mask = sum(1 << choice.slot_index for choice in state.assignments)
         assignments = tuple(
             choice.assignment
             for choice in sorted(state.assignments, key=lambda item: item.slot_index)
         )
         mean_score, weakest_score, xi_score = _tactic_fit(
-            assignments, len(tactic.slots), fit_policy
+            assignments, len(tactic.slots)
         )
         coherence, instruction_suitability, opponent_fit = _role_structure_checks(
             tactic, assignments, catalogue, opponent
         )
+        balance_multiplier = _tactic_balance_multiplier(
+            coherence, instruction_suitability
+        )
+        score = _apply_balance_multiplier(xi_score, balance_multiplier)
         candidate = _RoleVersionEvaluation(
             mask=mask,
             state=state,
@@ -638,7 +641,7 @@ def _best_role_version(
             coherence=coherence,
             instruction_suitability=instruction_suitability,
             opponent_fit=opponent_fit,
-            score=xi_score,
+            score=score,
         )
         if (
             best is None
@@ -696,12 +699,7 @@ def _role_structure_checks(
     catalogue: FootballCatalogue,
     opponent: OpponentProfile,
 ) -> tuple[SystemAssessment, SystemAssessment, SystemAssessment]:
-    """Run advisory checks on the selected roles.
-
-    These checks are advisory because they use fixed values attached to roles,
-    not the abilities of the selected players. They must not affect a ranking
-    whose purpose is to say which tactic best suits the squad.
-    """
+    """Assess the selected roles against the tactic and opponent requirements."""
     roles = tuple(
         catalogue.roles[assignment.intrinsic_role_score.role_key]
         for assignment in assignments
@@ -712,10 +710,25 @@ def _role_structure_checks(
     return coherence, instruction, opponent_fit
 
 
+def _tactic_balance_multiplier(
+    coherence: SystemAssessment,
+    instruction: SystemAssessment,
+) -> float:
+    """Return 1.0 only when the roles fully meet both tactic requirement sets."""
+    return round(min(coherence.score, instruction.score) / 100, 6)
+
+
+def _apply_balance_multiplier(score: ScoreBand, multiplier: float) -> ScoreBand:
+    return ScoreBand(
+        lower=round(score.lower * multiplier, 6),
+        central=round(score.central * multiplier, 6),
+        upper=round(score.upper * multiplier, 6),
+    )
+
+
 def _tactic_fit(
     assignments: tuple[SlotAssignment, ...],
     slot_count: int,
-    policy: TacticFitPolicy,
 ) -> tuple[ScoreBand, ScoreBand, ScoreBand]:
     missing = slot_count - len(assignments)
     if missing < 0:
@@ -725,11 +738,7 @@ def _tactic_fit(
         values = [getattr(item.selection_score, field) for item in assignments]
         mean = round(sum(values) / slot_count, 6)
         weakest = min(values) if values and not missing else 0.0
-        fit = round(
-            (1 - policy.weakest_slot_weight) * mean
-            + policy.weakest_slot_weight * weakest,
-            6,
-        )
+        fit = _balanced_player_score(values, slot_count)
         return mean, weakest, fit
 
     lower = component("lower")
@@ -739,3 +748,21 @@ def _tactic_fit(
     weakest = ScoreBand(lower[1], central[1], upper[1])
     fit = ScoreBand(lower[2], central[2], upper[2])
     return mean, weakest, fit
+
+
+def _balanced_player_score(values: Sequence[float], slot_count: int) -> float:
+    """Combine player scores while rewarding an evenly strong XI.
+
+    This square-root mean is homogeneous: increasing every player score by a
+    percentage increases the result by exactly the same percentage. Its
+    concavity also means an uneven set scores below an even set with the same
+    arithmetic mean. Unfilled slots are represented by the ``slot_count``
+    denominator and therefore contribute zero.
+    """
+    if slot_count <= 0:
+        raise ValueError("slot count must be positive")
+    if len(values) > slot_count:
+        raise ValueError("more player scores than tactic slots")
+    if any(value < 0 for value in values):
+        raise ValueError("player scores cannot be negative")
+    return round((sum(sqrt(value) for value in values) / slot_count) ** 2, 6)

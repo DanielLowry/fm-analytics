@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from math import isfinite
 from typing import Mapping
 
 from fm_analytics.analytics.catalogue import TacticDefinition, TacticSlot
@@ -145,16 +144,19 @@ class FamiliarityPolicy:
 
 @dataclass(frozen=True)
 class TacticFitPolicy:
-    """Balance whole-XI quality against the weakest starting slot."""
+    """Version the deliberately parameter-free whole-XI scoring method.
 
-    version: str = "tactic-fit-v1"
-    weakest_slot_weight: float = 0.35
+    Player scores are combined with the square-root mean in ``_tactic_fit``.
+    Keeping the policy object preserves the public call signatures and records
+    which scoring semantics produced an evaluation without exposing another
+    tuning knob.
+    """
+
+    version: str = "tactic-fit-v2"
 
     def __post_init__(self) -> None:
         if not self.version:
             raise ValueError("tactic-fit policy version is required")
-        if not isfinite(self.weakest_slot_weight) or not 0 <= self.weakest_slot_weight <= 1:
-            raise ValueError("weakest-slot weight must be finite and between 0 and 1")
 
 
 @dataclass(frozen=True)
@@ -214,7 +216,6 @@ class TacticEvaluation:
     familiarity_version: str
     familiarity_floor: float
     fit_version: str
-    fit_weakest_weight: float
     assignments: tuple[SlotAssignment, ...]
     unfilled_slots: tuple[TacticSlot, ...]
     mean_score: ScoreBand
@@ -223,6 +224,7 @@ class TacticEvaluation:
     xi_score: ScoreBand
     coherence: SystemAssessment
     instruction_suitability: SystemAssessment
+    tactic_balance_multiplier: float
     # Whether the eleven's roles meet this opponent's system floors (see
     # `analytics/opponent.py`). Inactive, and scored 100, under a neutral
     # profile -- the default for every evaluation that does not ask for one.

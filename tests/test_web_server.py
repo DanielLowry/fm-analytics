@@ -653,17 +653,18 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertIn("in-position", body)
         self.assertIn("readiness", body)
         self.assertIn("other ten slots are", body)
-        self.assertIn("Squad-fit score", body)
+        self.assertIn("Tactic score", body)
         self.assertIn("Player scores", body)
         self.assertIn("Score details", body)
-        self.assertIn("only uses the selected players", body)
+        self.assertIn("if every player score rises by 2%", body)
+        self.assertIn("tactic-balance factor", body)
 
     def test_tactic_checks_page_lists_player_independent_failures(self) -> None:
         status, body = self._get("/tactic-checks")
 
         self.assertEqual(status, 200)
         self.assertIn("Experimental, player-independent checks", body)
-        self.assertIn("do not affect tactic rankings", body)
+        self.assertIn("does affect tactic rankings", body)
         self.assertIn("Fluid Counter 4-1-4-1", body)
         self.assertIn("Failing combination", body)
         self.assertIn("Forward threat: roles provide 1.4; standard is 1.5", body)
@@ -679,7 +680,7 @@ class TacticsAndDepthPageTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertIn("Selected roles miss a structural check", body)
-        self.assertIn("does not affect the squad-fit score", body)
+        self.assertIn("reduces the tactic-balance factor", body)
         self.assertIn(f"/tactic-checks#{evaluation.tactic.key}", body)
 
     def test_tactic_detail_justifies_the_shape_and_every_slot(self) -> None:

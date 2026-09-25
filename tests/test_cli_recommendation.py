@@ -68,7 +68,7 @@ class RecommendationCliTests(unittest.TestCase):
         self.assertEqual(status, 0)
         self.assertIn("Starting XI", output.getvalue())
         self.assertIn("Attribute coverage: complete", output.getvalue())
-        self.assertIn("Fit: 65% XI mean + 35% weakest slot", output.getvalue())
+        self.assertIn("Fit: balanced player score × tactic-balance multiplier", output.getvalue())
         self.assertIn("Weak points", output.getvalue())
         self.assertIn("Squad depth across evaluated tactics", output.getvalue())
         source.read_snapshot.assert_called_once_with()

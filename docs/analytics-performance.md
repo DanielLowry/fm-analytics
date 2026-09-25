@@ -71,13 +71,12 @@ code:
 2. builds every legal player/slot/role candidate;
 3. enumerates the tactic's permitted role versions;
 4. finds the exact player assignment for each version; and
-5. combines XI quality, weakest slot, system coherence, instruction fit, and
-   opponent fit.
+5. applies the selected role version's tactic-balance multiplier to its
+   square-root-mean player score, while reporting opponent fit separately.
 
-The exact assignment is repeated at different minimum player-score thresholds
-because the objective is 65% mean XI score and 35% weakest-slot score. A normal
-assignment solver maximises a total; the threshold sweep is how the application
-also optimises the minimum without changing that objective.
+The square-root-mean objective needs one exact assignment solve per role version:
+maximising the finished score is equivalent to maximising the sum of each
+player score's square root.
 
 Relevant code:
 
@@ -371,12 +370,12 @@ snapshot, rather than simulated with a brittle CI timing test.
 6. Compare the complete sequential old and new bundles exactly before enabling
    process parallelism around the new core.
 
-### Phase 3 — re-profile
+### Phase 3 — re-profile after the scoring change
 
-Only after phases 1 and 2 should the weakest-slot threshold sweep be revisited.
-Changing or pruning that sweep is the highest correctness risk because it can
-alter both the optimum and deterministic ties. Cython, mypyc, Rust extensions,
-or a different optimizer are not justified by the current evidence.
+The `tactic-fit-v2` square-root mean removed the weakest-slot threshold sweep
+entirely while keeping the assignment problem exact. Re-run this profile before
+choosing further optimisation work; Cython, mypyc, Rust extensions, or a
+different optimizer are not justified by the superseded measurements above.
 
 ## Verification gate
 
