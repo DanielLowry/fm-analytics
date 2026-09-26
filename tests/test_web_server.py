@@ -6,8 +6,9 @@ import unittest
 from dataclasses import replace
 from http.client import HTTPConnection
 from pathlib import Path
+from unittest.mock import patch
 
-from fm_analytics.analytics import MVP_CATALOGUE
+from fm_analytics.analytics import AXIS_DEFINITIONS, MVP_CATALOGUE, OpponentProfile
 from fm_analytics.cli import load_fixture
 from fm_analytics.domain import AttributeObservation, Visibility
 from fm_analytics.reporting import required_role_attributes
@@ -234,6 +235,36 @@ class SquadWebServerTests(unittest.TestCase):
             self.assertIn("Substitution coverage", body)
             coverage = body.split("Substitution coverage", 1)[1].split("</details>", 1)[0]
             self.assertEqual(coverage.count("coverage-card"), 11)
+
+    def test_matchday_bench_is_numbered_with_reserve_goalkeeper_first(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture_path = _write_complete_fixture(Path(directory))
+            game, squad = load_fixture(fixture_path)
+            backup = replace(
+                squad.players[0],
+                id="backup-goalkeeper",
+                name="Backup Goalkeeper",
+                attributes={
+                    name: AttributeObservation(Visibility.KNOWN, value=9)
+                    for name in required_role_attributes()
+                },
+            )
+            document = {
+                "game": game.to_dict(),
+                "squad": replace(squad, players=squad.players + (backup,)).to_dict(),
+            }
+            fixture_path.write_text(json.dumps(document), encoding="utf-8")
+            port = self._serve(fixture_path)
+
+            status, body = self._get(port, "/tactics/balanced_442")
+
+            self.assertEqual(status, 200)
+            self.assertIn("Take players from the top", body)
+            self.assertIn("<th>Priority</th>", body)
+            self.assertIn("<td><b>1</b></td>", body)
+            self.assertIn("Backup Goalkeeper", body)
+            self.assertIn("Reserve goalkeeper", body)
+            self.assertNotIn("No eligible reserve goalkeeper", body)
 
     def test_unknown_tactic_detail_is_not_found(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -691,6 +722,54 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         # Owned players' attributes are exact, so scores collapse to one number.
         self.assertNotIn(" / ", body.split("Compare tactics")[1].split("</table>")[0])
 
+    def test_tactics_page_renders_every_opponent_slider(self) -> None:
+        status, body = self._get("/tactics")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Opponent profile", body)
+        self.assertEqual(body.count("type='range'"), len(AXIS_DEFINITIONS))
+        for axis in AXIS_DEFINITIONS:
+            self.assertIn(f"name='opp_{axis.key}'", body)
+            self.assertIn(html.escape(axis.label), body)
+        self.assertIn("min='-2' max='2' step='1' value='0'", body)
+
+    def test_opponent_profile_shows_neutral_deltas_and_survives_drill_down(self) -> None:
+        query = "opp_quality=2&opp_pace_in_behind=2"
+        status, body = self._get(f"/tactics?{query}")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Active opponent assumptions", body)
+        self.assertIn("Quality: Much stronger than us", body)
+        self.assertIn("Pace in behind: Very fast", body)
+        self.assertIn("Change vs neutral", body)
+        self.assertIn("Opponent fit", body)
+        self.assertIn("Recommended for this opponent", body)
+        escaped_query = "opp_quality=2&amp;opp_pace_in_behind=2"
+        self.assertIn(escaped_query, body)
+
+        status, detail = self._get(f"/tactics/balanced_442?{query}")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Opponent profile:", detail)
+        self.assertIn("Opponent fit", detail)
+        self.assertIn(f"href='/tactics?{escaped_query}'", detail)
+        self.assertEqual(detail.count("type='range'"), len(AXIS_DEFINITIONS))
+        self.assertIn("action='/tactics/balanced_442'", detail)
+        self.assertIn(
+            "href='/tactics/balanced_442'>Reset to neutral</a>", detail
+        )
+
+        status, aerial_only = self._get("/tactics?opp_aerial_threat=2")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Player emphasis only; no system check", aerial_only)
+
+    def test_invalid_opponent_slider_is_a_bad_request(self) -> None:
+        status, body = self._get("/tactics?opp_quality=3")
+
+        self.assertEqual(status, 400)
+        self.assertIn("between -2 and 2", body)
+
     def test_tactic_detail_explains_each_selection_and_score_layer(self) -> None:
         status, body = self._get("/tactics/balanced_442")
 
@@ -853,6 +932,34 @@ class CachingTests(unittest.TestCase):
         # There is no good snapshot to preserve after a first-read failure, so
         # keep trying rather than trapping the UI behind a timed error cache.
         self.assertEqual(calls["count"], 2)
+
+    def test_recommendation_cache_is_keyed_by_opponent_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture_path = _write_complete_fixture(Path(directory))
+            server = SquadWebServer(("127.0.0.1", 0), fixture_provider(fixture_path))
+            self.addCleanup(server.server_close)
+            neutral_result, aerial_result = object(), object()
+            profiles = []
+
+            def build(_game, _squad, *, policy, ranking_executor):
+                profiles.append(policy.opponent)
+                return neutral_result if policy.opponent.is_neutral else aerial_result
+
+            with patch(
+                "fm_analytics.web.server.build_recommendation_bundle",
+                side_effect=build,
+            ):
+                neutral = server.bundle()
+                aerial = server.bundle(OpponentProfile(aerial_threat=2))
+                neutral_again = server.bundle()
+
+            self.assertIs(neutral, neutral_result)
+            self.assertIs(aerial, aerial_result)
+            self.assertIs(neutral_again, neutral_result)
+            self.assertEqual(
+                profiles,
+                [OpponentProfile.neutral(), OpponentProfile(aerial_threat=2)],
+            )
 
 
 class BuildProviderTests(unittest.TestCase):

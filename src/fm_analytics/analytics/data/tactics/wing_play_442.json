@@ -6,7 +6,6 @@
   "instructions": [
     "Fairly Wide",
     "Slightly More Direct Passing",
-    "Hit Early Crosses",
     "Overlap Left",
     "Overlap Right",
     "Higher Tempo",
@@ -102,17 +101,16 @@
     "maximumCreators": 3
   },
   "style": "Wing Play",
-  "description": "A width-first 4-4-2 designed to stretch the opponent and generate repeated crossing opportunities for two forwards.",
-  "whyGood": "The wingers provide the primary delivery while the supporting full-backs create additional wide options. Two forwards give repeated targets for crosses, with the Target Man occupying centre-backs and the Advanced Forward attacking space around him.",
-  "whyThisShape": "A 4-4-2 that attacks down the flanks: wingers and overlapping full-backs supply crosses for a target man and a second striker. It is a direct, physical style that suits a strong pair of forwards.",
+  "description": "A width-first 4-4-2 designed to create repeated crossing opportunities through wingers and overlapping full-backs for two complementary forwards.",
+  "whyGood": "The wingers provide the primary one-v-one and crossing threat while overlapping full-backs create a second wide option. The Target Man occupies centre-backs and attacks deliveries, with the second striker exploiting the space around him.",
+  "whyThisShape": "A 4-4-2 built around sustained wide overloads rather than immediate early delivery: wingers stretch the pitch, support full-backs overlap, the DLP switches play toward the flanks, and the Target Man plus a mobile second striker attack the resulting service.",
   "whenToUse": "When you have two good wingers, full-backs with stamina, and a striker who wins headers; against teams that defend narrowly.",
   "whenNotToUse": "Against tall centre-backs who win the crosses, or when your full-backs cannot get back, since the flanks are left open.",
   "instructionRationale": {
     "Fairly Wide": "Stretches the opponent so the wingers have room to cross.",
     "Slightly More Direct Passing": "Gets the ball wide and forward quicker.",
-    "Hit Early Crosses": "The wingers cross early for the target man, rather than dribbling into the box.",
-    "Overlap Left": "The left full-back overlaps the winger to provide a second crossing option.",
-    "Overlap Right": "The right full-back overlaps the winger in the same way.",
+    "Overlap Left": "Encourages the left-sided combination to create a second wide runner before delivering.",
+    "Overlap Right": "Creates the same two-player wide threat on the right.",
     "Higher Tempo": "Moves the ball to the flanks quickly.",
     "Counter": "Attacks quickly when the ball is won."
   },
@@ -129,6 +127,10 @@
       },
       "positions": [
         "DC"
+      ],
+      "roles": [
+        "cd_defend",
+        "cd_cover"
       ]
     },
     {
@@ -141,11 +143,14 @@
       "positions": [
         "DL",
         "DR"
+      ],
+      "roles": [
+        "fb_support"
       ]
     },
     {
       "attributes": {
-        "crossing": 2,
+        "crossing": 3,
         "pace": 2,
         "acceleration": 1,
         "dribbling": 1
@@ -153,33 +158,88 @@
       "positions": [
         "ML",
         "MR"
+      ],
+      "roles": [
+        "winger_ml_mr_support"
       ]
     },
     {
       "attributes": {
+        "positioning": 2,
+        "teamwork": 1,
         "workRate": 1,
-        "teamwork": 1
+        "concentration": 1
       },
       "positions": [
         "MC"
+      ],
+      "roles": [
+        "cm_defend"
       ]
     },
     {
       "attributes": {
+        "passing": 2,
+        "vision": 2,
+        "firstTouch": 1,
+        "decisions": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attributes": {
+        "jumpingReach": 3,
+        "strength": 3,
+        "heading": 2,
+        "bravery": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "acceleration": 2,
+        "pace": 2,
         "offTheBall": 2,
         "anticipation": 2
       },
       "positions": [
         "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 3,
+        "anticipation": 3,
+        "acceleration": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
       ]
     }
   ],
   "keyRequirements": [
-    "Wingers with reliable crossing and enough pace to create separation",
-    "Full-backs with the stamina to support repeated wide attacks",
-    "An aerially strong Target Man",
-    "A mobile second striker",
-    "Central midfielders disciplined enough to protect the space behind the wide attacks"
+    "Wingers with reliable crossing and enough pace to create separation on the outside",
+    "Full-backs with the stamina and delivery to overlap repeatedly without destroying the defensive shape",
+    "A central midfielder disciplined enough to cover the wide attacks",
+    "A distributor capable of moving possession quickly toward the flanks",
+    "An aerially strong Target Man to make repeated crossing worthwhile",
+    "A mobile second striker who attacks the space around the Target Man"
   ],
   "tags": [
     "wing-play",
@@ -193,6 +253,9 @@
       "positions": [
         "DL",
         "DR"
+      ],
+      "roles": [
+        "fb_support"
       ]
     },
     {
@@ -201,6 +264,9 @@
       "positions": [
         "DL",
         "DR"
+      ],
+      "roles": [
+        "fb_support"
       ]
     },
     {
@@ -209,6 +275,9 @@
       "positions": [
         "ML",
         "MR"
+      ],
+      "roles": [
+        "winger_ml_mr_support"
       ]
     },
     {
@@ -217,16 +286,118 @@
       "positions": [
         "ML",
         "MR"
+      ],
+      "roles": [
+        "winger_ml_mr_support"
       ]
     },
     {
-      "attribute": "offTheBall",
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_defend"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "vision",
       "taperBelow": 7,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "jumpingReach",
+      "taperBelow": 9,
       "positions": [
         "ST"
       ],
       "roles": [
-        "af_attack",
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "strength",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "heading",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
         "p_attack"
       ]
     }

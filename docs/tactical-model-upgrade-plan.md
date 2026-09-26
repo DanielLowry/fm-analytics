@@ -777,12 +777,11 @@ squads is under 0.6 points and at most 2 starters. The levels were set from a wi
 scouting pool, not your own squad (its capture is unreadable), so treat them as a
 starting point and tune against what the tactic page shows.
 
-## 2j. The opponent as built, part one (workstream D, phase 6)
+## 2j. The opponent as built (workstream D, phase 6)
 
-Implemented: D1–D3 and D4 (the policy, the plumbing and the CLI flags). **Not**
-built: the `/tactics` sliders and the delta view (D5), and the bundle cache is
-not yet keyed on the profile — a prerequisite for D5, since it caches on time
-alone and would otherwise serve the previous opponent's answer.
+Implemented: D1–D5 — the policy, scoring plumbing, CLI flags, profile-keyed web
+cache, `/tactics` sliders and neutral comparison. D6, deriving a profile from
+manager-visible opposition data, remains future work.
 
 `analytics/opponent.py` holds `OpponentProfile` — the six axes of §D1, each
 -2..+2 and 0 by default — and the declared effects, as one `OpponentAxis` entry
@@ -1221,21 +1220,22 @@ in `CLAUDE.md` holds automatically: the CLI gets `--opponent-<axis>` flags
 and the web gets sliders, both feeding the same policy into the same
 computation.
 
-`SquadWebServer.bundle()` currently takes no arguments and caches on time
-alone. It becomes keyed on the opponent profile, backed by a small LRU rather
-than a single slot, so flicking a slider back and forth is free.
+`SquadWebServer.bundle()` takes an opponent profile and caches by that profile,
+backed by a small LRU rather than a single slot, so flicking a slider back and
+forth is free.
 `_tactic_report_cache` already keys on `id(bundle)` and needs no change.
 
 ### D5. UI
 
-Sliders on `/tactics` as a plain GET form (`?opp_aerial=1&opp_line=-2&…`):
-the page stays read-only, bookmarkable, shareable, and works without JS.
+Six sliders are on `/tactics` as a plain GET form
+(`?opp_aerial_threat=1&opp_defensive_line=-2&…`): the page stays read-only,
+bookmarkable, shareable, and works without JS.
 
-The feature that makes it worth having is a **delta view** — for each tactic,
-its rank and score against this opponent versus neutral, so the page answers
+The **delta view** shows each tactic's rank and score against this opponent
+versus neutral, so the page answers
 "what changes about my thinking against a deep block" rather than just
-re-sorting silently. Plus a short "because" line naming the axis that moved
-it, and a reset-to-neutral control.
+re-sorting silently. An active-profile summary names the assumptions, opponent
+fit stays a separate advisory result, and a reset returns to neutral.
 
 Confidence framing matters: this is the manager's own estimate of the
 opponent, so the page should say so plainly and not present the opponent-fit
@@ -1313,10 +1313,10 @@ should know it is also the performance lever.
    feature specifically: emphasis is position-scoped, so a neutral run and an
    opponent run differ only in the re-weighted positions and share the rest.
    That is what makes D5's neutral-versus-opponent delta view affordable.
-2. **Cache bundles by opponent profile** (a small LRU, not one slot). This is
-   *also a correctness requirement* for D5, not only an optimisation — see §D4.
-   It is what makes comparing a few opponent archetypes, which is the actual use
-   case, instant after the first look at each.
+2. **Cache bundles by opponent profile** (built as a small LRU, not one slot).
+   This is *also a correctness requirement* for D5, not only an optimisation —
+   see §D4. It makes comparing a few opponent archetypes, which is the actual
+   use case, instant after the first look at each.
 3. **Cheap and unglamorous: `round()` is called 1.7 million times and costs
    about 8% of the run.** Rounding inside the solver's inner loop is the bulk of
    it.
@@ -1381,8 +1381,8 @@ uv run python tools/benchmark_joint_optimizer.py --stress
 A slider move changes attribute weights, which invalidates every role score, so
 **there is no incremental update — a new setting is a full recompute.** Mitigations
 1 and 2 are what make that acceptable: each archetype costs once, and revisiting
-it is free. Performance is therefore not a blocker for D5; the cache in
-mitigation 2 is, because of correctness.
+it is free. D5 uses the profile-keyed cache in mitigation 2 so a previous
+opponent's bundle can never be served for a new profile.
 
 ### 7.2 Tests
 
@@ -1417,7 +1417,7 @@ Ordered so that nothing is tuned on top of a known-broken baseline.
 | 3 — done (40 tactics, 65/65 roles) | A6 expand to 40+, with B2 justifications authored alongside (31 now; see §2d) | Now safe: the load-time invariants from phase 1 catch a mis-authored tactic. |
 | 4 — partly done | B3 surface justifications (done for the existing 25; better shortfall messages still to do) | The manager can now read why, which is also how you review phases 1–3. |
 | 5 — done | C1–C4 per-tactic attribute emphasis (see §2f) | Needs a correct system model and a settled tactic list. |
-| 6 — partly done | D1–D4 done, CLI included (see §2j); `/tactics` sliders and the delta view still to do, and the bundle cache must be keyed on the profile first | Reuses C3's emphasis mechanism; last per the roadmap's ordering advice. |
+| 6 — done | D1–D5 done, including CLI, `/tactics` sliders, neutral deltas and the profile-keyed LRU (see §2j); automatic opponent derivation remains D6/Phase 08 | Reuses C3's emphasis mechanism; last per the roadmap's ordering advice. |
 | 7 | 7.1 performance pass and re-benchmark | After the catalogue and scoring have stopped moving. Re-baseline first: §1.7's figures do not reproduce (§2k). |
 
 Phase 0 is a pure refactor and should land on its own, proven lossless by the equality check in §2.9 — no football judgement changes in that commit.

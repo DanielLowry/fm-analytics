@@ -19,6 +19,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections import OrderedDict
 from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -28,6 +29,7 @@ from urllib.parse import parse_qs, urlparse
 
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
+    OpponentProfile,
     ScoutRecommendation,
     ScoutingFilters,
     TacticDefinition,
@@ -42,6 +44,7 @@ from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.domain import SourceHealth, Squad
 from fm_analytics.reporting import (
     RecommendationBundle,
+    RecommendationPolicy,
     TacticMatchdayReport,
     build_recommendation_bundle,
     build_tactic_matchday_report,
@@ -98,6 +101,7 @@ class SquadWebServer(ThreadingHTTPServer):
     """
 
     allow_reuse_address = True
+    _MAX_BUNDLE_PROFILES = 8
 
     def __init__(
         self,
@@ -121,9 +125,13 @@ class SquadWebServer(ThreadingHTTPServer):
         self._read_at = 0.0
         self._read_result: tuple[object, object] | None = None
         self._read_error: Exception | None = None
-        self._bundle_at = 0.0
-        self._bundle_result: RecommendationBundle | None = None
-        self._bundle_error: Exception | None = None
+        # A recommendation is immutable for the captured squad, but opponent
+        # controls can ask for several different analyses of that same
+        # snapshot. Keep a small LRU so moving a slider back and forth is
+        # cheap without allowing arbitrary query strings to grow memory.
+        self._bundle_results: OrderedDict[OpponentProfile, RecommendationBundle] = (
+            OrderedDict()
+        )
         self._tactic_report_cache: dict[tuple[int, str, int | None], TacticMatchdayReport] = {}
         self._snapshot_at: datetime | None = None
         self._refreshing = False
@@ -165,10 +173,14 @@ class SquadWebServer(ThreadingHTTPServer):
             self._read_result, self._read_error, self._read_at = result, None, time.monotonic()
         return result
 
-    def bundle(self) -> RecommendationBundle:
+    def bundle(
+        self, opponent: OpponentProfile = OpponentProfile.neutral()
+    ) -> RecommendationBundle:
         with self._lock:
-            if self._bundle_result is not None:
-                return self._bundle_result
+            cached = self._bundle_results.get(opponent)
+            if cached is not None:
+                self._bundle_results.move_to_end(opponent)
+                return cached
         game, squad = self.read()
         try:
             validate_recommendation_snapshot(game, squad)
@@ -178,16 +190,26 @@ class SquadWebServer(ThreadingHTTPServer):
                     "see the Data page for exactly what is missing."
                 )
             built = build_recommendation_bundle(
-                game, squad, ranking_executor=self.ranking_executor
+                game,
+                squad,
+                policy=RecommendationPolicy(opponent=opponent),
+                ranking_executor=self.ranking_executor,
             )
-        except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
-            with self._lock:
-                self._bundle_result, self._bundle_error, self._bundle_at = None, exc, time.monotonic()
+        except (BridgeSourceError, OSError, ValueError, KeyError):
             raise
         with self._lock:
-            self._bundle_result, self._bundle_error, self._bundle_at = built, None, time.monotonic()
-            self._snapshot_at = datetime.now(timezone.utc)
-            self._tactic_report_cache.clear()
+            self._bundle_results[opponent] = built
+            self._bundle_results.move_to_end(opponent)
+            while len(self._bundle_results) > self._MAX_BUNDLE_PROFILES:
+                _evicted_profile, evicted_bundle = self._bundle_results.popitem(last=False)
+                evicted_id = id(evicted_bundle)
+                self._tactic_report_cache = {
+                    key: report
+                    for key, report in self._tactic_report_cache.items()
+                    if key[0] != evicted_id
+                }
+            if self._snapshot_at is None:
+                self._snapshot_at = datetime.now(timezone.utc)
         return built
 
     def request_refresh(self) -> bool:
@@ -206,7 +228,10 @@ class SquadWebServer(ThreadingHTTPServer):
             if not has_complete_role_attributes(squad):
                 raise ValueError("This source has not supplied every role-scoring attribute yet.")
             built = build_recommendation_bundle(
-                game, squad, ranking_executor=self.ranking_executor
+                game,
+                squad,
+                policy=RecommendationPolicy(opponent=OpponentProfile.neutral()),
+                ranking_executor=self.ranking_executor,
             )
         except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
             with self._lock:
@@ -214,7 +239,7 @@ class SquadWebServer(ThreadingHTTPServer):
             return
         with self._lock:
             self._read_result, self._read_error, self._read_at = (game, squad), None, time.monotonic()
-            self._bundle_result, self._bundle_error, self._bundle_at = built, None, time.monotonic()
+            self._bundle_results = OrderedDict(((OpponentProfile.neutral(), built),))
             self._snapshot_at = datetime.now(timezone.utc)
             self._tactic_report_cache.clear()
             self._refreshing = False
@@ -288,10 +313,14 @@ class SquadWebServer(ThreadingHTTPServer):
         super().server_close()
 
     def tactic_report(
-        self, tactic_key: str, *, bench_size: int | None = None
+        self,
+        tactic_key: str,
+        *,
+        bench_size: int | None = None,
+        opponent: OpponentProfile = OpponentProfile.neutral(),
     ) -> TacticMatchdayReport:
         """Return a cached drill-down without bloating the overview bundle."""
-        bundle = self.bundle()
+        bundle = self.bundle(opponent)
         cache_key = (id(bundle), tactic_key, bench_size)
         with self._lock:
             cached = self._tactic_report_cache.get(cache_key)

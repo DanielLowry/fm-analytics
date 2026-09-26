@@ -186,7 +186,7 @@ expected match effectiveness =
 This should capture the cost of changing shape or instructions frequently while
 preserving the ability to compare the underlying tactical designs fairly.
 
-### 9. Opponent-specific tactical evaluation — **partly implemented**
+### 9. Opponent-specific tactical evaluation — **manual profile implemented**
 
 A **manager-set** opponent now exists: six sliders (`OpponentProfile` in
 `analytics/opponent.py`), each -2..+2, which shift attribute emphasis by
@@ -198,9 +198,10 @@ ranking, XI choice, bench, substitutions, depth and weaknesses. See
 [tactical-model-upgrade-plan.md](tactical-model-upgrade-plan.md) for what was
 built and the five deviations from the original design.
 
-A manager can set it today from the CLI (`--opponent-<axis>`, one flag per
-axis). Still to do here: the `/tactics` sliders and the rank-delta view that
-says what changed versus neutral.
+A manager can set it from the CLI (`--opponent-<axis>`, one flag per axis) or
+from six bookmarkable sliders on `/tactics`. The web view reports rank and
+score changes versus neutral, the separate opponent-fit check, and carries the
+profile into each tactic drill-down.
 Deriving the profile from opposition data rather than a slider is Phase 08/D6
 and is deliberately out of scope — `OpponentProfile` is the interface an
 automatic version would substitute into without touching scoring.

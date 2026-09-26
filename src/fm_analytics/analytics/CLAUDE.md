@@ -226,11 +226,10 @@ a back three") would need its own mechanism rather than being forced into -2..+2
 `fm-analytics` exposes one `--opponent-<axis>` flag per axis, generated from
 `AXIS_DEFINITIONS`, so a new slider gets a flag with no change in `cli.py`.
 
-Not built yet: the `/tactics` sliders and the delta view (plan D5). **Before
-building them, `SquadWebServer.bundle()` must be keyed on the profile** — it
-caches on time alone today, so a slider would serve the previous opponent's
-answer for the length of the TTL. That is a correctness fix, not an
-optimisation.
+The `/tactics` page exposes the same axes as bookmarkable GET sliders and shows
+rank/score changes against neutral plus the separate opponent-fit result.
+`SquadWebServer.bundle()` is keyed by `OpponentProfile` and bounded by a small
+LRU; tactic drill-down links preserve the profile and use the same bundle.
 
 One presentation trap the CLI already handles: an axis with emphasis but no
 floors (`aerial_threat`) changes who is picked while leaving opponent fit

@@ -214,6 +214,19 @@ _STYLE = """
   form.filters input, form.filters select { min-width: 0; padding: 0.35rem; border: 1px solid #bbc3cc; border-radius: 0.25rem; background: white; }
   form.filters .check { display: flex; align-items: end; gap: 0.35rem; color: #1a1a1a; }
   form.filters button { align-self: end; padding: 0.45rem 0.65rem; border: 0; border-radius: 0.25rem; background: #1a2b3c; color: white; cursor: pointer; }
+  .opponent-panel { margin: 1rem 0 1.5rem; padding: 0.9rem 1rem 1rem; border: 1px solid #d8dee5; border-radius: 0.4rem; background: #f5f7f9; }
+  .opponent-panel h2 { margin-top: 0; }
+  form.opponent-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.85rem 1.25rem; }
+  .opponent-slider { display: grid; gap: 0.35rem; }
+  .opponent-slider > span:first-child { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.85rem; }
+  .opponent-slider output { color: #566; text-align: right; }
+  .opponent-range { display: grid; grid-template-columns: minmax(80px, 1fr) minmax(120px, 1.5fr) minmax(80px, 1fr); align-items: center; gap: 0.4rem; }
+  .opponent-range small:last-child { text-align: right; }
+  .opponent-range input { width: 100%; accent-color: #1a2b3c; }
+  .opponent-actions { grid-column: 1 / -1; display: flex; align-items: center; gap: 0.65rem; }
+  .opponent-actions button { padding: 0.45rem 0.7rem; border: 0; border-radius: 0.25rem; background: #1a2b3c; color: white; cursor: pointer; }
+  .button-link.secondary { background: #e1e6ea; color: #1a2b3c; }
+  .opponent-summary { margin: 0.75rem 0 1rem; padding: 0.75rem 0.9rem; border-left: 4px solid #5c849f; background: #eef3f7; border-radius: 0.3rem; line-height: 1.5; }
   form.refresh { margin: 0.75rem 0; display: flex; align-items: center; gap: 0.65rem; }
   form.refresh button { padding: 0.45rem 0.65rem; border: 0; border-radius: 0.25rem; background: #1a2b3c; color: white; cursor: pointer; }
   form.refresh button.danger { background: #8a2b12; }
@@ -289,7 +302,8 @@ _STYLE = """
   .role-combination { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.55rem 0; }
   .role-combination span { padding: 0.2rem 0.45rem; background: #eef1f4; border-radius: 0.25rem; font-size: 0.78rem; }
   .check-failures { margin: 0.3rem 0 0.4rem; padding-left: 1.2rem; color: #713900; font-size: 0.86rem; }
-  @media (max-width: 600px) { .score-summary { grid-template-columns: 1fr; } .overall-score { border-right: 0; border-bottom: 1px solid #dfe3e7; padding: 0 0 0.75rem; } }
+  @media (max-width: 700px) { form.opponent-form { grid-template-columns: 1fr; } }
+  @media (max-width: 600px) { .score-summary { grid-template-columns: 1fr; } .overall-score { border-right: 0; border-bottom: 1px solid #dfe3e7; padding: 0 0 0.75rem; } .opponent-range { grid-template-columns: 1fr; } .opponent-range small:last-child { text-align: left; } }
   tr.explanation-row td { padding: 0 0.6rem 0.55rem; background: #fcfcfc; }
   tr.explanation-row details { margin: 0; }
   .score-path { line-height: 1.8; }
