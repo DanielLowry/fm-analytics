@@ -78,7 +78,10 @@ class FridaAttributeSweepTests(unittest.TestCase):
         self.assertIn('"context": "0x12345"', source)
         self.assertIn('"address": "0x1000"', source)
         self.assertIn("readByteArray(2)", source)
+        self.assertIn("unique-message-pump-thread", source)
+        self.assertNotIn("no dominant FM UI thread was found", source)
         self.assertNotIn("__CONFIG__", source)
+        self.assertNotIn("__UI_THREAD_SELECTOR__", source)
         self.assertNotIn("Interceptor.replace", source)
 
     def test_agent_never_reads_more_than_the_two_visible_bytes(self):
@@ -105,7 +108,12 @@ class FridaAttributeSweepTests(unittest.TestCase):
     def test_extract_collects_players_and_releases_session(self):
         device = FakeDevice([
             {"kind": "ready", "people": 2},
-            {"kind": "thread", "thread": 372, "sample": {"372": 5000, "356": 100}},
+            {
+                "kind": "thread", "thread": 372,
+                "sample": {"372": 5000, "356": 100},
+                "pumpSample": {"372": {"PeekMessageW": 60}},
+                "selection": "unique-message-pump-thread",
+            },
             {"kind": "players", "players": [
                 {"id": "1", "error": None, "attributes": {"aerialReach": {"lower": 15, "upper": 15}}},
             ]},
@@ -118,6 +126,8 @@ class FridaAttributeSweepTests(unittest.TestCase):
         self.assertTrue(result["attached"])
         self.assertTrue(result["agentReady"])
         self.assertEqual(result["thread"]["id"], 372)
+        self.assertEqual(result["thread"]["selection"], "unique-message-pump-thread")
+        self.assertEqual(result["thread"]["pumpSample"]["372"]["PeekMessageW"], 60)
         self.assertEqual(result["players"][0]["id"], "1")
         self.assertEqual(result["agentErrors"], [])
         self.assertTrue(result["scriptUnloaded"])

@@ -48,6 +48,10 @@ from tools.fm20_discoverability_cold_query import (
 )
 from tools.fm20_discoverability_manager_builder import _live_context
 from tools.fm20_frida_trace import FridaTraceError, preflight, process_alive
+from tools.fm20_frida_ui_thread import (
+    UI_THREAD_SELECTOR_SOURCE,
+    thread_selection_config,
+)
 from tools.fm20_linux_probe import ProbeError, read_exact
 from tools.fm20_linux_probe_runtime import choose_pid
 
@@ -79,17 +83,6 @@ def _positive_address(value: int, label: str) -> None:
         raise DiscoverabilityError(f"{label} must be a positive address")
 
 
-# Windows message-pump exports, in preference order. FM's UI thread returns to
-# its message loop between units of work, so a hook here runs the builder at a
-# resting point FM itself chose. `QueryPerformanceCounter` is a timing call FM
-# makes *while* doing work -- it identifies the UI thread well but says nothing
-# about what that thread is in the middle of, which is the assumption
-# `docs/property-discovery-playbook.md` records as "at an idle point" and which
-# does not follow. Kept last as a fallback, and always reported.
-RESTING_POINT_EXPORTS = ("GetMessageW", "GetMessageA", "PeekMessageW", "PeekMessageA")
-THREAD_SAMPLE_EXPORT = "QueryPerformanceCounter"
-
-
 def builder_agent_source(module_base: str, arguments: tuple[int, int, int]) -> str:
     """Build one UI-thread invocation of the proven search-source builder.
 
@@ -102,66 +95,31 @@ def builder_agent_source(module_base: str, arguments: tuple[int, int, int]) -> s
     source, manager_interface, team = arguments
     for value, label in ((source, "source"), (manager_interface, "manager interface"), (team, "team")):
         _positive_address(value, label)
-    config = json.dumps({
+    config = {
         "moduleBase": module_base,
         "builderRva": BUILDER_RVA,
         "source": hex(source),
         "managerInterface": hex(manager_interface),
         "team": hex(team),
-        "threadSampleMs": 1000,
-        "restingPointExports": list(RESTING_POINT_EXPORTS),
-        "threadSampleExport": THREAD_SAMPLE_EXPORT,
-    })
-    return f"""
+        **thread_selection_config(),
+    }
+    template = r"""
 'use strict';
-const config = {config};
+const config = __CONFIG__;
 const fm = Process.getModuleByName('fm.exe');
 if (!fm.base.equals(ptr(config.moduleBase))) throw new Error('FM module base differs from preflight');
 const builder = new NativeFunction(fm.base.add(config.builderRva), 'uint64', ['pointer', 'pointer', 'pointer']);
-function findRestingPoint() {{
-  for (const name of config.restingPointExports) {{
-    const address = Module.findGlobalExportByName(name);
-    if (address !== null) return {{name, address}};
-  }}
-  return null;
-}}
-function selectUiThread(run) {{
-  const timing = Module.findGlobalExportByName(config.threadSampleExport);
-  if (timing === null) throw new Error(config.threadSampleExport + ' export not found');
-  const sample = {{}};
-  const sampler = Interceptor.attach(timing, {{onEnter() {{
-    const id = Process.getCurrentThreadId(); sample[id] = (sample[id] || 0) + 1;
-  }}}});
-  setTimeout(() => {{
-    sampler.detach();
-    const ranked = Object.entries(sample).sort((a, b) => b[1] - a[1]);
-    if (ranked.length === 0 || (ranked.length > 1 && ranked[0][1] < ranked[1][1] * 5)) {{
-      send({{kind: 'error', error: 'no dominant FM UI thread was found'}}); return;
-    }}
-    const thread = Number(ranked[0][0]);
-    // Prefer the message loop. Fall back to the timing export only if FM
-    // exposes no message pump at all, and say which one was used either way.
-    const resting = findRestingPoint();
-    const hook = resting === null
-      ? {{name: config.threadSampleExport, address: timing}} : resting;
-    send({{kind: 'thread', thread, sample, hook: hook.name,
-      restingPoint: resting !== null}});
-    let state = 'armed';
-    const runner = Interceptor.attach(hook.address, {{onEnter() {{
-      if (state !== 'armed' || Process.getCurrentThreadId() !== thread) return;
-      state = 'running';
-      try {{ run(); }} catch (error) {{ send({{kind: 'error', error: String(error)}}); }}
-      state = 'done';
-      setTimeout(() => {{ runner.detach(); send({{kind: 'finished'}}); }}, 0);
-    }}}});
-  }}, config.threadSampleMs);
-}}
-send({{kind: 'ready', moduleBase: fm.base.toString()}});
-selectUiThread(() => {{
+__UI_THREAD_SELECTOR__
+send({kind: 'ready', moduleBase: fm.base.toString()});
+selectUiThread(() => {
   const result = builder(ptr(config.source), ptr(config.managerInterface), ptr(config.team));
-  send({{kind: 'builder-result', returnValue: result.toString()}});
-}});
+  send({kind: 'builder-result', returnValue: result.toString()});
+});
 """
+    return (
+        template.replace("__CONFIG__", json.dumps(config))
+        .replace("__UI_THREAD_SELECTOR__", UI_THREAD_SELECTOR_SOURCE)
+    )
 
 
 def filter_order(records: dict[int, int], own_ids: set[int]) -> tuple[list[dict[str, object]], int]:
@@ -377,8 +335,10 @@ def extract(
             result["thread"] = {
                 "id": payload.get("thread"),
                 "qpcSample": payload.get("sample"),
+                "pumpSample": payload.get("pumpSample"),
                 "hook": payload.get("hook"),
                 "restingPoint": payload.get("restingPoint"),
+                "selection": payload.get("selection"),
             }
         elif kind == "builder-result":
             result["builderReturnValue"] = payload.get("returnValue")
@@ -395,6 +355,8 @@ def extract(
             result["agentErrors"].append({
                 "kind": "agent-error", "description": payload.get("error"),
                 "errorType": payload.get("errorType"), "stack": payload.get("errorStack"),
+                "qpcSample": payload.get("qpcSample"),
+                "pumpSample": payload.get("pumpSample"),
             })
             finished.set()
         elif kind == "finished":

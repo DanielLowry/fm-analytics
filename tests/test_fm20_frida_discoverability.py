@@ -67,8 +67,11 @@ class FridaDiscoverabilityTests(unittest.TestCase):
         self.assertIn('"builderRva": 86472896', source)
         self.assertIn('"source": "0x1000"', source)
         self.assertIn("QueryPerformanceCounter", source)
+        self.assertIn("unique-message-pump-thread", source)
+        self.assertNotIn("no dominant FM UI thread was found", source)
         self.assertNotIn("Interceptor.replace", source)
         self.assertNotIn("__CONFIG__", source)
+        self.assertNotIn("__UI_THREAD_SELECTOR__", source)
 
     def test_filter_orders_expected_owned_exclusions_before_batch(self):
         rows, sample_count = filter_order(RECORDS, {1, 2, 3})

@@ -498,6 +498,12 @@ def capture_pool(
             raise ScoutingFeedError(
                 f"at most {MAX_HYDRATED_PLAYERS} explicit player IDs can be hydrated"
             )
+        # Footedness is a separate, supplemental property-getter call. Keep
+        # it for explicit single-player hydration, but do not make a bulk
+        # "Player Search and attributes" refresh perform a second native pass
+        # over every result. Most importantly, a footedness issue must never
+        # discard the visible attributes the primary pass already captured.
+        requested_footedness_hydration = requested_hydration
         active_search_match_ids: list[int] | None = None
         if pool_available:
             fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
@@ -655,16 +661,28 @@ def capture_pool(
         footedness_by_id = dict(prior_footedness_by_id)
         footedness_observed_at = dict(prior_footedness_observed_at)
         newly_hydrated_footedness: dict[int, str] = {}
-        for batch in _batches(requested_hydration, MAX_HYDRATED_PLAYERS):
-            newly_hydrated_footedness.update(hydrate_visible_footedness(
-                pid,
-                module_base=before.module_base,
-                player_ids=batch,
-                names=names,
-                records=records,
-                device=device,
-                target_pid=target_pid,
-            ))
+        footedness_error: str | None = None
+        for batch in _batches(requested_footedness_hydration, MAX_HYDRATED_PLAYERS):
+            try:
+                newly_hydrated_footedness.update(hydrate_visible_footedness(
+                    pid,
+                    module_base=before.module_base,
+                    player_ids=batch,
+                    names=names,
+                    records=records,
+                    device=device,
+                    target_pid=target_pid,
+                ))
+            except ScoutingFeedError as error:
+                footedness_error = str(error)
+                log_event(
+                    "scouting_footedness_hydration_failed",
+                    call_number=call_number,
+                    pid=pid,
+                    player_ids=list(batch),
+                    error=footedness_error,
+                )
+                break
         footedness_by_id.update(newly_hydrated_footedness)
         footedness_observed_at.update(dict.fromkeys(newly_hydrated_footedness, after.game_date))
         if requested_hydration:
@@ -672,6 +690,7 @@ def capture_pool(
                 "scouting_hydration_completed", call_number=call_number, pid=pid,
                 attributes_hydrated=len(newly_hydrated_attributes),
                 footedness_hydrated=len(newly_hydrated_footedness),
+                footedness_error=footedness_error,
             )
         current_knowledge = {player_id: player.knowledge for player_id, player in scouted_players.items()}
         # A player whose knowledge record has gone -- retired, sold abroad, a

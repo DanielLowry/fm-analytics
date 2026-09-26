@@ -481,7 +481,7 @@ class ActiveSearchHydrationTests(unittest.TestCase):
             (1, 3),
         )
 
-    def test_active_search_attributes_are_captured_in_bounded_batches(self) -> None:
+    def test_active_search_attributes_survive_supplemental_footedness_failure(self) -> None:
         import os
 
         player_ids = list(range(1, 131))
@@ -527,13 +527,15 @@ class ActiveSearchHydrationTests(unittest.TestCase):
             hydrated = stack.enter_context(mock.patch.object(
                 feed, "hydrate_visible_attributes", side_effect=hydrate
             ))
-            stack.enter_context(mock.patch.object(
-                feed, "hydrate_visible_footedness", return_value={}
+            footedness = stack.enter_context(mock.patch.object(
+                feed, "hydrate_visible_footedness",
+                side_effect=ScoutingFeedError("footedness timed out"),
             ))
-            stack.enter_context(mock.patch.object(feed, "log_event"))
+            events = stack.enter_context(mock.patch.object(feed, "log_event"))
 
             document = feed.capture_pool(
                 os.getpid(), remote_address="127.0.0.1:27042",
+                hydrate_player_ids=[1],
                 hydrate_active_search=True,
             )
 
@@ -546,6 +548,15 @@ class ActiveSearchHydrationTests(unittest.TestCase):
         self.assertEqual(document["source"]["transport"], "windows-frida-server")
         self.assertEqual(document["players"][0]["attributesObservedAt"], "2019-07-04")
         self.assertEqual(document["players"][0]["attributes"]["pace"]["maximum"], 14)
+        self.assertEqual(footedness.call_count, 1)
+        self.assertEqual(footedness.call_args.kwargs["player_ids"], (1,))
+        events.assert_any_call(
+            "scouting_footedness_hydration_failed",
+            call_number=mock.ANY,
+            pid=os.getpid(),
+            player_ids=[1],
+            error="footedness timed out",
+        )
 
 
 class ScoutedOnlyIdentityTests(unittest.TestCase):

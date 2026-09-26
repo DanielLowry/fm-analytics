@@ -85,7 +85,10 @@ class FridaPropertyTests(unittest.TestCase):
         self.assertIn('"address": "0x3000"', source)
         self.assertIn("footCategory(ratings[config.leftKey], ratings[config.rightKey])", source)
         self.assertIn("send({kind: 'players', players})", source)
+        self.assertIn("unique-message-pump-thread", source)
+        self.assertNotIn("no dominant FM UI thread was found", source)
         self.assertNotIn("__CONFIG__", source)
+        self.assertNotIn("__UI_THREAD_SELECTOR__", source)
         self.assertNotIn("Interceptor.replace", source)
         for payload_line in (line for line in source.splitlines() if "send(" in line):
             self.assertNotIn("ratings", payload_line)

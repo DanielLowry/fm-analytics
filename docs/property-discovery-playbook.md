@@ -96,9 +96,12 @@ other visible fields.
 `tools/fm20_frida_property.py` implements this; reuse it rather than writing
 another agent.
 
-- **Run FM's code on FM's thread.** Sample `QueryPerformanceCounter` calls per
-  thread for a second and take the dominant thread. That is FM's UI thread, so
-  no foreign thread touches the database.
+- **Run FM's code on FM's thread.** Sample the Windows message-pump exports
+  (`GetMessageW`/`PeekMessageW` and their ANSI variants) and use a uniquely
+  observed pump thread. This directly identifies the thread whose resting
+  point the call will use. If no pump call is observed, the older five-times
+  dominant `QueryPerformanceCounter` signal remains a fallback; if multiple
+  pump threads appear, that same independent signal must select one of them.
 - **Do the work at a resting point, not at any timing call.** This page used to
   say the timing hook was "FM's UI thread at an idle point". That does not
   follow, and it is the likeliest cause of saves that write and then fail to
@@ -111,8 +114,9 @@ another agent.
   back to the timing export only when no pump export is reachable, and reports
   which it used in its `thread` message. A capture whose `restingPoint` is
   false was timed the old way.
-- **Refuse to proceed if the thread is ambiguous.** No dominant thread means
-  stop, not guess.
+- **Refuse to proceed if the thread is ambiguous.** No unique pump thread and
+  no independently dominant QPC match means stop, not guess. Preserve both
+  samples in the capture report so a runtime-specific failure is diagnosable.
 - **Validate before calling.** Check the module base against preflight, check
   each object's vtable pointer, and check that every resolved virtual slot
   lands inside the FM module.

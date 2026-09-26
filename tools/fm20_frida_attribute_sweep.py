@@ -51,6 +51,10 @@ if __package__ in {None, ""}:
 from fm_analytics.bridge.visibility_result import decode_visible_bound_bytes
 from tools.fm20_cold_query_cache import CONTEXT_ROOT_RVA
 from tools.fm20_frida_trace import FridaTraceError, preflight, process_alive
+from tools.fm20_frida_ui_thread import (
+    UI_THREAD_SELECTOR_SOURCE,
+    thread_selection_config,
+)
 from tools.fm20_linux_probe import (
     FM20_4_4_STEAM,
     ProbeError,
@@ -65,17 +69,6 @@ SCHEMA_VERSION = 1
 MAX_PEOPLE = 64
 BUILDER_RVA = 0x15A4A90
 AGENT_TIMEOUT_SECONDS = 30.0
-
-# See `tools.fm20_frida_discoverability.RESTING_POINT_EXPORTS` -- the same
-# fix applies here: this agent's builder call is timed to whichever thread is
-# the dominant `QueryPerformanceCounter` caller, but *when* on that thread it
-# fires used to be "the next QPC call", not a point FM chose to be between
-# units of work. Preferring the message pump moved the same risk in the
-# Player Search pool rebuild; this hydration call carries the identical risk
-# and had not been fixed.
-RESTING_POINT_EXPORTS = ("GetMessageW", "GetMessageA", "PeekMessageW", "PeekMessageA")
-THREAD_SAMPLE_EXPORT = "QueryPerformanceCounter"
-
 
 class AttributeSweepError(RuntimeError):
     """A cold attribute sweep failed its bounded safety or evidence checks."""
@@ -184,50 +177,9 @@ function runOnce() {
   send({kind: 'players', players: rows});
 }
 
+__UI_THREAD_SELECTOR__
 send({kind: 'ready', moduleBase: fm.base.toString(), people: config.people.length});
-function findRestingPoint() {
-  for (const name of config.restingPointExports) {
-    const address = Module.findGlobalExportByName(name);
-    if (address !== null) return {name, address};
-  }
-  return null;
-}
-const timing = Module.findGlobalExportByName(config.threadSampleExport);
-if (timing === null) {
-  send({kind: 'error', error: config.threadSampleExport + ' export not found'});
-  throw new Error(config.threadSampleExport + ' export not found');
-}
-const sample = {};
-const sampler = Interceptor.attach(timing, {onEnter() {
-  const thread = Process.getCurrentThreadId();
-  sample[thread] = (sample[thread] || 0) + 1;
-}});
-setTimeout(() => {
-  sampler.detach();
-  const ranked = Object.entries(sample).sort((a, b) => b[1] - a[1]);
-  if (ranked.length === 0 || (ranked.length > 1 && ranked[0][1] < ranked[1][1] * 5)) {
-    send({kind: 'error', error: 'no dominant FM UI thread was found'});
-    return;
-  }
-  const thread = Number(ranked[0][0]);
-  // Prefer the message loop, the same fix as the pool builder's agent; fall
-  // back to the timing export only if FM exposes no message pump at all.
-  const resting = findRestingPoint();
-  const hook = resting === null ? {name: config.threadSampleExport, address: timing} : resting;
-  send({kind: 'thread', thread, sample, hook: hook.name, restingPoint: resting !== null});
-  let state = 'armed';
-  const runner = Interceptor.attach(hook.address, {onEnter() {
-    if (state !== 'armed' || Process.getCurrentThreadId() !== thread) return;
-    state = 'running';
-    try {
-      runOnce();
-    } catch (error) {
-      send({kind: 'error', error: String(error)});
-    }
-    state = 'done';
-    setTimeout(() => { runner.detach(); send({kind: 'finished'}); }, 0);
-  }});
-}, config.threadSampleMs);
+selectUiThread(runOnce);
 """
 
 
@@ -248,13 +200,14 @@ def build_agent_source(
         "moduleBase": module_base,
         "builderRva": BUILDER_RVA,
         "context": hex(context),
-        "threadSampleMs": 1000,
         "people": [{"id": person["id"], "address": person["interface"]} for person in people],
         "attributes": {name: DISPLAY_ATTRIBUTE_IDS[name] for name in attributes},
-        "restingPointExports": list(RESTING_POINT_EXPORTS),
-        "threadSampleExport": THREAD_SAMPLE_EXPORT,
+        **thread_selection_config(),
     }
-    return AGENT_TEMPLATE.replace("__CONFIG__", json.dumps(config))
+    return (
+        AGENT_TEMPLATE.replace("__CONFIG__", json.dumps(config))
+        .replace("__UI_THREAD_SELECTOR__", UI_THREAD_SELECTOR_SOURCE)
+    )
 
 
 def extract(device: Any, target_pid: int, source: str, *, timeout_seconds: float = AGENT_TIMEOUT_SECONDS) -> dict[str, Any]:
@@ -291,13 +244,20 @@ def extract(device: Any, target_pid: int, source: str, *, timeout_seconds: float
             result["thread"] = {
                 "id": payload.get("thread"),
                 "qpcSample": payload.get("sample"),
+                "pumpSample": payload.get("pumpSample"),
                 "hook": payload.get("hook"),
                 "restingPoint": payload.get("restingPoint"),
+                "selection": payload.get("selection"),
             }
         elif kind == "players":
             result["players"] = payload.get("players", [])
         elif kind == "error":
-            result["agentErrors"].append({"kind": "agent-error", "description": payload.get("error")})
+            result["agentErrors"].append({
+                "kind": "agent-error",
+                "description": payload.get("error"),
+                "qpcSample": payload.get("qpcSample"),
+                "pumpSample": payload.get("pumpSample"),
+            })
             finished.set()
         elif kind == "finished":
             finished.set()
