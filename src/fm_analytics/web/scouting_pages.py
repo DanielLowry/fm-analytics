@@ -116,30 +116,41 @@ class ScoutingPagesMixin:
             + "</select></label>"
             for key, values in facts.items()
         )
-        active_search_capture = (
-            "<section class='notice'><h3>Current FM Search attributes</h3>"
-            "<p>The normal refresh reads the player list and current scout reports. "
-            "To capture the attributes FM currently shows for unscouted Player Search "
-            "results, leave that search and its filters open in FM, then use this button.</p>"
-            "<form class='refresh' method='post' action='/scouting/refresh'>"
-            "<input type='hidden' name='hydrate_active_search' value='1'>"
-            "<button type='submit'>Capture current FM Search attributes</button>"
-            "<span class='muted'>Up to 256 active results, processed in bounded batches.</span>"
-            "</form><p class='warn'>This asks FM's own visibility builder for the values "
-            "it currently exposes. It runs code inside the live game, so save first.</p></section>"
-            if not filters.scouted_only else ""
-        )
+        if filters.scouted_only:
+            refresh_controls = (
+                "<form class='refresh' method='post' action='/scouting/refresh'>"
+                "<input type='hidden' name='return_view' value='scouted'>"
+                "<button type='submit'>Refresh scouted players</button>"
+                "<span class='muted'>Reads current scout reports and their visible "
+                "attributes from FM.</span></form>"
+            )
+        else:
+            refresh_controls = (
+                "<section class='notice'><h3>Refresh Player Search</h3>"
+                "<p>Leave the intended search and filters open in FM. This refreshes "
+                "the player list <b>and</b> captures the attributes FM currently shows "
+                "for every matching player.</p>"
+                "<form class='refresh' method='post' action='/scouting/refresh'>"
+                "<input type='hidden' name='hydrate_active_search' value='1'>"
+                "<input type='hidden' name='return_view' value='all'>"
+                "<button type='submit'>Refresh Player Search and attributes</button>"
+                "<span class='muted'>Up to 256 active results, processed in bounded batches.</span>"
+                "</form><p class='warn'>This asks FM's own visibility builder for the values "
+                "it currently exposes. It runs code inside the live game, so save first.</p>"
+                "<details><summary>Refresh the player list only</summary>"
+                "<p class='muted'>This read-only option updates identities and FM Search "
+                "matches but deliberately leaves unscouted attributes uncaptured.</p>"
+                "<form class='refresh' method='post' action='/scouting/refresh'>"
+                "<input type='hidden' name='return_view' value='all'>"
+                "<button type='submit'>Refresh list only</button></form></details></section>"
+            )
         body = (
             _scouting_tab_nav(query)
             + "<p>Only players in the manager-visible discovery feed are shown. "
             "Attribute-based role scores preserve their <b>floor / estimate / ceiling</b>; a player with "
             "no known role attributes is a reason to scout, not a claim that they are good.</p>"
             + _refresh_notice(_query_first(query, "refreshed"))
-            + "<form class='refresh' method='post' action='/scouting/refresh'>"
-            "<button type='submit'>Refresh scouting data</button>"
-            "<span class='muted'>Reads the current FM Player Search pool; this can take "
-            "a little while.</span></form>"
-            + active_search_capture
+            + refresh_controls
             + self._scouting_filters_form(
                 filters,
                 tactic_options,

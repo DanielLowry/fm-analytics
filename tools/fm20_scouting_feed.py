@@ -8,14 +8,16 @@ not replay FM's temporary search-form filters. It records derived non-owned
 position labels under the product owner's documented accepted short-term
 visibility gap, separately from manager-visible positions.
 ``--hydrate-player-id`` may additionally read only FM's visible attribute
-bounds for a small, already-discoverable subset.
+bounds for a small, already-discoverable subset. ``--hydrate-active-search``
+does the same for the current filtered Player Search result in batches.
 
-The resulting candidates intentionally have empty ``positions`` and
-``attributes`` until their corresponding manager-visible extractors have been
-proved for external players. The raw position capture stores its data as
+Candidates whose external attribute visibility was not requested intentionally
+have empty ``attributes`` and no ``attributesObservedAt``; consumers must call
+that state uncaptured, not claim that FM shows nothing. The raw position capture stores its data as
 ``rawPositions``, so the Scouting page can keep it off by default and require
 its own explicit accepted-gap checkbox before displaying or using it. The page
-renders all other unknowns as "Scout first" rather than manufacturing values.
+renders captured unknowns as "Scout first" and uncaptured values as "Capture
+first" rather than manufacturing either answer.
 """
 
 from __future__ import annotations
@@ -94,6 +96,24 @@ def _batches(values: Sequence[int], size: int) -> tuple[tuple[int, ...], ...]:
         tuple(values[start:start + size])
         for start in range(0, len(values), size)
     )
+
+
+def _active_search_hydration_ids(
+    matches: Sequence[int] | None, own_ids: set[int]
+) -> tuple[int, ...]:
+    if matches is None:
+        raise ScoutingFeedError(
+            "FM's current Player Search results could not be read. Open Player "
+            "Search, leave the intended filters applied, and try again."
+        )
+    external = tuple(sorted(set(matches) - own_ids))
+    if len(external) > MAX_ACTIVE_SEARCH_HYDRATED_PLAYERS:
+        raise ScoutingFeedError(
+            f"the active FM search has {len(external)} external players; narrow it "
+            f"to at most {MAX_ACTIVE_SEARCH_HYDRATED_PLAYERS} before capturing "
+            "visible attributes"
+        )
+    return external
 
 
 def hydrate_visible_attributes(
@@ -508,23 +528,11 @@ def capture_pool(
                 matched=None if active_search_match_ids is None else len(active_search_match_ids),
             )
             if hydrate_active_search:
-                if active_search_match_ids is None:
-                    raise ScoutingFeedError(
-                        "FM's current Player Search results could not be read. Open Player "
-                        "Search, leave the intended filters applied, and try again."
-                    )
-                active_search_hydration_ids = sorted(
-                    set(active_search_match_ids) - own_ids
+                active_search_hydration_ids = _active_search_hydration_ids(
+                    active_search_match_ids, own_ids
                 )
-                if len(active_search_hydration_ids) > MAX_ACTIVE_SEARCH_HYDRATED_PLAYERS:
-                    raise ScoutingFeedError(
-                        "the active FM search has "
-                        f"{len(active_search_hydration_ids)} external players; "
-                        f"narrow it to at most {MAX_ACTIVE_SEARCH_HYDRATED_PLAYERS} before "
-                        "capturing visible attributes"
-                    )
                 requested_hydration = tuple(dict.fromkeys(
-                    requested_hydration + tuple(active_search_hydration_ids)
+                    requested_hydration + active_search_hydration_ids
                 ))
             if set(records) != set(pool_ids):
                 raise ScoutingFeedError("rebuilt Player Search source records do not match its ID set")

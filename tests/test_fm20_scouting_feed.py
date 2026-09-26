@@ -468,6 +468,19 @@ class FeedProvenanceTests(unittest.TestCase):
 
 
 class ActiveSearchHydrationTests(unittest.TestCase):
+    def test_active_search_hydration_requires_a_readable_bounded_result(self) -> None:
+        with self.assertRaisesRegex(ScoutingFeedError, "could not be read"):
+            feed._active_search_hydration_ids(None, set())
+        with self.assertRaisesRegex(ScoutingFeedError, "narrow it"):
+            feed._active_search_hydration_ids(
+                range(feed.MAX_ACTIVE_SEARCH_HYDRATED_PLAYERS + 1), set()
+            )
+
+        self.assertEqual(
+            feed._active_search_hydration_ids([1, 2, 2, 3], {2}),
+            (1, 3),
+        )
+
     def test_active_search_attributes_are_captured_in_bounded_batches(self) -> None:
         import os
 
