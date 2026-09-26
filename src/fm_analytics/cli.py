@@ -11,6 +11,7 @@ from fm_analytics.bridge import LinuxProtonDataSource
 from fm_analytics.analytics import (
     AXIS_DEFINITIONS,
     BenchSelection,
+    FORMATION_DEFINITIONS,
     MVP_CATALOGUE,
     OpponentProfile,
     RecruitmentBrief,
@@ -110,6 +111,12 @@ def _add_opponent_arguments(parser: argparse.ArgumentParser) -> None:
         "is neutral and changes nothing). These are your judgement, not "
         "measurements: nothing in FM is read to set them.",
     )
+    group.add_argument(
+        "--opponent-formation",
+        choices=tuple(item.key for item in FORMATION_DEFINITIONS),
+        default="unknown",
+        help="Likely formation from your scouting report",
+    )
     for axis in AXIS_DEFINITIONS:
         group.add_argument(
             f"--opponent-{axis.key.replace('_', '-')}",
@@ -124,6 +131,7 @@ def _add_opponent_arguments(parser: argparse.ArgumentParser) -> None:
 
 def opponent_from_args(args: argparse.Namespace) -> OpponentProfile:
     return OpponentProfile(
+        formation=getattr(args, "opponent_formation", "unknown"),
         **{axis.key: getattr(args, f"opponent_{axis.key}", 0) for axis in AXIS_DEFINITIONS}
     )
 
@@ -230,12 +238,20 @@ def _opponent_lines(opponent: OpponentProfile) -> tuple[str, ...]:
     # The axis labels describe the -2/+2 extremes, so at one step they are
     # prefixed rather than reworded -- "leaning dominant", never the nonsense
     # that inflecting them produces ("much stronger than us, slightly").
-    settings = [
+    formation_labels = {item.key: item.label for item in FORMATION_DEFINITIONS}
+    settings = (
+        [f"  Likely formation: {formation_labels[opponent.formation]}"]
+        if opponent.formation != "unknown"
+        else []
+    )
+    settings.extend(
+        [
         f"  {axis.label}: {value:+d} "
         f"({'' if abs(value) == 2 else 'leaning '}{axis.high if value > 0 else axis.low})"
         for axis in AXIS_DEFINITIONS
         if (value := getattr(opponent, axis.key))
-    ]
+        ]
+    )
     # Some axes (aerial threat) only change who is picked and impose no
     # team-shape requirement. Say so, or the reader sets a slider, sees no
     # advisory check, and assumes it did nothing.

@@ -111,11 +111,14 @@ the Python analytics layer. FMBridge exposes facts, not role weights, tactical
 judgments, or candidate rankings.
 
 The joint tactic/XI evaluation takes one further, entirely manager-supplied
-input: an opponent profile of six -2..+2 estimates, which shifts attribute
-emphasis by position and imposes team-balance floors, and is reported as its own
-score component. It is never derived from the game — the manager sets it — and a
-neutral profile leaves every number unchanged. Tactic-free surfaces (squad
-roster, roles, scouting) deliberately ignore it.
+input: an opponent profile of a likely formation, nine -2..+2 summary estimates,
+and sparse -2..+2 observations for individual positions and attributes. It
+shifts attribute emphasis by position, imposes team-balance floors, and is
+reported as its own score component. Exact attribute observations replace an
+equivalent summary estimate instead of double-counting it. The profile is never
+derived from the game — the manager sets it — and a neutral profile leaves every
+number unchanged. Tactic-free surfaces (squad roster, roles, scouting)
+deliberately ignore it.
 
 External-player access has two gates. First, the player must belong to a
 verified manager-discoverable collection; the existence of an internal player

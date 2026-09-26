@@ -14,6 +14,7 @@ from fm_analytics.analytics.catalogue import MVP_CATALOGUE
 from fm_analytics.analytics.opponent import (
     AXES,
     AXIS_DEFINITIONS,
+    FORMATION_DEFINITIONS,
     EmphasisRule,
     FloorRule,
     OpponentAxis,
@@ -56,8 +57,17 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual([getattr(profile, axis) for axis in AXES], [0] * len(AXES))
         self.assertEqual(profile, OpponentProfile())
 
-    def test_there_are_six_axes(self) -> None:
-        self.assertEqual(len(AXES), 6)
+    def test_there_are_nine_scalar_axes(self) -> None:
+        self.assertEqual(len(AXES), 9)
+
+    def test_formation_is_categorical_and_part_of_the_profile(self) -> None:
+        profile = OpponentProfile(formation="442")
+
+        self.assertFalse(profile.is_neutral)
+        self.assertTrue(attribute_emphasis(profile))
+        self.assertTrue(system_floors(profile))
+        with self.assertRaisesRegex(ValueError, "unknown opponent formation"):
+            OpponentProfile(formation="4-4-3")
 
     def test_any_nonzero_axis_is_not_neutral(self) -> None:
         for axis in AXES:
@@ -97,7 +107,10 @@ class ExtensibilityTests(unittest.TestCase):
     """The guardrail that makes adding a slider a self-contained change."""
 
     def test_every_profile_field_has_exactly_one_axis_definition(self) -> None:
-        profile_fields = {field.name for field in fields(OpponentProfile)}
+        profile_fields = {
+            field.name for field in fields(OpponentProfile)
+            if field.name not in {"formation", "attribute_levels", "position_levels"}
+        }
         axis_keys = [axis.key for axis in AXIS_DEFINITIONS]
         self.assertEqual(profile_fields, set(axis_keys))
         self.assertEqual(len(axis_keys), len(set(axis_keys)), "duplicate axis key")
@@ -123,6 +136,12 @@ class ExtensibilityTests(unittest.TestCase):
             self.assertTrue(axis.high)
             self.assertNotEqual(axis.low, axis.high, axis.key)
 
+    def test_formation_definitions_have_unique_usable_keys(self) -> None:
+        keys = [formation.key for formation in FORMATION_DEFINITIONS]
+        self.assertEqual(len(keys), len(set(keys)))
+        self.assertEqual(keys[0], "unknown")
+        self.assertTrue(all(formation.label for formation in FORMATION_DEFINITIONS))
+
     def test_an_axis_needs_no_effects_to_be_valid(self) -> None:
         # aerial_threat has emphasis but no floors -- exercising that an axis
         # may declare only one kind of effect.
@@ -134,20 +153,20 @@ class ExtensibilityTests(unittest.TestCase):
 class DeclaredDataTests(unittest.TestCase):
     def test_every_emphasised_attribute_is_one_a_role_can_weight(self) -> None:
         known = required_role_attributes()
-        for axis in AXIS_DEFINITIONS:
-            for rule in axis.emphasis:
-                self.assertLessEqual(set(rule.attributes) - known, set(), (axis.key, rule))
+        for source in (*AXIS_DEFINITIONS, *FORMATION_DEFINITIONS):
+            for rule in source.emphasis:
+                self.assertLessEqual(set(rule.attributes) - known, set(), (source.key, rule))
 
     def test_every_emphasised_position_is_one_a_tactic_can_field(self) -> None:
-        for axis in AXIS_DEFINITIONS:
-            for rule in axis.emphasis:
-                self.assertLessEqual(set(rule.positions) - FIELDED_POSITIONS, set(), (axis.key, rule))
+        for source in (*AXIS_DEFINITIONS, *FORMATION_DEFINITIONS):
+            for rule in source.emphasis:
+                self.assertLessEqual(set(rule.positions) - FIELDED_POSITIONS, set(), (source.key, rule))
 
     def test_every_floor_dimension_is_a_known_system_dimension(self) -> None:
-        for axis in AXIS_DEFINITIONS:
-            for rule in axis.floors:
+        for source in (*AXIS_DEFINITIONS, *FORMATION_DEFINITIONS):
+            for rule in source.floors:
                 for floors in rule.floors:
-                    self.assertLessEqual(set(floors), set(SYSTEM_DIMENSIONS), axis.key)
+                    self.assertLessEqual(set(floors), set(SYSTEM_DIMENSIONS), source.key)
 
     def test_a_rule_with_no_reason_is_refused(self) -> None:
         with self.assertRaises(ValueError):

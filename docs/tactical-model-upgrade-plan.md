@@ -783,9 +783,12 @@ Implemented: D1–D5 — the policy, scoring plumbing, CLI flags, profile-keyed 
 cache, `/tactics` sliders and neutral comparison. D6, deriving a profile from
 manager-visible opposition data, remains future work.
 
-`analytics/opponent.py` holds `OpponentProfile` — the six axes of §D1, each
--2..+2 and 0 by default — and the declared effects, as one `OpponentAxis` entry
-per axis carrying its own labels, `EmphasisRule`s and `FloorRule`s.
+`analytics/opponent.py` holds `OpponentProfile` — a categorical likely formation,
+nine broad scalar axes, and sparse detailed position/attribute observations,
+all -2..+2 and 0 by default. Broad effects are declared as
+`OpponentFormation`/`OpponentAxis` entries; detailed responses live in
+`opponent_details.py`. An exact Pace, Dribbling, or Finishing observation
+replaces its equivalent broad slider so the same evidence is not counted twice.
 `assess_opponent_fit` scores the floors via a new shared
 `tactical_system.assess_demands`, which instruction fit now also uses, so the
 two cannot drift apart. Opponent fit is reported as an advisory assessment on
@@ -844,10 +847,10 @@ one-path rule holds by construction. Tactic-free pages never see it.
   At one step from neutral essentially every tactic can comply; at two steps the
   defensive floors exclude 4–7 attack-minded shapes, which is the point.
 
-**Adding a seventh slider** is two pure-data edits — a field on
+**Adding another scalar slider** is two pure-data edits — a field on
 `OpponentProfile` and its `OpponentAxis` entry — and a load-time check refuses
-to import if either half is missing. The shape suits another scalar axis; a
-categorical signal ("they play a back three") would need its own mechanism.
+to import if either half is missing. Formation uses the separate categorical
+`FORMATION_DEFINITIONS` mechanism.
 
 **A pre-existing bug this work found and fixed.** Deriving a tactic view twice
 applies its emphasis twice, because the deltas are recomputed from the unchanged
@@ -1164,7 +1167,8 @@ label them so, and show base vs emphasised weight where they differ.
 ### D1. Profile
 
 `src/fm_analytics/analytics/opponent.py`, holding a frozen `OpponentProfile`
-of six axes, each an integer −2…+2 defaulting to 0:
+with a categorical likely formation and nine scalar axes, each an integer
+−2…+2 defaulting to 0:
 
 | Axis | −2 | +2 |
 | --- | --- | --- |
@@ -1174,10 +1178,18 @@ of six axes, each an integer −2…+2 defaulting to 0:
 | `attacking_width` | central threat | wide threat |
 | `aerial_threat` | negligible | dominant |
 | `pace_in_behind` | slow | very fast |
+| `chance_creation` | creates very little | creates many chances |
+| `dribbling_quality` | poor dribblers | dangerous dribblers |
+| `finishing_quality` | wasteful finishers | clinical finishers |
 
-Six is a judgement call: enough to describe the scouting report you actually
-get, few enough to set in seconds before a match. `OpponentProfile.neutral()`
-is all zeros.
+Formation is selected from common reported shapes, including 4-4-2, 4-2-3-1,
+4-3-3 DM and back-three variants. `OpponentProfile.neutral()` is unknown
+formation with all scalar axes at zero and no detailed observations. Sparse
+position and attribute observations use the same −2…+2 scale, grouped as
+strengths and weaknesses in the web UI. They cover every fielded position and
+the Technical, Mental, Physical, and Goalkeeping attributes exposed by scout
+reports, including leadership even though it is evidence rather than a player
+role-scoring attribute.
 
 ### D2. Declared effects
 
@@ -1227,7 +1239,8 @@ forth is free.
 
 ### D5. UI
 
-Six sliders are on `/tactics` as a plain GET form
+Nine broad sliders and collapsible grouped position/attribute controls are on
+both `/tactics` and each individual tactic screen as a plain GET form
 (`?opp_aerial_threat=1&opp_defensive_line=-2&…`): the page stays read-only,
 bookmarkable, shareable, and works without JS.
 

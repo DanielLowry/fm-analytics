@@ -7,7 +7,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
-from fm_analytics.analytics import AXIS_DEFINITIONS, MVP_CATALOGUE, OpponentProfile
+from fm_analytics.analytics import MVP_CATALOGUE, OpponentProfile
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.domain import Squad
 from fm_analytics.reporting import (
@@ -24,7 +24,7 @@ from fm_analytics.web.opponent_controls import (
     opponent_controls as _opponent_controls,
     opponent_from_query as _opponent_from_query,
     opponent_query as _opponent_query,
-    opponent_value_label as _opponent_value_label,
+    opponent_summary_items as _opponent_summary_items,
 )
 from fm_analytics.web.scouting_pages import ScoutingPagesMixin
 from fm_analytics.web.tactic_checks_page import tactic_checks_body
@@ -417,11 +417,7 @@ class SquadWebHandler(AuxiliaryPagesMixin, ScoutingPagesMixin, BaseHTTPRequestHa
         opponent_query = _opponent_query(opponent)
         query_suffix = f"?{opponent_query}" if opponent_query else ""
         link_query_suffix = html.escape(query_suffix, quote=True)
-        active_axes = [
-            f"{axis.label}: {_opponent_value_label(axis, getattr(opponent, axis.key))}"
-            for axis in AXIS_DEFINITIONS
-            if getattr(opponent, axis.key)
-        ]
+        active_axes = _opponent_summary_items(opponent)
         rows = []
         for rank, evaluation in enumerate(bundle.recommendation.evaluations, start=1):
             tactic_key = evaluation.tactic.key
@@ -701,11 +697,7 @@ class SquadWebHandler(AuxiliaryPagesMixin, ScoutingPagesMixin, BaseHTTPRequestHa
             if structural_problems
             else ""
         )
-        active_axes = [
-            f"{axis.label}: {_opponent_value_label(axis, getattr(opponent, axis.key))}"
-            for axis in AXIS_DEFINITIONS
-            if getattr(opponent, axis.key)
-        ]
+        active_axes = _opponent_summary_items(opponent)
         opponent_context = ""
         if active_axes:
             if evaluation.opponent_fit.active:

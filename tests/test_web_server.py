@@ -255,9 +255,7 @@ class SquadWebServerTests(unittest.TestCase):
             }
             fixture_path.write_text(json.dumps(document), encoding="utf-8")
             port = self._serve(fixture_path)
-
             status, body = self._get(port, "/tactics/balanced_442")
-
             self.assertEqual(status, 200)
             self.assertIn("Take players from the top", body)
             self.assertIn("<th>Priority</th>", body)
@@ -724,9 +722,10 @@ class TacticsAndDepthPageTests(unittest.TestCase):
 
     def test_tactics_page_renders_every_opponent_slider(self) -> None:
         status, body = self._get("/tactics")
-
         self.assertEqual(status, 200)
         self.assertIn("Opponent profile", body)
+        self.assertIn("name='opp_formation'", body)
+        self.assertIn(">4-4-2</option>", body)
         self.assertEqual(body.count("type='range'"), len(AXIS_DEFINITIONS))
         for axis in AXIS_DEFINITIONS:
             self.assertIn(f"name='opp_{axis.key}'", body)
@@ -734,21 +733,20 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertIn("min='-2' max='2' step='1' value='0'", body)
 
     def test_opponent_profile_shows_neutral_deltas_and_survives_drill_down(self) -> None:
-        query = "opp_quality=2&opp_pace_in_behind=2"
+        query = "opp_formation=442&opp_chance_creation=2&opp_dribbling_quality=-2&opp_finishing_quality=-1&opp_pos_DR=2&opp_attr_leadership=-1"
         status, body = self._get(f"/tactics?{query}")
-
         self.assertEqual(status, 200)
         self.assertIn("Active opponent assumptions", body)
-        self.assertIn("Quality: Much stronger than us", body)
-        self.assertIn("Pace in behind: Very fast", body)
+        for expected in ("Likely formation: 4-4-2", "Chance creation: Creates many chances", "Dribbling: Poor dribblers", "Finishing: Leans wasteful finishers"):
+            self.assertIn(expected, body)
+        self.assertIn("Strong positions: Right-back", body)
+        self.assertIn("Attribute weaknesses: Leadership", body)
         self.assertIn("Change vs neutral", body)
         self.assertIn("Opponent fit", body)
         self.assertIn("Recommended for this opponent", body)
-        escaped_query = "opp_quality=2&amp;opp_pace_in_behind=2"
+        escaped_query = "opp_formation=442&amp;opp_chance_creation=2&amp;opp_dribbling_quality=-2&amp;opp_finishing_quality=-1&amp;opp_pos_DR=2&amp;opp_attr_leadership=-1"
         self.assertIn(escaped_query, body)
-
         status, detail = self._get(f"/tactics/balanced_442?{query}")
-
         self.assertEqual(status, 200)
         self.assertIn("Opponent profile:", detail)
         self.assertIn("Opponent fit", detail)
@@ -758,7 +756,6 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertIn(
             "href='/tactics/balanced_442'>Reset to neutral</a>", detail
         )
-
         status, aerial_only = self._get("/tactics?opp_aerial_threat=2")
 
         self.assertEqual(status, 200)

@@ -35,17 +35,31 @@ not silently: a slider with nowhere to store its value, or a stored value
 with no declared effect, is a bug the module refuses to load with.
 
 This shape is for another *scalar* slider -- something that is more or less
-true by degree. A future signal that is a choice rather than a scale (e.g.
-"opponent plays a back three") is a different shape and would need its own
-mechanism, not a forced fit into -2..+2.
+true by degree. Likely formation is kept as a categorical choice alongside
+the axes rather than being forced into a -2..+2 scale.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
-from typing import Mapping, Sequence
+from collections.abc import Iterable, Mapping
+from typing import Sequence
 
 from fm_analytics.analytics.catalogue import AttributeEmphasis
+from fm_analytics.analytics.opponent_rules import (
+    BACK_LINE as _BACK_LINE,
+    DEFENCE_AND_MIDFIELD as _DEFENCE_AND_MIDFIELD,
+    FORMATION_DEFINITIONS,
+    FORMATIONS_BY_KEY,
+    EmphasisRule,
+    FloorRule,
+    OpponentFormation,
+)
+from fm_analytics.analytics.opponent_details import (
+    ATTRIBUTES_BY_KEY,
+    AXIS_DETAIL_OVERRIDES,
+    POSITIONS_BY_KEY,
+)
 from fm_analytics.analytics.role_scoring import RoleDefinition
 from fm_analytics.analytics.tactical_system import SystemAssessment, assess_demands
 
@@ -53,18 +67,55 @@ AXIS_MINIMUM = -2
 AXIS_MAXIMUM = 2
 
 
+def _normalise_observations(
+    observations: Mapping[str, int] | Iterable[tuple[str, int]],
+    definitions: Mapping[str, object],
+    kind: str,
+) -> tuple[tuple[str, int], ...]:
+    """Validate and canonicalise sparse observations for hashing and URLs."""
+    items = observations.items() if isinstance(observations, Mapping) else observations
+    values: dict[str, int] = {}
+    try:
+        for key, value in items:
+            if key not in definitions:
+                raise ValueError(f"unknown opponent {kind} {key!r}")
+            if key in values:
+                raise ValueError(f"duplicate opponent {kind} {key!r}")
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise ValueError(f"opponent {kind} {key!r} must be a whole number")
+            if not AXIS_MINIMUM <= value <= AXIS_MAXIMUM:
+                raise ValueError(
+                    f"opponent {kind} {key!r} must be between "
+                    f"{AXIS_MINIMUM} and {AXIS_MAXIMUM}"
+                )
+            values[key] = value
+    except (TypeError, ValueError) as exc:
+        if isinstance(exc, ValueError):
+            raise
+        raise ValueError(f"opponent {kind} observations must be key/value pairs") from exc
+    return tuple((key, values[key]) for key in definitions if values.get(key))
+
+
 @dataclass(frozen=True)
 class OpponentProfile:
-    """One slider per `OpponentAxis` in `AXIS_DEFINITIONS`. 0 is neutral."""
+    """The manager's likely formation plus one value per scalar axis."""
 
+    formation: str = "unknown"
     quality: int = 0
     defensive_line: int = 0
     pressing: int = 0
     attacking_width: int = 0
     aerial_threat: int = 0
     pace_in_behind: int = 0
+    chance_creation: int = 0
+    dribbling_quality: int = 0
+    finishing_quality: int = 0
+    attribute_levels: tuple[tuple[str, int], ...] = ()
+    position_levels: tuple[tuple[str, int], ...] = ()
 
     def __post_init__(self) -> None:
+        if self.formation not in FORMATIONS_BY_KEY:
+            raise ValueError(f"unknown opponent formation {self.formation!r}")
         for axis in AXES:
             value = getattr(self, axis)
             if not isinstance(value, int) or isinstance(value, bool):
@@ -73,6 +124,18 @@ class OpponentProfile:
                 raise ValueError(
                     f"opponent {axis} must be between {AXIS_MINIMUM} and {AXIS_MAXIMUM}"
                 )
+        object.__setattr__(
+            self,
+            "attribute_levels",
+            _normalise_observations(
+                self.attribute_levels, ATTRIBUTES_BY_KEY, "attribute"
+            ),
+        )
+        object.__setattr__(
+            self,
+            "position_levels",
+            _normalise_observations(self.position_levels, POSITIONS_BY_KEY, "position"),
+        )
 
     @classmethod
     def neutral(cls) -> "OpponentProfile":
@@ -80,58 +143,14 @@ class OpponentProfile:
 
     @property
     def is_neutral(self) -> bool:
-        return not any(getattr(self, axis) for axis in AXES)
+        return (
+            self.formation == "unknown"
+            and not self.attribute_levels
+            and not self.position_levels
+            and not any(getattr(self, axis) for axis in AXES)
+        )
 
 
-@dataclass(frozen=True)
-class EmphasisRule:
-    """On one side of an axis, these attributes matter more (or less), here.
-
-    `sign` picks the side: +1 applies when the axis is above 0, -1 when below.
-    The delta is `per_step` for each step away from neutral (so +2 is twice
-    +1), and is negative when `per_step` is, which lets a side say "matters
-    less".
-    """
-
-    sign: int
-    attributes: tuple[str, ...]
-    positions: tuple[str, ...]
-    per_step: int = 1
-    why: str = ""
-
-    def __post_init__(self) -> None:
-        if self.sign not in (-1, 1):
-            raise ValueError("an emphasis rule's sign must be -1 or +1")
-        if not self.attributes or not self.positions:
-            raise ValueError("an emphasis rule needs attributes and positions")
-        if not self.why:
-            raise ValueError("an emphasis rule must say why")
-
-
-@dataclass(frozen=True)
-class FloorRule:
-    """On one side of an axis, the eleven's roles must jointly clear these.
-
-    `floors` holds the minimums for one step away from neutral, then two --
-    same scale as a role's `system` traits and a tactic's own minimums.
-    """
-
-    sign: int
-    floors: tuple[Mapping[str, float], Mapping[str, float]]
-    why: str = ""
-
-    def __post_init__(self) -> None:
-        if self.sign not in (-1, 1):
-            raise ValueError("a floor rule's sign must be -1 or +1")
-        if len(self.floors) != 2 or not all(self.floors):
-            raise ValueError("a floor rule needs both a one-step and a two-step minimum")
-        one, two = self.floors
-        if set(one) != set(two):
-            raise ValueError("a floor rule's one-step and two-step minimums must cover the same dimensions")
-        if any(two[dimension] < value for dimension, value in one.items()):
-            raise ValueError("a floor rule's two-step minimum must not ask for less than its one-step")
-        if not self.why:
-            raise ValueError("a floor rule must say why")
 
 
 @dataclass(frozen=True)
@@ -153,9 +172,6 @@ class OpponentAxis:
         if not self.key or not self.label or not self.low or not self.high:
             raise ValueError("an opponent axis needs a key, a label, and both end labels")
 
-
-_BACK_LINE = ("DL", "DC", "DR", "WBL", "WBR")
-_DEFENCE_AND_MIDFIELD = ("DC", "DL", "DR", "WBL", "WBR", "DM", "MC")
 
 # Declared football hypotheses, in the same spirit as `_INSTRUCTION_REQUIREMENTS`:
 # reviewable data, not fitted numbers. Floors are set against what the catalogue
@@ -308,6 +324,86 @@ AXIS_DEFINITIONS: tuple[OpponentAxis, ...] = (
             ),
         ),
     ),
+    OpponentAxis(
+        key="chance_creation",
+        label="Chance creation",
+        low="creates very little",
+        high="creates many chances",
+        emphasis=(
+            EmphasisRule(
+                +1,
+                ("anticipation", "concentration", "decisions", "positioning"),
+                _DEFENCE_AND_MIDFIELD,
+                why="Frequent attacks reward defenders who read danger repeatedly and reliably.",
+            ),
+            EmphasisRule(
+                +1, ("reflexes", "oneOnOnes", "handling"), ("GK",),
+                why="A side that creates repeatedly puts more weight on shot stopping.",
+            ),
+            EmphasisRule(
+                -1, ("anticipation", "concentration"), _DEFENCE_AND_MIDFIELD,
+                why="A low-output attack places less repeated decision pressure on the defensive unit.",
+            ),
+        ),
+        floors=(
+            FloorRule(
+                +1,
+                ({"defensiveCover": 5.0, "restDefence": 5.0}, {"defensiveCover": 6.5, "restDefence": 6.5}),
+                why="A high-volume attack must be denied repeat entries by the whole defensive structure.",
+            ),
+        ),
+    ),
+    OpponentAxis(
+        key="dribbling_quality",
+        label="Dribbling",
+        low="poor dribblers",
+        high="dangerous dribblers",
+        emphasis=(
+            EmphasisRule(
+                +1, ("tackling", "agility", "anticipation", "positioning"),
+                _DEFENCE_AND_MIDFIELD,
+                why="Dangerous carriers demand defenders who can stay with them and time a challenge.",
+            ),
+            EmphasisRule(
+                -1, ("tackling", "agility"), _DEFENCE_AND_MIDFIELD,
+                why="Poor dribblers reduce the premium on one-versus-one defending.",
+            ),
+        ),
+        floors=(
+            FloorRule(
+                +1,
+                ({"defensiveCover": 5.0}, {"defensiveCover": 6.0}),
+                why="A beaten first defender needs reliable cover behind them.",
+            ),
+        ),
+    ),
+    OpponentAxis(
+        key="finishing_quality",
+        label="Finishing",
+        low="wasteful finishers",
+        high="clinical finishers",
+        emphasis=(
+            EmphasisRule(
+                +1, ("reflexes", "oneOnOnes", "handling"), ("GK",),
+                why="Clinical finishers increase the value of the goalkeeper's shot stopping.",
+            ),
+            EmphasisRule(
+                +1, ("concentration", "anticipation", "marking"), ("DC", "DM"),
+                why="Clinical forwards must be denied clean shots rather than given second chances.",
+            ),
+            EmphasisRule(
+                -1, ("reflexes", "oneOnOnes"), ("GK",),
+                why="Wasteful finishing slightly reduces the shot-stopping premium.",
+            ),
+        ),
+        floors=(
+            FloorRule(
+                +1,
+                ({"defensiveCover": 5.0}, {"defensiveCover": 6.0}),
+                why="Against clinical finishers, the system must prevent clear chances rather than trade them.",
+            ),
+        ),
+    ),
 )
 
 AXES = tuple(axis.key for axis in AXIS_DEFINITIONS)
@@ -324,7 +420,11 @@ def _check_profile_matches_axes() -> None:
     derivative of it) so a test can also call this directly against a
     tampered module and see the same check the import ran.
     """
-    profile_fields = frozenset(field.name for field in fields(OpponentProfile))
+    profile_fields = frozenset(
+        field.name
+        for field in fields(OpponentProfile)
+        if field.name not in {"formation", "attribute_levels", "position_levels"}
+    )
     axis_keys = frozenset(axis.key for axis in AXIS_DEFINITIONS)
     if profile_fields != axis_keys:
         raise AssertionError(
@@ -342,10 +442,35 @@ def _steps(profile: OpponentProfile, axis_key: str, sign: int) -> int:
     return value if sign > 0 and value > 0 else -value if sign < 0 and value < 0 else 0
 
 
+def _axis_is_overridden(profile: OpponentProfile, axis_key: str) -> bool:
+    observed = {key for key, _value in profile.attribute_levels}
+    return bool(observed & AXIS_DETAIL_OVERRIDES.get(axis_key, frozenset()))
+
+
+def _observation_blocks(levels, definitions) -> list[AttributeEmphasis]:
+    blocks: list[AttributeEmphasis] = []
+    for key, value in levels:
+        definition = definitions[key]
+        rules = definition.strong if value > 0 else definition.weak
+        for rule in rules:
+            blocks.append(
+                AttributeEmphasis(
+                    {
+                        attribute: rule.per_step * abs(value)
+                        for attribute in rule.attributes
+                    },
+                    rule.positions,
+                )
+            )
+    return blocks
+
+
 def attribute_emphasis(profile: OpponentProfile) -> tuple[AttributeEmphasis, ...]:
     """The position-scoped emphasis blocks this opponent asks for."""
     blocks = []
     for axis in AXIS_DEFINITIONS:
+        if _axis_is_overridden(profile, axis.key):
+            continue
         for rule in axis.emphasis:
             steps = _steps(profile, axis.key, rule.sign)
             if steps:
@@ -355,6 +480,16 @@ def attribute_emphasis(profile: OpponentProfile) -> tuple[AttributeEmphasis, ...
                         rule.positions,
                     )
                 )
+    formation = FORMATIONS_BY_KEY[profile.formation]
+    for rule in formation.emphasis:
+        blocks.append(
+            AttributeEmphasis(
+                {attribute: rule.per_step for attribute in rule.attributes},
+                rule.positions,
+            )
+        )
+    blocks.extend(_observation_blocks(profile.attribute_levels, ATTRIBUTES_BY_KEY))
+    blocks.extend(_observation_blocks(profile.position_levels, POSITIONS_BY_KEY))
     return tuple(blocks)
 
 
@@ -362,12 +497,17 @@ def system_floors(profile: OpponentProfile) -> dict[str, float]:
     """What the eleven's roles must supply against this opponent."""
     floors: dict[str, float] = {}
     for axis in AXIS_DEFINITIONS:
+        if _axis_is_overridden(profile, axis.key):
+            continue
         for rule in axis.floors:
             steps = _steps(profile, axis.key, rule.sign)
             if not steps:
                 continue
             for dimension, floor in rule.floors[steps - 1].items():
                 floors[dimension] = max(floors.get(dimension, 0.0), floor)
+    for rule in FORMATIONS_BY_KEY[profile.formation].floors:
+        for dimension, floor in rule.floors[0].items():
+            floors[dimension] = max(floors.get(dimension, 0.0), floor)
     return floors
 
 

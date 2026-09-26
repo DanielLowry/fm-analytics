@@ -7,7 +7,8 @@ opposition visibility, and evaluation signal must be learned from earlier phases
 before detailed design.
 
 **A manual precursor already exists and is not this phase.** `analytics/opponent.py`
-scores a *manager-set* opponent profile (six -2..+2 sliders) as its own component
+scores a *manager-set* opponent profile (likely formation, nine broad sliders,
+and detailed position/attribute observations) as its own component
 beside coherence and instruction fit — see roadmap item 9 and §2j of
 [tactical-model-upgrade-plan.md](../../tactical-model-upgrade-plan.md). It is
 deliberately an estimate the manager types in, with no match history and no

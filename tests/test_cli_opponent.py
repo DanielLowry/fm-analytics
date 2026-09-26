@@ -57,10 +57,11 @@ class FlagDefinitionTests(unittest.TestCase):
 
     def test_flags_reach_the_profile(self) -> None:
         args = build_parser().parse_args(
-            ["--opponent-aerial-threat", "2", "--opponent-quality", "-1"]
+            ["--opponent-formation", "442", "--opponent-aerial-threat", "2", "--opponent-quality", "-1"]
         )
         self.assertEqual(
-            opponent_from_args(args), OpponentProfile(aerial_threat=2, quality=-1)
+            opponent_from_args(args),
+            OpponentProfile(formation="442", aerial_threat=2, quality=-1),
         )
 
     def test_an_out_of_range_setting_is_refused_by_the_parser(self) -> None:
@@ -76,8 +77,9 @@ class OutputTests(unittest.TestCase):
         self.assertNotIn(", opponent ", output)
 
     def test_a_set_opponent_is_named_with_its_provenance(self) -> None:
-        output = run_cli("--opponent-aerial-threat", "2")
+        output = run_cli("--opponent-formation", "442", "--opponent-aerial-threat", "2")
         self.assertIn("Assumed opponent (your estimate, not measured from the game)", output)
+        self.assertIn("Likely formation: 4-4-2", output)
         self.assertIn("Aerial threat: +2 (dominant)", output)
 
     def test_one_step_leans_rather_than_mangling_the_end_label(self) -> None:

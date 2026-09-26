@@ -188,9 +188,9 @@ preserving the ability to compare the underlying tactical designs fairly.
 
 ### 9. Opponent-specific tactical evaluation — **manual profile implemented**
 
-A **manager-set** opponent now exists: six sliders (`OpponentProfile` in
-`analytics/opponent.py`), each -2..+2, which shift attribute emphasis by
-position and impose absolute team-balance floors. Opponent fit is reported as
+A **manager-set** opponent now exists: a likely-formation choice plus nine
+sliders (`OpponentProfile` in `analytics/opponent.py`), each -2..+2, which shift
+attribute emphasis by position and impose absolute team-balance floors. Opponent fit is reported as
 its own component beside coherence and instruction fit, never folded invisibly
 into one number, and a neutral profile is provably inert. It reaches tactic
 ranking, XI choice, bench, substitutions, depth and weaknesses. See
@@ -199,7 +199,7 @@ ranking, XI choice, bench, substitutions, depth and weaknesses. See
 built and the five deviations from the original design.
 
 A manager can set it from the CLI (`--opponent-<axis>`, one flag per axis) or
-from six bookmarkable sliders on `/tactics`. The web view reports rank and
+from bookmarkable controls on `/tactics`. The web view reports rank and
 score changes versus neutral, the separate opponent-fit check, and carries the
 profile into each tactic drill-down.
 Deriving the profile from opposition data rather than a slider is Phase 08/D6

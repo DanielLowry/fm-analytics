@@ -181,8 +181,8 @@ couple players and is deliberately not supported.
 
 ## The opponent
 
-`opponent.py` holds an `OpponentProfile`: six sliders, each an integer -2..+2,
-all 0 by default. It is the manager's **own estimate** of the opposition, never
+`opponent.py` holds an `OpponentProfile`: a likely-formation choice plus nine
+sliders, each an integer -2..+2 and all 0 by default. It is the manager's **own estimate** of the opposition, never
 derived from anything hidden — `quality` in particular is relative to *us*,
 which only the manager can judge, so it is set, not computed. Roadmap item 9 and
 the upgrade plan's workstream D are the background.
@@ -209,8 +209,8 @@ reports — with and without an explicit neutral profile.
 **Adding a slider** is two edits, both pure data: a field on `OpponentProfile`,
 and its `OpponentAxis` entry. `_check_profile_matches_axes()` runs at import and
 refuses to load if either half is missing, so a slider cannot silently do
-nothing. The shape suits another *scalar* axis; a categorical signal ("they play
-a back three") would need its own mechanism rather than being forced into -2..+2.
+nothing. Categorical formation is declared separately in
+`FORMATION_DEFINITIONS` rather than being forced into -2..+2.
 
 **Two things to know before tuning the numbers.**
 
@@ -278,7 +278,9 @@ silently treating it as independent.
   the commit rather than treating as a pure bugfix. `assess_demands` is the
   shared "how fully do these roles meet these minimums" scorer; instruction fit
   and opponent fit are both built on it, so they cannot drift apart.
-- `opponent.py` — the manager-set opponent profile and its declared effects;
+- `opponent.py` — the manager-set opponent profile and its scoring plumbing;
+  `opponent_rules.py` declares broad/formation effects and
+  `opponent_details.py` declares detailed position/attribute responses;
   see "The opponent" above. Imports from `catalogue`/`tactical_system` and is
   imported by the tactic-specific entry points, so it must not import them back.
 - `role_weights.py` — validates per-role attribute weights, which are authored
