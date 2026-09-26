@@ -21,8 +21,11 @@
     {
       "key": "DL",
       "position": "DL",
-      "role": "fb_support",
-      "why": "The only player on this side who provides width, so he must overlap and cross; Support keeps him from being caught out."
+      "role": "wb_dl_dr_support",
+      "why": "Primary source of width on this side. Wing-Back (Support) is preferred because the diamond has no winger; Full-Back (Support) is the more conservative alternate.",
+      "roles": [
+        "fb_support"
+      ]
     },
     {
       "key": "DCL",
@@ -45,8 +48,11 @@
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support",
-      "why": "The only wide player on the right; he supplies the crosses."
+      "role": "wb_dl_dr_support",
+      "why": "Primary source of width on this side. Wing-Back (Support) is preferred because the diamond has no winger; Full-Back (Support) is the more conservative alternate.",
+      "roles": [
+        "fb_support"
+      ]
     },
     {
       "key": "DM",
@@ -57,20 +63,20 @@
     {
       "key": "MCL",
       "position": "MC",
-      "role": "cm_support",
-      "why": "Central midfielder who supports the attack and links with the attacking midfielder and strikers."
+      "role": "b2b_support",
+      "why": "Provides the main midfield running from the side of the diamond, shuttling between phases and joining attacks while the DM and DLP provide structure."
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "dlp_mc_support",
-      "why": "Deep-lying playmaker takes the ball off the back line and sets the tempo."
+      "why": "Deep-lying playmaker receives from the defensive unit and controls progression through the compact midfield."
     },
     {
       "key": "AMC",
       "position": "AMC",
       "role": "am_support",
-      "why": "Attacking midfielder plays between the lines and feeds the two strikers."
+      "why": "Operates between the lines as the advanced central creator, combining with both strikers and the midfield behind him."
     },
     {
       "key": "STL",
@@ -93,24 +99,24 @@
   ],
   "system": {
     "minimums": {
-      "width": 1.5,
+      "width": 2.0,
       "defensiveCover": 6.5,
       "ballProgression": 4.5,
       "creativity": 3.0,
       "runners": 2.0,
       "penetration": 1.2,
       "boxPresence": 1.2,
-      "restDefence": 7.0
+      "restDefence": 6.5
     },
     "maximumAttackDuties": 4,
     "maximumCreators": 3
   },
   "style": "Balanced Narrow Diamond",
-  "description": "A compact narrow 4-1-2-1-2 built around central combinations, two strikers and full-backs supplying most of the width.",
-  "whyGood": "It creates central numerical superiority and strong links between DM, midfield, AMC and two forwards.",
-  "whyThisShape": "A narrow diamond: a holding midfielder, two central midfielders and an attacking midfielder behind two strikers. It puts four players in the middle against an opponent's three, so the centre is easy to control. Width comes only from the full-backs.",
-  "whenToUse": "When your best players are central (midfielders and two strikers) and you lack quality wingers, or against a side with few central midfielders that you can outnumber.",
-  "whenNotToUse": "Against teams that attack down the flanks and outnumber your full-backs, or when your full-backs lack the stamina to cover the whole side of the pitch.",
+  "description": "A compact narrow 4-1-2-1-2 built around central combinations, a holding midfielder, a distributor, a midfield runner and an attacking midfielder, with the wide defenders supplying almost all of the width.",
+  "whyGood": "It creates central numerical superiority while giving the midfield four distinct jobs: the DM anchors, the DLP progresses possession, the Box-to-Box midfielder adds vertical running, and the AMC creates behind two complementary strikers.",
+  "whyThisShape": "The diamond overloads the centre with a holding midfielder, a deep distributor, an end-to-end runner and an attacking midfielder. A support forward links those players to a second striker attacking depth. Because there are no wingers, the wide defenders must provide the outside outlet.",
+  "whenToUse": "When your strongest players are central, you can field two complementary strikers, and your wide defenders are capable of supplying the width the shape otherwise lacks.",
+  "whenNotToUse": "When the opposition can isolate your wide defenders repeatedly, when your wide defenders cannot cover the flank athletically, or when your central players are not secure enough to combine in congested areas.",
   "instructionRationale": {
     "Fairly Narrow": "Fits the diamond, where the four central players work in tight combinations.",
     "Shorter Passing": "Short triangles in the middle are the diamond's strength.",
@@ -122,19 +128,193 @@
   "attributeEmphasis": [
     {
       "attributes": {
-        "teamwork": 2,
-        "firstTouch": 2,
+        "stamina": 2,
+        "crossing": 2,
+        "workRate": 1,
+        "acceleration": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "wb_dl_dr_support",
+        "fb_support"
+      ]
+    },
+    {
+      "attributes": {
         "positioning": 2,
-        "pace": 2
-      }
+        "anticipation": 1,
+        "decisions": 1,
+        "teamwork": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "offTheBall": 2,
+        "teamwork": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "firstTouch": 2,
+        "vision": 2,
+        "decisions": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attributes": {
+        "firstTouch": 2,
+        "vision": 2,
+        "passing": 2,
+        "decisions": 1,
+        "technique": 1
+      },
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "am_support"
+      ]
+    },
+    {
+      "attributes": {
+        "firstTouch": 2,
+        "passing": 1,
+        "decisions": 1,
+        "teamwork": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "cf_support"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 2,
+        "acceleration": 2,
+        "anticipation": 2,
+        "pace": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 3,
+        "anticipation": 3,
+        "acceleration": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
+      ]
     }
   ],
   "attributeTaper": [
     {
-      "attribute": "passing",
+      "attribute": "stamina",
+      "taperBelow": 9,
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "wb_dl_dr_support",
+        "fb_support"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 8,
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "wb_dl_dr_support",
+        "fb_support"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 9,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 9,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 9,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
       "taperBelow": 8,
       "positions": [
         "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 9,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
       ]
     },
     {
@@ -142,6 +322,39 @@
       "taperBelow": 8,
       "positions": [
         "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "vision",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 9,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "am_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "am_support"
       ]
     },
     {
@@ -149,37 +362,89 @@
       "taperBelow": 8,
       "positions": [
         "AMC"
+      ],
+      "roles": [
+        "am_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "am_support"
       ]
     },
     {
       "attribute": "firstTouch",
       "taperBelow": 8,
       "positions": [
-        "AMC"
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "cf_support"
       ]
     },
     {
-      "attribute": "stamina",
+      "attribute": "acceleration",
       "taperBelow": 8,
       "positions": [
-        "DL",
-        "DR"
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
       ]
     },
     {
-      "attribute": "crossing",
-      "taperBelow": 7,
+      "attribute": "pace",
+      "taperBelow": 8,
       "positions": [
-        "DL",
-        "DR"
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
       ]
     }
   ],
   "keyRequirements": [
-    "Full-backs with stamina/crossing",
-    "Disciplined DM",
-    "Creative AMC",
-    "Complementary strikers"
+    "Wide defenders capable of providing the formation's width repeatedly",
+    "A disciplined holding midfielder at the base of the diamond",
+    "A reliable deep distributor and an energetic midfield runner",
+    "An attacking midfielder comfortable receiving and creating in congested central areas",
+    "A linking forward paired with a striker who threatens the space beyond"
   ],
   "tags": [
     "narrow",
