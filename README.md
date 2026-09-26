@@ -317,8 +317,7 @@ underlying visibility boundary.
 
 Hidden FM values should never cross the HTTP boundary. See
 [the architecture notes](docs/architecture.md) for the current boundaries and
-[the application improvement review](docs/app-improvement-review.md) for the
-integration backlog. The complete staged delivery plan starts at
+[the active plan](docs/active-plan.md) for the current backlog. The complete staged delivery plan starts at
 [the phase roadmap](docs/phases/README.md).
 For planned, deliberately deferred improvements to the player and tactical
 models, see [the tactical-system roadmap](docs/tactical-system-roadmap.md).

@@ -1,5 +1,11 @@
 # Application improvement review
 
+> **Archived 26 September 2026.** Superseded by the
+> [active plan](../../active-plan.md), which reprioritises by likely effect on
+> in-game results. That plan's final table records what happened to each item
+> below. Everything from here on describes the repository as of 22 September
+> 2026 and is not current backlog.
+
 > **Evidence re-checked 22 September 2026. The recommendations still stand; the
 > "Evidence checked" figures below do not.** What changed:
 >
@@ -24,10 +30,10 @@
 >   worthwhile — the earlier profile found 64% of role scoring
 >   is measurably redundant — and item 1.5's cache becomes a *correctness*
 >   requirement, not just a speed one, as soon as the page can set an opponent.
->   See [analytics-performance.md](analytics-performance.md) for the current
+>   See [analytics-performance.md](../../analytics-performance.md) for the current
 >   50-tactic numbers, package experiments, and method. The older assignment
 >   objective and MILP history remains in
->   [tactical-model-upgrade-plan.md](tactical-model-upgrade-plan.md) §7.1.
+>   [tactical-model-upgrade-plan.md](../../tactical-model-upgrade-plan.md) §7.1.
 >
 > This document stays in the active index because its recommendations are mostly
 > unstarted. Archive it once Releases A–C below are delivered or formally

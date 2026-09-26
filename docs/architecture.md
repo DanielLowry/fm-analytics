@@ -141,9 +141,9 @@ have not been unified.
 
 `reporting.build_recommendation_bundle` is the single owned-squad calculation
 used by CLI and web. The browser currently caches source reads and bundles on
-separate short TTLs; the active [application improvement
-review](app-improvement-review.md) defines the move to one input-keyed,
-single-flight cache and the connected player/depth/scouting workflow.
+separate short TTLs. The move to one input-keyed, single-flight cache is
+parked in the [active plan](active-plan.md), and its design is in the archived
+[application improvement review](archive/plans/app-improvement-review-2026-09-19.md).
 
 Capability gates and open research questions live in the [phase
 roadmap](phases/README.md). Deliberate football-model changes live in the

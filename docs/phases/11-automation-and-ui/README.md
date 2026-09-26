@@ -64,9 +64,11 @@ source health. Keep analytics logic outside view/controller code.
 The thin dashboard and its data page were built early, following the now
 completed [decision-support proposal](../../archive/plans/decision-support-design-2026-09-15.md).
 CLI and web share `reporting.build_recommendation_bundle`, so analytics logic
-remains outside view/controller code. The active [application improvement
-review](../../app-improvement-review.md) defines the next UI and operational
-slice.
+remains outside view/controller code. The [active plan](../../active-plan.md)
+defines the next UI work (pinned tactics and the scouting workflow). The
+previous operational slice (caching, background refresh, dashboard) is parked
+there; its detail is in the archived
+[application improvement review](../../archive/plans/app-improvement-review-2026-09-19.md).
 
 ### 11.6 — Operational hardening
 

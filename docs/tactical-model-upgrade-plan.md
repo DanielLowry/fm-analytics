@@ -1285,7 +1285,7 @@ you nothing about this one.
 **Track the counts, not the clock.** The work counts below are deterministic and
 reproduce exactly; wall clock on the same machine varied 9.7–12.3 s across runs.
 Use the counts as the regression signal and treat seconds as indicative, per the
-app-improvement-review's advice that call counters are less noisy than a seconds
+(now archived) application improvement review's advice that call counters are less noisy than a seconds
 threshold.
 
 #### Where the time goes

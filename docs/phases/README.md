@@ -5,8 +5,8 @@ Each phase has a useful outcome of its own; later work should not begin merely
 because code for the previous phase exists. Its exit criteria must be met and
 the important findings recorded.
 
-The active [application improvement review](../app-improvement-review.md) cuts
-across the phases for performance, workflow integration, and product polish.
+The [active plan](../active-plan.md) cuts across the phases and orders the next
+work by likely effect on in-game results.
 The original broad plan and the completed 15 September decision-support
 proposal are retained in the [archive](../archive/README.md).
 

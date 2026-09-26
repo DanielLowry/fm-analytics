@@ -2,7 +2,7 @@
 
 > Historical proposal. Its implemented slices, catalogue counts, benchmarks,
 > and blockers describe the repository at that date, not the current backlog.
-> See the [application improvement review](../../app-improvement-review.md).
+> See the [active plan](../../active-plan.md).
 
 This document takes a whole-system view of the five decisions the manager
 actually wants help with, states honestly which parts of the system already

@@ -6,8 +6,8 @@
   criteria.
 - [Architecture](architecture.md) describes the current application and data
   boundaries.
-- [Application improvement review](app-improvement-review.md) is the active
-  performance, integration, and product-polish backlog.
+- [Active plan](active-plan.md) is the current backlog: the next work, ranked
+  by likely effect on in-game results against implementation effort.
 - [Analytics performance investigation](analytics-performance.md) is the
   current measured cost model and records the package, vectorisation, and
   process-parallel experiments for tactic ranking.

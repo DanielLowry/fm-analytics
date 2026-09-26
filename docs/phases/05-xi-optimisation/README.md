@@ -143,8 +143,9 @@ maximising the score is equivalent to maximising summed square roots, so each
 role version now needs one assignment solve. The historical measurements remain
 in [tactical-model-upgrade-plan.md](../../tactical-model-upgrade-plan.md) §7.1.
 
-The active [application improvement review](../../app-improvement-review.md)
-records the web-layer evidence and correctness gates. The web layer must cache by
+The archived [application improvement
+review](../../archive/plans/app-improvement-review-2026-09-19.md) records the
+web-layer evidence and correctness gates. The web layer must cache by
 observation identity, make cold builds single-flight, and recompute explicitly
 rather than on every navigation request — and, once an opponent can be set from
 the page, cache per opponent profile, which is a correctness requirement rather

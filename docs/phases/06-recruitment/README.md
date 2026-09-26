@@ -35,8 +35,10 @@ and optional live refresh. It can filter and assess candidates by role, but it
 does not yet consume `RecommendationBundle.briefs`. The HTML path uses
 `VisibleExportPlayer` and `shortlist_candidates`; the web path uses
 `ScoutingCandidate` and `assess_scouting_candidates`. Unifying those inputs and
-services without losing provenance is the next integration step, tracked in
-the [application improvement review](../../app-improvement-review.md).
+services without losing provenance remains open. The
+[active plan](../../active-plan.md) parks it with a proposed resolution: treat
+the web path as canonical and retire the CLI HTML shortlist. The plan's
+recruitment items build on the web path only.
 
 ## Prerequisites
 

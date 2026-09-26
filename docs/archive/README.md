@@ -12,6 +12,10 @@ are evidence, not current runbooks. Current documentation is indexed from
   preserves the proposal that introduced position familiarity, the role matrix,
   squad-wide depth, and the first web surface. Those slices were implemented;
   its catalogue size, benchmark, and “blocked” statements are no longer current.
+- [`plans/app-improvement-review-2026-09-19.md`](plans/app-improvement-review-2026-09-19.md)
+  preserves the performance, caching and workflow review that was the active
+  backlog until 26 September 2026. The [active plan](../active-plan.md)
+  superseded it and records where each item went.
 
 ## Superseded runbooks
 
