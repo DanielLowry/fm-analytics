@@ -62,6 +62,12 @@ class ScoutingCandidate:
     matched_active_search: bool | None = None
     # The game date the capture was taken at; contract expiry is measured from it.
     captured_game_date: str | None = None
+    attributes_observed_at: str | None = None
+    # A separately dated snapshot that was once manager-visible but is not
+    # current anymore. It is presentation-only history: scoring and filters
+    # always use ``attributes`` above.
+    last_known_attributes: Mapping[str, AttributeObservation] | None = None
+    last_known_attributes_observed_at: str | None = None
 
     def __post_init__(self) -> None:
         if not self.id or not self.name:
@@ -74,6 +80,10 @@ class ScoutingCandidate:
             raise ValueError("scouting knowledge must be between 0 and 100")
         if self.dropped_from_scout_reports and self.scouting_knowledge is None:
             raise ValueError("a player dropped from scout reports must still carry a last-known knowledge level")
+        if self.attributes_observed_at is not None:
+            date.fromisoformat(self.attributes_observed_at)
+        if self.last_known_attributes_observed_at is not None:
+            date.fromisoformat(self.last_known_attributes_observed_at)
         if self.contract_end is not None:
             date.fromisoformat(self.contract_end)  # ValueError on a malformed date
         if self.raw_position_familiarity is not None and any(
@@ -101,8 +111,25 @@ class ScoutingCandidate:
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> "ScoutingCandidate":
         attributes_raw = raw.get("attributes", {})
+        last_known_attributes_raw = raw.get("lastKnownAttributes", {})
         facts_raw = raw.get("facts", {})
-        if not isinstance(attributes_raw, Mapping) or not isinstance(facts_raw, Mapping):
+        dropped = raw.get("droppedFromScoutReports", False)
+        if not isinstance(dropped, bool):
+            raise TypeError("scouting candidate droppedFromScoutReports must be a boolean")
+        if (
+            dropped and attributes_raw and not last_known_attributes_raw
+        ):
+            # Backward compatibility for schema-1 captures, which stored a
+            # dropped player's stale sheet in ``attributes``. Treat it as
+            # history immediately, even before the next refresh migrates the
+            # JSON document itself.
+            last_known_attributes_raw = attributes_raw
+            attributes_raw = {}
+        if (
+            not isinstance(attributes_raw, Mapping)
+            or not isinstance(last_known_attributes_raw, Mapping)
+            or not isinstance(facts_raw, Mapping)
+        ):
             raise TypeError("scouting attributes and facts must be objects")
         positions = _string_list(raw, "positions")
         raw_positions = _string_list(raw, "rawPositions", default=[])
@@ -114,9 +141,6 @@ class ScoutingCandidate:
             not isinstance(scouting_knowledge, int) or isinstance(scouting_knowledge, bool)
         ):
             raise TypeError("scouting candidate scoutingKnowledge must be an integer or null")
-        dropped = raw.get("droppedFromScoutReports", False)
-        if not isinstance(dropped, bool):
-            raise TypeError("scouting candidate droppedFromScoutReports must be a boolean")
         matched = raw.get("matchedActiveSearch")
         if matched is not None and not isinstance(matched, bool):
             raise TypeError("scouting candidate matchedActiveSearch must be a boolean")
@@ -135,6 +159,11 @@ class ScoutingCandidate:
 
         if any(not isinstance(name, str) or not isinstance(value, Mapping) for name, value in attributes_raw.items()):
             raise TypeError("scouting attributes must map names to observations")
+        if any(
+            not isinstance(name, str) or not isinstance(value, Mapping)
+            for name, value in last_known_attributes_raw.items()
+        ):
+            raise TypeError("last-known scouting attributes must map names to observations")
         if any(not isinstance(name, str) or not isinstance(value, str) for name, value in facts_raw.items()):
             raise TypeError("scouting facts must map names to visible strings")
         return cls(
@@ -147,6 +176,18 @@ class ScoutingCandidate:
                 str(name): AttributeObservation.from_dict(value)
                 for name, value in attributes_raw.items()
             },
+            attributes_observed_at=optional_text("attributesObservedAt"),
+            last_known_attributes={
+                str(name): AttributeObservation.from_dict(value)
+                for name, value in last_known_attributes_raw.items()
+            },
+            last_known_attributes_observed_at=(
+                optional_text("lastKnownAttributesObservedAt")
+                or (
+                    optional_text("attributesObservedAt")
+                    if dropped and last_known_attributes_raw else None
+                )
+            ),
             facts=dict(facts_raw),
             scouting_knowledge=scouting_knowledge,
             dropped_from_scout_reports=dropped,

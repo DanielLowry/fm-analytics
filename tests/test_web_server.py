@@ -141,7 +141,7 @@ class SquadWebServerTests(unittest.TestCase):
             self.assertIn("Today’s selection score (best role)", squad)
             self.assertIn("unknown (assumed 10/20)", squad)
             self.assertEqual(status, 200)
-            self.assertIn("All captured attributes", report)
+            self.assertIn("Current attributes", report)
             self.assertIn("Position score summary", report)
             self.assertIn("Position familiarity", report)
             self.assertIn("All attribute-based role scores by position", report)
@@ -525,7 +525,7 @@ class SquadWebServerTests(unittest.TestCase):
 
         self.assertIn("href='/scouting/player/report%20player%2F1'", listing)
         self.assertEqual(status, 200)
-        self.assertIn("All captured attributes", report)
+        self.assertIn("Current attributes", report)
         self.assertIn("Tactic impact", report)
         self.assertIn("Analyse player", report)
         self.assertIn("Pace", report)
@@ -540,6 +540,37 @@ class SquadWebServerTests(unittest.TestCase):
         self.assertIn("All attribute-based role scores by position", report)
         self.assertIn("Advanced Forward (Attack)", report)
         self.assertIn("Attribute score inputs", report)
+
+    def test_past_attributes_are_dated_separately_and_never_claimed_as_current(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="past-player", name="Past Player", positions=("ST",),
+                    attributes={}, scouting_knowledge=6,
+                    dropped_from_scout_reports=True,
+                    last_known_attributes={
+                        "pace": AttributeObservation(
+                            Visibility.RANGE, minimum=8, maximum=14
+                        )
+                    },
+                    last_known_attributes_observed_at="2019-07-21",
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        _status, listing = self._get(port, "/scouting?view=scouted")
+        status, report = self._get(port, "/scouting/player/past-player")
+
+        self.assertIn("<th>Past knowledge</th>", listing)
+        self.assertIn("1 ranged", listing)
+        self.assertIn("Last visible 2019-07-21", listing)
+        self.assertEqual(status, 200)
+        self.assertIn("Current attributes", report)
+        self.assertIn("No attributes currently visible", report)
+        self.assertIn("Past scouting knowledge", report)
+        self.assertIn("last visible on <b>2019-07-21</b>", report)
+        self.assertIn("8-14", report)
+        self.assertIn("not used in any score, filter, or recommendation", report)
 
     def test_a_missing_scouting_report_player_returns_not_found(self) -> None:
         port = self._serve(FIXTURE)

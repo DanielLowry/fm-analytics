@@ -503,9 +503,9 @@ def _raw_position_notice(candidates: Sequence[object]) -> str:
     )
 
 
-# Requested verbatim: a dropped player's last-known scouting facts are still
-# shown (see fm20_scouting_feed.py's carry-forward), so this must read as a
-# flag on data still worth trusting, not as an error hiding the player.
+# A dropped player remains listed, but only the knowledge percentage here is
+# last-known. Attribute history is separated from current scoring/display by
+# the scouting feed and labelled with its observation date on scouting pages.
 DROPPED_FROM_SCOUT_REPORTS_MESSAGE = (
     "This player used to be in the scouted pool but can't be found in the "
     "scout reports anymore."

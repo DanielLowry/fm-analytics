@@ -184,6 +184,46 @@ class ScoutingTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             candidate("bad", {}, name="Bad Player", dropped_from_scout_reports=True)
 
+    def test_legacy_dropped_attributes_become_dated_history_not_current_inputs(self) -> None:
+        parsed = ScoutingCandidate.from_dict({
+            "id": "10",
+            "name": "Past Player",
+            "positions": [],
+            "scoutingKnowledge": 6,
+            "droppedFromScoutReports": True,
+            "attributes": {
+                "pace": {"visibility": "range", "minimum": 8, "maximum": 14}
+            },
+            "attributesObservedAt": "2019-07-21",
+        })
+
+        self.assertEqual(parsed.attributes, {})
+        self.assertEqual(parsed.last_known_attributes["pace"].maximum, 14)
+        self.assertEqual(parsed.last_known_attributes_observed_at, "2019-07-21")
+
+    def test_past_attributes_never_contribute_to_current_role_scoring(self) -> None:
+        past = {
+            attribute.name: AttributeObservation(Visibility.KNOWN, value=20)
+            for attribute in MVP_CATALOGUE.roles["af_attack"].attributes
+        }
+        result = assess_scouting_candidates(
+            [candidate(
+                "past-only", {}, scouting_knowledge=6,
+                last_known_attributes=past,
+                last_known_attributes_observed_at="2019-07-21",
+            )],
+            MVP_CATALOGUE,
+            ScoutingFilters(role_key="af_attack"),
+        )[0]
+
+        self.assertEqual(result.known_attributes, 0)
+        self.assertEqual(result.ranged_attributes, 0)
+        self.assertEqual(
+            result.unknown_attributes,
+            len(MVP_CATALOGUE.roles["af_attack"].attributes),
+        )
+        self.assertEqual(result.role_score.score.lower, 0.0)
+
     def test_name_filter_narrows_the_full_pool_not_just_a_displayed_page(self) -> None:
         """The real-time name box must search every candidate, not a capped slice."""
         candidates = [

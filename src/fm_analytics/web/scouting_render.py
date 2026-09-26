@@ -122,7 +122,14 @@ def player_scouting_report(
         ("Age", str(candidate.age) if candidate.age is not None else None),
         ("Nationality", candidate.nationality),
         ("Footedness", candidate.footedness),
-        ("Scouting knowledge", f"{candidate.scouting_knowledge}%" if candidate.scouting_knowledge is not None else None),
+        (
+            "Scouting knowledge",
+            (
+                f"{candidate.scouting_knowledge}%"
+                + (" (last known)" if candidate.dropped_from_scout_reports else "")
+                if candidate.scouting_knowledge is not None else None
+            ),
+        ),
         ("Availability", candidate.availability),
         ("Transfer status", candidate.transfer_status),
         ("Contract type", candidate.contract_type),
@@ -136,6 +143,8 @@ def player_scouting_report(
         back_href="/scouting?view=scouted", back_label="Back to scouted players",
         familiarity_source="the captured raw 0–20 position rating",
         headline=headline,
+        historical_attributes=candidate.last_known_attributes,
+        historical_observed_at=candidate.last_known_attributes_observed_at,
     )
 
 
@@ -178,6 +187,7 @@ def squad_player_report(player, catalogue) -> str:
 def _player_detail_report(
     name, attributes, player_positions, familiarity, facts, catalogue, *,
     back_href: str, back_label: str, familiarity_source: str, headline: str = "",
+    historical_attributes=None, historical_observed_at: str | None = None,
 ) -> str:
     """Render every attribute and catalogue role for a scouted or owned player."""
     policy = FamiliarityPolicy()
@@ -190,6 +200,9 @@ def _player_detail_report(
         for position in positions
     )
     attributes_html = _full_attribute_sheet(attributes)
+    historical_html = _historical_attribute_section(
+        historical_attributes or {}, historical_observed_at
+    )
     score_sections = "".join(
         _position_role_scores(attributes, position, catalogue, familiarity, policy)
         for position in positions
@@ -202,9 +215,11 @@ def _player_detail_report(
         f"<p><a href='{html.escape(back_href, quote=True)}'>← {html.escape(back_label)}</a></p>"
         "<h2>Player information</h2><table class='report-facts'>" + fact_rows + "</table>"
         + headline +
-        "<h2>All captured attributes</h2>"
-        "<p class='muted'>Values shown as a range retain the uncertainty reported by scouting.</p>"
+        "<h2>Current attributes</h2>"
+        "<p class='muted'>Only values visible now are used in the scores below. "
+        "Ranges retain the uncertainty currently reported by scouting.</p>"
         + attributes_html
+        + historical_html
         + "<h2>Position score summary</h2>"
         "<p class='muted'>Each row uses the highest estimated attribute-based role score among the roles available "
         "at that position. Positions are kept in the table even when they have not been captured, "
@@ -243,7 +258,20 @@ def _full_attribute_sheet(attributes) -> str:
                 "<table><tr><th>Attribute</th><th>Scouted value</th></tr>"
                 + "".join(rows) + "</table></section>"
             )
-    return "".join(groups) or "<p class='muted'>No attributes captured.</p>"
+    return "".join(groups) or "<p class='muted'>No attributes currently visible.</p>"
+
+
+def _historical_attribute_section(attributes, observed_at: str | None) -> str:
+    if _visible_observation_counts(attributes) == (0, 0):
+        return ""
+    when = html.escape(observed_at or "date not captured")
+    return (
+        "<h2>Past scouting knowledge</h2>"
+        "<p class='warn'><b>Historical only.</b> These values were last visible on "
+        f"<b>{when}</b>. They are not treated as current and are not used in any "
+        "score, filter, or recommendation on this page.</p>"
+        + _full_attribute_sheet(attributes)
+    )
 
 
 def _position_familiarity_row(position, known_positions, familiarity, policy) -> str:
@@ -361,7 +389,8 @@ def score_bar(minimum: float, median: float, maximum: float) -> str:
 _COLUMNS: tuple[tuple[str, str | None], ...] = (
     ("#", None), ("Player", "name"), ("Age", "age"), ("Scouted", "scouted"),
     ("Value", "value"), ("FM search", None), ("Contract", None), ("Best role", "role"), ("Min", "minimum"), ("Median", "median"), ("Max", "ceiling"),
-    ("Range", "upside"), ("Role attributes known", "known"), ("Attributes", None),
+    ("Range", "upside"), ("Role attributes known", "known"),
+    ("Past knowledge", None), ("Attributes", None),
 )
 
 
@@ -451,6 +480,7 @@ _TACTIC_COLUMNS: tuple[tuple[str, str | None], ...] = (
     ("XI gain", "tactic_gain"),
     ("Outcome", None),
     ("Scouted", "scouted"),
+    ("Past knowledge", None),
 )
 
 
@@ -512,6 +542,7 @@ def tactic_ranking_results(
             f"<td>{_three_gains(item.score_gain.floor, item.score_gain.estimate, item.score_gain.ceiling)}</td>"
             f"<td>{outcome}</td>"
             f"<td>{_scouting_knowledge_cell(candidate)}</td>"
+            f"<td>{past_knowledge_cell(candidate)}</td>"
             "</tr>"
         )
     return (
@@ -626,6 +657,32 @@ def _knowledge_cell(item: PositionRanking) -> str:
     return f"{headline}<br><span class='muted'>{' &middot; '.join(parts)}</span>"
 
 
+def _visible_observation_counts(attributes) -> tuple[int, int]:
+    observations = tuple((attributes or {}).values())
+    known = sum(item.visibility is Visibility.KNOWN for item in observations)
+    ranged = sum(item.visibility is Visibility.RANGE for item in observations)
+    return known, ranged
+
+
+def past_knowledge_cell(candidate: ScoutingCandidate) -> str:
+    """Summarise dated historical observations without implying they are current."""
+    known, ranged = _visible_observation_counts(candidate.last_known_attributes)
+    if not known and not ranged:
+        return "<span class='muted'>—</span>"
+    parts = []
+    if known:
+        parts.append(f"{known} exact")
+    if ranged:
+        parts.append(f"{ranged} ranged")
+    observed = html.escape(
+        candidate.last_known_attributes_observed_at or "date not captured"
+    )
+    return (
+        f"<b>{' &middot; '.join(parts)}</b><br>"
+        f"<span class='muted'>Last visible {observed}</span>"
+    )
+
+
 def _value_cell(candidate: ScoutingCandidate) -> str:
     """FM's own Value figure. Also the best available proxy for whether he would
     join us: see ``docs/scouting-workspace.md`` on the interest estimate."""
@@ -677,6 +734,7 @@ def _ranking_row(rank: int, item: PositionRanking, show_familiarity: bool = Fals
         f"<td>{score_bar(item.minimum, item.median, item.maximum)}</td>"
         + (_familiarity_cells(item) if show_familiarity else "")
         + f"<td>{_knowledge_cell(item)}</td>"
+        f"<td>{past_knowledge_cell(candidate)}</td>"
         f"<td>{attribute_sheet(candidate)}</td>"
         "</tr>"
     )

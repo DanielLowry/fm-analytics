@@ -219,6 +219,25 @@ def _drop_future_dated(
     return kept_values, kept_observed_at
 
 
+def _lost_visible_attribute_detail(
+    earlier: Mapping[str, Any], current: Mapping[str, Any]
+) -> bool:
+    """Whether an earlier sheet knew something the current sheet no longer does."""
+    visibility_rank = {"unknown": 0, "range": 1, "known": 2}
+    for name, old_observation in earlier.items():
+        if not isinstance(old_observation, Mapping):
+            continue
+        old_rank = visibility_rank.get(old_observation.get("visibility"), 0)
+        new_observation = current.get(name, {})
+        new_rank = (
+            visibility_rank.get(new_observation.get("visibility"), 0)
+            if isinstance(new_observation, Mapping) else 0
+        )
+        if old_rank > new_rank:
+            return True
+    return False
+
+
 def _resolve_knowledge_context(pid: int, module_base: int) -> int:
     """One short-lived, read-only attach just to find the knowledge context.
 
@@ -259,6 +278,8 @@ def capture_pool(
     prior_game_date: str | None = None,
     prior_attributes_by_id: Mapping[int, dict[str, Any]] | None = None,
     prior_attributes_observed_at: Mapping[int, str] | None = None,
+    prior_last_known_attributes_by_id: Mapping[int, dict[str, Any]] | None = None,
+    prior_last_known_attributes_observed_at: Mapping[int, str] | None = None,
     prior_footedness_by_id: Mapping[int, str] | None = None,
     prior_footedness_observed_at: Mapping[int, str] | None = None,
     prior_scouting_knowledge: Mapping[int, int] | None = None,
@@ -295,10 +316,10 @@ def capture_pool(
 
     A base feed from an earlier in-game date no longer blocks the refresh --
     the game date always moves on and refusing here just left a stale file on
-    disk until someone deleted it by hand. Prior attributes/footedness are
-    still carried forward regardless of date drift; each keeps the date it was
-    actually observed (see ``feed_document``), and the returned document's own
-    ``gameDate`` is always today's live read. A drift is only logged, not
+    disk until someone deleted it by hand. Prior footedness is carried forward;
+    prior attributes that are no longer visible move to a separately dated
+    last-known snapshot and are never used as current scoring inputs. The
+    returned document's own ``gameDate`` is always today's live read. A drift is only logged, not
     enforced -- diagnosing a bad refresh from ``data/logs/fm20-native-calls.jsonl``
     should never require reading the live game by hand. Anything carried
     forward that was observed *after* today's live date is dropped rather than
@@ -535,6 +556,13 @@ def capture_pool(
         prior_attributes_by_id, prior_attributes_observed_at = _drop_future_dated(
             dict(prior_attributes_by_id or {}), dict(prior_attributes_observed_at or {}), after.game_date,
         )
+        prior_last_known_attributes_by_id, prior_last_known_attributes_observed_at = (
+            _drop_future_dated(
+                dict(prior_last_known_attributes_by_id or {}),
+                dict(prior_last_known_attributes_observed_at or {}),
+                after.game_date,
+            )
+        )
         prior_footedness_by_id, prior_footedness_observed_at = _drop_future_dated(
             dict(prior_footedness_by_id or {}), dict(prior_footedness_observed_at or {}), after.game_date,
         )
@@ -542,8 +570,8 @@ def capture_pool(
             player_id: {name: obs.to_dict() for name, obs in player.observations.items()}
             for player_id, player in scouted_players.items()
         }
-        attributes_by_id = dict(prior_attributes_by_id)
-        attributes_observed_at = dict(prior_attributes_observed_at)
+        attributes_by_id: dict[int, dict[str, Any]] = {}
+        attributes_observed_at: dict[int, str] = {}
         # Our own read-only calculation this refresh: safe, and newer than
         # anything carried forward, but not as trusted as FM's own answer
         # below if that was explicitly requested for this player too.
@@ -558,6 +586,23 @@ def capture_pool(
         )
         attributes_by_id.update(newly_hydrated_attributes)
         attributes_observed_at.update(dict.fromkeys(newly_hydrated_attributes, after.game_date))
+        last_known_attributes_by_id = dict(prior_last_known_attributes_by_id)
+        last_known_attributes_observed_at = dict(
+            prior_last_known_attributes_observed_at
+        )
+        # A prior observation is history, not a current fact, when this refresh
+        # can no longer see at least one value it contained. Preserve the most
+        # recent such sheet with its real observation date, but never feed it
+        # into current scores or visibility counts.
+        for player_id, earlier in prior_attributes_by_id.items():
+            if not _lost_visible_attribute_detail(
+                earlier, attributes_by_id.get(player_id, {})
+            ):
+                continue
+            observed_at = prior_attributes_observed_at.get(player_id, after.game_date)
+            if observed_at >= last_known_attributes_observed_at.get(player_id, ""):
+                last_known_attributes_by_id[player_id] = earlier
+                last_known_attributes_observed_at[player_id] = observed_at
         footedness_by_id = dict(prior_footedness_by_id)
         footedness_observed_at = dict(prior_footedness_observed_at)
         newly_hydrated_footedness = hydrate_visible_footedness(
@@ -595,6 +640,12 @@ def capture_pool(
 
         attributes_by_id = {k: v for k, v in attributes_by_id.items() if k in all_ids}
         attributes_observed_at = {k: v for k, v in attributes_observed_at.items() if k in all_ids}
+        last_known_attributes_by_id = {
+            k: v for k, v in last_known_attributes_by_id.items() if k in all_ids
+        }
+        last_known_attributes_observed_at = {
+            k: v for k, v in last_known_attributes_observed_at.items() if k in all_ids
+        }
         footedness_by_id = {k: v for k, v in footedness_by_id.items() if k in all_ids}
         footedness_observed_at = {k: v for k, v in footedness_observed_at.items() if k in all_ids}
         raw_positions_by_id = {k: v for k, v in raw_positions_by_id.items() if k in all_ids}
@@ -621,6 +672,8 @@ def capture_pool(
             excluded_own_ids=set(pool_ids) & own_ids,
             attributes_by_id=attributes_by_id,
             attributes_observed_at=attributes_observed_at,
+            last_known_attributes_by_id=last_known_attributes_by_id,
+            last_known_attributes_observed_at=last_known_attributes_observed_at,
             footedness_by_id=footedness_by_id,
             footedness_observed_at=footedness_observed_at,
             raw_positions_by_id=raw_positions_by_id,
@@ -693,6 +746,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             prior_game_date=prior.game_date if prior else None,
             prior_attributes_by_id=prior.attributes if prior else {},
             prior_attributes_observed_at=prior.attributes_observed_at if prior else {},
+            prior_last_known_attributes_by_id=(
+                prior.last_known_attributes if prior else {}
+            ),
+            prior_last_known_attributes_observed_at=(
+                prior.last_known_attributes_observed_at if prior else {}
+            ),
             prior_footedness_by_id=prior.footedness if prior else {},
             prior_footedness_observed_at=prior.footedness_observed_at if prior else {},
             prior_scouting_knowledge=prior.scouting_knowledge if prior else {},

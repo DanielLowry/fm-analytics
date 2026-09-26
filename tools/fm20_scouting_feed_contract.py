@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, NamedTuple
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 class ScoutingFeedError(RuntimeError):
@@ -43,6 +43,8 @@ def feed_document(
     excluded_own_ids: Iterable[int],
     attributes_by_id: dict[int, dict[str, Any]] | None = None,
     attributes_observed_at: dict[int, str] | None = None,
+    last_known_attributes_by_id: dict[int, dict[str, Any]] | None = None,
+    last_known_attributes_observed_at: dict[int, str] | None = None,
     footedness_by_id: dict[int, str] | None = None,
     footedness_observed_at: dict[int, str] | None = None,
     raw_positions_by_id: dict[int, tuple[str, ...]] | None = None,
@@ -59,11 +61,11 @@ def feed_document(
 
     ``gameDate`` is always the date this capture actually read live, even when
     most players' facts were carried forward from an earlier capture rather
-    than re-observed today -- the file's own date always advances. Each
-    carried-forward attribute/footedness observation keeps the date it was
-    actually seen on in ``attributesObservedAt``/``footednessObservedAt``, so
-    a stale-looking value is visible as stale rather than silently relabelled
-    as current. A player hydrated in this run gets ``game_date`` for both.
+    than re-observed today -- the file's own date always advances. Current
+    attributes are observations made in this run. Older attribute evidence is
+    stored separately as ``lastKnownAttributes`` with its original date, so it
+    cannot enter current scoring. Carried footedness likewise keeps its real
+    observation date. A player hydrated in this run gets ``game_date``.
     """
     ids = tuple(sorted(set(player_ids)))
     missing_names = [player_id for player_id in ids if not names.get(player_id)]
@@ -74,6 +76,8 @@ def feed_document(
     excluded = tuple(sorted(set(excluded_own_ids)))
     attributes_by_id = attributes_by_id or {}
     attributes_observed_at = attributes_observed_at or {}
+    last_known_attributes_by_id = last_known_attributes_by_id or {}
+    last_known_attributes_observed_at = last_known_attributes_observed_at or {}
     footedness_by_id = footedness_by_id or {}
     footedness_observed_at = footedness_observed_at or {}
     raw_positions_by_id = raw_positions_by_id or {}
@@ -169,6 +173,18 @@ def feed_document(
                     {"attributesObservedAt": attributes_observed_at.get(player_id, game_date)}
                     if player_id in attributes_by_id else {}
                 ),
+                **(
+                    {"lastKnownAttributes": last_known_attributes_by_id[player_id]}
+                    if player_id in last_known_attributes_by_id else {}
+                ),
+                **(
+                    {
+                        "lastKnownAttributesObservedAt": (
+                            last_known_attributes_observed_at.get(player_id, game_date)
+                        )
+                    }
+                    if player_id in last_known_attributes_by_id else {}
+                ),
                 **({"footedness": footedness_by_id[player_id]} if player_id in footedness_by_id else {}),
                 **(
                     {"footednessObservedAt": footedness_observed_at.get(player_id, game_date)}
@@ -194,6 +210,8 @@ class PriorVisibility(NamedTuple):
     game_date: str
     attributes: dict[int, dict[str, Any]]
     attributes_observed_at: dict[int, str]
+    last_known_attributes: dict[int, dict[str, Any]]
+    last_known_attributes_observed_at: dict[int, str]
     footedness: dict[int, str]
     footedness_observed_at: dict[int, str]
     raw_positions: dict[int, tuple[str, ...]]
@@ -213,6 +231,8 @@ def load_prior_visibility(path: Path) -> PriorVisibility:
         raise ScoutingFeedError("prior scouting feed has an invalid game date or player list")
     attributes: dict[int, dict[str, Any]] = {}
     attributes_observed_at: dict[int, str] = {}
+    last_known_attributes: dict[int, dict[str, Any]] = {}
+    last_known_attributes_observed_at: dict[int, str] = {}
     footedness: dict[int, str] = {}
     footedness_observed_at: dict[int, str] = {}
     raw_positions: dict[int, tuple[str, ...]] = {}
@@ -240,11 +260,36 @@ def load_prior_visibility(path: Path) -> PriorVisibility:
                 raise ScoutingFeedError("prior scouting feed contains an invalid player name")
             names[player_id] = prior_name
         observed_attributes = row.get("attributes", {})
+        observed_last_known_attributes = row.get("lastKnownAttributes", {})
         if not isinstance(observed_attributes, Mapping):
             raise ScoutingFeedError("prior scouting feed contains an invalid attribute map")
+        if not isinstance(observed_last_known_attributes, Mapping):
+            raise ScoutingFeedError(
+                "prior scouting feed contains an invalid last-known attribute map"
+            )
+        # Schema 1 stored stale observations as if they were current and only
+        # marked the player as dropped. Migrate that shape into explicit
+        # history so an older base feed cannot reintroduce the misleading
+        # current ranges this split was added to prevent.
+        if (
+            row.get("droppedFromScoutReports") is True
+            and observed_attributes
+            and not observed_last_known_attributes
+        ):
+            observed_last_known_attributes = observed_attributes
+            observed_attributes = {}
+            last_known_attributes[player_id] = dict(observed_last_known_attributes)
+            last_known_attributes_observed_at[player_id] = observed_at(
+                row, "attributesObservedAt"
+            )
         if observed_attributes:
             attributes[player_id] = dict(observed_attributes)
             attributes_observed_at[player_id] = observed_at(row, "attributesObservedAt")
+        if observed_last_known_attributes and player_id not in last_known_attributes:
+            last_known_attributes[player_id] = dict(observed_last_known_attributes)
+            last_known_attributes_observed_at[player_id] = observed_at(
+                row, "lastKnownAttributesObservedAt"
+            )
         observed_foot = row.get("footedness")
         if observed_foot is not None:
             if not isinstance(observed_foot, str):
@@ -267,6 +312,7 @@ def load_prior_visibility(path: Path) -> PriorVisibility:
                 raise ScoutingFeedError("prior scouting feed contains an invalid scoutingKnowledge value")
             scouting_knowledge[player_id] = observed_knowledge
     return PriorVisibility(
-        game_date, attributes, attributes_observed_at, footedness, footedness_observed_at,
-        raw_positions, scouting_knowledge, names,
+        game_date, attributes, attributes_observed_at,
+        last_known_attributes, last_known_attributes_observed_at,
+        footedness, footedness_observed_at, raw_positions, scouting_knowledge, names,
     )

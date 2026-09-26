@@ -32,6 +32,7 @@ from fm_analytics.analytics import (
 )
 from fm_analytics.web.scouting_render import (
     attribute_sheet,
+    past_knowledge_cell,
     player_scouting_report,
     ranking_results,
     scouting_player_link,
@@ -478,6 +479,7 @@ class ScoutingPagesMixin:
                 f"<td>{_band(item.role_score.score)}</td>"
                 f"<td><b>{item.role_score.median:.1f}</b></td>"
                 f"<td>{html.escape(item.visibility_summary)}</td>"
+                f"<td>{past_knowledge_cell(candidate)}</td>"
                 f"<td>{_scouting_knowledge_cell(candidate)}</td>"
                 f"<td><span class='badge {badge}'>{label}</span><br><span class='muted'>{html.escape(reason)}</span></td></tr>"
             )
@@ -514,7 +516,7 @@ class ScoutingPagesMixin:
             "This table does not apply positional familiarity.</li></ul>"
             "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions"
             + (" (raw external data)" if include_raw_external_positions else "")
-            + "</th><th>Attribute-based role score (min / est. / max)</th><th>Median estimate</th><th>Visibility</th><th>Scouted</th><th>Recommendation</th></tr>"
+            + "</th><th>Attribute-based role score (min / est. / max)</th><th>Median estimate</th><th>Visibility</th><th>Past knowledge</th><th>Scouted</th><th>Recommendation</th></tr>"
             + "".join(rows) + "</table><h2>Visible role data</h2>" + "".join(details)
         )
 
@@ -538,6 +540,7 @@ class ScoutingPagesMixin:
             f"<td>{_position_display(candidate, include_raw_external_positions=include_raw_external_positions)}</td>"
             f"<td>{html.escape(candidate.footedness or '—')}</td>"
             f"<td>{_scouting_knowledge_cell(candidate)}</td>"
+            f"<td>{past_knowledge_cell(candidate)}</td>"
             f"<td>{attribute_sheet(candidate)}</td>"
             "</tr>"
             for candidate in displayed
@@ -554,7 +557,7 @@ class ScoutingPagesMixin:
             )
             + "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions"
             + (" (raw external data)" if include_raw_external_positions else "")
-            + "</th><th>Footedness</th><th>Scouted</th><th>Attributes</th></tr>"
+            + "</th><th>Footedness</th><th>Scouted</th><th>Past knowledge</th><th>Attributes</th></tr>"
             + rows
             + "</table>"
         )

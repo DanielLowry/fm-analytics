@@ -56,6 +56,23 @@ class ScoutingFeedTests(unittest.TestCase):
         self.assertNotIn("footedness", document["players"][1])
         self.assertIn("1/2", document["source"]["fieldCoverage"]["attributes"])
 
+    def test_current_and_last_known_attributes_are_separate_dated_fields(self) -> None:
+        document = feed_document(
+            [10], {10: "One Player"}, game_date="2020-09-01",
+            managed_club={"id": "club-1", "name": "Hungerford Town"},
+            source_count=1, excluded_own_ids=[],
+            attributes_by_id={10: {}},
+            last_known_attributes_by_id={
+                10: {"pace": {"visibility": "range", "minimum": 8, "maximum": 14}}
+            },
+            last_known_attributes_observed_at={10: "2020-08-14"},
+        )
+
+        player = document["players"][0]
+        self.assertEqual(player["attributes"], {})
+        self.assertEqual(player["lastKnownAttributes"]["pace"]["maximum"], 14)
+        self.assertEqual(player["lastKnownAttributesObservedAt"], "2020-08-14")
+
     def test_marks_raw_external_positions_as_the_accepted_visibility_gap(self) -> None:
         document = feed_document(
             [10], {10: "One Player"},
@@ -87,6 +104,31 @@ class ScoutingFeedTests(unittest.TestCase):
         self.assertEqual(prior.attributes[10]["pace"]["visibility"], "unknown")
         self.assertEqual(prior.footedness, {10: "Right"})
         self.assertEqual(prior.raw_positions, {})
+
+    def test_load_migrates_a_legacy_dropped_players_attributes_to_history(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "prior.json"
+            path.write_text(json.dumps({
+                "schemaVersion": 1,
+                "gameDate": "2020-08-14",
+                "players": [{
+                    "id": "10", "name": "Past Player",
+                    "scoutingKnowledge": 6,
+                    "droppedFromScoutReports": True,
+                    "attributes": {
+                        "pace": {"visibility": "range", "minimum": 8, "maximum": 14}
+                    },
+                    "attributesObservedAt": "2020-07-21",
+                }],
+            }), encoding="utf-8")
+
+            prior = load_prior_visibility(path)
+
+        self.assertNotIn(10, prior.attributes)
+        self.assertEqual(prior.last_known_attributes[10]["pace"]["maximum"], 14)
+        self.assertEqual(
+            prior.last_known_attributes_observed_at[10], "2020-07-21"
+        )
 
     def test_observed_at_falls_back_to_the_capture_date_for_older_files(self) -> None:
         """A file written before per-field dating existed has only the one date."""
@@ -367,20 +409,30 @@ class DateDriftTests(unittest.TestCase):
                 remote_address=None,
                 allow_rebuild=False,
                 prior_game_date="2019-06-24",
-                prior_attributes_by_id={10: {"pace": {"visibility": "unknown"}}},
+                prior_attributes_by_id={
+                    10: {"pace": {"visibility": "range", "minimum": 8, "maximum": 14}}
+                },
                 prior_attributes_observed_at={10: "2019-06-24"},
                 prior_footedness_by_id={10: "Right"},
                 prior_footedness_observed_at={10: "2019-06-24"},
+                prior_scouting_knowledge={10: 6},
+                prior_names={10: "A Player"},
             )
 
         # The refresh must succeed -- no more hard failure on date drift -- and
         # the file's own date always advances to today's live read.
         self.assertEqual(document["gameDate"], "2019-07-04")
         by_id = {player["id"]: player for player in document["players"]}
-        self.assertEqual(by_id["10"]["attributes"]["pace"]["visibility"], "unknown")
-        # The carried-forward fact keeps the date it was actually observed,
-        # not today's date -- this is "keep the old dates" from the request.
-        self.assertEqual(by_id["10"]["attributesObservedAt"], "2019-06-24")
+        self.assertEqual(by_id["10"]["attributes"], {})
+        self.assertEqual(
+            by_id["10"]["lastKnownAttributes"]["pace"]["visibility"], "range"
+        )
+        # The historical fact keeps the date it was actually observed and is
+        # no longer presented as a current scoring input.
+        self.assertEqual(
+            by_id["10"]["lastKnownAttributesObservedAt"], "2019-06-24"
+        )
+        self.assertTrue(by_id["10"]["droppedFromScoutReports"])
         self.assertEqual(by_id["10"]["footednessObservedAt"], "2019-06-24")
 
         # The drift must be visible in the log without needing to read the

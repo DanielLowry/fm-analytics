@@ -69,10 +69,13 @@ second computation.
 A player whose knowledge record has since disappeared (retired, sold
 abroad, a database-only entry now -- FM's own reason for this is not
 observable from outside) stays in the Scouted tab with his last-known
-knowledge level and attributes, flagged rather than silently dropped:
+knowledge level, flagged rather than silently dropped:
 *"This player used to be in the scouted pool but can't be found in the
 scout reports anymore."* See `dropped_from_scout_reports_ids` in
-`fm20_scouting_feed.capture_pool`.
+`fm20_scouting_feed.capture_pool`. Attributes FM no longer shows are not used
+as current facts or scoring inputs. They move to the separately dated
+`lastKnownAttributes` snapshot, shown as **Past knowledge** in the list and as
+an explicitly historical section on the player report.
 
 ## Ranking: who to scout next (19 September 2026)
 
