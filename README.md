@@ -117,6 +117,12 @@ just the selected one: a position weak in every tactic considered is flagged
 separately from one weak in only some, since the latter may just reflect a
 shape you would not actually play.
 
+Scouting captures are also kept as a permanent, dated history in
+`data/player-knowledge.sqlite3`, because FM stops showing attributes once a
+player drops out of your scout reports. `fm-web` records every refresh into it;
+`uv run fm-knowledge status` summarises it and `uv run fm-knowledge ingest
+<capture.json>` adds a capture by hand. See the [active plan](docs/active-plan.md).
+
 External-player discovery and range/unknown queries are not yet automated or
 production-ready. The passive render hook remains research evidence only; it
 is not used by the bridge.

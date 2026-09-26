@@ -730,6 +730,14 @@ def _refresh_notice(refreshed: str | None) -> str:
     return ""
 
 
+def _knowledge_notice(note: tuple[str, bool] | None) -> str:
+    """Say whether the latest scouting capture was kept in the player-knowledge history."""
+    if note is None:
+        return ""
+    message, recorded = note
+    return f"<p class='{'muted' if recorded else 'warn'}'>{html.escape(message)}</p>"
+
+
 def _pool_not_built_page() -> str:
     """Offer the safe route first, and state plainly what the other one does.
 

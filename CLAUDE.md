@@ -13,7 +13,9 @@ src/fm_analytics/bridge/     HTTP boundary onto the game process — see bridge/
 src/fm_analytics/domain/     Player/Squad/GameState and Visibility — the shared vocabulary
 src/fm_analytics/api/        HTTP client for the bridge
 src/fm_analytics/imports/    parses manager-visible FM20 HTML exports
-src/fm_analytics/persistence/  SQLite capture store, versioned schema (see below)
+src/fm_analytics/persistence/  SQLite stores: the squad capture (versioned, no migrations) and
+                             the player-knowledge history (append-only, migrations required)
+src/fm_analytics/knowledge_ingest.py  scouting capture -> player-knowledge history (fm-knowledge)
 src/fm_analytics/reporting.py  the ONE "compute a squad recommendation" path
 src/fm_analytics/web/        read-only browser view over reporting.py
 tools/                       low-level FM20 probe/monitor utilities (research-only)

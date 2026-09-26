@@ -223,6 +223,57 @@ current, using the stale state already defined in [mvp.md](mvp.md).
 out of a later capture keeps his earlier observations, and the upgrade path is
 tested from the first version.
 
+**Status: built (26 September 2026).** `persistence/player_knowledge.py` is the
+store and `knowledge_ingest.py` reads a scouting capture into it. Tests are in
+`tests/test_player_knowledge.py` and `tests/test_knowledge_ingest.py`, with
+mutation checks that change-only recording and rollback are really enforced.
+
+```bash
+uv run fm-knowledge status
+uv run fm-knowledge ingest data/scouting-capture-enriched.json   # oldest game date first
+```
+
+`fm-web` records the current capture at start-up and after every successful
+**Refresh scouting data**, and shows a warning on the Scouting page if recording
+fails (a failed recording never fails the refresh). `--knowledge-db PATH` and
+`--no-record-knowledge` control it. A refresh made by running
+`tools/fm20_scouting_feed.py` directly is picked up the next time `fm-web`
+starts or you run `fm-knowledge ingest`, so if you refresh several times that
+way between two runs, only the last state of each game day is kept.
+
+How it differs from, or adds to, the scope above:
+
+- **Change-only, per player and per attribute.** A profile row is written when
+  any profile field differs from the latest one on or before that date, and an
+  attribute row when that attribute's state (known, range or unknown) differs.
+  An identical capture is skipped outright by content hash, ignoring the
+  capture time. Volume: the first real ingest of 4,678 players wrote about
+  9,000 profile and 27,500 attribute rows (a 4.7 MB file). Transfer value
+  moves for most players every month, so expect a few thousand profile rows per
+  game week.
+- **Unknown is stored, so fading is visible.** The feed reports every
+  attribute of a scouted player, including unknown ones (about 40% of rows
+  in the real capture), and a known value that later becomes unknown is a new
+  row beside the old one.
+- **Old snapshots are seeded at their real dates.** A dropped player's
+  `lastKnownAttributes` are recorded at their own observation date with source
+  `last_known`; a carried-forward current reading keeps its older date too.
+- **Save identity and a rewind guard.** A save is keyed by the managed club
+  (`club:<id>`), or by `--save NAME`, because FM player IDs are identical in
+  every save. A capture dated earlier than what the save already holds is
+  refused unless you pass `--allow-rewind`, so loading an old save cannot
+  silently mix two timelines.
+- **Own migrations from v1.** An ordered `MIGRATIONS` list, a consistent
+  backup (`.bak-v<N>`) before any upgrade, atomic per-step application, and a
+  refusal to open a newer or unrelated file. Only v1 exists, so the upgrade
+  path is tested with an injected second step.
+- **Seeded from the three existing captures** (24 June and 8 September): 5,175
+  players, including 823 with at least one known or ranged attribute.
+
+Not done, deliberately: nothing reads this database yet (item 5), and wages
+are not captured because the feed does not carry them. The `facts` column is
+the place for them when it does.
+
 ### 5. Scout from the database, with manual verdicts
 
 **Scope.**

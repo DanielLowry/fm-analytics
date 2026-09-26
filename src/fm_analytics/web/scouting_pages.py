@@ -51,6 +51,7 @@ from fm_analytics.web.rendering import (
     _options,
     _query_first,
     _raw_position_notice,
+    _knowledge_notice,
     _refresh_notice,
     _scouting_filters,
     _scouting_limit,
@@ -84,6 +85,7 @@ class ScoutingPagesMixin:
             "Attribute-based role scores preserve their <b>floor / estimate / ceiling</b>; a player with "
             "no known role attributes is a reason to scout, not a claim that they are good.</p>"
             + _refresh_notice(_query_first(query, "refreshed"))
+            + _knowledge_notice(self.server.knowledge_note)  # type: ignore[attr-defined]
             + _scouting_refresh_panel(filters.scouted_only)
             + self._scouting_filters_form(
                 filters, candidates, self.server.pinned_tactics, limit  # type: ignore[attr-defined]

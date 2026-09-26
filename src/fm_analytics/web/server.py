@@ -43,6 +43,9 @@ from fm_analytics.analytics import (
 )
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.domain import SourceHealth, Squad
+from fm_analytics.knowledge_ingest import DEFAULT_DATABASE as DEFAULT_KNOWLEDGE_DATABASE
+from fm_analytics.knowledge_ingest import record_capture_file
+from fm_analytics.persistence import PlayerKnowledgeStore, RecordResult
 from fm_analytics.reporting import (
     RecommendationBundle,
     RecommendationPolicy,
@@ -116,7 +119,14 @@ class SquadWebServer(ThreadingHTTPServer):
         health_interval_seconds: float = 30.0,
         ranking_executor: TacticRankingExecutor | None = None,
         pinned_tactics: tuple[str, ...] = (),
+        knowledge_recorder: Callable[[], RecordResult] | None = None,
     ):
+        # Appends each fresh scouting capture to the player-knowledge database
+        # (see ``record_knowledge``). None disables recording.
+        self.knowledge_recorder = knowledge_recorder
+        # (message, succeeded) from the latest recording, shown on the
+        # Scouting page so a failure to keep history is never silent.
+        self.knowledge_note: tuple[str, bool] | None = None
         # Fixed for the life of the server, so the bundle cache is still keyed
         # on the opponent alone. If pins ever become editable from a page they
         # must join that key, or one page would serve another's analysis.
@@ -186,10 +196,29 @@ class SquadWebServer(ThreadingHTTPServer):
             if hydrate_active_search:
                 options["hydrate_active_search"] = True
             result = self.scouting_refresh(**options)
+            # Still under the refresh lock, so the file cannot change while it is read.
+            self.record_knowledge()
         finally:
             self._scouting_refresh_lock.release()
         threading.Thread(target=self.warm_scouting_rankings, daemon=True, name="scouting-warm").start()
         return result
+
+    def record_knowledge(self) -> None:
+        """Append the current scouting capture to the player-knowledge database.
+
+        Never raises: a refresh that succeeded must not be reported as failed
+        because history could not be kept. The failure is instead recorded in
+        ``knowledge_note`` and printed, because unrecorded observations cannot
+        be recovered once FM stops showing them.
+        """
+        if self.knowledge_recorder is None:
+            return
+        try:
+            note = (self.knowledge_recorder().summary(), True)
+        except Exception as exc:  # noqa: BLE001 - see the docstring
+            note = (f"Player knowledge was NOT recorded: {exc}", False)
+            print(note[0], file=sys.stderr)
+        self.knowledge_note = note
 
     def read(self):
         with self._lock:
@@ -435,6 +464,20 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--knowledge-db",
+        type=Path,
+        default=DEFAULT_KNOWLEDGE_DATABASE,
+        help=(
+            "player-knowledge database that scouting captures are recorded into "
+            "(default: %(default)s)"
+        ),
+    )
+    parser.add_argument(
+        "--no-record-knowledge",
+        action="store_true",
+        help="do not record scouting captures into the player-knowledge database",
+    )
+    parser.add_argument(
         "--scouting-json",
         help="manager-visible discoverability/scouting capture JSON for the Scouting page",
     )
@@ -490,6 +533,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Could not start tactic-ranking workers; using sequential ranking: {exc}")
         ranking_executor.shutdown(wait=False)
         ranking_executor = None
+    knowledge_recorder = None
+    if not args.no_record_knowledge:
+        knowledge_store = PlayerKnowledgeStore(args.knowledge_db)
+
+        def knowledge_recorder() -> RecordResult:
+            return record_capture_file(knowledge_store, refresh_path)
+
     server = SquadWebServer(
         (args.host, args.port), provider,
         scouting_provider=(scouting_json_provider(scouting_path) if scouting_path else None),
@@ -497,7 +547,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         cache_ttl_seconds=args.cache_ttl_seconds,
         ranking_executor=ranking_executor,
         pinned_tactics=pinned_tactics,
+        knowledge_recorder=knowledge_recorder,
     )
+    if knowledge_recorder is not None and refresh_path.exists():
+        # Catches captures made by running the tool directly since last time.
+        server.record_knowledge()
+        if server.knowledge_note is not None:
+            print(server.knowledge_note[0])
     print(f"FM Analytics web view listening on http://{args.host}:{args.port}")
     threading.Thread(target=server.warm_scouting_rankings, daemon=True, name="scouting-warm").start()
     try:
