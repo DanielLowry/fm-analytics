@@ -69,6 +69,20 @@ class FmHtmlImportTests(unittest.TestCase):
             {"visibility": "range", "minimum": 12, "maximum": 16},
         )
 
+    def test_parses_dedicated_set_piece_columns_from_a_custom_view(self) -> None:
+        html = """
+        <table><tr><th>UID</th><th>Name</th><th>Position</th>
+        <th>Fre</th><th>Pen</th><th>L Th</th></tr>
+        <tr><td>1</td><td>Specialist</td><td>M (C)</td>
+        <td>17</td><td>15</td><td>13</td></tr></table>
+        """
+
+        player = parse_fm_html_export(html).players[0]
+
+        self.assertEqual(player.attributes["freeKickTaking"].value, 17)
+        self.assertEqual(player.attributes["penaltyTaking"].value, 15)
+        self.assertEqual(player.attributes["longThrows"].value, 13)
+
     def test_attribute_parser_rejects_non_visible_or_invalid_values(self) -> None:
         for value in ("0", "21", "very good", "10-21"):
             with self.subTest(value=value):

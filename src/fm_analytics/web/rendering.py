@@ -306,6 +306,23 @@ _STYLE = """
   .tactic-rationale ul { columns: 2; }
   .advisory-banner { margin: 1rem 0; padding: 0.85rem 1rem; border-left: 4px solid #b36b00; background: #fff4df; border-radius: 0.3rem; }
   .advisory-banner b { display: block; margin-bottom: 0.2rem; }
+  .set-piece-hero { margin: 1rem 0; padding: 1rem 1.2rem; color: white; background: linear-gradient(135deg, #18364b, #315f68); border-radius: 0.45rem; }
+  .set-piece-hero .eyebrow { color: #c8dde0; }
+  .set-piece-hero h2 { margin: 0.15rem 0; padding: 0; border: 0; font-size: 1.35rem; }
+  .set-piece-hero p { margin: 0.35rem 0 0; color: #e5eff0; }
+  .set-piece-controls { margin-bottom: 1rem; }
+  .set-piece-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 0.6rem; margin: 1rem 0; }
+  .set-piece-summary > div { display: grid; gap: 0.18rem; padding: 0.7rem; border: 1px solid #d8e0e4; border-top: 3px solid #4f7e85; border-radius: 0.35rem; background: white; }
+  .set-piece-summary span, .set-piece-summary small { color: #667; font-size: 0.75rem; }
+  .set-piece-summary b { color: #1a2b3c; }
+  .section-jump { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 1rem 0; padding: 0; background: transparent; }
+  .section-jump a { margin: 0; padding: 0.35rem 0.65rem; color: #1a2b3c; background: #e8eef0; border-radius: 1rem; }
+  details.set-piece-routine { margin: 0.7rem 0; padding: 0; overflow: hidden; background: white; border-color: #d6dee2; }
+  details.set-piece-routine > summary { display: flex; justify-content: space-between; gap: 1rem; padding: 0.8rem 0.9rem; background: #edf3f4; }
+  details.set-piece-routine > summary small { color: #5b6c72; font-weight: 400; }
+  details.set-piece-routine > p, details.set-piece-routine > .legend { margin-left: 0.9rem; margin-right: 0.9rem; }
+  details.set-piece-routine table { margin-bottom: 0.5rem; }
+  .set-piece-unit { display: inline-block; white-space: nowrap; padding: 0.15rem 0.4rem; border-radius: 0.8rem; color: #31545c; background: #e3eef0; font-size: 0.75rem; }
   .check-summary { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0; }
   .check-summary span { padding: 0.35rem 0.6rem; background: #eef1f4; border-radius: 1rem; font-size: 0.82rem; }
   .role-combination { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.55rem 0; }
@@ -518,6 +535,7 @@ def _layout(title: str, active_path: str, body: str) -> str:
     nav = "".join(_nav_link(path, label, active_path) for path, label in _NAV)
     return (
         "<!doctype html><html><head><meta charset=\"utf-8\">"
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         f"<title>{html.escape(title)} · FM Analytics</title>{_STYLE}</head>"
         f"<body><nav>{nav}</nav><main><h1>{html.escape(title)}</h1>{body}</main>"
         "</body></html>"

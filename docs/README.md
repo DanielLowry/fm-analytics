@@ -35,6 +35,8 @@
   Player Search evidence and remaining validation gates.
 - [Scouting workspace](scouting-workspace.md) documents the visibility-aware
   recruitment page and candidate-feed contract.
+- [Set-piece optimizer](set-piece-optimizer.md) documents taker evidence,
+  exact whole-routine assignments, and the live-reader coverage boundary.
 - [Research automation strategy](research-automation.md) defines the research
   automation programme.
 - [Research catalogue](../research/README.md) indexes semantic registry facts

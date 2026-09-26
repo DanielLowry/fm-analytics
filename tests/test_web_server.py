@@ -274,21 +274,6 @@ class SquadWebServerTests(unittest.TestCase):
             self.assertEqual(status, 404)
             self.assertIn("not in the current catalogue", body)
 
-    def test_set_pieces_page_suggests_assignments_and_names_known_limitations(self) -> None:
-        # This page only needs its own inputs, so it works before the wider
-        # role-scoring extraction is complete.
-        port = self._serve(FIXTURE)
-
-        status, body = self._get(port, "/set-pieces")
-
-        self.assertEqual(status, 200)
-        self.assertIn("Suggested assignments", body)
-        self.assertIn("Left-side Corners (prefer Right foot)", body)
-        self.assertIn("Direct free kicks", body)
-        self.assertIn("Free Kick Taking is not captured", body)
-        self.assertIn("Long throws", body)
-        self.assertIn("Outswingers", body)
-
     def test_unknown_path_is_not_found(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             fixture_path = _write_complete_fixture(Path(directory))

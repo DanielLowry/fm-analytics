@@ -143,12 +143,16 @@ from fm_analytics.analytics.tactic_scouting import (
     sort_tactic_assessments,
 )
 from fm_analytics.analytics.set_pieces import (
+    ATTACKING_RISKS,
     DELIVERY_STYLES,
+    RoutineAssignment,
+    RoutineRole,
     SET_PIECE_SCORING_VERSION,
     SET_PIECE_TASKS,
     SetPieceCandidate,
     SetPieceRecommendation,
     SetPieceReport,
+    SetPieceRoutine,
     SetPieceTask,
     is_set_piece_available,
     recommend_set_pieces,
@@ -156,6 +160,7 @@ from fm_analytics.analytics.set_pieces import (
 
 __all__ = [
     "AttributeContribution",
+    "ATTACKING_RISKS",
     "AXES",
     "AXIS_DEFINITIONS",
     "FORMATION_DEFINITIONS",
@@ -185,6 +190,8 @@ __all__ = [
     "RecruitmentBrief",
     "RecruitmentCandidate",
     "RecruitmentShortlist",
+    "RoutineAssignment",
+    "RoutineRole",
     "ReplacementOption",
     "RoleAttribute",
     "RoleDefinition",
@@ -208,6 +215,7 @@ __all__ = [
     "SetPieceCandidate",
     "SetPieceRecommendation",
     "SetPieceReport",
+    "SetPieceRoutine",
     "SetPieceTask",
     "ScoutingAssessment",
     "ScoutingCandidate",
