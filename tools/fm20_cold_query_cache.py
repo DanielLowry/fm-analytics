@@ -49,6 +49,18 @@ from tools.fm20_linux_probe import (
 _MODULE_BASE_CACHE: dict[int, int] = {}
 _PLAYER_INTERFACE_CACHE: dict[int, dict[int, int]] = {}
 
+# FM exposes two player record layouts through Player Search. Ordinary
+# ``db::ACTUAL_PLAYER`` records put their identity header 0x1c8 bytes after
+# the interface consumed by the visibility builder. Dual-role
+# ``db::ACTUAL_PLAYER_AND_NON_PLAYER`` records (for example, player/coaches)
+# use 0x2a0 instead. Both layouts were established by the passive Player
+# Search caller trace in ``fm20_search_caller_trace.gdb`` and are also
+# accepted by the read-only search/scout readers.
+_PLAYER_INTERFACE_LAYOUTS = (
+    (0x1C8, FM20_4_4_STEAM.player_type_offset),
+    (0x2A0, 0x6DA94A0),
+)
+
 
 def verified_module_base(pid: int, proc_root: Path = Path("/proc")) -> int:
     """FM's module base, hash-verified once per process ID and never again."""
@@ -119,13 +131,15 @@ def _valid_player_interface(
     memory_fd: int, module_base: int, player_interface: int, player_id: int
 ) -> bool:
     try:
-        player_person = player_interface + 0x1C8
-        if read_u64(memory_fd, player_person) != module_base + FM20_4_4_STEAM.player_type_offset:
-            return False
-        if read_i32(memory_fd, player_person + 0xC) != player_id:
-            return False
         player_table = read_u64(memory_fd, player_interface + 8)
-        return player_interface + 8 + read_i32(memory_fd, player_table + 4) == player_person
+        player_person = player_interface + 8 + read_i32(memory_fd, player_table + 4)
+        person_offset = player_person - player_interface
+        expected_type_rva = dict(_PLAYER_INTERFACE_LAYOUTS).get(person_offset)
+        if expected_type_rva is None:
+            return False
+        if read_u64(memory_fd, player_person) != module_base + expected_type_rva:
+            return False
+        return read_i32(memory_fd, player_person + 0xC) == player_id
     except (OSError, ProbeError):
         return False
 
@@ -139,16 +153,24 @@ def _scan_player_interfaces(
         FM20_4_4_STEAM.person_collection_offset,
         FM20_4_4_STEAM.collection_indirection_offset,
     )
-    expected_type = module_base + FM20_4_4_STEAM.player_type_offset
+    offsets_by_type = {
+        module_base + type_rva: person_offset
+        for person_offset, type_rva in _PLAYER_INTERFACE_LAYOUTS
+    }
     found: dict[int, int] = {}
     for address in people:
         if not address or len(found) == len(wanted):
             continue
-        if read_u64(memory_fd, address) != expected_type:
+        person_offset = offsets_by_type.get(read_u64(memory_fd, address))
+        if person_offset is None:
             continue
         player_id = read_i32(memory_fd, address + 0xC)
         if player_id in wanted and player_id not in found:
-            found[player_id] = address - 0x1C8
+            player_interface = address - person_offset
+            if _valid_player_interface(
+                memory_fd, module_base, player_interface, player_id
+            ):
+                found[player_id] = player_interface
     return found
 
 

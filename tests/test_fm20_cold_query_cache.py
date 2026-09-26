@@ -25,6 +25,11 @@ PLAYER_PERSON = 0xB000
 PLAYER_INTERFACE = PLAYER_PERSON - 0x1C8
 PLAYER_TABLE = 0xC000
 PLAYER_ID = 777
+DUAL_PLAYER_PERSON = 0xD000
+DUAL_PLAYER_INTERFACE = DUAL_PLAYER_PERSON - 0x2A0
+DUAL_PLAYER_TABLE = 0xE000
+DUAL_PLAYER_ID = 778
+DUAL_PLAYER_TYPE_RVA = 0x6DA94A0
 
 PEOPLE_ROOT_FIELD = (
     MODULE_BASE + FM20_4_4_STEAM.main_address_offset + FM20_4_4_STEAM.person_collection_offset
@@ -76,6 +81,20 @@ def _valid_player(memory: FakeProcessMemory) -> None:
     memory.i32(PLAYER_PERSON + 0xC, PLAYER_ID)
     memory.u64(PLAYER_INTERFACE + 8, PLAYER_TABLE)
     memory.i32(PLAYER_TABLE + 4, PLAYER_PERSON - (PLAYER_INTERFACE + 8))
+
+
+def _add_valid_dual_role_player(memory: FakeProcessMemory) -> None:
+    # Extend the existing one-entry person collection to include FM's
+    # ACTUAL_PLAYER_AND_NON_PLAYER layout in the same resolver scan.
+    memory.u64(0x8000 + 8, 0x9010)
+    memory.u64(0x9008, DUAL_PLAYER_PERSON)
+    memory.u64(DUAL_PLAYER_PERSON, MODULE_BASE + DUAL_PLAYER_TYPE_RVA)
+    memory.i32(DUAL_PLAYER_PERSON + 0xC, DUAL_PLAYER_ID)
+    memory.u64(DUAL_PLAYER_INTERFACE + 8, DUAL_PLAYER_TABLE)
+    memory.i32(
+        DUAL_PLAYER_TABLE + 4,
+        DUAL_PLAYER_PERSON - (DUAL_PLAYER_INTERFACE + 8),
+    )
 
 
 class ResolveContextAndManagerTests(unittest.TestCase):
@@ -157,6 +176,47 @@ class PlayerInterfaceCacheTests(unittest.TestCase):
         _valid_player(memory)
         with memory as fd:
             self.assertTrue(_valid_player_interface(fd, MODULE_BASE, PLAYER_INTERFACE, PLAYER_ID))
+
+    def test_resolve_supports_both_player_layouts_in_the_same_search(self) -> None:
+        """A dual-role record must not abort hydration for ordinary players."""
+        memory = FakeProcessMemory()
+        _valid_player(memory)
+        _add_valid_dual_role_player(memory)
+        with memory as fd:
+            resolved = resolve_player_interfaces(
+                1234, fd, MODULE_BASE, [PLAYER_ID, DUAL_PLAYER_ID]
+            )
+
+        self.assertEqual(
+            resolved,
+            {
+                PLAYER_ID: PLAYER_INTERFACE,
+                DUAL_PLAYER_ID: DUAL_PLAYER_INTERFACE,
+            },
+        )
+
+    def test_valid_player_interface_accepts_dual_role_layout(self) -> None:
+        memory = FakeProcessMemory()
+        _valid_player(memory)
+        _add_valid_dual_role_player(memory)
+        with memory as fd:
+            self.assertTrue(
+                _valid_player_interface(
+                    fd, MODULE_BASE, DUAL_PLAYER_INTERFACE, DUAL_PLAYER_ID
+                )
+            )
+
+    def test_dual_role_layout_rejects_a_wrong_interface_adjustment(self) -> None:
+        memory = FakeProcessMemory()
+        _valid_player(memory)
+        _add_valid_dual_role_player(memory)
+        memory.i32(DUAL_PLAYER_TABLE + 4, 0x1C0)
+        with memory as fd:
+            self.assertFalse(
+                _valid_player_interface(
+                    fd, MODULE_BASE, DUAL_PLAYER_INTERFACE, DUAL_PLAYER_ID
+                )
+            )
 
     def test_valid_player_interface_rejects_wrong_id_at_the_address(self) -> None:
         memory = FakeProcessMemory()
