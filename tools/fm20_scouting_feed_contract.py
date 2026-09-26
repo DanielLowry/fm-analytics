@@ -100,9 +100,13 @@ def feed_document(
         "gameDate": game_date,
         "source": {
             "kind": "manager-rooted-player-search-pool",
-            "transport": "windows-frida-server" if rebuilt else "read-only-process-memory",
+            "transport": (
+                "windows-frida-server"
+                if rebuilt or hydrated_count else "read-only-process-memory"
+            ),
             "poolRebuiltByCapture": rebuilt,
             "poolAvailable": pool_available,
+            "visibleAttributeHydratedCount": hydrated_count,
             "sourceCount": source_count,
             "excludedOwnContractedCount": len(excluded),
             # Which players FM's own on-screen Player Search matched when this

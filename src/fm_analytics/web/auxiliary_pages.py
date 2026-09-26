@@ -12,7 +12,14 @@ from fm_analytics.reporting import (
     required_role_attributes,
     validate_recommendation_snapshot,
 )
-from fm_analytics.web.rendering import _band, _error_page, _layout, _options, _query_first
+from fm_analytics.web.rendering import (
+    _band,
+    _error_page,
+    _layout,
+    _options,
+    _query_first,
+    _tactic_choices,
+)
 
 
 def _set_piece_summary_cards(report) -> str:
@@ -131,7 +138,7 @@ class AuxiliaryPagesMixin:
                 bundle = self.server.bundle()  # type: ignore[attr-defined]
                 evaluation = (
                     bundle.recommendation.by_tactic_key(tactic_key)
-                    if tactic_key else bundle.recommendation.selected
+                    if tactic_key else bundle.primary
                 )
                 selected_tactic_key = evaluation.tactic.key
                 selected_ids = tuple(item.player_id for item in evaluation.assignments)
@@ -140,8 +147,14 @@ class AuxiliaryPagesMixin:
                 }
                 lineup_name = f"{evaluation.tactic.name} match XI"
                 tactic_options = tuple(
-                    (item.tactic.key, item.tactic.name)
-                    for item in bundle.recommendation.evaluations if item.has_legal_xi
+                    _tactic_choices(
+                        (
+                            (item.tactic.key, item.tactic.name)
+                            for item in bundle.recommendation.evaluations
+                            if item.has_legal_xi
+                        ),
+                        bundle.policy.pinned_tactics,
+                    )
                 )
             elif tactic_key:
                 raise ValueError(
@@ -324,12 +337,31 @@ class AuxiliaryPagesMixin:
         )
         self._send(_layout("Set pieces", path, body))  # type: ignore[attr-defined]
 
-    def _depth_page(self, path: str, _query: dict[str, list[str]]) -> None:
+    def _depth_page(self, path: str, query: dict[str, list[str]]) -> None:
         bundle = self._bundle_or_error(path, "Depth")  # type: ignore[attr-defined]
         if bundle is None:
             return
-        persistent = bundle.squad_depth.persistent_weaknesses
-        occasional = bundle.squad_depth.occasional_weaknesses
+        pinned = bundle.policy.pinned_tactics
+        show_all = _query_first(query, "scope") == "all"
+        depth_report = bundle.squad_depth if show_all else bundle.planning_depth
+        scope_note = ""
+        if pinned:
+            names = ", ".join(
+                html.escape(evaluation.tactic.name) for evaluation in bundle.pinned
+            )
+            scope_note = (
+                f"<p>Evaluated across <b>{'all ' + str(len(bundle.squad_depth.tactic_keys)) + ' tactics' if show_all else 'your pinned tactics'}</b>"
+                + ("" if show_all else f": {names}")
+                + ". "
+                + (
+                    "<a href='/depth'>Show pinned tactics only</a>"
+                    if show_all
+                    else "<a href='/depth?scope=all'>Show every tactic</a>"
+                )
+                + "</p>"
+            )
+        persistent = depth_report.persistent_weaknesses
+        occasional = depth_report.occasional_weaknesses
         flagged = {depth.position for depth in persistent} | {
             depth.position for depth in occasional
         }
@@ -337,7 +369,7 @@ class AuxiliaryPagesMixin:
         conclusions = []
         if persistent:
             conclusions.append(
-                "<li><strong>Persistent</strong> -- weak regardless of tactic: "
+                "<li><strong>Persistent</strong> -- weak in every tactic that fields it: "
                 + ", ".join(depth.position for depth in persistent)
                 + "</li>"
             )
@@ -369,11 +401,12 @@ class AuxiliaryPagesMixin:
         )
         rows += "".join(
             _row(depth, "ok", "badge-ok")
-            for position, depth in sorted(bundle.squad_depth.positions.items())
+            for position, depth in sorted(depth_report.positions.items())
             if position not in flagged
         )
         body = (
-            "<h2>Conclusions</h2><ul>" + "".join(conclusions) + "</ul>"
+            scope_note
+            + "<h2>Conclusions</h2><ul>" + "".join(conclusions) + "</ul>"
             "<h2>By position</h2>"
             "<ul class='legend'>"
             "<li>Relative to your own squad: weak link = well below the XI median; "

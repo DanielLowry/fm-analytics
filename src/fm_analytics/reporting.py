@@ -64,6 +64,34 @@ class RecommendationBundle:
     briefs: tuple[RecruitmentBrief, ...]
     policy: RecommendationPolicy
 
+    @property
+    def primary(self) -> TacticEvaluation:
+        """The tactic the manager actually plays, else the top-ranked one.
+
+        `recommendation.selected` stays "highest fit of all 42"; this is what
+        every page defaults to. With no pins it is the same object.
+        """
+        pins = self.policy.pinned_tactics
+        return self.recommendation.by_tactic_key(pins[0]) if pins else self.recommendation.selected
+
+    @property
+    def pinned(self) -> tuple[TacticEvaluation, ...]:
+        """The pinned tactics in the manager's order; empty when none are set."""
+        return tuple(
+            self.recommendation.by_tactic_key(key) for key in self.policy.pinned_tactics
+        )
+
+    @property
+    def planning_depth(self) -> SquadDepthReport:
+        """Depth over the tactics actually in play, or every tactic with no pins.
+
+        `squad_depth` always covers the whole catalogue because the tactic
+        drill-down needs every per-tactic report; this is the persistent and
+        occasional view a manager should plan recruitment from.
+        """
+        pins = self.policy.pinned_tactics
+        return self.squad_depth.restricted_to(pins) if pins else self.squad_depth
+
 
 @dataclass(frozen=True)
 class RecommendationPolicy:
@@ -81,10 +109,38 @@ class RecommendationPolicy:
     # leaves every score exactly as it was before this existed.
     opponent: OpponentProfile = OpponentProfile.neutral()
     bench_size: int = 7
+    # The tactics the manager actually plays, primary first. Empty means "no
+    # opinion": every default falls back to the top-ranked tactic, exactly as
+    # before pins existed.
+    pinned_tactics: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.bench_size < 0:
             raise ValueError("bench size cannot be negative")
+        if len(set(self.pinned_tactics)) != len(self.pinned_tactics):
+            raise ValueError("pinned tactics must be distinct")
+
+
+def parse_pinned_tactics(
+    text: str | None, catalogue: FootballCatalogue = MVP_CATALOGUE
+) -> tuple[str, ...]:
+    """Turn a comma-separated `--my-tactics` value into validated tactic keys.
+
+    Raises `ValueError` naming every unknown key, so a typo is a start-up error
+    rather than a page that quietly falls back to the wrong tactic.
+    """
+    if not text:
+        return ()
+    keys = tuple(part.strip() for part in text.split(",") if part.strip())
+    unknown = [key for key in keys if key not in catalogue.tactics]
+    if unknown:
+        raise ValueError(
+            "unknown tactic key(s) in --my-tactics: " + ", ".join(unknown)
+            + ". Tactic keys are the file names under analytics/data/tactics/."
+        )
+    if len(set(keys)) != len(keys):
+        raise ValueError("--my-tactics lists the same tactic more than once")
+    return keys
 
 
 @dataclass(frozen=True)
@@ -205,6 +261,9 @@ def build_recommendation_bundle(
     and completeness checks beforehand; this function assumes a squad that is
     already coherent and attribute-complete enough to score.
     """
+    unknown_pins = [key for key in policy.pinned_tactics if key not in catalogue.tactics]
+    if unknown_pins:
+        raise ValueError("unknown pinned tactic(s): " + ", ".join(unknown_pins))
     selection_players = tuple(
         PlayerSelectionInput.from_player(player) for player in squad.players
     )
@@ -220,8 +279,14 @@ def build_recommendation_bundle(
         ranking_executor=ranking_executor,
     )
     recommendation = effective_and_potential.effective
+    # Bench, substitutions and weaknesses describe the tactic actually played.
+    primary = (
+        recommendation.by_tactic_key(policy.pinned_tactics[0])
+        if policy.pinned_tactics
+        else recommendation.selected
+    )
     bench = select_bench(
-        recommendation.selected,
+        primary,
         selection_players,
         catalogue,
         bench_size=policy.bench_size,
@@ -231,7 +296,7 @@ def build_recommendation_bundle(
         role_score_cache=role_score_cache,
     )
     substitution_board = build_substitution_board(
-        recommendation.selected,
+        primary,
         bench,
         selection_players,
         catalogue,
@@ -241,7 +306,7 @@ def build_recommendation_bundle(
         role_score_cache=role_score_cache,
     )
     weakness_report = assess_weaknesses(
-        recommendation.selected, selection_players, catalogue,
+        primary, selection_players, catalogue,
         opponent=policy.opponent, role_score_cache=role_score_cache,
     )
     squad_depth = assess_squad_depth(

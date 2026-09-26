@@ -82,6 +82,20 @@ from tools.fm20_scouting_feed_contract import (
 from tools.fm20_visibility_trace import DISPLAY_ATTRIBUTE_IDS
 
 
+# FM's visible-result builder is intentionally bounded. A normal active search
+# such as the user's 232-player result can be captured in small, independently
+# checked batches; an unfiltered multi-thousand-player pool cannot accidentally
+# turn one button press into hours of native calls.
+MAX_ACTIVE_SEARCH_HYDRATED_PLAYERS = 256
+
+
+def _batches(values: Sequence[int], size: int) -> tuple[tuple[int, ...], ...]:
+    return tuple(
+        tuple(values[start:start + size])
+        for start in range(0, len(values), size)
+    )
+
+
 def hydrate_visible_attributes(
     pid: int,
     *,
@@ -275,6 +289,7 @@ def capture_pool(
     remote_address: str | None = None,
     allow_rebuild: bool = False,
     hydrate_player_ids: Sequence[int] = (),
+    hydrate_active_search: bool = False,
     prior_game_date: str | None = None,
     prior_attributes_by_id: Mapping[int, dict[str, Any]] | None = None,
     prior_attributes_observed_at: Mapping[int, str] | None = None,
@@ -332,6 +347,7 @@ def capture_pool(
     log_event(
         "scouting_refresh_started", call_number=call_number, pid=pid,
         allow_rebuild=allow_rebuild, hydrate_count=len(hydrate_player_ids),
+        hydrate_active_search=hydrate_active_search,
         prior_game_date=prior_game_date,
     )
     try:
@@ -458,6 +474,10 @@ def capture_pool(
         }
 
         requested_hydration = tuple(dict.fromkeys(hydrate_player_ids))
+        if len(requested_hydration) > MAX_HYDRATED_PLAYERS:
+            raise ScoutingFeedError(
+                f"at most {MAX_HYDRATED_PLAYERS} explicit player IDs can be hydrated"
+            )
         active_search_match_ids: list[int] | None = None
         if pool_available:
             fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
@@ -487,6 +507,25 @@ def capture_pool(
                 "scouting_active_search_read", call_number=call_number, pid=pid,
                 matched=None if active_search_match_ids is None else len(active_search_match_ids),
             )
+            if hydrate_active_search:
+                if active_search_match_ids is None:
+                    raise ScoutingFeedError(
+                        "FM's current Player Search results could not be read. Open Player "
+                        "Search, leave the intended filters applied, and try again."
+                    )
+                active_search_hydration_ids = sorted(
+                    set(active_search_match_ids) - own_ids
+                )
+                if len(active_search_hydration_ids) > MAX_ACTIVE_SEARCH_HYDRATED_PLAYERS:
+                    raise ScoutingFeedError(
+                        "the active FM search has "
+                        f"{len(active_search_hydration_ids)} external players; "
+                        f"narrow it to at most {MAX_ACTIVE_SEARCH_HYDRATED_PLAYERS} before "
+                        "capturing visible attributes"
+                    )
+                requested_hydration = tuple(dict.fromkeys(
+                    requested_hydration + tuple(active_search_hydration_ids)
+                ))
             if set(records) != set(pool_ids):
                 raise ScoutingFeedError("rebuilt Player Search source records do not match its ID set")
             external_ids = sorted(set(pool_ids) - own_ids)
@@ -510,7 +549,7 @@ def capture_pool(
         else:
             records = {}
             external_ids = []
-            if requested_hydration:
+            if requested_hydration or hydrate_active_search:
                 raise ScoutingFeedError(
                     "cannot hydrate visible attributes while the Player Search pool is "
                     "unavailable; open Player Search in FM, or approve a rebuild, first"
@@ -577,13 +616,15 @@ def capture_pool(
         # below if that was explicitly requested for this player too.
         attributes_by_id.update(scouted_attributes_by_id)
         attributes_observed_at.update(dict.fromkeys(scouted_attributes_by_id, after.game_date))
-        newly_hydrated_attributes = hydrate_visible_attributes(
-            pid,
-            module_base=before.module_base,
-            player_ids=requested_hydration,
-            device=device,
-            target_pid=target_pid,
-        )
+        newly_hydrated_attributes: dict[int, dict[str, Any]] = {}
+        for batch in _batches(requested_hydration, MAX_HYDRATED_PLAYERS):
+            newly_hydrated_attributes.update(hydrate_visible_attributes(
+                pid,
+                module_base=before.module_base,
+                player_ids=batch,
+                device=device,
+                target_pid=target_pid,
+            ))
         attributes_by_id.update(newly_hydrated_attributes)
         attributes_observed_at.update(dict.fromkeys(newly_hydrated_attributes, after.game_date))
         last_known_attributes_by_id = dict(prior_last_known_attributes_by_id)
@@ -605,15 +646,17 @@ def capture_pool(
                 last_known_attributes_observed_at[player_id] = observed_at
         footedness_by_id = dict(prior_footedness_by_id)
         footedness_observed_at = dict(prior_footedness_observed_at)
-        newly_hydrated_footedness = hydrate_visible_footedness(
-            pid,
-            module_base=before.module_base,
-            player_ids=requested_hydration,
-            names=names,
-            records=records,
-            device=device,
-            target_pid=target_pid,
-        )
+        newly_hydrated_footedness: dict[int, str] = {}
+        for batch in _batches(requested_hydration, MAX_HYDRATED_PLAYERS):
+            newly_hydrated_footedness.update(hydrate_visible_footedness(
+                pid,
+                module_base=before.module_base,
+                player_ids=batch,
+                names=names,
+                records=records,
+                device=device,
+                target_pid=target_pid,
+            ))
         footedness_by_id.update(newly_hydrated_footedness)
         footedness_observed_at.update(dict.fromkeys(newly_hydrated_footedness, after.game_date))
         if requested_hydration:
@@ -723,6 +766,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--hydrate-active-search", action="store_true",
+        help=(
+            "read FM's current visible attributes for every player matched by the "
+            "active Player Search (bounded to "
+            f"{MAX_ACTIVE_SEARCH_HYDRATED_PLAYERS} results and processed in batches)"
+        ),
+    )
+    parser.add_argument(
         "--allow-rebuild", action="store_true",
         help=(
             "if FM has not built its Player Search pool yet, run FM's own builder "
@@ -742,6 +793,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         pid = choose_pid(args.pid)
         capture = dict(
             hydrate_player_ids=args.hydrate_player_id,
+            hydrate_active_search=args.hydrate_active_search,
             allow_rebuild=args.allow_rebuild,
             prior_game_date=prior.game_date if prior else None,
             prior_attributes_by_id=prior.attributes if prior else {},
@@ -762,7 +814,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         # with no pool at all -- never starts a Frida server. The check
         # itself is an ordinary read-only probe.
         _state, _arguments, pool_ids = _live_context(pid)
-        needs_frida = bool(args.hydrate_player_id) or (not pool_ids and args.allow_rebuild)
+        needs_frida = (
+            bool(args.hydrate_player_id)
+            or args.hydrate_active_search
+            or (not pool_ids and args.allow_rebuild)
+        )
         if needs_frida:
             executable = Path(preflight(pid)["executable"])
             with frida_server_session(executable) as address:
@@ -809,7 +865,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "calculated read-only"
         + (f"; {dropped_count} previously-scouted player(s) no longer have a scout report and "
            "are flagged as such" if dropped_count else "")
-        + f". Visible attributes hydrated via FM for {len(args.hydrate_player_id)} player(s); "
+        + f". Visible attributes hydrated via FM for "
+        f"{document['source']['visibleAttributeHydratedCount']} player(s); "
         "raw external positions captured under the accepted visibility gap.",
         flush=True,
     )

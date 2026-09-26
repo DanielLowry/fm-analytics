@@ -505,6 +505,26 @@ class SquadWebServerTests(unittest.TestCase):
         self.assertIn("<th>Attributes</th>", body)
         self.assertIn("9-15", body)
 
+    def test_uncaptured_player_search_attributes_are_not_reported_as_none(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="uncaptured", name="Alex Robinson", positions=(),
+                    raw_positions=("ML", "AML", "ST"), attributes={},
+                    matched_active_search=True,
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        _status, listing = self._get(port, "/scouting?includeRawPositions=1")
+        status, report = self._get(port, "/scouting/player/uncaptured")
+
+        self.assertIn("Not captured from FM", listing)
+        self.assertNotIn("No attributes captured", listing)
+        self.assertEqual(status, 200)
+        self.assertIn("This does not mean FM shows no attributes", report)
+        self.assertIn("Capture the current Player Search attributes", report)
+
     def test_a_scouted_player_links_to_an_exhaustive_scouting_report(self) -> None:
         def scouting_provider():
             return (
@@ -597,6 +617,27 @@ class SquadWebServerTests(unittest.TestCase):
         self.assertEqual(refreshed_status, 200)
         self.assertIn("Refresh scouting data", refreshed_body)
         self.assertIn("Scouting data refreshed", refreshed_body)
+
+    def test_all_players_can_capture_the_active_fm_search_attributes(self) -> None:
+        calls = []
+
+        def refresh(*, allow_rebuild=False, hydrate_active_search=False):
+            calls.append((allow_rebuild, hydrate_active_search))
+            return "Captured active search attributes"
+
+        port = self._serve(FIXTURE, scouting_refresh=refresh)
+        _page_status, page = self._get(port, "/scouting?view=all")
+        status, location, _body = self._post(
+            port, "/scouting/refresh", "hydrate_active_search=1"
+        )
+        _refreshed_status, refreshed = self._get(port, location)
+
+        self.assertIn("Capture current FM Search attributes", page)
+        self.assertEqual(status, 303)
+        self.assertEqual(location, "/scouting?refreshed=hydrated")
+        self.assertEqual(calls, [(False, True)])
+        self.assertIn("current visible attributes", refreshed)
+        self.assertIn("inside the running game", refreshed)
 
     def test_refresh_defaults_to_no_rebuild_and_says_nothing_was_written(self) -> None:
         """The plain button must never carry consent to run FM's code."""

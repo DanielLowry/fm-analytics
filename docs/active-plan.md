@@ -95,6 +95,28 @@ supplies it yet.
 set, the existing suite passes unchanged without pins, and CLI and web print the
 same primary tactic, XI and depth for the same capture.
 
+**Status: built (26 September 2026).** `--my-tactics` on `fm-analytics` and
+`fm-web`; `RecommendationPolicy.pinned_tactics`; `RecommendationBundle.primary`,
+`.pinned` and `.planning_depth`; `SquadDepthReport.restricted_to`. Tests are in
+`tests/test_pinned_tactics.py`, including checks that pins change no score and
+that the bench and weakness report equal a direct computation for the pinned
+tactic. Two deliberate differences from the scope above:
+
+- **Depth is restricted, not recomputed.** The full 42-tactic depth report is
+  still built, because the tactic drill-down needs every per-tactic report.
+  `planning_depth` regroups it for the pinned set, with no extra analytics.
+  `/depth?scope=all` shows every tactic.
+- **The scouting page does not default to the primary tactic yet.** It works
+  without a squad bundle and defaults to the generic ranking, so defaulting
+  would make every visit run the tactic ranking over the whole candidate pool
+  before that cost has been measured. Pinned tactics are listed first, starred,
+  in the tactic selectors instead. Item 2 measures the cost and settles the
+  default.
+
+Every pinned tactic also appears in a **Your tactics** table on `/tactics`
+(rank, score and gap to the top-ranked tactic), and the CLI marks pinned rows
+and says when the primary is not the highest-fit tactic.
+
 ### 2. Trialist review across pinned tactics, including depth
 
 **Problem.** The scouting page answers "how much does this player improve this

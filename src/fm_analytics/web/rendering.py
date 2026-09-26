@@ -742,6 +742,21 @@ def _options(items, selected: str | None, blank: str) -> str:
     return output
 
 
+def _tactic_choices(items, pinned_keys: tuple[str, ...]) -> list[tuple[str, str]]:
+    """`(key, name)` pairs with the manager's pinned tactics first, starred.
+
+    Pins keep the order they were given in (primary first); every other tactic
+    follows in the order `items` supplied. With no pins the list is unchanged.
+    """
+    pairs = list(items)
+    if not pinned_keys:
+        return pairs
+    by_key = dict(pairs)
+    pinned = [(key, "★ " + by_key[key]) for key in pinned_keys if key in by_key]
+    rest = [(key, name) for key, name in pairs if key not in pinned_keys]
+    return pinned + rest
+
+
 def _input_value(value: object) -> str:
     return "" if value is None else html.escape(str(value), quote=True)
 
@@ -774,6 +789,12 @@ def _refresh_notice(refreshed: str | None) -> str:
             "<p class='warn'>Scouting data refreshed by asking FM to build its "
             "player list inside the running game. If this save later fails to "
             "load, this is the step to suspect.</p>"
+        )
+    if refreshed == "hydrated":
+        return (
+            "<p class='warn'>Scouting data refreshed with FM's current visible "
+            "attributes for the active Player Search results. This ran FM's "
+            "visibility builder inside the running game.</p>"
         )
     return ""
 
@@ -825,7 +846,9 @@ def _scouting_refresh_command(path: Path) -> Callable[..., str]:
     capture_tool = project_root / "tools" / "fm20_scouting_feed.py"
     target = path.resolve()
 
-    def refresh(*, allow_rebuild: bool = False) -> str:
+    def refresh(
+        *, allow_rebuild: bool = False, hydrate_active_search: bool = False
+    ) -> str:
         command = [
             "uv",
             "run",
@@ -838,6 +861,8 @@ def _scouting_refresh_command(path: Path) -> Callable[..., str]:
         ]
         if allow_rebuild:
             command.append("--allow-rebuild")
+        if hydrate_active_search:
+            command.append("--hydrate-active-search")
         if target.exists():
             command.extend(("--base-feed", str(target), "--replace"))
         try:

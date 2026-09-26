@@ -224,6 +224,21 @@ class ScoutingTests(unittest.TestCase):
         )
         self.assertEqual(result.role_score.score.lower, 0.0)
 
+    def test_uncaptured_attributes_are_not_misclassified_as_nothing_known(self) -> None:
+        uncaptured = candidate("uncaptured", {})
+        captured_unknown = candidate(
+            "captured-unknown", {}, attributes_observed_at="2019-07-21"
+        )
+
+        result = assess_scouting_candidates(
+            [uncaptured, captured_unknown], MVP_CATALOGUE,
+            ScoutingFilters(role_key="af_attack", visibility="unknown"),
+        )
+
+        self.assertEqual([item.candidate.id for item in result], ["captured-unknown"])
+        self.assertFalse(uncaptured.current_attributes_captured)
+        self.assertTrue(captured_unknown.current_attributes_captured)
+
     def test_name_filter_narrows_the_full_pool_not_just_a_displayed_page(self) -> None:
         """The real-time name box must search every candidate, not a capped slice."""
         candidates = [

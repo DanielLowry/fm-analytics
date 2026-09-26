@@ -49,6 +49,7 @@ from fm_analytics.reporting import (
     build_recommendation_bundle,
     build_tactic_matchday_report,
     has_complete_role_attributes,
+    parse_pinned_tactics,
     required_role_attributes,
     validate_recommendation_snapshot,
 )
@@ -113,7 +114,12 @@ class SquadWebServer(ThreadingHTTPServer):
         cache_ttl_seconds: float = 8.0,
         health_interval_seconds: float = 30.0,
         ranking_executor: TacticRankingExecutor | None = None,
+        pinned_tactics: tuple[str, ...] = (),
     ):
+        # Fixed for the life of the server, so the bundle cache is still keyed
+        # on the opponent alone. If pins ever become editable from a page they
+        # must join that key, or one page would serve another's analysis.
+        self.pinned_tactics = pinned_tactics
         self.provider = provider
         self.scouting_provider = scouting_provider or empty_scouting_provider()
         self.scouting_refresh = scouting_refresh
@@ -149,13 +155,18 @@ class SquadWebServer(ThreadingHTTPServer):
         with self._scouting_refresh_lock:
             return self.scouting_provider()
 
-    def refresh_scouting(self, *, allow_rebuild: bool = False) -> str:
+    def refresh_scouting(
+        self, *, allow_rebuild: bool = False, hydrate_active_search: bool = False
+    ) -> str:
         if self.scouting_refresh is None:
             raise ValueError("Scouting refresh is not configured for this server.")
         if not self._scouting_refresh_lock.acquire(blocking=False):
             raise ValueError("A scouting refresh is already running.")
         try:
-            return self.scouting_refresh(allow_rebuild=allow_rebuild)
+            options = {"allow_rebuild": allow_rebuild}
+            if hydrate_active_search:
+                options["hydrate_active_search"] = True
+            return self.scouting_refresh(**options)
         finally:
             self._scouting_refresh_lock.release()
 
@@ -192,7 +203,9 @@ class SquadWebServer(ThreadingHTTPServer):
             built = build_recommendation_bundle(
                 game,
                 squad,
-                policy=RecommendationPolicy(opponent=opponent),
+                policy=RecommendationPolicy(
+                    opponent=opponent, pinned_tactics=self.pinned_tactics
+                ),
                 ranking_executor=self.ranking_executor,
             )
         except (BridgeSourceError, OSError, ValueError, KeyError):
@@ -230,7 +243,10 @@ class SquadWebServer(ThreadingHTTPServer):
             built = build_recommendation_bundle(
                 game,
                 squad,
-                policy=RecommendationPolicy(opponent=OpponentProfile.neutral()),
+                policy=RecommendationPolicy(
+                    opponent=OpponentProfile.neutral(),
+                    pinned_tactics=self.pinned_tactics,
+                ),
                 ranking_executor=self.ranking_executor,
             )
         except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
@@ -389,6 +405,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="required unique-player count shown by FM for --fm-html completeness",
     )
     parser.add_argument(
+        "--my-tactics",
+        metavar="KEY[,KEY...]",
+        help=(
+            "comma-separated tactic keys you actually play, primary first "
+            "(e.g. vertical_442,wing_play_442). Depth, set pieces and the "
+            "tactics page then default to these instead of the top-ranked tactic."
+        ),
+    )
+    parser.add_argument(
         "--scouting-json",
         help="manager-visible discoverability/scouting capture JSON for the Scouting page",
     )
@@ -417,6 +442,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.ranking_workers < 1:
         raise SystemExit("--ranking-workers must be at least 1")
+    try:
+        pinned_tactics = parse_pinned_tactics(args.my_tactics)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     provider = _build_provider(args)
     default_scouting_path = _default_scouting_path()
     scouting_path = args.scouting_json or default_scouting_path
@@ -446,6 +475,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         scouting_refresh=_scouting_refresh_command(refresh_path),
         cache_ttl_seconds=args.cache_ttl_seconds,
         ranking_executor=ranking_executor,
+        pinned_tactics=pinned_tactics,
     )
     print(f"FM Analytics web view listening on http://{args.host}:{args.port}")
     try:

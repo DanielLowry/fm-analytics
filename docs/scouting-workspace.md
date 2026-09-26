@@ -194,16 +194,19 @@ Scouted tab worked but its position filter and Club column were empty until
 Player Search had been opened. A player with no current contract simply has no
 club, which is real, not a read failure.
 
-**Known gap: players known only through reputation.** A manager can know
-something about a well-known player never explicitly scouted; that
-knowledge path is not yet implemented, so such a player still reads as
-entirely unknown here even though FM may show something. Not a regression
--- this project's `positions`/attribute fields have always failed towards
-"unknown" rather than a guess.
+**Players known through reputation or other baseline knowledge.** A manager can
+know something about a player who has never had an explicit scout report. A
+plain, read-only refresh cannot yet reproduce that baseline-knowledge path.
+Those players are therefore labelled **Not captured from FM**, never
+"nothing known". On the **All players / Player Search** tab, leave the intended
+search open in FM and choose **Capture current FM Search attributes** to ask
+FM's own visibility builder for the exact current answer. The operation is
+bounded to 256 active results and processed in batches of at most 64.
 
 ## Frida hydration still exists, now for a different purpose
 
-`--hydrate-player-id` (up to 64 players) still calls FM's own builder
+`--hydrate-player-id` (up to 64 players) and `--hydrate-active-search` (up to
+256 current Player Search results, internally batched) call FM's own builder
 directly and still needs the same explicit approval as the pool rebuild.
 It is no longer the only way to get real attributes -- the read-only path
 above covers every scouted player automatically -- so its remaining use is
@@ -341,6 +344,15 @@ bounded deliberately while the external-player route is validated:
 ```bash
 uv run --extra research python tools/fm20_scouting_feed.py \
   --hydrate-player-id 9214 \
+  --output data/scouting-capture-hydrated.json
+```
+
+To capture FM's current visible attributes for every player in the active,
+filtered Player Search result:
+
+```bash
+uv run --extra research python tools/fm20_scouting_feed.py \
+  --hydrate-active-search \
   --output data/scouting-capture-hydrated.json
 ```
 

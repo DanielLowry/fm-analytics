@@ -102,6 +102,21 @@ class ScoutingCandidate:
         """
         return self.scouting_knowledge is not None
 
+    @property
+    def current_attributes_captured(self) -> bool:
+        """Whether an empty current map is a real FM answer, not a missing read.
+
+        A populated map is captured even in older files that predate per-field
+        dates. Schema-2 captures date every attempted attribute read. A player
+        dropped from current scout reports is also a known current absence;
+        their older values live only in ``last_known_attributes``.
+        """
+        return bool(
+            self.attributes
+            or self.attributes_observed_at is not None
+            or self.dropped_from_scout_reports
+        )
+
     def positions_for(self, *, include_raw_external_positions: bool) -> tuple[str, ...]:
         """Return verified positions, plus accepted-gap raw positions if opted in."""
         if not include_raw_external_positions:
@@ -300,6 +315,8 @@ class ScoutingAssessment:
 
     @property
     def visibility_summary(self) -> str:
+        if not self.candidate.current_attributes_captured:
+            return "Not captured from FM"
         total = self.known_attributes + self.ranged_attributes + self.unknown_attributes
         return f"{self.known_attributes}/{total} known · {self.ranged_attributes} ranged · {self.unknown_attributes} unknown"
 
@@ -338,6 +355,10 @@ def assess_scouting_candidates(
         known = sum(item.visibility is Visibility.KNOWN for item in observations)
         ranged = sum(item.visibility is Visibility.RANGE for item in observations)
         unknown = len(observations) - known - ranged
+        if filters.visibility != "any" and not candidate.current_attributes_captured:
+            # "Nothing known" is a statement about FM's captured answer, not
+            # a bucket for players whose attribute visibility was never read.
+            continue
         if filters.visibility == "known" and (ranged or unknown):
             continue
         if filters.visibility == "partial" and not ranged:

@@ -467,6 +467,74 @@ class FeedProvenanceTests(unittest.TestCase):
         self.assertEqual(rebuilt["source"]["transport"], "windows-frida-server")
 
 
+class ActiveSearchHydrationTests(unittest.TestCase):
+    def test_active_search_attributes_are_captured_in_bounded_batches(self) -> None:
+        import os
+
+        player_ids = list(range(1, 131))
+        records = {player_id: 0x1000 + player_id * 0x100 for player_id in player_ids}
+        names = {player_id: f"Player {player_id}" for player_id in player_ids}
+        state = SimpleNamespace(
+            module_base="0x140000000", game_date="2019-07-04", first_team_squad=(),
+        )
+        manager = SimpleNamespace(
+            id="m1", club=SimpleNamespace(id="c1", name="Example FC")
+        )
+
+        def hydrate(_pid, *, player_ids, **_kwargs):
+            return {
+                player_id: {
+                    "pace": {"visibility": "range", "minimum": 8, "maximum": 14}
+                }
+                for player_id in player_ids
+            }
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(
+                feed, "_live_context", return_value=(state, (1, 2, 3), player_ids)
+            ))
+            stack.enter_context(mock.patch.object(feed, "_active_manager", return_value=manager))
+            stack.enter_context(mock.patch.object(
+                feed, "preflight", return_value={"moduleBase": "0x140000000"}
+            ))
+            stack.enter_context(mock.patch.object(feed, "process_alive", return_value=True))
+            stack.enter_context(mock.patch.object(feed, "_source_records", return_value=records))
+            stack.enter_context(mock.patch.object(
+                feed, "read_active_search_results", return_value=player_ids
+            ))
+            stack.enter_context(mock.patch.object(
+                feed, "resolve_source_player_names", return_value=names
+            ))
+            stack.enter_context(mock.patch.object(feed, "read_raw_external_positions", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "read_raw_position_familiarity", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "resolve_source_identity_facts", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "_resolve_knowledge_context", return_value=0x999))
+            stack.enter_context(mock.patch.object(feed, "capture_scouted_attributes", return_value=({}, {})))
+            stack.enter_context(mock.patch.object(feed, "connect_to_fm", return_value=(object(), 99)))
+            hydrated = stack.enter_context(mock.patch.object(
+                feed, "hydrate_visible_attributes", side_effect=hydrate
+            ))
+            stack.enter_context(mock.patch.object(
+                feed, "hydrate_visible_footedness", return_value={}
+            ))
+            stack.enter_context(mock.patch.object(feed, "log_event"))
+
+            document = feed.capture_pool(
+                os.getpid(), remote_address="127.0.0.1:27042",
+                hydrate_active_search=True,
+            )
+
+        self.assertEqual(
+            [len(call.kwargs["player_ids"]) for call in hydrated.call_args_list],
+            [64, 64, 2],
+        )
+        self.assertEqual(document["source"]["activeSearchMatchCount"], 130)
+        self.assertEqual(document["source"]["visibleAttributeHydratedCount"], 130)
+        self.assertEqual(document["source"]["transport"], "windows-frida-server")
+        self.assertEqual(document["players"][0]["attributesObservedAt"], "2019-07-04")
+        self.assertEqual(document["players"][0]["attributes"]["pace"]["maximum"], 14)
+
+
 class ScoutedOnlyIdentityTests(unittest.TestCase):
     """The Scouted tab must have positions and a club without Player Search."""
 

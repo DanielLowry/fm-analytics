@@ -101,9 +101,13 @@ class SquadWebHandler(AuxiliaryPagesMixin, ScoutingPagesMixin, BaseHTTPRequestHa
             return
         form = self._read_form()
         allow_rebuild = form.get("allow_rebuild", [""])[0] == "1"
+        hydrate_active_search = (
+            form.get("hydrate_active_search", [""])[0] == "1"
+        )
         try:
             self.server.refresh_scouting(  # type: ignore[attr-defined]
-                allow_rebuild=allow_rebuild
+                allow_rebuild=allow_rebuild,
+                hydrate_active_search=hydrate_active_search,
             )
         except ScoutingPoolNotBuilt:
             # Nothing was written to FM. Let the manager pick between the
@@ -117,9 +121,14 @@ class SquadWebHandler(AuxiliaryPagesMixin, ScoutingPagesMixin, BaseHTTPRequestHa
             )
             return
         self.send_response(HTTPStatus.SEE_OTHER)
+        refresh_kind = (
+            "hydrated" if hydrate_active_search
+            else "rebuilt" if allow_rebuild
+            else "1"
+        )
         self.send_header(
             "Location",
-            "/scouting?refreshed=" + ("rebuilt" if allow_rebuild else "1"),
+            "/scouting?refreshed=" + refresh_kind,
         )
         self.end_headers()
 
@@ -141,13 +150,22 @@ class SquadWebHandler(AuxiliaryPagesMixin, ScoutingPagesMixin, BaseHTTPRequestHa
             return
         club = squad.club.name if squad.club else "No controlled club"
         complete = has_complete_role_attributes(squad)
+        pinned_keys = self.server.pinned_tactics  # type: ignore[attr-defined]
+        pinned_row = (
+            "<tr><th>My tactics</th><td>"
+            + html.escape(", ".join(MVP_CATALOGUE.tactics[key].name for key in pinned_keys))
+            + " <span class='muted'>(first is primary)</span></td></tr>"
+            if pinned_keys
+            else ""
+        )
         body = (
             "<table>"
             f"<tr><th>Club</th><td>{html.escape(club)}</td></tr>"
             f"<tr><th>Date</th><td>{game.game_date.isoformat()}</td></tr>"
             f"<tr><th>Manager</th><td>{html.escape(game.human_manager.name)}</td></tr>"
             f"<tr><th>Squad size</th><td>{len(squad.players)}</td></tr>"
-            "<tr><th>Attribute coverage</th><td>"
+            + pinned_row
+            + "<tr><th>Attribute coverage</th><td>"
             + ("complete" if complete else "<span class='warn'>incomplete — see Data</span>")
             + "</td></tr></table>"
             "<p class='muted'>Squad, Roles, Tactics, and Depth need complete role-scoring "
@@ -418,6 +436,7 @@ class SquadWebHandler(AuxiliaryPagesMixin, ScoutingPagesMixin, BaseHTTPRequestHa
         query_suffix = f"?{opponent_query}" if opponent_query else ""
         link_query_suffix = html.escape(query_suffix, quote=True)
         active_axes = _opponent_summary_items(opponent)
+        pinned_keys = bundle.policy.pinned_tactics
         rows = []
         for rank, evaluation in enumerate(bundle.recommendation.evaluations, start=1):
             tactic_key = evaluation.tactic.key
@@ -428,6 +447,12 @@ class SquadWebHandler(AuxiliaryPagesMixin, ScoutingPagesMixin, BaseHTTPRequestHa
                 if tactic_key == selected.tactic.key
                 else ""
             )
+            if tactic_key in pinned_keys:
+                recommendation += (
+                    " <span class='badge badge-ok'>Primary</span>"
+                    if tactic_key == pinned_keys[0]
+                    else " <span class='badge badge-ok'>Pinned</span>"
+                )
             opponent_columns = ""
             if not opponent.is_neutral:
                 rank_change = neutral_rank - rank
@@ -485,6 +510,31 @@ class SquadWebHandler(AuxiliaryPagesMixin, ScoutingPagesMixin, BaseHTTPRequestHa
             if active_axes
             else ""
         )
+        pinned_block = ""
+        if pinned_keys:
+            ranks = {
+                evaluation.tactic.key: rank
+                for rank, evaluation in enumerate(bundle.recommendation.evaluations, start=1)
+            }
+            pinned_rows = "".join(
+                "<tr>"
+                f"<td>{html.escape(evaluation.tactic.name)}"
+                + (" <span class='muted'>(primary)</span>" if index == 0 else "")
+                + "</td>"
+                f"<td>{ranks[evaluation.tactic.key]} of {len(ranks)}</td>"
+                f"<td><b>{_band(evaluation.score)}</b></td>"
+                f"<td>{evaluation.score.central - selected.score.central:+.1f}</td>"
+                f"<td><a class='tactic-link' href='/tactics/{quote(evaluation.tactic.key, safe='')}"
+                f"{link_query_suffix}'>View tactic →</a></td></tr>"
+                for index, evaluation in enumerate(bundle.pinned)
+            )
+            pinned_block = (
+                "<h2>Your tactics</h2>"
+                "<table><tr><th>Tactic</th><th>Rank</th><th>Play-now score</th>"
+                "<th>vs top-ranked</th><th></th></tr>"
+                + pinned_rows
+                + "</table>"
+            )
         body = (
             _opponent_controls(opponent)
             + profile_summary
@@ -495,7 +545,8 @@ class SquadWebHandler(AuxiliaryPagesMixin, ScoutingPagesMixin, BaseHTTPRequestHa
             f"<b>{_band(selected.score)}</b></p>"
             f"<p><a class='button-link' href='/tactics/{quote(selected.tactic.key, safe='')}{link_query_suffix}'>"
             "Open recommended tactic →</a></p></section>"
-            "<h2>Compare tactics</h2>"
+            + pinned_block
+            + "<h2>Compare tactics</h2>"
             "<p class='muted'>A quick squad-fit comparison. Open a tactic to inspect its "
             f"XI, why each player was selected, and a {bundle.policy.bench_size}-player "
             "matchday bench.</p>"

@@ -18,6 +18,7 @@ from fm_analytics.analytics import (
     RecruitmentShortlist,
     ScoreBand,
     SquadDepthReport,
+    TacticEvaluation,
     TacticRecommendation,
     TrainingTarget,
     WeaknessReport,
@@ -39,6 +40,7 @@ from fm_analytics.persistence import SnapshotStore
 from fm_analytics.reporting import (
     RecommendationPolicy,
     build_recommendation_bundle,
+    parse_pinned_tactics,
     has_complete_role_attributes,
     required_role_attributes,
     validate_recommendation_snapshot,
@@ -94,6 +96,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--snapshot-db",
         type=Path,
         help="store this observation in the specified SQLite database",
+    )
+    parser.add_argument(
+        "--my-tactics",
+        metavar="KEY[,KEY...]",
+        help=(
+            "comma-separated tactic keys you actually play, primary first "
+            "(e.g. vertical_442,wing_play_442). Bench, weaknesses, briefs and "
+            "squad depth then describe these instead of the top-ranked tactic."
+        ),
     )
     _add_opponent_arguments(parser)
     return parser
@@ -282,8 +293,12 @@ def render_recommendation(
     training_targets: tuple[TrainingTarget, ...] = (),
     squad_depth: SquadDepthReport | None = None,
     opponent: OpponentProfile = OpponentProfile.neutral(),
+    primary: TacticEvaluation | None = None,
+    pinned_keys: tuple[str, ...] = (),
 ) -> str:
-    selected = recommendation.selected
+    # `primary` is the pinned tactic the bench, weaknesses and briefs below were
+    # computed for; it defaults to the top-ranked tactic when nothing is pinned.
+    selected = primary if primary is not None else recommendation.selected
     club_name = squad.club.name if squad.club else "No controlled club"
     lines = [
         f"MVP recommendation for {club_name} on {game.game_date.isoformat()}",
@@ -322,12 +337,15 @@ def render_recommendation(
         )
     )
     lines.extend(_opponent_lines(opponent))
+    if pinned_keys:
+        lines.append("* = pinned with --my-tactics; the first pinned tactic is your primary.")
     for evaluation in recommendation.evaluations:
+        marker = ("* " if evaluation.tactic.key in pinned_keys else "  ") if pinned_keys else ""
         status = "legal XI" if evaluation.has_legal_xi else (
             "missing " + ", ".join(slot.key for slot in evaluation.unfilled_slots)
         )
         lines.append(
-            f"{evaluation.tactic.name:<26} "
+            f"{marker}{evaluation.tactic.name:<26} "
             f"fit {_band(evaluation.score):<22} "
             f"players {evaluation.xi_score.central:.1f}, "
             f"balance ×{evaluation.tactic_balance_multiplier:.3f}"
@@ -367,10 +385,20 @@ def render_recommendation(
         lines.append(
             "No tactic's potential fit clears its effective fit by a material margin."
         )
+    top_ranked = recommendation.selected
+    heading = (
+        f"Primary (pinned): {selected.tactic.name} ({selected.tactic.formation})"
+        if pinned_keys
+        else f"Selected: {selected.tactic.name} ({selected.tactic.formation})"
+    )
+    lines.extend(("", heading))
+    if pinned_keys and top_ranked.tactic.key != selected.tactic.key:
+        lines.append(
+            f"Highest fit overall: {top_ranked.tactic.name} "
+            f"({_band(top_ranked.score)}) vs primary {_band(selected.score)}."
+        )
     lines.extend(
         (
-            "",
-            f"Selected: {selected.tactic.name} ({selected.tactic.formation})",
             f"Mentality: {selected.tactic.mentality}",
             "Instructions: " + "; ".join(selected.tactic.instructions),
             "",
@@ -430,11 +458,16 @@ def render_recommendation(
     else:
         lines.append("No threshold weakness identified.")
     if squad_depth is not None:
+        depth_heading = (
+            f"Squad depth across your {len(pinned_keys)} pinned tactic(s)"
+            if pinned_keys
+            else "Squad depth across evaluated tactics"
+        )
         lines.extend(
             (
                 "",
-                "Squad depth across evaluated tactics",
-                "-------------------------------------",
+                depth_heading,
+                "-" * len(depth_heading),
                 "A position is 'persistent' when it is weak in every evaluated "
                 "tactic that fields it, and 'occasional' when only some.",
             )
@@ -510,6 +543,9 @@ def _contract_summary(player: Player, squad: Squad) -> str:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
+        pinned_tactics = parse_pinned_tactics(args.my_tactics)
+        if pinned_tactics and not args.recommend:
+            raise ValueError("--my-tactics requires --recommend")
         if args.fm_html_player_count is not None and not args.fm_html:
             raise ValueError("--fm-html-player-count requires --fm-html")
         if args.candidate_html and not args.recommend:
@@ -547,6 +583,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     game, squad = live_source.get_game(), live_source.get_squad()
                     source_name = health.source
             recommendation = None
+            primary = None
             training_targets = ()
             bench = None
             weakness_report = None
@@ -574,13 +611,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                     game,
                     squad,
                     catalogue=MVP_CATALOGUE,
-                    policy=RecommendationPolicy(opponent=opponent_from_args(args)),
+                    policy=RecommendationPolicy(
+                        opponent=opponent_from_args(args),
+                        pinned_tactics=pinned_tactics,
+                    ),
                 )
                 recommendation = bundle.recommendation
                 training_targets = bundle.training_targets
                 bench = bundle.bench
                 weakness_report = bundle.weakness_report
-                squad_depth = bundle.squad_depth
+                squad_depth = bundle.planning_depth
+                primary = bundle.primary
                 briefs = bundle.briefs
                 if args.candidate_html:
                     candidate_export = load_html_import(args.candidate_html)
@@ -640,6 +681,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 training_targets,
                 squad_depth,
                 opponent=opponent_from_args(args),
+                primary=primary,
+                pinned_keys=pinned_tactics,
             )
         )
     else:

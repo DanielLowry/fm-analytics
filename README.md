@@ -107,6 +107,11 @@ not a new input the bridge lacks; it uses the same raw 1-20 position rating
 the probe already read for eligibility, previously discarded after that
 threshold check. It says nothing about tactic familiarity above.
 
+Add `--my-tactics vertical_442,wing_play_442` (tactic keys, primary first) to
+describe the tactics you actually play instead of whichever ranks top: the
+bench, weaknesses, briefs and depth then follow your primary and pinned
+tactics. `fm-web` takes the same flag; see the [active plan](docs/active-plan.md).
+
 `--recommend` also reports **squad depth across every evaluated tactic**, not
 just the selected one: a position weak in every tactic considered is flagged
 separately from one weak in only some, since the latter may just reflect a

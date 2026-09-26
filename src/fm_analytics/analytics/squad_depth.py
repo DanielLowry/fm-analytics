@@ -74,6 +74,43 @@ class SquadDepthReport:
     per_tactic: Mapping[str, WeaknessReport]
     positions: Mapping[str, PositionDepth]
 
+    def restricted_to(self, tactic_keys: Sequence[str]) -> "SquadDepthReport":
+        """The same report as if only `tactic_keys` had been evaluated.
+
+        Regroups the per-tactic results already held; nothing is recomputed, so
+        the numbers are exactly those of the full report. A position none of the
+        kept tactics fields is dropped. Keys are kept in the order given, and an
+        unknown key is an error rather than a silently smaller answer.
+        """
+        keys = tuple(tactic_keys)
+        unknown = [key for key in keys if key not in self.per_tactic]
+        if unknown:
+            raise ValueError(f"tactic(s) not in this depth report: {', '.join(unknown)}")
+        if not keys:
+            raise ValueError("a restricted depth report needs at least one tactic")
+        kept = frozenset(keys)
+        positions: dict[str, PositionDepth] = {}
+        for position, depth in self.positions.items():
+            fielded = tuple(key for key in depth.tactics_with_this_position if key in kept)
+            if not fielded:
+                continue
+            positions[position] = PositionDepth(
+                position=position,
+                tactics_with_this_position=fielded,
+                tactics_with_a_weakness=tuple(
+                    key for key in depth.tactics_with_a_weakness if key in kept
+                ),
+                weaknesses=tuple(
+                    tagged for tagged in depth.weaknesses if tagged.tactic_key in kept
+                ),
+            )
+        return SquadDepthReport(
+            policy_version=self.policy_version,
+            tactic_keys=keys,
+            per_tactic={key: self.per_tactic[key] for key in keys},
+            positions=positions,
+        )
+
     @property
     def persistent_weaknesses(self) -> tuple[PositionDepth, ...]:
         return tuple(

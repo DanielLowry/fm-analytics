@@ -55,6 +55,7 @@ from fm_analytics.web.rendering import (
     _scouting_filters,
     _scouting_knowledge_cell,
     _scouting_tab_nav,
+    _tactic_choices,
 )
 
 
@@ -82,11 +83,14 @@ class ScoutingPagesMixin:
         )
         position_options = _options(((item, item) for item in positions), filters.position, "Any position")
         tactic_options = _options(
-            (
-                (key, tactic.name)
-                for key, tactic in sorted(
-                    MVP_CATALOGUE.tactics.items(), key=lambda item: item[1].name
-                )
+            _tactic_choices(
+                (
+                    (key, tactic.name)
+                    for key, tactic in sorted(
+                        MVP_CATALOGUE.tactics.items(), key=lambda item: item[1].name
+                    )
+                ),
+                self.server.pinned_tactics,  # type: ignore[attr-defined]
             ),
             filters.tactic_key,
             "Generic position / role ranking",
@@ -112,6 +116,19 @@ class ScoutingPagesMixin:
             + "</select></label>"
             for key, values in facts.items()
         )
+        active_search_capture = (
+            "<section class='notice'><h3>Current FM Search attributes</h3>"
+            "<p>The normal refresh reads the player list and current scout reports. "
+            "To capture the attributes FM currently shows for unscouted Player Search "
+            "results, leave that search and its filters open in FM, then use this button.</p>"
+            "<form class='refresh' method='post' action='/scouting/refresh'>"
+            "<input type='hidden' name='hydrate_active_search' value='1'>"
+            "<button type='submit'>Capture current FM Search attributes</button>"
+            "<span class='muted'>Up to 256 active results, processed in bounded batches.</span>"
+            "</form><p class='warn'>This asks FM's own visibility builder for the values "
+            "it currently exposes. It runs code inside the live game, so save first.</p></section>"
+            if not filters.scouted_only else ""
+        )
         body = (
             _scouting_tab_nav(query)
             + "<p>Only players in the manager-visible discovery feed are shown. "
@@ -122,6 +139,7 @@ class ScoutingPagesMixin:
             "<button type='submit'>Refresh scouting data</button>"
             "<span class='muted'>Reads the current FM Player Search pool; this can take "
             "a little while.</span></form>"
+            + active_search_capture
             + self._scouting_filters_form(
                 filters,
                 tactic_options,
@@ -177,11 +195,14 @@ class ScoutingPagesMixin:
         tactic_key = _query_first(query, "tactic")
         include_raw_positions = _query_first(query, "includeRawPositions") == "1"
         tactic_options = _options(
-            (
-                (key, tactic.name)
-                for key, tactic in sorted(
-                    MVP_CATALOGUE.tactics.items(), key=lambda item: item[1].name
-                )
+            _tactic_choices(
+                (
+                    (key, tactic.name)
+                    for key, tactic in sorted(
+                        MVP_CATALOGUE.tactics.items(), key=lambda item: item[1].name
+                    )
+                ),
+                self.server.pinned_tactics,  # type: ignore[attr-defined]
             ),
             tactic_key,
             "Choose a tactic",
@@ -333,6 +354,11 @@ class ScoutingPagesMixin:
         )
 
         def visible(item) -> bool:
+            if (
+                filters.visibility != "any"
+                and not item.candidate.current_attributes_captured
+            ):
+                return False
             if filters.visibility == "known" and (
                 item.ranged_attributes or item.unknown_attributes
             ):
@@ -468,6 +494,11 @@ class ScoutingPagesMixin:
         for item in displayed:
             label, badge, reason = labels[item.recommendation]
             candidate = item.candidate
+            if not candidate.current_attributes_captured:
+                label, badge, reason = (
+                    "Capture first", "badge-scout",
+                    "FM's current visible attributes have not been captured for this player.",
+                )
             positions = candidate.positions_for(
                 include_raw_external_positions=include_raw_external_positions
             )
@@ -510,7 +541,8 @@ class ScoutingPagesMixin:
                 "More precise position and visibility filters will narrow this list.</p>"
                 if len(assessments) > len(displayed) else ""
             )
-            + "<ul class='legend'><li><b>Scout first</b>: no relevant attributes are known.</li>"
+            + "<ul class='legend'><li><b>Capture first</b>: the app has not read FM's current visible attributes.</li>"
+            "<li><b>Scout first</b>: FM's captured answer has no relevant visible attributes.</li>"
             "<li><b>Scout to decide</b>: ranges or unknown values could still change the role fit.</li>"
             "<li><b>Attribute-based floor / estimate / ceiling</b>: the best and worst role score supported by visible information. "
             "This table does not apply positional familiarity.</li></ul>"

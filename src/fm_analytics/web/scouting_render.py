@@ -87,7 +87,9 @@ def attribute_sheet(candidate: ScoutingCandidate) -> str:
         if rows:
             groups.append(f"<div class='sheet-group'><h4>{title}</h4>{''.join(rows)}</div>")
     if not groups:
-        return "<span class='muted'>No attributes captured</span>"
+        if not candidate.current_attributes_captured:
+            return "<span class='warn'>Not captured from FM</span>"
+        return "<span class='muted'>No attributes currently visible</span>"
     return (
         f"<details class='sheet'><summary>Attributes ({shown} shown)</summary>"
         f"<div class='sheet-groups'>{''.join(groups)}</div></details>"
@@ -143,6 +145,7 @@ def player_scouting_report(
         back_href="/scouting?view=scouted", back_label="Back to scouted players",
         familiarity_source="the captured raw 0–20 position rating",
         headline=headline,
+        attributes_captured=candidate.current_attributes_captured,
         historical_attributes=candidate.last_known_attributes,
         historical_observed_at=candidate.last_known_attributes_observed_at,
     )
@@ -187,6 +190,7 @@ def squad_player_report(player, catalogue) -> str:
 def _player_detail_report(
     name, attributes, player_positions, familiarity, facts, catalogue, *,
     back_href: str, back_label: str, familiarity_source: str, headline: str = "",
+    attributes_captured: bool = True,
     historical_attributes=None, historical_observed_at: str | None = None,
 ) -> str:
     """Render every attribute and catalogue role for a scouted or owned player."""
@@ -199,7 +203,9 @@ def _player_detail_report(
         _position_familiarity_row(position, known_positions, familiarity, policy)
         for position in positions
     )
-    attributes_html = _full_attribute_sheet(attributes)
+    attributes_html = _full_attribute_sheet(
+        attributes, captured=attributes_captured
+    )
     historical_html = _historical_attribute_section(
         historical_attributes or {}, historical_observed_at
     )
@@ -238,7 +244,7 @@ def _player_detail_report(
     )
 
 
-def _full_attribute_sheet(attributes) -> str:
+def _full_attribute_sheet(attributes, *, captured: bool = True) -> str:
     groups: list[str] = []
     for title, keys in _ATTRIBUTE_GROUPS:
         rows = []
@@ -258,7 +264,15 @@ def _full_attribute_sheet(attributes) -> str:
                 "<table><tr><th>Attribute</th><th>Scouted value</th></tr>"
                 + "".join(rows) + "</table></section>"
             )
-    return "".join(groups) or "<p class='muted'>No attributes currently visible.</p>"
+    if groups:
+        return "".join(groups)
+    if not captured:
+        return (
+            "<p class='warn'><b>Not captured from FM.</b> This does not mean FM "
+            "shows no attributes. Capture the current Player Search attributes "
+            "from the All players tab to get FM's current answer.</p>"
+        )
+    return "<p class='muted'>No attributes currently visible.</p>"
 
 
 def _historical_attribute_section(attributes, observed_at: str | None) -> str:
@@ -645,6 +659,8 @@ def _knowledge_cell(item: PositionRanking) -> str:
     has: reading "11 / 0 / 0" as "only 11 of his attributes are known" was the
     obvious misreading, so the denominator is now shown.
     """
+    if not item.candidate.current_attributes_captured:
+        return "<span class='warn'>Not captured from FM</span>"
     total = item.known_attributes + item.ranged_attributes + item.unknown_attributes
     headline = f"{item.known_attributes} of {total} known"
     if not item.ranged_attributes and not item.unknown_attributes:
