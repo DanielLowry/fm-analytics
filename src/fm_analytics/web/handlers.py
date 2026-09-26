@@ -21,10 +21,8 @@ from fm_analytics.reporting import (
 from fm_analytics.web.auxiliary_pages import AuxiliaryPagesMixin
 from fm_analytics.web.scouting_pages import ScoutingPagesMixin
 from fm_analytics.web.tactic_pages import TacticPagesMixin
-from fm_analytics.web.scouting_render import (
-    squad_player_link,
-    squad_player_report,
-)
+from fm_analytics.web.scouting_render import squad_player_link
+from fm_analytics.web.scouting_report import squad_player_report
 from fm_analytics.web.rendering import (
     ScoutingPoolNotBuilt,
     _SORTABLE_TABLE_SCRIPT,

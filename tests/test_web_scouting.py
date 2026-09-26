@@ -189,7 +189,8 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         port = self._serve(FIXTURE, scouting_provider)
         _status, body = self._get(port, "/scouting?role=af_attack&position=ST")
 
-        self.assertIn("<th>Median estimate</th>", body)
+        self.assertIn("data-sort='median'", body)
+        self.assertIn(">Median</button>", body)
 
     def test_familiarity_columns_appear_only_when_the_raw_positions_box_is_ticked(self) -> None:
         def scouting_provider():
@@ -212,6 +213,163 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         self.assertIn("attribute-based", ticked)
         self.assertIn("17/20", ticked)
         self.assertIn("(×0.92)", ticked)
+
+    def _mixed_pool(self):
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="a", name="Older Striker", positions=("ST",), attributes={},
+                    age=31, club="Alpha", value=900_000, scouting_knowledge=9,
+                ),
+                ScoutingCandidate(
+                    id="b", name="Younger Striker", positions=("ST",), attributes={},
+                    age=18, club="Beta", value=50_000, scouting_knowledge=9,
+                ),
+                # Never scouted: on the All tab only.
+                ScoutingCandidate(
+                    id="c", name="Unscouted Midfielder", positions=("MC",), attributes={},
+                    age=24, club="Gamma", value=300_000,
+                ),
+            )
+
+        return self._serve(FIXTURE, scouting_provider)
+
+    def test_every_results_table_sorts_on_the_server(self) -> None:
+        """The complaint this guards: sorting used to exist only under some filters."""
+        port = self._mixed_pool()
+        views = {
+            "all players, nothing chosen": "",
+            "scouted tab": "view=scouted",
+            "a position": "position=ST",
+            "a role": "role=af_attack",
+            "a role and position": "role=af_attack&position=ST",
+        }
+        for label, query in views.items():
+            with self.subTest(view=label):
+                joined = query + "&" if query else ""
+                _s, ascending = self._get(port, f"/scouting?{joined}sort=age&dir=asc")
+                _s, descending = self._get(port, f"/scouting?{joined}sort=age&dir=desc")
+
+                self.assertIn("data-sort='age' data-default='asc'>Age ▲", ascending)
+                self.assertIn("aria-sort='ascending'", ascending)
+                self.assertIn("Age ▼", descending)
+                self.assertLess(ascending.index("Younger Striker"), ascending.index("Older Striker"))
+                self.assertLess(descending.index("Older Striker"), descending.index("Younger Striker"))
+
+    def test_all_players_with_nothing_chosen_is_ranked_not_a_bare_list(self) -> None:
+        port = self._mixed_pool()
+        _s, body = self._get(port, "/scouting")
+
+        self.assertIn("Ranked, all positions (3)", body)
+        self.assertIn("Unscouted Midfielder", body)
+        for column in ("median", "minimum", "ceiling", "value", "age", "name"):
+            self.assertIn(f"data-sort='{column}'", body)
+
+    def test_the_role_table_offers_its_scouting_order_as_a_sort(self) -> None:
+        port = self._mixed_pool()
+        _s, body = self._get(port, "/scouting?role=af_attack&position=ST")
+
+        self.assertIn("data-sort='priority'", body)
+        self.assertIn("Sorted by <b>Scouting priority</b> (high to low)", body)
+        # No "best role" column when the role is already chosen.
+        self.assertNotIn("data-sort='role'", body)
+
+    def test_a_sort_from_another_table_falls_back_to_this_tables_default(self) -> None:
+        port = self._mixed_pool()
+        _s, ranking = self._get(port, "/scouting?sort=tactic_gain")
+        _s, role = self._get(port, "/scouting?role=af_attack&sort=role")
+        _s, role_median = self._get(port, "/scouting?role=af_attack&sort=median")
+
+        self.assertIn("Sorted by <b>Median (best guess)</b>", ranking)
+        self.assertIn("Sorted by <b>Scouting priority</b>", role)
+        self.assertIn("Sorted by <b>Median (best guess)</b>", role_median)
+
+    def test_the_sort_list_only_offers_columns_the_current_table_has(self) -> None:
+        port = self._mixed_pool()
+        _s, ranking = self._get(port, "/scouting")
+        _s, role = self._get(port, "/scouting?role=af_attack")
+
+        def enabled(body: str, key: str) -> bool:
+            option = body[body.index(f"<option value='{key}' data-modes"):]
+            return "hidden disabled" not in option[: option.index("</option>")]
+
+        self.assertTrue(enabled(ranking, "median"))
+        self.assertFalse(enabled(ranking, "tactic_gain"))
+        self.assertFalse(enabled(ranking, "priority"))
+        self.assertTrue(enabled(role, "priority"))
+        self.assertFalse(enabled(role, "role"))
+
+    def test_visibility_and_score_filters_apply_when_no_role_is_chosen(self) -> None:
+        """They used to be ignored until a role was picked."""
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="known", name="Fully Known", positions=("ST",), age=25,
+                    attributes={
+                        name: AttributeObservation(Visibility.KNOWN, value=18)
+                        for name in required_role_attributes()
+                    },
+                    attributes_observed_at="2019-07-21",
+                ),
+                ScoutingCandidate(
+                    id="blank", name="Nothing Known", positions=("ST",), age=25,
+                    attributes={}, attributes_observed_at="2019-07-21",
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        _s, known = self._get(port, "/scouting?visibility=known")
+        _s, unknown = self._get(port, "/scouting?visibility=unknown")
+        _s, high_floor = self._get(port, "/scouting?minFloor=60")
+
+        self.assertIn("Fully Known", known)
+        self.assertNotIn("Nothing Known", known)
+        self.assertIn("Nothing Known", unknown)
+        self.assertNotIn("Fully Known", unknown)
+        self.assertIn("Fully Known", high_floor)
+        self.assertNotIn("Nothing Known", high_floor)
+
+    def test_show_more_extends_the_page_beyond_the_default_row_count(self) -> None:
+        def scouting_provider():
+            return tuple(
+                ScoutingCandidate(
+                    id=f"p{index}", name=f"Player {index:03d}", positions=("ST",),
+                    attributes={}, age=20 + index % 10,
+                )
+                for index in range(130)
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        _s, first = self._get(port, "/scouting/results?sort=name&dir=asc")
+        _s, more = self._get(port, "/scouting/results?sort=name&dir=asc&limit=200")
+
+        self.assertIn("Showing 100 of 130", first)
+        self.assertIn("data-limit='200'", first)
+        self.assertNotIn("Player 129", first)
+        self.assertIn("Player 129", more)
+        self.assertNotIn("show-more", more)
+
+    def test_the_role_select_lists_every_role_until_a_position_narrows_it(self) -> None:
+        port = self._mixed_pool()
+        _s, everything = self._get(port, "/scouting")
+        _s, narrowed = self._get(port, "/scouting?position=GK")
+
+        self.assertNotIn("disabled>Choose a position first", everything)
+        self.assertIn("Advanced Forward (Attack)", everything)
+        select = narrowed[narrowed.index("<select name='role'>"):]
+        select = select[: select.index("</select>")]
+        self.assertNotIn("Advanced Forward", select)
+        self.assertIn("Goalkeeper", select)
+
+    def test_filter_groups_open_when_one_of_their_filters_is_set(self) -> None:
+        port = self._mixed_pool()
+        _s, plain = self._get(port, "/scouting")
+        _s, filtered = self._get(port, "/scouting?maxAge=21&club=Beta")
+
+        self.assertNotIn("<details class='filter-group' open>", plain)
+        self.assertIn("<details class='filter-group' open>", filtered)
+        self.assertIn("2 set", filtered)
+        self.assertIn("Reset filters", filtered)
 
     def test_the_scouting_page_offers_a_rank_by_control(self) -> None:
         port = self._serve(FIXTURE)
@@ -312,7 +470,7 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         _status, listing = self._get(port, "/scouting?view=scouted")
         status, report = self._get(port, "/scouting/player/past-player")
 
-        self.assertIn("<th>Past knowledge</th>", listing)
+        self.assertIn("Past knowledge</th>", listing)
         self.assertIn("1 ranged", listing)
         self.assertIn("Last visible 2019-07-21", listing)
         self.assertEqual(status, 200)

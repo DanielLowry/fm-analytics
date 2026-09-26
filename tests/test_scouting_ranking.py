@@ -1,11 +1,19 @@
 import unittest
 
+from unittest.mock import patch
+
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
     ScoutingCandidate,
     ScoutingFilters,
+    assess_scouting_candidates,
+    filter_position_rankings,
     rank_for_position,
+    scouting_mode,
+    sort_for_mode,
+    sort_scouting_assessments,
 )
+from fm_analytics.analytics import scouting as scouting_module
 from fm_analytics.analytics.role_scoring import score_role
 from fm_analytics.bridge.fm20_visibility_algorithm import PositionFamily, thresholds_for_attribute
 from fm_analytics.domain import AttributeObservation, Visibility
@@ -334,3 +342,147 @@ class KnowledgeCellTests(unittest.TestCase):
             self.assertIn("unknown", cell)
         if item.ranged_attributes:
             self.assertIn("ranged", cell)
+
+
+class ModeSortTests(unittest.TestCase):
+    def test_mode_follows_tactic_then_role(self) -> None:
+        self.assertEqual(scouting_mode("balanced_442", "cd_defend"), "tactic")
+        self.assertEqual(scouting_mode(None, "cd_defend"), "role")
+        self.assertEqual(scouting_mode(None, None), "ranking")
+
+    def test_a_sort_the_table_has_no_column_for_falls_back_to_the_default(self) -> None:
+        self.assertEqual(sort_for_mode("age", "role"), "age")
+        self.assertEqual(sort_for_mode("tactic_gain", "ranking"), "median")
+        self.assertEqual(sort_for_mode("role", "role"), "priority")
+        self.assertEqual(sort_for_mode("priority", "tactic"), "tactic_gain")
+        self.assertEqual(sort_for_mode(None, "tactic"), "tactic_gain")
+        self.assertEqual(sort_for_mode("adjusted", "tactic"), "tactic_gain")
+
+
+class RoleTargetSortTests(unittest.TestCase):
+    def setUp(self) -> None:
+        strong = {attribute.name: known(16) for attribute in ROLE.attributes}
+        self.assessments = assess_scouting_candidates(
+            [
+                candidate("old", strong, name="Old Strong", age=33, value=10),
+                candidate("young", {}, name="Young Blank", age=17, value=900),
+                candidate("mid", {ROLE.attributes[0].name: known(9)}, name="Mid Partial", age=25),
+            ],
+            MVP_CATALOGUE,
+            ScoutingFilters(role_key="cd_defend", position="DC"),
+        )
+
+    def names(self, **kwargs) -> list[str]:
+        return [item.candidate.name for item in sort_scouting_assessments(self.assessments, **kwargs)]
+
+    def test_priority_puts_proven_fits_first_and_flips(self) -> None:
+        best_first = self.names(sort="priority", descending=True)
+
+        self.assertEqual(best_first[0], "Old Strong")
+        self.assertEqual(self.names(sort="priority", descending=False), best_first[::-1])
+
+    def test_any_column_sorts_either_way_with_missing_values_last(self) -> None:
+        self.assertEqual(self.names(sort="age", descending=False), ["Young Blank", "Mid Partial", "Old Strong"])
+        self.assertEqual(self.names(sort="age", descending=True), ["Old Strong", "Mid Partial", "Young Blank"])
+        # Only two players have a value; the third is last whichever way it goes.
+        self.assertEqual(self.names(sort="value", descending=False)[-1], "Mid Partial")
+        self.assertEqual(self.names(sort="value", descending=True)[-1], "Mid Partial")
+
+    def test_median_sorts_by_the_estimate_not_the_conservative_score(self) -> None:
+        by_median = self.names(sort="median", descending=True)
+
+        self.assertEqual(by_median[0], "Old Strong")
+        # An unscouted player's median (50) is above a partly-known low one's.
+        self.assertLess(by_median.index("Young Blank"), by_median.index("Mid Partial"))
+
+    def test_unknown_sorts_are_refused(self) -> None:
+        with self.assertRaises(ValueError):
+            sort_scouting_assessments(self.assessments, sort="familiarity")
+
+
+class InformationFilterTests(unittest.TestCase):
+    def setUp(self) -> None:
+        strong = {attribute.name: known(16) for attribute in ROLE.attributes}
+        self.rankings = rank_for_position(
+            [
+                candidate("full", strong, attributes_observed_at="2019-07-21"),
+                candidate("partial", {ROLE.attributes[0].name: ranged(4, 12)},
+                          attributes_observed_at="2019-07-21"),
+                candidate("blank", {}, attributes_observed_at="2019-07-21"),
+                candidate("uncaptured", {}),
+            ],
+            MVP_CATALOGUE, "DC",
+        )
+
+    def kept(self, **filters) -> set[str]:
+        return {r.candidate.id for r in filter_position_rankings(self.rankings, ScoutingFilters(**filters))}
+
+    def test_visibility_buckets_match_the_role_tables(self) -> None:
+        self.assertEqual(self.kept(visibility="known"), {"full"})
+        self.assertEqual(self.kept(visibility="partial"), {"partial"})
+        # "Nothing known" never includes a player whose attributes were not read.
+        self.assertEqual(self.kept(visibility="unknown"), {"blank"})
+
+    def test_the_floor_and_ceiling_filters_use_min_and_max(self) -> None:
+        self.assertEqual(self.kept(minimum_floor=50), {"full"})
+        # A fully known 16 across the role tops out well below 90; an unknown
+        # profile could still reach 100, so it stays.
+        kept = self.kept(minimum_ceiling=90)
+        self.assertNotIn("full", kept)
+        self.assertLessEqual({"blank", "uncaptured"}, kept)
+        self.assertEqual(self.kept(minimum_ceiling=101), set())
+        self.assertEqual(self.kept(minimum_ceiling=101, include_unlikely=True),
+                         {"full", "partial", "blank", "uncaptured"})
+
+
+class RankingCacheTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.pool = [
+            candidate("a", {ROLE.attributes[0].name: known(12)}, name="A", age=20),
+            candidate("b", {ROLE.attributes[0].name: known(8)}, name="B", age=30),
+        ]
+
+    def calls_for(self, **kwargs) -> int:
+        with patch.object(scouting_module, "score_role", wraps=scouting_module.score_role) as spy:
+            rank_for_position(self.pool, MVP_CATALOGUE, "DC", **kwargs)
+            return spy.call_count
+
+    def test_a_cache_scores_each_player_once_however_the_list_is_re_sorted(self) -> None:
+        cache: dict = {}
+
+        first = self.calls_for(cache=cache)
+        again = self.calls_for(cache=cache, sort="age", descending=True)
+
+        self.assertGreater(first, 0)
+        self.assertEqual(again, 0)
+
+    def test_cached_results_are_identical_to_uncached_ones(self) -> None:
+        cache: dict = {}
+        rank_for_position(self.pool, MVP_CATALOGUE, "DC", cache=cache)
+
+        self.assertEqual(
+            rank_for_position(self.pool, MVP_CATALOGUE, "DC", sort="age", cache=cache),
+            rank_for_position(self.pool, MVP_CATALOGUE, "DC", sort="age"),
+        )
+
+    def test_a_new_capture_of_the_same_player_is_scored_afresh(self) -> None:
+        cache: dict = {}
+        rank_for_position(self.pool, MVP_CATALOGUE, "DC", cache=cache)
+        recaptured = [
+            candidate("a", {ROLE.attributes[0].name: known(20)}, name="A", age=20), self.pool[1],
+        ]
+
+        ranked = {r.candidate.id: r for r in rank_for_position(recaptured, MVP_CATALOGUE, "DC", cache=cache)}
+
+        self.assertEqual(
+            ranked["a"].median, rank_for_position(recaptured[:1], MVP_CATALOGUE, "DC")[0].median
+        )
+
+    def test_arguments_that_change_the_score_do_not_share_an_entry(self) -> None:
+        cache: dict = {}
+        rank_for_position(self.pool, MVP_CATALOGUE, "DC", cache=cache)
+
+        self.assertGreater(self.calls_for(cache=cache, include_raw_external_positions=True), 0)
+        with patch.object(scouting_module, "score_role", wraps=scouting_module.score_role) as spy:
+            rank_for_position(self.pool, MVP_CATALOGUE, "MC", cache=cache)
+        self.assertGreater(spy.call_count, 0)

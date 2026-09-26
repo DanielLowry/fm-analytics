@@ -12,7 +12,8 @@ from urllib.parse import urlencode
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
     ScoutingFilters,
-    TACTIC_RANKING_SORTS,
+    scouting_mode,
+    sort_for_mode,
     TacticDefinition,
     TacticSlot,
     WeaknessKind,
@@ -41,125 +42,8 @@ _INJURY_RISK_KINDS = frozenset(
     {WeaknessKind.NO_BACKUP, WeaknessKind.WEAK_BACKUP, WeaknessKind.SHARED_COVER}
 )
 _MAX_SCOUTING_ROWS = 100
-
-# Real-time re-filtering for the Scouting page. Server-side only: it fetches
-# the same `_scouting_results_block` computation `/scouting` itself renders
-# (see `SquadWebHandler._scouting_results_fragment`), just as a fragment, so
-# typing never invents a lighter-weight client-side filter that could disagree
-# with the page's own numbers. `form.filters`' fields already carry every
-# active filter, including the position/role selects and dynamic `fact.*`
-# selects, so serializing the whole form on each change keeps them all in
-# sync without hand-listing field names here. A no-JS browser falls back to
-# the form's ordinary GET submit, unaffected by this script.
-#
-# The role select is narrowed to the chosen position's eligible roles from
-# `#position-roles-data` (see `_scouting_page`) -- a structural fact from the
-# catalogue, not a score, so reading it here does not duplicate any analytics
-# computation. With no position chosen the role select is blanked and
-# disabled, since a role choice only means anything once eligibility can be
-# checked against a position. A no-JS browser instead sees every role,
-# unfiltered, exactly as before this existed.
-_SCOUTING_LIVE_FILTER_SCRIPT = """
-<script>
-(function () {
-  var form = document.querySelector('form.filters');
-  var results = document.getElementById('scouting-results');
-  if (!form || !results) return;
-
-  var positionSelect = form.querySelector("select[name='position']");
-  var roleSelect = form.querySelector("select[name='role']");
-  var roleDataElement = document.getElementById('position-roles-data');
-  var positionRoles = {};
-  if (roleDataElement) {
-    try { positionRoles = JSON.parse(roleDataElement.textContent); }
-    catch (error) { positionRoles = {}; }
-  }
-
-  function refreshRoleOptions() {
-    if (!positionSelect || !roleSelect) return;
-    var position = positionSelect.value;
-    var previousRole = roleSelect.value;
-    var roles = position ? (positionRoles[position] || []) : [];
-    roleSelect.innerHTML = '';
-    var blank = document.createElement('option');
-    blank.value = '';
-    blank.textContent = position ? 'Choose a role' : 'Choose a position first';
-    roleSelect.appendChild(blank);
-    roleSelect.disabled = !position;
-    var stillValid = false;
-    roles.forEach(function (pair) {
-      var option = document.createElement('option');
-      option.value = pair[0];
-      option.textContent = pair[1];
-      if (pair[0] === previousRole) { option.selected = true; stillValid = true; }
-      roleSelect.appendChild(option);
-    });
-    if (!stillValid) roleSelect.value = '';
-  }
-
-  var timer = null;
-  function apply() {
-    var params = new URLSearchParams(new FormData(form));
-    fetch('/scouting/results?' + params.toString())
-      .then(function (response) { return response.text(); })
-      .then(function (text) { results.innerHTML = text; })
-      .catch(function () { /* leave the last good results showing */ });
-    history.replaceState(null, '', '/scouting?' + params.toString());
-  }
-  if (positionSelect) {
-    // Runs on the target before the delegated 'change' below sees the event,
-    // so a reset/narrowed role is what actually gets sent to the server.
-    positionSelect.addEventListener('change', refreshRoleOptions);
-  }
-  refreshRoleOptions(); // narrow immediately on load, including on a fresh page
-  form.addEventListener('input', function (event) {
-    if (event.target.tagName === 'SELECT') return; // selects fire 'change' below
-    clearTimeout(timer);
-    timer = setTimeout(apply, 250);
-  });
-  form.addEventListener('change', function () {
-    clearTimeout(timer);
-    apply();
-  });
-  form.addEventListener('submit', function (event) {
-    event.preventDefault();
-    clearTimeout(timer);
-    apply();
-  });
-  // Column headers re-sort on the server, so the top of a long list is the
-  // true top by that column rather than the top of what was on screen. The
-  // hidden `dir` field carries the current direction; clicking the active
-  // column flips it, clicking another starts from that column's natural one.
-  var sortSelect = form.querySelector("select[name='sort']");
-  var dirInput = form.querySelector("input[name='dir']");
-  var tacticSelect = form.querySelector("select[name='tactic']");
-  if (sortSelect && dirInput) {
-    sortSelect.addEventListener('change', function () { dirInput.value = ''; });
-    if (tacticSelect) {
-      tacticSelect.addEventListener('change', function () {
-        var tacticSort = sortSelect.value.indexOf('tactic_') === 0;
-        if (tacticSelect.value && !tacticSort) sortSelect.value = 'tactic_gain';
-        if (!tacticSelect.value && tacticSort) sortSelect.value = 'median';
-        dirInput.value = 'desc';
-      });
-    }
-    results.addEventListener('click', function (event) {
-      var button = event.target.closest('button.sort-btn');
-      if (!button) return;
-      var key = button.getAttribute('data-sort');
-      if (sortSelect.value === key) {
-        dirInput.value = dirInput.value === 'desc' ? 'asc' : 'desc';
-      } else {
-        sortSelect.value = key;
-        dirInput.value = button.getAttribute('data-default');
-      }
-      clearTimeout(timer);
-      apply();
-    });
-  }
-})();
-</script>
-"""
+# Each row carries an attribute sheet, so a page is heavy well before this.
+_SCOUTING_ROW_CEILING = 1000
 
 _TACTICAL_DIMENSION_LABELS = {
     "aerialOutlet": "aerial outlet",
@@ -187,6 +71,7 @@ _STYLE = """
   .fm-status form { margin: 0.25rem 0 0; }
   .fm-status button { font-size: 0.72rem; cursor: pointer; }
   main { padding: 1.5rem 2rem; max-width: 1100px; margin: 0 auto; }
+  main.wide { max-width: 1600px; }
   h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
   h2 { font-size: 1.1rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
   table { border-collapse: collapse; width: 100%; margin: 0.75rem 0 1.5rem; font-size: 0.9rem; }
@@ -236,10 +121,43 @@ _STYLE = """
   .opponent-actions button { padding: 0.45rem 0.7rem; border: 0; border-radius: 0.25rem; background: #1a2b3c; color: white; cursor: pointer; }
   .button-link.secondary { background: #e1e6ea; color: #1a2b3c; }
   .opponent-summary { margin: 0.75rem 0 1rem; padding: 0.75rem 0.9rem; border-left: 4px solid #5c849f; background: #eef3f7; border-radius: 0.3rem; line-height: 1.5; }
+  form.filters.scouting-filters { display: block; padding: 0; overflow: hidden; }
+  .scouting-filters fieldset { border: 0; margin: 0; padding: 0.9rem 1rem 1rem; min-width: 0; }
+  .scouting-filters legend { padding: 0; margin-bottom: 0.5rem; font-weight: 600; color: #1a2b3c; }
+  .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.65rem; }
+  .scouting-filters details.filter-group { margin: 0; border: 0; border-top: 1px solid #dfe3e7; border-radius: 0; padding: 0.55rem 1rem; }
+  .scouting-filters details.filter-group[open] { padding-bottom: 0.9rem; }
+  .scouting-filters details.filter-group > summary { font-size: 0.85rem; color: #34495e; }
+  .scouting-filters details.filter-group > .filter-grid { margin-top: 0.65rem; }
+  .filter-count { margin-left: 0.4rem; padding: 0.05rem 0.5rem; border-radius: 0.75rem; background: #1a2b3c; color: white; font-size: 0.7rem; font-weight: 500; }
+  .filter-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0.7rem 1rem; border-top: 1px solid #dfe3e7; }
+  .filter-actions .spacer { flex: 1; }
+  .filter-actions .reset { font-size: 0.85rem; }
+  .filter-actions button { padding: 0.45rem 0.9rem; }
+  p.intro { color: #455; max-width: 75ch; margin: 0.25rem 0 0.75rem; }
+  .refresh-panel { margin: 0.5rem 0 1rem; padding: 0.15rem 0.9rem; border: 1px solid #e0e4e8; border-radius: 0.4rem; background: white; }
+  .refresh-panel details { border: 0; padding: 0; margin: 0 0 0.5rem; }
+  .refresh-panel details summary { font-weight: 500; font-size: 0.85rem; color: #456; }
+  .refresh-panel form.refresh { margin: 0.5rem 0; flex-wrap: wrap; }
+  #scouting-results { transition: opacity 0.15s; }
+  #scouting-results.loading { opacity: 0.5; }
+  .results-summary { margin: 0.3rem 0; color: #455; }
+  details.explain { border: 0; padding: 0; margin: 0.2rem 0 0.4rem; }
+  details.explain > summary { font-size: 0.85rem; font-weight: 500; color: #456; }
+  .table-scroll { overflow-x: auto; margin: 0.6rem 0 1rem; border: 1px solid #e5e5e5; border-radius: 0.4rem; background: white; }
+  .table-scroll table { margin: 0; }
+  table.results td { vertical-align: top; }
+  table.results th { vertical-align: bottom; }
+  table.results th[aria-sort] { background: #e2e8ef; }
+  table.results th[aria-sort]::after { content: none; }
+  table.results td.rec { min-width: 14rem; }
+  table.results .nw, table.results details.sheet summary { white-space: nowrap; }
+  .show-more { display: flex; align-items: center; gap: 0.75rem; margin: 0 0 1.5rem; }
+  .show-more button { padding: 0.45rem 0.9rem; border: 0; border-radius: 0.25rem; background: #1a2b3c; color: white; cursor: pointer; }
   form.refresh { margin: 0.75rem 0; display: flex; align-items: center; gap: 0.65rem; }
   form.refresh button { padding: 0.45rem 0.65rem; border: 0; border-radius: 0.25rem; background: #1a2b3c; color: white; cursor: pointer; }
   form.refresh button.danger { background: #8a2b12; }
-  nav.scouting-tabs { display: flex; gap: 0.5rem; margin: 0.5rem 0 1rem; }
+  nav.scouting-tabs { display: flex; gap: 0.5rem; margin: 0.5rem 0 1rem; padding: 0; background: none; }
   nav.scouting-tabs a { padding: 0.4rem 0.8rem; border-radius: 0.25rem; text-decoration: none; color: #1a2b3c; background: #e8ecef; }
   nav.scouting-tabs a.tab-active { background: #1a2b3c; color: white; }
   .dropped-warning { color: #8a2b12; font-weight: bold; }
@@ -531,13 +449,15 @@ def _position_display(candidate, *, include_raw_external_positions: bool) -> str
     return html.escape(", ".join(positions) or "Not yet captured")
 
 
-def _layout(title: str, active_path: str, body: str) -> str:
+def _layout(title: str, active_path: str, body: str, *, wide: bool = False) -> str:
+    """The page shell. ``wide`` is for pages built around a many-column table."""
     nav = "".join(_nav_link(path, label, active_path) for path, label in _NAV)
+    main_open = "<main class='wide'>" if wide else "<main>"
     return (
         "<!doctype html><html><head><meta charset=\"utf-8\">"
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         f"<title>{html.escape(title)} · FM Analytics</title>{_STYLE}</head>"
-        f"<body><nav>{nav}</nav><main><h1>{html.escape(title)}</h1>{body}</main>"
+        f"<body><nav>{nav}</nav>{main_open}<h1>{html.escape(title)}</h1>{body}</main>"
         "</body></html>"
     )
 
@@ -676,14 +596,16 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         if key.startswith("fact.") and value and value[0]
     }
     tactic_key = _query_first(query, "tactic")
-    ranking_sort = _query_first(query, "sort") or (
-        "tactic_gain" if tactic_key else "median"
+    role_key = _query_first(query, "role")
+    # Which columns exist depends on which table is showing, so a sort that
+    # belongs to another table (an XI-gain sort with no tactic chosen, say)
+    # falls back to this table's default instead of silently doing nothing.
+    ranking_sort = sort_for_mode(
+        _query_first(query, "sort"), scouting_mode(tactic_key, role_key)
     )
-    if not tactic_key and ranking_sort in TACTIC_RANKING_SORTS:
-        ranking_sort = "median"
     return ScoutingFilters(
         tactic_key=tactic_key,
-        position=_query_first(query, "position"), role_key=_query_first(query, "role"),
+        position=_query_first(query, "position"), role_key=role_key,
         minimum_age=_query_number(query, "minAge", integer=True),
         maximum_age=_query_number(query, "maxAge", integer=True),
         name_contains=_query_first(query, "name"),
@@ -703,6 +625,15 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         ranking_descending={"desc": True, "asc": False}.get(_query_first(query, "dir") or ""),
         facts=facts,
     )
+
+
+def _scouting_limit(query: dict[str, list[str]]) -> int:
+    """How many result rows to render: the default page, or what "Show more" asked for."""
+    try:
+        requested = int(_query_first(query, "limit") or 0)
+    except ValueError:
+        requested = 0
+    return min(max(requested, _MAX_SCOUTING_ROWS), _SCOUTING_ROW_CEILING)
 
 
 def _scouting_view(query: dict[str, list[str]]) -> str:

@@ -15,11 +15,12 @@ from typing import Sequence
 from urllib.parse import unquote
 
 from fm_analytics.analytics import (
+    DEFAULT_SORT_BY_MODE,
     FamiliarityPolicy,
     MARKET_FILTERS,
     MVP_CATALOGUE,
     RANKING_SORTS,
-    ScoutRecommendation,
+    SORTS_BY_MODE,
     ScoutingFilters,
     PlayerSelectionInput,
     rank_candidates_for_tactic,
@@ -27,33 +28,32 @@ from fm_analytics.analytics import (
     assess_scouting_candidates,
     available_fact_values,
     default_descending,
+    filter_position_rankings,
     filter_scouting_candidates,
+    filter_tactic_assessments,
     rank_for_position,
+    scouting_mode,
+    sort_scouting_assessments,
 )
+from fm_analytics.web.scouting_script import _SCOUTING_LIVE_FILTER_SCRIPT
 from fm_analytics.web.scouting_render import (
-    attribute_sheet,
-    past_knowledge_cell,
-    player_scouting_report,
     ranking_results,
-    scouting_player_link,
-    tactic_player_impact,
+    role_results,
     tactic_ranking_results,
 )
+from fm_analytics.web.scouting_report import player_scouting_report, tactic_player_impact
 from fm_analytics.web.rendering import (
     _MAX_SCOUTING_ROWS,
-    _SCOUTING_LIVE_FILTER_SCRIPT,
-    _band,
     _error_page,
     _input_value,
     _label,
     _layout,
     _options,
-    _position_display,
     _query_first,
     _raw_position_notice,
     _refresh_notice,
     _scouting_filters,
-    _scouting_knowledge_cell,
+    _scouting_limit,
     _scouting_tab_nav,
     _tactic_choices,
 )
@@ -74,100 +74,25 @@ class ScoutingPagesMixin:
             self._send(_error_page("Scouting", str(exc), path), HTTPStatus.SERVICE_UNAVAILABLE)
             return
 
-        facts = available_fact_values(candidates)
-        positions = sorted({position for role in MVP_CATALOGUE.roles.values() for position in role.eligible_positions})
-        selected_role = filters.role_key or ""
-        role_options = _options(
-            ((key, role.name) for key, role in sorted(MVP_CATALOGUE.roles.items())), selected_role,
-            "Choose a role",
-        )
-        position_options = _options(((item, item) for item in positions), filters.position, "Any position")
-        tactic_options = _options(
-            _tactic_choices(
-                (
-                    (key, tactic.name)
-                    for key, tactic in sorted(
-                        MVP_CATALOGUE.tactics.items(), key=lambda item: item[1].name
-                    )
-                ),
-                self.server.pinned_tactics,  # type: ignore[attr-defined]
-            ),
-            filters.tactic_key,
-            "Generic position / role ranking",
-        )
-        # Structural fact from the catalogue (which roles are eligible for
-        # which position) -- not a score, so embedding it for the client-side
-        # role-narrowing script does not duplicate any analytics computation.
-        position_role_options = {
-            position: sorted(
-                (
-                    (key, role.name)
-                    for key, role in MVP_CATALOGUE.roles.items()
-                    if position in role.eligible_positions
-                ),
-                key=lambda item: item[1],
-            )
-            for position in positions
-        }
-        fact_controls = "".join(
-            "<label>" + html.escape(_label(key))
-            + "<select name='fact." + html.escape(key, quote=True) + "'>"
-            + _options(((value, value) for value in values), (filters.facts or {}).get(key), "Any")
-            + "</select></label>"
-            for key, values in facts.items()
-        )
-        if filters.scouted_only:
-            refresh_controls = (
-                "<form class='refresh' method='post' action='/scouting/refresh'>"
-                "<input type='hidden' name='return_view' value='scouted'>"
-                "<button type='submit'>Refresh scouted players</button>"
-                "<span class='muted'>Reads current scout reports and their visible "
-                "attributes from FM.</span></form>"
-            )
-        else:
-            refresh_controls = (
-                "<section class='notice'><h3>Refresh Player Search</h3>"
-                "<p>Leave the intended search and filters open in FM. This refreshes "
-                "the player list <b>and</b> captures the attributes FM currently shows "
-                "for every matching player.</p>"
-                "<form class='refresh' method='post' action='/scouting/refresh'>"
-                "<input type='hidden' name='hydrate_active_search' value='1'>"
-                "<input type='hidden' name='return_view' value='all'>"
-                "<button type='submit'>Refresh Player Search and attributes</button>"
-                "<span class='muted'>Up to 256 active results, processed in bounded batches.</span>"
-                "</form><p class='warn'>This asks FM's own visibility builder for the values "
-                "it currently exposes. It runs code inside the live game, so save first.</p>"
-                "<details><summary>Refresh the player list only</summary>"
-                "<p class='muted'>This read-only option updates identities and FM Search "
-                "matches but deliberately leaves unscouted attributes uncaptured.</p>"
-                "<form class='refresh' method='post' action='/scouting/refresh'>"
-                "<input type='hidden' name='return_view' value='all'>"
-                "<button type='submit'>Refresh list only</button></form></details></section>"
-            )
-        body = (
+        self._send(_layout("Scouting", path, self._scouting_body(query, candidates, filters), wide=True))
+
+    def _scouting_body(self, query, candidates, filters: ScoutingFilters) -> str:
+        limit = _scouting_limit(query)
+        return (
             _scouting_tab_nav(query)
-            + "<p>Only players in the manager-visible discovery feed are shown. "
+            + "<p class='intro'>Only players in the manager-visible discovery feed are shown. "
             "Attribute-based role scores preserve their <b>floor / estimate / ceiling</b>; a player with "
             "no known role attributes is a reason to scout, not a claim that they are good.</p>"
             + _refresh_notice(_query_first(query, "refreshed"))
-            + refresh_controls
+            + _scouting_refresh_panel(filters.scouted_only)
             + self._scouting_filters_form(
-                filters,
-                tactic_options,
-                role_options,
-                position_options,
-                candidates,
-                fact_controls,
+                filters, candidates, self.server.pinned_tactics, limit  # type: ignore[attr-defined]
             )
-            + "<script id='position-roles-data' type='application/json'>"
-            + json.dumps(position_role_options).replace("</", "<\\/")
-            + "</script>"
-            + "<div id='scouting-results'>"
-            + self._scouting_results_block(candidates, filters)
+            + "<div id='scouting-results' aria-live='polite'>"
+            + self._scouting_results_block(candidates, filters, limit)
             + "</div>"
             + _SCOUTING_LIVE_FILTER_SCRIPT
         )
-        self._send(_layout("Scouting", path, body))
 
     def _scouting_results_fragment(self, _path: str, query: dict[str, list[str]]) -> None:
         """The results half of ``/scouting``, alone, for the page's own live filtering.
@@ -184,7 +109,7 @@ class ScoutingPagesMixin:
                 f"<p class='warn'>{html.escape(str(exc))}</p>", HTTPStatus.SERVICE_UNAVAILABLE
             )
             return
-        self._send(self._scouting_results_block(candidates, filters))
+        self._send(self._scouting_results_block(candidates, filters, _scouting_limit(query)))
 
     def _scouting_player_page(self, path: str, query: dict[str, list[str]]) -> None:
         """Show the exhaustive, evidence-bounded report for one scouted player."""
@@ -272,71 +197,60 @@ class ScoutingPagesMixin:
             )
         )
 
-    def _scouting_results_block(self, candidates, filters: ScoutingFilters) -> str:
-        if filters.tactic_key:
-            return self._tactic_scouting_results(candidates, filters)
-        assessments = (
-            assess_scouting_candidates(candidates, MVP_CATALOGUE, filters)
-            if filters.role_key
-            else ()
+    def _scouting_results_block(self, candidates, filters: ScoutingFilters, limit: int = _MAX_SCOUTING_ROWS) -> str:
+        """Whichever table the filters call for.
+
+        Every branch ends in the same sortable table, in the sort and direction
+        the filters carry, so a column that can be sorted in one view can be
+        sorted in all of them.
+        """
+        mode = scouting_mode(filters.tactic_key, filters.role_key)
+        if mode == "tactic":
+            return self._tactic_scouting_results(candidates, filters, limit)
+        descending = (
+            filters.ranking_descending
+            if filters.ranking_descending is not None
+            else default_descending(filters.ranking_sort)
+        )
+        common = dict(
+            sort=filters.ranking_sort,
+            sort_label=SORTS_BY_MODE[mode][filters.ranking_sort],
+            descending=descending,
+            raw_positions=filters.include_raw_external_positions,
+            limit=limit,
+            pool_size=len(candidates),
+            scouted_only=filters.scouted_only,
+        )
+        notice = (
+            _raw_position_notice(candidates) if filters.include_raw_external_positions else ""
+        )
+        if mode == "role":
+            assessments = sort_scouting_assessments(
+                assess_scouting_candidates(candidates, MVP_CATALOGUE, filters),
+                sort=filters.ranking_sort, descending=descending,
+            )
+            role = MVP_CATALOGUE.roles.get(filters.role_key or "")
+            return notice + role_results(
+                assessments, role_name=role.name if role else "selected role", **common
+            )
+        rankings = rank_for_position(
+            filter_scouting_candidates(candidates, filters), MVP_CATALOGUE, filters.position,
+            sort=filters.ranking_sort, descending=descending,
+            include_raw_external_positions=filters.include_raw_external_positions,
+            # The same opt-in as the raw positions: ticking it accepts the raw
+            # position data, ratings included.
+            familiarity_policy=(
+                FamiliarityPolicy() if filters.include_raw_external_positions else None
+            ),
+            cache=self.server.scouting_rank_cache,  # type: ignore[attr-defined]
+        )
+        return notice + ranking_results(
+            filter_position_rankings(rankings, filters), position=filters.position, **common
         )
 
-        position_candidates = (
-            ()
-            if filters.role_key
-            else filter_scouting_candidates(candidates, filters)
-        )
-        if not filters.role_key and (filters.position or filters.scouted_only):
-            # No role chosen: rank everyone by whichever role suits each best,
-            # so "who should I scout next" has an answer without picking a
-            # position first (the Scouted tab) or a role at all.
-            descending = (
-                filters.ranking_descending
-                if filters.ranking_descending is not None
-                else default_descending(filters.ranking_sort)
-            )
-            return (
-                (_raw_position_notice(candidates) if filters.include_raw_external_positions else "")
-                + ranking_results(
-                    rank_for_position(
-                        position_candidates, MVP_CATALOGUE, filters.position,
-                        sort=filters.ranking_sort, descending=descending,
-                        include_raw_external_positions=filters.include_raw_external_positions,
-                        # The same opt-in as the raw positions: ticking it accepts
-                        # the raw position data, ratings included.
-                        familiarity_policy=(
-                            FamiliarityPolicy() if filters.include_raw_external_positions else None
-                        ),
-                    ),
-                    position=filters.position,
-                    sort=filters.ranking_sort,
-                    sort_label=RANKING_SORTS[filters.ranking_sort],
-                    descending=descending,
-                    raw_positions=filters.include_raw_external_positions,
-                )
-            )
-        return (
-            (
-                _raw_position_notice(candidates)
-                if filters.include_raw_external_positions
-                else ""
-            )
-            + (
-                self._scouting_results(
-                    assessments,
-                    filters.role_key or "",
-                    len(candidates),
-                    include_raw_external_positions=filters.include_raw_external_positions,
-                )
-                if filters.role_key
-                else self._scouting_position_results(
-                    position_candidates,
-                    include_raw_external_positions=filters.include_raw_external_positions,
-                )
-            )
-        )
-
-    def _tactic_scouting_results(self, candidates, filters: ScoutingFilters) -> str:
+    def _tactic_scouting_results(
+        self, candidates, filters: ScoutingFilters, limit: int = _MAX_SCOUTING_ROWS
+    ) -> str:
         if filters.tactic_key not in MVP_CATALOGUE.tactics:
             return "<p class='warn'>The selected tactic is not in the catalogue.</p>"
         try:
@@ -347,260 +261,254 @@ class ScoutingPagesMixin:
                 + html.escape(str(exc))
                 + "</p>"
             )
-        candidates = filter_scouting_candidates(candidates, filters)
+        pool = filter_scouting_candidates(candidates, filters)
         tactic = MVP_CATALOGUE.tactics[filters.tactic_key]
         baseline = bundle.recommendation.by_tactic_key(filters.tactic_key)
-        assessments = rank_candidates_for_tactic(
-            candidates,
-            tuple(PlayerSelectionInput.from_player(player) for player in bundle.squad.players),
-            tactic,
-            MVP_CATALOGUE,
-            baseline,
-            readiness_policy=bundle.policy.readiness,
-            familiarity_policy=bundle.policy.familiarity,
-            opponent=bundle.policy.opponent,
-            include_raw_external_positions=filters.include_raw_external_positions,
-            position=filters.position,
-            role_key=filters.role_key,
+        assessments = filter_tactic_assessments(
+            rank_candidates_for_tactic(
+                pool,
+                tuple(PlayerSelectionInput.from_player(player) for player in bundle.squad.players),
+                tactic,
+                MVP_CATALOGUE,
+                baseline,
+                readiness_policy=bundle.policy.readiness,
+                familiarity_policy=bundle.policy.familiarity,
+                opponent=bundle.policy.opponent,
+                include_raw_external_positions=filters.include_raw_external_positions,
+                position=filters.position,
+                role_key=filters.role_key,
+            ),
+            filters,
         )
-
-        def visible(item) -> bool:
-            if (
-                filters.visibility != "any"
-                and not item.candidate.current_attributes_captured
-            ):
-                return False
-            if filters.visibility == "known" and (
-                item.ranged_attributes or item.unknown_attributes
-            ):
-                return False
-            if filters.visibility == "partial" and not item.ranged_attributes:
-                return False
-            if filters.visibility == "unknown" and (
-                item.known_attributes or item.ranged_attributes
-            ):
-                return False
-            if (
-                filters.minimum_floor is not None
-                and item.player_fit.lower < filters.minimum_floor
-            ):
-                return False
-            if (
-                filters.minimum_ceiling is not None
-                and item.player_fit.upper < filters.minimum_ceiling
-                and not filters.include_unlikely
-            ):
-                return False
-            return True
-
-        assessments = tuple(item for item in assessments if visible(item))
         descending = (
             filters.ranking_descending
             if filters.ranking_descending is not None
             else default_descending(filters.ranking_sort)
         )
-        ordered = sort_tactic_assessments(
-            assessments, sort=filters.ranking_sort, descending=descending
-        )
         return (
-            (_raw_position_notice(candidates) if filters.include_raw_external_positions else "")
+            (_raw_position_notice(pool) if filters.include_raw_external_positions else "")
             + tactic_ranking_results(
-                ordered,
+                sort_tactic_assessments(
+                    assessments, sort=filters.ranking_sort, descending=descending
+                ),
                 tactic=tactic,
                 baseline=baseline,
                 sort=filters.ranking_sort,
-                sort_label=RANKING_SORTS[filters.ranking_sort],
+                sort_label=SORTS_BY_MODE["tactic"][filters.ranking_sort],
                 descending=descending,
+                raw_positions=filters.include_raw_external_positions,
+                limit=limit,
+                pool_size=len(candidates),
+                scouted_only=filters.scouted_only,
             )
         )
 
     @staticmethod
     def _scouting_filters_form(
         filters: ScoutingFilters,
-        tactic_options: str,
-        role_options: str,
-        position_options: str,
         candidates: Sequence[object],
-        fact_controls: str,
+        pinned_tactics: tuple[str, ...],
+        limit: int = _MAX_SCOUTING_ROWS,
     ) -> str:
         def values(name: str) -> tuple[str, ...]:
             return tuple(sorted({str(getattr(item, name)) for item in candidates if getattr(item, name) is not None}))
 
+        def select(label: str, name: str, options: str) -> str:
+            return f"<label>{label}<select name='{name}'>{options}</select></label>"
+
+        def number(label: str, name: str, value: object, **attrs: object) -> str:
+            extra = "".join(f" {key}='{val}'" for key, val in attrs.items())
+            return f"<label>{label}<input name='{name}' type='number'{extra} value='{_input_value(value)}'></label>"
+
+        def text(label: str, name: str, value: str | None) -> str:
+            return f"<label>{label}<input name='{name}' value='{html.escape(value or '', quote=True)}'></label>"
+
+        def group(title: str, active: int, controls: str) -> str:
+            badge = f" <span class='filter-count'>{active} set</span>" if active else ""
+            return (
+                f"<details class='filter-group'{' open' if active else ''}>"
+                f"<summary>{title}{badge}</summary><div class='filter-grid'>{controls}</div></details>"
+            )
+
+        def fact_options(name: str, selected: str | None) -> str:
+            return _options(((value, value) for value in values(name)), selected, "Any")
+
+        mode = scouting_mode(filters.tactic_key, filters.role_key)
+        positions = sorted({
+            position for role in MVP_CATALOGUE.roles.values() for position in role.eligible_positions
+        })
+        # Structural fact from the catalogue (which roles are eligible for
+        # which position) -- not a score, so embedding it for the client-side
+        # role-narrowing script does not duplicate any analytics computation.
+        roles_by_position = {
+            position: sorted(
+                ((key, role.name) for key, role in MVP_CATALOGUE.roles.items()
+                 if position in role.eligible_positions),
+                key=lambda item: item[1],
+            )
+            for position in positions
+        }
+        every_role = sorted(
+            ((key, role.name) for key, role in MVP_CATALOGUE.roles.items()), key=lambda item: item[1]
+        )
+        roles_by_position[""] = every_role
+        tactic_options = _options(
+            _tactic_choices(
+                ((key, tactic.name) for key, tactic in sorted(
+                    MVP_CATALOGUE.tactics.items(), key=lambda item: item[1].name)),
+                pinned_tactics,
+            ),
+            filters.tactic_key,
+            "Generic position / role ranking",
+        )
+        role_options = _options(
+            roles_by_position.get(filters.position or "", every_role), filters.role_key, "Any role"
+        )
+        direction = (
+            filters.ranking_descending
+            if filters.ranking_descending is not None
+            else default_descending(filters.ranking_sort)
+        )
+        facts = available_fact_values(candidates)
+
+        primary = (
+            select("Tactic", "tactic", tactic_options)
+            + select("Position", "position", _options(((p, p) for p in positions), filters.position, "Any position"))
+            + select("Role", "role", role_options)
+            + text("Player name", "name", filters.name_contains)
+            + "<label>Sort by<select name='sort' data-defaults='"
+            + html.escape(json.dumps(DEFAULT_SORT_BY_MODE), quote=True) + "'>"
+            + _sort_options(filters.ranking_sort, mode, filters.include_raw_external_positions)
+            + "</select></label>"
+        )
+        player = (
+            text("Club contains", "club", filters.club_contains)
+            + select("Nationality", "nationality", fact_options("nationality", filters.nationality))
+            + select("Footedness", "footedness", fact_options("footedness", filters.footedness))
+            + number("Minimum age", "minAge", filters.minimum_age, min=0)
+            + number("Maximum age", "maxAge", filters.maximum_age, min=0)
+        )
+        market = (
+            select("Contract / listing", "market", _options(MARKET_FILTERS.items(), filters.market, ""))
+            + number("Expiring within (months)", "expiringMonths", filters.expiring_months, min=0)
+            + number("Max value (&pound;)", "maxValue", filters.maximum_value, min=0, step=500)
+            + select("Transfer status", "transferStatus", fact_options("transfer_status", filters.transfer_status))
+            + select("Availability", "availability", fact_options("availability", filters.availability))
+            + select("FM search match", "searchMatch", _options(
+                (("any", "Any"), ("matched", "Matched your FM search"), ("unmatched", "Did not match")),
+                filters.search_match, ""))
+        )
+        knowledge = (
+            select("Visibility", "visibility", _options(
+                (("any", "Any"), ("known", "Fully known"), ("partial", "Has a range"),
+                 ("unknown", "Nothing known")), filters.visibility, ""))
+            + number("Minimum floor", "minFloor", filters.minimum_floor, min=0, max=100, step=0.1)
+            + number("Minimum ceiling", "minCeiling", filters.minimum_ceiling, min=0, max=100, step=0.1)
+            + "<label class='check'><input name='includeUnlikely' type='checkbox' value='1'"
+            + (" checked" if filters.include_unlikely else "")
+            + "> Keep players below the ceiling</label>"
+        )
+        fact_controls = "".join(
+            select(html.escape(_label(key)), "fact." + html.escape(key, quote=True),
+                   _options(((value, value) for value in choices), (filters.facts or {}).get(key), "Any"))
+            for key, choices in facts.items()
+        )
+        view = "scouted" if filters.scouted_only else "all"
         return (
-            "<h2>Find a target</h2><form class='filters' method='get' action='/scouting'>"
+            "<form class='filters scouting-filters' method='get' action='/scouting'>"
             # A hidden field, not a JS special-case: FormData already reads
             # every form field for the live-filter fetch, so this is what
             # keeps the active tab from reverting to "all" on the very next
             # keystroke -- "view" is otherwise carried by the tab link only,
             # not by anything inside the form itself.
-            f"<input type='hidden' name='view' value='{'scouted' if filters.scouted_only else 'all'}'>"
+            f"<input type='hidden' name='view' value='{view}'>"
             # The direction the results are currently sorted in; the header
             # buttons flip it, and an empty value means "that column's default".
-            f"<input type='hidden' name='dir' value='{'desc' if (filters.ranking_descending if filters.ranking_descending is not None else default_descending(filters.ranking_sort)) else 'asc'}'>"
-            f"<label>Tactic<select name='tactic'>{tactic_options}</select></label>"
-            f"<label>Position<select name='position'>{position_options}</select></label>"
-            f"<label>Role (optional)<select name='role'>{role_options}</select></label>"
-            f"<label>Minimum age<input name='minAge' type='number' min='0' value='{_input_value(filters.minimum_age)}'></label>"
-            f"<label>Maximum age<input name='maxAge' type='number' min='0' value='{_input_value(filters.maximum_age)}'></label>"
-            "<label>Contract / listing<select name='market'>"
-            + _options(MARKET_FILTERS.items(), filters.market, "")
-            + "</select></label>"
-            f"<label>Running out within (months)<input name='expiringMonths' type='number' min='0' value='{filters.expiring_months}'></label>"
-            f"<label>Max value (&pound;)<input name='maxValue' type='number' min='0' step='500' value='{_input_value(filters.maximum_value)}'></label>"
-            "<label>FM search match<select name='searchMatch'>"
-            + _options((("any", "Any"), ("matched", "Matched your FM search"),
-                        ("unmatched", "Did not match")), filters.search_match, "")
-            + "</select></label>"
-            f"<label>Player name<input name='name' value='{html.escape(filters.name_contains or '', quote=True)}'></label>"
-            f"<label>Club contains<input name='club' value='{html.escape(filters.club_contains or '', quote=True)}'></label>"
-            "<label>Nationality<select name='nationality'>"
-            + _options(((value, value) for value in values("nationality")), filters.nationality, "Any")
-            + "</select></label><label>Footedness<select name='footedness'>"
-            + _options(((value, value) for value in values("footedness")), filters.footedness, "Any")
-            + "</select></label><label>Transfer status<select name='transferStatus'>"
-            + _options(((value, value) for value in values("transfer_status")), filters.transfer_status, "Any")
-            + "</select></label><label>Availability<select name='availability'>"
-            + _options(((value, value) for value in values("availability")), filters.availability, "Any")
-            + "</select></label><label>Visibility<select name='visibility'>"
-            + _options(((key, label) for key, label in (("any", "Any"), ("known", "Fully known"), ("partial", "Has a range"), ("unknown", "Nothing known"))), filters.visibility, "")
-            + "</select></label>"
-            + "<label>Rank by<select name='sort'>"
-            + _options(RANKING_SORTS.items(), filters.ranking_sort, "")
-            + "</select></label>"
-            f"<label>Minimum floor<input name='minFloor' type='number' min='0' max='100' step='0.1' value='{_input_value(filters.minimum_floor)}'></label>"
-            f"<label>Minimum ceiling<input name='minCeiling' type='number' min='0' max='100' step='0.1' value='{_input_value(filters.minimum_ceiling)}'></label>"
-            + fact_controls
-            + "<label class='check'><input name='includeUnlikely' type='checkbox' value='1'"
-            + (" checked" if filters.include_unlikely else "")
-            + "> Include players below the ceiling</label>"
-            + "<label class='check'><input name='includeRawPositions' type='checkbox' value='1'"
+            f"<input type='hidden' name='dir' value='{'desc' if direction else 'asc'}'>"
+            # How many rows the "Show more" button has asked for; empty is the default page.
+            f"<input type='hidden' name='limit' value='{'' if limit == _MAX_SCOUTING_ROWS else limit}'>"
+            "<fieldset class='filter-primary'><legend>Find a target</legend>"
+            f"<div class='filter-grid'>{primary}</div></fieldset>"
+            + group("Player", _count(
+                filters.club_contains, filters.nationality, filters.footedness,
+                filters.minimum_age, filters.maximum_age), player)
+            + group("Contract, cost &amp; availability", _count(
+                filters.market != "any" or None, filters.maximum_value, filters.transfer_status,
+                filters.availability, filters.search_match != "any" or None), market)
+            + group("What scouting shows", _count(
+                filters.visibility != "any" or None, filters.minimum_floor, filters.minimum_ceiling,
+                filters.include_unlikely or None), knowledge)
+            + (group("Captured Player Search facts", _count(*(filters.facts or {}).values()), fact_controls)
+               if fact_controls else "")
+            + "<div class='filter-actions'>"
+            "<label class='check'><input name='includeRawPositions' type='checkbox' value='1'"
             + (" checked" if filters.include_raw_external_positions else "")
             + "> Use raw external positions (accepted visibility gap)</label>"
-            + "<button type='submit'>Apply filters</button></form>"
+            "<span class='spacer'></span>"
+            f"<a class='reset' href='/scouting?view={view}'>Reset filters</a>"
+            "<button type='submit'>Apply filters</button></div>"
+            "</form>"
+            "<script id='position-roles-data' type='application/json'>"
+            + json.dumps(roles_by_position).replace("</", "<\\/")
+            + "</script>"
         )
 
-    @staticmethod
-    def _scouting_results(
-        assessments,
-        role_key: str,
-        total_candidates: int,
-        *,
-        include_raw_external_positions: bool,
-    ) -> str:
-        if not assessments:
-            return (
-                "<h2>Targets</h2><p class='muted'>"
-                + ("No manager-visible scouting candidates have been loaded yet. Supply a verified scouting capture with <code>--scouting-json</code>." if total_candidates == 0 else "No candidates match these filters.")
-                + "</p>"
-            )
-        displayed = assessments[:_MAX_SCOUTING_ROWS]
-        rows: list[str] = []
-        details: list[str] = []
-        labels = {
-            ScoutRecommendation.PROVEN_FIT: ("Proven fit", "badge-proven", "All role inputs are known."),
-            ScoutRecommendation.SCOUT_FIRST: ("Scout first", "badge-scout", "No role attributes are known yet."),
-            ScoutRecommendation.SCOUT_TO_DECIDE: ("Scout to decide", "badge-scout", "Ranges or unknowns can still change this decision."),
-            ScoutRecommendation.UNLIKELY: ("Unlikely", "badge-unlikely", "Even the visible ceiling misses your filter."),
-        }
-        for item in displayed:
-            label, badge, reason = labels[item.recommendation]
-            candidate = item.candidate
-            if not candidate.current_attributes_captured:
-                label, badge, reason = (
-                    "Capture first", "badge-scout",
-                    "FM's current visible attributes have not been captured for this player.",
-                )
-            positions = candidate.positions_for(
-                include_raw_external_positions=include_raw_external_positions
-            )
-            rows.append(
-                "<tr>"
-                f"<td>{scouting_player_link(candidate)}<br><span class='muted'>{html.escape(candidate.nationality or 'Nationality not known')}</span></td>"
-                f"<td>{html.escape(candidate.club or '—')}</td><td>{candidate.age if candidate.age is not None else '—'}</td>"
-                f"<td>{html.escape(', '.join(positions) or 'Not yet captured')}</td>"
-                f"<td>{_band(item.role_score.score)}</td>"
-                f"<td><b>{item.role_score.median:.1f}</b></td>"
-                f"<td>{html.escape(item.visibility_summary)}</td>"
-                f"<td>{past_knowledge_cell(candidate)}</td>"
-                f"<td>{_scouting_knowledge_cell(candidate)}</td>"
-                f"<td><span class='badge {badge}'>{label}</span><br><span class='muted'>{html.escape(reason)}</span></td></tr>"
-            )
-            attribute_cells = "".join(
-                "<div><b>" + html.escape(contribution.attribute) + "</b>"
-                + html.escape(contribution.observation.display()) + "</div>"
-                for contribution in item.role_score.contributions
-            )
-            meta = [
-                ("Club", candidate.club), ("Nationality", candidate.nationality),
-                ("Footedness", candidate.footedness), ("Transfer status", candidate.transfer_status),
-                ("Availability", candidate.availability),
-            ]
-            meta_text = " · ".join(f"{name}: {value}" for name, value in meta if value)
-            next_scout = ", ".join(item.scout_next) if item.scout_next else "Nothing role-critical is unknown."
-            details.append(
-                f"<details><summary>{html.escape(candidate.name)} — {label}; attribute-based role score {_band(item.role_score.score)}</summary>"
-                f"<p>{html.escape(meta_text or 'No additional manager-visible facts captured.')}<br>"
-                f"<b>Scout next:</b> {html.escape(next_scout)}</p>"
-                "<div class='attribute-grid'>" + attribute_cells + "</div>"
-                + attribute_sheet(candidate) + "</details>"
-            )
-        role_name = MVP_CATALOGUE.roles[role_key].name if role_key in MVP_CATALOGUE.roles else "selected role"
-        return (
-            f"<h2>Targets for {html.escape(role_name)} ({len(assessments)})</h2>"
-            + (
-                f"<p class='muted'>Showing the first {len(displayed)} targets. "
-                "More precise position and visibility filters will narrow this list.</p>"
-                if len(assessments) > len(displayed) else ""
-            )
-            + "<ul class='legend'><li><b>Capture first</b>: the app has not read FM's current visible attributes.</li>"
-            "<li><b>Scout first</b>: FM's captured answer has no relevant visible attributes.</li>"
-            "<li><b>Scout to decide</b>: ranges or unknown values could still change the role fit.</li>"
-            "<li><b>Attribute-based floor / estimate / ceiling</b>: the best and worst role score supported by visible information. "
-            "This table does not apply positional familiarity.</li></ul>"
-            "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions"
-            + (" (raw external data)" if include_raw_external_positions else "")
-            + "</th><th>Attribute-based role score (min / est. / max)</th><th>Median estimate</th><th>Visibility</th><th>Past knowledge</th><th>Scouted</th><th>Recommendation</th></tr>"
-            + "".join(rows) + "</table><h2>Visible role data</h2>" + "".join(details)
-        )
 
-    @staticmethod
-    def _scouting_position_results(
-        candidates,
-        *,
-        include_raw_external_positions: bool,
-    ) -> str:
-        if not candidates:
-            return (
-                "<h2>Players matching filters</h2><p class='muted'>No candidates "
-                "match these position and factual filters.</p>"
-            )
-        displayed = candidates[:_MAX_SCOUTING_ROWS]
-        rows = "".join(
-            "<tr>"
-            f"<td>{scouting_player_link(candidate)}</td>"
-            f"<td>{html.escape(candidate.club or '—')}</td>"
-            f"<td>{candidate.age if candidate.age is not None else '—'}</td>"
-            f"<td>{_position_display(candidate, include_raw_external_positions=include_raw_external_positions)}</td>"
-            f"<td>{html.escape(candidate.footedness or '—')}</td>"
-            f"<td>{_scouting_knowledge_cell(candidate)}</td>"
-            f"<td>{past_knowledge_cell(candidate)}</td>"
-            f"<td>{attribute_sheet(candidate)}</td>"
-            "</tr>"
-            for candidate in displayed
+def _count(*values: object) -> int:
+    """How many of a group's filters are set, for its summary line."""
+    return sum(value is not None and value != "" and value is not False for value in values)
+
+
+def _sort_options(selected: str, mode: str, include_raw: bool) -> str:
+    """Every sort, with the ones this mode's table has left enabled.
+
+    The page's script re-evaluates ``data-modes`` when the tactic or role
+    changes (which changes the table), so the list never offers a column the
+    table does not have. The two position-rating sorts also need the raw
+    positions box.
+    """
+    options = []
+    for key, label in RANKING_SORTS.items():
+        modes = " ".join(name for name, sorts in SORTS_BY_MODE.items() if key in sorts)
+        needs_raw = key in {"adjusted", "familiarity"}
+        available = key in SORTS_BY_MODE[mode] and (include_raw or not needs_raw)
+        options.append(
+            f"<option value='{key}' data-modes='{modes}'"
+            + (" data-raw='1'" if needs_raw else "")
+            + (" selected" if key == selected else "")
+            + ("" if available else " hidden disabled")
+            + f">{html.escape(label)}</option>"
         )
+    return "".join(options)
+
+
+def _scouting_refresh_panel(scouted_only: bool) -> str:
+    """Refreshing the capture, kept to one line until the manager asks what it does."""
+    if scouted_only:
         return (
-            f"<h2>Players matching filters ({len(candidates)})</h2>"
-            "<p class='muted'>This is position browsing. Choose an optional role to "
-            "add role score, attribute uncertainty, and scouting priority. Role-score, "
-            "visibility, and ceiling filters are ignored until then.</p>"
-            + (
-                f"<p class='muted'>Showing the first {len(displayed)} players.</p>"
-                if len(candidates) > len(displayed)
-                else ""
-            )
-            + "<table><tr><th>Player</th><th>Club</th><th>Age</th><th>Positions"
-            + (" (raw external data)" if include_raw_external_positions else "")
-            + "</th><th>Footedness</th><th>Scouted</th><th>Past knowledge</th><th>Attributes</th></tr>"
-            + rows
-            + "</table>"
+            "<section class='refresh-panel'>"
+            "<form class='refresh' method='post' action='/scouting/refresh'>"
+            "<input type='hidden' name='return_view' value='scouted'>"
+            "<button type='submit'>Refresh scouted players</button>"
+            "<span class='muted'>Reads current scout reports and their visible "
+            "attributes from FM.</span></form></section>"
         )
+    return (
+        "<section class='refresh-panel'>"
+        "<form class='refresh' method='post' action='/scouting/refresh'>"
+        "<input type='hidden' name='hydrate_active_search' value='1'>"
+        "<input type='hidden' name='return_view' value='all'>"
+        "<button type='submit'>Refresh Player Search and attributes</button>"
+        "<span class='muted'>Leave the intended search and filters open in FM first. "
+        "Up to 256 active results, processed in bounded batches.</span></form>"
+        "<details><summary>What does refreshing do?</summary>"
+        "<p>This refreshes the player list <b>and</b> captures the attributes FM currently "
+        "shows for every matching player.</p>"
+        "<p class='warn'>This asks FM's own visibility builder for the values "
+        "it currently exposes. It runs code inside the live game, so save first.</p>"
+        "<p class='muted'>Prefer the read-only option? It updates identities and FM Search "
+        "matches but deliberately leaves unscouted attributes uncaptured.</p>"
+        "<form class='refresh' method='post' action='/scouting/refresh'>"
+        "<input type='hidden' name='return_view' value='all'>"
+        "<button type='submit'>Refresh list only</button></form></details></section>"
+    )

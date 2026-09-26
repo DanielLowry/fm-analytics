@@ -123,6 +123,26 @@ class ScoutingJsonProviderTests(unittest.TestCase):
             self.assertEqual(candidates[0].attributes["finishing"].maximum, 14)
             self.assertEqual(candidates[0].facts, {"contract": "Full-time"})
 
+    def test_hands_back_the_same_candidates_until_the_file_changes(self) -> None:
+        """The score cache is keyed on the candidate objects, so this is what lets it hit."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "scouting.json"
+            path.write_text('[{"id": "p1", "name": "One", "positions": ["ST"]}]', encoding="utf-8")
+            provide = scouting_json_provider(path)
+
+            first = provide()
+            self.assertIs(provide(), first)
+
+            path.write_text(
+                '[{"id": "p1", "name": "One", "positions": ["ST"]}, '
+                '{"id": "p2", "name": "Two", "positions": ["ST"]}]',
+                encoding="utf-8",
+            )
+            refreshed = provide()
+
+            self.assertIsNot(refreshed, first)
+            self.assertEqual([item.id for item in refreshed], ["p1", "p2"])
+
     def test_rejects_duplicate_candidate_ids(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "scouting.json"

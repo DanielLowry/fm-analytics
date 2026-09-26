@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.role_scoring import RoleScore, score_role
@@ -314,6 +314,10 @@ class ScoutingAssessment:
     scout_next: tuple[str, ...]
 
     @property
+    def median(self) -> float:
+        return self.role_score.median
+
+    @property
     def visibility_summary(self) -> str:
         if not self.candidate.current_attributes_captured:
             return "Not captured from FM"
@@ -355,21 +359,14 @@ def assess_scouting_candidates(
         known = sum(item.visibility is Visibility.KNOWN for item in observations)
         ranged = sum(item.visibility is Visibility.RANGE for item in observations)
         unknown = len(observations) - known - ranged
-        if filters.visibility != "any" and not candidate.current_attributes_captured:
-            # "Nothing known" is a statement about FM's captured answer, not
-            # a bucket for players whose attribute visibility was never read.
-            continue
-        if filters.visibility == "known" and (ranged or unknown):
-            continue
-        if filters.visibility == "partial" and not ranged:
-            continue
-        if filters.visibility == "unknown" and known + ranged:
-            continue
-        if filters.minimum_floor is not None and score.score.lower < filters.minimum_floor:
+        if not matches_information_filters(
+            filters,
+            captured=candidate.current_attributes_captured,
+            known=known, ranged=ranged, unknown=unknown,
+            floor=score.score.lower, ceiling=score.score.upper,
+        ):
             continue
         recommendation = _recommendation(score, known, ranged, unknown, filters)
-        if recommendation is ScoutRecommendation.UNLIKELY and not filters.include_unlikely:
-            continue
         assessments.append(
             ScoutingAssessment(
                 candidate=candidate,
@@ -405,7 +402,34 @@ TACTIC_RANKING_SORTS = {
     "tactic_score": "Projected tactic score",
     "tactic_fit": "Player fit in tactic",
 }
-RANKING_SORTS = POSITION_RANKING_SORTS | TACTIC_RANKING_SORTS
+# With a role chosen the table is one role's targets, so "best role" and the
+# position-familiarity columns do not exist; "priority" is the scouting order
+# (proven fits, then scout-first, then scout-to-decide, best floor first).
+ROLE_TARGET_SORTS = {
+    "priority": "Scouting priority",
+    **{
+        key: label
+        for key, label in POSITION_RANKING_SORTS.items()
+        if key not in {"role", "adjusted", "familiarity"}
+    },
+}
+# Only the sorts that have a column in the tactic table: the tactic-specific
+# ones plus the columns every view shares.
+TACTIC_MODE_SORTS = TACTIC_RANKING_SORTS | {
+    key: label
+    for key, label in POSITION_RANKING_SORTS.items()
+    if key in {"age", "scouted", "known", "name", "role", "value"}
+}
+RANKING_SORTS = POSITION_RANKING_SORTS | TACTIC_RANKING_SORTS | ROLE_TARGET_SORTS
+
+# Which table the scouting page shows decides which columns exist, and so which
+# sorts are meaningful. Every mode's table is sortable on every column it shows.
+SORTS_BY_MODE: dict[str, dict[str, str]] = {
+    "ranking": POSITION_RANKING_SORTS,
+    "role": ROLE_TARGET_SORTS,
+    "tactic": TACTIC_MODE_SORTS,
+}
+DEFAULT_SORT_BY_MODE = {"ranking": "median", "role": "priority", "tactic": "tactic_gain"}
 # Text columns and age read naturally smallest/first-first; everything that is
 # a score or an amount of information reads best largest-first.
 _ASCENDING_BY_DEFAULT = frozenset({"age", "name", "role", "value"})
@@ -413,6 +437,16 @@ _ASCENDING_BY_DEFAULT = frozenset({"age", "name", "role", "value"})
 
 def default_descending(sort: str) -> bool:
     return sort not in _ASCENDING_BY_DEFAULT
+
+
+def scouting_mode(tactic_key: str | None, role_key: str | None) -> str:
+    """Which table a set of filters produces: ``tactic``, ``role`` or ``ranking``."""
+    return "tactic" if tactic_key else "role" if role_key else "ranking"
+
+
+def sort_for_mode(sort: str | None, mode: str) -> str:
+    """``sort`` if that column exists in this mode's table, else the mode's default."""
+    return sort if sort in SORTS_BY_MODE[mode] else DEFAULT_SORT_BY_MODE[mode]
 
 
 @dataclass(frozen=True)
@@ -476,6 +510,7 @@ def rank_for_position(
     descending: bool | None = None,
     include_raw_external_positions: bool = False,
     familiarity_policy: FamiliarityPolicy | None = None,
+    cache: MutableMapping[tuple[object, ...], tuple[ScoutingCandidate, PositionRanking | None]] | None = None,
 ) -> tuple[PositionRanking, ...]:
     """Rank candidates, each by whichever role suits him best.
 
@@ -501,73 +536,41 @@ def rank_for_position(
     defaults to the natural direction for that column. A player missing the
     sorted value (no age, never scouted) always goes last, whichever direction
     is chosen.
+
+    Scoring a player against every role is the expensive part and depends only
+    on the player and the arguments above, never on the sort or on who else is
+    in the list. A caller that re-ranks the same pool as filters and sorts
+    change can pass one ``cache`` mapping (used with a single catalogue) and
+    each player is then scored once per argument set. An entry is reused only
+    for the very same candidate object, so a fresh capture is never served a
+    stale score.
     """
     if sort not in POSITION_RANKING_SORTS:
         raise ValueError(f"sort must be one of {sorted(POSITION_RANKING_SORTS)}")
     if descending is None:
         descending = default_descending(sort)
     all_roles = list(catalogue.roles.values())
+    # A player with no visible attributes scores identically in a role whoever
+    # he is, and most of a Player Search pool is exactly that.
+    empty_scores: dict[str, RoleScore] = {}
     rankings: list[PositionRanking] = []
     for candidate in candidates:
-        if position:
-            roles = [role for role in all_roles if position in role.eligible_positions]
+        key = (candidate.id, position, include_raw_external_positions, familiarity_policy)
+        cached = cache.get(key) if cache is not None else None
+        if cached is not None and cached[0] is candidate:
+            ranking = cached[1]
         else:
-            roles = all_roles
-            if candidate.attributes:
-                # FM's visibility formula only produces the goalkeeping
-                # attributes (Handling, Reflexes, ...) for a goalkeeper, and
-                # only produces the outfield-only ones (Heading, Marking,
-                # Tackling, ...) for everyone else. Which set a player carries
-                # therefore says which kind of player he is, and it is applied
-                # first because it comes from the formula, not from a position
-                # label. Scoring the absent set as "unknown, so mid-scale"
-                # otherwise let a goalkeeper role win for a defender on paper.
-                keeper = any(name in candidate.attributes for name in _GOALKEEPING_ATTRIBUTES)
-                roles = [role for role in roles if ("GK" in role.eligible_positions) == keeper] or roles
-            own = set(candidate.positions_for(
-                include_raw_external_positions=include_raw_external_positions
-            ))
-            roles = [role for role in roles if own.intersection(role.eligible_positions)] or roles
-        if not roles:
-            continue
-        ratings = candidate.raw_position_familiarity if familiarity_policy else None
-        scored = []
-        for role in roles:
-            score = score_role(role, candidate.attributes)
-            rating = _role_rating(role, position, ratings)
-            multiplier = (
-                familiarity_policy.multiplier(max(rating, familiarity_policy.scale_minimum))
-                if familiarity_policy is not None and rating is not None else None
+            ranking = _rank_one(
+                candidate, all_roles, position, empty_scores,
+                include_raw_external_positions=include_raw_external_positions,
+                familiarity_policy=familiarity_policy,
             )
-            scored.append((score, rating, multiplier))
-        best, best_rating, best_multiplier = max(
-            scored,
-            key=lambda item: (
-                item[0].median * (item[2] if item[2] is not None else 1.0),
-                item[0].score.upper, item[0].role_key,
-            ),
-        )
-        visibilities = [item.observation.visibility for item in best.contributions]
-        known = sum(v is Visibility.KNOWN for v in visibilities)
-        ranged = sum(v is Visibility.RANGE for v in visibilities)
-        rankings.append(
-            PositionRanking(
-                candidate=candidate,
-                role_key=best.role_key,
-                role_name=best.role_name,
-                minimum=best.score.lower,
-                median=best.median,
-                maximum=best.score.upper,
-                known_attributes=known,
-                ranged_attributes=ranged,
-                unknown_attributes=len(visibilities) - known - ranged,
-                familiarity=best_rating if best_multiplier is not None else None,
-                multiplier=best_multiplier,
-                adjusted_minimum=None if best_multiplier is None else round(best.score.lower * best_multiplier, 6),
-                adjusted_median=None if best_multiplier is None else round(best.median * best_multiplier, 6),
-                adjusted_maximum=None if best_multiplier is None else round(best.score.upper * best_multiplier, 6),
-            )
-        )
+            if cache is not None:
+                if len(cache) >= _RANK_CACHE_LIMIT:
+                    cache.clear()
+                cache[key] = (candidate, ranking)
+        if ranking is not None:
+            rankings.append(ranking)
     value = {
         "median": lambda r: r.median,
         "minimum": lambda r: r.minimum,
@@ -582,14 +585,186 @@ def rank_for_position(
         "familiarity": lambda r: r.familiarity,
         "value": lambda r: r.candidate.value,
     }[sort]
-    # Three stable passes so ties fall back to a sensible order in either
-    # direction: name, then median (best first), then the chosen column.
-    ordered = sorted(rankings, key=lambda r: (r.candidate.name.casefold(), r.candidate.id))
+    return _order(rankings, value, descending)
+
+
+# Roughly 84 roles per player per position; enough for a whole Player Search
+# pool at the handful of positions a manager actually looks at.
+_RANK_CACHE_LIMIT = 150_000
+
+
+def _order(items, value, descending: bool):
+    """Order by ``value``: ties by name then best median, missing values last.
+
+    Three stable passes so ties fall back to a sensible order in either
+    direction. ``items`` need ``candidate`` and ``median``.
+    """
+    ordered = sorted(items, key=lambda r: (r.candidate.name.casefold(), r.candidate.id))
     ordered.sort(key=lambda r: -r.median)
     present = [r for r in ordered if value(r) is not None]
     missing = [r for r in ordered if value(r) is None]
     present.sort(key=value, reverse=descending)
     return tuple(present + missing)
+
+
+def _rank_one(
+    candidate: ScoutingCandidate,
+    all_roles: list,
+    position: str | None,
+    empty_scores: dict[str, RoleScore],
+    *,
+    include_raw_external_positions: bool,
+    familiarity_policy: FamiliarityPolicy | None,
+) -> PositionRanking | None:
+    if position:
+        roles = [role for role in all_roles if position in role.eligible_positions]
+    else:
+        roles = all_roles
+        if candidate.attributes:
+            # FM's visibility formula only produces the goalkeeping
+            # attributes (Handling, Reflexes, ...) for a goalkeeper, and
+            # only produces the outfield-only ones (Heading, Marking,
+            # Tackling, ...) for everyone else. Which set a player carries
+            # therefore says which kind of player he is, and it is applied
+            # first because it comes from the formula, not from a position
+            # label. Scoring the absent set as "unknown, so mid-scale"
+            # otherwise let a goalkeeper role win for a defender on paper.
+            keeper = any(name in candidate.attributes for name in _GOALKEEPING_ATTRIBUTES)
+            roles = [role for role in roles if ("GK" in role.eligible_positions) == keeper] or roles
+        own = set(candidate.positions_for(
+            include_raw_external_positions=include_raw_external_positions
+        ))
+        roles = [role for role in roles if own.intersection(role.eligible_positions)] or roles
+    if not roles:
+        return None
+    ratings = candidate.raw_position_familiarity if familiarity_policy else None
+    scored = []
+    for role in roles:
+        if candidate.attributes:
+            score = score_role(role, candidate.attributes)
+        else:
+            score = empty_scores.get(role.key) or empty_scores.setdefault(
+                role.key, score_role(role, candidate.attributes)
+            )
+        rating = _role_rating(role, position, ratings)
+        multiplier = (
+            familiarity_policy.multiplier(max(rating, familiarity_policy.scale_minimum))
+            if familiarity_policy is not None and rating is not None else None
+        )
+        scored.append((score, rating, multiplier))
+    best, best_rating, best_multiplier = max(
+        scored,
+        key=lambda item: (
+            item[0].median * (item[2] if item[2] is not None else 1.0),
+            item[0].score.upper, item[0].role_key,
+        ),
+    )
+    visibilities = [item.observation.visibility for item in best.contributions]
+    known = sum(v is Visibility.KNOWN for v in visibilities)
+    ranged = sum(v is Visibility.RANGE for v in visibilities)
+    return PositionRanking(
+        candidate=candidate,
+        role_key=best.role_key,
+        role_name=best.role_name,
+        minimum=best.score.lower,
+        median=best.median,
+        maximum=best.score.upper,
+        known_attributes=known,
+        ranged_attributes=ranged,
+        unknown_attributes=len(visibilities) - known - ranged,
+        familiarity=best_rating if best_multiplier is not None else None,
+        multiplier=best_multiplier,
+        adjusted_minimum=None if best_multiplier is None else round(best.score.lower * best_multiplier, 6),
+        adjusted_median=None if best_multiplier is None else round(best.median * best_multiplier, 6),
+        adjusted_maximum=None if best_multiplier is None else round(best.score.upper * best_multiplier, 6),
+    )
+
+
+def matches_information_filters(
+    filters: ScoutingFilters,
+    *,
+    captured: bool,
+    known: int,
+    ranged: int,
+    unknown: int,
+    floor: float,
+    ceiling: float,
+) -> bool:
+    """The visibility / floor / ceiling filters, for one already-scored player.
+
+    The one definition shared by every table that scores players, so a filter
+    means the same thing whichever of them is showing. ``floor``/``ceiling``
+    are that table's own lower and upper bound on the score.
+    """
+    if filters.visibility != "any":
+        # "Nothing known" is a statement about FM's captured answer, not
+        # a bucket for players whose attribute visibility was never read.
+        if not captured:
+            return False
+        if filters.visibility == "known" and (ranged or unknown):
+            return False
+        if filters.visibility == "partial" and not ranged:
+            return False
+        if filters.visibility == "unknown" and known + ranged:
+            return False
+    if filters.minimum_floor is not None and floor < filters.minimum_floor:
+        return False
+    if (
+        filters.minimum_ceiling is not None
+        and ceiling < filters.minimum_ceiling
+        and not filters.include_unlikely
+    ):
+        return False
+    return True
+
+
+def filter_position_rankings(
+    rankings: Sequence[PositionRanking], filters: ScoutingFilters
+) -> tuple[PositionRanking, ...]:
+    """Apply the visibility, floor and ceiling filters to ranked players."""
+    return tuple(
+        item for item in rankings
+        if matches_information_filters(
+            filters,
+            captured=item.candidate.current_attributes_captured,
+            known=item.known_attributes, ranged=item.ranged_attributes,
+            unknown=item.unknown_attributes,
+            floor=item.minimum, ceiling=item.maximum,
+        )
+    )
+
+
+def sort_scouting_assessments(
+    assessments: Sequence[ScoutingAssessment],
+    *,
+    sort: str = "priority",
+    descending: bool | None = None,
+) -> tuple[ScoutingAssessment, ...]:
+    """Order one role's targets by any column of its table.
+
+    ``priority`` is the scouting order (``descending`` = best first). Like
+    ``rank_for_position``, a player missing the sorted value goes last in
+    either direction.
+    """
+    if sort not in ROLE_TARGET_SORTS:
+        raise ValueError(f"sort must be one of {sorted(ROLE_TARGET_SORTS)}")
+    if descending is None:
+        descending = default_descending(sort)
+    if sort == "priority":
+        ordered = sorted(assessments, key=_sort_key)
+        return tuple(ordered if descending else reversed(ordered))
+    value = {
+        "median": lambda a: a.median,
+        "minimum": lambda a: a.role_score.score.lower,
+        "ceiling": lambda a: a.role_score.score.upper,
+        "upside": lambda a: a.role_score.score.upper - a.role_score.median,
+        "age": lambda a: a.candidate.age,
+        "scouted": lambda a: a.candidate.scouting_knowledge,
+        "known": lambda a: a.known_attributes + a.ranged_attributes,
+        "name": lambda a: a.candidate.name.casefold(),
+        "value": lambda a: a.candidate.value,
+    }[sort]
+    return _order(assessments, value, descending)
 
 
 def filter_scouting_candidates(

@@ -79,8 +79,10 @@ an explicitly historical section on the player report.
 
 ## Ranking: who to scout next (19 September 2026)
 
-With no role chosen, the Scouted tab ranks every player, and choosing a
-position ranks everyone for that position. Each player is scored in whichever
+With no role chosen, both tabs rank every player, and choosing a position
+ranks everyone for that position. (Until 26 September 2026 the All players tab
+showed a plain, unsortable list until a position was picked; see "One table,
+one sort" below.) Each player is scored in whichever
 role suits him best (`analytics.rank_for_position`), and the table shows three
 scores on a 0-100 scale, all built only from what the manager can see:
 
@@ -111,6 +113,45 @@ position. A position label is applied after, only to narrow further.
 
 Each row has an **Attributes** dropdown listing every attribute in FM's own
 order, with `-` for anything the manager cannot see.
+
+## One table, one sort (26 September 2026)
+
+Every Scouting view is now the same sortable table, whichever filters produced
+it. Which columns exist depends on what is chosen, and the **Sort by** list and
+the column headings offer exactly those (`analytics.SORTS_BY_MODE`):
+
+| Chosen | Table | Extra sorts |
+|---|---|---|
+| a tactic | XI-gain table | XI gain (est/floor/ceiling), projected score, player fit |
+| else a role | that role's targets | **Scouting priority** (the old Proven fit → Scout first → Scout to decide order), median, min, ceiling, upside |
+| else | best-role ranking | best role, min/median/max, upside, familiarity and in-position score (raw positions only) |
+
+Age, value, scouted %, attributes known and name sort in all three. A `sort`
+that belongs to another table falls back to this table's default
+(`sort_for_mode`) rather than doing nothing. The role table used to have no
+sorting at all, and the All tab with nothing chosen was a bare list.
+
+The visibility, minimum-floor and minimum-ceiling filters now also apply to the
+best-role ranking (`filter_position_rankings`); they used to be ignored until a
+role was chosen. All three tables share one definition of them
+(`matches_information_filters`). A role may be chosen without a position.
+
+**Cost.** Scoring a player against every role is the slow part (about 8 ms per
+player measured on 500 players before the shortcut below) and it does
+not depend on sort or on who else is listed. `rank_for_position` takes an
+optional `cache` (one per server, `SquadWebServer.scouting_rank_cache`) keyed on
+the player, position and options, and reused only for the very same candidate
+object; `scouting_json_provider` therefore hands back the same candidates until
+the capture file changes. Players with no visible attributes are scored once per
+role, not once each. The pool is scored on a background thread at startup and
+after every refresh, and re-sorting or filtering it is then instant instead of
+re-scoring on each keystroke. Measured on that save with one request at a time:
+first cold ranking of the whole pool ~7 s (was ~11 s for just the 1,364 scouted
+players, on every request); any re-sort or filter afterwards ~0 s.
+
+The row limit is 100 with a **Show more** button (`limit`, capped at 1,000
+because each row carries an attribute sheet). Rows show positions, value and
+contract for every table, and an "FM search match" tag on the player.
 
 ## Position familiarity (19 September 2026)
 

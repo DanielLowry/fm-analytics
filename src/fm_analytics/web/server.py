@@ -39,6 +39,7 @@ from fm_analytics.analytics import (
     assess_scouting_candidates,
     available_fact_values,
     filter_scouting_candidates,
+    rank_for_position,
 )
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.domain import SourceHealth, Squad
@@ -124,6 +125,10 @@ class SquadWebServer(ThreadingHTTPServer):
         self.scouting_provider = scouting_provider or empty_scouting_provider()
         self.scouting_refresh = scouting_refresh
         self._scouting_refresh_lock = threading.Lock()
+        # Scores of scouting candidates per (player, position, options); see
+        # ``rank_for_position``. Lets sorting and filtering re-rank a
+        # thousand-player pool without scoring it again.
+        self.scouting_rank_cache: dict = {}
         self.cache_ttl_seconds = cache_ttl_seconds
         self.health_interval_seconds = health_interval_seconds
         self.ranking_executor = ranking_executor
@@ -155,6 +160,20 @@ class SquadWebServer(ThreadingHTTPServer):
         with self._scouting_refresh_lock:
             return self.scouting_provider()
 
+    def warm_scouting_rankings(self) -> None:
+        """Score the whole pool once, off the request path.
+
+        Scoring every player against every role is the slow part of the default
+        Scouting view (seconds for a full Player Search pool); ``scouting_rank_cache``
+        makes every later sort and filter of it instant, so pay for it before
+        the manager asks. Best effort: a missing or unreadable capture just
+        means the first page load pays instead.
+        """
+        try:
+            rank_for_position(self.scouting(), MVP_CATALOGUE, cache=self.scouting_rank_cache)
+        except (OSError, ValueError, KeyError):
+            pass
+
     def refresh_scouting(
         self, *, allow_rebuild: bool = False, hydrate_active_search: bool = False
     ) -> str:
@@ -166,9 +185,11 @@ class SquadWebServer(ThreadingHTTPServer):
             options = {"allow_rebuild": allow_rebuild}
             if hydrate_active_search:
                 options["hydrate_active_search"] = True
-            return self.scouting_refresh(**options)
+            result = self.scouting_refresh(**options)
         finally:
             self._scouting_refresh_lock.release()
+        threading.Thread(target=self.warm_scouting_rankings, daemon=True, name="scouting-warm").start()
+        return result
 
     def read(self):
         with self._lock:
@@ -478,6 +499,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         pinned_tactics=pinned_tactics,
     )
     print(f"FM Analytics web view listening on http://{args.host}:{args.port}")
+    threading.Thread(target=server.warm_scouting_rankings, daemon=True, name="scouting-warm").start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -9,12 +9,15 @@ layer produces everywhere else.
 from __future__ import annotations
 
 import html
-from typing import Sequence
+from dataclasses import dataclass
+from typing import Any, Callable, Sequence
 from urllib.parse import quote
 
 from fm_analytics.analytics import (
     FamiliarityPolicy,
     PositionRanking,
+    ScoutRecommendation,
+    ScoutingAssessment,
     ScoutingCandidate,
     TacticScoutingAssessment,
     contract_months_left,
@@ -112,280 +115,6 @@ def squad_player_link(player) -> str:
     )
 
 
-def player_scouting_report(
-    candidate: ScoutingCandidate,
-    catalogue,
-    *,
-    headline: str = "",
-) -> str:
-    """Render a scouted player's exhaustive report."""
-    facts = [
-        ("Club", candidate.club),
-        ("Age", str(candidate.age) if candidate.age is not None else None),
-        ("Nationality", candidate.nationality),
-        ("Footedness", candidate.footedness),
-        (
-            "Scouting knowledge",
-            (
-                f"{candidate.scouting_knowledge}%"
-                + (" (last known)" if candidate.dropped_from_scout_reports else "")
-                if candidate.scouting_knowledge is not None else None
-            ),
-        ),
-        ("Availability", candidate.availability),
-        ("Transfer status", candidate.transfer_status),
-        ("Contract type", candidate.contract_type),
-        ("Contract ends", candidate.contract_end),
-    ]
-    facts.extend((key, value) for key, value in (candidate.facts or {}).items())
-    return _player_detail_report(
-        candidate.name, candidate.attributes,
-        candidate.positions_for(include_raw_external_positions=True),
-        candidate.raw_position_familiarity or {}, facts, catalogue,
-        back_href="/scouting?view=scouted", back_label="Back to scouted players",
-        familiarity_source="the captured raw 0–20 position rating",
-        headline=headline,
-        attributes_captured=candidate.current_attributes_captured,
-        historical_attributes=candidate.last_known_attributes,
-        historical_observed_at=candidate.last_known_attributes_observed_at,
-    )
-
-
-def squad_player_report(player, catalogue) -> str:
-    """Render the equivalent report for an owned senior-squad player."""
-    contract = player.contract
-    facts = [
-        ("Age", str(player.age) if player.age is not None else None),
-        ("Availability", player.availability),
-        ("Condition", f"{player.condition_percent}%" if player.condition_percent is not None else None),
-        ("Match fitness", f"{player.match_fitness_percent}%" if player.match_fitness_percent is not None else None),
-        ("Injured", "Yes" if player.injured else "No" if player.injured is not None else None),
-        ("Suspended", "Yes" if player.suspended else "No" if player.suspended is not None else None),
-        ("Preferred foot", player.preferred_foot),
-        ("Contract type", contract.contract_type if contract else None),
-        ("Contract ends", contract.end_date.isoformat() if contract and contract.end_date else None),
-        ("Squad status", contract.squad_status if contract else None),
-        ("Transfer status", contract.transfer_status if contract else None),
-    ]
-    scores = build_player_role_scores(player, catalogue=catalogue)
-    headline = (
-        "<h2>Best-role scores</h2>"
-        "<p class='muted'>The same three scores, calculated the same way, as the Squad roster: "
-        "<b>attribute-based</b> (attributes and role fit only), <b>in-position</b> (adds positional "
-        "familiarity) and <b>today’s selection score</b> (adds match readiness). "
-        "Each shows the player's strongest role by that measure.</p>"
-        "<table><tr><th>Attribute-based role score (best role)</th>"
-        "<th>In-position role score (best role)</th>"
-        "<th>Today’s selection score (best role)</th></tr>"
-        f"<tr>{role_score_cells(scores)}</tr></table>"
-    )
-    return _player_detail_report(
-        player.name, player.attributes, player.positions, player.position_familiarity,
-        facts, catalogue, back_href="/squad", back_label="Back to squad",
-        familiarity_source="the captured 0–20 position familiarity rating",
-        headline=headline,
-    )
-
-
-def _player_detail_report(
-    name, attributes, player_positions, familiarity, facts, catalogue, *,
-    back_href: str, back_label: str, familiarity_source: str, headline: str = "",
-    attributes_captured: bool = True,
-    historical_attributes=None, historical_observed_at: str | None = None,
-) -> str:
-    """Render every attribute and catalogue role for a scouted or owned player."""
-    policy = FamiliarityPolicy()
-    positions = sorted({
-        position for role in catalogue.roles.values() for position in role.eligible_positions
-    })
-    known_positions = set(player_positions)
-    position_rows = "".join(
-        _position_familiarity_row(position, known_positions, familiarity, policy)
-        for position in positions
-    )
-    attributes_html = _full_attribute_sheet(
-        attributes, captured=attributes_captured
-    )
-    historical_html = _historical_attribute_section(
-        historical_attributes or {}, historical_observed_at
-    )
-    score_sections = "".join(
-        _position_role_scores(attributes, position, catalogue, familiarity, policy)
-        for position in positions
-    )
-    fact_rows = "".join(
-        f"<tr><th>{html.escape(label)}</th><td>{html.escape(value)}</td></tr>"
-        for label, value in facts if value
-    ) or "<tr><td colspan='2' class='muted'>No additional facts captured</td></tr>"
-    return (
-        f"<p><a href='{html.escape(back_href, quote=True)}'>← {html.escape(back_label)}</a></p>"
-        "<h2>Player information</h2><table class='report-facts'>" + fact_rows + "</table>"
-        + headline +
-        "<h2>Current attributes</h2>"
-        "<p class='muted'>Only values visible now are used in the scores below. "
-        "Ranges retain the uncertainty currently reported by scouting.</p>"
-        + attributes_html
-        + historical_html
-        + "<h2>Position score summary</h2>"
-        "<p class='muted'>Each row uses the highest estimated attribute-based role score among the roles available "
-        "at that position. Positions are kept in the table even when they have not been captured, "
-        "so it also shows the modelled potential after positional training.</p>"
-        + _position_score_summary(attributes, positions, catalogue, familiarity, policy)
-        + "<h2>Position familiarity</h2>"
-        f"<p class='muted'>Familiarity is {html.escape(familiarity_source)}. The multiplier is the "
-        "same discount used for an in-position score; a missing rating is left unknown rather than assumed.</p>"
-        "<table><tr><th>Position</th><th>Position captured</th><th>Familiarity / in-position multiplier</th></tr>"
-        + position_rows + "</table>"
-        + "<h2>All attribute-based role scores by position</h2>"
-        "<p class='muted'>Floor and ceiling are the bounds supported by scouting. The cautious estimate is deliberately "
-        "conservative when an attribute is unknown; estimate treats unknown attributes as mid-scale. "
-        "In-position estimate applies the listed familiarity multiplier where one was captured.</p>"
-        + score_sections
-    )
-
-
-def _full_attribute_sheet(attributes, *, captured: bool = True) -> str:
-    groups: list[str] = []
-    for title, keys in _ATTRIBUTE_GROUPS:
-        rows = []
-        for key in keys:
-            observation = attributes.get(key)
-            if observation is None:
-                continue
-            rows.append(
-                "<tr>"
-                f"<td>{html.escape(_attribute_label(key))}</td>"
-                f"<td>{html.escape(observation.display())}</td>"
-                "</tr>"
-            )
-        if rows:
-            groups.append(
-                f"<section class='report-attribute-group'><h3>{title}</h3>"
-                "<table><tr><th>Attribute</th><th>Scouted value</th></tr>"
-                + "".join(rows) + "</table></section>"
-            )
-    if groups:
-        return "".join(groups)
-    if not captured:
-        return (
-            "<p class='warn'><b>Not captured from FM.</b> This does not mean FM "
-            "shows no attributes. Capture the current Player Search attributes "
-            "from the All players tab to get FM's current answer.</p>"
-        )
-    return "<p class='muted'>No attributes currently visible.</p>"
-
-
-def _historical_attribute_section(attributes, observed_at: str | None) -> str:
-    if _visible_observation_counts(attributes) == (0, 0):
-        return ""
-    when = html.escape(observed_at or "date not captured")
-    return (
-        "<h2>Past scouting knowledge</h2>"
-        "<p class='warn'><b>Historical only.</b> These values were last visible on "
-        f"<b>{when}</b>. They are not treated as current and are not used in any "
-        "score, filter, or recommendation on this page.</p>"
-        + _full_attribute_sheet(attributes)
-    )
-
-
-def _position_familiarity_row(position, known_positions, familiarity, policy) -> str:
-    if position in familiarity:
-        rating = familiarity[position]
-        rating_text = (
-            f"{rating}/20 (×{policy.multiplier(max(rating, policy.scale_minimum)):.2f})"
-        )
-    else:
-        rating_text = "Not captured"
-    return (
-        "<tr>"
-        f"<td>{html.escape(position)}</td>"
-        f"<td>{'Captured position' if position in known_positions else '—'}</td>"
-        f"<td>{rating_text}</td></tr>"
-    )
-
-
-def _position_score_summary(attributes, positions, catalogue, familiarity, policy) -> str:
-    """One best-role line per position for the top of a player report."""
-    rows: list[str] = []
-    for position in positions:
-        role_scores = [
-            (role, score_role(role, attributes))
-            for role in catalogue.roles.values()
-            if position in role.eligible_positions
-        ]
-        role, score = max(
-            role_scores,
-            key=lambda item: (item[1].median, item[1].score.upper, item[0].key),
-        )
-        rating = familiarity.get(position)
-        if rating is None:
-            familiarity_text = "Not captured"
-            in_position_estimate = "—"
-        else:
-            multiplier = policy.multiplier(max(rating, policy.scale_minimum))
-            familiarity_text = f"{rating}/20 (×{multiplier:.2f})"
-            in_position_estimate = f"{score.median * multiplier:.1f}"
-        rows.append(
-            "<tr>"
-            f"<td>{html.escape(position)}</td><td>{html.escape(role.name)}</td>"
-            f"<td>{score.score.lower:.1f}</td><td>{score.score.central:.1f}</td>"
-            f"<td><b>{score.median:.1f}</b></td><td>{score.score.upper:.1f}</td>"
-            f"<td>{familiarity_text}</td><td>{in_position_estimate}</td>"
-            "</tr>"
-        )
-    return (
-        "<table><tr><th>Position</th><th>Best role (by estimate)</th><th>Floor</th>"
-        "<th>Cautious estimate</th><th>Estimate</th><th>Ceiling</th><th>Familiarity</th>"
-        "<th>In-position estimate</th></tr>"
-        + "".join(rows) + "</table>"
-    )
-
-
-def _position_role_scores(attributes, position, catalogue, familiarity, policy) -> str:
-    rating = familiarity.get(position)
-    multiplier = (
-        policy.multiplier(max(rating, policy.scale_minimum)) if rating is not None else None
-    )
-    rows: list[str] = []
-    roles = sorted(
-        (role for role in catalogue.roles.values() if position in role.eligible_positions),
-        key=lambda role: (role.name, role.key),
-    )
-    for role in roles:
-        score = score_role(role, attributes)
-        input_rows = "".join(
-            "<tr>"
-            f"<td>{html.escape(_attribute_label(contribution.attribute))}</td>"
-            f"<td>{contribution.weight:g}</td>"
-            f"<td>{html.escape(contribution.observation.display())}</td>"
-            f"<td>{contribution.points.lower:.1f} / {contribution.points.central:.1f} / {contribution.points.upper:.1f}</td>"
-            "</tr>"
-            for contribution in score.contributions
-        )
-        inputs = (
-            "<details class='role-inputs'><summary>Attribute score inputs</summary>"
-            "<table><tr><th>Attribute</th><th>Weight</th><th>Scouted value</th>"
-            "<th>Points (floor / current / ceiling)</th></tr>"
-            + input_rows + "</table></details>"
-        )
-        in_position = "—" if multiplier is None else f"{score.median * multiplier:.1f}"
-        rows.append(
-            "<tr>"
-            f"<td>{html.escape(role.name)}</td><td>{score.score.lower:.1f}</td>"
-            f"<td>{score.score.central:.1f}</td><td><b>{score.median:.1f}</b></td>"
-            f"<td>{score.score.upper:.1f}</td><td>{in_position}</td><td>{inputs}</td>"
-            "</tr>"
-        )
-    familiarity_text = "not captured" if rating is None else f"{rating}/20 (×{multiplier:.2f})"
-    return (
-        f"<section class='position-role-report'><h3>{html.escape(position)} "
-        f"<span class='muted'>— familiarity {familiarity_text}</span></h3>"
-        "<table><tr><th>Role</th><th>Floor</th><th>Cautious estimate</th><th>Estimate</th>"
-        "<th>Ceiling</th><th>In-position estimate</th><th>Breakdown</th></tr>"
-        + "".join(rows) + "</table></section>"
-    )
-
-
 def score_bar(minimum: float, median: float, maximum: float) -> str:
     """A 0-100 bar: the shaded stretch is min..max, the tick is the median."""
     def pct(value: float) -> float:
@@ -399,40 +128,200 @@ def score_bar(minimum: float, median: float, maximum: float) -> str:
     )
 
 
-# (heading, sort key). A key of None is not sortable.
-_COLUMNS: tuple[tuple[str, str | None], ...] = (
-    ("#", None), ("Player", "name"), ("Age", "age"), ("Scouted", "scouted"),
-    ("Value", "value"), ("FM search", None), ("Contract", None), ("Best role", "role"), ("Min", "minimum"), ("Median", "median"), ("Max", "ceiling"),
-    ("Range", "upside"), ("Role attributes known", "known"),
-    ("Past knowledge", None), ("Attributes", None),
-)
+@dataclass(frozen=True)
+class _Column:
+    """One results column: its heading, the server-side sort it triggers, and its cell."""
+
+    title: str
+    sort: str | None
+    cell: Callable[[int, Any], str]
+    hint: str = ""
 
 
-_FAMILIARITY_COLUMNS: tuple[tuple[str, str | None], ...] = (
-    ("Familiarity", "familiarity"), ("In-position role score", "adjusted"),
-)
+def _sortable_table(
+    columns: Sequence[_Column], items: Sequence[Any], *, sort: str, descending: bool
+) -> str:
+    """The one results table every scouting view uses.
 
-
-def _columns(show_familiarity: bool) -> tuple[tuple[str, str | None], ...]:
-    if not show_familiarity:
-        return _COLUMNS
-    at = next(i for i, (_, key) in enumerate(_COLUMNS) if key == "upside") + 1
-    return _COLUMNS[:at] + _FAMILIARITY_COLUMNS + _COLUMNS[at:]
-
-
-def _header(sort: str, descending: bool, show_familiarity: bool = False) -> str:
+    A column with a ``sort`` key renders as a button the page's script turns
+    into a server-side re-sort (so the top of a long list is the true top by
+    that column, not the top of what was on screen); the active column is
+    marked with an arrow and ``aria-sort``. Which columns exist is the caller's
+    choice, which is why every view can offer the same behaviour.
+    """
     cells = []
-    for title, key in _columns(show_familiarity):
-        if key is None:
-            cells.append(f"<th>{title}</th>")
+    for column in columns:
+        title = f" title='{html.escape(column.hint, quote=True)}'" if column.hint else ""
+        if column.sort is None:
+            cells.append(f"<th{title}>{column.title}</th>")
             continue
-        arrow = (" ▼" if descending else " ▲") if key == sort else ""
-        default = "desc" if default_descending(key) else "asc"
+        active = column.sort == sort
+        arrow = (" ▼" if descending else " ▲") if active else ""
+        aria = (" aria-sort='descending'" if descending else " aria-sort='ascending'") if active else ""
+        default = "desc" if default_descending(column.sort) else "asc"
         cells.append(
-            f"<th><button type='button' class='sort-btn' data-sort='{key}' "
-            f"data-default='{default}'>{title}{arrow}</button></th>"
+            f"<th{aria}><button type='button' class='sort-btn'{title} data-sort='{column.sort}' "
+            f"data-default='{default}'>{column.title}{arrow}</button></th>"
         )
-    return "<tr>" + "".join(cells) + "</tr>"
+    rows = "".join(
+        "<tr>" + "".join(column.cell(rank, item) for column in columns) + "</tr>"
+        for rank, item in enumerate(items, start=1)
+    )
+    return (
+        "<div class='table-scroll'><table class='results'>"
+        f"<tr>{''.join(cells)}</tr>{rows}</table></div>"
+    )
+
+
+def _results_view(
+    heading: str,
+    *,
+    total: int,
+    shown: int,
+    limit: int,
+    sort_label: str,
+    descending: bool,
+    lead: str,
+    explanation: str,
+    table: str,
+) -> str:
+    """The frame around every results table: heading, sort line, notes, table, more."""
+    more = ""
+    if total > shown:
+        step = min(_SHOW_MORE_STEP, total - shown)
+        more = (
+            f"<p class='show-more'><button type='button' data-limit='{limit + _SHOW_MORE_STEP}'>"
+            f"Show {step} more</button> <span class='muted'>Showing {shown} of {total}.</span></p>"
+        )
+    return (
+        f"<h2>{heading} ({total})</h2>"
+        f"<p class='results-summary'>Sorted by <b>{html.escape(sort_label)}</b> "
+        f"({'high to low' if descending else 'low to high'}); click any column heading to "
+        f"re-sort. {lead}</p>"
+        f"<details class='explain'><summary>How to read these columns</summary>{explanation}</details>"
+        + table + more
+    )
+
+
+def no_results(heading: str, *, pool_size: int, scouted_only: bool) -> str:
+    """The one empty state, so every view says the same thing for the same reason."""
+    if pool_size == 0:
+        reason = (
+            "No manager-visible scouting candidates have been loaded yet. Supply a "
+            "verified scouting capture with <code>--scouting-json</code>."
+        )
+    else:
+        reason = (
+            "No candidates match these filters."
+            + (
+                " Only players with a scouting-knowledge record are listed on the "
+                "Scouted tab; try <b>All players</b>."
+                if scouted_only else ""
+            )
+        )
+    return f"<h2>{heading}</h2><p class='muted'>{reason}</p>"
+
+
+_SHOW_MORE_STEP = 100
+
+_MIN_HINT = "Every unknown attribute counts as 1 and every range at its low end."
+_MEDIAN_HINT = "Every range at its midpoint and every unknown attribute mid-scale."
+_MAX_HINT = "Every unknown attribute counts as 20 and every range at its top."
+_SCORE_EXPLANATION = (
+    "<p class='muted'><b>Min</b> counts every unknown attribute as 1 and every range at "
+    "its low end; <b>Max</b> counts unknowns as 20 and ranges at their top; <b>Median</b> "
+    "puts each range at its midpoint and each unknown mid-scale. A wide gap between min "
+    "and max is where more scouting would change the picture. These are <b>attribute-based "
+    "role scores</b>: they do not apply positional familiarity.</p>"
+)
+
+
+def _positions_column(raw_positions: bool) -> _Column:
+    def cell(_rank, item) -> str:
+        candidate = item.candidate
+        positions = candidate.positions_for(include_raw_external_positions=raw_positions)
+        if not positions:
+            return "<td><span class='muted'>Not yet captured</span></td>"
+        return f"<td>{html.escape(', '.join(positions))}</td>"
+
+    return _Column(
+        "Positions" + (" (raw external data)" if raw_positions else ""), None, cell
+    )
+
+
+def _identity_columns(raw_positions: bool) -> list[_Column]:
+    """The columns every view starts with: who he is and how gettable he is."""
+    return [
+        _Column("#", None, lambda rank, item: f"<td>{rank}</td>"),
+        _Column("Player", "name", lambda _r, item: f"<td>{_player_cell(item.candidate)}</td>"),
+        _Column("Age", "age", lambda _r, item: f"<td class='nw'>{_age(item.candidate)}</td>"),
+        _positions_column(raw_positions),
+        _Column("Value", "value", lambda _r, item: f"<td class='nw'>{_value_cell(item.candidate)}</td>",
+                "FM's own Value figure."),
+        _Column("Contract", None, lambda _r, item: f"<td class='nw'>{_contract_cell(item.candidate)}</td>"),
+        _Column("Scouted", "scouted", lambda _r, item: f"<td>{_scouting_knowledge_cell(item.candidate)}</td>",
+                "How much of this player FM's scouts know."),
+    ]
+
+
+def _score_columns() -> list[_Column]:
+    """Min / Median / Max / spread, for any item with ``minimum``/``median``/``maximum``."""
+    return [
+        _Column("Min", "minimum", lambda _r, i: f"<td class='nw'>{i.minimum:.1f}</td>", _MIN_HINT),
+        _Column("Median", "median", lambda _r, i: f"<td class='nw'><b>{i.median:.1f}</b></td>", _MEDIAN_HINT),
+        _Column("Max", "ceiling", lambda _r, i: f"<td class='nw'>{i.maximum:.1f}</td>", _MAX_HINT),
+        _Column("Range", "upside", lambda _r, i: f"<td>{score_bar(i.minimum, i.median, i.maximum)}</td>",
+                "The bar spans Min to Max; the tick is the Median. Sorts by how far Max is above Median."),
+    ]
+
+
+def _tail_columns(known_cell: Callable[[Any], str] | None = None) -> list[_Column]:
+    columns = []
+    if known_cell is not None:
+        columns.append(_Column(
+            "Role attributes known", "known", lambda _r, item: f"<td>{known_cell(item)}</td>",
+            "How many of this role's attributes are exact or ranged, out of the role's total.",
+        ))
+    columns.append(_Column(
+        "Past knowledge", None, lambda _r, item: f"<td>{past_knowledge_cell(item.candidate)}</td>",
+        "Earlier, dated observations. Never used in any score or filter.",
+    ))
+    columns.append(_Column(
+        "Attributes", None, lambda _r, item: f"<td>{attribute_sheet(item.candidate)}</td>"
+    ))
+    return columns
+
+
+def _age(candidate: ScoutingCandidate) -> str:
+    return str(candidate.age) if candidate.age is not None else "—"
+
+
+def _player_cell(candidate: ScoutingCandidate) -> str:
+    """Name (a link to his report) over club and nationality, flagged if FM's search matched."""
+    detail = " · ".join(
+        html.escape(part) for part in (candidate.club or "No club", candidate.nationality) if part
+    )
+    matched = " <span class='tag'>FM search match</span>" if candidate.matched_active_search else ""
+    return f"{scouting_player_link(candidate)}{matched}<br><span class='muted'>{detail}</span>"
+
+
+def _ranking_columns(show_familiarity: bool, raw_positions: bool) -> list[_Column]:
+    columns = _identity_columns(raw_positions)
+    columns.append(_Column(
+        "Best role", "role", lambda _r, item: f"<td>{html.escape(item.role_name)}</td>",
+        "The role that suits him best on the median score.",
+    ))
+    columns += _score_columns()
+    if show_familiarity:
+        columns.append(_Column(
+            "Familiarity", "familiarity", lambda _r, item: _familiarity_cells(item)[0],
+            "His rating out of 20 for the position, and the multiplier it implies.",
+        ))
+        columns.append(_Column(
+            "In-position role score", "adjusted", lambda _r, item: _familiarity_cells(item)[1],
+            "Min–Max after the familiarity multiplier; the same discount Squad applies.",
+        ))
+    return columns + _tail_columns(_knowledge_cell)
 
 
 def ranking_results(
@@ -443,59 +332,156 @@ def ranking_results(
     sort_label: str,
     descending: bool,
     raw_positions: bool = False,
+    limit: int = _MAX_SCOUTING_ROWS,
+    pool_size: int = 0,
+    scouted_only: bool = False,
 ) -> str:
     scope = f"Ranked for {html.escape(position)}" if position else "Ranked, all positions"
     if not rankings:
-        return f"<h2>{scope}</h2><p class='muted'>No candidates match these filters.</p>"
-    displayed = rankings[:_MAX_SCOUTING_ROWS]
+        return no_results(scope, pool_size=pool_size, scouted_only=scouted_only)
+    displayed = rankings[:limit]
     show_familiarity = any(item.multiplier is not None for item in displayed)
-    rows = "".join(
-        _ranking_row(rank, item, show_familiarity) for rank, item in enumerate(displayed, start=1)
-    )
-    return (
-        f"<h2>{scope} ({len(rankings)})</h2>"
+    explanation = (
         "<p class='muted'>Each player is scored in whichever role suits him best"
         + (" at this position" if position else " (roles for his own positions where known, "
            "otherwise every role)")
-        + ". <b>Min</b> counts every unknown attribute as 1 and every range at its "
-        "low end; <b>Max</b> counts unknowns as 20 and ranges at their top; <b>Median</b> "
-        "puts each range at its midpoint and each unknown mid-scale. A wide gap between "
-        "min and max is where more scouting would change the picture. These are <b>attribute-based "
-        "role scores</b>: they do not apply positional familiarity. "
-        "Click any column heading to sort by it. "
-        f"Sorted by <b>{html.escape(sort_label)}</b> ({'high to low' if descending else 'low to high'})."
+        + ".</p>" + _SCORE_EXPLANATION
         + (
-            " Position eligibility uses raw external data (the accepted visibility gap)."
-            if raw_positions else ""
+            "<p class='muted'>Position eligibility uses raw external data (the accepted "
+            "visibility gap).</p>" if raw_positions else ""
         )
         + (
-            " <b>Familiarity</b> is his rating (out of 20) for the position; <b>In-position "
-            "role score</b> applies the same familiarity multiplier as Squad. It does not "
-            "apply condition or match fitness, which Tactics adds to produce today’s selection score."
+            "<p class='muted'><b>Familiarity</b> is his rating (out of 20) for the position; "
+            "<b>In-position role score</b> applies the same familiarity multiplier as Squad. "
+            "It does not apply condition or match fitness, which Tactics adds to produce "
+            "today’s selection score.</p>"
             if show_familiarity else ""
         )
-        + "</p>"
-        + (
-            f"<p class='muted'>Showing the first {len(displayed)} players.</p>"
-            if len(rankings) > len(displayed) else ""
-        )
-        + f"<table>{_header(sort, descending, show_familiarity)}{rows}</table>"
+    )
+    return _results_view(
+        scope, total=len(rankings), shown=len(displayed), limit=limit,
+        sort_label=sort_label, descending=descending, lead="", explanation=explanation,
+        table=_sortable_table(
+            _ranking_columns(show_familiarity, raw_positions), displayed,
+            sort=sort, descending=descending,
+        ),
     )
 
 
-_TACTIC_COLUMNS: tuple[tuple[str, str | None], ...] = (
-    ("#", None),
-    ("Player", "name"),
-    ("Age", "age"),
-    ("Value", "value"),
-    ("Best tactic job", "role"),
-    ("Player fit", "tactic_fit"),
-    ("Projected tactic score", "tactic_score"),
-    ("XI gain", "tactic_gain"),
-    ("Outcome", None),
-    ("Scouted", "scouted"),
-    ("Past knowledge", None),
-)
+_RECOMMENDATION_LABELS = {
+    ScoutRecommendation.PROVEN_FIT: ("Proven fit", "badge-proven", "All role inputs are known."),
+    ScoutRecommendation.SCOUT_FIRST: ("Scout first", "badge-scout", "No role attributes are known yet."),
+    ScoutRecommendation.SCOUT_TO_DECIDE: ("Scout to decide", "badge-scout", "Ranges or unknowns can still change this decision."),
+    ScoutRecommendation.UNLIKELY: ("Unlikely", "badge-unlikely", "Even the visible ceiling misses your filter."),
+}
+
+
+def _recommendation_cell(item: ScoutingAssessment) -> str:
+    label, badge, reason = _RECOMMENDATION_LABELS[item.recommendation]
+    if not item.candidate.current_attributes_captured:
+        label, badge, reason = (
+            "Capture first", "badge-scout",
+            "FM's current visible attributes have not been captured for this player.",
+        )
+    scout_next = (
+        f"<br><span class='muted'><b>Scout next:</b> {html.escape(', '.join(item.scout_next))}</span>"
+        if item.scout_next else ""
+    )
+    return (
+        f"<td class='rec'><span class='badge {badge}'>{label}</span><br>"
+        f"<span class='muted'>{html.escape(reason)}</span>{scout_next}</td>"
+    )
+
+
+def _assessment_known_cell(item: ScoutingAssessment) -> str:
+    if not item.candidate.current_attributes_captured:
+        return "<span class='warn'>Not captured from FM</span>"
+    total = item.known_attributes + item.ranged_attributes + item.unknown_attributes
+    return _known_summary(item.known_attributes, item.ranged_attributes, item.unknown_attributes, total)
+
+
+class _RoleRow:
+    """A ``ScoutingAssessment`` under the names the shared score columns read."""
+
+    __slots__ = ("assessment", "candidate", "minimum", "median", "maximum")
+
+    def __init__(self, assessment: ScoutingAssessment) -> None:
+        self.assessment = assessment
+        self.candidate = assessment.candidate
+        self.minimum = assessment.role_score.score.lower
+        self.median = assessment.role_score.median
+        self.maximum = assessment.role_score.score.upper
+
+
+def role_results(
+    assessments: Sequence[ScoutingAssessment],
+    *,
+    role_name: str,
+    sort: str,
+    sort_label: str,
+    descending: bool,
+    raw_positions: bool = False,
+    limit: int = _MAX_SCOUTING_ROWS,
+    pool_size: int = 0,
+    scouted_only: bool = False,
+) -> str:
+    """One role's targets, in the same table (and with the same sorting) as the rankings."""
+    heading = f"Targets for {html.escape(role_name)}"
+    if not assessments:
+        return no_results(heading, pool_size=pool_size, scouted_only=scouted_only)
+    displayed = [_RoleRow(item) for item in assessments[:limit]]
+    known, past, sheet = _tail_columns(lambda row: _assessment_known_cell(row.assessment))
+    recommendation = _Column(
+        "Recommendation", "priority", lambda _r, row: _recommendation_cell(row.assessment),
+        "What scouting could still change, most decision-ready first.",
+    )
+    columns = (
+        _identity_columns(raw_positions) + _score_columns()
+        + [known, recommendation, past, sheet]
+    )
+    explanation = (
+        "<ul class='legend'>"
+        "<li><b>Capture first</b>: the app has not read FM's current visible attributes.</li>"
+        "<li><b>Scout first</b>: FM's captured answer has no relevant visible attributes.</li>"
+        "<li><b>Scout to decide</b>: ranges or unknown values could still change the role fit.</li>"
+        "<li><b>Proven fit</b>: every input to the role score is known.</li></ul>"
+        + _SCORE_EXPLANATION
+    )
+    return _results_view(
+        heading, total=len(assessments), shown=len(displayed), limit=limit,
+        sort_label=sort_label, descending=descending, lead="", explanation=explanation,
+        table=_sortable_table(columns, displayed, sort=sort, descending=descending),
+    )
+
+
+def _tactic_columns(raw_positions: bool) -> list[_Column]:
+    columns = _identity_columns(raw_positions)
+    columns += [
+        _Column("Best tactic job", "role", lambda _r, item: (
+            f"<td><b>{html.escape(item.best_slot_key)}</b> · {html.escape(item.best_role_name)}</td>"
+        )),
+        _Column("Player fit", "tactic_fit", lambda _r, item: (
+            f"<td>{_three_scores(item.player_fit.lower, item.player_fit.central, item.player_fit.upper)}</td>"
+        ), "This tactic's attribute emphasis, minimum-attribute tapers and position familiarity."),
+        _Column("Projected tactic score", "tactic_score", lambda _r, item: (
+            f"<td>{_three_scores(item.projected_score.floor, item.projected_score.estimate, item.projected_score.ceiling)}</td>"
+        )),
+        _Column("XI gain", "tactic_gain", lambda _r, item: (
+            f"<td>{_three_gains(item.score_gain.floor, item.score_gain.estimate, item.score_gain.ceiling)}</td>"
+        ), "The change to the best XI once the whole line-up is re-optimised."),
+        _Column("Outcome", None, lambda _r, item: f"<td>{_tactic_outcome(item)}</td>"),
+    ]
+    return columns + _tail_columns(_knowledge_cell)
+
+
+def _tactic_outcome(item: TacticScoutingAssessment) -> str:
+    if not item.starts_at_estimate:
+        return "<span class='muted'>Depth at estimate</span>"
+    return "Starts" + (
+        "<br><span class='muted'>Replaces "
+        + html.escape(", ".join(item.replaced_player_names)) + "</span>"
+        if item.replaced_player_names else ""
+    )
 
 
 def tactic_ranking_results(
@@ -506,61 +492,17 @@ def tactic_ranking_results(
     sort: str,
     sort_label: str,
     descending: bool,
+    raw_positions: bool = False,
+    limit: int = _MAX_SCOUTING_ROWS,
+    pool_size: int = 0,
+    scouted_only: bool = False,
 ) -> str:
     """Render squad-relative candidate rankings for one selected tactic."""
     heading = f"Impact on {html.escape(tactic.name)}"
     if not assessments:
-        return f"<h2>{heading}</h2><p class='muted'>No eligible candidates match these filters.</p>"
-    displayed = assessments[:_MAX_SCOUTING_ROWS]
-
-    def header() -> str:
-        cells = []
-        for title, key in _TACTIC_COLUMNS:
-            if key is None:
-                cells.append(f"<th>{title}</th>")
-                continue
-            arrow = (" ▼" if descending else " ▲") if key == sort else ""
-            default = "desc" if default_descending(key) else "asc"
-            cells.append(
-                f"<th><button type='button' class='sort-btn' data-sort='{key}' "
-                f"data-default='{default}'>{title}{arrow}</button></th>"
-            )
-        return "<tr>" + "".join(cells) + "</tr>"
-
-    rows = []
-    for rank, item in enumerate(displayed, start=1):
-        candidate = item.candidate
-        outcome = (
-            "Starts"
-            + (
-                "<br><span class='muted'>Replaces "
-                + html.escape(", ".join(item.replaced_player_names))
-                + "</span>"
-                if item.replaced_player_names
-                else ""
-            )
-            if item.starts_at_estimate
-            else "<span class='muted'>Depth at estimate</span>"
-        )
-        rows.append(
-            "<tr>"
-            f"<td>{rank}</td>"
-            f"<td>{scouting_player_link(candidate)}<br>"
-            f"<span class='muted'>{html.escape(candidate.club or 'No club')}</span></td>"
-            f"<td>{candidate.age if candidate.age is not None else '—'}</td>"
-            f"<td>{_value_cell(candidate)}</td>"
-            f"<td><b>{html.escape(item.best_slot_key)}</b> · "
-            f"{html.escape(item.best_role_name)}</td>"
-            f"<td>{_three_scores(item.player_fit.lower, item.player_fit.central, item.player_fit.upper)}</td>"
-            f"<td>{_three_scores(item.projected_score.floor, item.projected_score.estimate, item.projected_score.ceiling)}</td>"
-            f"<td>{_three_gains(item.score_gain.floor, item.score_gain.estimate, item.score_gain.ceiling)}</td>"
-            f"<td>{outcome}</td>"
-            f"<td>{_scouting_knowledge_cell(candidate)}</td>"
-            f"<td>{past_knowledge_cell(candidate)}</td>"
-            "</tr>"
-        )
-    return (
-        f"<h2>{heading} ({len(assessments)})</h2>"
+        return no_results(heading, pool_size=pool_size, scouted_only=scouted_only)
+    displayed = assessments[:limit]
+    explanation = (
         f"<p>Current score: <b>{baseline.score.central:.1f}</b>. Candidates are ranked by "
         "the change to the best XI after the whole line-up and permitted roles are "
         "re-optimised. A candidate who does not improve the XI shows +0.0.</p>"
@@ -568,60 +510,16 @@ def tactic_ranking_results(
         "minimum-attribute tapers and position familiarity. Candidates are assumed "
         "available, fully fit and match fit; owned players retain today’s readiness. "
         "Floor / estimate / ceiling preserve scouting uncertainty, and the candidate "
-        "may enter the XI only in the scenarios where he improves it. "
-        f"Sorted by <b>{html.escape(sort_label)}</b> "
-        f"({'high to low' if descending else 'low to high'}).</p>"
-        + (
-            f"<p class='muted'>Showing the first {len(displayed)} players.</p>"
-            if len(assessments) > len(displayed)
-            else ""
-        )
-        + f"<table>{header()}{''.join(rows)}</table>"
+        "may enter the XI only in the scenarios where he improves it.</p>"
     )
-
-
-def tactic_player_impact(
-    assessment: TacticScoutingAssessment | None,
-    *,
-    tactic,
-    baseline,
-) -> str:
-    """Render one candidate's squad-relative value for a selected tactic."""
-    heading = f"<h3>Impact on {html.escape(tactic.name)}</h3>"
-    if assessment is None:
-        return (
-            heading
-            + "<p class='muted'>This player has no captured eligible position in "
-            "this tactic. Enable raw external positions if you want to accept that "
-            "visibility gap.</p>"
-        )
-    outcome = (
-        "Starts"
-        + (
-            " · replaces " + html.escape(", ".join(assessment.replaced_player_names))
-            if assessment.replaced_player_names
-            else ""
-        )
-        if assessment.starts_at_estimate
-        else "Depth at estimate"
-    )
-    return (
-        heading
-        + "<p>The whole XI and its permitted roles are re-optimised with this player "
-        "added to the squad.</p>"
-        + "<table><tr><th>Current tactic score</th><th>Projected tactic score</th>"
-        "<th>XI gain</th><th>Best tactic job</th><th>Outcome</th></tr><tr>"
-        f"<td>{_three_scores(baseline.score.lower, baseline.score.central, baseline.score.upper)}</td>"
-        f"<td>{_three_scores(assessment.projected_score.floor, assessment.projected_score.estimate, assessment.projected_score.ceiling)}</td>"
-        f"<td>{_three_gains(assessment.score_gain.floor, assessment.score_gain.estimate, assessment.score_gain.ceiling)}</td>"
-        f"<td><b>{html.escape(assessment.best_position)}</b> · "
-        f"{html.escape(assessment.best_role_name)}<br>"
-        "<span class='muted'>Player fit</span><br>"
-        f"{_three_scores(assessment.player_fit.lower, assessment.player_fit.central, assessment.player_fit.upper)}</td>"
-        f"<td>{outcome}</td></tr></table>"
-        "<p class='muted'>Values are floor / estimate / ceiling. The player is "
-        "assumed available, fully fit and match fit; owned players retain today’s "
-        "readiness. A player who does not improve the XI shows a gain of +0.0.</p>"
+    return _results_view(
+        heading, total=len(assessments), shown=len(displayed), limit=limit,
+        sort_label=sort_label, descending=descending,
+        lead=f"Current tactic score <b>{baseline.score.central:.1f}</b>.",
+        explanation=explanation,
+        table=_sortable_table(
+            _tactic_columns(raw_positions), displayed, sort=sort, descending=descending
+        ),
     )
 
 
@@ -642,35 +540,40 @@ def _three_gains(floor: float, estimate: float, ceiling: float) -> str:
     )
 
 
-def _familiarity_cells(item: PositionRanking) -> str:
+def _familiarity_cells(item: PositionRanking) -> tuple[str, str]:
     if item.multiplier is None:
-        return "<td>—</td><td>—</td>"
+        return "<td>—</td>", "<td>—</td>"
     return (
-        f"<td>{item.familiarity}/20 <span class='muted'>(×{item.multiplier:.2f})</span></td>"
+        f"<td>{item.familiarity}/20 <span class='muted'>(×{item.multiplier:.2f})</span></td>",
         f"<td><b>{item.adjusted_median:.1f}</b><br>"
-        f"<span class='muted'>{item.adjusted_minimum:.1f}–{item.adjusted_maximum:.1f}</span></td>"
+        f"<span class='muted'>{item.adjusted_minimum:.1f}–{item.adjusted_maximum:.1f}</span></td>",
     )
 
 
-def _knowledge_cell(item: PositionRanking) -> str:
+def _known_summary(known: int, ranged: int, unknown: int, total: int) -> str:
+    headline = f"{known} of {total} known"
+    if not ranged and not unknown:
+        return f"<b>{headline}</b>"
+    parts = []
+    if ranged:
+        parts.append(f"{ranged} ranged")
+    if unknown:
+        parts.append(f"{unknown} unknown")
+    return f"{headline}<br><span class='muted'>{' &middot; '.join(parts)}</span>"
+
+
+def _knowledge_cell(item) -> str:
     """How much of *this role's* attribute list is known for him.
 
     The total is the number of attributes the role scores, not the 32 a player
     has: reading "11 / 0 / 0" as "only 11 of his attributes are known" was the
-    obvious misreading, so the denominator is now shown.
+    obvious misreading, so the denominator is now shown. Works for a
+    ``PositionRanking`` and a ``TacticScoutingAssessment`` alike.
     """
     if not item.candidate.current_attributes_captured:
         return "<span class='warn'>Not captured from FM</span>"
     total = item.known_attributes + item.ranged_attributes + item.unknown_attributes
-    headline = f"{item.known_attributes} of {total} known"
-    if not item.ranged_attributes and not item.unknown_attributes:
-        return f"<b>{headline}</b>"
-    parts = []
-    if item.ranged_attributes:
-        parts.append(f"{item.ranged_attributes} ranged")
-    if item.unknown_attributes:
-        parts.append(f"{item.unknown_attributes} unknown")
-    return f"{headline}<br><span class='muted'>{' &middot; '.join(parts)}</span>"
+    return _known_summary(item.known_attributes, item.ranged_attributes, item.unknown_attributes, total)
 
 
 def _visible_observation_counts(attributes) -> tuple[int, int]:
@@ -709,16 +612,6 @@ def _value_cell(candidate: ScoutingCandidate) -> str:
     return f"&pound;{candidate.value:,}"
 
 
-def _search_match_cell(candidate: ScoutingCandidate) -> str:
-    """Whether FM's own on-screen Player Search matched him when the capture ran.
-
-    Deliberately says nothing about *which* filter: the result list is readable,
-    the criteria that produced it are not."""
-    if candidate.matched_active_search is None:
-        return "<span class='muted'>—</span>"
-    return "<b>Match</b>" if candidate.matched_active_search else "<span class='muted'>no</span>"
-
-
 def _contract_cell(candidate: ScoutingCandidate) -> str:
     """What a manager needs to know about getting him, in the order it matters."""
     notes: list[str] = []
@@ -731,26 +624,3 @@ def _contract_cell(candidate: ScoutingCandidate) -> str:
         left = f" ({months} mo)" if months is not None and months >= 0 else ""
         notes.append(f"Expires {html.escape(candidate.contract_end)}{left}")
     return "<br>".join(notes) or "<span class='muted'>—</span>"
-
-
-def _ranking_row(rank: int, item: PositionRanking, show_familiarity: bool = False) -> str:
-    candidate = item.candidate
-    return (
-        "<tr>"
-        f"<td>{rank}</td>"
-        f"<td>{scouting_player_link(candidate)}"
-        f"<br><span class='muted'>{html.escape(candidate.club or 'No club')}</span></td>"
-        f"<td>{candidate.age if candidate.age is not None else '—'}</td>"
-        f"<td>{_scouting_knowledge_cell(candidate)}</td>"
-        f"<td>{_value_cell(candidate)}</td>"
-        f"<td>{_search_match_cell(candidate)}</td>"
-        f"<td>{_contract_cell(candidate)}</td>"
-        f"<td>{html.escape(item.role_name)}</td>"
-        f"<td>{item.minimum:.1f}</td><td><b>{item.median:.1f}</b></td><td>{item.maximum:.1f}</td>"
-        f"<td>{score_bar(item.minimum, item.median, item.maximum)}</td>"
-        + (_familiarity_cells(item) if show_familiarity else "")
-        + f"<td>{_knowledge_cell(item)}</td>"
-        f"<td>{past_knowledge_cell(candidate)}</td>"
-        f"<td>{attribute_sheet(candidate)}</td>"
-        "</tr>"
-    )

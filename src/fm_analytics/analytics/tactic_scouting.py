@@ -12,7 +12,11 @@ from fm_analytics.analytics.assignment_solver import (
 from fm_analytics.analytics.catalogue import FootballCatalogue, TacticDefinition
 from fm_analytics.analytics.opponent import OpponentProfile, attribute_emphasis
 from fm_analytics.analytics.role_scoring import RoleScoreCache, ScoreBand
-from fm_analytics.analytics.scouting import ScoutingCandidate
+from fm_analytics.analytics.scouting import (
+    ScoutingCandidate,
+    ScoutingFilters,
+    matches_information_filters,
+)
 from fm_analytics.analytics.xi_models import (
     FamiliarityPolicy,
     PlayerSelectionInput,
@@ -278,6 +282,22 @@ def rank_candidates_for_tactic(
             )
         )
     return tuple(assessments)
+
+
+def filter_tactic_assessments(
+    assessments: Sequence[TacticScoutingAssessment], filters: ScoutingFilters
+) -> tuple[TacticScoutingAssessment, ...]:
+    """Apply the visibility, floor and ceiling filters to the player's tactic fit."""
+    return tuple(
+        item for item in assessments
+        if matches_information_filters(
+            filters,
+            captured=item.candidate.current_attributes_captured,
+            known=item.known_attributes, ranged=item.ranged_attributes,
+            unknown=item.unknown_attributes,
+            floor=item.player_fit.lower, ceiling=item.player_fit.upper,
+        )
+    )
 
 
 def sort_tactic_assessments(

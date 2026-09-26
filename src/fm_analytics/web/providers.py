@@ -39,8 +39,18 @@ def scouting_json_provider(path: str | Path) -> ScoutingProvider:
     squad provider: external-player discovery has its own evidence boundary.
     """
     resolved = Path(path)
+    # The live filters re-request the pool on every keystroke. Parsing it is
+    # cheap next to scoring it, but the score cache in ``rank_for_position`` is
+    # keyed on the candidate *objects*, so handing back the same tuple until the
+    # file changes is what lets that cache hit at all. A refresh rewrites the
+    # file, which changes its modification time and size.
+    loaded: list[tuple[tuple[int, int], tuple[ScoutingCandidate, ...]]] = []
 
     def provide() -> tuple[ScoutingCandidate, ...]:
+        stat = resolved.stat()
+        stamp = (stat.st_mtime_ns, stat.st_size)
+        if loaded and loaded[0][0] == stamp:
+            return loaded[0][1]
         with resolved.open(encoding="utf-8") as scouting_file:
             raw = json.load(scouting_file)
         rows = raw.get("players") if isinstance(raw, dict) else raw
@@ -54,6 +64,7 @@ def scouting_json_provider(path: str | Path) -> ScoutingProvider:
         ids = [candidate.id for candidate in candidates]
         if len(ids) != len(set(ids)):
             raise ValueError("scouting JSON contains duplicate player IDs")
+        loaded[:] = [(stamp, candidates)]
         return candidates
 
     return provide
