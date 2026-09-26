@@ -18,17 +18,24 @@ signature rather than by any fixed address:
 
   * scan writable memory for the session vtable (``VTABLE_RVA``)
   * read the results vector at ``RESULTS_VECTOR_OFFSET``
-  * keep the session whose entries all dereference to Player Search pool people
+  * keep the session whose entries all dereference to players known through
+    either the current Player Search pool or the manager's scouting records
 
 A session allocates its own wrapper objects rather than reusing the pool's, so
-an entry is matched by the person it points at, never by wrapper identity --
-comparing the wrappers themselves matches nothing and silently loses the list.
+an entry is matched by the player's stable ID, never by wrapper or Person
+address. Both addresses can differ from the current pool's representation of
+the same player; comparing either pointer silently loses valid results.
 
 Verified 19 September 2026 against a live filter of "interested in transfer":
 FM reported 1929 of 4090 players, exactly one session held 1929 entries, and
 16 of 17 independently labelled players fell on the expected side (the 17th,
 Niall McManus, had moved onto the list in the six game weeks since the label
 was taken).
+
+Re-verified 26 September 2026 against a 232-player scouted-player search. All
+232 stable IDs belonged to current capture candidates (225 had current scout
+reports), while only 39 of their Person addresses occurred in the current
+Player Search source. This is why identity here is deliberately ID-based.
 
 **This reads whichever filter the manager currently has applied.** It cannot
 tell which criteria produced the list, so callers must describe the result as
@@ -45,7 +52,7 @@ from tools.fm20_linux_probe import ProbeError, read_exact
 
 VTABLE_RVA = 0x67529A0
 RESULTS_VECTOR_OFFSET = 0x18
-# Sessions hold at most the whole pool; anything larger is not a result list.
+# The guard is deliberately generous but rules out nonsensical vectors.
 _MAX_RESULTS = 200_000
 
 
@@ -63,11 +70,13 @@ def _writable_regions(pid: int) -> list[tuple[int, int]]:
     return regions
 
 
-def _session_results(memory_fd: int, session: int, people: frozenset[int]) -> list[int] | None:
-    """The session's result people, or None when it is empty or not a match."""
+def _session_results(
+    memory_fd: int, session: int, candidate_ids: frozenset[int]
+) -> list[int] | None:
+    """The session's result player IDs, or None when empty or not a match."""
     try:
         begin, end = struct.unpack("<QQ", read_exact(memory_fd, session + RESULTS_VECTOR_OFFSET, 16))
-    except (OSError, ProbeError):
+    except (OSError, OverflowError, ProbeError):
         return None
     if not begin or end < begin or (end - begin) % 8:
         return None
@@ -76,27 +85,31 @@ def _session_results(memory_fd: int, session: int, people: frozenset[int]) -> li
         return None
     try:
         entries = struct.unpack(f"<{count}Q", read_exact(memory_fd, begin, count * 8))
-        resolved = [struct.unpack("<Q", read_exact(memory_fd, entry, 8))[0] for entry in entries]
-    except (OSError, ProbeError, struct.error):
+        people = [struct.unpack("<Q", read_exact(memory_fd, entry, 8))[0] for entry in entries]
+        resolved = [struct.unpack("<i", read_exact(memory_fd, person + 0xC, 4))[0] for person in people]
+    except (OSError, OverflowError, ProbeError, struct.error):
         return None
-    # Every entry must resolve to someone in the pool. A partial match means
-    # this vector is something else holding pointers, so it is rejected whole.
-    return resolved if all(person in people for person in resolved) else None
+    # Every entry must resolve to a player the capture can represent. A partial
+    # match means this vector is something else holding pointers, so it is
+    # rejected whole. Person pointer identity is deliberately not checked:
+    # FM's scouted-player result list can use different Person instances from
+    # the current Player Search source for the same stable player IDs.
+    return resolved if all(player_id in candidate_ids for player_id in resolved) else None
 
 
 def read_active_search_results(
-    pid: int, module_base: int, pool_people: Iterable[int]
+    pid: int, module_base: int, candidate_player_ids: Iterable[int]
 ) -> tuple[int, ...] | None:
-    """Person addresses for the players FM's on-screen search currently matches.
+    """Stable IDs for the players FM's on-screen search currently matches.
 
     Returns None when no search is displaying results -- the ordinary case
     when the manager is not sitting on Player Search. Raises ``ProbeError``
     when more than one session holds results, because then there is no way to
     say which search the manager meant.
     """
-    people = frozenset(pool_people)
-    if not people:
-        raise ProbeError("a Player Search pool is required to identify a result list")
+    candidate_ids = frozenset(candidate_player_ids)
+    if not candidate_ids:
+        raise ProbeError("known candidate IDs are required to identify a result list")
     pattern = struct.pack("<Q", module_base + VTABLE_RVA)
     matches: list[list[int]] = []
     memory_fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
@@ -112,7 +125,7 @@ def read_active_search_results(
                     continue
                 found = buffer.find(pattern)
                 while found != -1:
-                    results = _session_results(memory_fd, address + found, people)
+                    results = _session_results(memory_fd, address + found, candidate_ids)
                     if results is not None:
                         matches.append(results)
                     found = buffer.find(pattern, found + 1)

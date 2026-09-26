@@ -447,12 +447,14 @@ def capture_pool(
                 # live searches, an unexpected layout -- degrades to "cannot
                 # answer", which is not the same as "matched nobody".
                 try:
-                    id_by_person = {person: player_id for player_id, person in records.items()}
-                    matched = read_active_search_results(pid, module_base, id_by_person)
+                    known_candidate_ids = (
+                        set(records) | set(scouted_players) | set(prior_scouting_knowledge or {})
+                    )
+                    matched = read_active_search_results(
+                        pid, module_base, known_candidate_ids
+                    )
                     if matched is not None:
-                        active_search_match_ids = sorted(
-                            id_by_person[person] for person in matched if person in id_by_person
-                        )
+                        active_search_match_ids = sorted(set(matched))
                 except (OSError, ProbeError, struct.error) as error:
                     log_event(
                         "scouting_active_search_unreadable", call_number=call_number,

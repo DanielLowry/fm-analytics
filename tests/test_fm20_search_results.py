@@ -19,11 +19,13 @@ def image(sessions):
     which is what the reader has to follow.
     """
     buffer = bytearray(SIZE)
-    people = [0x1000 + i * 8 for i in range(8)]
+    people = [0x1000 + i * 0x20 for i in range(8)]
+    player_ids = list(range(101, 109))
     wrapper_for = {}
-    for index, person in enumerate(people):
+    for index, (person, player_id) in enumerate(zip(people, player_ids)):
         wrapper = 0x1400 + index * 8
         struct.pack_into("<Q", buffer, wrapper, person)
+        struct.pack_into("<i", buffer, person + 0xC, player_id)
         wrapper_for[person] = wrapper
     for address, entries in sessions:
         struct.pack_into("<Q", buffer, address, BASE + results.VTABLE_RVA)
@@ -37,11 +39,11 @@ def image(sessions):
             "<QQ", buffer, address + results.RESULTS_VECTOR_OFFSET,
             store, store + len(entries) * 8,
         )
-    return bytes(buffer), people
+    return bytes(buffer), people, player_ids
 
 
 class ReadActiveSearchResultsTests(unittest.TestCase):
-    def run_against(self, blob, wrappers):
+    def run_against(self, blob, player_ids):
         with tempfile.NamedTemporaryFile() as handle:
             handle.write(blob)
             handle.flush()
@@ -50,29 +52,34 @@ class ReadActiveSearchResultsTests(unittest.TestCase):
                 with mock.patch.object(results, "_writable_regions", return_value=[(0, SIZE)]), \
                      mock.patch.object(results.os, "open", return_value=fd), \
                      mock.patch.object(results.os, "close"):
-                    return results.read_active_search_results(1234, BASE, wrappers)
+                    return results.read_active_search_results(1234, BASE, player_ids)
             finally:
                 os.close(fd)
 
     def test_returns_the_one_session_holding_results(self) -> None:
-        blob, wrappers = image([(0x200, None), (0x800, wr := [0x1000, 0x1008, 0x1010]), (0x1800, None)])
-        self.assertEqual(self.run_against(blob, wrappers), tuple(wr))
+        blob, _people, player_ids = image([
+            (0x200, None), (0x800, [0x1000, 0x1020, 0x1040]),
+            (0x1800, None),
+        ])
+        self.assertEqual(self.run_against(blob, player_ids), (101, 102, 103))
 
     def test_no_search_on_screen_is_none_not_an_error(self) -> None:
-        blob, wrappers = image([(0x200, None), (0x800, None)])
-        self.assertIsNone(self.run_against(blob, wrappers))
+        blob, _people, player_ids = image([(0x200, None), (0x800, None)])
+        self.assertIsNone(self.run_against(blob, player_ids))
 
-    def test_a_vector_holding_anything_outside_the_pool_is_rejected_whole(self) -> None:
-        blob, wrappers = image([(0x800, [0x1000, 0x2AD0])])
-        self.assertIsNone(self.run_against(blob, wrappers))
+    def test_a_vector_holding_anything_outside_the_capture_is_rejected_whole(self) -> None:
+        blob, _people, player_ids = image([(0x800, [0x1000, 0x2AD0])])
+        self.assertIsNone(self.run_against(blob, player_ids))
 
     def test_two_live_searches_refuse_rather_than_guess(self) -> None:
-        blob, wrappers = image([(0x400, [0x1000]), (0xC00, [0x1008, 0x1010])])
+        blob, _people, player_ids = image([
+            (0x400, [0x1000]), (0xC00, [0x1020, 0x1040])
+        ])
         with self.assertRaises(ProbeError):
-            self.run_against(blob, wrappers)
+            self.run_against(blob, player_ids)
 
     def test_an_empty_pool_is_refused(self) -> None:
-        blob, _ = image([(0x800, [0x1000])])
+        blob, _people, _player_ids = image([(0x800, [0x1000])])
         with self.assertRaises(ProbeError):
             self.run_against(blob, [])
 
