@@ -10,6 +10,12 @@ It records only what the capture feed already exposes to the manager (exact,
 ranged or unknown attributes and the visible profile facts). An old observation
 is history, never a current fact: consumers must label it with its date.
 
+Reading it back is equally dated. `best_known_profile` and
+`best_known_profiles` assemble a player as of one in-game date: the newest
+profile row, the newest non-unknown reading of each attribute, and the newest
+recorded state beside it even when that state is unknown. The result reports
+the age of what it used and leaves "out of date" to whoever asked for it.
+
 Two rules this module exists to keep:
 
 * **Nothing is ever deleted or overwritten.** Observations are appended, and only
@@ -266,6 +272,60 @@ class AttributeRecord:
     observed_on: str
     source: str
     observation: AttributeObservation
+
+
+@dataclass(frozen=True)
+class SelectedAttribute:
+    """One attribute reading picked out of the history, with when it was seen."""
+
+    observation: AttributeObservation
+    observed_on: str
+    source: str  # 'current' or 'last_known', as recorded
+
+
+@dataclass(frozen=True)
+class AttributeKnowledge:
+    """One attribute of a best-known profile: the value to show, and the newest state.
+
+    `best_known` is None when every reading at or before the date is unknown:
+    captured, but never learned. An attribute missing from the profile's
+    `attributes` mapping was never captured at all, which is a different state
+    and is not invented as an unknown here.
+    """
+
+    attribute: str
+    best_known: SelectedAttribute | None
+    latest: SelectedAttribute
+
+
+@dataclass(frozen=True)
+class BestKnownProfile:
+    """A player assembled from what one save recorded at or before one game date.
+
+    * `profile` is the latest profile observation at or before `as_of`, in the
+      same shape `profile_history` returns (including `observed_on`), or None
+      when no profile row is that early. Profile rows are written only when a
+      fact changed, so its date is "when a fact last changed", not "when he
+      was last looked at".
+    * `attributes` holds every attribute recorded at or before `as_of`. Each
+      entry carries the best-known (never unknown) reading and, separately, the
+      newest recorded state even when that state is unknown, so a caller can
+      say the knowledge has faded. Attribute rows are never read past `as_of`.
+    * `oldest_observed_on` / `latest_observed_on` bound the in-game dates of
+      every row this result draws on: the age, not a verdict. Whether that age
+      is "out of date" is the caller's threshold to apply, never this store's.
+    * `name` is the save's most recently recorded name: the history dates
+      profile facts and attributes, not names, and identity is the player id.
+    """
+
+    save_key: str
+    player_id: str
+    name: str
+    as_of: str
+    profile: Mapping[str, Any] | None
+    attributes: Mapping[str, AttributeKnowledge]
+    oldest_observed_on: str
+    latest_observed_on: str
 
 
 class PlayerKnowledgeStore:
@@ -545,18 +605,124 @@ class PlayerKnowledgeStore:
                 "WHERE s.key = ? AND o.player_id = ? ORDER BY o.observed_on, o.id",
                 (save_key, player_id),
             ).fetchall()
-        history = []
-        for row in rows:
-            item: dict[str, Any] = {"observed_on": row["observed_on"]}
-            for name in PROFILE_FIELDS:
-                value = row[name]
-                if name in _JSON_FIELDS and value is not None:
-                    value = json.loads(value)
-                elif name in _BOOL_FIELDS and value is not None:
-                    value = bool(value)
-                item[name] = value
-            history.append(item)
-        return tuple(history)
+        return tuple(_decoded_profile(row) for row in rows)
+
+    def best_known_profile(
+        self, save_key: str, player_id: str, as_of: str
+    ) -> BestKnownProfile | None:
+        """What `save_key` had recorded about `player_id` at or before `as_of`.
+
+        None when that save holds nothing dated on or before `as_of` for him --
+        an unknown id, a player first seen later, another save -- rather than a
+        profile assembled out of nothing. The date is required, so a caller
+        cannot read the future by forgetting to ask for a cutoff.
+        """
+        return self._best_known(save_key, as_of, player_id).get(player_id)
+
+    def best_known_profiles(self, save_key: str, as_of: str) -> dict[str, BestKnownProfile]:
+        """Every player `save_key` had recorded something about at or before `as_of`.
+
+        Keyed by player id; players with nothing that early are absent rather
+        than present as empty profiles. A fixed number of queries, whatever the
+        size of the save.
+        """
+        return self._best_known(save_key, as_of, None)
+
+    def _best_known(
+        self, save_key: str, as_of: str, player_id: str | None
+    ) -> dict[str, BestKnownProfile]:
+        """Assemble best-known profiles; `player_id` narrows the same queries to one."""
+        _iso(as_of, "as_of")
+        self.initialize()
+        with closing(self._connect()) as connection:
+            save = connection.execute("SELECT id FROM saves WHERE key = ?", (save_key,)).fetchone()
+            if save is None:
+                return {}
+            save_id = int(save[0])
+            wanted = "" if player_id is None else " AND player_id = ?"
+            wanted_args: tuple[Any, ...] = () if player_id is None else (player_id,)
+            names = {
+                row["player_id"]: row["name"]
+                for row in connection.execute(
+                    f"SELECT player_id, name FROM players WHERE save_id = ?{wanted}",
+                    (save_id, *wanted_args),
+                )
+            }
+            profile_rows = {
+                row["player_id"]: _decoded_profile(row)
+                for row in connection.execute(
+                    f"SELECT player_id, observed_on, {', '.join(PROFILE_FIELDS)} FROM ("
+                    "  SELECT *, ROW_NUMBER() OVER (PARTITION BY player_id "
+                    "    ORDER BY observed_on DESC, id DESC) AS rn "
+                    f"  FROM profile_observations WHERE save_id = ? AND observed_on <= ?{wanted}"
+                    ") WHERE rn = 1",
+                    (save_id, as_of, *wanted_args),
+                )
+            }
+            # One pass yields both selections: the newest row overall (the
+            # latest state, unknown or not) and the newest row that carries a
+            # value (the best-known one). Ties on the in-game date are broken by
+            # row id, newest first -- the same order `attribute_history` reports,
+            # so a same-day re-record and a re-read cannot disagree.
+            latest: dict[tuple[str, str], SelectedAttribute] = {}
+            best_known: dict[tuple[str, str], SelectedAttribute] = {}
+            for row in connection.execute(
+                "SELECT player_id, attribute, observed_on, source, visibility, value, "
+                "minimum, maximum, rn_latest, rn_best FROM ("
+                "  SELECT *, "
+                "    ROW_NUMBER() OVER (PARTITION BY player_id, attribute "
+                "      ORDER BY observed_on DESC, id DESC) AS rn_latest, "
+                "    ROW_NUMBER() OVER (PARTITION BY player_id, attribute "
+                "      ORDER BY CASE WHEN visibility = 'unknown' THEN 1 ELSE 0 END, "
+                "               observed_on DESC, id DESC) AS rn_best "
+                f"  FROM attribute_observations WHERE save_id = ? AND observed_on <= ?{wanted}"
+                ") WHERE rn_latest = 1 OR rn_best = 1 "
+                "ORDER BY player_id, attribute",
+                (save_id, as_of, *wanted_args),
+            ):
+                selected = SelectedAttribute(
+                    observation=AttributeObservation(
+                        Visibility(row["visibility"]), value=row["value"],
+                        minimum=row["minimum"], maximum=row["maximum"],
+                    ),
+                    observed_on=row["observed_on"], source=row["source"],
+                )
+                key = (row["player_id"], row["attribute"])
+                if row["rn_latest"] == 1:
+                    latest[key] = selected
+                # The best candidate can still be an unknown row: then the save
+                # has nothing but unknowns for this attribute, and there is no
+                # best-known value to offer.
+                if row["rn_best"] == 1 and row["visibility"] != Visibility.UNKNOWN.value:
+                    best_known[key] = selected
+
+        grouped: dict[str, dict[str, AttributeKnowledge]] = {}
+        for (pid, attribute), selected in latest.items():
+            grouped.setdefault(pid, {})[attribute] = AttributeKnowledge(
+                attribute=attribute, best_known=best_known.get((pid, attribute)), latest=selected
+            )
+        dates: dict[str, set[str]] = {
+            pid: {row["observed_on"]} for pid, row in profile_rows.items()
+        }
+        for pid, attributes in grouped.items():
+            used = dates.setdefault(pid, set())
+            for knowledge in attributes.values():
+                used.add(knowledge.latest.observed_on)
+                if knowledge.best_known is not None:
+                    used.add(knowledge.best_known.observed_on)
+        profiles: dict[str, BestKnownProfile] = {}
+        # Only players with a row dated at or before `as_of` qualify; the
+        # foreign key means such a player always has a name to go with him.
+        for pid in sorted(dates):
+            if pid not in names:
+                continue
+            profiles[pid] = BestKnownProfile(
+                save_key=save_key, player_id=pid, name=names[pid], as_of=as_of,
+                profile=profile_rows.get(pid),
+                attributes=grouped.get(pid, {}),
+                oldest_observed_on=min(dates[pid]), latest_observed_on=max(dates[pid]),
+            )
+        return profiles
 
     def _connect(self) -> sqlite3.Connection:
         # Autocommit; `_transaction` and `_apply` manage their own BEGIN/COMMIT.
@@ -585,6 +751,19 @@ def _iso(text: str, label: str) -> str:
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{label} must be an ISO date, got {text!r}") from exc
     return text
+
+
+def _decoded_profile(row: Mapping[str, Any]) -> dict[str, Any]:
+    """One stored profile row as both readers return it: JSON and flags decoded."""
+    item: dict[str, Any] = {"observed_on": row["observed_on"]}
+    for name in PROFILE_FIELDS:
+        value = row[name]
+        if name in _JSON_FIELDS and value is not None:
+            value = json.loads(value)
+        elif name in _BOOL_FIELDS and value is not None:
+            value = bool(value)
+        item[name] = value
+    return item
 
 
 def _profile_row(profile: Mapping[str, Any]) -> tuple[Any, ...]:

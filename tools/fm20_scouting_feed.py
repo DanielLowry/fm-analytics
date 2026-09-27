@@ -620,6 +620,7 @@ def capture_pool(
             scouting_knowledge_by_id=scouting_knowledge_by_id,
             dropped_from_scout_reports_ids=dropped_from_scout_reports_ids,
             scout_report_ids=scout_report_ids,
+            in_player_search_ids=external_ids if pool_available else None,
             transfer_interest_by_id=transfer_interest_by_id,
             loan_interest_by_id=loan_interest_by_id,
             interest_margin=interest_margin,

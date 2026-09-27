@@ -89,6 +89,10 @@ class ScoutingFilters:
     include_unlikely: bool = False
     include_raw_external_positions: bool = False
     scouted_only: bool = False
+    # Off by default, so both tabs show what FM shows today. On, it adds back
+    # every player who has dropped off the scouting list since the app first
+    # saw him -- "everyone ever scouted" (product owner, 27 September 2026).
+    include_former_scouted: bool = False
     market: str = "any"
     expiring_months: int = 6
     # Real, manager-visible transfer value (FM's own Value column). Not a
@@ -621,6 +625,11 @@ def available_fact_values(candidates: Sequence[ScoutingCandidate]) -> dict[str, 
 def _matches_visible_filters(candidate: ScoutingCandidate, filters: ScoutingFilters) -> bool:
     if filters.scouted_only and not candidate.is_scouted():
         return False
+    if candidate.dropped_from_scout_reports and not filters.include_former_scouted:
+        # Off FM's scouting list now. On the Scouted tab that settles it;
+        # under All players he still belongs while FM's Player Search lists him.
+        if filters.scouted_only or not candidate.in_player_search:
+            return False
     if not _matches_market(candidate, filters):
         return False
     for expected, actual in (

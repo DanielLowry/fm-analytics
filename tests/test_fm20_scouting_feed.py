@@ -740,6 +740,12 @@ class ScoutedListAlignmentTests(unittest.TestCase):
         self.assertIs(rows["60"]["scoutReport"], True)
         self.assertIs(rows["61"]["scoutReport"], False)
         self.assertNotIn("scoutReport", rows["10"])
+        # Who FM's Player Search lists this run, for every player: what keeps a
+        # player who dropped off the scouting list under All players.
+        self.assertEqual(
+            {row_id: row["inPlayerSearch"] for row_id, row in rows.items()},
+            {"10": True, "11": True, "50": False, "51": False, "60": False, "61": False},
+        )
 
 
 class PositionFamiliarityFeedTests(unittest.TestCase):

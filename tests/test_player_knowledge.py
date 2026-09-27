@@ -219,6 +219,194 @@ class SaveIsolationAndTimelineTests(StoreCase):
         self.assertEqual(result.attribute_rows, 1)
 
 
+class BestKnownProfileTests(StoreCase):
+    def test_exact_and_range_readings_round_trip_with_their_dates_and_sources(self) -> None:
+        self.store.record(
+            capture("2019-09-08", player(attributes={"pace": known(14), "passing": spread(9, 13)}))
+        )
+        profile = self.store.best_known_profile("club:1", "1", "2019-09-08")
+
+        self.assertEqual((profile.save_key, profile.player_id, profile.name, profile.as_of),
+                         ("club:1", "1", "Ada Winger", "2019-09-08"))
+        pace = profile.attributes["pace"].best_known
+        self.assertEqual(pace.observation, known(14))
+        self.assertEqual(pace.observation.visibility, Visibility.KNOWN)
+        self.assertEqual((pace.observed_on, pace.source), ("2019-09-08", "current"))
+        passing = profile.attributes["passing"].best_known
+        self.assertEqual(passing.observation, spread(9, 13))
+        self.assertEqual(passing.observation.visibility, Visibility.RANGE)
+        self.assertEqual((passing.observation.minimum, passing.observation.maximum), (9, 13))
+        # The same row `profile_history` reports, decoded the same way.
+        self.assertEqual(profile.profile, self.store.profile_history("club:1", "1")[-1])
+        self.assertEqual(profile.profile["positions"], ["AML"])
+        self.assertEqual((profile.oldest_observed_on, profile.latest_observed_on),
+                         ("2019-09-08", "2019-09-08"))
+
+    def test_a_later_unknown_keeps_the_last_value_and_records_that_it_faded(self) -> None:
+        self.store.record(capture("2019-09-08", player(attributes={"pace": known(14)})))
+        self.store.record(capture("2019-10-01", player(attributes={"pace": UNKNOWN})))
+        faded = self.store.best_known_profile("club:1", "1", "2019-10-01")
+
+        pace = faded.attributes["pace"]
+        self.assertEqual(pace.best_known.observation, known(14))
+        self.assertEqual((pace.best_known.observed_on, pace.best_known.source),
+                         ("2019-09-08", "current"))
+        self.assertEqual(pace.latest.observation, UNKNOWN)
+        self.assertEqual(pace.latest.observed_on, "2019-10-01")
+        self.assertEqual((faded.oldest_observed_on, faded.latest_observed_on),
+                         ("2019-09-08", "2019-10-01"))
+
+    def test_a_captured_unknown_is_not_never_captured_and_neither_gains_a_value(self) -> None:
+        self.store.record(
+            capture("2019-09-08", player(attributes={"pace": known(14), "vision": UNKNOWN}))
+        )
+        profile = self.store.best_known_profile("club:1", "1", "2019-09-08")
+
+        vision = profile.attributes["vision"]
+        self.assertIsNone(vision.best_known)          # captured, never learned
+        self.assertEqual(vision.latest.observation, UNKNOWN)
+        self.assertIsNone(vision.latest.observation.value)
+        self.assertEqual(profile.attributes["pace"].best_known.observation, known(14))
+        self.assertNotIn("finishing", profile.attributes)  # never captured at all
+
+    def test_the_newest_reading_wins_when_two_ingests_share_a_date(self) -> None:
+        self.store.record(capture("2019-09-08", player(attributes={"pace": spread(8, 14)})))
+        self.store.record(capture("2019-09-08", player(attributes={"pace": spread(10, 12)})))
+        profile = self.store.best_known_profile("club:1", "1", "2019-09-08")
+        self.assertEqual(profile.attributes["pace"].best_known.observation, spread(10, 12))
+        self.assertEqual(len(self.store.attribute_history("club:1", "1", "pace")), 2)
+
+    def test_as_of_excludes_everything_recorded_later(self) -> None:
+        self.store.record(
+            capture("2019-09-08",
+                    player(profile={"transfer_status": "not_set"}, attributes={"pace": known(14)}))
+        )
+        listed = player(
+            profile={"transfer_status": "transfer_listed"}, attributes={"pace": UNKNOWN}
+        )
+        self.store.record(capture("2019-10-01", listed))
+
+        middle = self.store.best_known_profile("club:1", "1", "2019-09-15")
+        self.assertEqual(middle.profile["transfer_status"], "not_set")
+        self.assertEqual(middle.attributes["pace"].best_known.observation, known(14))
+        self.assertEqual(middle.attributes["pace"].latest.observation, known(14))
+        self.assertEqual(middle.latest_observed_on, "2019-09-08")
+
+        self.assertEqual(
+            self.store.best_known_profile("club:1", "1", "2019-09-08").profile["observed_on"],
+            "2019-09-08",
+        )
+        latest = self.store.best_known_profile("club:1", "1", "2019-10-01")
+        self.assertEqual(latest.profile["transfer_status"], "transfer_listed")
+        self.assertEqual(latest.attributes["pace"].latest.observation, UNKNOWN)
+
+    def test_a_player_first_seen_after_the_date_is_absent_rather_than_empty(self) -> None:
+        self.store.record(capture("2019-10-01", player(attributes={"pace": known(14)})))
+        self.assertIsNone(self.store.best_known_profile("club:1", "1", "2019-09-08"))
+        self.assertEqual(self.store.best_known_profiles("club:1", "2019-09-08"), {})
+        self.assertIsNone(self.store.best_known_profile("club:1", "no-such-player", "2019-10-01"))
+
+    def test_profiles_never_cross_save_identity(self) -> None:
+        self.store.record(
+            capture("2019-09-08", player(attributes={"pace": known(14)}), key="club:1")
+        )
+        self.store.record(
+            capture("2019-09-08", player(attributes={"pace": known(9)}), key="save-b")
+        )
+
+        mine = self.store.best_known_profile("club:1", "1", "2019-09-08")
+        theirs = self.store.best_known_profile("save-b", "1", "2019-09-08")
+        self.assertEqual(mine.attributes["pace"].best_known.observation, known(14))
+        self.assertEqual(theirs.attributes["pace"].best_known.observation, known(9))
+        self.assertEqual(
+            self.store.best_known_profiles("save-b", "2019-09-08")["1"]
+            .attributes["pace"].best_known.observation,
+            known(9),
+        )
+        self.assertIsNone(self.store.best_known_profile("save-b", "2", "2019-09-08"))
+
+    def test_a_rewound_reading_does_not_beat_a_newer_one(self) -> None:
+        self.store.record(capture("2019-09-08", player(attributes={"pace": known(14)})))
+        self.store.record(
+            capture("2019-09-01", player(attributes={"pace": known(13)})), allow_rewind=True
+        )
+        self.assertEqual(
+            self.store.best_known_profile("club:1", "1", "2019-09-08")
+            .attributes["pace"].best_known.observation,
+            known(14),
+        )
+        self.assertEqual(
+            self.store.best_known_profile("club:1", "1", "2019-09-01")
+            .attributes["pace"].best_known.observation,
+            known(13),
+        )
+
+    def test_backdated_last_known_readings_show_without_a_profile_row(self) -> None:
+        self.store.record(
+            capture(
+                "2019-09-08",
+                player(attributes={}, last_known_attributes={"pace": spread(8, 12)},
+                       last_known_observed_on="2019-07-21"),
+            )
+        )
+        early = self.store.best_known_profile("club:1", "1", "2019-08-01")
+
+        self.assertIsNone(early.profile)             # no profile row that early
+        self.assertEqual(early.name, "Ada Winger")
+        self.assertEqual(early.attributes["pace"].best_known.observation, spread(8, 12))
+        self.assertEqual(early.attributes["pace"].best_known.source, "last_known")
+        self.assertEqual((early.oldest_observed_on, early.latest_observed_on),
+                         ("2019-07-21", "2019-07-21"))
+        self.assertEqual(self.store.best_known_profile("club:1", "1", "2019-07-20"), None)
+
+    def test_the_batched_read_returns_every_recorded_player_once(self) -> None:
+        self.store.record(
+            capture("2019-09-08", player("1", attributes={"pace": known(14)}), player("2", "Bob"))
+        )
+        profiles = self.store.best_known_profiles("club:1", "2019-09-08")
+
+        self.assertEqual(list(profiles), ["1", "2"])
+        self.assertEqual(set(profiles["1"].attributes), {"pace"})
+        self.assertEqual(profiles["2"].attributes, {})       # profile facts only
+        self.assertEqual(profiles["2"].profile["observed_on"], "2019-09-08")
+        self.assertEqual((profiles["2"].oldest_observed_on, profiles["2"].latest_observed_on),
+                         ("2019-09-08", "2019-09-08"))
+
+    def test_an_unusable_date_is_refused_before_anything_is_read(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ISO date"):
+            self.store.best_known_profile("club:1", "1", "08/09/2019")
+        with self.assertRaisesRegex(ValueError, "ISO date"):
+            self.store.best_known_profiles("club:1", "September")
+        self.assertFalse(self.path.exists())
+
+    def test_the_batched_read_costs_the_same_queries_whatever_the_squad(self) -> None:
+        self.store.record(capture("2019-09-08", player("1", attributes={"pace": known(14)})))
+        crowded = PlayerKnowledgeStore(self.path.parent / "crowded.sqlite3")
+        five_players = (
+            player(str(number), attributes={"pace": known(14)}) for number in range(1, 6)
+        )
+        crowded.record(capture("2019-09-08", *five_players))
+
+        one = self.statements_used(self.store, "club:1", "2019-09-08")
+        five = self.statements_used(crowded, "club:1", "2019-09-08")
+
+        self.assertEqual(len(one), len(five))
+        self.assertLessEqual(len(one), 10)
+
+    def statements_used(self, store, save_key: str, as_of: str) -> list[str]:
+        statements: list[str] = []
+        original = PlayerKnowledgeStore._connect
+
+        def counting(_store):
+            connection = original(_store)
+            connection.set_trace_callback(statements.append)
+            return connection
+
+        with patch.object(PlayerKnowledgeStore, "_connect", counting):
+            store.best_known_profiles(save_key, as_of)
+        return statements
+
+
 class AtomicityAndValidationTests(StoreCase):
     def test_a_failure_part_way_through_records_nothing(self) -> None:
         with patch.object(

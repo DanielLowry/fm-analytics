@@ -632,6 +632,7 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         include_unlikely=_query_first(query, "includeUnlikely") == "1",
         include_raw_external_positions=_query_first(query, "includeRawPositions") == "1",
         scouted_only=_scouting_view(query) == "scouted",
+        include_former_scouted=_query_first(query, "everScouted") == "1",
         market=_query_first(query, "market") or "any",
         expiring_months=_query_number(query, "expiringMonths", integer=True) or 6,
         maximum_value=_query_number(query, "maxValue", integer=True),

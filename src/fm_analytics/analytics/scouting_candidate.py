@@ -39,6 +39,9 @@ class ScoutingCandidate:
     # for a feed older than schema 4, which could not tell the two apart.
     has_scout_report: bool | None = None
     dropped_from_scout_reports: bool = False
+    # Whether FM's own Player Search lists him as of this capture; None when
+    # the capture could not read Player Search (or predates schema 4).
+    in_player_search: bool | None = None
     # Raw 0-20 rating per position code. Finer than the eligibility list and,
     # for a player the manager does not own, beyond what FM's own screens
     # necessarily show, so it is only ever used behind the same opt-in as
@@ -164,8 +167,10 @@ class ScoutingCandidate:
         ):
             raise TypeError("scouting candidate scoutingKnowledge must be an integer or null")
         has_scout_report = raw.get("scoutReport")
-        if has_scout_report is not None and not isinstance(has_scout_report, bool):
-            raise TypeError("scouting candidate scoutReport must be a boolean")
+        in_player_search = raw.get("inPlayerSearch")
+        for name, flag in (("scoutReport", has_scout_report), ("inPlayerSearch", in_player_search)):
+            if flag is not None and not isinstance(flag, bool):
+                raise TypeError(f"scouting candidate {name} must be a boolean")
         transfer_interest = raw.get("transferInterest")
         loan_interest = raw.get("loanInterest")
         for name, value in (("transferInterest", transfer_interest), ("loanInterest", loan_interest)):
@@ -219,6 +224,7 @@ class ScoutingCandidate:
             scouting_knowledge=scouting_knowledge,
             has_scout_report=has_scout_report,
             dropped_from_scout_reports=dropped,
+            in_player_search=in_player_search,
             raw_position_familiarity=dict(familiarity) if familiarity is not None else None,
             contract_end=optional_text("contractEnd"), contract_type=optional_text("contractType"),
             has_contract=has_contract, captured_game_date=optional_text("capturedGameDate"),

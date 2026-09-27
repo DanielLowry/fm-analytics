@@ -53,6 +53,7 @@ def feed_document(
     scouting_knowledge_by_id: Mapping[int, int] | None = None,
     dropped_from_scout_reports_ids: Iterable[int] = (),
     scout_report_ids: Iterable[int] | None = None,
+    in_player_search_ids: Iterable[int] | None = None,
     transfer_interest_by_id: Mapping[int, str | None] | None = None,
     loan_interest_by_id: Mapping[int, str | None] | None = None,
     interest_margin: float | None = None,
@@ -78,6 +79,12 @@ def feed_document(
     written for every player with a knowledge level whenever
     ``scout_report_ids`` is given, so its absence means an older feed, not
     "no report".
+
+    ``inPlayerSearch`` (also schema 4) says whether FM's own Player Search
+    lists the player this run -- what keeps a player who has dropped off the
+    scouting list under All players, as he would be in game. It is written
+    for every player whenever ``in_player_search_ids`` is given, i.e. whenever
+    the pool was read; its absence means the pool was not read this run.
     """
     ids = tuple(sorted(set(player_ids)))
     missing_names = [player_id for player_id in ids if not names.get(player_id)]
@@ -98,6 +105,7 @@ def feed_document(
     scouting_knowledge_by_id = scouting_knowledge_by_id or {}
     dropped_from_scout_reports = set(dropped_from_scout_reports_ids)
     scout_reports = None if scout_report_ids is None else set(scout_report_ids)
+    in_player_search = None if in_player_search_ids is None else set(in_player_search_ids)
     transfer_interest_by_id = transfer_interest_by_id or {}
     loan_interest_by_id = loan_interest_by_id or {}
     with_age = sum(1 for player_id in ids if "age" in identity_facts_by_id.get(player_id, {}))
@@ -182,6 +190,10 @@ def feed_document(
                 **(
                     {"scoutReport": player_id in scout_reports}
                     if scout_reports is not None and player_id in scouting_knowledge_by_id else {}
+                ),
+                **(
+                    {"inPlayerSearch": player_id in in_player_search}
+                    if in_player_search is not None else {}
                 ),
                 **(
                     {"transferInterest": transfer_interest_by_id[player_id]}

@@ -190,14 +190,35 @@ class ScoutingTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             ScoutingCandidate.from_dict({**base, "scoutReport": "yes"})
 
-    def test_dropped_player_still_counts_as_scouted(self) -> None:
+    def test_a_dropped_player_is_on_the_scouted_tab_only_when_asked_for(self) -> None:
+        # By default the Scouted tab is FM's own list today; "everyone ever
+        # scouted" adds back players who have since dropped off it.
         dropped = candidate(
             "dropped", {}, name="Gone Player", scouting_knowledge=14, dropped_from_scout_reports=True,
         )
 
-        result = filter_scouting_candidates([dropped], ScoutingFilters(scouted_only=True))
+        default = filter_scouting_candidates([dropped], ScoutingFilters(scouted_only=True))
+        everyone = filter_scouting_candidates(
+            [dropped], ScoutingFilters(scouted_only=True, include_former_scouted=True)
+        )
 
-        self.assertEqual([item.id for item in result], ["dropped"])
+        self.assertEqual(default, ())
+        self.assertEqual([item.id for item in everyone], ["dropped"])
+
+    def test_a_dropped_player_stays_under_all_players_while_player_search_lists_him(self) -> None:
+        still_searchable = candidate(
+            "searchable", {}, scouting_knowledge=14, dropped_from_scout_reports=True, in_player_search=True,
+        )
+        gone = candidate("gone", {}, scouting_knowledge=14, dropped_from_scout_reports=True, in_player_search=False)
+        unknown = candidate("unknown", {}, scouting_knowledge=14, dropped_from_scout_reports=True)
+
+        default = filter_scouting_candidates([still_searchable, gone, unknown], ScoutingFilters())
+        everyone = filter_scouting_candidates(
+            [still_searchable, gone, unknown], ScoutingFilters(include_former_scouted=True)
+        )
+
+        self.assertEqual([item.id for item in default], ["searchable"])
+        self.assertEqual({item.id for item in everyone}, {"searchable", "gone", "unknown"})
 
     def test_a_dropped_flag_without_any_knowledge_level_is_rejected(self) -> None:
         with self.assertRaises(ValueError):

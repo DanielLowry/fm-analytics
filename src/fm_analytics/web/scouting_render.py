@@ -215,7 +215,8 @@ def no_results(heading: str, *, pool_size: int, scouted_only: bool) -> str:
             "No candidates match these filters."
             + (
                 " Only players you hold a scout report on -- FM's own Scouted list -- "
-                "are listed on the Scouted tab; try <b>All players</b>."
+                "are listed on the Scouted tab; try <b>All players</b>, or tick "
+                "<b>Everyone ever scouted</b> for players who have since dropped off it."
                 if scouted_only else ""
             )
         )

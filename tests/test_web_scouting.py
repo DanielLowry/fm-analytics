@@ -449,6 +449,29 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         self.assertIn("Advanced Forward (Attack)", report)
         self.assertIn("Attribute score inputs", report)
 
+    def test_the_scouted_tab_matches_fm_until_everyone_ever_scouted_is_ticked(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="current", name="Current Report", positions=("ST",), attributes={},
+                    scouting_knowledge=40, has_scout_report=True,
+                ),
+                ScoutingCandidate(
+                    id="former", name="Former Report", positions=("ST",), attributes={},
+                    scouting_knowledge=6, has_scout_report=True, dropped_from_scout_reports=True,
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        _status, default = self._get(port, "/scouting?view=scouted")
+        _status, everyone = self._get(port, "/scouting?view=scouted&everScouted=1")
+
+        self.assertIn("Current Report", default)
+        self.assertNotIn("Former Report", default)
+        self.assertIn("name='everScouted' type='checkbox' value='1'>", default)
+        self.assertIn("Former Report", everyone)
+        self.assertIn("name='everScouted' type='checkbox' value='1' checked>", everyone)
+
     def test_past_attributes_are_dated_separately_and_never_claimed_as_current(self) -> None:
         def scouting_provider():
             return (
@@ -466,7 +489,7 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
             )
 
         port = self._serve(FIXTURE, scouting_provider)
-        _status, listing = self._get(port, "/scouting?view=scouted")
+        _status, listing = self._get(port, "/scouting?view=scouted&everScouted=1")
         status, report = self._get(port, "/scouting/player/past-player")
 
         self.assertIn("Past knowledge</th>", listing)

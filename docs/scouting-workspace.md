@@ -72,7 +72,7 @@ second computation.
 
 A player whose knowledge record has since disappeared (retired, sold
 abroad, a database-only entry now -- FM's own reason for this is not
-observable from outside) stays in the Scouted tab with his last-known
+observable from outside) is kept in the feed with his last-known
 knowledge level, flagged rather than silently dropped:
 *"This player used to be in the scouted pool but can't be found in the
 scout reports anymore."* See `dropped_from_scout_reports_ids` in
@@ -80,6 +80,20 @@ scout reports anymore."* See `dropped_from_scout_reports_ids` in
 as current facts or scoring inputs. They move to the separately dated
 `lastKnownAttributes` snapshot, shown as **Past knowledge** in the list and as
 an explicitly historical section on the player report.
+
+**Hidden by default since 27 September 2026.** The kept players pile up: the
+product owner's file held 604 of them, and the next refresh would have made
+it 697 against the 530 FM's own Scouted list showed. The product owner's
+principle is that the app shows what FM shows, then adds filtering, sorting
+and analytics on top, so both tabs now match the game by default and an
+**Everyone ever scouted** tick box (`everScouted=1`,
+`ScoutingFilters.include_former_scouted`) brings the rest back. A player who
+has dropped off the scouting list but is still in FM's Player Search stays
+under All players by default, as he would in game; that needs the schema-4
+`inPlayerSearch` field, so it only works after a refresh that read the pool.
+A feed older than schema 4 cannot tell which dropped players had a report
+rather than just a knowledge level, so the first refresh from one puts all of
+them in "everyone ever scouted".
 
 ## Ranking: who to scout next (19 September 2026)
 
