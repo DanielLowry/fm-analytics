@@ -18,6 +18,12 @@ from fm_analytics.analytics.emphasis import (
     introduced_emphasis as _introduced_emphasis,
     sum_emphasis as _sum_emphasis,
 )
+from fm_analytics.analytics.in_possession import (
+    ALL_FIXED_FIELD_LABELS,
+    IN_POSSESSION_KEYS,
+    InPossessionSettings,
+    in_possession_from_json,
+)
 from fm_analytics.analytics.role_scoring import (
     RoleAttribute,
     RoleDefinition,
@@ -204,6 +210,11 @@ class TacticDefinition:
     # tactic does not work without passing" (a midfielder on passing 4 costs about
     # 8% of his score however much the role values passing).
     attribute_taper: tuple[AttributeTaper, ...] = ()
+    # The tactics screen's "In Possession" settings. `None` (not an empty
+    # `InPossessionSettings()`) when the catalogue entry has not been given
+    # any yet, which is why `in_possession_missing_fields` below is a
+    # property of the tactic rather than of `InPossessionSettings` alone.
+    in_possession: InPossessionSettings | None = None
 
     @property
     def emphasised_attributes(self) -> tuple[str, ...]:
@@ -213,6 +224,17 @@ class TacticDefinition:
             key=lambda block: bool(block.positions or block.roles),
         )
         return tuple(dict.fromkeys(name for block in ordered for name in block.attributes))
+
+    @property
+    def in_possession_missing_fields(self) -> tuple[str, ...]:
+        """Fixed in-possession fields not yet set, for the tactic page to flag.
+
+        A tactic with no `inPossession` block at all is missing every fixed
+        field, the same as one with the block but every field left `None`.
+        """
+        if self.in_possession is None:
+            return ALL_FIXED_FIELD_LABELS
+        return self.in_possession.missing_fixed_fields
 
     def __post_init__(self) -> None:
         if not all(
@@ -592,6 +614,9 @@ def _tactic_from_json(raw: Mapping[str, Any], *, version: str) -> TacticDefiniti
         instruction_rationale=_string_mapping(raw.get("instructionRationale"), "instructionRationale"),
         attribute_emphasis=_emphasis_blocks(raw.get("attributeEmphasis"), _str(raw, "key")),
         attribute_taper=_taper_blocks(raw.get("attributeTaper"), _str(raw, "key")),
+        in_possession=in_possession_from_json(
+            raw.get("inPossession"), _str(raw, "key"), only_known_keys=_only_known_keys
+        ),
     )
 
 
@@ -705,7 +730,7 @@ _TACTIC_KEYS = frozenset({
     "key", "name", "formation", "mentality", "instructions", "slots", "system",
     "style", "description", "whyGood", "whyThisShape", "whenToUse", "whenNotToUse",
     "instructionRationale", "keyRequirements", "tags", "attributeEmphasis",
-    "attributeTaper",
+    "attributeTaper", "inPossession",
 })
 _TAPER_KEYS = frozenset({"attribute", "taperBelow", "positions", "roles"})
 _SLOT_KEYS = frozenset({"key", "position", "role", "roles", "why", "attributeEmphasis"})

@@ -125,6 +125,35 @@ attributes and relevant roles:
 This makes instruction suitability a true player-role-instruction interaction,
 rather than a label attached to a tactic template.
 
+### 4b. Player-dependent in-possession settings (new)
+
+Not part of the original numbered list. `analytics/in_possession.py` now
+carries a tactic's actual FM tactics-screen settings (`InPossessionSettings`),
+split into fixed (part of the tactic's identity, hand-authored) and
+player-dependent (overlaps/underlaps, crossing type, shoot on sight, dribble
+less vs. run at defence, expressive vs. disciplined, play for set pieces).
+The player-dependent half only ever carries a fallback today — nothing
+computes it from a squad. A first version should be a small set of
+reviewable rules in the same spirit as `_INSTRUCTION_REQUIREMENTS`, reading
+only manager-visible attributes (see `analytics/CLAUDE.md`'s "The manager-
+visible boundary"), for example:
+
+| Setting | Illustrative rule |
+| --- | --- |
+| Overlap a side | The full-back's stamina and crossing clear a level and the wide player ahead of him tends to cut inside rather than hug the touchline |
+| Crossing type | Floated/whipped when a striker's jumping reach and heading are strong; low when he is quicker than tall |
+| Play for set pieces | A back four or midfield with a standout set-piece taker and aerial presence in the box |
+| Run at defence vs. dribble less | The front line's dribbling and pace relative to the rest of the squad |
+| Be more expressive vs. disciplined | Squad flair/decisions balance, tempered by how young or unfamiliar the shape is |
+
+This must run **after** the XI is picked and must not feed back into
+selection or scoring, or it would be circular (the settings would change who
+gets picked, which would change the settings) and would break the exact
+one-player-per-slot assignment `xi_selection.py` relies on (see "Role
+versions and player assignment" above). It is advisory output alongside the
+XI, computed once in `reporting.py` so the CLI and every web view show the
+same answer — never recomputed per surface.
+
 ### 5. Replace the 65% mean / 35% weakest-player XI objective — completed
 
 The fixed weakest-link weight was replaced with a square-root mean:

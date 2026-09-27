@@ -11,6 +11,27 @@
     "Higher Tempo",
     "Counter"
   ],
+  "inPossession": {
+    "attackingWidth": "Fairly Wide",
+    "passingDirectness": "Slightly More Direct Passing",
+    "tempo": "Higher Tempo",
+    "passIntoSpace": false,
+    "playOutOfDefence": false,
+    "focusPlay": "Balanced",
+    "workBallIntoBox": false,
+    "overlapLeft": true,
+    "overlapRight": true,
+    "underlapLeft": false,
+    "underlapRight": false,
+    "crossingType": "Floated",
+    "shootOnSight": false,
+    "hitEarlyCrosses": false,
+    "playForSetPieces": false,
+    "dribbleLess": false,
+    "runAtDefence": false,
+    "beMoreExpressive": true,
+    "beMoreDisciplined": false
+  },
   "slots": [
     {
       "key": "GK",

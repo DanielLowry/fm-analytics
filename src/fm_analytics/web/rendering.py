@@ -224,6 +224,17 @@ _STYLE = """
   .tactic-rationale ul { columns: 2; }
   .advisory-banner { margin: 1rem 0; padding: 0.85rem 1rem; border-left: 4px solid #b36b00; background: #fff4df; border-radius: 0.3rem; }
   .advisory-banner b { display: block; margin-bottom: 0.2rem; }
+  .in-possession-section { margin: 1rem 0; }
+  .in-possession-section h3 { font-size: 0.95rem; margin: 0 0 0.4rem; }
+  .in-possession-section .subhead { color: #667; font-size: 0.78rem; margin: 0 0 0.5rem; }
+  .instruction-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.5rem; margin-bottom: 0.6rem; }
+  .instruction-pill { padding: 0.5rem 0.7rem; border-radius: 0.3rem; background: #f0f2f5; border-left: 3px solid #8894a3; }
+  .instruction-pill.unset { background: #fff4df; border-left-color: #b36b00; color: #6b4a00; }
+  .instruction-pill span { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; color: #667; }
+  .instruction-pill.unset span { color: #8a5a00; }
+  .instruction-pill b { font-size: 0.9rem; }
+  .instruction-pill.fallback { background: #eef1f4; border-left-color: #9aa5b1; }
+  .instruction-pill.fallback span::after { content: " (fallback)"; text-transform: none; letter-spacing: normal; }
   .set-piece-hero { margin: 1rem 0; padding: 1rem 1.2rem; color: white; background: linear-gradient(135deg, #18364b, #315f68); border-radius: 0.45rem; }
   .set-piece-hero .eyebrow { color: #c8dde0; }
   .set-piece-hero h2 { margin: 0.15rem 0; padding: 0; border: 0; font-size: 1.35rem; }
@@ -723,9 +734,9 @@ def _refresh_notice(refreshed: str | None) -> str:
         )
     if refreshed == "hydrated":
         return (
-            "<p class='warn'>Scouting data refreshed with FM's current visible "
-            "attributes for the active Player Search results. This ran FM's "
-            "visibility builder inside the running game.</p>"
+            "<p class='warn'>Scouting data refreshed with the attributes FM supplied "
+            "for your open Player Search. This ran FM's own code inside the running "
+            "game. If this save later fails to load, this is the step to suspect.</p>"
         )
     return ""
 

@@ -240,9 +240,11 @@ know something about a player who has never had an explicit scout report. A
 plain, read-only refresh cannot yet reproduce that baseline-knowledge path.
 Those players are therefore labelled **Not captured from FM**, never
 "nothing known". On the **All players / Player Search** tab, leave the intended
-search open in FM and choose **Capture current FM Search attributes** to ask
-FM's own visibility builder for the exact current answer. The operation is
-bounded to 256 active results and processed in batches of at most 64.
+search open in FM, open **Attributes for players you haven't scouted** under
+the refresh button, and choose **Ask FM for these attributes (risks this
+save)** to ask FM's own visibility builder for the exact current answer. The
+operation is bounded to 256 active results and processed in batches of at most
+64. It is never the default; see the next section for why.
 
 ## Frida hydration still exists, now for a different purpose
 
@@ -258,11 +260,45 @@ hydrated this way outranks the read-only calculation for that player in
 the merge order (prior capture, then this run's calculation, then this
 run's hydration, each layer overriding the last).
 
-Its own native-call timing was fixed alongside the pool-rebuild agent on
+Its own native-call timing was changed alongside the pool-rebuild agent on
 18 September 2026 (`tools/fm20_frida_attribute_sweep.py`,
-`tools/fm20_frida_property.py`): the call now prefers FM's message pump
-over a `QueryPerformanceCounter` tick, for the same reason and the same
-evidence recorded in `docs/property-discovery-playbook.md`.
+`tools/fm20_frida_property.py`): the call now runs at FM's message pump
+rather than a `QueryPerformanceCounter` tick, for the reason recorded in
+`docs/property-discovery-playbook.md`.
+
+### Saves broke again on 26 September 2026
+
+On the evening of 26 September the All players tab's main refresh button
+started sending `--hydrate-active-search`, so every refresh ran FM's
+visibility builder for the whole open search (about 2,400 builder calls for a
+51-player search). The shared thread selector introduced the same evening also
+let a call run inside `QueryPerformanceCounter` again when no message pump was
+seen. Saves broke again that evening: they saved without an error and then
+would not load.
+
+What the native-call log shows, and does not:
+
+- No Frida call ran into FM between the 17 September gating and 26 September
+  19:47. The pump hook had never actually been exercised, so the healthy saves
+  in between were because refreshes stopped calling FM, not because of it.
+- The pool rebuild never ran on 26 September. The visible-attribute batches
+  ran at 20:35 and 20:41 (51 players each time), and a footedness batch at
+  20:35 timed out after 20 seconds, after which FM had a new PID.
+- The log did not record which thread or hook those batches used, so thread
+  choice versus the builder's own writes (03.2: it updates recent-lookup
+  fields in the manager's knowledge context and may store a report pointer)
+  cannot be told apart. Each batch now logs `scouting_native_batch` with its
+  thread selection so the next incident can.
+
+Fixed 27 September 2026: the main refresh button on both tabs is read-only
+again, asking FM for unscouted attributes is a separate, collapsed, red button
+that states the risk, and the thread selector refuses rather than running at a
+timing call. For those unscouted players this is a real loss -- 43 of the 51
+players captured on 26 September had no scout report yet FM showed each of
+them 16-21 ranged attributes -- which is why the read-only route to the same
+answer (03.2's baseline-knowledge "Plan B", or observing FM's own baseline
+calculation passively) is the next step rather than making the native call
+the default again.
 
 ## Candidate-feed contract
 
@@ -344,9 +380,10 @@ attempt in order:
 | `scouting_refresh_started` | Refresh began; records `allow_rebuild`, hydrate count, base feed date |
 | `scouting_pool_read` | The cold read; records the pool size found and the live game date |
 | `scouting_refresh_refused_pool_not_built` | Pool was empty and `allow_rebuild` was false; nothing was written to FM |
-| `scouting_pool_rebuild_started` / `_completed` / `_failed` | The one step that runs FM's own code; `_completed`/`_failed` record which thread hook was used (`hook`) and whether it was the message-pump resting point or the timing-call fallback (`resting_point`) |
+| `scouting_pool_rebuild_started` / `_completed` / `_failed` | FM's own pool builder ran; `_completed` records the thread, how it was selected, and the hook used (`hook`, `resting_point`) |
 | `scouting_refresh_date_drift` | Base feed's date differs from today's live read; informational only |
-| `scouting_hydration_started` / `_completed` | `--hydrate-player-id` requests, with counts |
+| `scouting_hydration_started` / `_completed` | `--hydrate-player-id` / `--hydrate-active-search` requests, with counts |
+| `scouting_native_batch` | One Frida batch that ran FM's code (`agent` is `attribute-sweep` or `footedness`): the thread it chose, how (`selection`), both thread samples, the hook, and any agent errors |
 | `scouting_refresh_completed` | Success; records `rebuilt`, player count, total duration |
 | `scouting_refresh_failed` | Any exception, anywhere in the refresh, with its type, message, and duration so far |
 

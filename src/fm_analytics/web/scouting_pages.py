@@ -485,7 +485,14 @@ def _sort_options(selected: str, mode: str, include_raw: bool) -> str:
 
 
 def _scouting_refresh_panel(scouted_only: bool) -> str:
-    """Refreshing the capture, kept to one line until the manager asks what it does."""
+    """Refreshing the capture. The main button on either tab only reads FM's memory.
+
+    Asking FM for unscouted players' attributes runs FM's own code inside the
+    running game, and is the prime suspect for the saves that broke again on
+    26 September 2026, the evening that became this button's default. It is a
+    separate, collapsed, explicitly-worded action -- the same footing as the
+    pool rebuild in ``_pool_not_built_page`` -- and never the default.
+    """
     if scouted_only:
         return (
             "<section class='refresh-panel'>"
@@ -493,24 +500,30 @@ def _scouting_refresh_panel(scouted_only: bool) -> str:
             "<input type='hidden' name='return_view' value='scouted'>"
             "<button type='submit'>Refresh scouted players</button>"
             "<span class='muted'>Reads current scout reports and their visible "
-            "attributes from FM.</span></form></section>"
+            "attributes from FM's memory. Nothing is sent to FM.</span></form></section>"
         )
     return (
         "<section class='refresh-panel'>"
         "<form class='refresh' method='post' action='/scouting/refresh'>"
+        "<input type='hidden' name='return_view' value='all'>"
+        "<button type='submit'>Refresh scouting data</button>"
+        "<span class='muted'>Reads FM's memory only; nothing is sent to FM. Updates the "
+        "player list, scouted players' attributes, and which players match the search "
+        "open in FM.</span></form>"
+        "<details><summary>Attributes for players you haven't scouted</summary>"
+        "<p>FM shows some attributes for players you have never scouted, from what "
+        "your staff already know about them. This app cannot work those out by itself "
+        "yet, so after a normal refresh those players read <b>Not captured from FM</b>.</p>"
+        "<p class='warn'>The only way to get them today is to ask FM, which runs FM's "
+        "own code inside your running game. That is the step suspected of breaking "
+        "saves on 26 September 2026: they saved without an error, then would not "
+        "load. <b>Only do this on a save you would not mind losing</b>, or after "
+        "taking a copy of your save file.</p>"
+        "<p class='muted'>Leave the Player Search you want open in FM first. Up to 256 "
+        "results.</p>"
+        "<form class='refresh' method='post' action='/scouting/refresh'>"
         "<input type='hidden' name='hydrate_active_search' value='1'>"
         "<input type='hidden' name='return_view' value='all'>"
-        "<button type='submit'>Refresh Player Search and attributes</button>"
-        "<span class='muted'>Leave the intended search and filters open in FM first. "
-        "Up to 256 active results, processed in bounded batches.</span></form>"
-        "<details><summary>What does refreshing do?</summary>"
-        "<p>This refreshes the player list <b>and</b> captures the attributes FM currently "
-        "shows for every matching player.</p>"
-        "<p class='warn'>This asks FM's own visibility builder for the values "
-        "it currently exposes. It runs code inside the live game, so save first.</p>"
-        "<p class='muted'>Prefer the read-only option? It updates identities and FM Search "
-        "matches but deliberately leaves unscouted attributes uncaptured.</p>"
-        "<form class='refresh' method='post' action='/scouting/refresh'>"
-        "<input type='hidden' name='return_view' value='all'>"
-        "<button type='submit'>Refresh list only</button></form></details></section>"
+        "<button type='submit' class='danger'>Ask FM for these attributes "
+        "(risks this save)</button></form></details></section>"
     )

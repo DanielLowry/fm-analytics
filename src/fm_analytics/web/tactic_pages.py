@@ -15,6 +15,7 @@ from fm_analytics.web.opponent_controls import (
     opponent_query as _opponent_query,
     opponent_summary_items as _opponent_summary_items,
 )
+from fm_analytics.web.in_possession_render import in_possession_section
 from fm_analytics.web.rendering import (
     _band,
     _error_page,
@@ -401,6 +402,7 @@ class TacticPagesMixin:
             + score_summary
             + structural_warning
             + score_breakdown
+            + in_possession_section(evaluation.tactic)
             + rationale
             + training
             + "<h2>Starting XI</h2>"

@@ -116,6 +116,22 @@ def _active_search_hydration_ids(
     return external
 
 
+def _log_native_batch(
+    agent: str, pid: int, call_number: int | None, player_count: int, capture: Mapping[str, Any]
+) -> None:
+    """Record which thread and hook one Frida batch ran FM's code on.
+
+    Only the pool rebuild used to log this. When saves broke again on 26
+    September 2026 the log could show that attribute batches had run, but not
+    where, so the thread choice could be neither blamed nor cleared.
+    """
+    log_event(
+        "scouting_native_batch", call_number=call_number, pid=pid, agent=agent,
+        player_count=player_count, thread=capture.get("thread"),
+        agent_errors=capture.get("agentErrors"),
+    )
+
+
 def hydrate_visible_attributes(
     pid: int,
     *,
@@ -123,6 +139,7 @@ def hydrate_visible_attributes(
     player_ids: Sequence[int],
     device: Any,
     target_pid: int,
+    call_number: int | None = None,
 ) -> dict[int, dict[str, Any]]:
     """Read FM's visible attribute bounds for a small, known candidate set.
 
@@ -161,6 +178,7 @@ def hydrate_visible_attributes(
         attribute_agent_source(module_base, context, people, attributes),
         timeout_seconds=30.0,
     )
+    _log_native_batch("attribute-sweep", pid, call_number, len(people), capture)
     if not (
         capture["attached"]
         and capture["agentReady"]
@@ -193,6 +211,7 @@ def hydrate_visible_footedness(
     records: dict[int, int],
     device: Any,
     target_pid: int,
+    call_number: int | None = None,
 ) -> dict[int, str]:
     """Read FM's manager-visible footedness label for known candidates only."""
     selected = tuple(dict.fromkeys(player_ids))
@@ -208,6 +227,7 @@ def hydrate_visible_footedness(
         footedness_agent_source(module_base, people),
         timeout_seconds=20.0,
     )
+    _log_native_batch("footedness", pid, call_number, len(people), capture)
     if not (
         capture["attached"]
         and capture["agentReady"]
@@ -468,6 +488,7 @@ def capture_pool(
             log_event(
                 "scouting_pool_rebuild_completed", call_number=call_number, pid=pid,
                 hook=hook_info.get("hook"), resting_point=hook_info.get("restingPoint"),
+                thread=hook_info.get("id"), selection=hook_info.get("selection"),
                 pool_count_before=len(before_ids), pool_count_after=len(pool_ids),
             )
         if prior_game_date is not None and after.game_date != prior_game_date:
@@ -638,6 +659,7 @@ def capture_pool(
                 player_ids=batch,
                 device=device,
                 target_pid=target_pid,
+                call_number=call_number,
             ))
         attributes_by_id.update(newly_hydrated_attributes)
         attributes_observed_at.update(dict.fromkeys(newly_hydrated_attributes, after.game_date))
@@ -672,6 +694,7 @@ def capture_pool(
                     records=records,
                     device=device,
                     target_pid=target_pid,
+                    call_number=call_number,
                 ))
             except ScoutingFeedError as error:
                 footedness_error = str(error)
@@ -789,7 +812,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--hydrate-player-id", type=int, action="append", default=[],
         help=(
             "read all manager-visible attributes for one discovered player "
-            f"(repeat up to {MAX_HYDRATED_PLAYERS} times)"
+            f"(repeat up to {MAX_HYDRATED_PLAYERS} times). Runs FM's own code inside "
+            "the live game, like --allow-rebuild; see --hydrate-active-search"
         ),
     )
     parser.add_argument(
@@ -797,7 +821,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         help=(
             "read FM's current visible attributes for every player matched by the "
             "active Player Search (bounded to "
-            f"{MAX_ACTIVE_SEARCH_HYDRATED_PLAYERS} results and processed in batches)"
+            f"{MAX_ACTIVE_SEARCH_HYDRATED_PLAYERS} results and processed in batches). "
+            "This runs FM's own visibility builder inside your running save, and "
+            "saves broke again on 26 September 2026 after it was used; copy the "
+            "save first. Without it, unscouted players' attributes stay uncaptured"
         ),
     )
     parser.add_argument(

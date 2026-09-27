@@ -99,9 +99,12 @@ another agent.
 - **Run FM's code on FM's thread.** Sample the Windows message-pump exports
   (`GetMessageW`/`PeekMessageW` and their ANSI variants) and use a uniquely
   observed pump thread. This directly identifies the thread whose resting
-  point the call will use. If no pump call is observed, the older five-times
-  dominant `QueryPerformanceCounter` signal remains a fallback; if multiple
-  pump threads appear, that same independent signal must select one of them.
+  point the call will use. If multiple pump threads appear, the older
+  five-times dominant `QueryPerformanceCounter` signal must select one of them.
+  If no pump call is observed, stop: a 26 September change briefly let that
+  case run the call inside `QueryPerformanceCounter` again, the timing the next
+  point warns against, and it was removed on 27 September
+  (`tools/fm20_frida_ui_thread.py`).
 - **Do the work at a resting point, not at any timing call.** This page used to
   say the timing hook was "FM's UI thread at an idle point". That does not
   follow, and it is the likeliest cause of saves that write and then fail to
@@ -109,11 +112,19 @@ another agent.
   UI thread; it says nothing about what that thread is in the middle of, and FM
   times things precisely *because* it is doing them. Hook the message pump
   (`GetMessageW`/`PeekMessageW`) instead: the UI thread returns there between
-  units of work, so the call lands at a boundary FM itself chose.
-  `fm20_frida_discoverability.builder_agent_source` prefers the pump, falls
-  back to the timing export only when no pump export is reachable, and reports
-  which it used in its `thread` message. A capture whose `restingPoint` is
-  false was timed the old way.
+  units of work, so the call lands at a boundary FM itself chose. Every agent
+  now runs only at the pump and reports the hook in its `thread` message. A
+  capture whose `restingPoint` is false was timed the old way.
+
+  **This is a hypothesis, not a proven fix.** The native-call log shows no
+  Frida call into FM at all between this change (17 September) and the evening
+  of 26 September, so the saves that stayed healthy in between say nothing
+  about the pump. The first evening calls resumed -- visible-attribute batches
+  at the pump, on a newly loosened thread choice -- saves broke again. The
+  visibility builder is itself documented as writing to the manager's knowledge
+  context (03.2, "The core path is not demonstrably read-only"). Treat any
+  native call as able to break a save until a save-and-reload test says
+  otherwise.
 - **Refuse to proceed if the thread is ambiguous.** No unique pump thread and
   no independently dominant QPC match means stop, not guess. Preserve both
   samples in the capture report so a runtime-specific failure is diagnosable.

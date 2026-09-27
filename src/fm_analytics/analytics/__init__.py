@@ -18,6 +18,7 @@ from fm_analytics.analytics.role_comparison import (
 from fm_analytics.analytics.catalogue import (
     MVP_CATALOGUE,
     FootballCatalogue,
+    InPossessionSettings,
     TacticDefinition,
     TacticSlot,
     TacticSystemRequirements,
@@ -237,6 +238,7 @@ __all__ = [
     "SlotDepth",
     "SquadDepthReport",
     "SquadAttributeMerge",
+    "InPossessionSettings",
     "TacticDefinition",
     "TacticEvaluation",
     "TacticFitPolicy",

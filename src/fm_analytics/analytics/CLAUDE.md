@@ -179,6 +179,54 @@ and cover are both tapered, or a penalised starter would look better than his
 cover). A group rule such as "at least one midfielder with passing 12" would
 couple players and is deliberately not supported.
 
+## In-possession settings
+
+A tactic may declare `inPossession` (`in_possession.py`): the concrete
+settings a manager sets on FM's tactics screen (attacking width, passing
+directness, tempo, overlaps, crossing type, and so on), distinct from the
+pressing/tempo/line-of-engagement style strings in `instructions` that
+`assess_instruction_suitability` actually scores. **This block is never
+scoring input** — it exists only so the tactic page can tell a manager
+exactly what to click, which the catalogue could not say before.
+
+Fields split in three, mirroring the product decision behind them:
+
+- **Fixed** (`attackingWidth`, `passingDirectness`, `tempo`, `passIntoSpace`,
+  `playOutOfDefence`, `focusPlay`, `workBallIntoBox`): part of what makes
+  this tactic *this* tactic, always hand-authored. Only a handful of
+  tactics have been given these so far (`vertical_442`, `wing_play_442`);
+  the rest report every fixed field as missing. `TacticDefinition.in_possession_missing_fields`
+  is what `web/in_possession_render.py` reads to flag the gap on the tactic
+  page rather than silently showing nothing — filling in the rest is
+  ongoing, tactic by tactic.
+- **Player-dependent** (`overlapLeft`/`overlapRight`, `underlapLeft`/`underlapRight`,
+  `crossingType`, `shootOnSight`, `hitEarlyCrosses`, `playForSetPieces`,
+  `dribbleLess`, `runAtDefence`, `beMoreExpressive`, `beMoreDisciplined`):
+  a real manager sets these by looking at which players are out there, not
+  at the formation. There is no code yet that picks these from a squad's
+  visible attributes (see `docs/tactical-system-roadmap.md`'s in-possession
+  item); each field is only ever a fallback used until that lands, so none
+  of it is required or flagged as missing. Values authored today (e.g.
+  `wing_play_442`'s `overlapLeft`/`overlapRight: true`) are a reasonable
+  default for the tactic's own identity, not a claim about any particular
+  squad.
+- **Situational** (`timeWasting`): depends on the scoreline and the clock,
+  not the squad or the tactic, so it carries a default and is likewise
+  never flagged as missing.
+
+Validation catches the FM-real illegal combinations: overlap and underlap on
+the same side, dribble-less with run-at-defence, and expressive with
+disciplined are each opposite ends of one setting and cannot both be true.
+Every enum field (width, directness, tempo, focus, crossing type, time
+wasting) is checked against a fixed option list in `in_possession.py`.
+
+Deliberately **not** wired into `instructions`: removing the free-text
+strings that now duplicate a fixed field (e.g. `vertical_442`'s `"Pass Into
+Space"`) would change `assess_instruction_suitability`'s score, which is a
+football judgment call this feature was not meant to make. The two lists
+can currently name the same setting in two places; collapsing that overlap
+without touching scoring is unstarted work, not a bug.
+
 ## The opponent
 
 `opponent.py` holds an `OpponentProfile`: a likely-formation choice plus nine

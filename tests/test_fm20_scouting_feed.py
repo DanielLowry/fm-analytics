@@ -311,6 +311,47 @@ class RefreshLoggingTests(unittest.TestCase):
         self.assertEqual(len(call_numbers), 1)
 
 
+class NativeBatchLoggingTests(unittest.TestCase):
+    """A batch that ran FM's code must say which thread and hook it used."""
+
+    def test_attribute_batch_logs_its_thread_selection(self) -> None:
+        thread = {
+            "id": 372, "hook": "PeekMessageW", "restingPoint": True,
+            "selection": "unique-message-pump-thread",
+            "qpcSample": {"372": 6109}, "pumpSample": {"372": {"PeekMessageW": 40}},
+        }
+        capture = {
+            "attached": True, "agentReady": True, "scriptUnloaded": True,
+            "detached": True, "agentErrors": [], "thread": thread,
+        }
+        decoded = {"resolvedCount": 1, "players": [{"id": "42", "error": None, "attributes": {}}]}
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(feed.os, "open", return_value=99))
+            stack.enter_context(mock.patch.object(feed.os, "close"))
+            stack.enter_context(mock.patch.object(
+                feed, "resolve_context_and_manager", return_value=(0x999, 0x888)
+            ))
+            stack.enter_context(mock.patch.object(
+                feed, "resolve_player_interfaces", return_value={42: 0x5000}
+            ))
+            stack.enter_context(mock.patch.object(
+                feed, "extract_attribute_capture", return_value=capture
+            ))
+            stack.enter_context(mock.patch.object(feed, "decode_attribute_capture", return_value=decoded))
+            stack.enter_context(mock.patch.object(feed, "process_alive", return_value=True))
+            events = stack.enter_context(mock.patch.object(feed, "log_event"))
+
+            feed.hydrate_visible_attributes(
+                1234, module_base="0x140000000", player_ids=[42],
+                device=object(), target_pid=7, call_number=5,
+            )
+
+        events.assert_called_once_with(
+            "scouting_native_batch", call_number=5, pid=1234, agent="attribute-sweep",
+            player_count=1, thread=thread, agent_errors=[],
+        )
+
+
 class IdentityFactsTests(unittest.TestCase):
     """Age/club/transfer status degrade per player and per field, never
     fail the whole refresh -- mirrors the owned-squad reader's own

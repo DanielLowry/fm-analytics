@@ -504,8 +504,31 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         self.assertEqual(location, "/scouting?refreshed=1")
         self.assertEqual(calls, [False])
         self.assertEqual(refreshed_status, 200)
-        self.assertIn("Refresh Player Search and attributes", refreshed_body)
+        self.assertIn("Refresh scouting data", refreshed_body)
         self.assertIn("Scouting data refreshed", refreshed_body)
+
+    def test_all_players_main_refresh_never_runs_fm_code(self) -> None:
+        """Saves broke again on 26 September 2026 when this button hydrated by default."""
+        calls = []
+
+        def refresh(*, allow_rebuild=False, hydrate_active_search=False):
+            calls.append((allow_rebuild, hydrate_active_search))
+            return "Captured scouting data"
+
+        port = self._serve(FIXTURE, scouting_refresh=refresh)
+        _page_status, page = self._get(port, "/scouting?view=all")
+        panel = page[page.index("<section class='refresh-panel'>"):]
+        main_form = panel[:panel.index("</form>")]
+        status, location, _body = self._post(port, "/scouting/refresh", "return_view=all")
+        _refreshed_status, refreshed = self._get(port, location)
+
+        self.assertIn("Refresh scouting data", main_form)
+        self.assertNotIn("hydrate_active_search", main_form)
+        self.assertNotIn("danger", main_form)
+        self.assertEqual(status, 303)
+        self.assertEqual(location, "/scouting?view=all&refreshed=1")
+        self.assertEqual(calls, [(False, False)])
+        self.assertIn("Nothing was written to FM", refreshed)
 
     def test_all_players_can_capture_the_active_fm_search_attributes(self) -> None:
         calls = []
@@ -521,13 +544,15 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         )
         _refreshed_status, refreshed = self._get(port, location)
 
-        self.assertIn("Refresh Player Search and attributes", page)
-        self.assertIn("name='hydrate_active_search' value='1'", page)
+        capture_form = page[page.index("Attributes for players you haven't scouted"):]
+        self.assertIn("name='hydrate_active_search' value='1'", capture_form)
+        self.assertIn("class='danger'>Ask FM for these attributes (risks this save)", capture_form)
+        self.assertIn("would not mind losing", capture_form)
         self.assertEqual(status, 303)
         self.assertEqual(location, "/scouting?refreshed=hydrated")
         self.assertEqual(calls, [(False, True)])
-        self.assertIn("current visible attributes", refreshed)
-        self.assertIn("inside the running game", refreshed)
+        self.assertIn("attributes FM supplied", refreshed)
+        self.assertIn("If this save later fails to load", refreshed)
 
     def test_scouted_refresh_uses_reports_without_player_search_hydration(self) -> None:
         calls = []
