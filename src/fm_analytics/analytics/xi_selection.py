@@ -705,7 +705,7 @@ def _role_structure_checks(
         for assignment in assignments
     )
     coherence = assess_coherence(tactic, roles)
-    instruction = assess_instruction_suitability(roles, tactic.instructions)
+    instruction = assess_instruction_suitability(roles, tactic)
     opponent_fit = assess_opponent_fit(roles, opponent)
     return coherence, instruction, opponent_fit
 

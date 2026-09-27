@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from fm_analytics.analytics.catalogue import TacticDefinition
+from fm_analytics.analytics.in_possession import in_possession_instruction_strings
 from fm_analytics.analytics.role_scoring import RoleDefinition
 
 
@@ -124,9 +125,24 @@ def assess_coherence(
     return SystemAssessment(score, contributions, tuple(shortfalls), attack_duties, creators, True)
 
 
-def assess_instruction_suitability(roles: Sequence[RoleDefinition], instructions: Sequence[str]) -> SystemAssessment:
+def effective_instructions(tactic: TacticDefinition) -> tuple[str, ...]:
+    """Every instruction string that feeds instruction-fit scoring.
+
+    The tactic's own free-text `instructions` plus any fixed in-possession
+    setting that has a scored legacy-string equivalent (see
+    `in_possession.in_possession_instruction_strings`). A fixed field is
+    never also present literally in `instructions` --
+    `TacticDefinition.__post_init__` refuses that combination -- so nothing
+    here is ever double-counted.
+    """
+    return tactic.instructions + in_possession_instruction_strings(tactic.in_possession)
+
+
+def assess_instruction_suitability(
+    roles: Sequence[RoleDefinition], tactic: TacticDefinition
+) -> SystemAssessment:
     demands: dict[str, float] = {}
-    for instruction in instructions:
+    for instruction in effective_instructions(tactic):
         for dimension, minimum in _INSTRUCTION_REQUIREMENTS.get(instruction, {}).items():
             demands[dimension] = max(demands.get(dimension, 0.0), minimum)
     return assess_demands(roles, demands)

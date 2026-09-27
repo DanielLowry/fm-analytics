@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, NamedTuple
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 class ScoutingFeedError(RuntimeError):
@@ -52,6 +52,7 @@ def feed_document(
     position_familiarity_by_id: Mapping[int, Mapping[str, int]] | None = None,
     scouting_knowledge_by_id: Mapping[int, int] | None = None,
     dropped_from_scout_reports_ids: Iterable[int] = (),
+    scout_report_ids: Iterable[int] | None = None,
     transfer_interest_by_id: Mapping[int, str | None] | None = None,
     loan_interest_by_id: Mapping[int, str | None] | None = None,
     interest_margin: float | None = None,
@@ -70,6 +71,13 @@ def feed_document(
     cannot enter current scoring. Carried footedness likewise keeps its real
     observation date. A player captured via the sandbox this run gets
     ``game_date``.
+
+    ``scoutReport`` (schema 4) separates FM's Scouted list -- players the
+    manager holds a scout report on -- from everyone else with a
+    ``scoutingKnowledge`` level, such as a trialist or a past opponent. It is
+    written for every player with a knowledge level whenever
+    ``scout_report_ids`` is given, so its absence means an older feed, not
+    "no report".
     """
     ids = tuple(sorted(set(player_ids)))
     missing_names = [player_id for player_id in ids if not names.get(player_id)]
@@ -89,6 +97,7 @@ def feed_document(
     position_familiarity_by_id = position_familiarity_by_id or {}
     scouting_knowledge_by_id = scouting_knowledge_by_id or {}
     dropped_from_scout_reports = set(dropped_from_scout_reports_ids)
+    scout_reports = None if scout_report_ids is None else set(scout_report_ids)
     transfer_interest_by_id = transfer_interest_by_id or {}
     loan_interest_by_id = loan_interest_by_id or {}
     with_age = sum(1 for player_id in ids if "age" in identity_facts_by_id.get(player_id, {}))
@@ -171,6 +180,10 @@ def feed_document(
                     if player_id in scouting_knowledge_by_id else {}
                 ),
                 **(
+                    {"scoutReport": player_id in scout_reports}
+                    if scout_reports is not None and player_id in scouting_knowledge_by_id else {}
+                ),
+                **(
                     {"transferInterest": transfer_interest_by_id[player_id]}
                     if transfer_interest_by_id.get(player_id) is not None else {}
                 ),
@@ -235,6 +248,9 @@ class PriorVisibility(NamedTuple):
     raw_positions: dict[int, tuple[str, ...]]
     scouting_knowledge: dict[int, int]
     names: dict[int, str]
+    # Players the earlier capture recorded a scout report for; None for a
+    # feed written before schema 4, which could not tell.
+    scout_reports: frozenset[int] | None = None
 
 
 def load_prior_visibility(path: Path) -> PriorVisibility:
@@ -256,6 +272,8 @@ def load_prior_visibility(path: Path) -> PriorVisibility:
     raw_positions: dict[int, tuple[str, ...]] = {}
     scouting_knowledge: dict[int, int] = {}
     names: dict[int, str] = {}
+    scout_reports: set[int] = set()
+    recorded_scout_reports = False
 
     def observed_at(row: Mapping[str, Any], field: str) -> str:
         value = row.get(field)
@@ -329,8 +347,15 @@ def load_prior_visibility(path: Path) -> PriorVisibility:
             if not isinstance(observed_knowledge, int) or isinstance(observed_knowledge, bool):
                 raise ScoutingFeedError("prior scouting feed contains an invalid scoutingKnowledge value")
             scouting_knowledge[player_id] = observed_knowledge
+        if "scoutReport" in row:
+            if not isinstance(row["scoutReport"], bool):
+                raise ScoutingFeedError("prior scouting feed contains an invalid scoutReport value")
+            recorded_scout_reports = True
+            if row["scoutReport"]:
+                scout_reports.add(player_id)
     return PriorVisibility(
         game_date, attributes, attributes_observed_at,
         last_known_attributes, last_known_attributes_observed_at,
         footedness, footedness_observed_at, raw_positions, scouting_knowledge, names,
+        frozenset(scout_reports) if recorded_scout_reports else None,
     )

@@ -4,10 +4,6 @@
   "formation": "4-4-2",
   "mentality": "Balanced",
   "instructions": [
-    "Fairly Wide",
-    "Slightly More Direct Passing",
-    "Higher Tempo",
-    "Pass Into Space",
     "Hit Early Crosses",
     "Counter",
     "Regroup",
@@ -15,25 +11,29 @@
     "Standard Defensive Line"
   ],
   "inPossession": {
-    "attackingWidth": "Fairly Wide",
-    "passingDirectness": "Slightly More Direct Passing",
-    "tempo": "Higher Tempo",
-    "passIntoSpace": true,
-    "playOutOfDefence": false,
-    "focusPlay": "Balanced",
-    "workBallIntoBox": false,
-    "overlapLeft": false,
-    "overlapRight": false,
-    "underlapLeft": false,
-    "underlapRight": false,
-    "crossingType": "Low",
-    "shootOnSight": false,
-    "hitEarlyCrosses": true,
-    "playForSetPieces": false,
-    "dribbleLess": false,
-    "runAtDefence": true,
-    "beMoreExpressive": false,
-    "beMoreDisciplined": true
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Slightly More Direct Passing",
+      "tempo": "Higher Tempo",
+      "passIntoSpace": true,
+      "playOutOfDefence": false,
+      "focusPlay": "Balanced",
+      "workBallIntoBox": false
+    },
+    "dependsOnPlayers": {
+      "overlapLeft": false,
+      "overlapRight": false,
+      "underlapLeft": false,
+      "underlapRight": false,
+      "crossingType": "Low",
+      "shootOnSight": false,
+      "hitEarlyCrosses": true,
+      "playForSetPieces": false,
+      "dribbleLess": false,
+      "runAtDefence": true,
+      "beMoreExpressive": false,
+      "beMoreDisciplined": true
+    }
   },
   "slots": [
     {
@@ -132,14 +132,10 @@
   "style": "Vertical 4-4-2",
   "description": "A simple lower-league 4-4-2 that keeps two banks of four but attacks more vertically, using a midfield runner, early wide service and a forward running beyond.",
   "whyGood": "It preserves the defensive clarity of a basic 4-4-2 while creating more forward movement and shot volume without requiring sophisticated possession play.",
-  "whyThisShape": "Natural width gives simple passing options, two strikers occupy the centre-backs, and the box-to-box midfielder adds a third central runner. The structure remains familiar and easy to recruit for.",
+  "whyThisShape": "Natural width stretches the opponent and gives simple passing options, two strikers occupy the centre-backs, and the box-to-box midfielder adds a third central runner. Slightly more direct passing and a higher tempo get the ball to the front two before the defence resets, and passing into space asks the advanced forward and wide players to attack space themselves rather than requiring intricate combination play. The structure remains familiar and easy to recruit for.",
   "whenToUse": "As a proactive lower-league default when the balanced 4-4-2 is too passive, especially when you have pace up front, energetic midfielders and wide players who can deliver early.",
   "whenNotToUse": "Against a side that dominates central midfield with three strong midfielders, or when your forwards lack pace and movement to exploit earlier, more vertical service.",
   "instructionRationale": {
-    "Fairly Wide": "Creates simple wide outlets and stretches the opposition so the front two have more room.",
-    "Slightly More Direct Passing": "Moves the ball forward earlier without turning every possession into a hopeful long ball.",
-    "Higher Tempo": "Encourages quicker progression before the opposition can settle into its defensive shape.",
-    "Pass Into Space": "Targets the advanced forward and wide players running beyond rather than asking mediocre players to combine intricately.",
     "Hit Early Crosses": "Gets service into the forwards before the defence is fully set and reduces reliance on elaborate overlapping play.",
     "Counter": "Uses the front two and wide players immediately after regains.",
     "Regroup": "Restores the two banks of four after possession is lost rather than demanding an intensive counter-press.",

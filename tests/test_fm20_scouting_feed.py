@@ -105,6 +105,31 @@ class ScoutingFeedTests(unittest.TestCase):
         self.assertEqual(prior.footedness, {10: "Right"})
         self.assertEqual(prior.raw_positions, {})
 
+    def test_scout_report_is_written_for_every_known_player_and_read_back(self) -> None:
+        document = feed_document(
+            [10, 20, 30], {10: "Reported", 20: "Known", 30: "Pool"}, game_date="2020-08-14",
+            managed_club={"id": "1", "name": "Club"}, source_count=3, excluded_own_ids=(),
+            scouting_knowledge_by_id={10: 0, 20: 40}, scout_report_ids={10},
+        )
+        rows = {row["id"]: row for row in document["players"]}
+        self.assertIs(rows["10"]["scoutReport"], True)
+        self.assertIs(rows["20"]["scoutReport"], False)
+        self.assertNotIn("scoutReport", rows["30"])  # not known at all: nothing to say
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "prior.json"
+            path.write_text(json.dumps(document), encoding="utf-8")
+            self.assertEqual(load_prior_visibility(path).scout_reports, frozenset({10}))
+
+    def test_a_feed_from_before_scout_reports_were_recorded_says_so(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "prior.json"
+            path.write_text(json.dumps({
+                "gameDate": "2020-08-14", "players": [{"id": "10", "scoutingKnowledge": 30}],
+            }), encoding="utf-8")
+
+            self.assertIsNone(load_prior_visibility(path).scout_reports)
+
     def test_load_migrates_a_legacy_dropped_players_attributes_to_history(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "prior.json"
@@ -632,6 +657,89 @@ class ScoutedOnlyIdentityTests(unittest.TestCase):
 
         self.assertEqual(document["players"][0]["name"], "P")
         self.assertNotIn("rawPositions", document["players"][0])
+
+
+class ScoutedListAlignmentTests(unittest.TestCase):
+    """27 September 2026: the feed's counts had drifted from FM's own lists.
+
+    Own-club reserves and youth were published as candidates (FM's Player
+    Search leaves out the whole club, not just the first team), and every
+    knowledge level counted as "scouted" where FM's Scouted list is the
+    players with a report.
+    """
+
+    def _capture(self, scouted_players, *, own_club_members, prior=None):
+        import os
+
+        from tools.fm20_sandbox_queries import SandboxQueryError
+
+        state = SimpleNamespace(module_base="0x140000000", game_date="2019-07-04", first_team_squad=())
+        manager = SimpleNamespace(id="m1", club=SimpleNamespace(id="c1", name="Example FC"))
+        records = {10: 0x1000, 11: 0x1100}
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(feed, "_live_context", return_value=(state, (1, 2, 3), [10, 11])))
+            stack.enter_context(mock.patch.object(feed, "_active_manager", return_value=manager))
+            stack.enter_context(mock.patch.object(feed, "preflight", return_value={"moduleBase": "0x140000000"}))
+            stack.enter_context(mock.patch.object(feed, "process_alive", return_value=True))
+            stack.enter_context(mock.patch.object(feed, "_source_records", return_value=records))
+            stack.enter_context(mock.patch.object(
+                feed, "resolve_source_player_names", side_effect=lambda pid, wanted: {i: f"P{i}" for i in wanted}))
+            stack.enter_context(mock.patch.object(feed, "read_raw_external_positions", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "read_raw_position_familiarity", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "resolve_source_identity_facts", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "_resolve_knowledge_context", return_value=0x999))
+            stack.enter_context(mock.patch.object(
+                feed, "capture_scouted_attributes", return_value=(scouted_players, {})))
+            own = stack.enter_context(mock.patch.object(
+                feed, "read_own_club_members", return_value=own_club_members))
+            stack.enter_context(mock.patch.object(
+                feed, "resolve_sandbox_context", side_effect=SandboxQueryError("not under test")))
+            stack.enter_context(mock.patch.object(feed, "log_event"))
+            document = feed.capture_pool(os.getpid(), remote_address=None, **(prior or {}))
+        return document, own
+
+    def test_everyone_contracted_to_the_managed_club_is_left_out(self) -> None:
+        from tools.fm20_scouted_attributes import ScoutedPlayer
+
+        own_youth = ScoutedPlayer(
+            row_id=5, player_id=42, name="Own Youth", age=17, person=0x4200, knowledge=60,
+            observations={}, has_report=True,
+        )
+        document, own = self._capture({42: own_youth}, own_club_members={11, 42})
+
+        self.assertEqual([row["id"] for row in document["players"]], ["10"])
+        self.assertEqual(document["source"]["excludedOwnContractedCount"], 1)
+        # Checked against the managed club, for pool records and scouted players alike.
+        pid, persons, club_id = own.call_args.args
+        self.assertEqual(club_id, "c1")
+        self.assertEqual(persons, {42: 0x4200, 10: 0x1000, 11: 0x1100})
+
+    def test_scouted_means_a_report_and_a_dropped_player_keeps_his_last_answer(self) -> None:
+        from tools.fm20_scouted_attributes import ScoutedPlayer
+
+        reported = ScoutedPlayer(
+            row_id=1, player_id=50, name="Reported", age=20, person=0x5000, knowledge=0,
+            observations={}, has_report=True,
+        )
+        trialist = ScoutedPlayer(
+            row_id=2, player_id=51, name="Trialist", age=20, person=0x5100, knowledge=45,
+            observations={},
+        )
+        document, _own = self._capture(
+            {50: reported, 51: trialist}, own_club_members=set(),
+            prior={
+                "prior_scouting_knowledge": {60: 30, 61: 30},
+                "prior_scout_reports": {60},
+                "prior_names": {60: "Gone Reported", 61: "Gone Known"},
+            },
+        )
+
+        rows = {row["id"]: row for row in document["players"]}
+        self.assertIs(rows["50"]["scoutReport"], True)
+        self.assertIs(rows["51"]["scoutReport"], False)
+        self.assertIs(rows["60"]["scoutReport"], True)
+        self.assertIs(rows["61"]["scoutReport"], False)
+        self.assertNotIn("scoutReport", rows["10"])
 
 
 class PositionFamiliarityFeedTests(unittest.TestCase):

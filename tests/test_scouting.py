@@ -171,6 +171,25 @@ class ScoutingTests(unittest.TestCase):
         # a Frida-hydrated-but-never-scouted player must not leak in here.
         self.assertEqual([item.id for item in result], ["scouted"])
 
+    def test_scouted_only_means_a_scout_report_once_the_feed_can_say(self) -> None:
+        # FM's own Scouted list is the players with a report; a trialist or
+        # past opponent has a knowledge level but belongs on All players.
+        reported = candidate("reported", {}, scouting_knowledge=0, has_scout_report=True)
+        known_only = candidate("known", {}, scouting_knowledge=40, has_scout_report=False)
+
+        result = filter_scouting_candidates([reported, known_only], ScoutingFilters(scouted_only=True))
+
+        self.assertEqual([item.id for item in result], ["reported"])
+
+    def test_scout_report_is_read_from_the_feed_and_absent_means_an_older_feed(self) -> None:
+        base = {"id": "1", "name": "P", "positions": [], "scoutingKnowledge": 20}
+
+        self.assertTrue(ScoutingCandidate.from_dict({**base, "scoutReport": True}).is_scouted())
+        self.assertFalse(ScoutingCandidate.from_dict({**base, "scoutReport": False}).is_scouted())
+        self.assertTrue(ScoutingCandidate.from_dict(base).is_scouted())  # pre-schema-4 behaviour
+        with self.assertRaises(TypeError):
+            ScoutingCandidate.from_dict({**base, "scoutReport": "yes"})
+
     def test_dropped_player_still_counts_as_scouted(self) -> None:
         dropped = candidate(
             "dropped", {}, name="Gone Player", scouting_knowledge=14, dropped_from_scout_reports=True,

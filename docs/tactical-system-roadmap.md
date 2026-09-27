@@ -129,11 +129,15 @@ rather than a label attached to a tactic template.
 
 Not part of the original numbered list. `analytics/in_possession.py` now
 carries a tactic's actual FM tactics-screen settings (`InPossessionSettings`),
-split into fixed (part of the tactic's identity, hand-authored) and
-player-dependent (overlaps/underlaps, crossing type, shoot on sight, dribble
-less vs. run at defence, expressive vs. disciplined, play for set pieces).
-The player-dependent half only ever carries a fallback today — nothing
-computes it from a squad. A first version should be a small set of
+split into fixed (part of the tactic's identity, hand-authored, and wired
+into `assess_instruction_suitability` via `in_possession_instruction_strings`
+-- see `analytics/CLAUDE.md`) and player-dependent (overlaps/underlaps,
+crossing type, shoot on sight, dribble less vs. run at defence, expressive
+vs. disciplined, play for set pieces). This item is only about the
+player-dependent half: it only ever carries a fallback today — nothing
+computes it from a squad, and nothing here should let it feed scoring
+directly either (see the circularity note below). A first version should be
+a small set of
 reviewable rules in the same spirit as `_INSTRUCTION_REQUIREMENTS`, reading
 only manager-visible attributes (see `analytics/CLAUDE.md`'s "The manager-
 visible boundary"), for example:

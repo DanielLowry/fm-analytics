@@ -183,13 +183,17 @@ couple players and is deliberately not supported.
 
 A tactic may declare `inPossession` (`in_possession.py`): the concrete
 settings a manager sets on FM's tactics screen (attacking width, passing
-directness, tempo, overlaps, crossing type, and so on), distinct from the
-pressing/tempo/line-of-engagement style strings in `instructions` that
-`assess_instruction_suitability` actually scores. **This block is never
-scoring input** — it exists only so the tactic page can tell a manager
-exactly what to click, which the catalogue could not say before.
+directness, tempo, overlaps, crossing type, and so on). Authored as two
+nested JSON objects so the split below is visible in the file, not only in
+the dataclass:
 
-Fields split in three, mirroring the product decision behind them:
+```json
+"inPossession": {
+  "fixed": {"attackingWidth": "Fairly Wide", "tempo": "Higher Tempo", ...},
+  "dependsOnPlayers": {"overlapLeft": true, ...},
+  "timeWasting": "Sometimes"
+}
+```
 
 - **Fixed** (`attackingWidth`, `passingDirectness`, `tempo`, `passIntoSpace`,
   `playOutOfDefence`, `focusPlay`, `workBallIntoBox`): part of what makes
@@ -198,7 +202,7 @@ Fields split in three, mirroring the product decision behind them:
   the rest report every fixed field as missing. `TacticDefinition.in_possession_missing_fields`
   is what `web/in_possession_render.py` reads to flag the gap on the tactic
   page rather than silently showing nothing — filling in the rest is
-  ongoing, tactic by tactic.
+  ongoing, tactic by tactic. **This half does reach scoring**: see below.
 - **Player-dependent** (`overlapLeft`/`overlapRight`, `underlapLeft`/`underlapRight`,
   `crossingType`, `shootOnSight`, `hitEarlyCrosses`, `playForSetPieces`,
   `dribbleLess`, `runAtDefence`, `beMoreExpressive`, `beMoreDisciplined`):
@@ -206,13 +210,14 @@ Fields split in three, mirroring the product decision behind them:
   at the formation. There is no code yet that picks these from a squad's
   visible attributes (see `docs/tactical-system-roadmap.md`'s in-possession
   item); each field is only ever a fallback used until that lands, so none
-  of it is required or flagged as missing. Values authored today (e.g.
-  `wing_play_442`'s `overlapLeft`/`overlapRight: true`) are a reasonable
-  default for the tactic's own identity, not a claim about any particular
-  squad.
-- **Situational** (`timeWasting`): depends on the scoreline and the clock,
-  not the squad or the tactic, so it carries a default and is likewise
-  never flagged as missing.
+  of it is required or flagged as missing, **and none of it ever reaches
+  scoring** (see below). Values authored today (e.g. `wing_play_442`'s
+  `overlapLeft`/`overlapRight: true`) are a reasonable default for the
+  tactic's own identity, not a claim about any particular squad.
+- **Situational** (`timeWasting`, top-level, not nested under either object):
+  depends on the scoreline and the clock, not the squad or the tactic, so it
+  carries a default and is likewise never flagged as missing and never reaches
+  scoring.
 
 Validation catches the FM-real illegal combinations: overlap and underlap on
 the same side, dribble-less with run-at-defence, and expressive with
@@ -220,12 +225,30 @@ disciplined are each opposite ends of one setting and cannot both be true.
 Every enum field (width, directness, tempo, focus, crossing type, time
 wasting) is checked against a fixed option list in `in_possession.py`.
 
-Deliberately **not** wired into `instructions`: removing the free-text
-strings that now duplicate a fixed field (e.g. `vertical_442`'s `"Pass Into
-Space"`) would change `assess_instruction_suitability`'s score, which is a
-football judgment call this feature was not meant to make. The two lists
-can currently name the same setting in two places; collapsing that overlap
-without touching scoring is unstarted work, not a bug.
+**The fixed half feeds instruction-fit scoring.** `in_possession_instruction_strings`
+turns each set fixed field into the legacy `instructions` string it is
+equivalent to (`attackingWidth: "Fairly Wide"` → `"Fairly Wide"`,
+`passIntoSpace: true` → `"Pass Into Space"`, and so on), and
+`tactical_system.effective_instructions(tactic)` -- what
+`assess_instruction_suitability` actually reads, everywhere the old
+`tactic.instructions` was read directly -- is `tactic.instructions` plus
+those derived strings. `"Standard"` is treated as no instruction (there is
+no such thing to pick in FM); a fixed value with no requirements-table entry
+yet passes through unfiltered, so `tests/test_tactical_calibration.py`
+catches a real gap rather than this silently hiding it. `focusPlay` and
+every player-dependent field never produce a string: there is no scored
+"Focus Play" instruction, and a player-dependent field is only ever a
+fallback, so it must never affect a score on its own.
+
+Once a fixed field is set, the equivalent legacy string must not also sit in
+`instructions` — `TacticDefinition.__post_init__` refuses that combination,
+since scoring would double-count it. This is *why* converting a tactic is a
+two-step edit: add the `inPossession.fixed` value, and delete its old string
+from `instructions` (moving any of its `instructionRationale` prose into
+`whyThisShape` first, since a stray rationale key is also refused). A
+player-dependent value's legacy string, where one exists (e.g. `"Overlap
+Left"`), stays in `instructions` — deleting it would drop that scoring
+contribution with nothing yet computed to replace it.
 
 ## The opponent
 

@@ -214,8 +214,8 @@ def no_results(heading: str, *, pool_size: int, scouted_only: bool) -> str:
         reason = (
             "No candidates match these filters."
             + (
-                " Only players with a scouting-knowledge record are listed on the "
-                "Scouted tab; try <b>All players</b>."
+                " Only players you hold a scout report on -- FM's own Scouted list -- "
+                "are listed on the Scouted tab; try <b>All players</b>."
                 if scouted_only else ""
             )
         )

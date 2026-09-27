@@ -41,7 +41,7 @@ def check_tactic_structure(
         combination_count += 1
         roles = tuple(catalogue.roles[key] for key in role_keys)
         balance = assess_coherence(tactic, roles)
-        instructions = assess_instruction_suitability(roles, tactic.instructions)
+        instructions = assess_instruction_suitability(roles, tactic)
         if balance.shortfalls or instructions.shortfalls:
             failures.append(
                 StructuralCombinationFailure(role_keys, balance, instructions)

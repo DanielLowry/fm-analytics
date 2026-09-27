@@ -195,7 +195,7 @@ def optimise_tactic_jointly(
         roles = tuple(derived.roles[role_key] for role_key in role_keys)
         balance_multiplier = _tactic_balance_multiplier(
             assess_coherence(tactic, roles),
-            assess_instruction_suitability(roles, tactic.instructions),
+            assess_instruction_suitability(roles, tactic),
         )
         role_versions.append(
             (role_keys, balance_multiplier, model.variable(upper=1.0, binary=True))

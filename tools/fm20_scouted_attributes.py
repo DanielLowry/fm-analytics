@@ -116,15 +116,22 @@ class ScoutedPlayer:
     row_id: int
     player_id: int
     name: str
-    age: int
+    age: int | None
     person: int  # address in FM's memory, valid only for the run that read it
     knowledge: int
-    observations: dict[str, AttributeObservation]
+    # None when this module's own calculation could not read the player (see
+    # capture_scouted_attributes); he is still known, and still listed.
+    observations: dict[str, AttributeObservation] | None
     # What the formula was actually given, kept for diagnosis: the effective
     # knowledge (never below ``knowledge``) and the scout-rating sum, or None
     # when no readable report was found for this player.
     effective_knowledge: int = 0
     report_quality_sum: int | None = None
+    # True when the manager holds a scout report on this player -- FM's own
+    # Scouted list. A player can be known without one (a trial, a past
+    # opponent) and, less obviously, have one without an explicit-knowledge
+    # entry; see capture_scouted_attributes.
+    has_report: bool = False
 
 
 def read_explicit_knowledge(memory_fd: int, context: int) -> dict[int, int]:
@@ -301,7 +308,7 @@ def _read_visible_attributes_for_person(
 def capture_scouted_attributes(
     pid: int, module_base: int, context: int, game_date: str
 ) -> tuple[dict[int, ScoutedPlayer], dict[int, str]]:
-    """Every scouted player's visible attributes, plus per-player read issues.
+    """Visible attributes for every player the manager knows or holds a report on.
 
     Returns ``(players, issues)``: ``players`` keyed by player ID (not RowID,
     to match the rest of the scouting feed contract); ``issues`` names any
@@ -313,13 +320,20 @@ def capture_scouted_attributes(
     fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
     try:
         knowledge = read_explicit_knowledge(fd, context)
-        if not knowledge:
-            return {}, {}
-        persons = resolve_persons_by_row_id(fd, module_base, set(knowledge))
         reports = read_report_records(fd, module_base, context)
+        # A report does not imply an explicit-knowledge entry: on 27 September
+        # 2026 68 of the test save's 530 reports had none, 52 of them for
+        # players outside the Player Search pool, so they were missing from
+        # the app while FM's own Scouted list (532) showed them. Their
+        # effective knowledge is the report's own level.
+        wanted = set(knowledge) | set(reports)
+        if not wanted:
+            return {}, {}
+        persons = resolve_persons_by_row_id(fd, module_base, wanted)
         players: dict[int, ScoutedPlayer] = {}
         issues: dict[int, str] = {}
-        for row_id, level in knowledge.items():
+        for row_id in wanted:
+            level = knowledge[row_id] if row_id in knowledge else reports[row_id].level
             person = persons.get(row_id)
             if person is None:
                 # Not an error: a scouted player who has left the loaded-people
@@ -332,21 +346,40 @@ def capture_scouted_attributes(
                 player_id = struct.unpack("<i", read_exact(fd, person + 0xC, 4))[0]
             except (OSError, ProbeError):
                 continue
+            actual_person = person + ACTUAL_PERSON_FROM_PERSON
             try:
-                actual_person = person + ACTUAL_PERSON_FROM_PERSON
                 name = f"{read_fm_string(fd, actual_person + 0x30)} {read_fm_string(fd, actual_person + 0x38)}".strip()
-                report = reports.get(row_id)
-                # FM merges the explicit level with the report's own (see
-                # `calculate_effective_knowledge`); the report's is never lower
-                # in anything observed, but max() keeps that a guarantee.
-                effective = max(level, report.level) if report else level
-                quality = read_scout_quality_sum(fd, report.staff_person) if report else None
+            except (OSError, ProbeError, ValueError) as error:
+                issues[player_id] = str(error)
+                continue
+            report = reports.get(row_id)
+            # FM merges the explicit level with the report's own (see
+            # `calculate_effective_knowledge`); the report's is never lower
+            # in anything observed, but max() keeps that a guarantee.
+            effective = max(level, report.level) if report else level
+            quality = read_scout_quality_sum(fd, report.staff_person) if report else None
+            try:
                 age, observations = _read_visible_attributes_for_person(
                     fd, person, row_id, effective, as_of, quality,
                 )
             except (OSError, ProbeError, ValueError) as error:
+                # Until 27 September 2026 this dropped the player from the
+                # scouted set altogether: 14 on the test save (10 with scout
+                # reports) have position ratings this reader cannot parse,
+                # yet FM's own code in the sandbox reads them fine. Keep him
+                # listed and leave his attributes to the sandbox.
                 issues[player_id] = str(error)
-                continue
+                observations = None
+                try:
+                    age = calculate_age(
+                        decode_fm_date(
+                            read_exact(fd, actual_person + DATE_OF_BIRTH_OFFSET, 4),
+                            maximum_year=as_of.year,
+                        ),
+                        as_of,
+                    )
+                except (OSError, ProbeError, ValueError):
+                    age = None
             if not name:
                 issues[player_id] = "identity lookup failed for a scouted player"
                 continue
@@ -354,6 +387,7 @@ def capture_scouted_attributes(
                 row_id=row_id, player_id=player_id, name=name, age=age, person=person,
                 knowledge=level, observations=observations,
                 effective_knowledge=effective, report_quality_sum=quality,
+                has_report=report is not None,
             )
         return players, issues
     finally:

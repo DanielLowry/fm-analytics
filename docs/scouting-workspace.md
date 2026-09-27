@@ -56,9 +56,13 @@ work for every target.
 ## Two tabs: Scouted players, and All players
 
 Added 18 September 2026. `/scouting?view=scouted` (the nav's first link)
-shows every player the manager has a scouting-knowledge record for, with
-real, read-only-calculated visible attributes -- see "Scouted-player
-attributes" below. `/scouting?view=all` (the default, for URL and test
+shows every player the manager holds a scout report on -- the same set as
+FM's own Scouted list -- with real, read-only visible attributes; see
+"Scouted-player attributes" below. Until 27 September 2026 it showed every
+player with any knowledge level at all, which is a different and larger set
+(see "Checked against FM's own lists" below). A player known without a report
+-- a trialist, a past opponent -- is listed under All players with his
+knowledge level marked "(no report)". `/scouting?view=all` (the default, for URL and test
 compatibility with the position/role browsing this page already did) is the
 existing Player Search pool, unchanged. Both tabs read the same
 `ScoutingCandidate` list, so a player who is both scouted and in the pool
@@ -270,7 +274,7 @@ Player Search screen required:**
 - **Transfer and loan interest** -- FM's own `PERSON_INTERESTED_FILTER_RULE`
   and `PERSON_INTERESTED_LOAN_FILTER_RULE` evaluators, called directly
   (bypassing the composite's own-club/national-pool rules; the caller already
-  excludes the manager's own first-team squad via `own_contracted_ids`) at
+  excludes everyone contracted to the manager's own club) at
   FM's standard "any interest" level, regardless of what is currently ticked
   in FM's UI. See "Interest has no stored answer" below.
 
@@ -285,15 +289,12 @@ this run, the same "later layer wins" merge the old hydration path used.
 Footedness is **not** part of this: nothing currently re-captures it live (see
 "Known gaps" below).
 
-**Not fixed by this change: a scouted player currently on the manager's own
-club but off the primary first-team squad.** `own_contracted_ids` excludes
-only `first_team_squad`; a reserve or youth player who is both scouted and at
-the manager's own club would still be run through the interest rules (since
-those bypass the composite's own-club exclusion entirely) and could show a
-meaningless "interested in transfer" verdict. Not observed on the one save
-this was checked against (zero of that save's scouted players had the managed
-club as their own), and not worth a fragile club-name match to guard against
-under time pressure; flagged here rather than silently risked.
+**Own-club players off the first team: fixed later the same day.** This
+section first shipped excluding only `first_team_squad`, flagged as a risk
+for scouted reserve or youth players at the manager's own club. It was
+worse than that: the Player Search pool itself holds them, and 10 were
+published as candidates, every one "interested in transfer". See "Checked
+against FM's own lists" below.
 
 ### Saves broke again on 26 September 2026
 
@@ -401,6 +402,53 @@ Scouting page's `transferInterest`/`loanInterest` filters replace it, and the
 7-14 second scan for FM's on-screen result list is no longer part of a
 refresh at all.
 
+### Checked against FM's own lists (27 September 2026, late)
+
+The first full-pool refresh through the finished pipeline was checked
+against the product owner's own FM screens on the same save and date. Every
+number was off, for three separate reasons, none of them the sandbox:
+
+| List | FM shows | Feed before | Feed after |
+| --- | --- | --- | --- |
+| Player Search, no filters | 3,371 | 3,383 | 3,373 |
+| ...interested in transfer | 1,354 | 1,360 | 1,350 `yes` + 15 `maybe` |
+| Scouted, no filters | 532 | 714 | 530 |
+
+- **Own club.** FM's search leaves out everyone contracted to the managed
+  club; the feed removed only the first team, so 10 reserve, youth and
+  non-contract players at the manager's own club were candidates.
+  `fm20_scouting_identity.read_own_club_members` now checks every pool
+  record's and scouted player's contract against the managed club. The
+  Player Search gap is now 2 players in the unsafe direction, against the
+  1 recorded as accepted in `docs/frida-discoverability.md` ("Known
+  tolerance"); not investigated further.
+- **"Scouted" meant any knowledge, not a report.** The knowledge list
+  (726 players) and the report list (530) are different vectors in FM's
+  memory. 462 players are on both; 264 are known without a report (trials,
+  past opponents), and 68 have a report with no knowledge entry -- 52 of
+  those were missing from the app entirely. FM's Scouted list is the
+  reports. The feed now reads both lists, marks each known player
+  `scoutReport: true/false` (schema 4), and the Scouted tab means a report.
+  **Decision:** players known without a report stay in the feed under All
+  players, because the attributes FM shows for them are just as real
+  (product owner, 27 September: it "shouldn't matter why" a player's
+  attributes are known) and the standing preference is to include rather
+  than miss players. They are labelled rather than hidden.
+- **Unreadable players vanished.** 14 players (10 with reports) have
+  position ratings the read-only calculation rejects ("position rating must
+  be between 1 and 20"), and the scouted reader dropped them. FM's own code
+  in the sandbox reads them fine, so they are now kept, with attributes from
+  the sandbox only.
+
+Everything interest-related was already right: within Player Search the
+exact verdict is 4 short of FM's count and the 15 `maybe`s cover the gap, as
+the margin intends. The much larger all-players interest count (about 1,880)
+is correct too: it includes some 680 known or reported players who are
+outside FM's Player Search pool, most of them non-league or unattached.
+
+Still unexplained: FM's Scouted list shows 532 and the report vector holds
+530, all of which pass the type checks. No own-club players are among them.
+
 ### Known gaps after this change
 
 - **Footedness has no live source any more.** Its only capture path was the
@@ -413,7 +461,10 @@ refresh at all.
   stays in the `player_knowledge` SQLite schema (a real migration, not
   attempted here) but is always written `None` now; recording
   `transfer_interest`/`loan_interest` there properly is a follow-up.
-- The own-club-not-first-team interest gap above.
+- FM's Scouted list is 2 players longer than the report vector (see
+  "Checked against FM's own lists").
+- Player-knowledge history does not record `scoutReport`, so it cannot tell
+  a reported player from a merely known one; same migration as interest.
 
 ## Candidate-feed contract
 
@@ -434,8 +485,11 @@ When either `data/scouting-capture.json` or the richer
 automatically. `--scouting-json` still overrides that choice.
 
 The feed does not reproduce the filters currently open in FM. It takes the
-manager's Player Search pool, removes the managed club's own contracted
-players, and leaves all remaining filtering to this page.
+manager's Player Search pool, adds every player the manager knows or holds a
+report on, removes everyone contracted to the managed club (not just the
+first team), and leaves all remaining filtering to this page. Schema 4 adds
+`scoutReport` to every player with a `scoutingKnowledge` level; a feed without
+it is older and the page falls back to treating any knowledge as scouted.
 
 ### How the pool is obtained, and why it is gated
 

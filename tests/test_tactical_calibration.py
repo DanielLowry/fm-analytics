@@ -13,6 +13,7 @@ from fm_analytics.analytics.catalogue import MVP_CATALOGUE
 from fm_analytics.analytics.tactical_system import (
     SYSTEM_DIMENSIONS,
     _INSTRUCTION_REQUIREMENTS,
+    effective_instructions,
     role_traits,
 )
 
@@ -35,7 +36,10 @@ def best_achievable(tactic) -> dict[str, float]:
 
 class CalibrationTests(unittest.TestCase):
     def test_every_instruction_a_tactic_uses_is_modelled(self) -> None:
-        used = {i for t in MVP_CATALOGUE.tactics.values() for i in t.instructions}
+        # Includes fixed in-possession settings that stand in for a legacy
+        # instruction string (see `effective_instructions`), so a tactic
+        # converted to the structured schema keeps the same coverage guarantee.
+        used = {i for t in MVP_CATALOGUE.tactics.values() for i in effective_instructions(t)}
         self.assertEqual(sorted(used - set(_INSTRUCTION_REQUIREMENTS)), [])
 
     def test_every_role_a_tactic_can_use_has_system_traits(self) -> None:
@@ -64,7 +68,7 @@ class CalibrationTests(unittest.TestCase):
     def test_no_instruction_demands_more_than_any_role_version_can_supply(self) -> None:
         for tactic in MVP_CATALOGUE.tactics.values():
             demands: dict[str, float] = {}
-            for instruction in tactic.instructions:
+            for instruction in effective_instructions(tactic):
                 for dimension, need in _INSTRUCTION_REQUIREMENTS[instruction].items():
                     demands[dimension] = max(demands.get(dimension, 0.0), need)
             best = best_achievable(tactic)

@@ -74,6 +74,33 @@ def read_player_value(memory_fd: int, person: int) -> int | None:
     return raw if raw <= 500_000_000 else None
 
 
+def read_own_club_members(pid: int, records: Mapping[int, int], club_id: str) -> set[int]:
+    """Players in ``records`` whose contract is with ``club_id``.
+
+    FM's Player Search leaves out everyone contracted to the managed club
+    (its always-on ``PERSON_INCLUDE_OWN_FILTER_RULE``), not just the first
+    team the owned-squad reader returns. Until 27 September 2026 the feed
+    only removed the first team, so reserves, youth and non-contract players
+    at the manager's own club (10 on the test save) were published as
+    scouting candidates -- all flagged interested in a transfer. Same
+    ``person + 0x28`` contract read as ``resolve_source_identity_facts``; a
+    player whose contract cannot be read is left in rather than guessed at.
+    """
+    fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
+    try:
+        members: set[int] = set()
+        for player_id, person in records.items():
+            try:
+                contract = read_player_contract(fd, person + 0x28)
+            except (OSError, ProbeError):
+                continue
+            if contract is not None and contract.contracted_club is not None and contract.contracted_club.id == club_id:
+                members.add(player_id)
+        return members
+    finally:
+        os.close(fd)
+
+
 def resolve_source_identity_facts(
     pid: int, records: Mapping[int, int], game_date: str
 ) -> dict[int, dict[str, Any]]:

@@ -49,6 +49,15 @@ identified, and the same single-player anomaly appears in earlier research.
 The difference is in the unsafe direction, so the replayed set is a superset of
 FM's by one player and must not be described as an exact match. The product
 owner accepted this tolerance on 16 September 2026 rather than block on it.
+
+**Rechecked 27 September 2026 against the feed rather than the replay:** the
+pool read 3,411, and FM's Player Search showed 3,371 with no filters. The feed
+had removed only the 28 first-team players, leaving 10 reserve, youth and
+non-contract players at the manager's own club as candidates. FM's always-on
+`PERSON_INCLUDE_OWN_FILTER_RULE` leaves out the whole club, so the feed now
+does the same by contract (`read_own_club_members`), giving 3,373. That is a
+2-player superset, one more than the tolerance above. It has not been
+investigated, and the same per-player diff would pinpoint it.
 Anyone revisiting it should hook FM's own per-player verdicts during a real
 rebuild and diff against the cold result; that pinpoints the player directly.
 
@@ -141,7 +150,8 @@ per player in the sandbox, 20-26 s for the whole pool.
 (vtable slot `0xd8`, not the composite at `0x42c96a0` above and not slot
 `0x88`) rather than replaying the composite with rules ticked/unticked --
 simpler, and it does not depend on the manager's own club-exclusion rule
-(the caller already excludes the first-team squad separately). Two things
+(the caller excludes the managed club separately -- since 27 September the
+whole club, not just the first team; see below). Two things
 found while wiring this in:
 
 - **Slot `0x88` is not the interest rule's own evaluator.** Reading `[[rule]

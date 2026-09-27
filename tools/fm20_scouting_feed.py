@@ -37,7 +37,7 @@ import struct
 import sys
 import time
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 if __package__ in {None, ""}:
     project_root = Path(__file__).resolve().parent.parent
@@ -69,6 +69,7 @@ from tools.fm20_sandbox_queries import (
 )
 from tools.fm20_scouted_attributes import capture_scouted_attributes
 from tools.fm20_scouting_identity import (
+    read_own_club_members,
     read_raw_external_positions,
     read_raw_position_familiarity,
     resolve_source_identity_facts,
@@ -223,6 +224,7 @@ def capture_pool(
     prior_footedness_by_id: Mapping[int, str] | None = None,
     prior_footedness_observed_at: Mapping[int, str] | None = None,
     prior_scouting_knowledge: Mapping[int, int] | None = None,
+    prior_scout_reports: Iterable[int] | None = None,
     prior_names: Mapping[int, str] | None = None,
 ) -> dict[str, Any]:
     """Read the manager's scouted players and, if available, the wider pool.
@@ -394,21 +396,6 @@ def capture_pool(
         if not process_alive(pid):
             raise ScoutingFeedError("FM is not healthy after its Player Search pool was read")
 
-        own_ids = own_contracted_ids(
-            (
-                (int(player.id), player.contract.contracted_club.id if player.contract and player.contract.contracted_club else None)
-                for player in after.first_team_squad
-            ),
-            manager.club.id,
-        )
-        # A scouted player contracted to the manager's own club would be
-        # exact via the owned-squad path anyway; drop it here rather than
-        # publish a second, approximate answer for the same player.
-        scouted_players = {
-            player_id: player for player_id, player in scouted_players.items()
-            if player_id not in own_ids
-        }
-
         if pool_available:
             fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
             try:
@@ -417,6 +404,34 @@ def capture_pool(
                 os.close(fd)
             if set(records) != set(pool_ids):
                 raise ScoutingFeedError("rebuilt Player Search source records do not match its ID set")
+        else:
+            records = {}
+
+        own_ids = own_contracted_ids(
+            (
+                (int(player.id), player.contract.contracted_club.id if player.contract and player.contract.contracted_club else None)
+                for player in after.first_team_squad
+            ),
+            manager.club.id,
+        )
+        # The first team alone is not the whole club: FM's own search also
+        # leaves out reserves, youth and non-contract players contracted here
+        # (see read_own_club_members).
+        own_ids |= read_own_club_members(
+            pid,
+            {**{player_id: player.person for player_id, player in scouted_players.items()}, **records},
+            manager.club.id,
+        )
+        # A scouted player contracted to the manager's own club is not a
+        # recruitment candidate, and a first-team one is exact via the
+        # owned-squad path anyway; drop it here rather than publish a second,
+        # approximate answer for the same player.
+        scouted_players = {
+            player_id: player for player_id, player in scouted_players.items()
+            if player_id not in own_ids
+        }
+
+        if pool_available:
             external_ids = sorted(set(pool_ids) - own_ids)
             names = resolve_source_player_names(
                 pid, {player_id: records[player_id] for player_id in external_ids}
@@ -431,12 +446,12 @@ def capture_pool(
                 after.game_date,
             ))
         else:
-            records = {}
             external_ids = []
             names, raw_positions_by_id, identity_facts_by_id = {}, {}, {}
         for player_id, player in scouted_players.items():
             names[player_id] = player.name
-            identity_facts_by_id.setdefault(player_id, {}).setdefault("age", player.age)
+            if player.age is not None:
+                identity_facts_by_id.setdefault(player_id, {}).setdefault("age", player.age)
         # A scouted player the pool did not supply still has a Person in FM's
         # memory, so his club and positions can be read the same way as a pool
         # member's. This is what makes the Scouted tab usable before Player
@@ -451,7 +466,7 @@ def capture_pool(
             except ScoutingFeedError:
                 pass
             for key, value in resolve_source_identity_facts(pid, single, after.game_date).get(player_id, {}).items():
-                identity_facts_by_id[player_id].setdefault(key, value)
+                identity_facts_by_id.setdefault(player_id, {}).setdefault(key, value)
         # The best known live Person address for every candidate: the pool's
         # own record where there is one, else the scouted player's own Person.
         # This is both the position-familiarity read's input and the sandbox
@@ -480,6 +495,7 @@ def capture_pool(
         scouted_attributes_by_id = {
             player_id: {name: obs.to_dict() for name, obs in player.observations.items()}
             for player_id, player in scouted_players.items()
+            if player.observations is not None
         }
         attributes_by_id: dict[int, dict[str, Any]] = {}
         attributes_observed_at: dict[int, str] = {}
@@ -565,6 +581,17 @@ def capture_pool(
         scouting_knowledge_by_id = dict(prior_scouting_knowledge or {})
         scouting_knowledge_by_id.update(current_knowledge)
         scouting_knowledge_by_id = {k: v for k, v in scouting_knowledge_by_id.items() if k in all_ids}
+        # FM's Scouted list is the players with a report, not everyone with a
+        # knowledge level. A player who has since dropped out keeps whatever
+        # the earlier capture said; a pre-schema-4 base feed could not say,
+        # so its dropped players keep their old place on the Scouted tab.
+        scout_report_ids = {
+            player_id for player_id, player in scouted_players.items() if player.has_report
+        } | (
+            dropped_from_scout_reports_ids
+            if prior_scout_reports is None
+            else dropped_from_scout_reports_ids & set(prior_scout_reports)
+        )
 
         final, final_arguments, final_pool_ids = _live_context(pid)
         if (
@@ -592,6 +619,7 @@ def capture_pool(
             position_familiarity_by_id=position_familiarity_by_id,
             scouting_knowledge_by_id=scouting_knowledge_by_id,
             dropped_from_scout_reports_ids=dropped_from_scout_reports_ids,
+            scout_report_ids=scout_report_ids,
             transfer_interest_by_id=transfer_interest_by_id,
             loan_interest_by_id=loan_interest_by_id,
             interest_margin=interest_margin,
@@ -670,6 +698,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             prior_footedness_by_id=prior.footedness if prior else {},
             prior_footedness_observed_at=prior.footedness_observed_at if prior else {},
             prior_scouting_knowledge=prior.scouting_knowledge if prior else {},
+            prior_scout_reports=prior.scout_reports if prior else None,
             prior_names=prior.names if prior else {},
         )
         # Frida is needed only for a pool rebuild that will actually run --
@@ -705,7 +734,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     dropped_count = sum(1 for player in document["players"] if player.get("droppedFromScoutReports"))
     currently_scouted_count = sum(
         1 for player in document["players"]
-        if "scoutingKnowledge" in player and not player.get("droppedFromScoutReports")
+        if player.get("scoutReport") and not player.get("droppedFromScoutReports")
+    )
+    known_unscouted_count = sum(
+        1 for player in document["players"]
+        if player.get("scoutReport") is False and not player.get("droppedFromScoutReports")
     )
     print(
         f"Captured {len(document['players'])} manager-discoverable players to {args.output}. "
@@ -719,8 +752,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "read. Nothing was written to FM."
             )
         )
-        + f" {currently_scouted_count} currently scouted player(s) had visible attributes "
-        "calculated read-only"
+        + f" {currently_scouted_count} player(s) with a scout report (FM's Scouted list) and "
+        f"{known_unscouted_count} more known without one had visible attributes calculated read-only"
         + (f"; {dropped_count} previously-scouted player(s) no longer have a scout report and "
            "are flagged as such" if dropped_count else "")
         + f". Visible attributes and interest confirmed via the sandbox for "

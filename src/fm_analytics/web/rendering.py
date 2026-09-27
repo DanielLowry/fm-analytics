@@ -450,6 +450,10 @@ def _scouting_knowledge_cell(candidate: object) -> str:
             f"{knowledge}% <span class='muted'>(last known)</span><br>"
             f"<span class='dropped-warning'>{html.escape(DROPPED_FROM_SCOUT_REPORTS_MESSAGE)}</span>"
         )
+    if getattr(candidate, "has_scout_report", None) is False:
+        # Known some other way -- a trial, a past opponent -- so not on FM's
+        # Scouted list, though the attributes FM shows are just as real.
+        return f"{knowledge}% <span class='muted'>(no report)</span>"
     return f"{knowledge}%"
 
 

@@ -20,9 +20,9 @@ from fm_analytics.analytics.emphasis import (
 )
 from fm_analytics.analytics.in_possession import (
     ALL_FIXED_FIELD_LABELS,
-    IN_POSSESSION_KEYS,
     InPossessionSettings,
     in_possession_from_json,
+    in_possession_instruction_strings,
 )
 from fm_analytics.analytics.role_scoring import (
     RoleAttribute,
@@ -267,6 +267,16 @@ class TacticDefinition:
         if stray:
             raise ValueError(
                 f"tactic {self.key!r} explains instructions it does not use: {stray!r}"
+            )
+        duplicated = sorted(
+            set(in_possession_instruction_strings(self.in_possession)) & set(self.instructions)
+        )
+        if duplicated:
+            raise ValueError(
+                f"tactic {self.key!r}: {duplicated!r} are set both as a fixed inPossession "
+                "value and as a literal instructions string, which would double-count them "
+                "in instruction-fit scoring; remove the string from instructions now that "
+                "it is set structurally"
             )
         if len(self.slots) != 11:
             raise ValueError("an MVP tactic must define exactly eleven slots")

@@ -4,33 +4,34 @@
   "formation": "4-4-2",
   "mentality": "Positive",
   "instructions": [
-    "Fairly Wide",
-    "Slightly More Direct Passing",
     "Overlap Left",
     "Overlap Right",
-    "Higher Tempo",
     "Counter"
   ],
   "inPossession": {
-    "attackingWidth": "Fairly Wide",
-    "passingDirectness": "Slightly More Direct Passing",
-    "tempo": "Higher Tempo",
-    "passIntoSpace": false,
-    "playOutOfDefence": false,
-    "focusPlay": "Balanced",
-    "workBallIntoBox": false,
-    "overlapLeft": true,
-    "overlapRight": true,
-    "underlapLeft": false,
-    "underlapRight": false,
-    "crossingType": "Floated",
-    "shootOnSight": false,
-    "hitEarlyCrosses": false,
-    "playForSetPieces": false,
-    "dribbleLess": false,
-    "runAtDefence": false,
-    "beMoreExpressive": true,
-    "beMoreDisciplined": false
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Slightly More Direct Passing",
+      "tempo": "Higher Tempo",
+      "passIntoSpace": false,
+      "playOutOfDefence": false,
+      "focusPlay": "Balanced",
+      "workBallIntoBox": false
+    },
+    "dependsOnPlayers": {
+      "overlapLeft": true,
+      "overlapRight": true,
+      "underlapLeft": false,
+      "underlapRight": false,
+      "crossingType": "Floated",
+      "shootOnSight": false,
+      "hitEarlyCrosses": false,
+      "playForSetPieces": false,
+      "dribbleLess": false,
+      "runAtDefence": false,
+      "beMoreExpressive": true,
+      "beMoreDisciplined": false
+    }
   },
   "slots": [
     {
@@ -124,15 +125,12 @@
   "style": "Wing Play",
   "description": "A width-first 4-4-2 designed to create repeated crossing opportunities through wingers and overlapping full-backs for two complementary forwards.",
   "whyGood": "The wingers provide the primary one-v-one and crossing threat while overlapping full-backs create a second wide option. The Target Man occupies centre-backs and attacks deliveries, with the second striker exploiting the space around him.",
-  "whyThisShape": "A 4-4-2 built around sustained wide overloads rather than immediate early delivery: wingers stretch the pitch, support full-backs overlap, the DLP switches play toward the flanks, and the Target Man plus a mobile second striker attack the resulting service.",
+  "whyThisShape": "A 4-4-2 built around sustained wide overloads rather than immediate early delivery: wingers stretch the pitch, support full-backs overlap, the DLP switches play toward the flanks, and the Target Man plus a mobile second striker attack the resulting service. Slightly more direct passing and a higher tempo get the ball to the flanks before the defence can shuffle across.",
   "whenToUse": "When you have two good wingers, full-backs with stamina, and a striker who wins headers; against teams that defend narrowly.",
   "whenNotToUse": "Against tall centre-backs who win the crosses, or when your full-backs cannot get back, since the flanks are left open.",
   "instructionRationale": {
-    "Fairly Wide": "Stretches the opponent so the wingers have room to cross.",
-    "Slightly More Direct Passing": "Gets the ball wide and forward quicker.",
     "Overlap Left": "Encourages the left-sided combination to create a second wide runner before delivering.",
     "Overlap Right": "Creates the same two-player wide threat on the right.",
-    "Higher Tempo": "Moves the ball to the flanks quickly.",
     "Counter": "Attacks quickly when the ball is won."
   },
   "attributeEmphasis": [
