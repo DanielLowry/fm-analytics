@@ -159,6 +159,12 @@ def native_filter_batch(
     there was dereferenced as an object and called through). Populate it
     with the active manager's own knowledge-context object (the same one
     resolved for attribute cold-calls) whenever the full filter runs.
+
+    Corrected 27 September 2026: that guess is wrong and is itself a crash.
+    +0x20 must be the manager's person interface (see
+    ``docs/frida-discoverability.md``, "Running the filter in the sandbox");
+    a knowledge context there is called through as if it were a person.
+    Do not run this against a live game -- use ``tools/fm20_sandbox.py``.
     """
     excluded_sample = sorted(known_own_excluded)[:3]
     included_sample = sorted(set(records) - known_own_excluded)[:3]

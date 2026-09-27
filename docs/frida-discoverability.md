@@ -94,6 +94,47 @@ manager interface at offset `0x8` and the team at offset `0x18`. A synthetic
 context supplying those is enough, which is why no observed runtime context is
 needed. With more rules active a captured context may still be required.
 
+## Running the filter in the sandbox (27 September 2026)
+
+`tools/fm20_sandbox.py` runs the composite at `0x42c96a0` on a read-only copy
+of FM's memory, so the thread check the wrapper enforces is irrelevant and
+nothing in the live game is touched. On the test save, with the manager's own
+search open in FM, the composite over the whole 3,648-player pool accepted
+exactly the 295 players FM's own result list held for that search (same 295,
+none extra, none missing). With every optional rule switched off in the
+sandbox's copy except `PERSON_INTERESTED_FILTER_RULE`, it accepted 1,506 of
+3,610 -- FM's search with only "interested in transfer" ticked.
+
+The filter context the evaluators receive, as FM's Player Search builds it
+(call sites around `fm.exe+0x1d641e4`):
+
+| Offset | Value |
+| --- | --- |
+| `+0x00` | vtable `fm.exe+0x6591bf8` |
+| `+0x08` | the manager interface (the pool builder's second argument) |
+| `+0x10` | byte, 0 |
+| `+0x18` | the managed team |
+| `+0x20` | the manager's **person** interface: `manager_interface + 8 + int32([[manager_interface + 8] + 4])` |
+| `+0x28` | byte, 0 |
+
+`+0x20` is what `PERSON_INTERESTED_FILTER_RULE` asks for the managing club
+(its slot `0x700`), whose reputation sets the interest threshold. Left null,
+the rule returns "interested" for everyone. The September ptrace tool put the
+manager's knowledge context there instead -- the wrong type, so FM called
+through a non-function pointer and crashed; that is the "intermittent segfault
+deep in a full-filter batch" recorded in `fm20_discoverability_cold_filter.py`.
+
+Each interest rule reads its level from its own settings list (`rule + 0x10`,
+16-byte entries keyed by a four-character code; `flvl` holds 5000 on the test
+save). The interest score calls `sinf` in FM's `ucrtbase.dll`, whose FMA3 path
+Unicorn cannot run; the sandbox calls the runtime's own `_set_FMA3_enable(0)`
+in its copy, which Microsoft documents can change the last bit of a result.
+The exact 295-player match suggests that does not matter here, but it has not
+been proven for borderline players.
+
+Cost: the interest score is much heavier than a visibility check -- about 7 ms
+per player in the sandbox, 20-26 s for the whole pool.
+
 ## Why the earlier replay looked broken
 
 The six-player sample expected three external players to be included. All six
