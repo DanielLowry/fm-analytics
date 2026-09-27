@@ -17,6 +17,12 @@ for the same manager and the same in-game date. That report is marked
 empty pool as "FM has not built it in this process yet", not as "the cold read
 does not work".
 
+**Superseded 27 September 2026:** the refresh no longer depends on FM having
+built the pool. It runs FM's own builder on a copy of FM's memory
+(`tools/fm20_sandbox_pool.py`; see `docs/scouting-workspace.md`, "Player Search
+without opening Player Search"), which filled the pool with 3,411 players on a
+freshly started FM whose own pool read 0.
+
 | Measurement | No package | Vanarama North/South |
 | --- | --- | --- |
 | Pool read cold | 4,340 | 4,953 |

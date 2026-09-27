@@ -463,6 +463,33 @@ outside FM's Player Search pool, most of them non-league or unattached.
 Still unexplained: FM's Scouted list shows 532 and the report vector holds
 530, all of which pass the type checks. No own-club players are among them.
 
+### Player Search without opening Player Search (27 September 2026)
+
+FM keeps its Player Search list in memory only, empty after every launch
+until the manager opens Player Search. Until now that left two choices: ask
+the product owner to open it before refreshing, or run FM's own list builder
+inside the live game (`--allow-rebuild`, the in-game kind of call behind the
+broken saves). A refresh now runs that same builder (`fm.exe+0x52778C0`) in
+the sandbox instead -- `tools/fm20_sandbox_pool.py` -- and reads the list out
+of the sandbox's copy. Each player it lists is checked against the live game
+before use.
+
+On the test save, with FM freshly restarted and its own list empty, the
+builder ran in 8.3 seconds (about 250 MB of FM's memory copied) and produced
+3,411 players, the same set on a second run. A whole refresh then took 38
+seconds and matched the earlier refresh from FM's own list on every count:
+3,411 listed, 38 own-club players removed, 1,350 `yes` plus 15 `maybe`
+interested in transfer, 530 with a scout report. It has not yet been diffed
+player by player against FM's own list at the same moment.
+
+**Decision:** the sandbox list is used on every refresh, even when FM has
+built its own, because FM's is only as recent as the last time Player Search
+was opened. FM's own list is the fallback if the sandbox build fails
+(`scouting_sandbox_pool_failed` in the log), and the feed says which was used
+(`source.poolBuiltInSandbox`). `--allow-rebuild` is now only reachable if both
+fail and nothing is scouted either; with the sandbox builder working it is a
+candidate for deletion rather than a route anyone should need.
+
 ### Known gaps after this change
 
 - **Footedness has no live source any more.** Its only capture path was the

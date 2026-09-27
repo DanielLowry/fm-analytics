@@ -60,6 +60,7 @@ from tools.fm20_linux_probe_runtime import choose_pid
 from tools.fm20_cold_query_cache import resolve_player_interfaces
 from tools.fm20_native_call_log import log_event, next_call_number
 from tools.fm20_sandbox import SandboxError
+from tools.fm20_sandbox_pool import build_pool_in_sandbox
 from tools.fm20_sandbox_queries import (
     DEFAULT_INTEREST_MARGIN,
     SandboxQueryError,
@@ -315,7 +316,29 @@ def capture_pool(
         )
 
         pool_available = True
-        if before_ids:
+        # FM's own list, as the live game holds it; the end-of-run check
+        # compares against this, whichever way the pool itself was obtained.
+        live_pool_ids = before_ids
+        # First choice since 27 September 2026: build the list fresh on a copy
+        # of FM's memory (tools.fm20_sandbox_pool), so a refresh needs no
+        # Player Search in FM and is never older than the refresh itself. FM's
+        # own live list is only the fallback if that fails.
+        sandbox_records: dict[int, int] = {}
+        try:
+            sandbox_records = build_pool_in_sandbox(pid, module_base, arguments)
+            log_event(
+                "scouting_sandbox_pool_built", call_number=call_number, pid=pid,
+                pool_count=len(sandbox_records), live_pool_count=len(before_ids),
+            )
+        except (SandboxError, SandboxQueryError, ProbeError, OSError) as error:
+            log_event(
+                "scouting_sandbox_pool_failed", call_number=call_number, pid=pid,
+                exception_type=type(error).__name__, exception=str(error),
+                live_pool_count=len(before_ids),
+            )
+        if sandbox_records:
+            after, pool_ids, rebuilt = before, sorted(sandbox_records), False
+        elif before_ids:
             after, pool_ids, rebuilt = before, before_ids, False
         elif not allow_rebuild:
             if scouted_players:
@@ -381,6 +404,7 @@ def capture_pool(
                 raise ScoutingFeedError("the game date changed during pool capture")
             if not pool_ids:
                 raise ScoutingFeedError("FM's builder returned an empty Player Search pool")
+            live_pool_ids = pool_ids
             rebuilt = True
             log_event(
                 "scouting_pool_rebuild_completed", call_number=call_number, pid=pid,
@@ -396,7 +420,9 @@ def capture_pool(
         if not process_alive(pid):
             raise ScoutingFeedError("FM is not healthy after its Player Search pool was read")
 
-        if pool_available:
+        if sandbox_records:
+            records = sandbox_records
+        elif pool_available:
             fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
             try:
                 records = _source_records(lambda address, size: read_exact(fd, address, size), arguments[0])
@@ -598,7 +624,7 @@ def capture_pool(
             _active_manager(final).id != manager.id
             or final.game_date != before.game_date
             or not process_alive(pid)
-            or (pool_available and (final_arguments != arguments or set(final_pool_ids) != set(pool_ids)))
+            or (pool_available and (final_arguments != arguments or set(final_pool_ids) != set(live_pool_ids)))
         ):
             raise ScoutingFeedError("FM state changed while visible attributes were captured")
         document = feed_document(
@@ -627,6 +653,7 @@ def capture_pool(
             sandboxed_count=len(sandboxed_attributes),
             sandbox_error=sandbox_error,
             pool_available=pool_available,
+            pool_built_in_sandbox=bool(sandbox_records),
             rebuilt=rebuilt,
         )
     except BaseException as error:
@@ -747,7 +774,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             "FM's own builder was run inside the live game to build the pool."
             if document["source"]["poolRebuiltByCapture"]
             else (
-                "Read from the pool FM had already built; nothing was written to FM."
+                "Built the Player Search list on a copy of FM's memory; nothing was written to FM."
+                if document["source"]["poolBuiltInSandbox"]
+                else "Read from the pool FM had already built; nothing was written to FM."
                 if document["source"]["poolAvailable"]
                 else "The wider pool was not available this time; only scouted players were "
                 "read. Nothing was written to FM."

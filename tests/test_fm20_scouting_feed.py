@@ -9,7 +9,23 @@ from unittest import mock
 
 from tools import fm20_scouting_feed as feed
 from tools import fm20_scouting_identity as identity
+from tools.fm20_sandbox_queries import SandboxQueryError
 from tools.fm20_scouting_feed import ScoutingFeedError, feed_document, load_prior_visibility
+
+# Building the Player Search list in the sandbox needs a real FM process; every
+# capture_pool test here gets a build that fails, i.e. the fallback to FM's own
+# live list that predates it. PoolBuiltInSandboxTests replaces this per test.
+_SANDBOX_POOL = mock.patch.object(
+    feed, "build_pool_in_sandbox", side_effect=SandboxQueryError("no FM in unit tests")
+)
+
+
+def setUpModule() -> None:
+    _SANDBOX_POOL.start()
+
+
+def tearDownModule() -> None:
+    _SANDBOX_POOL.stop()
 
 
 class ScoutingFeedTests(unittest.TestCase):
@@ -318,6 +334,7 @@ class RefreshLoggingTests(unittest.TestCase):
                 "scouting_refresh_started",
                 "scouting_pool_read",
                 "scouting_knowledge_read",
+                "scouting_sandbox_pool_failed",
                 "scouting_refresh_refused_pool_not_built",
                 "scouting_refresh_failed",
             ],
@@ -745,6 +762,79 @@ class ScoutedListAlignmentTests(unittest.TestCase):
         self.assertEqual(
             {row_id: row["inPlayerSearch"] for row_id, row in rows.items()},
             {"10": True, "11": True, "50": False, "51": False, "60": False, "61": False},
+        )
+
+
+class PoolBuiltInSandboxTests(unittest.TestCase):
+    """27 September 2026: the refresh builds Player Search's list itself, on a
+    copy of FM's memory, so FM's own list (empty after every launch until the
+    manager opens Player Search) is only the fallback."""
+
+    def _capture(self, live_pool_ids, sandbox):
+        import os
+
+        state = SimpleNamespace(module_base="0x140000000", game_date="2019-07-04", first_team_squad=())
+        manager = SimpleNamespace(id="m1", club=SimpleNamespace(id="c1", name="Example FC"))
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(
+                feed, "_live_context", return_value=(state, (1, 2, 3), live_pool_ids)))
+            stack.enter_context(mock.patch.object(feed, "_active_manager", return_value=manager))
+            stack.enter_context(mock.patch.object(feed, "preflight", return_value={"moduleBase": "0x140000000"}))
+            stack.enter_context(mock.patch.object(feed, "process_alive", return_value=True))
+            live_records = stack.enter_context(mock.patch.object(
+                feed, "_source_records", return_value={pid: 0x1000 + pid for pid in live_pool_ids}))
+            stack.enter_context(mock.patch.object(
+                feed, "resolve_source_player_names", side_effect=lambda pid, wanted: {i: f"P{i}" for i in wanted}))
+            stack.enter_context(mock.patch.object(feed, "read_raw_external_positions", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "read_raw_position_familiarity", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "resolve_source_identity_facts", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "read_own_club_members", return_value=set()))
+            stack.enter_context(mock.patch.object(feed, "_resolve_knowledge_context", return_value=0x999))
+            stack.enter_context(mock.patch.object(feed, "capture_scouted_attributes", return_value=({}, {})))
+            stack.enter_context(mock.patch.object(
+                feed, "resolve_sandbox_context", side_effect=SandboxQueryError("not under test")))
+            build = stack.enter_context(mock.patch.object(feed, "build_pool_in_sandbox", **sandbox))
+            events = stack.enter_context(mock.patch.object(feed, "log_event"))
+            document = feed.capture_pool(os.getpid(), remote_address=None)
+        return document, build, live_records, events
+
+    def test_an_unopened_player_search_no_longer_matters(self) -> None:
+        document, build, live_records, events = self._capture(
+            [], {"return_value": {10: 0x2010, 11: 0x2011}}
+        )
+
+        self.assertEqual(build.call_args.args[2], (1, 2, 3))
+        self.assertEqual(sorted(row["id"] for row in document["players"]), ["10", "11"])
+        self.assertTrue(document["source"]["poolAvailable"])
+        self.assertTrue(document["source"]["poolBuiltInSandbox"])
+        self.assertFalse(document["source"]["poolRebuiltByCapture"])
+        self.assertEqual(document["source"]["transport"], "read-only-process-memory")
+        live_records.assert_not_called()
+        events.assert_any_call(
+            "scouting_sandbox_pool_built", call_number=mock.ANY, pid=mock.ANY,
+            pool_count=2, live_pool_count=0,
+        )
+
+    def test_the_sandbox_list_is_preferred_even_when_fm_has_its_own(self) -> None:
+        # FM's own list is only as fresh as the last time Player Search was opened.
+        document, _build, live_records, _events = self._capture(
+            [10], {"return_value": {10: 0x2010, 12: 0x2012}}
+        )
+
+        self.assertEqual(sorted(row["id"] for row in document["players"]), ["10", "12"])
+        live_records.assert_not_called()
+
+    def test_a_failed_sandbox_build_falls_back_to_fms_own_list(self) -> None:
+        document, _build, live_records, events = self._capture(
+            [10, 11], {"side_effect": SandboxQueryError("builder stopped")}
+        )
+
+        self.assertEqual(sorted(row["id"] for row in document["players"]), ["10", "11"])
+        self.assertFalse(document["source"]["poolBuiltInSandbox"])
+        live_records.assert_called_once()
+        events.assert_any_call(
+            "scouting_sandbox_pool_failed", call_number=mock.ANY, pid=mock.ANY,
+            exception_type="SandboxQueryError", exception="builder stopped", live_pool_count=2,
         )
 
 

@@ -60,6 +60,7 @@ def feed_document(
     sandboxed_count: int = 0,
     sandbox_error: str | None = None,
     pool_available: bool = True,
+    pool_built_in_sandbox: bool = False,
     rebuilt: bool = False,
 ) -> dict[str, Any]:
     """Build the stable JSON contract consumed by ``fm-web --scouting-json``.
@@ -127,6 +128,10 @@ def feed_document(
             "transport": "windows-frida-server" if rebuilt else "read-only-process-memory",
             "poolRebuiltByCapture": rebuilt,
             "poolAvailable": pool_available,
+            # True when this refresh built the Player Search list itself on a
+            # copy of FM's memory (tools.fm20_sandbox_pool) rather than
+            # reading the list FM builds when Player Search is opened.
+            "poolBuiltInSandbox": pool_built_in_sandbox,
             "sandboxedCount": sandboxed_count,
             "sandboxError": sandbox_error,
             "interestMargin": interest_margin,
