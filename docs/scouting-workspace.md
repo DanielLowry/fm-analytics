@@ -151,7 +151,9 @@ players, on every request); any re-sort or filter afterwards ~0 s.
 
 The row limit is 100 with a **Show more** button (`limit`, capped at 1,000
 because each row carries an attribute sheet). Rows show positions, value and
-contract for every table, and an "FM search match" tag on the player.
+contract for every table, and an "Interested (transfer)"/"Interested (loan)"
+tag on the player where FM's own interest rules say so (see "Interest has no
+stored answer" below; this replaced an earlier "FM search match" tag).
 
 ## Position familiarity (19 September 2026)
 
@@ -235,36 +237,63 @@ Scouted tab worked but its position filter and Club column were empty until
 Player Search had been opened. A player with no current contract simply has no
 club, which is real, not a read failure.
 
-**Players known through reputation or other baseline knowledge.** A manager can
-know something about a player who has never had an explicit scout report. A
-plain, read-only refresh cannot yet reproduce that baseline-knowledge path.
-Those players are therefore labelled **Not captured from FM**, never
-"nothing known". On the **All players / Player Search** tab, leave the intended
-search open in FM, open **Attributes for players you haven't scouted** under
-the refresh button, and choose **Ask FM for these attributes (risks this
-save)** to ask FM's own visibility builder for the exact current answer. The
-operation is bounded to 256 active results and processed in batches of at most
-64. It is never the default; see the next section for why.
+**Players known through reputation or other baseline knowledge (superseded
+27 September 2026).** A manager can know something about a player who has
+never had an explicit scout report -- FM's own baseline-knowledge path. Until
+27 September the only way to see it was a red, explicitly-risky button that
+ran FM's own visibility builder inside the live game. The sandbox (below)
+answers the same question for every candidate, every refresh, without that
+risk, so the button is gone outright rather than kept as a fallback.
 
-## Frida hydration still exists, now for a different purpose
+## Every player's attributes and interest, through the sandbox
 
-`--hydrate-player-id` (up to 64 players) and `--hydrate-active-search` (up to
-256 current Player Search results, internally batched) call FM's own builder
-directly and still needs the same explicit approval as the pool rebuild.
-It is no longer the only way to get real attributes -- the read-only path
-above covers every scouted player automatically -- so its remaining use is
-narrower: getting FM's *exact* answer to spot-check the read-only
-calculation above, or covering a player who is discoverable but not yet
-scouted (where the read-only path has nothing to compute from). A player
-hydrated this way outranks the read-only calculation for that player in
-the merge order (prior capture, then this run's calculation, then this
-run's hydration, each layer overriding the last).
+**Shipped 27 September 2026**, in `tools/fm20_sandbox_queries.py` on top of
+`tools/fm20_sandbox.py`. This replaced the last two things this project ever
+ran inside the live game (`--hydrate-player-id` and `--hydrate-active-search`,
+both Frida calls into FM's own process) the evening after those exact calls
+were implicated in a second round of save corruption. See "Saves broke again
+on 26 September 2026" below for what happened, and
+`docs/frida-discoverability.md` for the interest-filter research this also
+replaced.
 
-Its own native-call timing was changed alongside the pool-rebuild agent on
-18 September 2026 (`tools/fm20_frida_attribute_sweep.py`,
-`tools/fm20_frida_property.py`): the call now runs at FM's message pump
-rather than a `QueryPerformanceCounter` tick, for the reason recorded in
-`docs/property-discovery-playbook.md`.
+**What it reads, for every external and scouted candidate, every refresh, no
+Player Search screen required:**
+
+- **Visible attributes** -- FM's own visibility builder (RVA `0x15a4a90`),
+  called the way FM's own screens call it (see 03.2, "Both caller inputs
+  resolved" -- a zeroed lookup cache plus the player's actual scout as the
+  explicit `report` argument). Matched the read-only calculation for all 741
+  of a real save's scouted players exactly (23,739 of 23,739 attributes) once
+  called this way; a live CLI run against a real, freshly-restarted FM process
+  captured all 714 currently-scouted players' attributes via the sandbox in
+  8.1 seconds total, with zero read failures that run.
+- **Transfer and loan interest** -- FM's own `PERSON_INTERESTED_FILTER_RULE`
+  and `PERSON_INTERESTED_LOAN_FILTER_RULE` evaluators, called directly
+  (bypassing the composite's own-club/national-pool rules; the caller already
+  excludes the manager's own first-team squad via `own_contracted_ids`) at
+  FM's standard "any interest" level, regardless of what is currently ticked
+  in FM's UI. See "Interest has no stored answer" below.
+
+Nothing here can write to FM: the sandbox is a Unicorn x86-64 CPU whose memory
+is copied in, one page at a time and read-only, from `/proc/<pid>/mem`; any
+write FM's own code makes (the builder updates lookup caches, the interest
+evaluators do their own bookkeeping) lands only in that copy and is discarded
+with the sandbox. A scouted player's own read-only calculation
+(`tools.fm20_scouted_attributes`) is still computed first and used as the
+floor; the sandbox's answer overrides it for whichever players it could read
+this run, the same "later layer wins" merge the old hydration path used.
+Footedness is **not** part of this: nothing currently re-captures it live (see
+"Known gaps" below).
+
+**Not fixed by this change: a scouted player currently on the manager's own
+club but off the primary first-team squad.** `own_contracted_ids` excludes
+only `first_team_squad`; a reserve or youth player who is both scouted and at
+the manager's own club would still be run through the interest rules (since
+those bypass the composite's own-club exclusion entirely) and could show a
+meaningless "interested in transfer" verdict. Not observed on the one save
+this was checked against (zero of that save's scouted players had the managed
+club as their own), and not worth a fragile club-name match to guard against
+under time pressure; flagged here rather than silently risked.
 
 ### Saves broke again on 26 September 2026
 
@@ -287,40 +316,104 @@ What the native-call log shows, and does not:
 - The log did not record which thread or hook those batches used, so thread
   choice versus the builder's own writes (03.2: it updates recent-lookup
   fields in the manager's knowledge context and may store a report pointer)
-  cannot be told apart. Each batch now logs `scouting_native_batch` with its
-  thread selection so the next incident can.
+  cannot be told apart.
 
-Fixed 27 September 2026: the main refresh button on both tabs is read-only
-again, asking FM for unscouted attributes is a separate, collapsed, red button
-that states the risk, and the thread selector refuses rather than running at a
-timing call. For those unscouted players this is a real loss -- 43 of the 51
-players captured on 26 September had no scout report yet FM showed each of
-them 16-21 ranged attributes -- which is why the read-only route to the same
-answer (03.2's baseline-knowledge "Plan B", or observing FM's own baseline
-calculation passively) is the next step rather than making the native call
-the default again.
+First fixed 27 September morning by making the main refresh button read-only
+again and putting the risky attribute call behind a separate, explicit red
+button; fixed properly later the same day by removing that native call
+entirely in favour of the sandbox above, once it proved both correct and safe.
 
-### The sandbox trial (27 September 2026)
+### The sandbox trial and what it found (27 September 2026)
 
-`tools/fm20_sandbox.py` runs FM's own visibility builder in a Unicorn x86-64
-emulator whose memory is copied on first touch from `/proc/<pid>/mem`, opened
-read-only. Nothing attaches to FM or writes to it, so the save cannot be
-affected; FM's own writes land in the emulator's copy. Results on the test
-save, with FM running throughout:
+`tools/fm20_sandbox.py` runs FM's own code in a Unicorn x86-64 emulator whose
+memory starts empty and is copied in, one page at a time, from
+`/proc/<pid>/mem`, opened read-only. Its trial surfaced several things worth
+recording so they are not silently lost or re-broken later:
 
 - **Correct.** All 741 scouted players, 41 attributes each, matched the
   read-only calculation (23,739 of 23,739), once the builder was called the way
   FM's screens call it (see 03.2, "Both caller inputs resolved"). The 43
   unscouted players from 26 September matched, apart from changes explained by
   new scout reports (14 players) and ageing (5 players aged 34-37).
-- **Simple.** The only thing faked is a thread-local storage block (fm.exe's own
-  TLS template, with MSVC's static-initialisation epoch set so statics FM has
-  already built are not rebuilt). No system call, fault or unmapped read.
 - **Fast.** About 0.1 ms per attribute; one player 4 ms; the whole 3,648-player
-  Player Search pool in 14 s, copying 107 MB of FM's 2.3 GB, 196 MB peak memory.
+  Player Search pool (attributes and interest together) in 13-35 s
+  single-threaded depending on live conditions, sharded across up to 8
+  parallel sandboxes (`capture_players`) for real wall-clock benefit on a
+  multi-core machine.
+- **A thread-cloning crash, found and avoided.** The sandbox can either clone
+  FM's real main-thread block or build a synthetic one from fm.exe's own TLS
+  template. The clone seemed the more faithful choice for anything FM's
+  screens compute, but calling the C runtime's `_set_FMA3_enable` (needed
+  before the interest evaluators' floating-point maths, since Unicorn has no
+  AVX/FMA) under a cloned real thread's snapshot crashed the whole Python
+  process outright -- SIGSEGV, not a catchable Unicorn or FM error -- for
+  reasons not fully understood. The synthetic thread has been checked
+  correct for both attributes and interest and is now the default
+  (`FmSandbox(..., as_main_thread=False)`); treat `True` as unverified for any
+  new use until it is checked the same way.
+- **A vtable slot correction.** The interest rules' real evaluator sits at
+  vtable slot `0xd8`, not `0x88` -- confirmed by reading both slots' actual
+  targets off the live filter's rule objects: slot `0x88` resolved to the same
+  address for both interest rules (a shared, non-scoring method), while slot
+  `0xd8` gave each its own address matching the already-disassembled
+  evaluators. This is a different rule subclass from the always-on rules
+  (`PERSON_INCLUDE_OWN_FILTER_RULE` etc.), whose own evaluator genuinely does
+  sit behind a slot-`0x20` thunk to slot `0x88` (`docs/frida-discoverability.md`).
+- **A read reliability finding, not fully root-caused.** Reading many
+  players' interest in one sandbox occasionally produced a burst of failures
+  -- always the identical faulting address across many different players in
+  one burst, consistent with a shared CRT/lock structure FM's own background
+  threads (about 9% CPU even on a menu screen) were concurrently mutating,
+  not anything this module writes -- and the burst size varied wildly run to
+  run (0 to over 1,000 of 3,648) with no correlation to worker count.
+  Retrying the *same* sandbox's read never recovered it; a fresh sandbox, at a
+  later real moment, did. `capture_players` therefore retries only the
+  players still missing, in fresh sandboxes, up to
+  `fm20_sandbox_queries.MAX_CAPTURE_PASSES` (3) times, and leaves whatever is
+  still missing to the caller's existing fallback (a scouted player's
+  read-only calculation, or nothing new this refresh) rather than guessing.
 
-Unscouted players still need checking against FM's own screen: the 26
-September answers came from the same builder call, not from the screen.
+### Interest has no stored answer
+
+FM does not store "interested in transfer/loan" anywhere -- its Player Search
+filter computes it fresh from the manager's own reputation every time it
+runs a search (`docs/frida-discoverability.md`, "Running the filter in the
+sandbox"). Checked against FM's own displayed lists on the test save, the
+sandbox's exact reproduction of FM's rule matched 24 of 24 individually
+labelled players, but the two full-pool checks (1,518 interested-in-transfer,
+91 interested-in-loan) each came up short by 5-6% against FM's own count, for
+reasons never fully explained (ruled out: rounding, which OS thread ran the
+call, which manager/team object was used, and the currently-ticked search
+criteria). On 27 September the product owner decided that missing an
+interested player is worse than wrongly flagging one, so every interest read
+takes FM's own live-computed cut-off (which moves with the manager's
+reputation; nothing here is a fixed number) and relaxes it by
+`DEFAULT_INTEREST_MARGIN` (0.85). A margin sweep on the test save found any
+value from about 0.94 to 0.95 reproduced both of FM's lists exactly, and 0.85
+was chosen with headroom rather than tuned to the edge, at the cost of 12-18
+extra players per list who scored just under FM's own line. Each player's
+result distinguishes FM's own exact verdict (`"yes"`) from one that only
+clears the margin (`"maybe"`), shown in the Scouting page as separate tags
+rather than losing that distinction. This also retired the "FM search match"
+column and filter (`matchedActiveSearch`), which existed only as a proxy for
+this same question and needed a search left open in FM to answer it; the
+Scouting page's `transferInterest`/`loanInterest` filters replace it, and the
+7-14 second scan for FM's on-screen result list is no longer part of a
+refresh at all.
+
+### Known gaps after this change
+
+- **Footedness has no live source any more.** Its only capture path was the
+  same Frida hydration this change removed, and porting it to the sandbox was
+  not done in this pass (it would follow the same generic property-getter
+  chain the attribute builder uses, just for a different key). Existing
+  captures keep whatever footedness they already had (`--base-feed` carries it
+  forward, dated to when it was actually observed), but nothing refreshes it.
+- **Player-knowledge history does not track interest yet.** `matched_active_search`
+  stays in the `player_knowledge` SQLite schema (a real migration, not
+  attempted here) but is always written `None` now; recording
+  `transfer_interest`/`loan_interest` there properly is a follow-up.
+- The own-club-not-first-team interest gap above.
 
 ## Candidate-feed contract
 
@@ -399,13 +492,13 @@ attempt in order:
 
 | Event | Meaning |
 | --- | --- |
-| `scouting_refresh_started` | Refresh began; records `allow_rebuild`, hydrate count, base feed date |
+| `scouting_refresh_started` | Refresh began; records `allow_rebuild`, the interest margin, base feed date |
 | `scouting_pool_read` | The cold read; records the pool size found and the live game date |
 | `scouting_refresh_refused_pool_not_built` | Pool was empty and `allow_rebuild` was false; nothing was written to FM |
-| `scouting_pool_rebuild_started` / `_completed` / `_failed` | FM's own pool builder ran; `_completed` records the thread, how it was selected, and the hook used (`hook`, `resting_point`) |
+| `scouting_pool_rebuild_started` / `_completed` / `_failed` | FM's own pool builder ran (the one remaining live-code step); `_completed` records the thread, how it was selected, and the hook used (`hook`, `resting_point`) |
 | `scouting_refresh_date_drift` | Base feed's date differs from today's live read; informational only |
-| `scouting_hydration_started` / `_completed` | `--hydrate-player-id` / `--hydrate-active-search` requests, with counts |
-| `scouting_native_batch` | One Frida batch that ran FM's code (`agent` is `attribute-sweep` or `footedness`): the thread it chose, how (`selection`), both thread samples, the hook, and any agent errors |
+| `scouting_sandbox_capture_completed` | The sandbox read attributes and interest for every reachable candidate this run; records how many were requested versus captured and the duration |
+| `scouting_sandbox_capture_failed` | The sandbox could not be set up at all this run (an unrecognised search/filter identity); the refresh still completes, with no sandboxed attributes or interest this time |
 | `scouting_refresh_completed` | Success; records `rebuilt`, player count, total duration |
 | `scouting_refresh_failed` | Any exception, anywhere in the refresh, with its type, message, and duration so far |
 
@@ -437,27 +530,18 @@ for role and position filtering. The page warns that the data can reveal
 secondary positions FM has not shown the manager. The checkbox does nothing
 until the feed has been recaptured with the command above.
 
-To hydrate a small set of known candidates with all of FM's manager-visible
-attribute values and footedness, repeat `--hydrate-player-id` (up to 64 players). This is
-bounded deliberately while the external-player route is validated:
+Every external and scouted candidate's visible attributes and transfer/loan
+interest are captured automatically through the sandbox (see "Every player's
+attributes and interest, through the sandbox" above) -- there is no longer a
+separate hydration step or player limit to opt into. `--interest-margin`
+(default `0.85`) controls how far below FM's own live interest cut-off a
+player still counts as "maybe" interested; `1.0` uses FM's own cut-off
+exactly, with no relaxation.
 
-```bash
-uv run --extra research python tools/fm20_scouting_feed.py \
-  --hydrate-player-id 9214 \
-  --output data/scouting-capture-hydrated.json
-```
-
-To capture FM's current visible attributes for every player in the active,
-filtered Player Search result:
-
-```bash
-uv run --extra research python tools/fm20_scouting_feed.py \
-  --hydrate-active-search \
-  --output data/scouting-capture-hydrated.json
-```
-
-Use `--base-feed` to retain previously captured visible fields. To update that
-same known capture, pair it with `--replace` and name the exact output file.
+Use `--base-feed` to retain previously captured visible fields (footedness, in
+particular, which the sandbox does not capture -- see "Known gaps" above). To
+update that same known capture, pair it with `--replace` and name the exact
+output file.
 
 The Scouting page can also start with a separately captured, manager-visible
 JSON feed:
@@ -554,13 +638,17 @@ side. Because the reader cannot see *which* criteria produced the list, anything
 built on it must describe the result as "matched the search open in FM" and let
 the manager say what that search was.
 
-### Using it
+### Using it (superseded 27 September 2026)
 
-Set the filter you want in FM's Player Search, leave the results on screen, then
-refresh the scouting data. The capture records `matchedActiveSearch` per player
-and `source.activeSearchMatchCount`; the page shows an **FM search** column and
-an **FM search match** filter. If no search is showing, or two are live at once,
-the field is absent rather than guessed, and the column reads "—".
-
-The sweep adds roughly a minute to a refresh, because finding the session means
-scanning writable memory for its vtable.
+This whole route -- set the filter in FM's Player Search, leave it on screen,
+read back FM's own result list (`matchedActiveSearch`, an **FM search match**
+filter) -- was a workaround for not being able to compute interest ourselves,
+and needed a search left open in FM to answer even that one question. The
+sandbox now calls FM's own interest rules directly for every candidate, every
+refresh, with no FM screen involved; see "Interest has no stored answer"
+above for the real route and the margin decision, and "Running the filter in
+the sandbox" in `docs/frida-discoverability.md` for how the rules themselves
+were found and confirmed. `matchedActiveSearch`/`activeSearchMatchCount` and
+the FM-search-match filter are removed from the feed and the page.
+`tools/fm20_search_results.py` (the result-list reader this section
+describes) is left in the tree as a reference, unused by the current pipeline.

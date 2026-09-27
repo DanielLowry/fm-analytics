@@ -184,18 +184,13 @@ class SquadWebServer(ThreadingHTTPServer):
         except (OSError, ValueError, KeyError):
             pass
 
-    def refresh_scouting(
-        self, *, allow_rebuild: bool = False, hydrate_active_search: bool = False
-    ) -> str:
+    def refresh_scouting(self, *, allow_rebuild: bool = False) -> str:
         if self.scouting_refresh is None:
             raise ValueError("Scouting refresh is not configured for this server.")
         if not self._scouting_refresh_lock.acquire(blocking=False):
             raise ValueError("A scouting refresh is already running.")
         try:
-            options = {"allow_rebuild": allow_rebuild}
-            if hydrate_active_search:
-                options["hydrate_active_search"] = True
-            result = self.scouting_refresh(**options)
+            result = self.scouting_refresh(allow_rebuild=allow_rebuild)
             # Still under the refresh lock, so the file cannot change while it is read.
             self.record_knowledge()
         finally:

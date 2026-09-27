@@ -631,7 +631,8 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         market=_query_first(query, "market") or "any",
         expiring_months=_query_number(query, "expiringMonths", integer=True) or 6,
         maximum_value=_query_number(query, "maxValue", integer=True),
-        search_match=_query_first(query, "searchMatch") or "any",
+        transfer_interest=_query_first(query, "transferInterest") or "any",
+        loan_interest=_query_first(query, "loanInterest") or "any",
         ranking_sort=ranking_sort,
         ranking_descending={"desc": True, "asc": False}.get(_query_first(query, "dir") or ""),
         facts=facts,
@@ -732,12 +733,6 @@ def _refresh_notice(refreshed: str | None) -> str:
             "player list inside the running game. If this save later fails to "
             "load, this is the step to suspect.</p>"
         )
-    if refreshed == "hydrated":
-        return (
-            "<p class='warn'>Scouting data refreshed with the attributes FM supplied "
-            "for your open Player Search. This ran FM's own code inside the running "
-            "game. If this save later fails to load, this is the step to suspect.</p>"
-        )
     return ""
 
 
@@ -796,9 +791,7 @@ def _scouting_refresh_command(path: Path) -> Callable[..., str]:
     capture_tool = project_root / "tools" / "fm20_scouting_feed.py"
     target = path.resolve()
 
-    def refresh(
-        *, allow_rebuild: bool = False, hydrate_active_search: bool = False
-    ) -> str:
+    def refresh(*, allow_rebuild: bool = False) -> str:
         command = [
             "uv",
             "run",
@@ -811,8 +804,6 @@ def _scouting_refresh_command(path: Path) -> Callable[..., str]:
         ]
         if allow_rebuild:
             command.append("--allow-rebuild")
-        if hydrate_active_search:
-            command.append("--hydrate-active-search")
         if target.exists():
             command.extend(("--base-feed", str(target), "--replace"))
         try:
@@ -821,11 +812,11 @@ def _scouting_refresh_command(path: Path) -> Callable[..., str]:
                 cwd=project_root,
                 capture_output=True,
                 text=True,
-                timeout=180,
+                timeout=240,
                 check=False,
             )
         except subprocess.TimeoutExpired as exc:
-            raise RuntimeError("Scouting refresh timed out after three minutes.") from exc
+            raise RuntimeError("Scouting refresh timed out after four minutes.") from exc
         if result.returncode == POOL_NOT_BUILT_EXIT_CODE:
             raise ScoutingPoolNotBuilt(
                 (result.stderr or result.stdout or "").strip()[-2_000:]

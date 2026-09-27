@@ -65,6 +65,12 @@ Items 1–3 affect the next few in-game weeks. Items 4–6 pay off over the seas
 Item 4 does not depend on 1–3: if a heavy scouting push starts before they
 land, do item 4 first so those observations are recorded.
 
+Selected pieces of this plan have bounded handoff notes in
+[Delegable task briefs](tasks/README.md). Those briefs explain what a low- or
+medium-skill agent can implement without inheriting the specialist FM process
+research or making new football-model decisions. This plan remains the source
+of priority and product scope if a brief and the plan ever drift apart.
+
 ### 1. Pinned tactics
 
 **Problem.** Pages default to whichever tactic ranks top across all 42. Depth,

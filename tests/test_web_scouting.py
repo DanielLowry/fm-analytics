@@ -400,7 +400,6 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
                 ScoutingCandidate(
                     id="uncaptured", name="Alex Robinson", positions=(),
                     raw_positions=("ML", "AML", "ST"), attributes={},
-                    matched_active_search=True,
                 ),
             )
 
@@ -508,11 +507,13 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         self.assertIn("Scouting data refreshed", refreshed_body)
 
     def test_all_players_main_refresh_never_runs_fm_code(self) -> None:
-        """Saves broke again on 26 September 2026 when this button hydrated by default."""
+        """Saves broke on 26 September 2026 when a button hydrated by running FM's
+        code live; the sandbox (tools.fm20_sandbox_queries) replaced that path
+        outright on 27 September, so there is only ever this one, safe button."""
         calls = []
 
-        def refresh(*, allow_rebuild=False, hydrate_active_search=False):
-            calls.append((allow_rebuild, hydrate_active_search))
+        def refresh(*, allow_rebuild=False):
+            calls.append(allow_rebuild)
             return "Captured scouting data"
 
         port = self._serve(FIXTURE, scouting_refresh=refresh)
@@ -523,42 +524,17 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         _refreshed_status, refreshed = self._get(port, location)
 
         self.assertIn("Refresh scouting data", main_form)
-        self.assertNotIn("hydrate_active_search", main_form)
         self.assertNotIn("danger", main_form)
         self.assertEqual(status, 303)
         self.assertEqual(location, "/scouting?view=all&refreshed=1")
-        self.assertEqual(calls, [(False, False)])
+        self.assertEqual(calls, [False])
         self.assertIn("Nothing was written to FM", refreshed)
 
-    def test_all_players_can_capture_the_active_fm_search_attributes(self) -> None:
+    def test_scouted_refresh_reads_reports_only(self) -> None:
         calls = []
 
-        def refresh(*, allow_rebuild=False, hydrate_active_search=False):
-            calls.append((allow_rebuild, hydrate_active_search))
-            return "Captured active search attributes"
-
-        port = self._serve(FIXTURE, scouting_refresh=refresh)
-        _page_status, page = self._get(port, "/scouting?view=all")
-        status, location, _body = self._post(
-            port, "/scouting/refresh", "hydrate_active_search=1"
-        )
-        _refreshed_status, refreshed = self._get(port, location)
-
-        capture_form = page[page.index("Attributes for players you haven't scouted"):]
-        self.assertIn("name='hydrate_active_search' value='1'", capture_form)
-        self.assertIn("class='danger'>Ask FM for these attributes (risks this save)", capture_form)
-        self.assertIn("would not mind losing", capture_form)
-        self.assertEqual(status, 303)
-        self.assertEqual(location, "/scouting?refreshed=hydrated")
-        self.assertEqual(calls, [(False, True)])
-        self.assertIn("attributes FM supplied", refreshed)
-        self.assertIn("If this save later fails to load", refreshed)
-
-    def test_scouted_refresh_uses_reports_without_player_search_hydration(self) -> None:
-        calls = []
-
-        def refresh(*, allow_rebuild=False, hydrate_active_search=False):
-            calls.append((allow_rebuild, hydrate_active_search))
+        def refresh(*, allow_rebuild=False):
+            calls.append(allow_rebuild)
             return "Captured current scout reports"
 
         port = self._serve(FIXTURE, scouting_refresh=refresh)
@@ -568,26 +544,26 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         )
 
         self.assertIn("Refresh scouted players", page)
-        self.assertNotIn("name='hydrate_active_search' value='1'", page)
         self.assertEqual(status, 303)
         self.assertEqual(location, "/scouting?view=scouted&refreshed=1")
-        self.assertEqual(calls, [(False, False)])
+        self.assertEqual(calls, [False])
 
-    def test_active_search_refresh_passes_the_hydration_flag_to_the_capture_tool(self) -> None:
+    def test_refresh_command_passes_allow_rebuild_through_to_the_capture_tool(self) -> None:
         with tempfile.TemporaryDirectory() as directory, patch(
             "fm_analytics.web.rendering.subprocess.run"
         ) as run:
             run.return_value.returncode = 0
-            run.return_value.stdout = "Captured active search attributes"
+            run.return_value.stdout = "Captured scouting data"
             run.return_value.stderr = ""
 
             message = _scouting_refresh_command(
                 Path(directory) / "scouting.json"
-            )(hydrate_active_search=True)
+            )(allow_rebuild=True)
 
         command = run.call_args.args[0]
-        self.assertIn("--hydrate-active-search", command)
-        self.assertEqual(message, "Captured active search attributes")
+        self.assertIn("--allow-rebuild", command)
+        self.assertNotIn("--hydrate-active-search", command)
+        self.assertEqual(message, "Captured scouting data")
 
     def test_refresh_defaults_to_no_rebuild_and_says_nothing_was_written(self) -> None:
         """The plain button must never carry consent to run FM's code."""

@@ -47,7 +47,7 @@ class ScoutingFeedTests(unittest.TestCase):
                 10: {"finishing": {"visibility": "range", "minimum": 8, "maximum": 14}}
             },
             footedness_by_id={10: "Right"},
-            hydrated_count=1,
+            sandboxed_count=1,
         )
 
         self.assertEqual(document["players"][0]["attributes"]["finishing"]["maximum"], 14)
@@ -311,44 +311,109 @@ class RefreshLoggingTests(unittest.TestCase):
         self.assertEqual(len(call_numbers), 1)
 
 
-class NativeBatchLoggingTests(unittest.TestCase):
-    """A batch that ran FM's code must say which thread and hook it used."""
+class SandboxCaptureWiringTests(unittest.TestCase):
+    """capture_pool merges the sandbox's answer over the scouted baseline,
+    and degrades gracefully (never fails the refresh) when the sandbox
+    could not be set up at all -- the same posture a Frida failure used to
+    have, now for a read-only step that cannot touch FM."""
 
-    def test_attribute_batch_logs_its_thread_selection(self) -> None:
-        thread = {
-            "id": 372, "hook": "PeekMessageW", "restingPoint": True,
-            "selection": "unique-message-pump-thread",
-            "qpcSample": {"372": 6109}, "pumpSample": {"372": {"PeekMessageW": 40}},
+    def test_sandbox_attributes_and_interest_override_the_scouted_baseline(self) -> None:
+        import os
+
+        from fm_analytics.domain import AttributeObservation, Visibility
+        from tools.fm20_sandbox_queries import InterestVerdict, PlayerCapture
+        from tools.fm20_scouted_attributes import ScoutedPlayer
+
+        state = SimpleNamespace(module_base="0x140000000", game_date="2019-07-04", first_team_squad=())
+        manager = SimpleNamespace(id="m1", club=SimpleNamespace(id="c1", name="Example FC"))
+        records = {10: 0x1000}
+        names = {10: "A Player"}
+        scouted = ScoutedPlayer(
+            row_id=1, player_id=10, name="A Player", age=21, person=0x1000, knowledge=15,
+            observations={"pace": AttributeObservation(Visibility.RANGE, minimum=8, maximum=14)},
+        )
+        sandbox_result = {
+            10: PlayerCapture(
+                attributes={"pace": AttributeObservation(Visibility.KNOWN, value=12)},
+                interest=InterestVerdict(transfer="yes", loan=None),
+            )
         }
-        capture = {
-            "attached": True, "agentReady": True, "scriptUnloaded": True,
-            "detached": True, "agentErrors": [], "thread": thread,
-        }
-        decoded = {"resolvedCount": 1, "players": [{"id": "42", "error": None, "attributes": {}}]}
+
         with contextlib.ExitStack() as stack:
-            stack.enter_context(mock.patch.object(feed.os, "open", return_value=99))
-            stack.enter_context(mock.patch.object(feed.os, "close"))
-            stack.enter_context(mock.patch.object(
-                feed, "resolve_context_and_manager", return_value=(0x999, 0x888)
-            ))
-            stack.enter_context(mock.patch.object(
-                feed, "resolve_player_interfaces", return_value={42: 0x5000}
-            ))
-            stack.enter_context(mock.patch.object(
-                feed, "extract_attribute_capture", return_value=capture
-            ))
-            stack.enter_context(mock.patch.object(feed, "decode_attribute_capture", return_value=decoded))
+            stack.enter_context(mock.patch.object(feed, "_live_context", return_value=(state, (1, 2, 3), [10])))
+            stack.enter_context(mock.patch.object(feed, "_active_manager", return_value=manager))
+            stack.enter_context(mock.patch.object(feed, "preflight", return_value={"moduleBase": "0x140000000"}))
             stack.enter_context(mock.patch.object(feed, "process_alive", return_value=True))
+            stack.enter_context(mock.patch.object(feed, "_source_records", return_value=records))
+            stack.enter_context(mock.patch.object(feed, "resolve_source_player_names", return_value=names))
+            stack.enter_context(mock.patch.object(feed, "read_raw_external_positions", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "read_raw_position_familiarity", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "resolve_source_identity_facts", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "_resolve_knowledge_context", return_value=0x999))
+            stack.enter_context(mock.patch.object(
+                feed, "capture_scouted_attributes", return_value=({10: scouted}, {})
+            ))
+            stack.enter_context(mock.patch.object(
+                feed, "resolve_sandbox_context",
+                return_value=SimpleNamespace(module_base=0x140000000, knowledge_context=0x999),
+            ))
+            stack.enter_context(mock.patch.object(feed, "resolve_player_interfaces", return_value={10: 0x1000}))
+            stack.enter_context(mock.patch.object(feed, "resolve_scout_persons", return_value={}))
+            capture_players_mock = stack.enter_context(
+                mock.patch.object(feed, "capture_players", return_value=sandbox_result)
+            )
+            stack.enter_context(mock.patch.object(feed, "log_event"))
+
+            document = feed.capture_pool(os.getpid(), remote_address=None)
+
+        capture_players_mock.assert_called_once()
+        row = document["players"][0]
+        # The sandbox's answer (exact) overrides the scouted-only calculation
+        # (a range) for the same attribute, and interest is a new field the
+        # scouted-only calculation could never have supplied.
+        self.assertEqual(row["attributes"]["pace"], {"visibility": "known", "value": 12})
+        self.assertEqual(row["transferInterest"], "yes")
+        self.assertNotIn("loanInterest", row)
+        self.assertEqual(document["source"]["sandboxedCount"], 1)
+        self.assertIsNone(document["source"]["sandboxError"])
+
+    def test_an_unresolvable_sandbox_context_degrades_the_refresh_rather_than_failing_it(self) -> None:
+        import os
+
+        from tools.fm20_sandbox_queries import SandboxQueryError
+
+        state = SimpleNamespace(module_base="0x140000000", game_date="2019-07-04", first_team_squad=())
+        manager = SimpleNamespace(id="m1", club=SimpleNamespace(id="c1", name="Example FC"))
+        records = {10: 0x1000}
+        names = {10: "A Player"}
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(feed, "_live_context", return_value=(state, (1, 2, 3), [10])))
+            stack.enter_context(mock.patch.object(feed, "_active_manager", return_value=manager))
+            stack.enter_context(mock.patch.object(feed, "preflight", return_value={"moduleBase": "0x140000000"}))
+            stack.enter_context(mock.patch.object(feed, "process_alive", return_value=True))
+            stack.enter_context(mock.patch.object(feed, "_source_records", return_value=records))
+            stack.enter_context(mock.patch.object(feed, "resolve_source_player_names", return_value=names))
+            stack.enter_context(mock.patch.object(feed, "read_raw_external_positions", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "read_raw_position_familiarity", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "resolve_source_identity_facts", return_value={}))
+            stack.enter_context(mock.patch.object(feed, "_resolve_knowledge_context", return_value=0x999))
+            stack.enter_context(mock.patch.object(feed, "capture_scouted_attributes", return_value=({}, {})))
+            stack.enter_context(mock.patch.object(
+                feed, "resolve_sandbox_context",
+                side_effect=SandboxQueryError("the manager's search source has no filter object"),
+            ))
             events = stack.enter_context(mock.patch.object(feed, "log_event"))
 
-            feed.hydrate_visible_attributes(
-                1234, module_base="0x140000000", player_ids=[42],
-                device=object(), target_pid=7, call_number=5,
-            )
+            document = feed.capture_pool(os.getpid(), remote_address=None)
 
-        events.assert_called_once_with(
-            "scouting_native_batch", call_number=5, pid=1234, agent="attribute-sweep",
-            player_count=1, thread=thread, agent_errors=[],
+        self.assertEqual(document["players"][0]["attributes"], {})
+        self.assertEqual(document["source"]["sandboxedCount"], 0)
+        self.assertIn("filter object", document["source"]["sandboxError"])
+        events.assert_any_call(
+            "scouting_sandbox_capture_failed", call_number=mock.ANY, pid=os.getpid(),
+            exception_type="SandboxQueryError",
+            exception="the manager's search source has no filter object",
         )
 
 
@@ -506,98 +571,6 @@ class FeedProvenanceTests(unittest.TestCase):
         self.assertEqual(read_only["source"]["transport"], "read-only-process-memory")
         self.assertTrue(rebuilt["source"]["poolRebuiltByCapture"])
         self.assertEqual(rebuilt["source"]["transport"], "windows-frida-server")
-
-
-class ActiveSearchHydrationTests(unittest.TestCase):
-    def test_active_search_hydration_requires_a_readable_bounded_result(self) -> None:
-        with self.assertRaisesRegex(ScoutingFeedError, "could not be read"):
-            feed._active_search_hydration_ids(None, set())
-        with self.assertRaisesRegex(ScoutingFeedError, "narrow it"):
-            feed._active_search_hydration_ids(
-                range(feed.MAX_ACTIVE_SEARCH_HYDRATED_PLAYERS + 1), set()
-            )
-
-        self.assertEqual(
-            feed._active_search_hydration_ids([1, 2, 2, 3], {2}),
-            (1, 3),
-        )
-
-    def test_active_search_attributes_survive_supplemental_footedness_failure(self) -> None:
-        import os
-
-        player_ids = list(range(1, 131))
-        records = {player_id: 0x1000 + player_id * 0x100 for player_id in player_ids}
-        names = {player_id: f"Player {player_id}" for player_id in player_ids}
-        state = SimpleNamespace(
-            module_base="0x140000000", game_date="2019-07-04", first_team_squad=(),
-        )
-        manager = SimpleNamespace(
-            id="m1", club=SimpleNamespace(id="c1", name="Example FC")
-        )
-
-        def hydrate(_pid, *, player_ids, **_kwargs):
-            return {
-                player_id: {
-                    "pace": {"visibility": "range", "minimum": 8, "maximum": 14}
-                }
-                for player_id in player_ids
-            }
-
-        with contextlib.ExitStack() as stack:
-            stack.enter_context(mock.patch.object(
-                feed, "_live_context", return_value=(state, (1, 2, 3), player_ids)
-            ))
-            stack.enter_context(mock.patch.object(feed, "_active_manager", return_value=manager))
-            stack.enter_context(mock.patch.object(
-                feed, "preflight", return_value={"moduleBase": "0x140000000"}
-            ))
-            stack.enter_context(mock.patch.object(feed, "process_alive", return_value=True))
-            stack.enter_context(mock.patch.object(feed, "_source_records", return_value=records))
-            stack.enter_context(mock.patch.object(
-                feed, "read_active_search_results", return_value=player_ids
-            ))
-            stack.enter_context(mock.patch.object(
-                feed, "resolve_source_player_names", return_value=names
-            ))
-            stack.enter_context(mock.patch.object(feed, "read_raw_external_positions", return_value={}))
-            stack.enter_context(mock.patch.object(feed, "read_raw_position_familiarity", return_value={}))
-            stack.enter_context(mock.patch.object(feed, "resolve_source_identity_facts", return_value={}))
-            stack.enter_context(mock.patch.object(feed, "_resolve_knowledge_context", return_value=0x999))
-            stack.enter_context(mock.patch.object(feed, "capture_scouted_attributes", return_value=({}, {})))
-            stack.enter_context(mock.patch.object(feed, "connect_to_fm", return_value=(object(), 99)))
-            hydrated = stack.enter_context(mock.patch.object(
-                feed, "hydrate_visible_attributes", side_effect=hydrate
-            ))
-            footedness = stack.enter_context(mock.patch.object(
-                feed, "hydrate_visible_footedness",
-                side_effect=ScoutingFeedError("footedness timed out"),
-            ))
-            events = stack.enter_context(mock.patch.object(feed, "log_event"))
-
-            document = feed.capture_pool(
-                os.getpid(), remote_address="127.0.0.1:27042",
-                hydrate_player_ids=[1],
-                hydrate_active_search=True,
-            )
-
-        self.assertEqual(
-            [len(call.kwargs["player_ids"]) for call in hydrated.call_args_list],
-            [64, 64, 2],
-        )
-        self.assertEqual(document["source"]["activeSearchMatchCount"], 130)
-        self.assertEqual(document["source"]["visibleAttributeHydratedCount"], 130)
-        self.assertEqual(document["source"]["transport"], "windows-frida-server")
-        self.assertEqual(document["players"][0]["attributesObservedAt"], "2019-07-04")
-        self.assertEqual(document["players"][0]["attributes"]["pace"]["maximum"], 14)
-        self.assertEqual(footedness.call_count, 1)
-        self.assertEqual(footedness.call_args.kwargs["player_ids"], (1,))
-        events.assert_any_call(
-            "scouting_footedness_hydration_failed",
-            call_number=mock.ANY,
-            pid=os.getpid(),
-            player_ids=[1],
-            error="footedness timed out",
-        )
 
 
 class ScoutedOnlyIdentityTests(unittest.TestCase):

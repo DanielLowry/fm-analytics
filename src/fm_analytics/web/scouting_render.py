@@ -296,13 +296,30 @@ def _age(candidate: ScoutingCandidate) -> str:
     return str(candidate.age) if candidate.age is not None else "—"
 
 
+def _interest_tags(candidate: ScoutingCandidate) -> str:
+    """FM's own transfer/loan interest verdicts, "yes" and the relaxed-margin "maybe" both shown.
+
+    Computed fresh from the manager's own current reputation every refresh
+    (tools.fm20_sandbox_queries) -- never a stored fact, and never carried
+    forward from an older capture. "maybe" only clears the product's
+    deliberately relaxed margin below FM's own cut-off, not FM's cut-off
+    itself; see docs/frida-discoverability.md for why that margin exists.
+    """
+    tags = []
+    for label, value in (("transfer", candidate.transfer_interest), ("loan", candidate.loan_interest)):
+        if value == "yes":
+            tags.append(f"<span class='badge badge-ok'>Interested ({label})</span>")
+        elif value == "maybe":
+            tags.append(f"<span class='badge badge-scout'>Possibly interested ({label})</span>")
+    return "".join(f" {tag}" for tag in tags)
+
+
 def _player_cell(candidate: ScoutingCandidate) -> str:
-    """Name (a link to his report) over club and nationality, flagged if FM's search matched."""
+    """Name (a link to his report) over club and nationality, flagged with FM's interest verdict."""
     detail = " · ".join(
         html.escape(part) for part in (candidate.club or "No club", candidate.nationality) if part
     )
-    matched = " <span class='tag'>FM search match</span>" if candidate.matched_active_search else ""
-    return f"{scouting_player_link(candidate)}{matched}<br><span class='muted'>{detail}</span>"
+    return f"{scouting_player_link(candidate)}{_interest_tags(candidate)}<br><span class='muted'>{detail}</span>"
 
 
 def _ranking_columns(show_familiarity: bool, raw_positions: bool) -> list[_Column]:

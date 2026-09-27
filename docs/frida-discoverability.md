@@ -135,6 +135,47 @@ been proven for borderline players.
 Cost: the interest score is much heavier than a visibility check -- about 7 ms
 per player in the sandbox, 20-26 s for the whole pool.
 
+### Shipped, with two corrections and a margin (27 September 2026 evening)
+
+`tools.fm20_sandbox_queries` calls each interest rule's evaluator directly
+(vtable slot `0xd8`, not the composite at `0x42c96a0` above and not slot
+`0x88`) rather than replaying the composite with rules ticked/unticked --
+simpler, and it does not depend on the manager's own club-exclusion rule
+(the caller already excludes the first-team squad separately). Two things
+found while wiring this in:
+
+- **Slot `0x88` is not the interest rule's own evaluator.** Reading `[[rule]
+  + 0x88]` for both `PERSON_INTERESTED_FILTER_RULE` and
+  `PERSON_INTERESTED_LOAN_FILTER_RULE` gave the *same* address
+  (`fm.exe+0x54659e0`, a shared, non-scoring method), while `[[rule] + 0xd8]`
+  gave each rule its own address matching the evaluators already
+  disassembled above (`0x1fb27d0`, `0x1fb1f30`). Calling slot `0x88` directly
+  is the always-on rules' pattern (slot `0x20` thunks to slot `0x88` there);
+  it does not generalise to this rule subclass.
+- **Cloning FM's real main thread crashes on this code path.** The sandbox
+  can either clone FM's actual main-thread block or build a synthetic one.
+  The clone crashed the whole Python process (SIGSEGV, not a catchable
+  error) at `_set_FMA3_enable`, for reasons not fully understood; a
+  synthetic thread does not, and has been checked correct for both
+  attributes and interest. See `docs/scouting-workspace.md`'s sandbox
+  section for the fuller account, including a separate, non-deterministic
+  read-failure pattern this also surfaced.
+
+**FM's own cut-off is more lenient than its own formula by 5-6%, unexplained.**
+Re-running the full-pool check computed live thresholds instead of a fixed
+8,560 (correct: the threshold moves with the manager's own reputation) but
+still came up short against FM's own lists: 1,507 of FM's 1,518 interested-in-transfer,
+90 of FM's 91 interested-in-loan. A sweep of the reputation-check comparison
+found any cut-off from about 94-95% of FM's computed value down to about 78%
+reproduced *both* full lists exactly; below about 70% started admitting extra
+players FM's own lists did not have. Ruled out as the cause: floating-point
+rounding, which OS thread the call ran on, which manager/team object was
+used, and the search criteria currently ticked in FM's UI (the standard
+"any interest" level, `flvl = 5000`, is forced regardless). The product
+owner's decision on missing-versus-wrongly-flagging players is recorded in
+`docs/scouting-workspace.md`, "Interest has no stored answer"; the margin
+constant is `tools.fm20_sandbox_queries.DEFAULT_INTEREST_MARGIN` (0.85).
+
 ## Why the earlier replay looked broken
 
 The six-player sample expected three external players to be included. All six

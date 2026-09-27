@@ -37,7 +37,7 @@ def scouted(pace=None, observed="2019-09-08"):
         "id": "10", "name": "Ada Winger", "positions": ["AML"], "age": 21,
         "club": "Billericay Town", "hasContract": True, "contractType": "part_time",
         "contractEnd": "2020-06-30", "transferStatus": "not_set", "value": 5000,
-        "matchedActiveSearch": True, "scoutingKnowledge": 60,
+        "transferInterest": "yes", "scoutingKnowledge": 60,
         "attributesObservedAt": observed,
         "attributes": {
             "pace": pace or {"visibility": "range", "minimum": 12, "maximum": 16},
@@ -78,7 +78,9 @@ class CaptureFromDocumentTests(unittest.TestCase):
         self.assertEqual(winger.player_id, "10")
         self.assertEqual(winger.profile["club"], "Billericay Town")
         self.assertEqual(winger.profile["contract_end"], "2020-06-30")
-        self.assertIs(winger.profile["matched_active_search"], True)
+        # Retired 27 September 2026 with the "FM search match" feature; the
+        # column is kept in the schema but always null now (see knowledge_ingest.py).
+        self.assertIsNone(winger.profile["matched_active_search"])
         self.assertEqual(winger.attributes["pace"], AttributeObservation(Visibility.RANGE, minimum=12, maximum=16))
         self.assertEqual(winger.attributes["vision"], AttributeObservation(Visibility.UNKNOWN))
         self.assertEqual(winger.attributes_observed_on, "2019-09-08")

@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, NamedTuple
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 class ScoutingFeedError(RuntimeError):
@@ -52,8 +52,11 @@ def feed_document(
     position_familiarity_by_id: Mapping[int, Mapping[str, int]] | None = None,
     scouting_knowledge_by_id: Mapping[int, int] | None = None,
     dropped_from_scout_reports_ids: Iterable[int] = (),
-    active_search_match_ids: Iterable[int] | None = None,
-    hydrated_count: int = 0,
+    transfer_interest_by_id: Mapping[int, str | None] | None = None,
+    loan_interest_by_id: Mapping[int, str | None] | None = None,
+    interest_margin: float | None = None,
+    sandboxed_count: int = 0,
+    sandbox_error: str | None = None,
     pool_available: bool = True,
     rebuilt: bool = False,
 ) -> dict[str, Any]:
@@ -65,7 +68,8 @@ def feed_document(
     attributes are observations made in this run. Older attribute evidence is
     stored separately as ``lastKnownAttributes`` with its original date, so it
     cannot enter current scoring. Carried footedness likewise keeps its real
-    observation date. A player hydrated in this run gets ``game_date``.
+    observation date. A player captured via the sandbox this run gets
+    ``game_date``.
     """
     ids = tuple(sorted(set(player_ids)))
     missing_names = [player_id for player_id in ids if not names.get(player_id)]
@@ -85,9 +89,8 @@ def feed_document(
     position_familiarity_by_id = position_familiarity_by_id or {}
     scouting_knowledge_by_id = scouting_knowledge_by_id or {}
     dropped_from_scout_reports = set(dropped_from_scout_reports_ids)
-    # None means no search was on screen, which is different from a search
-    # that matched nobody -- the first cannot answer the question at all.
-    search_matches = None if active_search_match_ids is None else set(active_search_match_ids)
+    transfer_interest_by_id = transfer_interest_by_id or {}
+    loan_interest_by_id = loan_interest_by_id or {}
     with_age = sum(1 for player_id in ids if "age" in identity_facts_by_id.get(player_id, {}))
     with_club = sum(1 for player_id in ids if "club" in identity_facts_by_id.get(player_id, {}))
     scouted_count = sum(
@@ -100,19 +103,18 @@ def feed_document(
         "gameDate": game_date,
         "source": {
             "kind": "manager-rooted-player-search-pool",
-            "transport": (
-                "windows-frida-server"
-                if rebuilt or hydrated_count else "read-only-process-memory"
-            ),
+            # A pool rebuild still runs FM's own code live via Frida; every
+            # other read here, including every player's sandboxed attributes
+            # and interest, is read-only process memory plus the sandbox
+            # (tools.fm20_sandbox), which also never writes to FM.
+            "transport": "windows-frida-server" if rebuilt else "read-only-process-memory",
             "poolRebuiltByCapture": rebuilt,
             "poolAvailable": pool_available,
-            "visibleAttributeHydratedCount": hydrated_count,
+            "sandboxedCount": sandboxed_count,
+            "sandboxError": sandbox_error,
+            "interestMargin": interest_margin,
             "sourceCount": source_count,
             "excludedOwnContractedCount": len(excluded),
-            # Which players FM's own on-screen Player Search matched when this
-            # capture ran. The criteria are not readable, only the result, so
-            # nothing here may claim to know what was filtered on.
-            "activeSearchMatchCount": None if search_matches is None else len(search_matches),
             "managedClub": managed_club,
             "fieldCoverage": {
                 "identity": (
@@ -136,17 +138,25 @@ def feed_document(
                         "(read-only, FM's own visibility formula and the scout's report -- "
                         "see tools.fm20_scouted_attributes)"
                         + (
-                            f"; {hydrated_count}/{len(ids)} additionally confirmed via a "
-                            "manager-visible native-builder hydration this run"
-                            if hydrated_count else ""
+                            f"; {sandboxed_count}/{len(ids)} confirmed via FM's own code run "
+                            "read-only in the sandbox this run (tools.fm20_sandbox_queries)"
+                            if sandboxed_count else ""
                         )
                     )
                     if attributes_by_id or scouted_count
                     else "not yet externally visibility-verified"
                 ),
                 "footedness": (
-                    f"manager-visible property getter for {len(footedness_by_id)}/{len(ids)} candidates"
+                    f"carried forward from an earlier capture for {len(footedness_by_id)}/{len(ids)} "
+                    "candidates; nothing in this refresh re-captures it live"
                     if footedness_by_id else "not yet externally visibility-verified"
+                ),
+                "interest": (
+                    f"FM's own transfer/loan interest rules, run read-only in the sandbox for "
+                    f"{len(set(transfer_interest_by_id) | set(loan_interest_by_id))}/{len(ids)} "
+                    f"candidates at a margin of {interest_margin}"
+                    if transfer_interest_by_id or loan_interest_by_id
+                    else "not captured this run"
                 ),
             },
         },
@@ -161,8 +171,12 @@ def feed_document(
                     if player_id in scouting_knowledge_by_id else {}
                 ),
                 **(
-                    {"matchedActiveSearch": player_id in search_matches}
-                    if search_matches is not None else {}
+                    {"transferInterest": transfer_interest_by_id[player_id]}
+                    if transfer_interest_by_id.get(player_id) is not None else {}
+                ),
+                **(
+                    {"loanInterest": loan_interest_by_id[player_id]}
+                    if loan_interest_by_id.get(player_id) is not None else {}
                 ),
                 **(
                     {"droppedFromScoutReports": True}

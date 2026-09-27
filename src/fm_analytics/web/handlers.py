@@ -90,17 +90,11 @@ class SquadWebHandler(
             return
         form = self._read_form()
         allow_rebuild = form.get("allow_rebuild", [""])[0] == "1"
-        hydrate_active_search = (
-            form.get("hydrate_active_search", [""])[0] == "1"
-        )
         return_view = form.get("return_view", [""])[0]
         if return_view not in {"all", "scouted"}:
             return_view = ""
         try:
-            self.server.refresh_scouting(  # type: ignore[attr-defined]
-                allow_rebuild=allow_rebuild,
-                hydrate_active_search=hydrate_active_search,
-            )
+            self.server.refresh_scouting(allow_rebuild=allow_rebuild)  # type: ignore[attr-defined]
         except ScoutingPoolNotBuilt:
             # Nothing was written to FM. Let the manager pick between the
             # read-only route and the one that runs FM's code in the live save.
@@ -113,11 +107,7 @@ class SquadWebHandler(
             )
             return
         self.send_response(HTTPStatus.SEE_OTHER)
-        refresh_kind = (
-            "hydrated" if hydrate_active_search
-            else "rebuilt" if allow_rebuild
-            else "1"
-        )
+        refresh_kind = "rebuilt" if allow_rebuild else "1"
         self.send_header(
             "Location",
             "/scouting?"

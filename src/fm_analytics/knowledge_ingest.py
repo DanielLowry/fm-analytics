@@ -78,7 +78,12 @@ def _player_knowledge(candidate: ScoutingCandidate) -> PlayerKnowledge:
             "transfer_status": candidate.transfer_status,
             "value": candidate.value,
             "scouting_knowledge": candidate.scouting_knowledge,
-            "matched_active_search": candidate.matched_active_search,
+            # Retired 27 September 2026 with the "FM search match" feature it
+            # served (superseded by real transfer/loan interest -- see
+            # docs/scouting-workspace.md). Left in the schema, always null now,
+            # rather than migrating the column away; tracking transfer/loan
+            # interest here properly is a follow-up, not done in this change.
+            "matched_active_search": None,
             "dropped_from_scout_reports": candidate.dropped_from_scout_reports,
             "footedness": candidate.footedness,
             "nationality": candidate.nationality,

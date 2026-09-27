@@ -396,9 +396,12 @@ class ScoutingPagesMixin:
             + number("Max value (&pound;)", "maxValue", filters.maximum_value, min=0, step=500)
             + select("Transfer status", "transferStatus", fact_options("transfer_status", filters.transfer_status))
             + select("Availability", "availability", fact_options("availability", filters.availability))
-            + select("FM search match", "searchMatch", _options(
-                (("any", "Any"), ("matched", "Matched your FM search"), ("unmatched", "Did not match")),
-                filters.search_match, ""))
+            + select("Interested in transfer", "transferInterest", _options(
+                (("any", "Any"), ("interested", "Interested (incl. maybe)"), ("not_interested", "Not interested")),
+                filters.transfer_interest, ""))
+            + select("Interested in loan", "loanInterest", _options(
+                (("any", "Any"), ("interested", "Interested (incl. maybe)"), ("not_interested", "Not interested")),
+                filters.loan_interest, ""))
         )
         knowledge = (
             select("Visibility", "visibility", _options(
@@ -436,7 +439,8 @@ class ScoutingPagesMixin:
                 filters.minimum_age, filters.maximum_age), player)
             + group("Contract, cost &amp; availability", _count(
                 filters.market != "any" or None, filters.maximum_value, filters.transfer_status,
-                filters.availability, filters.search_match != "any" or None), market)
+                filters.availability, filters.transfer_interest != "any" or None,
+                filters.loan_interest != "any" or None), market)
             + group("What scouting shows", _count(
                 filters.visibility != "any" or None, filters.minimum_floor, filters.minimum_ceiling,
                 filters.include_unlikely or None), knowledge)
@@ -485,13 +489,16 @@ def _sort_options(selected: str, mode: str, include_raw: bool) -> str:
 
 
 def _scouting_refresh_panel(scouted_only: bool) -> str:
-    """Refreshing the capture. The main button on either tab only reads FM's memory.
+    """Refreshing the capture. Every player's attributes and interest come from
+    the sandbox (``tools.fm20_sandbox_queries``): FM's own code, run read-only
+    over a copy of its memory, so nothing here can write to the live game.
 
-    Asking FM for unscouted players' attributes runs FM's own code inside the
-    running game, and is the prime suspect for the saves that broke again on
-    26 September 2026, the evening that became this button's default. It is a
-    separate, collapsed, explicitly-worded action -- the same footing as the
-    pool rebuild in ``_pool_not_built_page`` -- and never the default.
+    Until 27 September 2026 this page had a second, explicitly-risky button
+    that asked FM for unscouted players' attributes by running code inside
+    the live game -- the button that briefly became this page's *default* on
+    26 September and was the prime suspect for that evening's save corruption
+    (see ``docs/scouting-workspace.md``). The sandbox replaces it outright, so
+    there is only ever the one, safe button now.
     """
     if scouted_only:
         return (
@@ -500,30 +507,14 @@ def _scouting_refresh_panel(scouted_only: bool) -> str:
             "<input type='hidden' name='return_view' value='scouted'>"
             "<button type='submit'>Refresh scouted players</button>"
             "<span class='muted'>Reads current scout reports and their visible "
-            "attributes from FM's memory. Nothing is sent to FM.</span></form></section>"
+            "attributes. Nothing is sent to FM.</span></form></section>"
         )
     return (
         "<section class='refresh-panel'>"
         "<form class='refresh' method='post' action='/scouting/refresh'>"
         "<input type='hidden' name='return_view' value='all'>"
         "<button type='submit'>Refresh scouting data</button>"
-        "<span class='muted'>Reads FM's memory only; nothing is sent to FM. Updates the "
-        "player list, scouted players' attributes, and which players match the search "
-        "open in FM.</span></form>"
-        "<details><summary>Attributes for players you haven't scouted</summary>"
-        "<p>FM shows some attributes for players you have never scouted, from what "
-        "your staff already know about them. This app cannot work those out by itself "
-        "yet, so after a normal refresh those players read <b>Not captured from FM</b>.</p>"
-        "<p class='warn'>The only way to get them today is to ask FM, which runs FM's "
-        "own code inside your running game. That is the step suspected of breaking "
-        "saves on 26 September 2026: they saved without an error, then would not "
-        "load. <b>Only do this on a save you would not mind losing</b>, or after "
-        "taking a copy of your save file.</p>"
-        "<p class='muted'>Leave the Player Search you want open in FM first. Up to 256 "
-        "results.</p>"
-        "<form class='refresh' method='post' action='/scouting/refresh'>"
-        "<input type='hidden' name='hydrate_active_search' value='1'>"
-        "<input type='hidden' name='return_view' value='all'>"
-        "<button type='submit' class='danger'>Ask FM for these attributes "
-        "(risks this save)</button></form></details></section>"
+        "<span class='muted'>Reads the player list, and every player's visible "
+        "attributes and transfer/loan interest, from FM's own code run read-only. "
+        "Nothing is sent to FM.</span></form></section>"
     )

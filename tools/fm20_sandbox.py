@@ -125,7 +125,7 @@ class FmSandbox:
     """One short-lived emulated CPU over FM's memory, copied on first touch."""
 
     def __init__(
-        self, pid: int, module_base: int, *, as_main_thread: bool = True, trace_blocks: int = 0
+        self, pid: int, module_base: int, *, as_main_thread: bool = False, trace_blocks: int = 0
     ):
         self.pid = pid
         self.module_base = module_base
@@ -141,15 +141,19 @@ class FmSandbox:
         self.uc.mem_map(self.private, PRIVATE_SIZE, UC_PROT_ALL)
         self._mapped.update(range(self.private, self.private + PRIVATE_SIZE, PAGE))
         self.stack_top = self.private + STACK_SIZE - 0x100
-        # By default the sandbox thread is a copy of FM's main thread: its
-        # thread block (so its thread ID, thread-local storage and so on), with
-        # only the stack bounds and self-pointer replaced by the sandbox's own,
-        # so FM's code takes the paths it takes on its UI thread -- right for
-        # anything FM's screens compute, such as visible attributes. FM runs
-        # its Player Search filter on a worker thread instead (the filter's
-        # wrapper enforces it, and main-thread-only caches the filter would
-        # otherwise build from disk are absent in FM's memory), so callers
-        # replaying that pass ``as_main_thread=False`` for a fresh thread.
+        # A fresh, synthetic thread block by default: ``tools.fm20_sandbox_queries``
+        # has verified both visible attributes and Player Search interest match
+        # FM's own answers exactly on it (27 September 2026), so it is the safe
+        # choice until a query is found that genuinely needs FM's real main
+        # thread. Passing ``as_main_thread=True`` instead clones FM's actual
+        # main-thread block (thread ID, thread-local storage and so on) so code
+        # that checks "am I on FM's UI thread" takes the same path it would
+        # live. That clone is not provably safe: the same interest query that
+        # works cleanly here crashed the whole Python process (SIGSEGV) under
+        # it, deep inside the C runtime's ``_set_FMA3_enable`` after cloning a
+        # real thread's snapshot -- not a Unicorn or FM error this module can
+        # catch and recover from. Treat ``True`` as unverified for any new use
+        # until it is checked the same way.
         self.teb = self.private + STACK_SIZE
         main_teb = self._main_thread_teb() if as_main_thread else None
         self.main_thread_cloned = main_teb is not None

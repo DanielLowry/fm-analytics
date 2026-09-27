@@ -50,35 +50,46 @@ if __name__ == "__main__":
     unittest.main()
 
 
-class ActiveSearchMatchTests(unittest.TestCase):
-    """The capture can read FM's on-screen result list, never its criteria."""
+class InterestFilterTests(unittest.TestCase):
+    """FM's own transfer/loan interest, computed fresh in the sandbox each refresh."""
 
     def setUp(self) -> None:
-        self.matched = player("matched", matched_active_search=True)
-        self.missed = player("missed", matched_active_search=False)
-        self.unknown = player("unknown")  # no search was showing at capture time
-        self.everyone = [self.matched, self.missed, self.unknown]
+        self.yes = player("yes", transfer_interest="yes")
+        self.maybe = player("maybe", transfer_interest="maybe")
+        self.none = player("none")  # not interested, or not captured this refresh
+        self.everyone = [self.yes, self.maybe, self.none]
 
     def names(self, **kwargs) -> set[str]:
         found = filter_scouting_candidates(self.everyone, ScoutingFilters(**kwargs))
         return {item.name for item in found}
 
-    def test_filters_both_ways_and_defaults_to_everyone(self) -> None:
-        self.assertEqual(self.names(search_match="matched"), {"matched"})
-        self.assertEqual(self.names(search_match="unmatched"), {"missed"})
-        self.assertEqual(self.names(), {"matched", "missed", "unknown"})
+    def test_interested_includes_yes_and_maybe_but_not_none(self) -> None:
+        self.assertEqual(self.names(transfer_interest="interested"), {"yes", "maybe"})
 
-    def test_a_player_with_no_reading_is_never_claimed_either_way(self) -> None:
-        for choice in ("matched", "unmatched"):
-            self.assertNotIn("unknown", self.names(search_match=choice))
+    def test_not_interested_is_only_none(self) -> None:
+        self.assertEqual(self.names(transfer_interest="not_interested"), {"none"})
 
-    def test_from_dict_rejects_a_non_boolean(self) -> None:
+    def test_any_is_everyone(self) -> None:
+        self.assertEqual(self.names(), {"yes", "maybe", "none"})
+
+    def test_loan_interest_is_independent_of_transfer_interest(self) -> None:
+        both = player("both", transfer_interest="yes", loan_interest="maybe")
+        self.assertEqual(
+            {item.name for item in filter_scouting_candidates(
+                [self.yes, both], ScoutingFilters(loan_interest="interested")
+            )},
+            {"both"},
+        )
+
+    def test_from_dict_rejects_an_invalid_value(self) -> None:
         with self.assertRaises(TypeError):
             ScoutingCandidate.from_dict(
                 {"id": "1", "name": "x", "positions": [], "attributes": {},
-                 "matchedActiveSearch": "yes"}
+                 "transferInterest": "definitely"}
             )
 
     def test_invalid_choice_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
-            ScoutingFilters(search_match="bogus")
+            ScoutingFilters(transfer_interest="bogus")
+        with self.assertRaises(ValueError):
+            ScoutingFilters(loan_interest="bogus")
