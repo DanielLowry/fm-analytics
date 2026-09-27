@@ -300,6 +300,28 @@ answer (03.2's baseline-knowledge "Plan B", or observing FM's own baseline
 calculation passively) is the next step rather than making the native call
 the default again.
 
+### The sandbox trial (27 September 2026)
+
+`tools/fm20_sandbox.py` runs FM's own visibility builder in a Unicorn x86-64
+emulator whose memory is copied on first touch from `/proc/<pid>/mem`, opened
+read-only. Nothing attaches to FM or writes to it, so the save cannot be
+affected; FM's own writes land in the emulator's copy. Results on the test
+save, with FM running throughout:
+
+- **Correct.** All 741 scouted players, 41 attributes each, matched the
+  read-only calculation (23,739 of 23,739), once the builder was called the way
+  FM's screens call it (see 03.2, "Both caller inputs resolved"). The 43
+  unscouted players from 26 September matched, apart from changes explained by
+  new scout reports (14 players) and ageing (5 players aged 34-37).
+- **Simple.** The only thing faked is a thread-local storage block (fm.exe's own
+  TLS template, with MSVC's static-initialisation epoch set so statics FM has
+  already built are not rebuilt). No system call, fault or unmapped read.
+- **Fast.** About 0.1 ms per attribute; one player 4 ms; the whole 3,648-player
+  Player Search pool in 14 s, copying 107 MB of FM's 2.3 GB, 196 MB peak memory.
+
+Unscouted players still need checking against FM's own screen: the 26
+September answers came from the same builder call, not from the screen.
+
 ## Candidate-feed contract
 
 Capture a manager-rooted Player Search pool through Frida, then start the web

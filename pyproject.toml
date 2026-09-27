@@ -19,6 +19,7 @@ fm-knowledge = "fm_analytics.knowledge_ingest:main"
 [project.optional-dependencies]
 research = [
     "frida==17.18.0",
+    "unicorn==2.1.4",
 ]
 
 [tool.hatch.build.targets.wheel]
