@@ -90,7 +90,7 @@ early, and runs a fixed number of queries. The reserved decisions, as taken:
   `profile_last_seen_on`, and `oldest_seen_on` / `latest_seen_on` across
   everything it used.
 
-**Added in review: sightings (schema v3).** Observation rows are change-only,
+**Added in review: sightings.** Observation rows are change-only,
 so the first version dated every reading from when it first appeared. A value
 seen unchanged every week would have looked months old, and the feed's own
 "last known on" date was discarded whenever the value matched. Each capture

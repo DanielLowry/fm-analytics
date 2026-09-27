@@ -670,18 +670,6 @@ class MigrationTests(StoreCase):
         with closing(sqlite3.connect(path or self.path)) as connection:
             return connection.execute("PRAGMA user_version").fetchone()[0]
 
-    def file_as_left_by(self, version: int, *later_tables: str) -> None:
-        """Make the recorded file one a program at `version` would have left.
-
-        Recording writes to every current table, so an older file is made by
-        recording today and dropping what the later versions added.
-        """
-        with closing(sqlite3.connect(self.path)) as connection:
-            for table in later_tables:
-                connection.execute(f"DROP TABLE {table}")
-            connection.execute(f"PRAGMA user_version = {version}")
-            connection.commit()
-
     def test_a_new_file_is_created_at_the_latest_version(self) -> None:
         self.store.initialize()
         self.assertEqual(self.user_version(), len(MIGRATIONS))
@@ -705,41 +693,6 @@ class MigrationTests(StoreCase):
         self.assertEqual(upgraded.attribute_history("club:1", "1")[0].observation, known(14))
         with closing(sqlite3.connect(self.path)) as connection:
             connection.execute("SELECT note FROM saves")  # the new column exists
-
-    def test_a_v1_file_is_backed_up_then_given_the_verdicts_it_never_had(self) -> None:
-        self.store.record(capture("2019-09-08", player(attributes={"pace": known(14)})))
-        self.file_as_left_by(1, "verdict_events", "sightings")
-
-        upgraded = PlayerKnowledgeStore(self.path)
-        upgraded.initialize()
-
-        self.assertEqual(self.user_version(), len(MIGRATIONS))
-        backup = self.path.with_name(self.path.name + ".bak-v1")
-        self.assertTrue(backup.exists())
-        self.assertEqual(self.user_version(backup), 1)
-        self.assertEqual(upgraded.attribute_history("club:1", "1")[0].observation, known(14))
-        upgraded.set_verdict("club:1", "1", Verdict.TARGET, note="first choice",
-                             decided_on="2019-09-08")
-        self.assertEqual(upgraded.get_verdict("club:1", "1").note, "first choice")
-
-    def test_a_file_from_before_sightings_gains_those_its_rows_prove(self) -> None:
-        # Pace is unchanged from June, but Passing changed in September, so the
-        # whole current sheet -- Pace included -- was read that day.
-        self.store.record(
-            capture("2019-06-24", player(attributes={"pace": known(14), "passing": known(10)}))
-        )
-        self.store.record(
-            capture("2019-09-08", player(attributes={"pace": known(14), "passing": known(11)}))
-        )
-        self.file_as_left_by(2, "sightings")
-
-        self.store.initialize()
-
-        profile = self.store.best_known_profile("club:1", "1", "2019-09-08")
-        pace = profile.attributes["pace"].best_known
-        self.assertEqual((pace.observed_on, pace.last_seen_on), ("2019-06-24", "2019-09-08"))
-        self.assertEqual((profile.profile["observed_on"], profile.profile_last_seen_on),
-                         ("2019-06-24", "2019-09-08"))
 
     def test_a_failing_migration_is_rolled_back_and_the_data_left_usable(self) -> None:
         self.store.record(capture("2019-09-08", player(attributes={"pace": known(14)})))

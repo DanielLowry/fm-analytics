@@ -257,14 +257,12 @@ How it differs from, or adds to, the scope above:
   9,000 profile and 27,500 attribute rows (a 4.7 MB file). Transfer value
   moves for most players every month, so expect a few thousand profile rows per
   game week.
-- **Sightings, so an unchanged value still ages from the last look (schema v3,
-  27 September 2026).** Each capture also records the day it saw each player,
-  and the day it read his current attribute sheet (which lists every
-  attribute). A last-known sheet lists only the attributes for his position, so
-  it is sighted attribute by attribute. That is up to about 9,000 small rows
-  per new game date, and a same-day refresh adds none. The upgrade backfills
-  what old rows prove: any row shows he was in that capture, and a changed
-  current reading shows that whole sheet was read.
+- **Sightings, so an unchanged value still ages from the last look (27
+  September 2026).** Each capture also records the day it saw each player, and
+  the day it read his current attribute sheet (which lists every attribute). A
+  last-known sheet lists only the attributes for his position, so it is sighted
+  attribute by attribute. That is up to about 9,000 small rows per new game
+  date, and a same-day refresh adds none.
 - **Unknown is stored, so fading is visible.** The feed reports every
   attribute of a scouted player, including unknown ones (about 40% of rows
   in the real capture), and a known value that later becomes unknown is a new
@@ -279,11 +277,14 @@ How it differs from, or adds to, the scope above:
   silently mix two timelines.
 - **Own migrations from v1.** An ordered `MIGRATIONS` list, a consistent
   backup (`.bak-v<N>`) before any upgrade, atomic per-step application, and a
-  refusal to open a newer or unrelated file. v2 adds manual verdicts and v3
-  sightings. Upgrades are tested from v1 and from just before sightings, and
-  with an injected extra step.
-- **Seeded from the three existing captures** (24 June and 8 September): 5,175
-  players, including 823 with at least one known or ranged attribute.
+  refusal to open a newer or unrelated file. The upgrade path is tested with an
+  injected second step.
+- **Reset to a single v1 on 27 September 2026.** Verdicts and sightings were
+  briefly v2 and v3. The product owner chose to start the history again rather
+  than keep them as upgrades, so they were folded into v1 and the old file was
+  archived in `data/` (its history ran from 24 June to 19 October 2019). A
+  file from before the reset is refused as "newer than this program", not
+  misread. Move it aside and the next recording starts a fresh one.
 
 Not done, deliberately: nothing reads this database yet (item 5), and wages
 are not captured because the feed does not carry them. The `facts` column is
@@ -318,7 +319,7 @@ a player as of an in-game date, per
 reading carries two dates. `observed_on` is when the store first recorded that
 state. `last_seen_on` is the last day a capture still showed it. The profile's
 age is `oldest_seen_on`, the stalest reading's last-seen date. Observation rows
-are change-only, so without schema v3's sightings a Pace 14 seen every week
+are change-only, so without sightings a Pace 14 seen every week
 would have aged from the week it first appeared, and "re-scout due" would have
 fired on players seen days ago. Staleness stays the caller's threshold.
 Reading all 5,350 players of the real save (179,000 attribute rows) takes

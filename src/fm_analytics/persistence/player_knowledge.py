@@ -52,7 +52,11 @@ class TimelineError(ValueError):
     """A capture is dated before what the save already holds."""
 
 
-_V1 = """
+# A verdict is the manager's own decision, so it is bounded at the door as well
+# as in Python: a form cannot smuggle an essay into every row.
+MAX_VERDICT_NOTE_LENGTH = 500
+
+_V1 = f"""
 CREATE TABLE saves (
     id INTEGER PRIMARY KEY,
     -- Caller-chosen identity of one playthrough. FM player IDs are the same in
@@ -143,30 +147,7 @@ CREATE TABLE attribute_observations (
 );
 CREATE INDEX attributes_by_player
     ON attribute_observations (save_id, player_id, attribute, observed_on, id);
-"""
 
-# A verdict is the manager's own decision, so it is bounded at the door as well
-# as in Python: a form cannot smuggle an essay into every row.
-MAX_VERDICT_NOTE_LENGTH = 500
-
-_V2 = f"""
-CREATE TABLE verdict_events (
-    id INTEGER PRIMARY KEY,
-    -- Keyed by the caller's save name rather than saves(id): a verdict is the
-    -- manager's own note, which may be written before any capture of that save
-    -- has been recorded, and two playthroughs still never share a verdict.
-    save_key TEXT NOT NULL,
-    player_id TEXT NOT NULL,
-    -- NULL records a clear. The row stays so the decision it removed survives.
-    verdict TEXT CHECK (verdict IS NULL OR verdict IN ('target', 'watch', 'reject')),
-    note TEXT NOT NULL,
-    decided_on TEXT NOT NULL,
-    CHECK (length(note) <= {MAX_VERDICT_NOTE_LENGTH})
-);
-CREATE INDEX verdict_by_player ON verdict_events (save_key, player_id, id);
-"""
-
-_V3 = """
 -- Every in-game day a capture showed a player, whether or not anything about
 -- him changed. Observation rows are change-only, so they say when a state
 -- began; a sighting says it still held on a later day, and a best-known
@@ -188,29 +169,25 @@ CREATE TABLE sightings (
     FOREIGN KEY (save_id, player_id) REFERENCES players(save_id, player_id)
 ) WITHOUT ROWID;
 
--- What a file from before this table can still prove: any row means he was in
--- that ingest's capture, a changed current reading means that whole sheet was
--- read on its date, and a last-known row sights that one attribute.
-INSERT INTO sightings (save_id, player_id, kind, attribute, observed_on, ingest_id)
-SELECT rows.save_id, rows.player_id, 'profile', '', i.game_date, MIN(i.id)
-FROM (
-    SELECT save_id, player_id, ingest_id FROM profile_observations
-    UNION SELECT save_id, player_id, ingest_id FROM attribute_observations
-) rows JOIN ingests i ON i.id = rows.ingest_id
-GROUP BY rows.save_id, rows.player_id, i.game_date;
-INSERT INTO sightings (save_id, player_id, kind, attribute, observed_on, ingest_id)
-SELECT save_id, player_id, 'current', '', observed_on, MIN(ingest_id)
-FROM attribute_observations WHERE source = 'current'
-GROUP BY save_id, player_id, observed_on;
-INSERT INTO sightings (save_id, player_id, kind, attribute, observed_on, ingest_id)
-SELECT save_id, player_id, 'last_known', attribute, observed_on, MIN(ingest_id)
-FROM attribute_observations WHERE source = 'last_known'
-GROUP BY save_id, player_id, attribute, observed_on;
+CREATE TABLE verdict_events (
+    id INTEGER PRIMARY KEY,
+    -- Keyed by the caller's save name rather than saves(id): a verdict is the
+    -- manager's own note, which may be written before any capture of that save
+    -- has been recorded, and two playthroughs still never share a verdict.
+    save_key TEXT NOT NULL,
+    player_id TEXT NOT NULL,
+    -- NULL records a clear. The row stays so the decision it removed survives.
+    verdict TEXT CHECK (verdict IS NULL OR verdict IN ('target', 'watch', 'reject')),
+    note TEXT NOT NULL,
+    decided_on TEXT NOT NULL,
+    CHECK (length(note) <= {MAX_VERDICT_NOTE_LENGTH})
+);
+CREATE INDEX verdict_by_player ON verdict_events (save_key, player_id, id);
 """
 
 # Append only. Version N of the file is the result of applying MIGRATIONS[:N];
 # never edit an entry that has shipped, add a new one.
-MIGRATIONS: tuple[str, ...] = (_V1, _V2, _V3)
+MIGRATIONS: tuple[str, ...] = (_V1,)
 
 PROFILE_FIELDS = (
     "age", "club", "contract_type", "contract_end", "has_contract", "transfer_status",
