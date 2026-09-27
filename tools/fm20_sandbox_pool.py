@@ -16,9 +16,14 @@ sandbox's copy of the source object; the live game's list is untouched.
 First trial, 27 September 2026, on a freshly started FM whose own list was
 empty: 3,411 players in 8.3 seconds (about 250 MB of FM's memory copied), the
 same count FM's own builder had produced live earlier that day on the same
-save, and the same set on a second run. Not yet diffed player-by-player
-against FM's own list for the same moment -- see the "Player Search without
-opening Player Search" section of ``docs/scouting-workspace.md``.
+save, and the same set on a second run. With Player Search then opened in FM,
+eight consecutive sandbox builds each matched FM's own freshly built list
+player for player. One build started seconds after Player Search was opened
+stopped inside Wine instead, and a traced rerun succeeded -- the same
+intermittent, cleared-by-a-fresh-sandbox pattern
+``tools.fm20_sandbox_queries.capture_players`` retries for, so this retries
+too. See the "Player Search without opening Player Search" section of
+``docs/scouting-workspace.md``.
 """
 
 from __future__ import annotations
@@ -34,6 +39,8 @@ from tools.fm20_sandbox_queries import SandboxQueryError
 PLAYER_SEARCH_BUILDER_RVA = 0x52778C0
 # 8.3 s on the test save; the headroom is for bigger saves and slower machines.
 BUILD_TIMEOUT_SECONDS = 120.0
+# Each attempt gets a fresh sandbox, i.e. a fresh copy of FM's memory.
+MAX_BUILD_ATTEMPTS = 3
 
 
 def build_pool_in_sandbox(
@@ -47,6 +54,18 @@ def build_pool_in_sandbox(
     each points at a Person FM already has, so the rest of a refresh reads
     those Persons from the live game as it always has.
     """
+    failures: list[str] = []
+    for _attempt in range(MAX_BUILD_ATTEMPTS):
+        try:
+            return _build_once(pid, module_base, arguments)
+        except SandboxError as error:
+            failures.append(str(error))
+    raise SandboxQueryError(
+        f"the sandboxed Player Search builder failed {len(failures)} times; last: {failures[-1]}"
+    )
+
+
+def _build_once(pid: int, module_base: int, arguments: tuple[int, int, int]) -> dict[int, int]:
     source, manager_interface, team = arguments
     box = FmSandbox(pid, module_base)
     try:

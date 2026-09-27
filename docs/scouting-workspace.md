@@ -479,8 +479,20 @@ builder ran in 8.3 seconds (about 250 MB of FM's memory copied) and produced
 3,411 players, the same set on a second run. A whole refresh then took 38
 seconds and matched the earlier refresh from FM's own list on every count:
 3,411 listed, 38 own-club players removed, 1,350 `yes` plus 15 `maybe`
-interested in transfer, 530 with a scout report. It has not yet been diffed
-player by player against FM's own list at the same moment.
+interested in transfer, 530 with a scout report. The product owner then
+opened Player Search (FM showed 3,371, i.e. those 3,411 minus the 38 own-club
+players and the 2-player tolerance in `docs/frida-discoverability.md`), and
+eight sandbox builds in a row each matched FM's own freshly built list player
+for player.
+
+One build, started seconds after Player Search was opened, stopped inside
+Wine's Linux-side `ntdll.so` (a write to address 0x70) instead; a slower,
+traced rerun a minute later succeeded, as did all eight after it. That is the
+same intermittent pattern as the attribute capture's read failures above, so
+the build retries in a fresh sandbox up to `MAX_BUILD_ATTEMPTS` (3) times
+before the refresh falls back to FM's own list. The likeliest explanation --
+not proven -- is that FM's own code was mid-way through its own build when
+the sandbox copied it.
 
 **Decision:** the sandbox list is used on every refresh, even when FM has
 built its own, because FM's is only as recent as the last time Player Search

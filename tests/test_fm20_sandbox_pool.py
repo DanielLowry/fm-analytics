@@ -51,5 +51,23 @@ class ConfirmedLiveTests(unittest.TestCase):
         box.close.assert_called_once()
 
 
+class RetryTests(unittest.TestCase):
+    def test_a_stopped_build_is_retried_in_a_fresh_sandbox(self) -> None:
+        from tools.fm20_sandbox import SandboxError
+
+        outcomes = [SandboxError("stopped in Wine"), {10: 0x1000}]
+        with mock.patch.object(pool, "_build_once", side_effect=outcomes) as build:
+            self.assertEqual(pool.build_pool_in_sandbox(1234, 0x140000000, (1, 2, 3)), {10: 0x1000})
+        self.assertEqual(build.call_count, 2)
+
+    def test_gives_up_after_the_attempt_limit_with_the_last_reason(self) -> None:
+        from tools.fm20_sandbox import SandboxError
+
+        with mock.patch.object(pool, "_build_once", side_effect=SandboxError("stopped in Wine")) as build:
+            with self.assertRaisesRegex(SandboxQueryError, "stopped in Wine"):
+                pool.build_pool_in_sandbox(1234, 0x140000000, (1, 2, 3))
+        self.assertEqual(build.call_count, pool.MAX_BUILD_ATTEMPTS)
+
+
 if __name__ == "__main__":
     unittest.main()
