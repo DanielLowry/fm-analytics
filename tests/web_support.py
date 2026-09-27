@@ -46,11 +46,12 @@ def write_complete_fixture(directory: Path) -> Path:
 class WebServerHelpers:
     """Mixin for TestCases that serve a fixture and talk to it over HTTP."""
 
-    def _serve(self, fixture_path: Path, scouting_provider=None, scouting_refresh=None):
+    def _serve(self, fixture_path: Path, scouting_provider=None, scouting_refresh=None, **server_kwargs):
         server = SquadWebServer(
             ("127.0.0.1", 0), fixture_provider(fixture_path),
             scouting_provider=scouting_provider,
             scouting_refresh=scouting_refresh,
+            **server_kwargs,
         )
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()

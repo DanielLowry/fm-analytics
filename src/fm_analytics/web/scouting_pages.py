@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import html
 import json
+import sqlite3
 from http import HTTPStatus
 from typing import Sequence
 
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 
 from fm_analytics.analytics import (
     DEFAULT_SORT_BY_MODE,
@@ -35,13 +36,18 @@ from fm_analytics.analytics import (
     scouting_mode,
     sort_scouting_assessments,
 )
+from fm_analytics.persistence import Verdict
 from fm_analytics.web.scouting_script import _SCOUTING_LIVE_FILTER_SCRIPT
 from fm_analytics.web.scouting_render import (
     ranking_results,
     role_results,
     tactic_ranking_results,
 )
-from fm_analytics.web.scouting_report import player_scouting_report, tactic_player_impact
+from fm_analytics.web.scouting_report import (
+    player_scouting_report,
+    tactic_player_impact,
+    verdict_panel,
+)
 from fm_analytics.web.rendering import (
     _MAX_SCOUTING_ROWS,
     _error_page,
@@ -88,13 +94,36 @@ class ScoutingPagesMixin:
             + _knowledge_notice(self.server.knowledge_note)  # type: ignore[attr-defined]
             + _scouting_refresh_panel(filters.scouted_only)
             + self._scouting_filters_form(
-                filters, candidates, self.server.pinned_tactics, limit  # type: ignore[attr-defined]
+                filters, candidates, self.server.pinned_tactics, limit,  # type: ignore[attr-defined]
+                show_rejected=_show_rejected(query),
             )
+            # The filters' own option lists come from every candidate, rejected
+            # or not: hiding a player from the results must never narrow the
+            # choices the manager can still filter by.
             + "<div id='scouting-results' aria-live='polite'>"
-            + self._scouting_results_block(candidates, filters, limit)
+            + self._scouting_results_block(
+                self._listed_candidates(query, candidates), filters, limit
+            )
             + "</div>"
             + _SCOUTING_LIVE_FILTER_SCRIPT
         )
+
+    def _listed_candidates(self, query: dict[str, list[str]], candidates):
+        """The pool the list shows: players the manager rejected are hidden.
+
+        A rejected player keeps his report, his filters and his history -- only
+        this view changes, and ``showRejected`` brings him straight back.
+        """
+        if _show_rejected(query):
+            return candidates
+        rejected = {
+            player_id
+            for player_id, record in self.server.current_verdicts().items()  # type: ignore[attr-defined]
+            if record.verdict == Verdict.REJECT
+        }
+        if not rejected:
+            return candidates
+        return tuple(item for item in candidates if item.id not in rejected)
 
     def _scouting_results_fragment(self, _path: str, query: dict[str, list[str]]) -> None:
         """The results half of ``/scouting``, alone, for the page's own live filtering.
@@ -111,7 +140,11 @@ class ScoutingPagesMixin:
                 f"<p class='warn'>{html.escape(str(exc))}</p>", HTTPStatus.SERVICE_UNAVAILABLE
             )
             return
-        self._send(self._scouting_results_block(candidates, filters, _scouting_limit(query)))
+        self._send(
+            self._scouting_results_block(
+                self._listed_candidates(query, candidates), filters, _scouting_limit(query)
+            )
+        )
 
     def _scouting_player_page(self, path: str, query: dict[str, list[str]]) -> None:
         """Show the exhaustive, evidence-bounded report for one scouted player."""
@@ -195,9 +228,54 @@ class ScoutingPagesMixin:
                     candidate,
                     MVP_CATALOGUE,
                     headline=impact,
+                    verdict=verdict_panel(
+                        self.server.current_verdicts().get(player_id),  # type: ignore[attr-defined]
+                        player_id=player_id,
+                        decided_on=candidate.captured_game_date,
+                        enabled=self.server.verdicts_enabled,  # type: ignore[attr-defined]
+                    ),
                 ),
             )
         )
+
+    def _post_scouting_verdict(self) -> None:
+        """Record one Target / Watch / Reject decision, then go back to the report.
+
+        The only thing this ever writes is the local player-knowledge database:
+        no refresh is triggered, and nothing is sent to FM.
+        """
+        form = self._read_form()
+        player_id = form.get("player_id", [""])[0]
+        action = form.get("action", ["save"])[0]
+        if not player_id:
+            self._send(
+                _error_page("Verdict", "No player was named.", "/scouting"),
+                HTTPStatus.BAD_REQUEST,
+            )
+            return
+        try:
+            if action == "clear":
+                self.server.clear_verdict(  # type: ignore[attr-defined]
+                    player_id, decided_on=form.get("decidedOn", [""])[0]
+                )
+            elif action == "save":
+                self.server.set_verdict(  # type: ignore[attr-defined]
+                    player_id,
+                    form.get("verdict", [""])[0],
+                    note=form.get("note", [""])[0],
+                    decided_on=form.get("decidedOn", [""])[0],
+                )
+            else:
+                raise ValueError(f"{action!r} is not a verdict action.")
+        except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
+            self._send(
+                _error_page("Verdict", str(exc), f"/scouting/player/{quote(player_id, safe='')}"),
+                HTTPStatus.BAD_REQUEST,
+            )
+            return
+        self.send_response(HTTPStatus.SEE_OTHER)
+        self.send_header("Location", "/scouting/player/" + quote(player_id, safe=""))
+        self.end_headers()
 
     def _scouting_results_block(self, candidates, filters: ScoutingFilters, limit: int = _MAX_SCOUTING_ROWS) -> str:
         """Whichever table the filters call for.
@@ -311,6 +389,7 @@ class ScoutingPagesMixin:
         candidates: Sequence[object],
         pinned_tactics: tuple[str, ...],
         limit: int = _MAX_SCOUTING_ROWS,
+        show_rejected: bool = False,
     ) -> str:
         def values(name: str) -> tuple[str, ...]:
             return tuple(sorted({str(getattr(item, name)) for item in candidates if getattr(item, name) is not None}))
@@ -453,6 +532,9 @@ class ScoutingPagesMixin:
             "<label class='check'><input name='includeRawPositions' type='checkbox' value='1'"
             + (" checked" if filters.include_raw_external_positions else "")
             + "> Use raw external positions (accepted visibility gap)</label>"
+            "<label class='check'><input name='showRejected' type='checkbox' value='1'"
+            + (" checked" if show_rejected else "")
+            + "> Show rejected players</label>"
             "<span class='spacer'></span>"
             f"<a class='reset' href='/scouting?view={view}'>Reset filters</a>"
             "<button type='submit'>Apply filters</button></div>"
@@ -461,6 +543,11 @@ class ScoutingPagesMixin:
             + json.dumps(roles_by_position).replace("</", "<\\/")
             + "</script>"
         )
+
+
+def _show_rejected(query: dict[str, list[str]]) -> bool:
+    """Whether the list is asked to include the players the manager rejected."""
+    return _query_first(query, "showRejected") == "1"
 
 
 def _count(*values: object) -> int:

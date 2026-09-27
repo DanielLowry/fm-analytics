@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import json
 import os
 import subprocess
 import sys
@@ -44,8 +45,8 @@ from fm_analytics.analytics import (
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.domain import SourceHealth, Squad
 from fm_analytics.knowledge_ingest import DEFAULT_DATABASE as DEFAULT_KNOWLEDGE_DATABASE
-from fm_analytics.knowledge_ingest import record_capture_file
-from fm_analytics.persistence import PlayerKnowledgeStore, RecordResult
+from fm_analytics.knowledge_ingest import default_save_key, record_capture_file
+from fm_analytics.persistence import PlayerKnowledgeStore, RecordResult, Verdict, VerdictRecord
 from fm_analytics.reporting import (
     RecommendationBundle,
     RecommendationPolicy,
@@ -120,10 +121,17 @@ class SquadWebServer(ThreadingHTTPServer):
         ranking_executor: TacticRankingExecutor | None = None,
         pinned_tactics: tuple[str, ...] = (),
         knowledge_recorder: Callable[[], RecordResult] | None = None,
+        # Where the manager's own Target/Watch/Reject verdicts live. The store
+        # may be configured without a save key (nothing can name a save yet),
+        # which quietly means verdicts are off rather than half available.
+        knowledge_store: PlayerKnowledgeStore | None = None,
+        knowledge_save_key: str | None = None,
     ):
         # Appends each fresh scouting capture to the player-knowledge database
         # (see ``record_knowledge``). None disables recording.
         self.knowledge_recorder = knowledge_recorder
+        self.knowledge_store = knowledge_store
+        self.knowledge_save_key = knowledge_save_key
         # (message, succeeded) from the latest recording, shown on the
         # Scouting page so a failure to keep history is never silent.
         self.knowledge_note: tuple[str, bool] | None = None
@@ -214,6 +222,43 @@ class SquadWebServer(ThreadingHTTPServer):
             note = (f"Player knowledge was NOT recorded: {exc}", False)
             print(note[0], file=sys.stderr)
         self.knowledge_note = note
+
+    @property
+    def verdicts_enabled(self) -> bool:
+        """Whether this session can write verdicts: a database and a save to key them by."""
+        return self.knowledge_store is not None and self.knowledge_save_key is not None
+
+    def current_verdicts(self) -> dict[str, VerdictRecord]:
+        """The current verdicts of the save being watched, keyed by player id.
+
+        Never raises: a verdict problem must not take the Scouting page down.
+        Failing open shows a player the manager rejected -- which he can see
+        and sort out -- where failing closed hides the whole list.
+        """
+        store, key = self.knowledge_store, self.knowledge_save_key
+        if store is None or key is None:
+            return {}
+        try:
+            return store.current_verdicts(key)
+        except Exception as exc:  # noqa: BLE001 - see the docstring
+            print(f"Verdicts could not be read: {exc}", file=sys.stderr)
+            return {}
+
+    def set_verdict(
+        self, player_id: str, verdict: Verdict | str, *, note: str, decided_on: str
+    ) -> None:
+        """Record the manager's own decision. Local database only; never FM."""
+        store, key = self.knowledge_store, self.knowledge_save_key
+        if store is None or key is None:
+            raise ValueError("Verdicts need a player-knowledge database and a save.")
+        store.set_verdict(key, player_id, verdict, note=note, decided_on=decided_on)
+
+    def clear_verdict(self, player_id: str, *, decided_on: str) -> None:
+        """Forget the current decision, keeping the ones already made."""
+        store, key = self.knowledge_store, self.knowledge_save_key
+        if store is None or key is None:
+            raise ValueError("Verdicts need a player-knowledge database and a save.")
+        store.clear_verdict(key, player_id, decided_on=decided_on)
 
     def read(self):
         with self._lock:
@@ -497,6 +542,22 @@ def _build_provider(args: argparse.Namespace) -> GameSquadProvider:
     return provider
 
 
+def _capture_save_key(path: Path) -> str | None:
+    """Which save the current capture belongs to; None when it cannot say.
+
+    Verdicts are stored per save so two playthroughs never share one. A
+    missing or malformed capture means no verdicts this session rather than
+    a server that refuses to start.
+    """
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(document, dict):
+            return None
+        return default_save_key(document)
+    except (OSError, ValueError, TypeError, AttributeError):
+        return None
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.ranking_workers < 1:
@@ -528,9 +589,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Could not start tactic-ranking workers; using sequential ranking: {exc}")
         ranking_executor.shutdown(wait=False)
         ranking_executor = None
+    # The store is always configured: recording captures can be switched off,
+    # but the manager's verdicts are his own and need somewhere to live.
+    knowledge_store = PlayerKnowledgeStore(args.knowledge_db)
     knowledge_recorder = None
     if not args.no_record_knowledge:
-        knowledge_store = PlayerKnowledgeStore(args.knowledge_db)
 
         def knowledge_recorder() -> RecordResult:
             return record_capture_file(knowledge_store, refresh_path)
@@ -543,6 +606,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         ranking_executor=ranking_executor,
         pinned_tactics=pinned_tactics,
         knowledge_recorder=knowledge_recorder,
+        knowledge_store=knowledge_store,
+        knowledge_save_key=_capture_save_key(refresh_path),
     )
     if knowledge_recorder is not None and refresh_path.exists():
         # Catches captures made by running the tool directly since last time.

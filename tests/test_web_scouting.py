@@ -1,9 +1,12 @@
+import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
 from fm_analytics.domain import AttributeObservation, Visibility
+from fm_analytics.persistence import PlayerKnowledgeStore, Verdict
 from fm_analytics.reporting import required_role_attributes
 from fm_analytics.analytics import ScoutingCandidate
 from fm_analytics.web.rendering import (
@@ -674,3 +677,211 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertIn("Raw external positions enabled, but unavailable", body)
+
+
+class ScoutingVerdictTests(WebServerHelpers, unittest.TestCase):
+    """The manager's own Target / Watch / Reject decisions, end to end.
+
+    Verdicts live in the local player-knowledge database only: no test here
+    uses a scouting refresh, and none of them can write to FM.
+    """
+
+    def setUp(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.store = PlayerKnowledgeStore(Path(directory.name) / "knowledge.sqlite3")
+        self.store.initialize()
+        self.save_key = "club:1"
+
+    @staticmethod
+    def _candidates():
+        return (
+            ScoutingCandidate(
+                id="otto", name="Otto Striker", positions=("ST",), attributes={},
+                age=22, club="Example FC", scouting_knowledge=100,
+                captured_game_date="2019-09-08",
+            ),
+            ScoutingCandidate(
+                id="ned", name="Ned Prospect", positions=("ST",), attributes={},
+                age=19, club="Example FC", scouting_knowledge=100,
+                captured_game_date="2019-09-08",
+            ),
+        )
+
+    def _serve(self, candidates=None, **server_kwargs):
+        pool = self._candidates() if candidates is None else candidates
+        server_kwargs.setdefault("knowledge_store", self.store)
+        server_kwargs.setdefault("knowledge_save_key", self.save_key)
+        return super()._serve(FIXTURE, lambda: pool, **server_kwargs)
+
+    def _save(self, port: int, player_id: str, verdict: str, note: str = "") -> tuple[int, str | None, str]:
+        return self._post(
+            port,
+            "/scouting/verdict",
+            f"player_id={player_id}&verdict={verdict}&note={note}"
+            "&decidedOn=2019-09-08&action=save",
+        )
+
+    def _count_verdicts(self) -> int:
+        with closing(sqlite3.connect(self.store.path)) as connection:
+            return connection.execute("SELECT COUNT(*) FROM verdict_events").fetchone()[0]
+
+    def test_the_report_offers_a_verdict_form_dated_by_the_capture(self) -> None:
+        port = self._serve()
+        status, body = self._get(port, "/scouting/player/otto")
+
+        self.assertEqual(status, 200)
+        self.assertIn("action='/scouting/verdict'", body)
+        self.assertIn("name='player_id' value='otto'", body)
+        self.assertIn("name='decidedOn' value='2019-09-08'", body)
+        self.assertIn("No verdict recorded yet", body)
+        self.assertIn("FM is never told", body)
+
+    def test_saving_a_verdict_redirects_to_the_report_and_shows_it(self) -> None:
+        port = self._serve()
+        status, location, _body = self._save(port, "otto", "target", "fast+and+left-footed")
+
+        self.assertEqual(status, 303)
+        self.assertEqual(location, "/scouting/player/otto")
+        report_status, body = self._get(port, location)
+
+        self.assertEqual(report_status, 200)
+        self.assertIn("Current verdict: <b>Target</b>", body)
+        self.assertIn("fast and left-footed", body)
+        self.assertIn("decided 2019-09-08", body)
+        record = self.store.get_verdict(self.save_key, "otto")
+        self.assertEqual((record.verdict, record.note), (Verdict.TARGET, "fast and left-footed"))
+
+    def test_resubmitting_the_same_verdict_keeps_a_single_decision(self) -> None:
+        port = self._serve()
+        self._save(port, "otto", "watch")
+        status, location, _body = self._save(port, "otto", "watch")
+
+        self.assertEqual((status, location), (303, "/scouting/player/otto"))
+        self.assertEqual(self._count_verdicts(), 1)
+
+    def test_a_note_is_escaped_and_never_rendered_as_markup(self) -> None:
+        port = self._serve()
+        self._save(port, "otto", "target", "fast+%3Cb%3Ewinger%3C%2Fb%3E")
+        _status, body = self._get(port, "/scouting/player/otto")
+
+        self.assertIn("fast &lt;b&gt;winger&lt;/b&gt;", body)
+        self.assertNotIn("<b>winger</b>", body)
+
+    def test_clearing_forgets_the_decision_but_keeps_what_was_made(self) -> None:
+        port = self._serve()
+        self._save(port, "otto", "reject")
+        status, location, _body = self._post(
+            port, "/scouting/verdict", "player_id=otto&decidedOn=2019-10-01&action=clear"
+        )
+
+        self.assertEqual((status, location), (303, "/scouting/player/otto"))
+        self.assertIsNone(self.store.get_verdict(self.save_key, "otto"))
+        self.assertEqual(self._count_verdicts(), 2)
+        _report_status, body = self._get(port, location)
+        self.assertIn("No verdict recorded yet", body)
+
+    def test_rejecting_a_player_hides_him_from_the_list_until_shown_again(self) -> None:
+        port = self._serve()
+        self._save(port, "otto", "reject")
+
+        _status, hidden = self._get(port, "/scouting?position=ST")
+        _status, shown = self._get(port, "/scouting?position=ST&showRejected=1")
+        _status, filtered = self._get(port, "/scouting?position=ST&showRejected=1&name=Otto")
+
+        self.assertIn("Ned Prospect", hidden)
+        self.assertNotIn("Otto Striker", hidden)
+        self.assertIn("Otto Striker", shown)
+        self.assertIn("Ned Prospect", shown)
+        # Show rejected is a view switch: the other filters still apply.
+        self.assertIn("Otto Striker", filtered)
+        self.assertNotIn("Ned Prospect", filtered)
+        self.assertIn("checked> Show rejected players", shown)
+        # The rejected player keeps his own report; only the list changed.
+        report_status, body = self._get(port, "/scouting/player/otto")
+        self.assertEqual(report_status, 200)
+        self.assertIn("Current verdict: <b>Reject</b>", body)
+
+    def test_the_live_results_fragment_hides_rejects_like_the_full_page(self) -> None:
+        port = self._serve()
+        self._save(port, "otto", "reject")
+
+        _status, hidden = self._get(port, "/scouting/results?position=ST")
+        _status, shown = self._get(port, "/scouting/results?position=ST&showRejected=1")
+
+        self.assertNotIn("Otto Striker", hidden)
+        self.assertIn("Ned Prospect", hidden)
+        self.assertIn("Otto Striker", shown)
+
+    def test_a_verdict_without_a_capture_date_is_shown_but_not_editable(self) -> None:
+        candidate = ScoutingCandidate(
+            id="dated-none", name="No Capture Date", positions=("ST",), attributes={},
+            age=20, scouting_knowledge=100, captured_game_date=None,
+        )
+        self.store.set_verdict(
+            self.save_key, "dated-none", Verdict.WATCH, note="heard of him",
+            decided_on="2019-09-08",
+        )
+        port = self._serve((candidate,))
+        status, body = self._get(port, "/scouting/player/dated-none")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Current verdict: <b>Watch</b>", body)
+        self.assertIn("heard of him", body)
+        self.assertNotIn("action='/scouting/verdict'", body)
+
+    def test_an_unusable_submission_is_refused_without_writing_anything(self) -> None:
+        port = self._serve()
+        bad_verdict = self._save(port, "otto", "maybe")
+        _status, _location, oversized = self._post(
+            port, "/scouting/verdict",
+            "player_id=otto&verdict=target&note=" + ("x" * 501) + "&decidedOn=2019-09-08&action=save",
+        )
+        _status, _location, bad_date = self._post(
+            port, "/scouting/verdict", "player_id=otto&verdict=target&decidedOn=yesterday&action=save"
+        )
+        _status, _location, no_player = self._post(
+            port, "/scouting/verdict", "verdict=target&action=save"
+        )
+        _status, _location, bad_action = self._post(
+            port, "/scouting/verdict", "player_id=otto&verdict=target&decidedOn=2019-09-08&action=delete"
+        )
+
+        self.assertEqual((bad_verdict[0], bad_verdict[1]), (400, None))
+        for body in (oversized, bad_date, no_player, bad_action):
+            self.assertIn("Verdict", body)
+        self.assertIsNone(self.store.get_verdict(self.save_key, "otto"))
+        self.assertEqual(self._count_verdicts(), 0)
+
+    def test_a_verdict_touches_neither_the_scouting_refresh_nor_the_recorder(self) -> None:
+        """The brief's hard rule: verdicts are local, manager-authored data only."""
+        refreshes: list = []
+        recordings: list = []
+
+        def refresh(**kwargs):
+            refreshes.append(kwargs)
+            return "refreshed"
+
+        def record():
+            recordings.append(True)
+            raise AssertionError("saving a verdict must not record a capture")
+
+        port = self._serve(scouting_refresh=refresh, knowledge_recorder=record)
+        status, location, _body = self._save(port, "otto", "target")
+
+        self.assertEqual((status, location), (303, "/scouting/player/otto"))
+        self.assertEqual(refreshes, [])
+        self.assertEqual(recordings, [])
+        self.assertEqual(self._count_verdicts(), 1)
+
+    def test_without_a_verdict_store_the_report_is_exactly_as_it_was(self) -> None:
+        server_kwargs = {"knowledge_store": None, "knowledge_save_key": None}
+        port = self._serve(**server_kwargs)
+        report_status, body = self._get(port, "/scouting/player/otto")
+        list_status, listing = self._get(port, "/scouting?position=ST")
+
+        self.assertEqual(report_status, 200)
+        self.assertNotIn("action='/scouting/verdict'", body)
+        self.assertNotIn("Signing verdict", body)
+        self.assertEqual(list_status, 200)
+        self.assertIn("Otto Striker", listing)

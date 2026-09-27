@@ -29,7 +29,7 @@ is useful as a later handoff, not permission to invent the missing contract.
 | [Multi-tactic scouting presentation](low-multi-tactic-scouting-presentation.md) | Low | 2 | The service returns a stable presentation model |
 | [Weakest-slot navigation](low-weakest-slot-navigation.md) | Low | 3 | Weak-slot link data is supplied by analytics/reporting |
 | [Scouting-state regression coverage](low-scouting-state-regression-coverage.md) | Low | 3–5 support | Now; keep it away from the in-progress feed tools |
-| [Best-known player profiles](medium-best-known-player-profiles.md) | Medium | 5 | Now; the knowledge store write side is built |
+| [Best-known player profiles](medium-best-known-player-profiles.md) | Medium | 5 | Built 27 September 2026 |
 | [Database-backed candidate pool](medium-database-candidate-pool.md) | Medium | 5 | Best-known profiles have a stable API |
 | [Manual scouting verdicts](medium-manual-scouting-verdicts.md) | Medium | 5 | Now; coordinate its migration with other database work |
 | [Scouting alerts](medium-scouting-alerts.md) | Medium | 6 | Database profiles and verdicts are both available |

@@ -73,3 +73,31 @@ The query result should describe age, not decide presentation wording such as
 
 This task does not merge database data with live candidates; that is the next
 brief.
+
+## Status: built (27 September 2026)
+
+`PlayerKnowledgeStore.best_known_profile(save_key, player_id, as_of)` and
+`best_known_profiles(save_key, as_of)` return `BestKnownProfile` objects. The
+batched form is keyed by player ID, omits players with nothing dated that
+early, and runs a fixed number of queries. The reserved decisions, as taken:
+
+- **Batched API:** `best_known_profiles(save_key, as_of) -> dict[str, BestKnownProfile]`.
+- **Tie-break:** in-game date, then row ID (ingest order), newest first. This is
+  the order `attribute_history` reports.
+- **Staleness:** dates only, never a boolean. Each selected reading carries
+  `observed_on`, when the store first recorded that state, and `last_seen_on`,
+  the last day a capture still showed it. The profile has
+  `profile_last_seen_on`, and `oldest_seen_on` / `latest_seen_on` across
+  everything it used.
+
+**Added in review: sightings (schema v3).** Observation rows are change-only,
+so the first version dated every reading from when it first appeared. A value
+seen unchanged every week would have looked months old, and the feed's own
+"last known on" date was discarded whenever the value matched. Each capture
+now also records the day it saw each player and read his sheet, and ages run
+from the last sighting. Use `last_seen_on` / `oldest_seen_on` for anything
+about age, including the candidate pool's historical labels and the
+"re-scout due" threshold.
+
+Dates must be `YYYY-MM-DD`. Python also parses `20190908` and `2019-W36-7`,
+but stored dates are compared as text, so those forms are refused.

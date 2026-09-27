@@ -10,11 +10,9 @@ It records only what the capture feed already exposes to the manager (exact,
 ranged or unknown attributes and the visible profile facts). An old observation
 is history, never a current fact: consumers must label it with its date.
 
-Reading it back is equally dated. `best_known_profile` and
-`best_known_profiles` assemble a player as of one in-game date: the newest
-profile row, the newest non-unknown reading of each attribute, and the newest
-recorded state beside it even when that state is unknown. The result reports
-the age of what it used and leaves "out of date" to whoever asked for it.
+Reading it back is equally dated: `best_known_profile` and
+`best_known_profiles` assemble a player as of one in-game date, with the last
+day each reading was still seen (see `persistence.best_known`).
 
 Two rules this module exists to keep:
 
@@ -36,10 +34,14 @@ import sqlite3
 from contextlib import closing, contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Iterator, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterator, Mapping, Sequence
 
 from fm_analytics.domain import AttributeObservation, Visibility
+
+if TYPE_CHECKING:
+    from fm_analytics.persistence.best_known import BestKnownProfile
 
 
 class KnowledgeStoreError(RuntimeError):
@@ -143,9 +145,72 @@ CREATE INDEX attributes_by_player
     ON attribute_observations (save_id, player_id, attribute, observed_on, id);
 """
 
+# A verdict is the manager's own decision, so it is bounded at the door as well
+# as in Python: a form cannot smuggle an essay into every row.
+MAX_VERDICT_NOTE_LENGTH = 500
+
+_V2 = f"""
+CREATE TABLE verdict_events (
+    id INTEGER PRIMARY KEY,
+    -- Keyed by the caller's save name rather than saves(id): a verdict is the
+    -- manager's own note, which may be written before any capture of that save
+    -- has been recorded, and two playthroughs still never share a verdict.
+    save_key TEXT NOT NULL,
+    player_id TEXT NOT NULL,
+    -- NULL records a clear. The row stays so the decision it removed survives.
+    verdict TEXT CHECK (verdict IS NULL OR verdict IN ('target', 'watch', 'reject')),
+    note TEXT NOT NULL,
+    decided_on TEXT NOT NULL,
+    CHECK (length(note) <= {MAX_VERDICT_NOTE_LENGTH})
+);
+CREATE INDEX verdict_by_player ON verdict_events (save_key, player_id, id);
+"""
+
+_V3 = """
+-- Every in-game day a capture showed a player, whether or not anything about
+-- him changed. Observation rows are change-only, so they say when a state
+-- began; a sighting says it still held on a later day, and a best-known
+-- reading ages from its last sighting, not its first.
+CREATE TABLE sightings (
+    save_id INTEGER NOT NULL,
+    player_id TEXT NOT NULL,
+    -- 'profile': he was in the capture. 'current': his current attribute sheet
+    -- was read, and it lists every attribute. 'last_known': one attribute of a
+    -- last-known sheet, which lists only those FM showed for his position, so
+    -- each attribute is sighted on its own.
+    kind TEXT NOT NULL CHECK (kind IN ('profile', 'current', 'last_known')),
+    attribute TEXT NOT NULL,
+    observed_on TEXT NOT NULL,
+    -- The first ingest to see him that day.
+    ingest_id INTEGER NOT NULL REFERENCES ingests(id),
+    CHECK ((kind = 'last_known') = (attribute != '')),
+    PRIMARY KEY (save_id, player_id, kind, attribute, observed_on),
+    FOREIGN KEY (save_id, player_id) REFERENCES players(save_id, player_id)
+) WITHOUT ROWID;
+
+-- What a file from before this table can still prove: any row means he was in
+-- that ingest's capture, a changed current reading means that whole sheet was
+-- read on its date, and a last-known row sights that one attribute.
+INSERT INTO sightings (save_id, player_id, kind, attribute, observed_on, ingest_id)
+SELECT rows.save_id, rows.player_id, 'profile', '', i.game_date, MIN(i.id)
+FROM (
+    SELECT save_id, player_id, ingest_id FROM profile_observations
+    UNION SELECT save_id, player_id, ingest_id FROM attribute_observations
+) rows JOIN ingests i ON i.id = rows.ingest_id
+GROUP BY rows.save_id, rows.player_id, i.game_date;
+INSERT INTO sightings (save_id, player_id, kind, attribute, observed_on, ingest_id)
+SELECT save_id, player_id, 'current', '', observed_on, MIN(ingest_id)
+FROM attribute_observations WHERE source = 'current'
+GROUP BY save_id, player_id, observed_on;
+INSERT INTO sightings (save_id, player_id, kind, attribute, observed_on, ingest_id)
+SELECT save_id, player_id, 'last_known', attribute, observed_on, MIN(ingest_id)
+FROM attribute_observations WHERE source = 'last_known'
+GROUP BY save_id, player_id, attribute, observed_on;
+"""
+
 # Append only. Version N of the file is the result of applying MIGRATIONS[:N];
 # never edit an entry that has shipped, add a new one.
-MIGRATIONS: tuple[str, ...] = (_V1,)
+MIGRATIONS: tuple[str, ...] = (_V1, _V2, _V3)
 
 PROFILE_FIELDS = (
     "age", "club", "contract_type", "contract_end", "has_contract", "transfer_status",
@@ -274,58 +339,47 @@ class AttributeRecord:
     observation: AttributeObservation
 
 
-@dataclass(frozen=True)
-class SelectedAttribute:
-    """One attribute reading picked out of the history, with when it was seen."""
+class Verdict(StrEnum):
+    """The three decisions the manager keeps himself: signing is his call."""
 
-    observation: AttributeObservation
-    observed_on: str
-    source: str  # 'current' or 'last_known', as recorded
-
-
-@dataclass(frozen=True)
-class AttributeKnowledge:
-    """One attribute of a best-known profile: the value to show, and the newest state.
-
-    `best_known` is None when every reading at or before the date is unknown:
-    captured, but never learned. An attribute missing from the profile's
-    `attributes` mapping was never captured at all, which is a different state
-    and is not invented as an unknown here.
-    """
-
-    attribute: str
-    best_known: SelectedAttribute | None
-    latest: SelectedAttribute
+    TARGET = "target"
+    WATCH = "watch"
+    REJECT = "reject"
 
 
 @dataclass(frozen=True)
-class BestKnownProfile:
-    """A player assembled from what one save recorded at or before one game date.
-
-    * `profile` is the latest profile observation at or before `as_of`, in the
-      same shape `profile_history` returns (including `observed_on`), or None
-      when no profile row is that early. Profile rows are written only when a
-      fact changed, so its date is "when a fact last changed", not "when he
-      was last looked at".
-    * `attributes` holds every attribute recorded at or before `as_of`. Each
-      entry carries the best-known (never unknown) reading and, separately, the
-      newest recorded state even when that state is unknown, so a caller can
-      say the knowledge has faded. Attribute rows are never read past `as_of`.
-    * `oldest_observed_on` / `latest_observed_on` bound the in-game dates of
-      every row this result draws on: the age, not a verdict. Whether that age
-      is "out of date" is the caller's threshold to apply, never this store's.
-    * `name` is the save's most recently recorded name: the history dates
-      profile facts and attributes, not names, and identity is the player id.
-    """
+class VerdictRecord:
+    """One current decision for one player in one save, with its reason."""
 
     save_key: str
     player_id: str
-    name: str
-    as_of: str
-    profile: Mapping[str, Any] | None
-    attributes: Mapping[str, AttributeKnowledge]
-    oldest_observed_on: str
-    latest_observed_on: str
+    verdict: Verdict
+    note: str
+    decided_on: str
+
+    def __post_init__(self) -> None:
+        _verdict_identity(self.save_key, self.player_id, self.decided_on)
+        if len(self.note) > MAX_VERDICT_NOTE_LENGTH:
+            raise ValueError(
+                f"note is limited to {MAX_VERDICT_NOTE_LENGTH} characters, got {len(self.note)}"
+            )
+
+
+def _verdict_identity(save_key: str, player_id: str, decided_on: str) -> str:
+    """Check the three things every verdict write must name, and return the date."""
+    if not save_key:
+        raise ValueError("a verdict needs a save key")
+    if not player_id:
+        raise ValueError("a verdict needs a player id")
+    return _iso(decided_on, "decided_on")
+
+
+def _bounded_note(note: str | None) -> str:
+    if note is None:
+        return ""
+    if not isinstance(note, str):
+        raise ValueError("a verdict note must be text")
+    return note.strip()
 
 
 class PlayerKnowledgeStore:
@@ -414,6 +468,7 @@ class PlayerKnowledgeStore:
             new_players = self._upsert_players(connection, save_id, capture)
             profile_rows = self._record_profiles(connection, save_id, ingest_id, capture)
             attribute_rows = self._record_attributes(connection, save_id, ingest_id, capture)
+            self._record_sightings(connection, save_id, ingest_id, capture)
             connection.execute(
                 "UPDATE ingests SET profile_rows_added = ?, attribute_rows_added = ? WHERE id = ?",
                 (profile_rows, attribute_rows, ingest_id),
@@ -546,6 +601,31 @@ class PlayerKnowledgeStore:
             added += len(changed)
         return added
 
+    @staticmethod
+    def _record_sightings(
+        connection: sqlite3.Connection, save_id: int, ingest_id: int, capture: KnowledgeCapture
+    ) -> None:
+        # The rows above are change-only; these let a value seen unchanged every
+        # week age from the last of those weeks rather than the first.
+        rows = []
+        for player in capture.players:
+            rows.append((save_id, player.player_id, "profile", "", capture.game_date, ingest_id))
+            if player.attributes:
+                rows.append((
+                    save_id, player.player_id, "current", "",
+                    player.attributes_observed_on or capture.game_date, ingest_id,
+                ))
+            rows.extend(
+                (save_id, player.player_id, "last_known", name, player.last_known_observed_on,
+                 ingest_id)
+                for name in player.last_known_attributes
+            )
+        connection.executemany(
+            "INSERT OR IGNORE INTO sightings (save_id, player_id, kind, attribute, observed_on, "
+            "ingest_id) VALUES (?, ?, ?, ?, ?, ?)",
+            rows,
+        )
+
     # -- reading -----------------------------------------------------------
 
     def saves(self) -> tuple[SaveSummary, ...]:
@@ -631,98 +711,116 @@ class PlayerKnowledgeStore:
     def _best_known(
         self, save_key: str, as_of: str, player_id: str | None
     ) -> dict[str, BestKnownProfile]:
-        """Assemble best-known profiles; `player_id` narrows the same queries to one."""
+        # Imported here: the read model builds on this module's schema, so
+        # importing it at the top would be circular.
+        from fm_analytics.persistence.best_known import read_best_known
+
         _iso(as_of, "as_of")
         self.initialize()
         with closing(self._connect()) as connection:
-            save = connection.execute("SELECT id FROM saves WHERE key = ?", (save_key,)).fetchone()
-            if save is None:
-                return {}
-            save_id = int(save[0])
-            wanted = "" if player_id is None else " AND player_id = ?"
-            wanted_args: tuple[Any, ...] = () if player_id is None else (player_id,)
-            names = {
-                row["player_id"]: row["name"]
-                for row in connection.execute(
-                    f"SELECT player_id, name FROM players WHERE save_id = ?{wanted}",
-                    (save_id, *wanted_args),
-                )
-            }
-            profile_rows = {
-                row["player_id"]: _decoded_profile(row)
-                for row in connection.execute(
-                    f"SELECT player_id, observed_on, {', '.join(PROFILE_FIELDS)} FROM ("
-                    "  SELECT *, ROW_NUMBER() OVER (PARTITION BY player_id "
-                    "    ORDER BY observed_on DESC, id DESC) AS rn "
-                    f"  FROM profile_observations WHERE save_id = ? AND observed_on <= ?{wanted}"
-                    ") WHERE rn = 1",
-                    (save_id, as_of, *wanted_args),
-                )
-            }
-            # One pass yields both selections: the newest row overall (the
-            # latest state, unknown or not) and the newest row that carries a
-            # value (the best-known one). Ties on the in-game date are broken by
-            # row id, newest first -- the same order `attribute_history` reports,
-            # so a same-day re-record and a re-read cannot disagree.
-            latest: dict[tuple[str, str], SelectedAttribute] = {}
-            best_known: dict[tuple[str, str], SelectedAttribute] = {}
-            for row in connection.execute(
-                "SELECT player_id, attribute, observed_on, source, visibility, value, "
-                "minimum, maximum, rn_latest, rn_best FROM ("
-                "  SELECT *, "
-                "    ROW_NUMBER() OVER (PARTITION BY player_id, attribute "
-                "      ORDER BY observed_on DESC, id DESC) AS rn_latest, "
-                "    ROW_NUMBER() OVER (PARTITION BY player_id, attribute "
-                "      ORDER BY CASE WHEN visibility = 'unknown' THEN 1 ELSE 0 END, "
-                "               observed_on DESC, id DESC) AS rn_best "
-                f"  FROM attribute_observations WHERE save_id = ? AND observed_on <= ?{wanted}"
-                ") WHERE rn_latest = 1 OR rn_best = 1 "
-                "ORDER BY player_id, attribute",
-                (save_id, as_of, *wanted_args),
-            ):
-                selected = SelectedAttribute(
-                    observation=AttributeObservation(
-                        Visibility(row["visibility"]), value=row["value"],
-                        minimum=row["minimum"], maximum=row["maximum"],
-                    ),
-                    observed_on=row["observed_on"], source=row["source"],
-                )
-                key = (row["player_id"], row["attribute"])
-                if row["rn_latest"] == 1:
-                    latest[key] = selected
-                # The best candidate can still be an unknown row: then the save
-                # has nothing but unknowns for this attribute, and there is no
-                # best-known value to offer.
-                if row["rn_best"] == 1 and row["visibility"] != Visibility.UNKNOWN.value:
-                    best_known[key] = selected
+            return read_best_known(connection, save_key, as_of, player_id)
 
-        grouped: dict[str, dict[str, AttributeKnowledge]] = {}
-        for (pid, attribute), selected in latest.items():
-            grouped.setdefault(pid, {})[attribute] = AttributeKnowledge(
-                attribute=attribute, best_known=best_known.get((pid, attribute)), latest=selected
+    # -- verdicts -----------------------------------------------------------
+    #
+    # Append-only like everything else: a later decision is a new row, a clear
+    # is a row with no verdict, and nothing already recorded is ever rewritten.
+
+    def set_verdict(
+        self,
+        save_key: str,
+        player_id: str,
+        verdict: Verdict | str,
+        *,
+        note: str = "",
+        decided_on: str,
+    ) -> VerdictRecord:
+        """Record the manager's decision for one player in one save.
+
+        Re-submitting what is already current adds no row, so a double-clicked
+        form leaves the history exactly as it was.
+        """
+        record = VerdictRecord(
+            save_key=save_key,
+            player_id=player_id,
+            verdict=Verdict(verdict),
+            note=_bounded_note(note),
+            decided_on=decided_on,
+        )
+        self.initialize()
+        with closing(self._connect()) as connection, _transaction(connection):
+            if self._current_verdict(connection, save_key, player_id) == record:
+                return record
+            connection.execute(
+                "INSERT INTO verdict_events (save_key, player_id, verdict, note, decided_on) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (save_key, player_id, record.verdict.value, record.note, record.decided_on),
             )
-        dates: dict[str, set[str]] = {
-            pid: {row["observed_on"]} for pid, row in profile_rows.items()
+        return record
+
+    def clear_verdict(self, save_key: str, player_id: str, *, decided_on: str) -> bool:
+        """Forget the current verdict, keeping every decision already recorded.
+
+        Returns whether anything needed clearing: an untouched player gains no
+        row at all, so clearing twice is as harmless as clearing once.
+        """
+        _verdict_identity(save_key, player_id, decided_on)
+        self.initialize()
+        with closing(self._connect()) as connection, _transaction(connection):
+            if self._current_verdict(connection, save_key, player_id) is None:
+                return False
+            connection.execute(
+                "INSERT INTO verdict_events (save_key, player_id, verdict, note, decided_on) "
+                "VALUES (?, ?, NULL, '', ?)",
+                (save_key, player_id, decided_on),
+            )
+            return True
+
+    def get_verdict(self, save_key: str, player_id: str) -> VerdictRecord | None:
+        """The current decision for this player, or None when there is none."""
+        self.initialize()
+        with closing(self._connect()) as connection:
+            return self._current_verdict(connection, save_key, player_id)
+
+    def current_verdicts(self, save_key: str) -> dict[str, VerdictRecord]:
+        """Every current decision in one save, keyed by player id.
+
+        Cleared and untouched players are simply absent. One query whatever the
+        number of verdicts, so a list can drop its rejects without an N+1.
+        """
+        if not save_key:
+            raise ValueError("a verdict needs a save key")
+        self.initialize()
+        with closing(self._connect()) as connection:
+            rows = connection.execute(
+                "SELECT player_id, verdict, note, decided_on FROM ("
+                "  SELECT *, ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY id DESC) AS rn "
+                "  FROM verdict_events WHERE save_key = ?"
+                ") WHERE rn = 1 AND verdict IS NOT NULL",
+                (save_key,),
+            ).fetchall()
+        return {
+            row["player_id"]: VerdictRecord(
+                save_key=save_key, player_id=row["player_id"],
+                verdict=Verdict(row["verdict"]), note=row["note"], decided_on=row["decided_on"],
+            )
+            for row in rows
         }
-        for pid, attributes in grouped.items():
-            used = dates.setdefault(pid, set())
-            for knowledge in attributes.values():
-                used.add(knowledge.latest.observed_on)
-                if knowledge.best_known is not None:
-                    used.add(knowledge.best_known.observed_on)
-        profiles: dict[str, BestKnownProfile] = {}
-        # Only players with a row dated at or before `as_of` qualify; the
-        # foreign key means such a player always has a name to go with him.
-        for pid in sorted(dates):
-            if pid not in names:
-                continue
-            profiles[pid] = BestKnownProfile(
-                save_key=save_key, player_id=pid, name=names[pid], as_of=as_of,
-                profile=profile_rows.get(pid),
-                attributes=grouped.get(pid, {}),
-                oldest_observed_on=min(dates[pid]), latest_observed_on=max(dates[pid]),
-            )
-        return profiles
+
+    @staticmethod
+    def _current_verdict(
+        connection: sqlite3.Connection, save_key: str, player_id: str
+    ) -> VerdictRecord | None:
+        row = connection.execute(
+            "SELECT verdict, note, decided_on FROM verdict_events "
+            "WHERE save_key = ? AND player_id = ? ORDER BY id DESC LIMIT 1",
+            (save_key, player_id),
+        ).fetchone()
+        if row is None or row["verdict"] is None:
+            return None
+        return VerdictRecord(
+            save_key=save_key, player_id=player_id, verdict=Verdict(row["verdict"]),
+            note=row["note"], decided_on=row["decided_on"],
+        )
 
     def _connect(self) -> sqlite3.Connection:
         # Autocommit; `_transaction` and `_apply` manage their own BEGIN/COMMIT.
@@ -746,10 +844,16 @@ def _transaction(connection: sqlite3.Connection) -> Iterator[None]:
 
 
 def _iso(text: str, label: str) -> str:
+    # Every date is stored and compared as text, which orders correctly only in
+    # YYYY-MM-DD form. `date.fromisoformat` also accepts 20190908 and
+    # 2019-W36-7 since Python 3.11, and those sort among stored dates as if
+    # they were other days: an `as_of` of "20190701" would admit September.
     try:
-        date.fromisoformat(text)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"{label} must be an ISO date, got {text!r}") from exc
+        canonical = date.fromisoformat(text).isoformat() == text
+    except (TypeError, ValueError):
+        canonical = False
+    if not canonical:
+        raise ValueError(f"{label} must be an ISO date (YYYY-MM-DD), got {text!r}")
     return text
 
 

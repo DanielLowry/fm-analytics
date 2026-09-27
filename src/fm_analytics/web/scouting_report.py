@@ -17,6 +17,7 @@ from fm_analytics.analytics import (
     score_role,
 )
 from fm_analytics.domain.models import Visibility
+from fm_analytics.persistence import MAX_VERDICT_NOTE_LENGTH, Verdict, VerdictRecord
 from fm_analytics.reporting import build_player_role_scores
 from fm_analytics.web.rendering import role_score_cells
 from fm_analytics.web.scouting_render import (
@@ -33,8 +34,14 @@ def player_scouting_report(
     catalogue,
     *,
     headline: str = "",
+    verdict: str = "",
 ) -> str:
-    """Render a scouted player's exhaustive report."""
+    """Render a scouted player's exhaustive report.
+
+    ``verdict`` is the manager's own decision panel, already rendered by
+    ``verdict_panel``; it needs a database this module deliberately never
+    touches, so it arrives as HTML rather than being looked up here.
+    """
     facts = [
         ("Club", candidate.club),
         ("Age", str(candidate.age) if candidate.age is not None else None),
@@ -60,10 +67,60 @@ def player_scouting_report(
         candidate.raw_position_familiarity or {}, facts, catalogue,
         back_href="/scouting?view=scouted", back_label="Back to scouted players",
         familiarity_source="the captured raw 0–20 position rating",
-        headline=headline,
+        headline=verdict + headline,
         attributes_captured=candidate.current_attributes_captured,
         historical_attributes=candidate.last_known_attributes,
         historical_observed_at=candidate.last_known_attributes_observed_at,
+    )
+
+
+def verdict_panel(
+    verdict: VerdictRecord | None,
+    *,
+    player_id: str,
+    decided_on: str | None,
+    enabled: bool,
+) -> str:
+    """The manager's own Target / Watch / Reject decision for this player.
+
+    Pure HTML over a record the page has already read: no database access
+    happens here. Where verdicts are unavailable the report is exactly what it
+    was before this feature existed, and without a capture date the current
+    state is shown but cannot be changed -- a decision that cannot be dated
+    honestly is worse than one that is left alone.
+    """
+    if not enabled:
+        return ""
+    state = (
+        f"<p class='verdict-state'>Current verdict: "
+        f"<b>{html.escape(verdict.verdict.value.capitalize())}</b>"
+        + (f" &mdash; {html.escape(verdict.note)}" if verdict.note else "")
+        + f"<span class='muted'>, decided {html.escape(verdict.decided_on)}</span></p>"
+        if verdict is not None
+        else "<p class='verdict-state muted'>No verdict recorded yet.</p>"
+    )
+    if decided_on is None:
+        return state
+    chosen = verdict.verdict if verdict is not None else ""
+    options = "".join(
+        f"<option value='{value}'" + (" selected" if value == chosen else "") + f">{value.capitalize()}</option>"
+        for value in Verdict
+    )
+    note = verdict.note if verdict is not None else ""
+    return (
+        "<section class='verdict-panel'><h2>Signing verdict</h2>"
+        "<p class='muted'>Your own decision, kept in this tool's local knowledge "
+        "database: FM is never told, and nothing about it comes from a hidden rating.</p>"
+        + state
+        + "<form class='verdict' method='post' action='/scouting/verdict'>"
+        f"<input type='hidden' name='player_id' value='{html.escape(player_id, quote=True)}'>"
+        f"<input type='hidden' name='decidedOn' value='{html.escape(decided_on, quote=True)}'>"
+        f"<label>Verdict<select name='verdict'>{options}</select></label>"
+        f"<label>Note<input name='note' maxlength='{MAX_VERDICT_NOTE_LENGTH}' "
+        f"value='{html.escape(note, quote=True)}' placeholder='Why, in your own words'></label>"
+        "<button type='submit' name='action' value='save'>Save verdict</button>"
+        "<button type='submit' name='action' value='clear'>Clear verdict</button>"
+        "</form></section>"
     )
 
 

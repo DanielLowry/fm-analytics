@@ -36,7 +36,11 @@ jobs:
           version: "0.9.26"
 
       - name: Install locked environment
-        run: uv sync --locked
+        # The research extra (Unicorn, Frida) is what the Scouting refresh runs
+        # on -- tools/fm20_scouting_feed.py builds its data in the Unicorn
+        # sandbox -- so its tests need it installed; without it they cannot
+        # even be imported.
+        run: uv sync --locked --extra research
 
       - name: Run tests
         run: uv run --no-sync python -m unittest discover -s tests -v

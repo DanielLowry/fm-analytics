@@ -82,6 +82,9 @@ class SquadWebHandler(
             self.send_header("Location", "/?refresh=" + ("started" if started else "running"))
             self.end_headers()
             return
+        if parsed.path == "/scouting/verdict":
+            self._post_scouting_verdict()
+            return
         if parsed.path != "/scouting/refresh":
             self._send(
                 _error_page("Not found", "No such action.", parsed.path),

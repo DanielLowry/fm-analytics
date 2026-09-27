@@ -7,12 +7,14 @@ from unittest.mock import patch
 
 from fm_analytics.domain import AttributeObservation, Visibility
 from fm_analytics.persistence.player_knowledge import (
+    MAX_VERDICT_NOTE_LENGTH,
     MIGRATIONS,
     KnowledgeCapture,
     KnowledgeStoreError,
     PlayerKnowledge,
     PlayerKnowledgeStore,
     TimelineError,
+    Verdict,
 )
 
 
@@ -239,7 +241,7 @@ class BestKnownProfileTests(StoreCase):
         # The same row `profile_history` reports, decoded the same way.
         self.assertEqual(profile.profile, self.store.profile_history("club:1", "1")[-1])
         self.assertEqual(profile.profile["positions"], ["AML"])
-        self.assertEqual((profile.oldest_observed_on, profile.latest_observed_on),
+        self.assertEqual((profile.oldest_seen_on, profile.latest_seen_on),
                          ("2019-09-08", "2019-09-08"))
 
     def test_a_later_unknown_keeps_the_last_value_and_records_that_it_faded(self) -> None:
@@ -253,7 +255,7 @@ class BestKnownProfileTests(StoreCase):
                          ("2019-09-08", "current"))
         self.assertEqual(pace.latest.observation, UNKNOWN)
         self.assertEqual(pace.latest.observed_on, "2019-10-01")
-        self.assertEqual((faded.oldest_observed_on, faded.latest_observed_on),
+        self.assertEqual((faded.oldest_seen_on, faded.latest_seen_on),
                          ("2019-09-08", "2019-10-01"))
 
     def test_a_captured_unknown_is_not_never_captured_and_neither_gains_a_value(self) -> None:
@@ -274,7 +276,10 @@ class BestKnownProfileTests(StoreCase):
         self.store.record(capture("2019-09-08", player(attributes={"pace": spread(10, 12)})))
         profile = self.store.best_known_profile("club:1", "1", "2019-09-08")
         self.assertEqual(profile.attributes["pace"].best_known.observation, spread(10, 12))
-        self.assertEqual(len(self.store.attribute_history("club:1", "1", "pace")), 2)
+        history = self.store.attribute_history("club:1", "1", "pace")
+        self.assertEqual(len(history), 2)
+        # The same order the history reports: its last entry is what is selected.
+        self.assertEqual(profile.attributes["pace"].latest.observation, history[-1].observation)
 
     def test_as_of_excludes_everything_recorded_later(self) -> None:
         self.store.record(
@@ -290,7 +295,7 @@ class BestKnownProfileTests(StoreCase):
         self.assertEqual(middle.profile["transfer_status"], "not_set")
         self.assertEqual(middle.attributes["pace"].best_known.observation, known(14))
         self.assertEqual(middle.attributes["pace"].latest.observation, known(14))
-        self.assertEqual(middle.latest_observed_on, "2019-09-08")
+        self.assertEqual(middle.latest_seen_on, "2019-09-08")
 
         self.assertEqual(
             self.store.best_known_profile("club:1", "1", "2019-09-08").profile["observed_on"],
@@ -325,6 +330,11 @@ class BestKnownProfileTests(StoreCase):
         )
         self.assertIsNone(self.store.best_known_profile("save-b", "2", "2019-09-08"))
 
+    def test_an_unrecorded_save_is_absent_rather_than_empty(self) -> None:
+        self.store.record(capture("2019-09-08", player(attributes={"pace": known(14)})))
+        self.assertIsNone(self.store.best_known_profile("no-such-save", "1", "2019-09-08"))
+        self.assertEqual(self.store.best_known_profiles("no-such-save", "2019-09-08"), {})
+
     def test_a_rewound_reading_does_not_beat_a_newer_one(self) -> None:
         self.store.record(capture("2019-09-08", player(attributes={"pace": known(14)})))
         self.store.record(
@@ -355,7 +365,7 @@ class BestKnownProfileTests(StoreCase):
         self.assertEqual(early.name, "Ada Winger")
         self.assertEqual(early.attributes["pace"].best_known.observation, spread(8, 12))
         self.assertEqual(early.attributes["pace"].best_known.source, "last_known")
-        self.assertEqual((early.oldest_observed_on, early.latest_observed_on),
+        self.assertEqual((early.oldest_seen_on, early.latest_seen_on),
                          ("2019-07-21", "2019-07-21"))
         self.assertEqual(self.store.best_known_profile("club:1", "1", "2019-07-20"), None)
 
@@ -369,7 +379,7 @@ class BestKnownProfileTests(StoreCase):
         self.assertEqual(set(profiles["1"].attributes), {"pace"})
         self.assertEqual(profiles["2"].attributes, {})       # profile facts only
         self.assertEqual(profiles["2"].profile["observed_on"], "2019-09-08")
-        self.assertEqual((profiles["2"].oldest_observed_on, profiles["2"].latest_observed_on),
+        self.assertEqual((profiles["2"].oldest_seen_on, profiles["2"].latest_seen_on),
                          ("2019-09-08", "2019-09-08"))
 
     def test_an_unusable_date_is_refused_before_anything_is_read(self) -> None:
@@ -377,6 +387,11 @@ class BestKnownProfileTests(StoreCase):
             self.store.best_known_profile("club:1", "1", "08/09/2019")
         with self.assertRaisesRegex(ValueError, "ISO date"):
             self.store.best_known_profiles("club:1", "September")
+        # Python accepts these as ISO dates, but as text "20190701" sorts after
+        # every 2019-xx-xx and would admit September readings.
+        for compact in ("20190701", "2019-W27-1"):
+            with self.assertRaisesRegex(ValueError, "YYYY-MM-DD"):
+                self.store.best_known_profiles("club:1", compact)
         self.assertFalse(self.path.exists())
 
     def test_the_batched_read_costs_the_same_queries_whatever_the_squad(self) -> None:
@@ -407,6 +422,95 @@ class BestKnownProfileTests(StoreCase):
         return statements
 
 
+class LastSeenTests(StoreCase):
+    """Observation rows are change-only; ages run from the last sighting."""
+
+    def seen_monthly(self, *dates: str, attributes=None) -> None:
+        for when in dates:
+            self.store.record(capture(when, player(attributes=attributes or {"pace": known(14)})))
+
+    def test_an_unchanged_reading_ages_from_its_last_sighting_not_its_first(self) -> None:
+        self.seen_monthly("2019-07-01", "2019-08-01", "2019-09-01", "2019-10-01", "2019-11-01")
+        profile = self.store.best_known_profile("club:1", "1", "2019-11-01")
+
+        pace = profile.attributes["pace"].best_known
+        self.assertEqual((pace.observed_on, pace.last_seen_on), ("2019-07-01", "2019-11-01"))
+        self.assertEqual((profile.profile["observed_on"], profile.profile_last_seen_on),
+                         ("2019-07-01", "2019-11-01"))
+        self.assertEqual((profile.oldest_seen_on, profile.latest_seen_on),
+                         ("2019-11-01", "2019-11-01"))
+        self.assertEqual(len(self.store.attribute_history("club:1", "1", "pace")), 1)
+
+    def test_sightings_after_as_of_are_not_read(self) -> None:
+        self.seen_monthly("2019-07-01", "2019-08-01", "2019-09-01", "2019-10-01")
+        profile = self.store.best_known_profile("club:1", "1", "2019-09-15")
+        self.assertEqual(profile.attributes["pace"].best_known.last_seen_on, "2019-09-01")
+        self.assertEqual(profile.profile_last_seen_on, "2019-09-01")
+
+    def test_the_feeds_last_known_date_survives_an_unchanged_reading(self) -> None:
+        self.seen_monthly("2019-07-01")
+        self.store.record(
+            capture(
+                "2019-11-08",
+                player(attributes={}, last_known_attributes={"pace": known(14)},
+                       last_known_observed_on="2019-11-01"),
+            )
+        )
+        profile = self.store.best_known_profile("club:1", "1", "2019-11-08")
+
+        pace = profile.attributes["pace"].best_known
+        self.assertEqual((pace.observed_on, pace.last_seen_on), ("2019-07-01", "2019-11-01"))
+        self.assertEqual((profile.oldest_seen_on, profile.latest_seen_on),
+                         ("2019-11-01", "2019-11-08"))
+        earlier = self.store.best_known_profile("club:1", "1", "2019-10-15")
+        self.assertEqual(earlier.attributes["pace"].best_known.last_seen_on, "2019-07-01")
+
+    def test_a_faded_value_was_last_seen_before_it_faded(self) -> None:
+        self.seen_monthly("2019-07-01", "2019-08-01")
+        self.seen_monthly("2019-09-01", "2019-10-01", attributes={"pace": UNKNOWN})
+        pace = self.store.best_known_profile("club:1", "1", "2019-10-01").attributes["pace"]
+
+        self.assertEqual((pace.best_known.observation, pace.best_known.last_seen_on),
+                         (known(14), "2019-08-01"))
+        self.assertEqual((pace.latest.observed_on, pace.latest.last_seen_on),
+                         ("2019-09-01", "2019-10-01"))
+
+    def test_a_capture_without_his_attribute_sheet_does_not_refresh_it(self) -> None:
+        self.seen_monthly("2019-07-01")
+        self.store.record(capture("2019-08-01", player(attributes={})))
+        profile = self.store.best_known_profile("club:1", "1", "2019-08-01")
+
+        self.assertEqual(profile.attributes["pace"].best_known.last_seen_on, "2019-07-01")
+        self.assertEqual(profile.profile_last_seen_on, "2019-08-01")
+        self.assertEqual((profile.oldest_seen_on, profile.latest_seen_on),
+                         ("2019-07-01", "2019-08-01"))
+
+    def test_a_last_known_sheet_vouches_only_for_the_attributes_it_lists(self) -> None:
+        # Last-known sheets hold only the attributes FM shows for his position,
+        # so an outfielder's sheet says nothing about his handling.
+        self.seen_monthly("2019-07-01", attributes={"pace": known(14), "handling": spread(3, 7)})
+        self.store.record(
+            capture(
+                "2019-09-08",
+                player(attributes={}, last_known_attributes={"pace": known(14)},
+                       last_known_observed_on="2019-09-01"),
+            )
+        )
+        attributes = self.store.best_known_profile("club:1", "1", "2019-09-08").attributes
+
+        self.assertEqual(attributes["pace"].best_known.last_seen_on, "2019-09-01")
+        self.assertEqual(attributes["handling"].best_known.last_seen_on, "2019-07-01")
+
+    def test_sightings_never_cross_save_identity(self) -> None:
+        self.store.record(capture("2019-07-01", player(attributes={"pace": known(14)})))
+        for when in ("2019-07-01", "2019-10-01"):
+            self.store.record(capture(when, player(attributes={"pace": known(14)}), key="save-b"))
+
+        mine = self.store.best_known_profile("club:1", "1", "2019-10-01")
+        self.assertEqual(mine.attributes["pace"].best_known.last_seen_on, "2019-07-01")
+        self.assertEqual(mine.profile_last_seen_on, "2019-07-01")
+
+
 class AtomicityAndValidationTests(StoreCase):
     def test_a_failure_part_way_through_records_nothing(self) -> None:
         with patch.object(
@@ -431,6 +535,14 @@ class AtomicityAndValidationTests(StoreCase):
         with self.assertRaisesRegex(ValueError, "ISO date"):
             player(attributes_observed_on="yesterday")
 
+    def test_a_date_that_would_sort_as_another_day_is_refused(self) -> None:
+        # Stored dates are compared as text, so only YYYY-MM-DD orders correctly
+        # and a history cannot be repaired once a compact date is in it.
+        with self.assertRaisesRegex(ValueError, "YYYY-MM-DD"):
+            capture("20190908", player())
+        with self.assertRaisesRegex(ValueError, "YYYY-MM-DD"):
+            player(last_known_attributes={"pace": known(9)}, last_known_observed_on="2019-W36-7")
+
     def test_last_known_attributes_need_a_date(self) -> None:
         with self.assertRaisesRegex(ValueError, "date"):
             player(last_known_attributes={"pace": known(9)})
@@ -446,12 +558,129 @@ class AtomicityAndValidationTests(StoreCase):
                 )
 
 
+class VerdictTests(StoreCase):
+    def test_a_decision_names_one_player_in_one_save(self) -> None:
+        saved = self.store.set_verdict(
+            "club:1", "7", "target", note="  fast winger, worth a look  ", decided_on="2019-09-08"
+        )
+        self.assertEqual(saved.verdict, Verdict.TARGET)
+        self.assertEqual(saved.note, "fast winger, worth a look")
+        self.assertEqual(saved.decided_on, "2019-09-08")
+        self.assertEqual(self.store.get_verdict("club:1", "7"), saved)
+
+    def test_verdicts_of_two_saves_and_two_players_stay_apart(self) -> None:
+        self.store.set_verdict("club:1", "7", "target", decided_on="2019-09-08")
+        self.store.set_verdict("club:1", "8", "watch", decided_on="2019-09-08")
+        self.store.set_verdict("club:2", "7", "reject", decided_on="2019-09-08")
+
+        self.assertEqual(self.store.get_verdict("club:1", "7").verdict, Verdict.TARGET)
+        self.assertEqual(self.store.get_verdict("club:1", "8").verdict, Verdict.WATCH)
+        self.assertEqual(self.store.get_verdict("club:2", "7").verdict, Verdict.REJECT)
+        self.assertIsNone(self.store.get_verdict("club:3", "7"))
+        self.assertEqual(set(self.store.current_verdicts("club:1")), {"7", "8"})
+
+    def test_a_later_decision_is_the_current_one_and_the_earlier_survives(self) -> None:
+        self.store.set_verdict("club:1", "7", "watch", note="raw", decided_on="2019-09-08")
+        self.store.set_verdict("club:1", "7", "target", note="scouted since", decided_on="2019-12-01")
+
+        current = self.store.get_verdict("club:1", "7")
+        self.assertEqual((current.verdict, current.note), (Verdict.TARGET, "scouted since"))
+        with closing(sqlite3.connect(self.path)) as connection:
+            history = connection.execute(
+                "SELECT verdict, note FROM verdict_events WHERE player_id = '7' ORDER BY id"
+            ).fetchall()
+        self.assertEqual(history, [("watch", "raw"), ("target", "scouted since")])
+
+    def test_clearing_forgets_the_current_decision_but_not_the_history(self) -> None:
+        self.store.set_verdict("club:1", "7", "reject", decided_on="2019-09-08")
+        self.store.clear_verdict("club:1", "7", decided_on="2019-10-01")
+
+        self.assertIsNone(self.store.get_verdict("club:1", "7"))
+        self.assertEqual(self.store.current_verdicts("club:1"), {})
+        self.assertEqual(self.count("verdict_events"), 2)
+
+    def test_clearing_an_untouched_player_records_nothing(self) -> None:
+        self.assertFalse(self.store.clear_verdict("club:1", "7", decided_on="2019-10-01"))
+        self.assertEqual(self.count("verdict_events"), 0)
+
+    def test_resubmitting_what_is_current_adds_no_row(self) -> None:
+        self.store.set_verdict(
+            "club:1", "7", "target", note="keep", decided_on="2019-09-08"
+        )
+        self.store.set_verdict(
+            "club:1", "7", "target", note="  keep  ", decided_on="2019-09-08"
+        )
+        self.assertEqual(self.count("verdict_events"), 1)
+
+    def test_an_unusable_decision_is_refused_before_anything_is_written(self) -> None:
+        self.store.initialize()
+        with self.assertRaisesRegex(ValueError, "not a valid Verdict", msg="an unknown name"):
+            self.store.set_verdict("club:1", "7", "maybe", decided_on="2019-09-08")
+        with self.assertRaisesRegex(ValueError, "limited to"):
+            self.store.set_verdict(
+                "club:1", "7", "target", note="x" * (MAX_VERDICT_NOTE_LENGTH + 1),
+                decided_on="2019-09-08",
+            )
+        with self.assertRaisesRegex(ValueError, "ISO date"):
+            self.store.set_verdict("club:1", "7", "target", decided_on="September")
+        with self.assertRaisesRegex(ValueError, "save key"):
+            self.store.set_verdict("", "7", "target", decided_on="2019-09-08")
+        with self.assertRaisesRegex(ValueError, "player id"):
+            self.store.set_verdict("club:1", "", "target", decided_on="2019-09-08")
+        with self.assertRaisesRegex(ValueError, "save key"):
+            self.store.clear_verdict("", "7", decided_on="2019-09-08")
+        self.assertEqual(self.count("verdict_events"), 0)
+        self.assertIsNone(self.store.get_verdict("club:1", "7"))
+
+    def test_a_verdict_needs_no_capture_of_its_own(self) -> None:
+        self.store.set_verdict("club:9", "7", "target", note="heard of him", decided_on="2019-09-08")
+        self.assertEqual(self.store.get_verdict("club:9", "7").note, "heard of him")
+
+    def test_the_batched_read_agrees_with_the_single_reads(self) -> None:
+        self.store.set_verdict("club:1", "7", "target", decided_on="2019-09-08")
+        self.store.set_verdict("club:1", "8", "watch", decided_on="2019-09-08")
+        self.store.set_verdict("club:1", "9", "reject", decided_on="2019-09-08")
+        self.store.clear_verdict("club:1", "9", decided_on="2019-10-01")
+
+        current = self.store.current_verdicts("club:1")
+        self.assertEqual(set(current), {"7", "8"})
+        for player_id, record in current.items():
+            self.assertEqual(record, self.store.get_verdict("club:1", player_id))
+
+    def test_the_database_itself_bounds_a_verdict(self) -> None:
+        self.store.initialize()
+        with closing(sqlite3.connect(self.path)) as connection:
+            with self.assertRaises(sqlite3.IntegrityError):
+                connection.execute(
+                    "INSERT INTO verdict_events (save_key, player_id, verdict, note, decided_on) "
+                    "VALUES ('club:1', '7', 'maybe', '', '2019-09-08')"
+                )
+            with self.assertRaises(sqlite3.IntegrityError):
+                connection.execute(
+                    "INSERT INTO verdict_events (save_key, player_id, verdict, note, decided_on) "
+                    "VALUES ('club:1', '7', 'target', ?, '2019-09-08')",
+                    ("x" * (MAX_VERDICT_NOTE_LENGTH + 1),),
+                )
+
+
 class MigrationTests(StoreCase):
     ADD_NOTE = "ALTER TABLE saves ADD COLUMN note TEXT;"
 
     def user_version(self, path: Path | None = None) -> int:
         with closing(sqlite3.connect(path or self.path)) as connection:
             return connection.execute("PRAGMA user_version").fetchone()[0]
+
+    def file_as_left_by(self, version: int, *later_tables: str) -> None:
+        """Make the recorded file one a program at `version` would have left.
+
+        Recording writes to every current table, so an older file is made by
+        recording today and dropping what the later versions added.
+        """
+        with closing(sqlite3.connect(self.path)) as connection:
+            for table in later_tables:
+                connection.execute(f"DROP TABLE {table}")
+            connection.execute(f"PRAGMA user_version = {version}")
+            connection.commit()
 
     def test_a_new_file_is_created_at_the_latest_version(self) -> None:
         self.store.initialize()
@@ -476,6 +705,41 @@ class MigrationTests(StoreCase):
         self.assertEqual(upgraded.attribute_history("club:1", "1")[0].observation, known(14))
         with closing(sqlite3.connect(self.path)) as connection:
             connection.execute("SELECT note FROM saves")  # the new column exists
+
+    def test_a_v1_file_is_backed_up_then_given_the_verdicts_it_never_had(self) -> None:
+        self.store.record(capture("2019-09-08", player(attributes={"pace": known(14)})))
+        self.file_as_left_by(1, "verdict_events", "sightings")
+
+        upgraded = PlayerKnowledgeStore(self.path)
+        upgraded.initialize()
+
+        self.assertEqual(self.user_version(), len(MIGRATIONS))
+        backup = self.path.with_name(self.path.name + ".bak-v1")
+        self.assertTrue(backup.exists())
+        self.assertEqual(self.user_version(backup), 1)
+        self.assertEqual(upgraded.attribute_history("club:1", "1")[0].observation, known(14))
+        upgraded.set_verdict("club:1", "1", Verdict.TARGET, note="first choice",
+                             decided_on="2019-09-08")
+        self.assertEqual(upgraded.get_verdict("club:1", "1").note, "first choice")
+
+    def test_a_file_from_before_sightings_gains_those_its_rows_prove(self) -> None:
+        # Pace is unchanged from June, but Passing changed in September, so the
+        # whole current sheet -- Pace included -- was read that day.
+        self.store.record(
+            capture("2019-06-24", player(attributes={"pace": known(14), "passing": known(10)}))
+        )
+        self.store.record(
+            capture("2019-09-08", player(attributes={"pace": known(14), "passing": known(11)}))
+        )
+        self.file_as_left_by(2, "sightings")
+
+        self.store.initialize()
+
+        profile = self.store.best_known_profile("club:1", "1", "2019-09-08")
+        pace = profile.attributes["pace"].best_known
+        self.assertEqual((pace.observed_on, pace.last_seen_on), ("2019-06-24", "2019-09-08"))
+        self.assertEqual((profile.profile["observed_on"], profile.profile_last_seen_on),
+                         ("2019-06-24", "2019-09-08"))
 
     def test_a_failing_migration_is_rolled_back_and_the_data_left_usable(self) -> None:
         self.store.record(capture("2019-09-08", player(attributes={"pace": known(14)})))

@@ -38,6 +38,7 @@ from pathlib import Path
 from unicorn import (
     UC_ARCH_X86,
     UC_HOOK_BLOCK,
+    UC_HOOK_CODE,
     UC_HOOK_INSN,
     UC_HOOK_MEM_FETCH_UNMAPPED,
     UC_HOOK_MEM_READ_UNMAPPED,
@@ -86,6 +87,11 @@ MAIN_THREAD_FLAG_RVA = 0x7594438
 MAIN_THREAD_ID_RVAS = (0x7593598, 0x7594440)  # (flag clear, flag set)
 TEB_SELF, TEB_STACK_BASE, TEB_STACK_LIMIT, TEB_THREAD_ID = 0x30, 0x08, 0x10, 0x48
 TEB_COPY_SIZE = 0x2000
+# Windows' virtual-memory calls, answered by the sandbox itself (see
+# ``_install_memory_services``).
+STATUS_SUCCESS = 0
+ALLOCATION_GRANULARITY = 0x10000
+PAGE_READWRITE = 0x04
 
 
 class SandboxError(RuntimeError):
@@ -101,13 +107,14 @@ class SandboxStats:
     faults: list[str] = field(default_factory=list)
 
 
-def _free_region(pid: int, size: int) -> int:
+def _free_region(pid: int, size: int, also_used: tuple[tuple[int, int], ...] = ()) -> int:
     """A user-space address range FM has nothing mapped in, for our own use.
 
     It must not overlap FM's memory: the sandbox would then answer FM's reads
-    of that range with our stack instead of FM's data.
+    of that range with our stack instead of FM's data. ``also_used`` is the
+    sandbox's own memory, which FM's map knows nothing about.
     """
-    used = []
+    used = list(also_used)
     with Path(f"/proc/{pid}/maps").open(encoding="utf-8") as maps:
         for line in maps:
             low, high = (int(value, 16) for value in line.split()[0].split("-"))
@@ -136,6 +143,7 @@ class FmSandbox:
         self.stats = SandboxStats()
         self._mapped: set[int] = set()
         self._stopped_by: str | None = None
+        self._reservations: list[tuple[int, int]] = []
 
         self.private = _free_region(pid, PRIVATE_SIZE)
         self.uc.mem_map(self.private, PRIVATE_SIZE, UC_PROT_ALL)
@@ -176,6 +184,7 @@ class FmSandbox:
         self.uc.hook_add(UC_HOOK_INSN, self._on_syscall, None, 1, 0, UC_X86_INS_SYSCALL)
         if self._trace is not None:
             self.uc.hook_add(UC_HOOK_BLOCK, lambda _uc, address, _size, _data: self._trace.append(address))
+        self._install_memory_services()
         self._disable_fma3_math()
 
     def _main_thread_teb(self) -> int | None:
@@ -260,6 +269,87 @@ class FmSandbox:
             ordinal = int.from_bytes(read(base + ordinals + 2 * index, 2), "little")
             exports[name] = base + u32(base + functions + 4 * ordinal)
         return exports
+
+    def _install_memory_services(self) -> None:
+        """Answer Windows' virtual-memory calls from the sandbox's own memory.
+
+        When FM's heap has no room left it asks Windows for more
+        (``NtAllocateVirtualMemory``). In the sandbox that request used to
+        reach Wine's Linux side, which has no thread state for our synthetic
+        thread, and stop the call with a write to address 0x70. Whether it
+        happens depends only on how full FM's heap is when it is copied: on 27
+        September 2026 the same Player Search build succeeded eight times in a
+        row, then failed four times in a row an hour later. Handing out
+        zero-filled memory here keeps the whole allocation in the sandbox's
+        copy. Freeing and re-protecting are accepted and ignored: the sandbox
+        is thrown away after one refresh. Every other request to the
+        operating system still stops the call.
+        """
+        exports = self._module_exports("ntdll.dll")
+        for name, handler in (
+            ("NtAllocateVirtualMemory", self._nt_allocate_virtual_memory),
+            ("NtFreeVirtualMemory", lambda: STATUS_SUCCESS),
+            ("NtProtectVirtualMemory", self._nt_protect_virtual_memory),
+        ):
+            address = exports.get(name)
+            if address is not None:
+                # Installed once, never removed: adding and deleting Unicorn
+                # hooks repeatedly corrupts it (see tools.fm20_sandbox_queries).
+                self.uc.hook_add(UC_HOOK_CODE, self._answer_os_call, handler, address, address)
+        self.os_memory_requests = 0
+
+    def _answer_os_call(self, uc, _address, _size, handler) -> None:
+        """Run ``handler`` in place of the Windows function, then return from it."""
+        status = handler()
+        rsp = uc.reg_read(UC_X86_REG_RSP)
+        return_address = int.from_bytes(uc.mem_read(rsp, 8), "little")
+        uc.reg_write(UC_X86_REG_RAX, status)
+        uc.reg_write(UC_X86_REG_RSP, rsp + 8)
+        uc.reg_write(UC_X86_REG_RIP, return_address)
+
+    def _u64(self, address: int) -> int:
+        return int.from_bytes(self.read(address, 8), "little")
+
+    def _nt_allocate_virtual_memory(self) -> int:
+        # (process, *base, zero_bits, *size, allocation_type, protect)
+        base_pointer = self.uc.reg_read(UC_X86_REG_RDX)
+        size_pointer = self.uc.reg_read(UC_X86_REG_R9)
+        base, size = self._u64(base_pointer), self._u64(size_pointer)
+        if base == 0:
+            size = (size + ALLOCATION_GRANULARITY - 1) & ~(ALLOCATION_GRANULARITY - 1)
+            base = _free_region(
+                self.pid, size,
+                ((self.private, self.private + PRIVATE_SIZE), *self._reservations),
+            )
+            self.uc.mem_map(base, size, UC_PROT_ALL)
+            self._mapped.update(range(base, base + size, PAGE))
+            self._reservations.append((base, base + size))
+        else:
+            # Committing inside a reservation: one of ours is mapped already;
+            # one of FM's own is unreadable in the live game until committed,
+            # so the sandbox gives those pages fresh zeroes, as Windows would.
+            end = (base + size + PAGE - 1) & ~(PAGE - 1)
+            base &= ~(PAGE - 1)
+            size = end - base
+            run_start = None
+            for page in range(base, end + PAGE, PAGE):
+                if page < end and page not in self._mapped:
+                    run_start = page if run_start is None else run_start
+                elif run_start is not None:
+                    self.uc.mem_map(run_start, page - run_start, UC_PROT_ALL)
+                    self._mapped.update(range(run_start, page, PAGE))
+                    run_start = None
+        self.write(base_pointer, base.to_bytes(8, "little"))
+        self.write(size_pointer, size.to_bytes(8, "little"))
+        self.os_memory_requests += 1
+        return STATUS_SUCCESS
+
+    def _nt_protect_virtual_memory(self) -> int:
+        # (process, *base, *size, new_protect, *old_protect)
+        old_protect_pointer = self._u64(self.uc.reg_read(UC_X86_REG_RSP) + 0x28)
+        if old_protect_pointer:
+            self.write(old_protect_pointer, PAGE_READWRITE.to_bytes(4, "little"))
+        return STATUS_SUCCESS
 
     def _disable_fma3_math(self) -> None:
         """Route the C runtime's float maths to its SSE2 code, in the sandbox only.

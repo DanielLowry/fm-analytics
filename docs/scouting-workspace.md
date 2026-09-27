@@ -490,9 +490,43 @@ Wine's Linux-side `ntdll.so` (a write to address 0x70) instead; a slower,
 traced rerun a minute later succeeded, as did all eight after it. That is the
 same intermittent pattern as the attribute capture's read failures above, so
 the build retries in a fresh sandbox up to `MAX_BUILD_ATTEMPTS` (3) times
-before the refresh falls back to FM's own list. The likeliest explanation --
-not proven -- is that FM's own code was mid-way through its own build when
-the sandbox copied it.
+before the refresh falls back to FM's own list.
+
+**Cause found later that evening, and fixed.** An hour on, the build failed
+four times out of four at the same point. The emulated stack showed why: FM's
+heap had no room left and asked Windows for more (`RtlAllocateHeap` ->
+`NtAllocateVirtualMemory`), a request that crossed into Wine's Linux side,
+where the sandbox's synthetic thread has no state. Whether it happens depends
+only on how full FM's heap is at the moment it is copied. The sandbox now
+answers `NtAllocateVirtualMemory`, `NtFreeVirtualMemory` and
+`NtProtectVirtualMemory` itself (`FmSandbox._install_memory_services`), handing
+out zero-filled memory that exists only in the sandbox; every other
+operating-system request still stops the call. Checked live by forcing a 32 MB
+allocation through FM's own heap in the sandbox, which needed three such
+requests and succeeded; unit-tested in `tests/test_fm20_sandbox_memory.py`.
+The retries stay, for anything else intermittent.
+
+### How long a refresh takes (27 September 2026)
+
+Measured on the test save (3,411 in Player Search, 794 known or scouted,
+4,551 players in the feed including everyone ever scouted), from the app's
+refresh button:
+
+| Step | Time |
+| --- | --- |
+| Start-up, read the previous feed, check FM | ~1 s |
+| Build the Player Search list in the sandbox | ~8.5 s |
+| Names, clubs, contracts, positions (read-only) | ~5 s |
+| Attributes and interest for every player (sandbox, 8 in parallel) | ~12 s |
+| Checks and writing the feed | ~2 s |
+| **Refresh, as the button runs it** | **~31 s** |
+| Save the player-knowledge history (web app, after the refresh) | ~3.5 s |
+| Score every player for the first page | <1 s |
+
+Before the evening's fixes the same refresh took about 52 seconds: Python
+spent 11.5 seconds freeing the nine sandboxes after the feed was already
+written (the command-line entry point now ends the process directly instead),
+and the first history save after the schema-4 change took 11 seconds.
 
 **Decision:** the sandbox list is used on every refresh, even when FM has
 built its own, because FM's is only as recent as the last time Player Search

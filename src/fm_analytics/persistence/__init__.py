@@ -1,17 +1,23 @@
-from fm_analytics.persistence.player_knowledge import (
+from fm_analytics.persistence.best_known import (
     AttributeKnowledge,
     BestKnownProfile,
+    SelectedAttribute,
+)
+from fm_analytics.persistence.player_knowledge import (
+    MAX_VERDICT_NOTE_LENGTH,
     KnowledgeCapture,
     KnowledgeStoreError,
     PlayerKnowledge,
     PlayerKnowledgeStore,
     RecordResult,
-    SelectedAttribute,
     TimelineError,
+    Verdict,
+    VerdictRecord,
 )
 from fm_analytics.persistence.store import CaptureRecord, SnapshotStore
 
 __all__ = [
+    "MAX_VERDICT_NOTE_LENGTH",
     "AttributeKnowledge",
     "BestKnownProfile",
     "CaptureRecord",
@@ -23,4 +29,6 @@ __all__ = [
     "SelectedAttribute",
     "SnapshotStore",
     "TimelineError",
+    "Verdict",
+    "VerdictRecord",
 ]
