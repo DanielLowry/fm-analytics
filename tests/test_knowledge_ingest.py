@@ -78,9 +78,6 @@ class CaptureFromDocumentTests(unittest.TestCase):
         self.assertEqual(winger.player_id, "10")
         self.assertEqual(winger.profile["club"], "Billericay Town")
         self.assertEqual(winger.profile["contract_end"], "2020-06-30")
-        # Retired 27 September 2026 with the "FM search match" feature; the
-        # column is kept in the schema but always null now (see knowledge_ingest.py).
-        self.assertIsNone(winger.profile["matched_active_search"])
         self.assertEqual(winger.attributes["pace"], AttributeObservation(Visibility.RANGE, minimum=12, maximum=16))
         self.assertEqual(winger.attributes["vision"], AttributeObservation(Visibility.UNKNOWN))
         self.assertEqual(winger.attributes_observed_on, "2019-09-08")

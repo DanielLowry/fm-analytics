@@ -625,6 +625,10 @@ def available_fact_values(candidates: Sequence[ScoutingCandidate]) -> dict[str, 
 def _matches_visible_filters(candidate: ScoutingCandidate, filters: ScoutingFilters) -> bool:
     if filters.scouted_only and not candidate.is_scouted():
         return False
+    # Known only from the manager's own history: not in any list FM shows
+    # today, so he joins the "everyone ever scouted" view and no other.
+    if not candidate.in_current_feed and not filters.include_former_scouted:
+        return False
     if candidate.dropped_from_scout_reports and not filters.include_former_scouted:
         # Off FM's scouting list now. On the Scouted tab that settles it;
         # under All players he still belongs while FM's Player Search lists him.

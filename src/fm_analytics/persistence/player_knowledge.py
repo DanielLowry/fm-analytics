@@ -106,9 +106,6 @@ CREATE TABLE profile_observations (
     transfer_status TEXT,
     value INTEGER,
     scouting_knowledge INTEGER,
-    matched_active_search INTEGER CHECK (
-        matched_active_search IS NULL OR matched_active_search IN (0, 1)
-    ),
     dropped_from_scout_reports INTEGER NOT NULL CHECK (dropped_from_scout_reports IN (0, 1)),
     footedness TEXT,
     nationality TEXT,
@@ -191,12 +188,12 @@ MIGRATIONS: tuple[str, ...] = (_V1,)
 
 PROFILE_FIELDS = (
     "age", "club", "contract_type", "contract_end", "has_contract", "transfer_status",
-    "value", "scouting_knowledge", "matched_active_search", "dropped_from_scout_reports",
+    "value", "scouting_knowledge", "dropped_from_scout_reports",
     "footedness", "nationality", "positions", "raw_positions", "raw_position_familiarity",
     "facts",
 )
 _JSON_FIELDS = frozenset({"positions", "raw_positions", "raw_position_familiarity", "facts"})
-_BOOL_FIELDS = frozenset({"has_contract", "matched_active_search", "dropped_from_scout_reports"})
+_BOOL_FIELDS = frozenset({"has_contract", "dropped_from_scout_reports"})
 
 
 @dataclass(frozen=True)

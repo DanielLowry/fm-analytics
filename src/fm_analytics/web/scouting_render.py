@@ -84,8 +84,13 @@ def attribute_sheet(candidate: ScoutingCandidate) -> str:
             shown += visible
             value = html.escape(observation.display()) if visible else "-"
             css = "attr" if visible else "attr attr-hidden"
+            reading = candidate.historical_reading(key)
+            title = ""
+            if reading is not None:
+                css += " attr-historical"
+                title = f" title='Historical: last seen {html.escape(reading.last_seen_on, quote=True)}'"
             rows.append(
-                f"<div class='{css}'><span>{html.escape(_attribute_label(key))}</span><b>{value}</b></div>"
+                f"<div class='{css}'{title}><span>{html.escape(_attribute_label(key))}</span><b>{value}</b></div>"
             )
         if rows:
             groups.append(f"<div class='sheet-group'><h4>{title}</h4>{''.join(rows)}</div>")
@@ -93,8 +98,10 @@ def attribute_sheet(candidate: ScoutingCandidate) -> str:
         if not candidate.current_attributes_captured:
             return "<span class='warn'>Not captured from FM</span>"
         return "<span class='muted'>No attributes currently visible</span>"
+    historical = len(candidate.history.attributes) if candidate.history else 0
     return (
-        f"<details class='sheet'><summary>Attributes ({shown} shown)</summary>"
+        f"<details class='sheet'><summary>Attributes ({shown} shown"
+        + (f", {historical} historical" if historical else "") + ")</summary>"
         f"<div class='sheet-groups'>{''.join(groups)}</div></details>"
     )
 
@@ -285,7 +292,8 @@ def _tail_columns(known_cell: Callable[[Any], str] | None = None) -> list[_Colum
         ))
     columns.append(_Column(
         "Past knowledge", None, lambda _r, item: f"<td>{past_knowledge_cell(item.candidate)}</td>",
-        "Earlier, dated observations. Never used in any score or filter.",
+        "Earlier, dated observations. A remembered value is used in the scores only "
+        "where FM shows nothing today, and is marked historical in the attribute sheet.",
     ))
     columns.append(_Column(
         "Attributes", None, lambda _r, item: f"<td>{attribute_sheet(item.candidate)}</td>"
@@ -316,11 +324,40 @@ def _interest_tags(candidate: ScoutingCandidate) -> str:
 
 
 def _player_cell(candidate: ScoutingCandidate) -> str:
-    """Name (a link to his report) over club and nationality, flagged with FM's interest verdict."""
+    """Name (a link to his report) over club and nationality, flagged with FM's interest verdict.
+
+    A player known only from the knowledge history is flagged instead, and his
+    club is the one he was last seen at, dated.
+    """
+    if not candidate.in_current_feed:
+        detail = " · ".join(
+            html.escape(part) for part in (last_seen_club(candidate), candidate.nationality) if part
+        )
+        return (
+            f"{scouting_player_link(candidate)} {NOT_CURRENT_BADGE}"
+            f"<br><span class='muted'>{detail}</span>"
+        )
     detail = " · ".join(
         html.escape(part) for part in (candidate.club or "No club", candidate.nationality) if part
     )
     return f"{scouting_player_link(candidate)}{_interest_tags(candidate)}<br><span class='muted'>{detail}</span>"
+
+
+NOT_CURRENT_BADGE = (
+    "<span class='badge badge-history' title='Not in the current scouting feed: "
+    "known only from what you saw earlier'>Not currently realistic</span>"
+)
+
+
+def last_seen_club(candidate: ScoutingCandidate) -> str:
+    """"Last seen at X, 2019-10-01" for a player known only from history."""
+    history = candidate.history
+    if history is None:
+        return candidate.club or "No club"
+    club = (history.profile or {}).get("club")
+    seen = history.profile_last_seen_on or history.oldest_seen_on
+    where = f"Last seen at {club}" if club else "Last seen"
+    return f"{where}, {seen}" if seen else where
 
 
 def _ranking_columns(show_familiarity: bool, raw_positions: bool) -> list[_Column]:
@@ -602,7 +639,20 @@ def _visible_observation_counts(attributes) -> tuple[int, int]:
 
 
 def past_knowledge_cell(candidate: ScoutingCandidate) -> str:
-    """Summarise dated historical observations without implying they are current."""
+    """Summarise dated historical observations without implying they are current.
+
+    Values the knowledge history filled in come first: they are in the scores,
+    so their age matters most. Otherwise the feed's own last-known snapshot.
+    """
+    history = candidate.history
+    if history is not None and history.attributes:
+        oldest = history.oldest_seen_on
+        age = (
+            f"<span class='dropped-warning'>Out of date: oldest seen {html.escape(oldest or '')}</span>"
+            if history.out_of_date
+            else f"<span class='muted'>Oldest seen {html.escape(oldest or '')}</span>"
+        )
+        return f"<b>{len(history.attributes)} from history</b><br>{age}"
     known, ranged = _visible_observation_counts(candidate.last_known_attributes)
     if not known and not ranged:
         return "<span class='muted'>—</span>"

@@ -65,10 +65,11 @@ Items 1–3 affect the next few in-game weeks. Items 4–6 pay off over the seas
 Item 4 does not depend on 1–3: if a heavy scouting push starts before they
 land, do item 4 first so those observations are recorded.
 
-Selected pieces of this plan have bounded handoff notes in
-[Delegable task briefs](tasks/README.md). Those briefs explain what a low- or
-medium-skill agent can implement without inheriting the specialist FM process
-research or making new football-model decisions. This plan remains the source
+Every open and parked item has a bounded brief in
+[Task briefs](tasks/README.md). Low and medium briefs say what an agent can
+implement without inheriting the specialist FM process research or making new
+football-model decisions. Senior briefs frame those decisions and that
+research, and their output unblocks the others. This plan remains the source
 of priority and product scope if a brief and the plan ever drift apart.
 
 ### 1. Pinned tactics
@@ -311,8 +312,15 @@ the place for them when it does.
 - No automatic verdicts. Item 2's columns show the evidence and the manager
   decides.
 
-**Status of the best-known profile: read API built (27 September 2026), nothing
-in the app uses it yet.** `PlayerKnowledgeStore.best_known_profile` (one player)
+**Status of the wider candidate pool: built (28 September 2026).** The Scouting
+pages read the feed merged with the save's best-known profiles
+(`fm_analytics.candidate_pool`); remembered values fill what FM no longer shows
+and are marked historical with their dates, and players known only from history
+are labelled *not currently realistic* and shown under **Everyone ever scouted**.
+See [the task brief](tasks/medium-database-candidate-pool.md) for the decisions
+taken.
+
+**Status of the best-known profile: read API built (27 September 2026).** `PlayerKnowledgeStore.best_known_profile` (one player)
 and `best_known_profiles` (a whole save, in a fixed number of queries) assemble
 a player as of an in-game date, per
 [the task brief](tasks/medium-best-known-player-profiles.md). Each selected

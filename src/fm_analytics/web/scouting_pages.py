@@ -528,7 +528,8 @@ class ScoutingPagesMixin:
             + "<div class='filter-actions'>"
             "<label class='check'><input name='everScouted' type='checkbox' value='1'"
             + (" checked" if filters.include_former_scouted else "")
-            + "> Everyone ever scouted, including players no longer on your scouting list</label>"
+            + "> Everyone ever scouted, including players no longer on your scouting list "
+            "or in the current feed</label>"
             "<label class='check'><input name='includeRawPositions' type='checkbox' value='1'"
             + (" checked" if filters.include_raw_external_positions else "")
             + "> Use raw external positions (accepted visibility gap)</label>"

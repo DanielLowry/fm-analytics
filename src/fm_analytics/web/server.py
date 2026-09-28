@@ -43,6 +43,7 @@ from fm_analytics.analytics import (
     rank_for_position,
 )
 from fm_analytics.bridge.errors import BridgeSourceError
+from fm_analytics.candidate_pool import DEFAULT_OUT_OF_DATE_MONTHS, compose_candidate_pool
 from fm_analytics.domain import SourceHealth, Squad
 from fm_analytics.knowledge_ingest import DEFAULT_DATABASE as DEFAULT_KNOWLEDGE_DATABASE
 from fm_analytics.knowledge_ingest import default_save_key, record_capture_file
@@ -126,6 +127,7 @@ class SquadWebServer(ThreadingHTTPServer):
         # which quietly means verdicts are off rather than half available.
         knowledge_store: PlayerKnowledgeStore | None = None,
         knowledge_save_key: str | None = None,
+        out_of_date_months: int = DEFAULT_OUT_OF_DATE_MONTHS,
     ):
         # Appends each fresh scouting capture to the player-knowledge database
         # (see ``record_knowledge``). None disables recording.
@@ -135,6 +137,14 @@ class SquadWebServer(ThreadingHTTPServer):
         # (message, succeeded) from the latest recording, shown on the
         # Scouting page so a failure to keep history is never silent.
         self.knowledge_note: tuple[str, bool] | None = None
+        self.out_of_date_months = out_of_date_months
+        # The feed merged with the save's knowledge history (see ``scouting``):
+        # (feed tuple, knowledge generation, pool). Rebuilt only when the feed
+        # file or the recorded history changes, because reading a whole save's
+        # history costs seconds and the rank cache needs stable objects.
+        self._pool: tuple[object, int, tuple] | None = None
+        self._pool_lock = threading.Lock()
+        self._knowledge_generation = 0
         # Fixed for the life of the server, so the bundle cache is still keyed
         # on the opponent alone. If pins ever become editable from a page they
         # must join that key, or one page would serve another's analysis.
@@ -173,10 +183,41 @@ class SquadWebServer(ThreadingHTTPServer):
         threading.Thread(target=self._health_loop, daemon=True, name="fm-health").start()
 
     def scouting(self):
+        """The scouting pool every page reads: the feed plus the save's history.
+
+        List, live results and player report all come through here, so they
+        always agree on who is in the pool and what is known about him.
+        """
         # A refresh overwrites the capture file. Do not let another request
         # parse the JSON while that write is in progress.
         with self._scouting_refresh_lock:
-            return self.scouting_provider()
+            current = self.scouting_provider()
+            generation = self._knowledge_generation
+        return self._with_knowledge(current, generation)
+
+    def _with_knowledge(self, current, generation: int):
+        """Merge the save's best-known profiles into ``current``, once per change.
+
+        Never raises: a history that cannot be read leaves the page on the
+        current feed alone, which is what it showed before the history existed.
+        """
+        store, key = self.knowledge_store, self.knowledge_save_key
+        as_of = next((item.captured_game_date for item in current if item.captured_game_date), None)
+        if store is None or key is None or as_of is None:
+            return current
+        with self._pool_lock:
+            if self._pool is not None and self._pool[0] is current and self._pool[1] == generation:
+                return self._pool[2]
+            try:
+                pool = compose_candidate_pool(
+                    current, store.best_known_profiles(key, as_of),
+                    save_key=key, as_of=as_of, out_of_date_months=self.out_of_date_months,
+                )
+            except Exception as exc:  # noqa: BLE001 - see the docstring
+                print(f"Player-knowledge history could not be read: {exc}", file=sys.stderr)
+                return current
+            self._pool = (current, generation, pool)
+            return pool
 
     def warm_scouting_rankings(self) -> None:
         """Score the whole pool once, off the request path.
@@ -222,6 +263,8 @@ class SquadWebServer(ThreadingHTTPServer):
             note = (f"Player knowledge was NOT recorded: {exc}", False)
             print(note[0], file=sys.stderr)
         self.knowledge_note = note
+        # The scouting pool reads this history, so the next page rebuilds it.
+        self._knowledge_generation += 1
 
     @property
     def verdicts_enabled(self) -> bool:
@@ -513,6 +556,15 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--out-of-date-months",
+        type=int,
+        default=DEFAULT_OUT_OF_DATE_MONTHS,
+        help=(
+            "game months after which a remembered attribute or fact is labelled "
+            "out of date on the Scouting pages (default: %(default)s)"
+        ),
+    )
+    parser.add_argument(
         "--no-record-knowledge",
         action="store_true",
         help="do not record scouting captures into the player-knowledge database",
@@ -562,6 +614,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.ranking_workers < 1:
         raise SystemExit("--ranking-workers must be at least 1")
+    if args.out_of_date_months < 0:
+        raise SystemExit("--out-of-date-months cannot be negative")
     try:
         pinned_tactics = parse_pinned_tactics(args.my_tactics)
     except ValueError as exc:
@@ -608,6 +662,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         knowledge_recorder=knowledge_recorder,
         knowledge_store=knowledge_store,
         knowledge_save_key=_capture_save_key(refresh_path),
+        out_of_date_months=args.out_of_date_months,
     )
     if knowledge_recorder is not None and refresh_path.exists():
         # Catches captures made by running the tool directly since last time.

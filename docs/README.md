@@ -8,9 +8,9 @@
   boundaries.
 - [Active plan](active-plan.md) is the current backlog: the next work, ranked
   by likely effect on in-game results against implementation effort.
-- [Delegable task briefs](tasks/README.md) split selected active-plan work into
-  bounded low- and medium-skill assignments with prerequisites and acceptance
-  criteria.
+- [Task briefs](tasks/README.md) split every open and parked active-plan item
+  into bounded low-, medium- and senior-level assignments with prerequisites
+  and acceptance criteria.
 - [Analytics performance investigation](analytics-performance.md) is the
   current measured cost model and records the package, vectorisation, and
   process-parallel experiments for tactic ranking.

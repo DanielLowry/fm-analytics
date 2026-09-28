@@ -10,11 +10,64 @@ imports keep working.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Mapping
 
 from fm_analytics.domain import AttributeObservation
+
+
+@dataclass(frozen=True)
+class HistoricalReading:
+    """When the manager last saw an attribute value FM no longer shows.
+
+    ``observed_on`` is when the value was first recorded and ``last_seen_on``
+    the last in-game day a capture still showed it, which is the date its age
+    runs from. ``source`` is 'current' or 'last_known', as recorded.
+    """
+
+    observed_on: str
+    last_seen_on: str
+    source: str
+
+
+@dataclass(frozen=True)
+class CandidateHistory:
+    """What the manager's own knowledge history added to a candidate.
+
+    Set only by ``fm_analytics.candidate_pool``. ``attributes`` names every
+    value in the candidate's ``attributes`` that came from history rather than
+    the current feed; each fills a value FM currently shows as unknown or not
+    at all, and is scored like any other visible value. ``profile`` is set only
+    for a player missing from the current feed: his last recorded facts, for
+    display. Club, contract, transfer status and value never leave it for the
+    candidate's own fields, so no market filter can admit him on an old fact.
+
+    Every date is an in-game ``YYYY-MM-DD``. A reading last seen before
+    ``out_of_date_before`` is out of date.
+    """
+
+    as_of: str
+    in_current_feed: bool
+    out_of_date_before: str
+    attributes: Mapping[str, HistoricalReading] = field(default_factory=dict)
+    profile: Mapping[str, Any] | None = None
+    profile_last_seen_on: str | None = None
+
+    @property
+    def oldest_seen_on(self) -> str | None:
+        """The last-seen date of the stalest historical fact this candidate uses."""
+        dates = [reading.last_seen_on for reading in self.attributes.values()]
+        if self.profile_last_seen_on is not None:
+            dates.append(self.profile_last_seen_on)
+        return min(dates, default=None)
+
+    def is_out_of_date(self, seen_on: str | None) -> bool:
+        return seen_on is not None and seen_on < self.out_of_date_before
+
+    @property
+    def out_of_date(self) -> bool:
+        return self.is_out_of_date(self.oldest_seen_on)
 
 
 @dataclass(frozen=True)
@@ -70,6 +123,9 @@ class ScoutingCandidate:
     # always use ``attributes`` above.
     last_known_attributes: Mapping[str, AttributeObservation] | None = None
     last_known_attributes_observed_at: str | None = None
+    # None for a candidate exactly as the feed describes him; see
+    # ``CandidateHistory`` and ``fm_analytics.candidate_pool``.
+    history: CandidateHistory | None = None
 
     def __post_init__(self) -> None:
         if not self.id or not self.name:
@@ -97,6 +153,15 @@ class ScoutingCandidate:
             for position, rating in self.raw_position_familiarity.items()
         ):
             raise ValueError("position familiarity must map position codes to ratings from 0 to 20")
+
+    @property
+    def in_current_feed(self) -> bool:
+        """False for a player known only from the knowledge history: not currently realistic."""
+        return self.history is None or self.history.in_current_feed
+
+    def historical_reading(self, attribute: str) -> HistoricalReading | None:
+        """Set when this attribute's value is history, not something FM shows now."""
+        return None if self.history is None else self.history.attributes.get(attribute)
 
     def is_scouted(self) -> bool:
         """True for a player FM's own Scouted list would show: one with a scout report.

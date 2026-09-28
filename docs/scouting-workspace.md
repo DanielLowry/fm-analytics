@@ -544,9 +544,9 @@ candidate for deletion rather than a route anyone should need.
   chain the attribute builder uses, just for a different key). Existing
   captures keep whatever footedness they already had (`--base-feed` carries it
   forward, dated to when it was actually observed), but nothing refreshes it.
-- **Player-knowledge history does not track interest yet.** `matched_active_search`
-  stays in the `player_knowledge` SQLite schema (a real migration, not
-  attempted here) but is always written `None` now; recording
+- **Player-knowledge history does not track interest yet.** The retired
+  `matched_active_search` column was dropped from the `player_knowledge` schema
+  when it was reset to a single v1 (27 September 2026). Recording
   `transfer_interest`/`loan_interest` there properly is a follow-up.
 - FM's Scouted list is 2 players longer than the report vector (see
   "Checked against FM's own lists").

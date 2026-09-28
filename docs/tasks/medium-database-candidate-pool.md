@@ -4,7 +4,6 @@
 
 **Prerequisite:** the
 [best-known player profile](medium-best-known-player-profiles.md) API is stable.
-
 ## Why we are doing this
 
 Players disappear from current scout reports and may no longer match today's
@@ -72,3 +71,40 @@ unless the user explicitly asks to include them.
 - `src/fm_analytics/web/scouting_pages.py`
 - `tests/test_scouting.py`
 - `tests/test_web_scouting.py`
+
+## Status: built (28 September 2026)
+
+`fm_analytics.candidate_pool.compose_candidate_pool` merges the current feed
+with `best_known_profiles(save, as_of)` for the feed's own game date and
+returns plain `ScoutingCandidate`s. `SquadWebServer.scouting()` builds it once
+per feed file and per recording (reading a whole save costs seconds), and the
+list, the live results fragment and `/scouting/player/<id>` all read that one
+result. Tests: `tests/test_candidate_pool.py` and
+`tests/test_web_scouting_history.py`. The reserved
+decisions, as taken (review them):
+
+- **Read model:** no wrapper. `ScoutingCandidate.history` (a
+  `CandidateHistory`) is None for a candidate exactly as the feed describes
+  him. When set, it names every attribute value that came from history
+  (`HistoricalReading`: first recorded, last seen, source), has
+  `in_current_feed`, `oldest_seen_on` and `out_of_date`, and for a
+  history-only player keeps his last recorded profile for display.
+- **Remembered values are scored.** A best-known value fills an attribute the
+  feed shows as unknown or omits, and counts in every score and information
+  filter like a visible one. It is marked historical, with its date, in the
+  list's attribute sheet, the Past knowledge column and the report. Before
+  this, a dropped player's last-known sheet was display-only.
+- **Historical profile fields:** a history-only player takes age,
+  nationality, footedness, positions, position ratings and scouting knowledge
+  from his last profile row. Club, contract, transfer status, value and search
+  facts are shown dated on his report ("Last seen at Old FC, 2019-03-01") but
+  never populate the candidate's own fields, so no market, value or interest
+  filter can admit him.
+- **Out of date:** six calendar months of game time, clamped to month end
+  (`--out-of-date-months` on `fm-web`).
+- **Deviation from the brief:** history-only players are *not* in the default
+  list. They appear only with **Everyone ever scouted** ticked, the existing
+  toggle for players FM no longer lists. This follows the product owner's
+  27 September decision that the default lists mirror what FM shows today.
+  Showing them by default is a one-line change in
+  `analytics/scouting.py:_matches_visible_filters`.

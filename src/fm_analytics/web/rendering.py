@@ -172,6 +172,10 @@ _STYLE = """
   button.sort-btn:hover { text-decoration: underline; }
   .bar-mark { position: absolute; top: -2px; bottom: -2px; width: 3px; margin-left: -1px; background: #1a2b3c; }
   .badge-scout { background: #fff2d6; color: #805400; }
+  .badge-history { background: #e8e4f3; color: #4a3a7a; }
+  .attr-historical { font-style: italic; color: #4a3a7a; }
+  .attr-historical b::after { content: " *"; font-weight: normal; }
+  .history-banner { margin: 0.75rem 0; padding: 0.6rem 0.9rem; background: #f3f0fa; border-left: 4px solid #4a3a7a; border-radius: 0.3rem; }
   .badge-proven { background: #e3f3e1; color: #1e6b1e; }
   .badge-unlikely { background: #eee; color: #555; }
   .attribute-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.35rem; }
@@ -445,6 +449,8 @@ def _scouting_knowledge_cell(candidate: object) -> str:
     knowledge = getattr(candidate, "scouting_knowledge", None)
     if knowledge is None:
         return "—"
+    if not getattr(candidate, "in_current_feed", True):
+        return f"{knowledge}% <span class='muted'>(last known)</span>"
     if getattr(candidate, "dropped_from_scout_reports", False):
         return (
             f"{knowledge}% <span class='muted'>(last known)</span><br>"

@@ -34,9 +34,9 @@ existing player report or filtered list.
    functions.
 2. Define “newly” by comparing the latest two relevant in-game observations,
    not by wall-clock refresh time.
-3. Use the application's canonical current realistic/gettable result. Do not
-   substitute the historical `matched_active_search` field unless a reviewer
-   explicitly confirms they mean the same thing.
+3. Use the application's canonical current realistic/gettable result. The
+   knowledge store keeps no gettable history of its own: the old
+   `matched_active_search` column was dropped on 27 September 2026.
 4. Make the stale threshold configurable with a six-month default expressed in
    the same in-game date units used by the knowledge store.
 5. Return reason codes/data as well as display text so rules can be tested

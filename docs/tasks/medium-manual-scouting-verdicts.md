@@ -72,3 +72,24 @@ never invoke a scouting refresh or write to FM.
 - `src/fm_analytics/web/server.py` only for route wiring if required
 - `tests/test_player_knowledge.py`
 - `tests/test_web_scouting.py`
+
+## Status: built (27 September 2026)
+
+Do not follow step 1 above. The schema was reset to a single v1 on 27 September
+2026, and `verdict_events` is part of that v1. There is no v2 migration.
+
+- **Store:** `PlayerKnowledgeStore.set_verdict`, `clear_verdict`,
+  `get_verdict` and `current_verdicts` (one query per save), with the
+  `Verdict` enum and `VerdictRecord`. The table is append-only; a clear is a
+  row with no verdict, and re-submitting the current state adds no row.
+- **Web:** `POST /scouting/verdict` (`_post_scouting_verdict`), the verdict
+  panel on the player report, rejected players hidden from lists by default,
+  and a **Show rejected players** toggle. Verdicts are off, rather than half
+  available, when the server has no save key.
+
+The reserved decisions, as taken:
+
+- **Note length:** 500 characters (`MAX_VERDICT_NOTE_LENGTH`), enforced in
+  Python and by a `CHECK` constraint.
+- **Date:** the form submits the capture's in-game date in a hidden
+  `decidedOn` field; there is no date input.

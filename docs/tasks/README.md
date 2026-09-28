@@ -1,8 +1,11 @@
 # Delegable task briefs
 
-These briefs turn selected parts of the [active plan](../active-plan.md) into
-bounded assignments for lower-skilled implementation agents. They do not form
-a second backlog: the active plan still decides priority and product scope.
+These briefs turn every open and parked item in the
+[active plan](../active-plan.md) into bounded assignments. Low and medium
+briefs suit lower-skilled implementation agents. Senior briefs settle the
+contracts and research those agents must not invent. The briefs do not form a
+second backlog: the active plan still decides priority and product scope, and
+a parked item's brief is a ready handoff, not permission to start.
 
 ## Skill labels
 
@@ -13,32 +16,70 @@ a second backlog: the active plan still decides priority and product scope.
   layers, design a small internal API, and write edge-case tests. A reviewer
   should still approve visibility, timeline, migration, and performance
   decisions.
-- **Senior/specialist** work is deliberately absent. In particular, these
-  briefs do not delegate process-memory access, Unicorn/Frida behaviour,
-  discoverability research, new scoring semantics, or the definition of cover
-  value.
+- **Senior/specialist** briefs (`senior-*.md`) are for the product owner or
+  an engineer trusted with process-memory access, Unicorn/Frida and sandbox
+  behaviour, discoverability research, new scoring semantics (such as the
+  definition of cover value), or exact-output performance work. They frame the
+  questions and constraints rather than prescribe an answer. Their usual output
+  is a recorded decision or contract that unblocks a low or medium brief. Low
+  and medium briefs must never take over a senior brief's decisions.
 
 An agent should not start a task whose prerequisite is unmet. A blocked brief
 is useful as a later handoff, not permission to invent the missing contract.
 
 ## Recommended order
 
+### Scheduled items (1–6)
+
+Items 1 and 4 are built and need no brief.
+
 | Brief | Level | Active-plan item | Ready when |
 |---|---|---:|---|
-| [Multi-tactic scouting service](medium-multi-tactic-scouting-service.md) | Medium | 2 | A reviewer has settled the cover-assessment contract |
+| [Cover-value contract](senior-cover-value-contract.md) | Senior | 2 | Now |
+| [Scouting cost budget and default tactic](senior-scouting-cost-budget.md) | Senior | 2 (and item 1's deferred default) | Now; needs the real capture in `data/` |
+| [Multi-tactic scouting service](medium-multi-tactic-scouting-service.md) | Medium | 2 | The cover-value contract is accepted |
 | [Multi-tactic scouting presentation](low-multi-tactic-scouting-presentation.md) | Low | 2 | The service returns a stable presentation model |
-| [Weakest-slot navigation](low-weakest-slot-navigation.md) | Low | 3 | Weak-slot link data is supplied by analytics/reporting |
+| [Trial scenario semantics](senior-trial-scenario-semantics.md) | Senior | 3 | Now; settle alongside the cover-value contract |
+| [Weakest-slot service](medium-weakest-slot-service.md) | Medium | 3 | Now; its selection rules need review before merge |
+| [Trial-priority list](medium-trial-priority-list.md) | Medium | 3 | Semantics accepted and weakest-slot service merged |
+| [Weakest-slot navigation](low-weakest-slot-navigation.md) | Low | 3 | The weakest-slot service is merged |
 | [Scouting-state regression coverage](low-scouting-state-regression-coverage.md) | Low | 3–5 support | Now; keep it away from the in-progress feed tools |
 | [Best-known player profiles](medium-best-known-player-profiles.md) | Medium | 5 | Built 27 September 2026 |
-| [Database-backed candidate pool](medium-database-candidate-pool.md) | Medium | 5 | Best-known profiles have a stable API |
-| [Manual scouting verdicts](medium-manual-scouting-verdicts.md) | Medium | 5 | Now; coordinate its migration with other database work |
-| [Scouting alerts](medium-scouting-alerts.md) | Medium | 6 | Database profiles and verdicts are both available |
+| [Database-backed candidate pool](medium-database-candidate-pool.md) | Medium | 5 | Built 28 September 2026 |
+| [Manual scouting verdicts](medium-manual-scouting-verdicts.md) | Medium | 5 | Built 27 September 2026 |
+| [Scouting alerts](medium-scouting-alerts.md) | Medium | 6 | The weakest-slot service is merged (profiles and verdicts are built) |
 
-The multi-tactic and weakest-slot presentation briefs depend on product-facing
-analytics that may need senior ownership. Regression coverage is ready now.
-The final four stay on the application side of the already-built
-player-knowledge database, although migrations and time-based semantics still
-need review.
+The two senior item 2 briefs and the senior item 3 brief are the critical path:
+each medium and low brief for items 2 and 3 waits on one of them. The
+weakest-slot service and regression coverage can start now.
+
+### Parked items
+
+Start these only when the active plan schedules them.
+
+| Brief | Level | Plan entry | Ready when |
+|---|---|---|---|
+| [Results log](medium-results-log.md) | Medium | Item 7 | Item 7 is un-parked; storage decisions reviewed |
+| [Web cache rework](medium-web-cache-rework.md) | Medium | Parked: web cache | Now, if scheduled |
+| [Dashboard as an answer page](medium-dashboard-answer-page.md) | Medium | Parked: dashboard | The web cache rework has landed |
+| [Named depth evidence](low-named-depth-evidence.md) | Low | Parked: named depth | The presentation rule is confirmed |
+| [Background scouting refresh](medium-background-scouting-refresh.md) | Medium | Parked: background refresh | Now, if scheduled |
+| [Squad capture upgrade path](medium-squad-capture-migrations.md) | Medium | Parked: capture upgrade path | The baseline version is decided |
+| [Retire the CLI candidate shortlist](medium-retire-cli-candidate-shortlist.md) | Medium | Parked: two recruitment paths | The product owner confirms retire-not-merge |
+| [Full-bundle performance](senior-bundle-performance.md) | Senior | Parked: performance | Now, if scheduled |
+| [Wages in the scouting capture](senior-wage-capture.md) | Senior | Parked: wages | Now, if scheduled |
+| [Remove dead imports from `web/server.py`](low-web-server-dead-imports.md) | Low | Review item 3.4 | Now |
+
+### Deliberately without a brief
+
+- **Dedicated set-piece ratings** (the plan's quick win) is a manager action in
+  FM, not code. Follow [set-piece-optimizer.md](../set-piece-optimizer.md).
+  Reading those ratings live would be specialist research outside the active
+  plan.
+- **Tactical model** changes stay in the
+  [tactical-system roadmap](../tactical-system-roadmap.md).
+- **Opposition analysis from data, machine learning and automation** stay in
+  Phases 08–11 of the [delivery roadmap](../phases/README.md).
 
 ## Rules shared by every brief
 
@@ -53,7 +94,8 @@ need review.
 - Add focused tests and run the relevant modules. Run the full suite before
   declaring a cross-layer task complete.
 - Do not modify the current uncommitted sandbox/scouting-feed work unless the
-  task explicitly requires it. None of the briefs below does.
+  task explicitly requires it. Only the senior wage brief edits the feed
+  tools; the background-refresh brief is designed to leave them unchanged.
 
 ## Handoff expectation
 

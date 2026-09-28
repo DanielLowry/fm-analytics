@@ -21,8 +21,10 @@ from fm_analytics.persistence import MAX_VERDICT_NOTE_LENGTH, Verdict, VerdictRe
 from fm_analytics.reporting import build_player_role_scores
 from fm_analytics.web.rendering import role_score_cells
 from fm_analytics.web.scouting_render import (
+    NOT_CURRENT_BADGE,
     _ATTRIBUTE_GROUPS,
     _attribute_label,
+    last_seen_club,
     _three_gains,
     _three_scores,
     _visible_observation_counts,
@@ -42,8 +44,9 @@ def player_scouting_report(
     ``verdict_panel``; it needs a database this module deliberately never
     touches, so it arrives as HTML rather than being looked up here.
     """
+    current = candidate.in_current_feed
     facts = [
-        ("Club", candidate.club),
+        ("Club", candidate.club if current else last_seen_club(candidate)),
         ("Age", str(candidate.age) if candidate.age is not None else None),
         ("Nationality", candidate.nationality),
         ("Footedness", candidate.footedness),
@@ -51,7 +54,7 @@ def player_scouting_report(
             "Scouting knowledge",
             (
                 f"{candidate.scouting_knowledge}%"
-                + (" (last known)" if candidate.dropped_from_scout_reports else "")
+                + (" (last known)" if candidate.dropped_from_scout_reports or not current else "")
                 if candidate.scouting_knowledge is not None else None
             ),
         ),
@@ -61,17 +64,65 @@ def player_scouting_report(
         ("Contract ends", candidate.contract_end),
     ]
     facts.extend((key, value) for key, value in (candidate.facts or {}).items())
+    if not current:
+        facts.extend(_last_seen_facts(candidate))
     return _player_detail_report(
         candidate.name, candidate.attributes,
         candidate.positions_for(include_raw_external_positions=True),
         candidate.raw_position_familiarity or {}, facts, catalogue,
         back_href="/scouting?view=scouted", back_label="Back to scouted players",
         familiarity_source="the captured raw 0–20 position rating",
-        headline=verdict + headline,
+        headline=_history_banner(candidate) + verdict + headline,
         attributes_captured=candidate.current_attributes_captured,
         historical_attributes=candidate.last_known_attributes,
         historical_observed_at=candidate.last_known_attributes_observed_at,
+        readings=candidate.history.attributes if candidate.history else None,
+        out_of_date_before=candidate.history.out_of_date_before if candidate.history else None,
     )
+
+
+def _history_banner(candidate: ScoutingCandidate) -> str:
+    """Say up front when any of this report is remembered rather than current."""
+    history = candidate.history
+    if history is None:
+        return ""
+    oldest = history.oldest_seen_on
+    age = (
+        f" The oldest thing used here was last seen on <b>{html.escape(oldest)}</b>"
+        + (", which is <b>out of date</b>." if history.out_of_date else ".")
+        if oldest else ""
+    )
+    if not history.in_current_feed:
+        return (
+            f"<div class='history-banner'>{NOT_CURRENT_BADGE} <b>Not in the current scouting "
+            "feed.</b> Everything here is what you saw earlier in this save, as of the dates "
+            "shown; he may since have moved, signed a new contract or stopped being gettable."
+            + age + "</div>"
+        )
+    return (
+        "<div class='history-banner'>Some attributes FM no longer shows are filled in from "
+        "what you saw earlier; they are marked <i>historical</i> with the day they were last "
+        "seen." + age + "</div>"
+    )
+
+
+def _last_seen_facts(candidate: ScoutingCandidate) -> list[tuple[str, str | None]]:
+    """A history-only player's market facts, dated and never presented as current."""
+    history = candidate.history
+    profile = (history.profile if history else None) or {}
+    seen = history.profile_last_seen_on if history else None
+    suffix = f" (as of {seen})" if seen else " (historical)"
+    value = profile.get("value")
+    return [
+        (label, f"{text}{suffix}")
+        for label, text in (
+            ("Contract type", profile.get("contract_type")),
+            ("Contract ends", profile.get("contract_end")),
+            ("Transfer status", profile.get("transfer_status")),
+            ("Value", f"£{value:,}" if isinstance(value, int) else None),
+        )
+        if text
+    ]
 
 
 def verdict_panel(
@@ -165,6 +216,7 @@ def _player_detail_report(
     back_href: str, back_label: str, familiarity_source: str, headline: str = "",
     attributes_captured: bool = True,
     historical_attributes=None, historical_observed_at: str | None = None,
+    readings=None, out_of_date_before: str | None = None,
 ) -> str:
     """Render every attribute and catalogue role for a scouted or owned player."""
     policy = FamiliarityPolicy()
@@ -177,7 +229,8 @@ def _player_detail_report(
         for position in positions
     )
     attributes_html = _full_attribute_sheet(
-        attributes, captured=attributes_captured
+        attributes, captured=attributes_captured,
+        readings=readings, out_of_date_before=out_of_date_before,
     )
     historical_html = _historical_attribute_section(
         historical_attributes or {}, historical_observed_at
@@ -195,8 +248,14 @@ def _player_detail_report(
         "<h2>Player information</h2><table class='report-facts'>" + fact_rows + "</table>"
         + headline +
         "<h2>Current attributes</h2>"
-        "<p class='muted'>Only values visible now are used in the scores below. "
-        "Ranges retain the uncertainty currently reported by scouting.</p>"
+        + (
+            "<p class='muted'>Values visible now, plus remembered values marked "
+            "<i>historical</i> where FM shows nothing today; both are used in the scores "
+            "below. Ranges retain the uncertainty scouting reported.</p>"
+            if readings else
+            "<p class='muted'>Only values visible now are used in the scores below. "
+            "Ranges retain the uncertainty currently reported by scouting.</p>"
+        )
         + attributes_html
         + historical_html
         + "<h2>Position score summary</h2>"
@@ -217,7 +276,11 @@ def _player_detail_report(
     )
 
 
-def _full_attribute_sheet(attributes, *, captured: bool = True) -> str:
+def _full_attribute_sheet(
+    attributes, *, captured: bool = True, readings=None, out_of_date_before: str | None = None
+) -> str:
+    """Every attribute, grouped like FM; ``readings`` marks the remembered ones, dated."""
+    readings = readings or {}
     groups: list[str] = []
     for title, keys in _ATTRIBUTE_GROUPS:
         rows = []
@@ -225,16 +288,29 @@ def _full_attribute_sheet(attributes, *, captured: bool = True) -> str:
             observation = attributes.get(key)
             if observation is None:
                 continue
+            reading = readings.get(key)
+            if reading is None:
+                when = "<td class='muted'>Now</td>" if readings else ""
+                css = ""
+            else:
+                stale = out_of_date_before is not None and reading.last_seen_on < out_of_date_before
+                when = (
+                    f"<td>Historical, last seen {html.escape(reading.last_seen_on)}"
+                    + (" <span class='dropped-warning'>out of date</span>" if stale else "")
+                    + "</td>"
+                )
+                css = " class='attr-historical'"
             rows.append(
-                "<tr>"
+                f"<tr{css}>"
                 f"<td>{html.escape(_attribute_label(key))}</td>"
                 f"<td>{html.escape(observation.display())}</td>"
-                "</tr>"
+                + when + "</tr>"
             )
         if rows:
             groups.append(
                 f"<section class='report-attribute-group'><h3>{title}</h3>"
-                "<table><tr><th>Attribute</th><th>Scouted value</th></tr>"
+                "<table><tr><th>Attribute</th><th>Scouted value</th>"
+                + ("<th>Seen</th>" if readings else "") + "</tr>"
                 + "".join(rows) + "</table></section>"
             )
     if groups:
@@ -256,7 +332,8 @@ def _historical_attribute_section(attributes, observed_at: str | None) -> str:
         "<h2>Past scouting knowledge</h2>"
         "<p class='warn'><b>Historical only.</b> These values were last visible on "
         f"<b>{when}</b>. They are not treated as current and are not used in any "
-        "score, filter, or recommendation on this page.</p>"
+        "score, filter, or recommendation on this page, except where the same value "
+        "appears above marked <i>historical</i>.</p>"
         + _full_attribute_sheet(attributes)
     )
 

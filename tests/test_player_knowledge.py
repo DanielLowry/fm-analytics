@@ -134,15 +134,6 @@ class RecordingTests(StoreCase):
         flags = [r["dropped_from_scout_reports"] for r in self.store.profile_history("club:1", "1")]
         self.assertEqual(flags, [False, True])
 
-    def test_matching_the_realistic_search_is_dated(self) -> None:
-        self.store.record(capture("2019-09-08", player(profile={"matched_active_search": False})))
-        self.store.record(capture("2019-10-01", player(profile={"matched_active_search": True})))
-        history = self.store.profile_history("club:1", "1")
-        self.assertEqual(
-            [(r["observed_on"], r["matched_active_search"]) for r in history],
-            [("2019-09-08", False), ("2019-10-01", True)],
-        )
-
 
 class LastKnownAndBackdatingTests(StoreCase):
     def test_a_last_known_snapshot_is_recorded_at_the_date_it_was_seen(self) -> None:
