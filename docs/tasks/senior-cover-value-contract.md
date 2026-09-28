@@ -102,3 +102,43 @@ contract first.
 - `src/fm_analytics/analytics/weaknesses.py`, read and reuse only
 - `tests/test_tactic_scouting.py`
 - `docs/scouting-workspace.md`
+
+## Status: built (28 September 2026)
+
+`CoverAssessment` lives in its own module, `analytics/cover_value.py` (split
+out of `tactic_scouting.py` for size, not for meaning: see the line-cap
+comment at the top of the file). `best_cover_assessment` is wired into
+`rank_candidates_for_tactic` behind a new optional `weakness_report` parameter
+that defaults to `None`; passing nothing leaves `cover_assessment` and
+`trial_priority` absent everywhere, so neither existing caller in
+`web/scouting_pages.py` changed behaviour. The questions above, as taken:
+
+1. **Unit:** the candidate's own tapered role score in the slot
+   (`CoverAssessment.candidate_score`, a `ScoreBand`), shown beside the
+   current first cover's central score
+   (`current_cover_score: float | None`) -- not a difference and not a
+   whole-XI reprojection.
+2. **Which slot:** exactly one -- `margin` (candidate central minus current
+   cover central, or the candidate's own central when there is no current
+   cover at all) is computed for every position-eligible slot, and the
+   largest wins.
+3. **Uncertainty:** the candidate's own band (floor/central/ceiling); the
+   current cover is a single central figure, matching how `/depth` itself
+   reports first cover.
+4. **Knock-on effects:** ignored, as recommended.
+5. **Readiness:** only `available_backups`; `temporarily_unavailable` cover
+   is not who the candidate is actually compared against today.
+6. **Relationship to starting:** left out. `rank_candidates_for_tactic` never
+   calls `best_cover_assessment` for a candidate whose `starts_at_estimate`
+   is true.
+7. **When it's worth showing:** whenever the margin clears the current cover,
+   with no additional weak-slot gate -- that gate is `trial_priority`'s job
+   (see [the trial-scenario semantics brief](senior-trial-scenario-semantics.md)),
+   not this contract's. `could_be_first_cover` is a plain property
+   (`cover_assessment is not None`) for callers that just want the flag.
+
+A candidate worse than every eligible slot's current cover has
+`cover_assessment is None` -- never a zero or negative `CoverAssessment`.
+Tests: `tests/test_tactic_scouting.py`, covering an outright "no cover exists"
+case, a case that must clear a real backup, a starter getting no assessment
+at all, and a rejected mismatched-tactic weakness report.

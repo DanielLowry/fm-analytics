@@ -95,3 +95,64 @@ the medium implementer.
 - `src/fm_analytics/analytics/role_scoring.py`, read only
 - `tests/test_tactic_scouting.py`
 - `docs/scouting-workspace.md`
+
+## Status: built (28 September 2026)
+
+Three new fields on `TacticScoutingAssessment`: `player_median`,
+`could_start`, `trial_priority`, plus `cover_assessment`/`could_be_first_cover`
+from [the cover-value contract](senior-cover-value-contract.md). The
+questions above, as taken:
+
+1. **Median in tactic terms:** deliberately *not* a fourth XI reprojection.
+   `player_median` is the candidate's own `RoleScore.median` (already computed
+   by `score_role` for every role score, never a new calculation) in his best
+   slot/role -- exactly the same "what could he be worth" question
+   `PositionRanking.median`/`ScoutingAssessment.median` already answer
+   elsewhere in scouting, just carried into tactic terms. A whole-XI median
+   re-optimisation was rejected: it would need a parallel assignment solve
+   (roughly doubling the per-candidate cost the
+   [scouting cost budget](senior-scouting-cost-budget.md) is trying to keep
+   down) for a number whose only declared use is ranking, not a displayed
+   projected score. `floor ≤ estimate ≤ median ≤ ceiling` holds by
+   construction: `RoleScore.median` is documented to sit between `score.lower`
+   and `score.upper`, and central ≤ median attribute-by-attribute because an
+   unknown attribute counts at the scale minimum for central but at mid-scale
+   for median; known and ranged attributes give the two the same value.
+2. **Could start:** `could_start` is `True` exactly when the existing
+   ceiling-scenario assignment (`best_by_field["upper"]`, already computed for
+   `score_gain.ceiling`) finds the candidate a starting slot -- no new
+   calculation, just naming an existing result. Never true for a candidate who
+   already starts at the estimate and then somehow not at the ceiling, since
+   scores only rise from central to upper.
+3. **Could be first cover:** `could_be_first_cover` is
+   `cover_assessment is not None`, at the cover contract's own central-score
+   comparison -- not evaluated separately at the ceiling. A ceiling-based cover
+   flag was considered and rejected as a second, differently-scaled "could"
+   flag competing with `could_start`'s ceiling-based one, for no stated use.
+4. **Trial-priority value:** the candidate's `player_median`, gated on his
+   best slot being flagged weak (`weak_starter`, `no_backup` or `weak_backup`)
+   in *this tactic's own* `weakness_report` -- not the cross-tactic
+   [weakest-slot service](medium-weakest-slot-service.md), which exists for
+   navigation and alerts, not for this per-candidate gate. **Additional
+   guard, found while implementing:** a candidate with zero known or ranged
+   attributes gets `trial_priority = None` even when his best slot is weak --
+   his median would be a pure mid-scale fabrication, and ranking him on it is
+   exactly the "invented score" the active plan rules out for a Scout First
+   player. `player_median` itself is not suppressed for him (matching how
+   `PositionRanking.median` is never suppressed elsewhere); only the
+   ranking-facing `trial_priority` is. Multi-tactic combination (max across
+   pinned tactics, tie-breaks) is left to whichever brief first needs it
+   across more than one tactic; this module scores one tactic at a time and
+   makes no claim beyond it.
+5. **Realistic and gettable default filter state:** left to the
+   [trial-priority list](medium-trial-priority-list.md), which owns the
+   sort's UI and default filters; this brief only supplies the value sorted
+   on.
+6. **Wording:** left to the presentation brief; nothing here renders text.
+
+`rank_candidates_for_tactic` gained one new optional parameter,
+`weakness_report: WeaknessReport | None = None`. With it omitted (both
+existing `web/scouting_pages.py` call sites), `cover_assessment` and
+`trial_priority` are always absent and every existing field is bit-for-bit
+unchanged -- verified by the full existing test suite, unmodified, still
+passing. Tests: `tests/test_tactic_scouting.py`.

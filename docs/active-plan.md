@@ -153,6 +153,17 @@ level.
 every pinned tactic, and the numbers match the single-tactic view for the same
 tactic.
 
+**Status: cover value built for one tactic at a time (28 September 2026),
+nothing on `/scouting` yet.** `rank_candidates_for_tactic` now returns
+`cover_assessment` (`could_be_first_cover`, the one slot and margin a
+non-starter clears the current first cover by, or nothing rather than a zero)
+alongside the existing single-tactic gain -- see
+[the cover-value contract](tasks/senior-cover-value-contract.md). The **My
+tactics** mode across several pinned tactics at once, the page-load budget for
+it, and the summary on the player report are still open -- see
+[the scouting cost budget](tasks/senior-scouting-cost-budget.md) and
+[the service brief](tasks/medium-multi-tactic-scouting-service.md).
+
 ### 3. Worth-a-trial ranking against the weakest slots
 
 **Problem.** Tactic gain is computed from what is visible, counting an unknown
@@ -184,6 +195,23 @@ terms.
 
 **Done when:** from the scouting page, one click goes from "Wing Play 4-4-2 is
 weakest at ML" to a list of realistic ML targets ordered by trial priority.
+
+**Status: the scoring and the weak-slot list are built (28 September 2026),
+nothing on `/scouting` yet.** `TacticScoutingAssessment` now carries
+`player_median` (a candidate's own median role score in his best slot/role,
+not a whole-XI reprojection), `could_start` (his ceiling alone would win a
+starting slot) and `trial_priority` (his median, only when his best slot is
+itself flagged weak, and withheld entirely for a Scout First player with no
+visible attributes at all, so nobody is ranked on an invented number). Separately,
+`reporting.weakest_slots(bundle)` reads the pinned tactics' own weakness
+reports into an ordered, capped list of weak starter/cover slots, ready to
+drive both the weakest-slots header and the trial-priority filter -- see
+[the trial-scenario semantics](tasks/senior-trial-scenario-semantics.md) and
+[the weakest-slot service](tasks/medium-weakest-slot-service.md) for the
+decisions taken. The **Weakest slots** header, the **Trial priority** sort
+itself, and the Scout First grouping are still open -- see
+[the trial-priority list](tasks/medium-trial-priority-list.md) and
+[weakest-slot navigation](tasks/low-weakest-slot-navigation.md).
 
 ### 4. Record scouting knowledge in our own database
 

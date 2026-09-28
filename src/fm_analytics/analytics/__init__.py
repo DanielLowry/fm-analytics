@@ -145,6 +145,7 @@ from fm_analytics.analytics.scouting import (
     sort_for_mode,
     sort_scouting_assessments,
 )
+from fm_analytics.analytics.cover_value import CoverAssessment, best_cover_assessment, is_weak_slot
 from fm_analytics.analytics.tactic_scouting import (
     ScenarioScores,
     TacticScoutingAssessment,
@@ -251,6 +252,7 @@ __all__ = [
     "TacticSlot",
     "TacticSelectionExplanation",
     "TacticScoutingAssessment",
+    "CoverAssessment",
     "TacticSystemRequirements",
     "StructuralCombinationFailure",
     "TacticStructureCheck",
@@ -276,6 +278,8 @@ __all__ = [
     "sort_scouting_assessments",
     "rank_candidates_for_tactic",
     "sort_tactic_assessments",
+    "best_cover_assessment",
+    "is_weak_slot",
     "assess_weaknesses",
     "check_catalogue_structure",
     "check_tactic_structure",

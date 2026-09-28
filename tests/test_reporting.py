@@ -9,19 +9,32 @@ from fm_analytics.analytics import (
     MVP_CATALOGUE,
     PlayerSelectionInput,
     RoleScoreCache,
+    SquadDepthReport,
     TacticRankingExecutor,
+    TacticRecommendation,
+    assess_weaknesses,
+    evaluate_tactic,
     recommend_tactic_effective_and_potential,
 )
 from fm_analytics.cli import load_fixture
 from fm_analytics.domain import AttributeObservation, Visibility
 from fm_analytics.reporting import (
+    RecommendationBundle,
     RecommendationPolicy,
+    WeakSlot,
     build_recommendation_bundle,
     build_squad_role_matrix,
     build_tactic_matchday_report,
     has_complete_role_attributes,
     required_role_attributes,
     validate_recommendation_snapshot,
+    weakest_slots,
+)
+from tests.test_xi_selection import (
+    CATALOGUE as WEAK_SLOT_CATALOGUE,
+    TACTIC as WEAK_SLOT_TACTIC,
+    legal_squad,
+    player,
 )
 
 
@@ -57,6 +70,128 @@ def _canonical_bundle_json(bundle) -> str:
         raise TypeError(f"cannot canonically encode {type(value).__name__}")
 
     return json.dumps(asdict(bundle), sort_keys=True, separators=(",", ":"), default=encode)
+
+
+def _bundle_from_weakness_report(report, evaluation, *, pinned_tactics=()) -> RecommendationBundle:
+    """The minimal bundle `weakest_slots` needs: pins, the evaluated tactic(s),
+    and a squad-depth report keyed by tactic. Every other field is untouched by
+    `weakest_slots`, so it is left as an honest placeholder rather than built
+    for real -- building a genuine `Squad`/`GameState` for a test-only tactic
+    and catalogue would test the fixture, not the function.
+    """
+    return RecommendationBundle(
+        game=None,
+        squad=None,
+        recommendation=TacticRecommendation((evaluation,)),
+        training_targets=(),
+        bench=None,
+        substitution_board=None,
+        weakness_report=report,
+        squad_depth=SquadDepthReport(
+            policy_version=report.policy_version,
+            tactic_keys=(evaluation.tactic.key,),
+            per_tactic={evaluation.tactic.key: report},
+            positions={},
+        ),
+        role_matrix=None,
+        briefs=(),
+        policy=RecommendationPolicy(pinned_tactics=pinned_tactics),
+    )
+
+
+class WeakestSlotsTests(unittest.TestCase):
+    def test_weak_starter_is_ranked_first_and_ties_break_by_slot_key(self) -> None:
+        squad = legal_squad()
+        squad[0] = player(1, "GK", 6)
+        evaluation = evaluate_tactic(WEAK_SLOT_TACTIC, squad, WEAK_SLOT_CATALOGUE)
+        report = assess_weaknesses(evaluation, squad, WEAK_SLOT_CATALOGUE)
+        bundle = _bundle_from_weakness_report(report, evaluation)
+
+        result = weakest_slots(bundle, catalogue=WEAK_SLOT_CATALOGUE)
+
+        self.assertEqual(len(result), 8)  # the default limit
+        self.assertEqual(result[0].concern, "starter")
+        self.assertEqual(result[0].slot_key, "slot-0")
+        self.assertEqual(result[0].starter_name, "Player 01")
+        self.assertEqual(result[0].role_name, "Generic")
+        self.assertTrue(all(item.concern == "cover" for item in result[1:]))
+        # slot-0's weak starter also has no backup, so it is flagged both
+        # ways -- once under each concern -- and every slot (including
+        # slot-0 again, this time as a cover concern) has no backup at all,
+        # so ties there break by slot key.
+        self.assertEqual(
+            [item.slot_key for item in result[1:]],
+            sorted(slot.key for slot in WEAK_SLOT_TACTIC.slots)[:7],
+        )
+
+    def test_pinned_and_unpinned_bundles_agree_on_the_same_tactic(self) -> None:
+        squad = legal_squad()
+        squad[0] = player(1, "GK", 6)
+        evaluation = evaluate_tactic(WEAK_SLOT_TACTIC, squad, WEAK_SLOT_CATALOGUE)
+        report = assess_weaknesses(evaluation, squad, WEAK_SLOT_CATALOGUE)
+        unpinned = _bundle_from_weakness_report(report, evaluation)
+        pinned = _bundle_from_weakness_report(
+            report, evaluation, pinned_tactics=(WEAK_SLOT_TACTIC.key,)
+        )
+
+        self.assertEqual(
+            weakest_slots(unpinned, catalogue=WEAK_SLOT_CATALOGUE),
+            weakest_slots(pinned, catalogue=WEAK_SLOT_CATALOGUE),
+        )
+
+    def test_limit_bounds_the_result_without_dropping_the_worst_item_first(self) -> None:
+        squad = legal_squad()
+        squad[0] = player(1, "GK", 6)
+        evaluation = evaluate_tactic(WEAK_SLOT_TACTIC, squad, WEAK_SLOT_CATALOGUE)
+        report = assess_weaknesses(evaluation, squad, WEAK_SLOT_CATALOGUE)
+        bundle = _bundle_from_weakness_report(report, evaluation)
+
+        result = weakest_slots(bundle, catalogue=WEAK_SLOT_CATALOGUE, limit=3)
+
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0].concern, "starter")
+
+    def test_a_real_backup_ranks_below_every_slot_with_no_backup_at_all(self) -> None:
+        # A weak-but-real backup at GK; every other slot still has none.
+        squad = legal_squad() + [player(40, "GK", 4)]
+        evaluation = evaluate_tactic(WEAK_SLOT_TACTIC, squad, WEAK_SLOT_CATALOGUE)
+        report = assess_weaknesses(evaluation, squad, WEAK_SLOT_CATALOGUE)
+        bundle = _bundle_from_weakness_report(report, evaluation)
+
+        result = weakest_slots(bundle, catalogue=WEAK_SLOT_CATALOGUE, limit=20)
+
+        by_slot = {item.slot_key: item for item in result}
+        self.assertEqual(by_slot["slot-0"].concern, "cover")
+        self.assertIsNotNone(by_slot["slot-0"].cover_score)
+        self.assertEqual(by_slot["slot-0"].cover_name, "Player 40")
+        no_cover_at_all = [item for item in result if item.cover_score is None]
+        self.assertTrue(no_cover_at_all)
+        self.assertLess(
+            max(result.index(item) for item in no_cover_at_all),
+            result.index(by_slot["slot-0"]),
+        )
+
+    def test_no_weaknesses_gives_an_empty_result(self) -> None:
+        squad = legal_squad()
+        evaluation = evaluate_tactic(WEAK_SLOT_TACTIC, squad, WEAK_SLOT_CATALOGUE)
+        report = assess_weaknesses(evaluation, squad, WEAK_SLOT_CATALOGUE)
+        bundle = _bundle_from_weakness_report(report, evaluation)
+
+        # An evenly matched, exactly-filled 11 has 11 NO_BACKUP weaknesses
+        # (see tests.test_weaknesses), so exercise a report with none of the
+        # three concerning kinds by dropping them by hand.
+        from dataclasses import replace
+
+        clean_report = replace(
+            report,
+            weaknesses=tuple(
+                weakness for weakness in report.weaknesses
+                if weakness.kind.value not in {"weak_starter", "no_backup", "weak_backup"}
+            ),
+        )
+        bundle = _bundle_from_weakness_report(clean_report, evaluation)
+
+        self.assertEqual(weakest_slots(bundle, catalogue=WEAK_SLOT_CATALOGUE), ())
 
 
 class ReportingTests(unittest.TestCase):

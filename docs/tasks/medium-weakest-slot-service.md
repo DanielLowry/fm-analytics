@@ -82,3 +82,36 @@ tactics (the selected tactic when there are no pins). Each item carries:
 - `src/fm_analytics/reporting.py`
 - `src/fm_analytics/analytics/recruitment.py`
 - `tests/test_reporting.py`
+
+## Status: built (28 September 2026)
+
+`WeakSlot` and `weakest_slots(bundle, *, catalogue=MVP_CATALOGUE, limit=8)` in
+`reporting.py`, reading only `bundle.pinned`/`bundle.recommendation.selected`
+and the already-computed `bundle.squad_depth.per_tactic`. It does not extend
+`build_recruitment_briefs`: that function groups by `(position, role_key,
+need)` across every relevant weakness for the *primary* tactic only, and
+already exists for a different purpose (CLI recruitment briefs); `weakest_slots`
+is one row per concerning slot per tactic in the pinned set, kept separate
+rather than reshaped to fit the older function's grouping. The reserved
+decisions, as taken:
+
+- **Concerning kinds:** `weak_starter` → `"starter"`; `no_backup` and
+  `weak_backup` → `"cover"`. Structural/simultaneous/temporary gaps and shared
+  cover are left out, exactly the brief's own suggested answer.
+- **A slot can appear twice**, once per concern, if it is both a weak starter
+  *and* has no backup -- these are two different, independently actionable
+  facts about the same slot, not one collapsed weakness.
+- **Ordering:** worst starters first (ascending `starter_score`), then worst
+  cover (ascending `cover_score`, with "no cover at all" sorted as more severe
+  than any real backup's score, however low). Each group breaks ties by
+  `(tactic_key, slot_key)`. `limit` (default 8) is applied to the combined,
+  already-ordered list, so truncation always drops the least severe items.
+- **No pins:** falls back to `(bundle.recommendation.selected,)`, matching
+  `bundle.primary`'s own fallback.
+
+Tests: `tests/test_reporting.py::WeakestSlotsTests`, built against the small
+test-only catalogue/tactic in `tests/test_xi_selection.py` rather than the real
+50-tactic catalogue, so the fixtures stay fast and exact -- covering a weak
+starter that is also flagged with no backup, pinned vs. unpinned agreement,
+`limit`, ordering a real (weak) backup below a "no backup at all" slot, and
+the empty case.

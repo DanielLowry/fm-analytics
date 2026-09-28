@@ -10,6 +10,7 @@ from fm_analytics.analytics.assignment_solver import (
     best_assignment_for_role_version,
 )
 from fm_analytics.analytics.catalogue import FootballCatalogue, TacticDefinition
+from fm_analytics.analytics.cover_value import CoverAssessment, best_cover_assessment, is_weak_slot
 from fm_analytics.analytics.opponent import OpponentProfile, attribute_emphasis
 from fm_analytics.analytics.role_scoring import RoleScoreCache, ScoreBand
 from fm_analytics.analytics.scouting import (
@@ -17,6 +18,7 @@ from fm_analytics.analytics.scouting import (
     ScoutingFilters,
     matches_information_filters,
 )
+from fm_analytics.analytics.weaknesses import WeaknessReport
 from fm_analytics.analytics.xi_models import (
     FamiliarityPolicy,
     PlayerSelectionInput,
@@ -63,6 +65,37 @@ class TacticScoutingAssessment:
     known_attributes: int
     ranged_attributes: int
     unknown_attributes: int
+    # What this player could be worth once every unknown attribute and range
+    # midpoint is taken at face value, in his best slot/role -- the same
+    # question ``RoleScore.median`` answers everywhere else in scouting.
+    # Deliberately not a whole-XI reprojection: always between
+    # ``player_fit.lower`` and ``player_fit.upper``, and at least
+    # ``player_fit.central`` (an unknown attribute counts at mid-scale here,
+    # not at the scale minimum).
+    player_median: float = 0.0
+    # Whether this candidate's ceiling alone would beat the current XI, i.e.
+    # the tactic's assignment optimiser would select him if every unknown
+    # attribute and range resolved in his favour. Never true for a candidate
+    # who already starts at the central estimate.
+    could_start: bool = False
+    # The one slot, if any, where this candidate would be an outright
+    # improvement on today's first cover. None for a candidate who starts
+    # (starting supersedes cover), and None when he does not clear any
+    # eligible slot's current cover.
+    cover_assessment: CoverAssessment | None = None
+    # Set only when this candidate's best slot is itself flagged weak (a weak
+    # starter, no backup, or weak backup) in the tactic's own weakness report.
+    # None otherwise -- deliberately not zero, since "not relevant to a weak
+    # slot" and "scored zero there" are different things. See
+    # ``docs/tasks/senior-trial-scenario-semantics.md`` for why this is
+    # ``player_median`` rather than a fourth median-scenario XI gain: a
+    # median re-optimisation of the whole XI was rejected as disproportionate
+    # cost for a "who is worth a look" ranking.
+    trial_priority: float | None = None
+
+    @property
+    def could_be_first_cover(self) -> bool:
+        return self.cover_assessment is not None
 
 
 @dataclass(frozen=True)
@@ -98,6 +131,7 @@ def rank_candidates_for_tactic(
     include_raw_external_positions: bool = False,
     position: str | None = None,
     role_key: str | None = None,
+    weakness_report: WeaknessReport | None = None,
 ) -> tuple[TacticScoutingAssessment, ...]:
     """Assess each candidate as one possible addition to the current squad.
 
@@ -110,11 +144,19 @@ def rank_candidates_for_tactic(
     allocation of the other ten slots is solved once and reused across the
     entire candidate pool. This is exactly equivalent to adding candidates one
     at a time and re-optimising, but avoids repeating the owned-player work.
+
+    With ``weakness_report`` (this tactic's own report from ``assess_weaknesses``),
+    each non-starting candidate also gets a ``cover_assessment`` -- the one slot,
+    if any, where he would be an outright improvement on today's first cover --
+    and a ``trial_priority`` value when his best slot is itself flagged weak.
+    Without it, both are always absent rather than guessed at.
     """
     if tactic.key not in catalogue.tactics or catalogue.tactics[tactic.key] != tactic:
         raise ValueError("tactic must belong to the supplied football catalogue")
     if baseline.tactic != tactic:
         raise ValueError("baseline evaluation must be for the selected tactic")
+    if weakness_report is not None and weakness_report.tactic_key != tactic.key:
+        raise ValueError("weakness report must be for the selected tactic")
 
     derived = catalogue.for_context(
         tactic.key, extra_emphasis=attribute_emphasis(opponent)
@@ -262,6 +304,29 @@ def rank_candidates_for_tactic(
         )
         known = sum(item is Visibility.KNOWN for item in visibilities)
         ranged = sum(item is Visibility.RANGE for item in visibilities)
+        cover_assessment = (
+            None
+            if starts or weakness_report is None
+            else best_cover_assessment(
+                candidate_input,
+                weakness_report,
+                derived,
+                readiness_policy=readiness_policy,
+                familiarity_policy=familiarity_policy,
+                role_score_cache=role_score_cache,
+            )
+        )
+        # A candidate scouted for nothing at all has a median purely from the
+        # mid-scale assumption; ranking him by it would be exactly the
+        # "invented score" the active plan rules out for a Scout First
+        # player, so trial priority is withheld rather than fabricated.
+        trial_priority = (
+            chosen_assignment.intrinsic_role_score.median
+            if (known or ranged)
+            and weakness_report is not None
+            and is_weak_slot(weakness_report, chosen_assignment.slot.key)
+            else None
+        )
         assessments.append(
             TacticScoutingAssessment(
                 candidate=candidate,
@@ -275,6 +340,10 @@ def rank_candidates_for_tactic(
                 projected_score=projected_scores,
                 score_gain=score_gain,
                 starts_at_estimate=starts,
+                player_median=chosen_assignment.intrinsic_role_score.median,
+                could_start=best_by_field["upper"] is not None,
+                cover_assessment=cover_assessment,
+                trial_priority=trial_priority,
                 replaced_player_names=replaced,
                 known_attributes=known,
                 ranged_attributes=ranged,
@@ -316,6 +385,8 @@ def sort_tactic_assessments(
         "median": lambda item: item.player_fit.central,
         "ceiling": lambda item: item.player_fit.upper,
         "upside": lambda item: item.player_fit.upper - item.player_fit.central,
+        "player_median": lambda item: item.player_median,
+        "trial_priority": lambda item: item.trial_priority,
         "age": lambda item: item.candidate.age,
         "scouted": lambda item: item.candidate.scouting_knowledge,
         "known": lambda item: item.known_attributes + item.ranged_attributes,

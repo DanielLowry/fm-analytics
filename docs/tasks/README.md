@@ -35,23 +35,25 @@ Items 1 and 4 are built and need no brief.
 
 | Brief | Level | Active-plan item | Ready when |
 |---|---|---:|---|
-| [Cover-value contract](senior-cover-value-contract.md) | Senior | 2 | Now |
+| [Cover-value contract](senior-cover-value-contract.md) | Senior | 2 | Built 28 September 2026 |
 | [Scouting cost budget and default tactic](senior-scouting-cost-budget.md) | Senior | 2 (and item 1's deferred default) | Now; needs the real capture in `data/` |
-| [Multi-tactic scouting service](medium-multi-tactic-scouting-service.md) | Medium | 2 | The cover-value contract is accepted |
+| [Multi-tactic scouting service](medium-multi-tactic-scouting-service.md) | Medium | 2 | The cover-value contract is built; still needs the cost budget |
 | [Multi-tactic scouting presentation](low-multi-tactic-scouting-presentation.md) | Low | 2 | The service returns a stable presentation model |
-| [Trial scenario semantics](senior-trial-scenario-semantics.md) | Senior | 3 | Now; settle alongside the cover-value contract |
-| [Weakest-slot service](medium-weakest-slot-service.md) | Medium | 3 | Now; its selection rules need review before merge |
-| [Trial-priority list](medium-trial-priority-list.md) | Medium | 3 | Semantics accepted and weakest-slot service merged |
-| [Weakest-slot navigation](low-weakest-slot-navigation.md) | Low | 3 | The weakest-slot service is merged |
+| [Trial scenario semantics](senior-trial-scenario-semantics.md) | Senior | 3 | Built 28 September 2026 |
+| [Weakest-slot service](medium-weakest-slot-service.md) | Medium | 3 | Built 28 September 2026 |
+| [Trial-priority list](medium-trial-priority-list.md) | Medium | 3 | Now; semantics and weakest-slot service are both built |
+| [Weakest-slot navigation](low-weakest-slot-navigation.md) | Low | 3 | Now; the weakest-slot service is built |
 | [Scouting-state regression coverage](low-scouting-state-regression-coverage.md) | Low | 3–5 support | Now; keep it away from the in-progress feed tools |
 | [Best-known player profiles](medium-best-known-player-profiles.md) | Medium | 5 | Built 27 September 2026 |
 | [Database-backed candidate pool](medium-database-candidate-pool.md) | Medium | 5 | Built 28 September 2026 |
 | [Manual scouting verdicts](medium-manual-scouting-verdicts.md) | Medium | 5 | Built 27 September 2026 |
 | [Scouting alerts](medium-scouting-alerts.md) | Medium | 6 | The weakest-slot service is merged (profiles and verdicts are built) |
 
-The two senior item 2 briefs and the senior item 3 brief are the critical path:
-each medium and low brief for items 2 and 3 waits on one of them. The
-weakest-slot service and regression coverage can start now.
+Only the scouting cost budget still blocks the multi-tactic scouting service;
+the cover-value contract and the trial-scenario semantics that unblocked most
+of the rest of items 2–3 are both built. The weakest-slot service is built
+too, so the trial-priority list and weakest-slot navigation are ready.
+Regression coverage can start now.
 
 ### Parked items
 
