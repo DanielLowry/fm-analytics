@@ -1,7 +1,7 @@
 """How a scouting candidate compares as first cover, not just as a starter.
 
 Split out of ``tactic_scouting.py`` (a cohesive sub-concern: see
-``docs/tasks/senior-cover-value-contract.md``) rather than left inline, so a
+``docs/archive/tasks/senior-cover-value-contract.md``) rather than left inline, so a
 non-starting candidate's cover value stays a small, independently testable
 unit reused by the tactic-scouting ranking.
 """

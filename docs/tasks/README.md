@@ -31,29 +31,21 @@ is useful as a later handoff, not permission to invent the missing contract.
 
 ### Scheduled items (1–6)
 
-Items 1 and 4 are built and need no brief.
+Items 1 and 4 are built and need no brief. Completed briefs are listed under
+[Completed](#completed) below.
 
 | Brief | Level | Active-plan item | Ready when |
 |---|---|---:|---|
-| [Cover-value contract](senior-cover-value-contract.md) | Senior | 2 | Built 28 September 2026 |
 | [Scouting cost budget and default tactic](senior-scouting-cost-budget.md) | Senior | 2 (and item 1's deferred default) | Now; needs the real capture in `data/` |
-| [Multi-tactic scouting service](medium-multi-tactic-scouting-service.md) | Medium | 2 | The cover-value contract is built; still needs the cost budget |
+| [Multi-tactic scouting service](medium-multi-tactic-scouting-service.md) | Medium | 2 | The cost budget has set a page-load budget (the cover-value contract is built) |
 | [Multi-tactic scouting presentation](low-multi-tactic-scouting-presentation.md) | Low | 2 | The service returns a stable presentation model |
-| [Trial scenario semantics](senior-trial-scenario-semantics.md) | Senior | 3 | Built 28 September 2026 |
-| [Weakest-slot service](medium-weakest-slot-service.md) | Medium | 3 | Built 28 September 2026 |
-| [Trial-priority list](medium-trial-priority-list.md) | Medium | 3 | Now; semantics and weakest-slot service are both built |
-| [Weakest-slot navigation](low-weakest-slot-navigation.md) | Low | 3 | Now; the weakest-slot service is built |
-| [Scouting-state regression coverage](low-scouting-state-regression-coverage.md) | Low | 3–5 support | Now; keep it away from the in-progress feed tools |
-| [Best-known player profiles](medium-best-known-player-profiles.md) | Medium | 5 | Built 27 September 2026 |
-| [Database-backed candidate pool](medium-database-candidate-pool.md) | Medium | 5 | Built 28 September 2026 |
-| [Manual scouting verdicts](medium-manual-scouting-verdicts.md) | Medium | 5 | Built 27 September 2026 |
-| [Scouting alerts](medium-scouting-alerts.md) | Medium | 6 | The weakest-slot service is merged (profiles and verdicts are built) |
+| [Trial-priority list](medium-trial-priority-list.md) | Medium | 3 | Now |
+| [Weakest-slot navigation](low-weakest-slot-navigation.md) | Low | 3 | Now; the trial-priority sort in its links waits for the trial-priority list |
+| [Scouting alerts](medium-scouting-alerts.md) | Medium | 6 | Now; decide first how "newly realistic" is detected (see its prerequisites) |
 
-Only the scouting cost budget still blocks the multi-tactic scouting service;
-the cover-value contract and the trial-scenario semantics that unblocked most
-of the rest of items 2–3 are both built. The weakest-slot service is built
-too, so the trial-priority list and weakest-slot navigation are ready.
-Regression coverage can start now.
+The scouting cost budget is the only brief still blocking another: the
+multi-tactic service waits on it. The trial-priority list, weakest-slot
+navigation and scouting alerts can all start now.
 
 ### Parked items
 
@@ -61,16 +53,31 @@ Start these only when the active plan schedules them.
 
 | Brief | Level | Plan entry | Ready when |
 |---|---|---|---|
-| [Results log](medium-results-log.md) | Medium | Item 7 | Superseded: built as [match history](../match-analysis-plan.md), 29 September 2026 |
 | [Web cache rework](medium-web-cache-rework.md) | Medium | Parked: web cache | Now, if scheduled |
 | [Dashboard as an answer page](medium-dashboard-answer-page.md) | Medium | Parked: dashboard | The web cache rework has landed |
 | [Named depth evidence](low-named-depth-evidence.md) | Low | Parked: named depth | The presentation rule is confirmed |
 | [Background scouting refresh](medium-background-scouting-refresh.md) | Medium | Parked: background refresh | Now, if scheduled |
-| [Squad capture upgrade path](medium-squad-capture-migrations.md) | Medium | Parked: capture upgrade path | The baseline version is decided |
 | [Retire the CLI candidate shortlist](medium-retire-cli-candidate-shortlist.md) | Medium | Parked: two recruitment paths | The product owner confirms retire-not-merge |
 | [Full-bundle performance](senior-bundle-performance.md) | Senior | Parked: performance | Now, if scheduled |
 | [Wages in the scouting capture](senior-wage-capture.md) | Senior | Parked: wages | Now, if scheduled |
 | [Remove dead imports from `web/server.py`](low-web-server-dead-imports.md) | Low | Review item 3.4 | Now |
+
+### Completed
+
+Finished briefs move to the [archive](../archive/tasks/). Each keeps a
+*Status* section recording what was built and the decisions taken.
+
+| Brief | Level | Active-plan item | Done |
+|---|---|---:|---|
+| [Best-known player profiles](../archive/tasks/medium-best-known-player-profiles.md) | Medium | 5 | Built 27 September 2026 |
+| [Manual scouting verdicts](../archive/tasks/medium-manual-scouting-verdicts.md) | Medium | 5 | Built 27 September 2026 |
+| [Database-backed candidate pool](../archive/tasks/medium-database-candidate-pool.md) | Medium | 5 | Built 28 September 2026 |
+| [Scouting-state regression coverage](../archive/tasks/low-scouting-state-regression-coverage.md) | Low | 3–5 support | Built 28 September 2026 |
+| [Cover-value contract](../archive/tasks/senior-cover-value-contract.md) | Senior | 2 | Built 28 September 2026 |
+| [Trial scenario semantics](../archive/tasks/senior-trial-scenario-semantics.md) | Senior | 3 | Built 28 September 2026 |
+| [Weakest-slot service](../archive/tasks/medium-weakest-slot-service.md) | Medium | 3 | Built 28 September 2026; role attributes added 29 September |
+| [Results log](../archive/tasks/medium-results-log.md) | Medium | 7 | Superseded: built as [match history](../match-analysis-plan.md), 29 September 2026 |
+| [Squad capture upgrade path](../archive/tasks/medium-squad-capture-migrations.md) | Medium | Parked: capture upgrade path | Built 29 September 2026 |
 
 ### Deliberately without a brief
 

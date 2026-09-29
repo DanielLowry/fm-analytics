@@ -125,9 +125,11 @@ questions above, as taken:
 2. **Could start:** `could_start` is `True` exactly when the existing
    ceiling-scenario assignment (`best_by_field["upper"]`, already computed for
    `score_gain.ceiling`) finds the candidate a starting slot -- no new
-   calculation, just naming an existing result. Never true for a candidate who
-   already starts at the estimate and then somehow not at the ceiling, since
-   scores only rise from central to upper.
+   calculation, just naming an existing result. It is usually true for a
+   candidate who already starts at the estimate, but not guaranteed: the
+   ceiling projection is compared with the current XI's own ceiling, which
+   rises when owned players have ranged or unknown attributes. (Corrected in
+   review on 29 September 2026; the first version claimed the opposite.)
 3. **Could be first cover:** `could_be_first_cover` is
    `cover_assessment is not None`, at the cover contract's own central-score
    comparison -- not evaluated separately at the ceiling. A ceiling-based cover

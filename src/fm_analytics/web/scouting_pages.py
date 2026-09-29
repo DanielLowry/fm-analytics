@@ -87,12 +87,14 @@ class ScoutingPagesMixin:
         limit = _scouting_limit(query)
         return (
             _scouting_tab_nav(query)
-            + "<p class='intro'>Only players in the manager-visible discovery feed are shown. "
+            + "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div>"
+            "<h2>Recruitment shortlist</h2><p>Only players in the manager-visible discovery feed are shown. "
             "Attribute-based role scores preserve their <b>floor / estimate / ceiling</b>; a player with "
-            "no known role attributes is a reason to scout, not a claim that they are good.</p>"
+            "no known role attributes is a reason to scout, not a claim that they are good.</p></div></div>"
             + _refresh_notice(_query_first(query, "refreshed"))
             + _knowledge_notice(self.server.knowledge_note)  # type: ignore[attr-defined]
             + _scouting_refresh_panel(filters.scouted_only)
+            + "</section>"
             + self._scouting_filters_form(
                 filters, candidates, self.server.pinned_tactics, limit,  # type: ignore[attr-defined]
                 show_rejected=_show_rejected(query),
@@ -100,7 +102,7 @@ class ScoutingPagesMixin:
             # The filters' own option lists come from every candidate, rejected
             # or not: hiding a player from the results must never narrow the
             # choices the manager can still filter by.
-            + "<div id='scouting-results' aria-live='polite'>"
+            + "<div id='scouting-results' class='fm-workspace-panel fm-scouting-results' aria-live='polite'>"
             + self._scouting_results_block(
                 self._listed_candidates(query, candidates), filters, limit
             )
@@ -499,7 +501,7 @@ class ScoutingPagesMixin:
         )
         view = "scouted" if filters.scouted_only else "all"
         return (
-            "<form class='filters scouting-filters' method='get' action='/scouting'>"
+            "<form class='filters scouting-filters fm-scouting-filter' method='get' action='/scouting'>"
             # A hidden field, not a JS special-case: FormData already reads
             # every form field for the live-filter fetch, so this is what
             # keeps the active tab from reverting to "all" on the very next

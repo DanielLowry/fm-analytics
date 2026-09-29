@@ -22,8 +22,9 @@ Two rules this module exists to keep:
 * **It must stay readable.** The game will not show these values again, so the
   file has an ordered migration list from its first version, a backup before any
   migration, and refuses to open a file it does not understand. (The squad
-  capture store has no upgrade path; that is survivable because the squad can be
-  re-read from the game, and this is not.)
+  capture store's migration path only reaches back to its own baseline version,
+  never to version 1; that is survivable because the squad can be re-read from
+  the game, and this is not. See `persistence/store.py::BASELINE_VERSION`.)
 """
 
 from __future__ import annotations

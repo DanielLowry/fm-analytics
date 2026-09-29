@@ -509,17 +509,22 @@ class AuxiliaryPagesMixin:
         )
         body = (
             scope_note
-            + "<h2>Conclusions</h2><ul>" + "".join(conclusions) + "</ul>"
+            + "<div class='fm-decision-grid'>"
+            f"<section class='fm-decision-stat'><span>Persistent risks</span><b>{len(persistent)}</b><small>Need attention in every tactic</small></section>"
+            f"<section class='fm-decision-stat'><span>Occasional risks</span><b>{len(occasional)}</b><small>Shape-specific concerns</small></section>"
+            f"<section class='fm-decision-stat'><span>Positions assessed</span><b>{len(depth_report.positions)}</b><small>Across the active planning scope</small></section>"
+            "</div>"
+            "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div>"
+            "<h2>Conclusions</h2><p>Prioritise persistent gaps first; occasional gaps may only matter for a particular shape.</p>"
+            "</div></div><ul class='fm-risk-list'>" + "".join(conclusions) + "</ul></section>"
+            "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div>"
             "<h2>By position</h2>"
-            "<ul class='legend'>"
-            "<li>Relative to your own squad: weak link = well below the XI median; "
-            "weak cover = sharp drop-off from the starter</li>"
-            "<li><b>Weak in</b>: tactics flagging it / tactics using the position</li>"
-            "</ul>"
-            "<table><tr><th>Position</th><th>Status</th><th>Weak in</th>"
+            "<p>Relative to your own squad: a weak link is below the XI median; weak cover is a sharp drop from the starter.</p>"
+            "</div></div>"
+            "<div class='fm-table-card'><table><tr><th>Position</th><th>Status</th><th>Weak in</th>"
             "<th>Reasons</th></tr>"
             + rows
-            + "</table>"
+            + "</table></div></section>"
         )
         self._send(_layout("Depth", path, body))  # type: ignore[attr-defined]
 

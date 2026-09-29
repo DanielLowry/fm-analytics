@@ -141,7 +141,7 @@ class WeakSlot:
 # Which weakness kinds name a slot worth surfacing here, and as which concern.
 # Structural/simultaneous/temporary gaps and shared cover describe a squad-wide
 # shortage or a scheduling clash, not a single slot's role being weak, so they
-# are deliberately left out -- see docs/tasks/medium-weakest-slot-service.md.
+# are deliberately left out -- see docs/archive/tasks/medium-weakest-slot-service.md.
 _WEAK_SLOT_CONCERNS = {
     WeaknessKind.WEAK_STARTER: "starter",
     WeaknessKind.NO_BACKUP: "cover",

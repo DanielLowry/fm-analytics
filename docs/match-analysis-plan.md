@@ -2,7 +2,7 @@
 
 **Status: built 29 September 2026.** This un-parked
 [active-plan item 7](active-plan.md#7-match-history-and-review) and replaced
-the [results-log brief](tasks/medium-results-log.md). The first half of this
+the [results-log brief](archive/tasks/medium-results-log.md). The first half of this
 document records what was built and how it differs from the plan. The rest is
 the plan and the reconnaissance behind it, kept as the record of why.
 

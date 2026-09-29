@@ -4,7 +4,15 @@
 
 **Prerequisite:** analytics/reporting supplies a prepared list of weak slots
 and the exact scouting filter parameters for each link. The implementer must
-not choose which slots count as weak.
+not choose which slots count as weak. **Met on 28 September 2026:**
+`reporting.weakest_slots(bundle)` returns ordered `WeakSlot` rows with
+`tactic_key`, `position`, `role_key` and `concern`. Those map onto the
+`tactic`, `position` and `role` query parameters `_scouting_filters` already
+reads (see the
+[weakest-slot service](../archive/tasks/medium-weakest-slot-service.md)).
+The link can only switch on a **Trial priority** sort once the
+[trial-priority list](medium-trial-priority-list.md) adds it to the web's
+tactic-mode sorts. Until then, link to the list without that sort.
 
 ## Why we are doing this
 

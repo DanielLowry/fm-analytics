@@ -89,7 +89,7 @@ class TacticScoutingAssessment:
     # starter, no backup, or weak backup) in the tactic's own weakness report.
     # None otherwise -- deliberately not zero, since "not relevant to a weak
     # slot" and "scored zero there" are different things. See
-    # ``docs/tasks/senior-trial-scenario-semantics.md`` for why this is
+    # ``docs/archive/tasks/senior-trial-scenario-semantics.md`` for why this is
     # ``player_median`` rather than a fourth median-scenario XI gain: a
     # median re-optimisation of the whole XI was rejected as disproportionate
     # cost for a "who is worth a look" ranking.

@@ -1,6 +1,6 @@
 """Each visibility / history state the scouting list and report distinguish.
 
-docs/tasks/low-scouting-state-regression-coverage.md. One named builder per
+docs/archive/tasks/low-scouting-state-regression-coverage.md. One named builder per
 state, changing only the field that defines it, so a failing assertion names
 the state that broke rather than a shared pile of options; every builder is
 then read back from both the roster row and the player report.
@@ -27,7 +27,7 @@ from tests.web_support import FIXTURE, WebServerHelpers, write_complete_fixture
 
 
 # --- One named fixture per visibility / history state ----------------------
-# docs/tasks/low-scouting-state-regression-coverage.md: every state the
+# docs/archive/tasks/low-scouting-state-regression-coverage.md: every state the
 # scouting list and the player report distinguish gets a builder of its own,
 # changing only the field that defines that state, so a failing assertion
 # names the state that broke rather than a shared pile of options.
@@ -176,7 +176,7 @@ ALL_STATE_PLAYERS = (
 class ScoutingStateTests(WebServerHelpers, unittest.TestCase):
     """Lock down each visibility/history state on the list cell and the report.
 
-    ``docs/tasks/low-scouting-state-regression-coverage.md``. Exact, range,
+    ``docs/archive/tasks/low-scouting-state-regression-coverage.md``. Exact, range,
     captured-unknown, never-captured, carried-historical and dropped are
     easy to collapse into one another by accident, and the recruitment work
     scheduled next builds on all six. Nothing here reads the player-knowledge

@@ -10,7 +10,8 @@
   by likely effect on in-game results against implementation effort.
 - [Task briefs](tasks/README.md) split every open and parked active-plan item
   into bounded low-, medium- and senior-level assignments with prerequisites
-  and acceptance criteria.
+  and acceptance criteria. Finished briefs move to the
+  [archive](archive/tasks/) with a record of what was built.
 - [Match analysis plan](match-analysis-plan.md) documents the match history:
   what is read live from FM, how matches are grouped by opposition strength,
   the Matches page and `fm-matches`, and the remaining research.

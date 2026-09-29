@@ -50,23 +50,24 @@ opinion to change it (see item 7).
 
 ## The plan
 
-| # | Item | Effort | Depends on |
-|---|---|---|---|
-| 1 | Pinned tactics | Small | — |
-| 2 | Trialist review across pinned tactics, including depth | Small–medium | 1 |
-| 3 | Worth-a-trial ranking against the weakest slots | Small–medium | 1, 2 |
-| 4 | Record scouting knowledge in our own database | Small–medium | — |
-| 5 | Scout from the database, with manual verdicts | Medium | 4 |
-| 6 | "Now gettable" and "re-scout due" alerts | Small | 5 |
-| — | Dedicated set-piece ratings from an HTML export | No code | — |
-| 7 | Match history and review | Medium–large | Built 29 September 2026 |
+| # | Item | Effort | Depends on | Status |
+|---|---|---|---|---|
+| 1 | Pinned tactics | Small | — | Built 26 September 2026 |
+| 2 | Trialist review across pinned tactics, including depth | Small–medium | 1 | Cover value built 28 September; **My tactics** mode open |
+| 3 | Worth-a-trial ranking against the weakest slots | Small–medium | 1, 2 | Scoring and weak-slot list built 28 September; page open |
+| 4 | Record scouting knowledge in our own database | Small–medium | — | Built 26 September 2026 |
+| 5 | Scout from the database, with manual verdicts | Medium | 4 | Built 28 September 2026 |
+| 6 | "Now gettable" and "re-scout due" alerts | Small | 5 | Open; unblocked |
+| — | Dedicated set-piece ratings from an HTML export | No code | — | Manager action |
+| 7 | Match history and review | Medium–large | — | Built 29 September 2026 |
 
 Items 1–3 affect the next few in-game weeks. Items 4–6 pay off over the season.
 Item 4 does not depend on 1–3: if a heavy scouting push starts before they
 land, do item 4 first so those observations are recorded.
 
 Every open and parked item has a bounded brief in
-[Task briefs](tasks/README.md). Low and medium briefs say what an agent can
+[Task briefs](tasks/README.md); finished briefs move to the
+[archive](archive/tasks/) with a record of what was built. Low and medium briefs say what an agent can
 implement without inheriting the specialist FM process research or making new
 football-model decisions. Senior briefs frame those decisions and that
 research, and their output unblocks the others. This plan remains the source
@@ -158,7 +159,7 @@ nothing on `/scouting` yet.** `rank_candidates_for_tactic` now returns
 `cover_assessment` (`could_be_first_cover`, the one slot and margin a
 non-starter clears the current first cover by, or nothing rather than a zero)
 alongside the existing single-tactic gain -- see
-[the cover-value contract](tasks/senior-cover-value-contract.md). The **My
+[the cover-value contract](archive/tasks/senior-cover-value-contract.md). The **My
 tactics** mode across several pinned tactics at once, the page-load budget for
 it, and the summary on the player report are still open -- see
 [the scouting cost budget](tasks/senior-scouting-cost-budget.md) and
@@ -206,8 +207,8 @@ visible attributes at all, so nobody is ranked on an invented number). Separatel
 `reporting.weakest_slots(bundle)` reads the pinned tactics' own weakness
 reports into an ordered, capped list of weak starter/cover slots, ready to
 drive both the weakest-slots header and the trial-priority filter -- see
-[the trial-scenario semantics](tasks/senior-trial-scenario-semantics.md) and
-[the weakest-slot service](tasks/medium-weakest-slot-service.md) for the
+[the trial-scenario semantics](archive/tasks/senior-trial-scenario-semantics.md) and
+[the weakest-slot service](archive/tasks/medium-weakest-slot-service.md) for the
 decisions taken. The **Weakest slots** header, the **Trial priority** sort
 itself, and the Scout First grouping are still open -- see
 [the trial-priority list](tasks/medium-trial-priority-list.md) and
@@ -340,18 +341,28 @@ the place for them when it does.
 - No automatic verdicts. Item 2's columns show the evidence and the manager
   decides.
 
+**Status: built (28 September 2026).** All three parts are in place; the
+paragraphs below give each one's detail.
+
+**Status of manual verdicts: built (27 September 2026).** Target, Watch and
+Reject, with a note, are recorded in the player-knowledge database's
+append-only `verdict_events` table (part of its v1 schema). A player report
+has the form, which is a local POST to `/scouting/verdict`. Rejected players
+are hidden from lists unless **Show rejected players** is ticked. See
+[the task brief](archive/tasks/medium-manual-scouting-verdicts.md).
+
 **Status of the wider candidate pool: built (28 September 2026).** The Scouting
 pages read the feed merged with the save's best-known profiles
 (`fm_analytics.candidate_pool`); remembered values fill what FM no longer shows
 and are marked historical with their dates, and players known only from history
 are labelled *not currently realistic* and shown under **Everyone ever scouted**.
-See [the task brief](tasks/medium-database-candidate-pool.md) for the decisions
+See [the task brief](archive/tasks/medium-database-candidate-pool.md) for the decisions
 taken.
 
 **Status of the best-known profile: read API built (27 September 2026).** `PlayerKnowledgeStore.best_known_profile` (one player)
 and `best_known_profiles` (a whole save, in a fixed number of queries) assemble
 a player as of an in-game date, per
-[the task brief](tasks/medium-best-known-player-profiles.md). Each selected
+[the task brief](archive/tasks/medium-best-known-player-profiles.md). Each selected
 reading carries two dates. `observed_on` is when the store first recorded that
 state. `last_seen_on` is the last day a capture still showed it. The profile's
 age is `oldest_seen_on`, the stalest reading's last-seen date. Observation rows
@@ -372,6 +383,12 @@ A block on `/scouting`, computed from the database after each refresh:
 - **Re-scout due:** a player marked Watch whose best-known profile is older
   than a configurable age (six months by default), or who still has unknowns
   in attributes that matter for a weakest-slot role.
+
+**Status: not started, and unblocked (29 September 2026).** Item 5 and the
+weakest-slot list (with each weak role's attribute weights) are built. One
+question comes first. The knowledge history does not record transfer or loan
+interest, so "newly matches the realistic switch" has no stored previous state
+to compare with. See [the task brief](tasks/medium-scouting-alerts.md).
 
 ### Quick win: dedicated set-piece ratings (no code)
 
@@ -399,7 +416,7 @@ league table at kickoff by default), tactic against opposition, where goals
 come from, and which roles create and shoot. See
 [the match analysis plan](match-analysis-plan.md) for what was built, its
 limits and what is still open. That document replaces the
-[results-log brief](tasks/medium-results-log.md).
+[results-log brief](archive/tasks/medium-results-log.md).
 
 ## Parked
 
@@ -410,8 +427,14 @@ limits and what is still open. That document replaces the
 - **Web cache** (review 1.5 and additional finding 1): parked. If caching is
   reworked, the cache key must include the pinned tactics and the opponent
   profile, not just time.
-- **Squad capture upgrade path** (review 3.1): the live read is the working
-  source. Item 4 applies the lesson to the database where it matters.
+- **Squad capture upgrade path** (review 3.1): **built 29 September 2026** --
+  see [the task brief](archive/tasks/medium-squad-capture-migrations.md).
+  `SnapshotStore` now backs up and migrates a v4-or-later capture atomically,
+  and refuses (rather than silently reconstructing) anything older than that
+  baseline with a message naming the file and telling the manager to
+  re-capture, since a squad capture is a read of the live game, not history
+  that fades. Item 4 applies the lesson (append-only, migrated) to the
+  database where it matters most.
 - **Two recruitment paths** (review 2.2/3.3): proposed resolution is to treat
   the web `ScoutingCandidate` path as canonical and retire the CLI
   HTML/`VisibleExportPlayer` shortlist rather than merge the two. Not scheduled;
@@ -437,6 +460,6 @@ limits and what is still open. That document replaces the
 | 2.3 Named depth | Recruitment side in item 2; the rest parked |
 | 2.4 Player view | Done: `/squad/player/<id>` |
 | 2.5 Dashboard | Parked |
-| 3.1 Capture upgrade path | Parked; lesson applied in item 4 |
+| 3.1 Capture upgrade path | Built 29 September 2026; see notes above |
 | 3.2 Background refresh | Parked |
 | 3.4 Dead imports | Not re-checked; trivial cleanup when next touching `web/server.py` |

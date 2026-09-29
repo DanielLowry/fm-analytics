@@ -2,11 +2,13 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
 from fm_analytics.domain import GameState, Squad
-from fm_analytics.persistence import SnapshotStore
+from fm_analytics.persistence import SnapshotStore, SnapshotStoreError
+from fm_analytics.persistence.store import BASELINE_VERSION
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -124,6 +126,102 @@ class SnapshotStoreTests(unittest.TestCase):
                 source="fixture",
                 captured_at=datetime(2026, 9, 11, 8, 30),
             )
+
+
+class SnapshotMigrationTests(unittest.TestCase):
+    ADD_NOTE = "ALTER TABLE captures ADD COLUMN note TEXT;"
+
+    def setUp(self) -> None:
+        self.directory = tempfile.TemporaryDirectory()
+        self.path = Path(self.directory.name) / "snapshots.sqlite3"
+        self.store = SnapshotStore(self.path)
+        self.game = GameState.from_dict(GOLDEN["game"])
+        self.squad = Squad.from_dict(GOLDEN["squad"])
+
+    def tearDown(self) -> None:
+        self.directory.cleanup()
+
+    def user_version(self, path: Path | None = None) -> int:
+        with closing(sqlite3.connect(path or self.path)) as connection:
+            return connection.execute("PRAGMA user_version").fetchone()[0]
+
+    def test_a_fresh_file_is_created_at_the_baseline_version(self) -> None:
+        self.store.initialize()
+
+        self.assertEqual(self.user_version(), BASELINE_VERSION)
+
+    def test_initialising_twice_changes_nothing(self) -> None:
+        self.store.initialize()
+        self.store.initialize()
+
+        self.assertEqual(self.user_version(), BASELINE_VERSION)
+        self.assertFalse(list(self.path.parent.glob("*.bak-*")))
+
+    def test_an_existing_baseline_file_keeps_opening_unchanged(self) -> None:
+        capture = self.store.capture(self.game, self.squad, source="fixture")
+
+        reopened = SnapshotStore(self.path)
+        game, squad = reopened.load(capture.id)
+
+        self.assertEqual(self.user_version(), BASELINE_VERSION)
+        self.assertEqual(game.to_dict(), self.game.to_dict())
+        self.assertEqual(squad.to_dict(), self.squad.to_dict())
+        self.assertFalse(list(self.path.parent.glob("*.bak-*")))
+
+    def test_an_injected_step_upgrades_a_baseline_file_after_a_backup(self) -> None:
+        capture = self.store.capture(self.game, self.squad, source="fixture")
+        upgraded = SnapshotStore(self.path, migrations=(self.ADD_NOTE,))
+
+        upgraded.initialize()
+
+        self.assertEqual(self.user_version(), BASELINE_VERSION + 1)
+        backup = self.path.with_name(self.path.name + f".bak-v{BASELINE_VERSION}")
+        self.assertTrue(backup.exists())
+        self.assertEqual(self.user_version(backup), BASELINE_VERSION)
+        game, squad = upgraded.load(capture.id)
+        self.assertEqual(squad.to_dict(), self.squad.to_dict())
+        with closing(sqlite3.connect(self.path)) as connection:
+            connection.execute("SELECT note FROM captures")  # the new column exists
+
+    def test_a_failing_migration_is_rolled_back_and_the_data_left_usable(self) -> None:
+        self.store.capture(self.game, self.squad, source="fixture")
+        broken = SnapshotStore(self.path, migrations=("CREATE TABLE half_done (x); NOT SQL;",))
+
+        with self.assertRaisesRegex(SnapshotStoreError, "rolled back"):
+            broken.initialize()
+
+        self.assertEqual(self.user_version(), BASELINE_VERSION)
+        with closing(sqlite3.connect(self.path)) as connection:
+            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master")}
+        self.assertNotIn("half_done", tables)
+        self.assertEqual(self.store.latest_capture_id(), 1)
+
+    def test_a_file_from_a_newer_program_is_refused_not_touched(self) -> None:
+        SnapshotStore(self.path, migrations=(self.ADD_NOTE,)).initialize()
+
+        with self.assertRaisesRegex(SnapshotStoreError, "newer than this program"):
+            self.store.initialize()
+
+        self.assertEqual(self.user_version(), BASELINE_VERSION + 1)
+
+    def test_some_other_sqlite_file_is_refused(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with closing(sqlite3.connect(self.path)) as connection:
+            connection.execute("CREATE TABLE unrelated (x)")
+
+        with self.assertRaisesRegex(SnapshotStoreError, "not a squad-capture database"):
+            self.store.initialize()
+
+    def test_a_file_older_than_the_baseline_is_refused_with_a_recapture_message(self) -> None:
+        with closing(sqlite3.connect(self.path)) as connection, connection:
+            connection.execute("CREATE TABLE captures (id INTEGER PRIMARY KEY)")
+            connection.execute(f"PRAGMA user_version = {BASELINE_VERSION - 1}")
+
+        with self.assertRaisesRegex(SnapshotStoreError, "re-run the capture"):
+            self.store.initialize()
+
+        self.assertEqual(self.user_version(), BASELINE_VERSION - 1)
+        self.assertFalse(list(self.path.parent.glob("*.bak-*")))
 
 
 if __name__ == "__main__":

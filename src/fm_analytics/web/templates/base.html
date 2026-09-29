@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#132032">
+    <title>{{ title }} · FM Analytics</title>
+    <link rel="stylesheet" href="/static/app.css">
+    {{ legacy_style }}
+  </head>
+  <body class="fm-app">
+    <div class="fm-shell">
+      <aside class="fm-sidebar" id="primary-navigation" aria-label="Primary navigation">
+        <a class="fm-sidebar-brand" href="/" aria-label="FM Analytics command centre">
+          <span class="fm-mark" aria-hidden="true">FM</span>
+          <span class="fm-brand-copy"><span class="fm-brand-name">FM Analytics</span><span class="fm-brand-tagline">Manager decision support</span></span>
+        </a>
+        <nav class="fm-sidebar-nav" aria-label="Main sections">
+          {% for group in navigation %}
+          <section class="fm-nav-group" aria-label="{{ group.label }}">
+            <span class="fm-nav-label">{{ group.label }}</span>
+            {% for item in group["items"] %}
+            <a href="{{ item.path }}"{% if item.active %} class="active"{% endif %} data-fm-nav-link{% if item.active %} aria-current="page"{% endif %}><span class="fm-nav-icon" aria-hidden="true">{{ item.icon }}</span>{{ item.label }}</a>
+            {% endfor %}
+          </section>
+          {% endfor %}
+        </nav>
+        <button class="fm-icon-button absolute right-3 top-4 lg:hidden" type="button" data-sidebar-close aria-label="Close navigation">×</button>
+      </aside>
+      <div class="fm-overlay" data-sidebar-overlay aria-hidden="true"></div>
+      <div class="fm-workspace">
+        <header class="fm-topbar">
+          <button class="fm-icon-button fm-mobile-toggle" type="button" data-sidebar-toggle aria-controls="primary-navigation" aria-expanded="false" aria-label="Open navigation">☰</button>
+          <div class="fm-topbar-spacer"></div>
+          <!--FM_STATUS-->
+          <button class="fm-icon-button" type="button" data-theme-toggle aria-pressed="false" aria-label="Use dark theme">◐</button>
+        </header>
+        <main class="fm-main" id="main-content">
+          <div class="fm-page">
+            <div class="fm-page-header">
+              <div class="fm-page-heading"><span class="fm-page-kicker">{{ section }}</span><h1 class="fm-page-title">{{ title }}</h1></div>
+              {% if breadcrumb %}<span class="fm-breadcrumb">{{ breadcrumb }}</span>{% endif %}
+            </div>
+            <div class="fm-legacy{% if wide %} wide{% endif %}">{{ body }}</div>
+          </div>
+        </main>
+      </div>
+    </div>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>

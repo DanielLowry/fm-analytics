@@ -1,7 +1,11 @@
 """The one upgrade path for local databases whose history FM will not show again.
 
 The player-knowledge and match-history stores both hold observations the game
-cannot give back, so both follow the same rules, kept here rather than copied:
+cannot give back, so both follow the same rules, kept here rather than copied.
+The squad capture store (`persistence/store.py`) reuses `apply_migration`, the
+version-agnostic step-runner, but not `bring_up_to_date`: its migration path
+starts from a baseline version rather than from an empty database, so it keeps
+its own baseline-aware gating rather than bending this one to fit both shapes.
 
 * version N of a file is the result of applying ``migrations[:N]``, and the
   list is append only;

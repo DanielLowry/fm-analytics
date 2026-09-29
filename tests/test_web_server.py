@@ -1,6 +1,8 @@
 import json
+import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
@@ -350,6 +352,17 @@ class BuildProviderTests(unittest.TestCase):
 
         with self.assertRaises(SystemExit):
             _build_provider(args)
+
+    def test_an_unreadable_snapshot_db_is_refused_at_startup_not_first_request(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "old.sqlite3"
+            with closing(sqlite3.connect(db_path)) as connection, connection:
+                connection.execute("CREATE TABLE captures (id INTEGER PRIMARY KEY)")
+                connection.execute("PRAGMA user_version = 2")
+
+            args = build_parser().parse_args(["--snapshot-db", str(db_path)])
+            with self.assertRaisesRegex(SystemExit, "re-run the capture"):
+                _build_provider(args)
 
     def test_source_flags_are_mutually_exclusive(self) -> None:
         with self.assertRaises(SystemExit):

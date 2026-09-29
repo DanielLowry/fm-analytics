@@ -8,13 +8,29 @@ from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 from fm_analytics.contract import CONTRACT_VERSION
 from fm_analytics.domain import GameState, Player, Squad
+from fm_analytics.persistence.migrations import apply_migration
 
 
-SCHEMA_VERSION = 4
+class SnapshotStoreError(RuntimeError):
+    """The capture database cannot be opened as it is: too new, too old, or not ours.
+
+    Every message names the file and what to do about it, so a caller can
+    print it plainly instead of a traceback.
+    """
+
+
+# A capture is a read of the live game, not history that fades the way scouted
+# attributes do (see `persistence/player_knowledge.py`), so an unreadable file
+# is survivable: re-run the capture. That is why the upgrade path below starts
+# at this baseline rather than reconstructing v1-v3 -- there is no real v1-v3
+# capture left to recover, and inventing that history to migrate a file nobody
+# has would just be risk with no payoff. A file older than the baseline is
+# refused with a clear instruction to re-capture, never silently upgraded.
+BASELINE_VERSION = 4
 
 SCHEMA = """
 CREATE TABLE captures (
@@ -115,6 +131,11 @@ CREATE TABLE player_attributes (
 );
 """
 
+# Append only, like the schema itself before it: version N (N >= BASELINE_VERSION)
+# of the file is BASELINE_VERSION's schema plus MIGRATIONS[:N - BASELINE_VERSION].
+# Never edit an entry that has shipped, add a new one.
+MIGRATIONS: tuple[str, ...] = ()
+
 
 @dataclass(frozen=True)
 class CaptureRecord:
@@ -126,24 +147,63 @@ class CaptureRecord:
     contract_version: str
 
 
+def _bring_up_to_date(
+    connection: sqlite3.Connection, path: Path, migrations: Sequence[str]
+) -> None:
+    """Create the schema at the baseline, upgrade past it, or refuse the file.
+
+    Unlike `persistence.migrations.bring_up_to_date`, version 0 does not start
+    from nothing: it is built straight to `BASELINE_VERSION` in one step, and
+    a file older than that baseline is refused rather than reconstructed --
+    see the note above `BASELINE_VERSION`.
+    """
+    latest = BASELINE_VERSION + len(migrations)
+    version = connection.execute("PRAGMA user_version").fetchone()[0]
+    if version > latest:
+        raise SnapshotStoreError(
+            f"{path} is squad-capture schema v{version}, newer than this "
+            f"program understands (v{latest}). Update the program; do not delete the file."
+        )
+    if version == 0 and connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' LIMIT 1"
+    ).fetchone():
+        raise SnapshotStoreError(f"{path} is a SQLite database but not a squad-capture database.")
+    if version == latest:
+        return
+    if 0 < version < BASELINE_VERSION:
+        raise SnapshotStoreError(
+            f"{path} is squad-capture schema v{version}, older than this program's "
+            f"baseline (v{BASELINE_VERSION}). There is no upgrade path from before the "
+            "baseline -- re-run the capture against the live game with --snapshot-db "
+            "to start a fresh file at this path."
+        )
+    if version > 0:
+        # A whole-database copy through SQLite's own backup API, so it is
+        # consistent even if another process has the file open.
+        backup = path.with_name(f"{path.name}.bak-v{version}")
+        with closing(sqlite3.connect(backup)) as target:
+            connection.backup(target)
+    if version == 0:
+        apply_migration(connection, BASELINE_VERSION - 1, SCHEMA, error=SnapshotStoreError)
+        version = BASELINE_VERSION
+    for step in range(version, latest):
+        apply_migration(
+            connection, step, migrations[step - BASELINE_VERSION], error=SnapshotStoreError
+        )
+
+
 class SnapshotStore:
     """Persist and reconstruct the narrow, immutable MVP squad capture."""
 
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, *, migrations: Sequence[str] = MIGRATIONS):
         self.path = Path(path)
+        self._migrations = tuple(migrations)
 
     def initialize(self) -> None:
+        """Create the file, upgrade an older one from the baseline, or refuse it."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with closing(self._connect()) as connection, connection:
-            version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version == 0:
-                connection.executescript(SCHEMA)
-                connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
-            elif version != SCHEMA_VERSION:
-                raise RuntimeError(
-                    f"unsupported snapshot schema version {version}; "
-                    f"expected {SCHEMA_VERSION}"
-                )
+            _bring_up_to_date(connection, self.path, self._migrations)
 
     def capture(
         self,

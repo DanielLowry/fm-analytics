@@ -9,6 +9,9 @@ from pathlib import Path
 from typing import Callable, Sequence
 from urllib.parse import urlencode
 
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import Markup
+
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
     ScoutingFilters,
@@ -21,17 +24,34 @@ from fm_analytics.analytics import (
 )
 
 
-_NAV: tuple[tuple[str, str], ...] = (
-    ("/", "Dashboard"),
-    ("/squad", "Squad"),
-    ("/roles", "Roles"),
-    ("/tactics", "Tactics"),
-    ("/tactic-checks", "Tactic checks"),
-    ("/set-pieces", "Set pieces"),
-    ("/depth", "Depth"),
-    ("/scouting", "Scouting"),
-    ("/matches", "Matches"),
-    ("/data", "Data"),
+_NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
+    ("Overview", (("/", "Command centre", "⌂"),)),
+    (
+        "Squad intelligence",
+        (
+            ("/squad", "Squad", "◫"),
+            ("/roles", "Roles", "◎"),
+            ("/depth", "Depth", "↕"),
+        ),
+    ),
+    (
+        "Matchday",
+        (
+            ("/tactics", "Tactics", "⌁"),
+            ("/tactic-checks", "Tactic checks", "✓"),
+            ("/set-pieces", "Set pieces", "✦"),
+            ("/matches", "Matches", "▤"),
+        ),
+    ),
+    ("Recruitment", (("/scouting", "Scouting", "⌕"),)),
+    ("System", (("/data", "Data health", "◌"),)),
+)
+
+_TEMPLATE_ENVIRONMENT = Environment(
+    loader=FileSystemLoader(Path(__file__).with_name("templates")),
+    autoescape=select_autoescape(("html", "xml")),
+    trim_blocks=True,
+    lstrip_blocks=True,
 )
 
 # Slot weaknesses that answer "if this starter is unavailable, are we
@@ -349,9 +369,35 @@ _STYLE = """
 """
 
 
-def _nav_link(path: str, label: str, active_path: str) -> str:
-    active_class = ' class="active"' if path == active_path else ""
-    return f'<a href="{path}"{active_class}>{html.escape(label)}</a>'
+def _navigation(active_path: str) -> tuple[dict[str, object], ...]:
+    """Group the navigation around a manager's recurring decisions."""
+    return tuple(
+        {
+            "label": group_label,
+            "items": tuple(
+                {
+                    "path": path,
+                    "label": label,
+                    "icon": icon,
+                    "active": _is_navigation_active(path, active_path),
+                }
+                for path, label, icon in items
+            ),
+        }
+        for group_label, items in _NAV_GROUPS
+    )
+
+
+def _section_for(active_path: str) -> str:
+    for group_label, items in _NAV_GROUPS:
+        if any(_is_navigation_active(path, active_path) for path, _label, _icon in items):
+            return group_label
+    return "FM Analytics"
+
+
+def _is_navigation_active(path: str, active_path: str) -> bool:
+    """Keep a section selected while the manager is in one of its drill-downs."""
+    return path == active_path or (path != "/" and active_path.startswith(path + "/"))
 
 
 def _tactical_shortfalls(shortfalls: Sequence[str]) -> str:
@@ -549,16 +595,20 @@ def _position_display(candidate, *, include_raw_external_positions: bool) -> str
 
 
 def _layout(title: str, active_path: str, body: str, *, wide: bool = False) -> str:
-    """The page shell. ``wide`` is for pages built around a many-column table."""
-    nav = "".join(_nav_link(path, label, active_path) for path, label in _NAV)
-    main_open = "<main class='wide'>" if wide else "<main>"
-    return (
-        "<!doctype html><html><head><meta charset=\"utf-8\">"
-        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-        f"<title>{html.escape(title)} · FM Analytics</title>{_STYLE}</head>"
-        f"<body><nav><div class='nav-links'>{nav}</div></nav>"
-        f"{main_open}<h1>{html.escape(title)}</h1>{body}</main>"
-        "</body></html>"
+    """Render a shared shell while legacy page fragments migrate incrementally.
+
+    Page renderers already escape their dynamic values.  Marking the resulting
+    fragment safe here lets the new Jinja shell coexist with those established
+    renderers without reimplementing the analytics or its presentation at once.
+    """
+    return _TEMPLATE_ENVIRONMENT.get_template("base.html").render(
+        title=title,
+        section=_section_for(active_path),
+        breadcrumb=None if active_path == "/" else _section_for(active_path),
+        wide=wide,
+        navigation=_navigation(active_path),
+        body=Markup(body),
+        legacy_style=Markup(_STYLE),
     )
 
 

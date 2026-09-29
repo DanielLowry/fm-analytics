@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
+from importlib import resources
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
 from fm_analytics.analytics import MVP_CATALOGUE, OpponentProfile
@@ -46,6 +47,9 @@ class SquadWebHandler(
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         path = parsed.path
+        if path.startswith("/static/"):
+            self._send_static(path)
+            return
         routes = {
             "/": self._dashboard,
             "/squad": self._squad_page,
@@ -75,6 +79,32 @@ class SquadWebHandler(
             )
             return
         handler(path, parse_qs(parsed.query))
+
+    def _send_static(self, path: str) -> None:
+        """Serve only the bundled shell assets, never an arbitrary package file."""
+        assets = {
+            "/static/app.css": ("app.css", "text/css; charset=utf-8"),
+            "/static/app.js": ("app.js", "text/javascript; charset=utf-8"),
+        }
+        asset = assets.get(path)
+        if asset is None:
+            self.send_error(HTTPStatus.NOT_FOUND, "Unknown static asset")
+            return
+        filename, content_type = asset
+        try:
+            content = resources.files("fm_analytics.web").joinpath("static", filename).read_bytes()
+        except FileNotFoundError:
+            self.send_error(HTTPStatus.SERVICE_UNAVAILABLE, "Frontend assets have not been built")
+            return
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(content)))
+        self.send_header("Cache-Control", "public, max-age=3600")
+        self.end_headers()
+        try:
+            self.wfile.write(content)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
@@ -148,33 +178,103 @@ class SquadWebHandler(
     def _dashboard(self, path: str, _query: dict[str, list[str]]) -> None:
         try:
             game, squad = self.server.read()  # type: ignore[attr-defined]
-        except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
+        except (BridgeSourceError, OSError, RuntimeError, ValueError, KeyError) as exc:
             self._send(_error_page("Dashboard", str(exc), path), HTTPStatus.SERVICE_UNAVAILABLE)
             return
         club = squad.club.name if squad.club else "No controlled club"
         complete = has_complete_role_attributes(squad)
         pinned_keys = self.server.pinned_tactics  # type: ignore[attr-defined]
-        pinned_row = (
-            "<tr><th>My tactics</th><td>"
-            + html.escape(", ".join(MVP_CATALOGUE.tactics[key].name for key in pinned_keys))
-            + " <span class='muted'>(first is primary)</span></td></tr>"
-            if pinned_keys
-            else ""
+        pinned_names = tuple(
+            MVP_CATALOGUE.tactics[key].name
+            for key in pinned_keys
+            if key in MVP_CATALOGUE.tactics
+        )
+
+        def metric(label: str, value: str, note: str) -> str:
+            return (
+                "<section class='fm-card fm-metric'>"
+                f"<span class='fm-metric-label'>{html.escape(label)}</span>"
+                f"<strong class='fm-metric-value'>{html.escape(value)}</strong>"
+                f"<span class='fm-metric-note'>{html.escape(note)}</span>"
+                "</section>"
+            )
+
+        bundle: RecommendationBundle | None = None
+        bundle_error = ""
+        if complete:
+            try:
+                bundle = self.server.bundle()  # type: ignore[attr-defined]
+            except (BridgeSourceError, OSError, RuntimeError, ValueError, KeyError) as exc:
+                bundle_error = str(exc)
+
+        primary_tactic = "Data required"
+        primary_note = "Complete role attributes to calculate a recommendation"
+        depth_value = "Data required"
+        depth_note = "Depth checks appear once role scoring is ready"
+        risk_items = ""
+        if bundle is not None:
+            primary_tactic = bundle.primary.tactic.name
+            primary_note = f"Recommendation score {_band(bundle.primary.score)}"
+            persistent = bundle.planning_depth.persistent_weaknesses
+            depth_value = "No persistent risks" if not persistent else f"{len(persistent)} persistent risk(s)"
+            depth_note = "Across your pinned tactics" if pinned_names else "Across the tactic catalogue"
+            risk_items = "".join(
+                "<li><b>"
+                + html.escape(depth.position)
+                + "</b> — "
+                + html.escape(
+                    ", ".join(
+                        sorted(
+                            {
+                                tagged.weakness.kind.value.replace("_", " ")
+                                for tagged in depth.weaknesses
+                            }
+                        )
+                    )
+                )
+                + "</li>"
+                for depth in persistent[:5]
+            )
+
+        tactic_value = ", ".join(pinned_names) if pinned_names else "No tactic pinned"
+        tactic_note = "The first pinned tactic is your default" if pinned_names else "Pin tactics to focus planning depth"
+        coverage_value = "Ready" if complete else "Incomplete data"
+        coverage_note = "Role-scoring attributes are complete" if complete else "Some role-scoring attributes are missing"
+        metrics = "".join(
+            (
+                metric("Senior squad", str(len(squad.players)), club),
+                metric("Recommended tactic", primary_tactic, primary_note),
+                metric("Planning depth", depth_value, depth_note),
+                metric("Data coverage", coverage_value, coverage_note),
+            )
+        )
+        risks = (
+            "<ul class='fm-risk-list'>" + risk_items + "</ul>"
+            if risk_items
+            else "<p>There are no persistent depth risks in the tactics currently being planned.</p>"
+        )
+        diagnostic = (
+            f"<p class='error'>{html.escape(bundle_error)}</p>" if bundle_error else ""
         )
         body = (
-            "<table>"
-            f"<tr><th>Club</th><td>{html.escape(club)}</td></tr>"
-            f"<tr><th>Date</th><td>{game.game_date.isoformat()}</td></tr>"
-            f"<tr><th>Manager</th><td>{html.escape(game.human_manager.name)}</td></tr>"
-            f"<tr><th>Squad size</th><td>{len(squad.players)}</td></tr>"
-            + pinned_row
-            + "<tr><th>Attribute coverage</th><td>"
-            + ("complete" if complete else "<span class='warn'>incomplete — see Data</span>")
-            + "</td></tr></table>"
-            "<p class='muted'>Squad, Roles, Tactics, and Depth need complete role-scoring "
-            "attributes; Data works regardless and shows exactly what is missing.</p>"
+            "<div class='fm-command-grid'>" + metrics + "</div>"
+            "<div class='fm-command-layout'>"
+            "<section class='fm-card fm-command-card'><h2>Today’s decision frame</h2>"
+            f"<p>{html.escape(club)} · {html.escape(game.game_date.isoformat())} · "
+            f"{html.escape(game.human_manager.name)}</p>"
+            "<p class='mt-3'>Start from the recommendation, then use the tactics view to inspect the XI, "
+            "bench and matchday trade-offs.</p>"
+            "<a class='fm-command-action' href='/tactics'>Open tactics workspace</a>"
+            "</section>"
+            "<section class='fm-card fm-command-card'><h2>Depth watchlist</h2>"
+            + risks
+            + "<a class='fm-command-action' href='/depth'>Review squad depth</a></section>"
+            "</div>"
+            + diagnostic
+            + "<p class='muted'>Squad, Roles, Tactics, and Depth need complete role-scoring attributes; "
+            "Data works regardless and shows exactly what is missing.</p>"
         )
-        self._send(_layout("Dashboard", path, body))
+        self._send(_layout("Command centre", path, body))
 
     def _bundle_or_error(
         self,
@@ -184,7 +284,7 @@ class SquadWebHandler(
     ) -> RecommendationBundle | None:
         try:
             return self.server.bundle(opponent)  # type: ignore[attr-defined]
-        except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
+        except (BridgeSourceError, OSError, RuntimeError, ValueError, KeyError) as exc:
             self._send(_error_page(title, str(exc), path), HTTPStatus.SERVICE_UNAVAILABLE)
             return None
 
@@ -217,8 +317,8 @@ class SquadWebHandler(
                 "<tr>"
                 f"<td>{squad_player_link(player)}</td>"
                 f"<td>{', '.join(player.positions)}</td>"
-                f"<td>{player.condition_percent if player.condition_percent is not None else '?'}% / "
-                f"{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
+                f"<td>{player.condition_percent if player.condition_percent is not None else '?'}%</td>"
+                f"<td>{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
                 f"<td>{html.escape(player.availability)}</td>"
                 f"{role_score_cells(scores)}"
                 "</tr>"
@@ -234,19 +334,19 @@ class SquadWebHandler(
         )
         body = (
             comparison_body
-            + "<h2>Roster overview</h2>"
-            "<p class='muted'><b>Attribute-based role score</b> uses attributes and role fit only. "
-            "<b>In-position role score</b> also applies positional familiarity. "
-            "<b>Today’s selection score</b> then applies match readiness, using the same calculation as Tactics. "
-            "Each column shows the player's strongest role by that measure.</p>"
-            "<p class='muted'>Click a column heading to sort by it.</p>"
-            "<table class='sortable'><tr><th>Player</th><th>Positions</th><th>Condition</th>"
+            + "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div>"
+            "<h2>Roster overview</h2>"
+            "<p><b>Attribute-based role score</b> uses role fit only; <b>in-position</b> adds familiarity; "
+            "<b>today’s selection</b> also adds match readiness.</p></div>"
+            f"<span class='fm-panel-count'>{len(squad.players)} players</span></div>"
+            "<p class='muted'>Click a column heading to sort. Each score names the player’s strongest role by that measure.</p>"
+            "<div class='fm-table-card'><table class='sortable'><tr><th>Player</th><th>Positions</th><th>Condition</th>"
             "<th>Match fitness</th><th>Availability</th>"
             "<th>Attribute-based role score (best role)</th>"
             "<th>In-position role score (best role)</th>"
             "<th>Today’s selection score (best role)</th></tr>"
             + "".join(rows)
-            + "</table>"
+            + "</table></div></section>"
             + self._other_teams_section(squad)
             + _SORTABLE_TABLE_SCRIPT
         )
@@ -258,15 +358,16 @@ class SquadWebHandler(
         positions: tuple[str, ...], role_options: tuple[tuple[str, str], ...],
     ) -> str:
         form = (
+            "<section class='fm-workspace-panel fm-compare-panel'><div class='fm-panel-heading'><div>"
             "<h2>Compare a position</h2>"
-            "<p class='muted'>Choose a position to compare like-for-like. Pinning a role is optional; "
-            "otherwise each player is shown in their best compatible role there.</p>"
+            "<p>Choose a position to compare like-for-like. Pinning a role is optional; "
+            "otherwise each player is shown in their best compatible role there.</p></div></div>"
             "<form class='filters' method='get' action='/squad'>"
             "<label>Position<select name='position'>"
             + _options(((item, item) for item in positions), position, "Choose a position")
             + "</select></label><label>Role (optional)<select name='role'>"
             + _options(role_options, role_key, "Best role at this position")
-            + "</select></label><button type='submit'>Compare</button></form>"
+            + "</select></label><button type='submit'>Compare</button></form></section>"
         )
         if comparison is None:
             return form
@@ -302,14 +403,15 @@ class SquadWebHandler(
             )
         return (
             form
+            + "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div>"
             + f"<h2>{html.escape(comparison.position)} comparison</h2>"
-            + f"<p class='muted'>Role: {role_description}. {len(comparison.entries)} players are captured as eligible for "
+            + f"<p>Role: {role_description}. {len(comparison.entries)} players are captured as eligible for "
             + f"{html.escape(comparison.position)}; {comparison.players_not_captured_for_position} are not assessed for this position. "
             + "Sorted by in-position estimate. ‘Today’ adds readiness and is suppressed when the player cannot be selected.</p>"
-            + "<table class='sortable'><tr><th>Rank</th><th>Player</th><th>Role</th><th>Familiarity</th>"
+            + "</div></div><div class='fm-table-card'><table class='sortable'><tr><th>Rank</th><th>Player</th><th>Role</th><th>Familiarity</th>"
             + "<th>Attribute role score</th><th>In-position estimate</th><th>Condition</th><th>Match fitness</th>"
             + "<th>Today’s score</th><th>Status</th></tr>"
-            + "".join(rows) + "</table>"
+            + "".join(rows) + "</table></div></section>"
         )
 
     def _squad_player_page(self, path: str, _query: dict[str, list[str]]) -> None:
@@ -414,7 +516,7 @@ class SquadWebHandler(
 
     def _send(self, body: str, status: HTTPStatus = HTTPStatus.OK) -> None:
         status_html = self.server.status_html()  # type: ignore[attr-defined]
-        body = body.replace("</nav>", status_html + "</nav>", 1)
+        body = body.replace("<!--FM_STATUS-->", status_html, 1)
         encoded = body.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")

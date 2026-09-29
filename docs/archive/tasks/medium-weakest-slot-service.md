@@ -112,10 +112,17 @@ decisions, as taken:
   already-ordered list, so truncation always drops the least severe items.
 - **No pins:** falls back to `(bundle.recommendation.selected,)`, matching
   `bundle.primary`'s own fallback.
+- **Role attributes (added in review, 29 September 2026):** the first version
+  left out the "role's weighted attributes" field this brief's scope lists and
+  the scouting-alerts brief needs. `WeakSlot.role_attributes` is now the
+  role's `(attribute, weight)` pairs in that slot, heaviest first. They are
+  weighted by the tactic and the bundle's opponent profile, the same weighting
+  the weakness report used. Which of them matter enough to trigger
+  re-scouting stays the alerts brief's decision.
 
 Tests: `tests/test_reporting.py::WeakestSlotsTests`, built against the small
 test-only catalogue/tactic in `tests/test_xi_selection.py` rather than the real
-50-tactic catalogue, so the fixtures stay fast and exact -- covering a weak
+catalogue, so the fixtures stay fast and exact -- covering a weak
 starter that is also flagged with no backup, pinned vs. unpinned agreement,
 `limit`, ordering a real (weak) backup below a "no backup at all" slot, and
 the empty case.

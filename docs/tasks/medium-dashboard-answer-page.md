@@ -6,7 +6,7 @@ review item 2.5.
 **Prerequisites:** the active plan schedules this item, and the
 [web cache rework](medium-web-cache-rework.md) has landed so the dashboard can
 use the bundle without paying for a duplicate build. The
-[weakest-slot service](medium-weakest-slot-service.md) is strongly preferred,
+[weakest-slot service](../archive/tasks/medium-weakest-slot-service.md) is strongly preferred,
 so the dashboard does not become a fourth definition of "squad problems".
 
 ## Why we are doing this

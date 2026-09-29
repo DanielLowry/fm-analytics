@@ -16,42 +16,38 @@ import argparse
 import html
 import json
 import os
-import subprocess
 import sys
 import threading
 import time
 from collections import OrderedDict
 from datetime import datetime, timezone
-from http import HTTPStatus
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Callable, Sequence
-from urllib.parse import parse_qs, urlparse
 
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
     OpponentProfile,
-    ScoutRecommendation,
-    ScoutingFilters,
-    TacticDefinition,
     TacticRankingExecutor,
-    WeaknessKind,
-    WeaknessReport,
-    assess_scouting_candidates,
-    available_fact_values,
-    filter_scouting_candidates,
     rank_for_position,
 )
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.candidate_pool import DEFAULT_OUT_OF_DATE_MONTHS, compose_candidate_pool
-from fm_analytics.domain import SourceHealth, Squad
+from fm_analytics.domain import SourceHealth
 from fm_analytics.knowledge_ingest import DEFAULT_DATABASE as DEFAULT_KNOWLEDGE_DATABASE
 from fm_analytics.knowledge_ingest import default_save_key, record_capture_file
 from fm_analytics.match_ingest import DEFAULT_DATABASE as DEFAULT_MATCH_DATABASE
 from fm_analytics.match_ingest import DEFAULT_CAPTURE as DEFAULT_MATCH_CAPTURE
 from fm_analytics.match_ingest import capture_and_record, record_capture_file as record_match_capture
 from fm_analytics.persistence.match_history import MatchHistoryStore
-from fm_analytics.persistence import PlayerKnowledgeStore, RecordResult, Verdict, VerdictRecord
+from fm_analytics.persistence import (
+    PlayerKnowledgeStore,
+    RecordResult,
+    SnapshotStore,
+    SnapshotStoreError,
+    Verdict,
+    VerdictRecord,
+)
 from fm_analytics.reporting import (
     RecommendationBundle,
     RecommendationPolicy,
@@ -60,7 +56,6 @@ from fm_analytics.reporting import (
     build_tactic_matchday_report,
     has_complete_role_attributes,
     parse_pinned_tactics,
-    required_role_attributes,
     validate_recommendation_snapshot,
 )
 from fm_analytics.web.providers import (
@@ -74,23 +69,7 @@ from fm_analytics.web.providers import (
 )
 
 
-from fm_analytics.web.rendering import (
-    _MAX_SCOUTING_ROWS,
-    _band,
-    _error_page,
-    _injury_risk_count,
-    _input_value,
-    _label,
-    _layout,
-    _options,
-    _position_display,
-    _query_first,
-    _raw_position_notice,
-    _scouting_filters,
-    _scouting_refresh_command,
-    _tactic_notes,
-    _tactical_shortfalls,
-)
+from fm_analytics.web.rendering import _scouting_refresh_command
 
 
 from fm_analytics.web.handlers import SquadWebHandler
@@ -446,17 +425,27 @@ class SquadWebServer(MatchHistoryState, ThreadingHTTPServer):
             health_checking = self._health_checking
             error = str(self._refresh_error) if self._refresh_error else ""
         detail = "refreshing…" if refreshing else ("refresh failed: " + error if error else "")
+        status = health.status
+        state = "unavailable" if status == "unavailable" else "ready"
         return (
-            "<aside class='fm-status'><b>FM: " + html.escape(health.status) + "</b>"
-            + f"<br>Health checked: {html.escape(checked)}"
-            + f"<br>Recommendation snapshot: {html.escape(game_date)} ({html.escape(snapshot)})"
-            + (f"<br><span class='warn'>{html.escape(detail)}</span>" if detail else "")
+            "<aside class='fm-status'>"
+            + f"<span class='fm-status-dot' data-state='{html.escape(state)}' aria-hidden='true'></span>"
+            + "<div class='fm-status-copy'><b>FM "
+            + html.escape(status)
+            + "</b><span>Snapshot: "
+            + html.escape(game_date)
+            + "</span></div>"
+            + "<details><summary>Data controls</summary><div class='fm-status-actions'>"
+            + f"<span class='fm-metric-note'>Health checked: {html.escape(checked)}</span>"
+            + f"<span class='fm-metric-note'>Loaded: {html.escape(snapshot)}</span>"
+            + (f"<span class='warn'>{html.escape(detail)}</span>" if detail else "")
             + "<form method='post' action='/health/refresh'><button type='submit'"
             + (" disabled" if health_checking else "")
             + ">Check connection</button></form>"
             + "<form method='post' action='/refresh'><button type='submit'"
             + (" disabled" if refreshing else "")
-            + ">Refresh squad data</button></form></aside>"
+            + ">Refresh squad data</button></form>"
+            + "</div></details></aside>"
         )
 
     def shutdown(self) -> None:
@@ -594,6 +583,12 @@ def _build_provider(args: argparse.Namespace) -> GameSquadProvider:
     if args.capture_id is not None and not args.snapshot_db:
         raise SystemExit("--capture-id requires --snapshot-db")
     if args.snapshot_db:
+        # Fail at startup, in plain text, rather than the first page load
+        # hitting an unreadable capture mid-request.
+        try:
+            SnapshotStore(args.snapshot_db).initialize()
+        except SnapshotStoreError as exc:
+            raise SystemExit(str(exc)) from exc
         provider = snapshot_provider(args.snapshot_db, capture_id=args.capture_id)
     elif args.base_url:
         provider = live_provider(base_url=args.base_url)
@@ -704,16 +699,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _default_fixture_path() -> str:
-    from pathlib import Path
-
     return str(
         Path(__file__).resolve().parents[1] / "fixtures" / "sample-game.json"
     )
 
 
 def _default_scouting_path():
-    from pathlib import Path
-
     data_dir = Path(__file__).resolve().parents[3] / "data"
     for filename in (
         "scouting-capture-enriched.json",

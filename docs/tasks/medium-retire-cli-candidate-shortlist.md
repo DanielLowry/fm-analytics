@@ -31,7 +31,7 @@ feature is going. Keeping both means each feature is missing on one side.
 
 - `build_recruitment_briefs` and `RecruitmentBrief`. `reporting.py` builds
   `bundle.briefs` for every bundle, the CLI prints them, and the
-  [weakest-slot service](medium-weakest-slot-service.md) may reuse them.
+  [weakest-slot service](../archive/tasks/medium-weakest-slot-service.md) may reuse them.
 - `VisibleExportPlayer` and `imports/fm_html.py`. The `--fm-html` squad
   overlay uses them, and the set-piece quick win depends on that overlay.
 

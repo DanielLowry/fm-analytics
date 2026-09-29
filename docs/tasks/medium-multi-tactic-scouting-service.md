@@ -4,7 +4,13 @@
 
 **Prerequisite:** a senior reviewer has accepted the representation and
 meaning of a candidate's cover assessment. This task may orchestrate that
-calculation but must not invent how cover value is scored.
+calculation but must not invent how cover value is scored. **Met on 28
+September 2026:** see the
+[cover-value contract](../archive/tasks/senior-cover-value-contract.md).
+`rank_candidates_for_tactic(..., weakness_report=...)` already returns
+`cover_assessment` for one tactic; pass each pinned tactic's report from
+`bundle.squad_depth.per_tactic`. The page-load budget is still open in the
+[scouting cost budget](senior-scouting-cost-budget.md).
 
 ## Why we are doing this
 
@@ -49,8 +55,11 @@ analytics while rendering.
 
 ## Decisions reserved for review
 
-- The definition and units of cover value.
-- Whether a candidate can be first cover for more than one slot.
+- ~~The definition and units of cover value.~~ Taken: the candidate's tapered
+  role score band beside the current first cover's central score (cover-value
+  contract, question 1).
+- ~~Whether a candidate can be first cover for more than one slot.~~ Taken:
+  one slot, the largest margin (question 2).
 - The page-load performance budget and whether caching or process workers are
   justified.
 - Any change to floor, cautious estimate, median, or ceiling semantics.

@@ -150,16 +150,18 @@ class TacticPagesMixin:
                 for index, evaluation in enumerate(bundle.pinned)
             )
             pinned_block = (
-                "<h2>Your tactics</h2>"
-                "<table><tr><th>Tactic</th><th>Rank</th><th>Play-now score</th>"
+                "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div>"
+                "<h2>Your tactics</h2><p>Your pinned order drives the planning view; the first tactic is your primary.</p>"
+                "</div><span class='fm-panel-count'>" + str(len(pinned_keys)) + " pinned</span></div>"
+                "<div class='fm-table-card'><table><tr><th>Tactic</th><th>Rank</th><th>Play-now score</th>"
                 "<th>vs top-ranked</th><th></th></tr>"
                 + pinned_rows
-                + "</table>"
+                + "</table></div></section>"
             )
         body = (
             _opponent_controls(opponent)
             + profile_summary
-            + "<section class='tactic-hero'>"
+            + "<section class='fm-decision-hero'>"
             f"<span class='eyebrow'>Recommended {'for this opponent' if active_axes else 'for today'}</span>"
             f"<h2>{html.escape(selected.tactic.name)}</h2>"
             f"<p>{html.escape(selected.tactic.formation)} · Play-now tactic score "
@@ -168,22 +170,24 @@ class TacticPagesMixin:
             "Open recommended tactic →</a></p></section>"
             + pinned_block
             + self._match_record_block(pinned_keys, opponent.quality)  # type: ignore[attr-defined]
-            + "<h2>Compare tactics</h2>"
-            "<p class='muted'>A quick squad-fit comparison. Open a tactic to inspect its "
+            + "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div>"
+            "<h2>Compare tactics</h2>"
+            "<p>A quick squad-fit comparison. Open a tactic to inspect its "
             f"XI, why each player was selected, and a {bundle.policy.bench_size}-player "
-            "matchday bench.</p>"
-            "<table><tr><th>Rank</th><th>Tactic</th><th>Shape</th>"
+            "matchday bench.</p></div>"
+            f"<span class='fm-panel-count'>{len(rows)} options</span></div>"
+            "<div class='fm-table-card'><table><tr><th>Rank</th><th>Tactic</th><th>Shape</th>"
             "<th>Play-now score</th><th>Line-up</th><th>Key issue</th>"
             + opponent_headers
             + "<th></th></tr>"
             + "".join(rows)
-            + "</table>"
+            + "</table></div>"
             "<details><summary>How tactics are ranked</summary>"
             "<p class='muted'>The play-now score is the balanced player score multiplied "
             "by the selected roles’ tactic-balance factor. Player fit includes position "
             "familiarity, condition and match fitness. The balance factor is 1.0 only when "
             "the roles meet every structural and instruction requirement. Opponent fit is "
-            "reported separately: it does not silently discount the tactic score.</p></details>"
+            "reported separately: it does not silently discount the tactic score.</p></details></section>"
         )
         self._send(_layout("Tactics", path, body))
 

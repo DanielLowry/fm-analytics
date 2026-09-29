@@ -3,7 +3,23 @@
 **Active-plan item:** 6.
 
 **Prerequisites:** database-backed best-known profiles, current manual
-verdicts, and an accepted source of weakest-slot role attributes.
+verdicts, and an accepted source of weakest-slot role attributes. **All met by
+29 September 2026:**
+
+- [best-known profiles](../archive/tasks/medium-best-known-player-profiles.md)
+  and the [database-backed candidate pool](../archive/tasks/medium-database-candidate-pool.md),
+  whose `CandidateHistory.out_of_date` already applies a six-month threshold;
+- [manual verdicts](../archive/tasks/medium-manual-scouting-verdicts.md)
+  (`PlayerKnowledgeStore.current_verdicts`); and
+- `WeakSlot.role_attributes` from the
+  [weakest-slot service](../archive/tasks/medium-weakest-slot-service.md).
+
+One gap remains. Free-agent, listed and contract-end transitions can be read
+from `profile_observations` (`has_contract`, `transfer_status`,
+`contract_end`). A **newly realistic** transition (Player Search or
+transfer/loan interest) has no stored previous state: the knowledge history
+does not record interest yet (see "Known gaps" in
+[scouting-workspace.md](../scouting-workspace.md)).
 
 ## Why we are doing this
 
@@ -47,9 +63,15 @@ existing player report or filtered list.
 ## Decisions reserved for review
 
 - Exact near-contract-end window.
-- Calendar interpretation of six months in the FM date model.
+- ~~Calendar interpretation of six months in the FM date model.~~ Taken by the
+  candidate pool: calendar months of game time, clamped to month end
+  (`candidate_pool.months_before`, `--out-of-date-months` on `fm-web`). Reuse
+  it rather than defining a second "out of date".
 - Which weak-slot attributes are important enough to trigger re-scouting.
 - Alert ordering when a player has several reasons.
+- Whether "newly realistic" waits until interest is recorded in the knowledge
+  history, compares with the previous capture file instead, or is dropped
+  from the first version.
 
 ## Success criteria
 

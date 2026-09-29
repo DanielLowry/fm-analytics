@@ -14,7 +14,7 @@ from fm_analytics.persistence.player_knowledge import (
     Verdict,
     VerdictRecord,
 )
-from fm_analytics.persistence.store import CaptureRecord, SnapshotStore
+from fm_analytics.persistence.store import CaptureRecord, SnapshotStore, SnapshotStoreError
 
 __all__ = [
     "MAX_VERDICT_NOTE_LENGTH",
@@ -28,6 +28,7 @@ __all__ = [
     "RecordResult",
     "SelectedAttribute",
     "SnapshotStore",
+    "SnapshotStoreError",
     "TimelineError",
     "Verdict",
     "VerdictRecord",
