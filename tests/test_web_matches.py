@@ -76,6 +76,7 @@ class MatchPageTests(MatchPagesCase):
         self.assertIn("Home 11", body)
         self.assertIn("Deep-Lying Forward (Support)", body)
         self.assertIn("From the roles in the line-up this looks like", body)
+        self.assertIn("Minutes", body)
         self.assertIn("action='/matches/note'", body)
 
     def test_a_result_only_match_explains_how_to_add_its_stats(self) -> None:

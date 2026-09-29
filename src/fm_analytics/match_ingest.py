@@ -149,9 +149,12 @@ def format_review(review: MatchReview) -> str:
     for role in review.roles:
         share = f"{100 * role.shot_share:.0f}% of shots" if role.shot_share is not None else "-"
         rating = f"{role.average_rating:.2f}" if role.average_rating is not None else "-"
+        per_90 = role.per_90(role.shots)
         lines.append(
-            f"  {role.label:<36} apps {role.appearances:>2}  shots {role.shots:>2} ({share})  "
-            f"goals {role.goals}  assists {role.assists}  clear-cut {role.clear_cut_chances}  rating {rating}"
+            f"  {role.label:<36} apps {role.appearances:>2} ({role.minutes} min)  shots {role.shots:>2} "
+            f"({share}, {_number(per_90)} per 90)  goals {role.goals}  assists {role.assists}  "
+            f"clear-cut {role.clear_cut_chances}  key passes {role.key_passes}  "
+            f"chances created {role.chances_created}  rating {rating}"
         )
     for code in review.unconfirmed_roles:
         lines.append(f"  Unconfirmed FM role code {code.code:#x}: {code.appearances} appearances, e.g. {code.examples[0]}")
@@ -276,8 +279,8 @@ def _format_match(report) -> str:
         if player.played:
             lines.append(
                 f"  {player.shirt:>2} {player.label:<24} {report.role_labels[player.role_code]:<36} "
-                f"{player.rating or 0:.2f}  shots {player.stat('shots')}  goals {player.stat('goals')}  "
-                f"assists {player.stat('assists')}"
+                f"{player.minutes:>2} min  rating {_number(player.rating)}  shots {player.stat('shots')}  "
+                f"goals {player.stat('goals')}  assists {player.stat('assists')}"
             )
     return "\n".join(lines)
 

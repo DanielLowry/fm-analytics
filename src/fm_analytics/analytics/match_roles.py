@@ -91,12 +91,15 @@ class RoleSummary:
     label: str
     appearances: int
     starts: int
+    minutes: int
     goals: int
     assists: int
     shots: int
     shots_on_target: int
     clear_cut_chances: int
+    key_passes: int
     chances_created: int
+    dribbles: int
     team_shots: int
     average_rating: float | None
 
@@ -108,16 +111,9 @@ class RoleSummary:
     def shot_share(self) -> float | None:
         return self.shots / self.team_shots if self.team_shots else None
 
-    @property
-    def per_appearance(self) -> Mapping[str, float]:
-        count = self.appearances or 1
-        return {
-            "goals": self.goals / count,
-            "assists": self.assists / count,
-            "shots": self.shots / count,
-            "clear_cut_chances": self.clear_cut_chances / count,
-            "chances_created": self.chances_created / count,
-        }
+    def per_90(self, value: int) -> float | None:
+        """A count per 90 minutes played; None with no minutes to divide by."""
+        return 90 * value / self.minutes if self.minutes else None
 
 
 def summarise_roles(
@@ -136,10 +132,12 @@ def summarise_roles(
         row = totals.setdefault(player.role_code, Counter())
         row["appearances"] += 1
         row["starts"] += int(player.started)
+        row["minutes"] += player.minutes
         if (player.role_code, match_key) not in seen_matches:
             seen_matches.add((player.role_code, match_key))
             row["team_shots"] += team_shots
-        for key in ("goals", "assists", "shots", "shots_on_target", "clear_cut_chances", "chances_created"):
+        for key in ("goals", "assists", "shots", "shots_on_target", "clear_cut_chances",
+                    "key_passes", "chances_created", "dribbles"):
             row[key] += player.stat(key)
         if player.rating is not None:
             row["rated"] += 1
@@ -151,12 +149,15 @@ def summarise_roles(
             label=codes.label(code),
             appearances=row["appearances"],
             starts=row["starts"],
+            minutes=row["minutes"],
             goals=row["goals"],
             assists=row["assists"],
             shots=row["shots"],
             shots_on_target=row["shots_on_target"],
             clear_cut_chances=row["clear_cut_chances"],
+            key_passes=row["key_passes"],
             chances_created=row["chances_created"],
+            dribbles=row["dribbles"],
             team_shots=row["team_shots"],
             average_rating=round(row["rating_total"] / row["rated"], 2) if row["rated"] else None,
         )

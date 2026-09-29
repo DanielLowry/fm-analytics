@@ -41,6 +41,7 @@ COMPETITION_SCOPE_LABELS = {
 METRICS: tuple[tuple[str, str, bool], ...] = (
     ("shots", "Shots", False),
     ("shots_on_target", "On target", False),
+    ("off_target", "Off target", False),
     ("clear_cut_chances", "Clear-cut chances", False),
     ("possession", "Possession", True),
     ("corners", "Corners", False),
@@ -82,9 +83,17 @@ def side_metrics(match: MatchRecord, side: str) -> dict[str, float | None] | Non
     if detail is None:
         return None
     team = detail.team(side)
+    players = detail.players_for(side)
+    # FM's panel counts a blocked shot as neither on nor off target.
+    off_target = (
+        team.get("shots", 0) - team.get("shots_on_target", 0)
+        - sum(player.stat("shots_blocked") for player in players)
+        if players else None
+    )
     return {
         "shots": team.get("shots", 0),
         "shots_on_target": team.get("shots_on_target", 0),
+        "off_target": off_target,
         "clear_cut_chances": team.get("clear_cut_chances", 0),
         "possession": detail.possession_percent(side),
         "corners": team.get("corners", 0),

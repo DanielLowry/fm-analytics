@@ -50,9 +50,10 @@ both the page and `fm-matches review` use.
 - **Home and away.**
 - **Where goals come from:** goals by 15-minute period, which roles scored
   and set up our goals, and which opposition roles scored against us.
-- **Who creates and shoots:** for each role, appearances, shots and share of
-  the team's shots, goals, assists, clear-cut chances, "chances created" and
-  average rating.
+- **Who creates and shoots:** for each role, appearances, minutes, shots
+  (total and per 90), share of the team's shots, goals, assists, goals plus
+  assists per 90, clear-cut chances, key passes and chances created (with
+  their per-90 rates), dribbles and average rating.
 - **A page for each match:** FM's stats panel, the timeline, both line-ups
   with role and stats, and a form for your notes (tactic used, pre-match
   rating, free text).
@@ -94,13 +95,16 @@ both the page and `fm-matches review` use.
 
 ### Known limitations
 
-- Minutes played are not read, so role figures are per appearance, not per
-  90 minutes.
+- A rating is withheld for anyone on the pitch under 13 minutes. FM showed
+  "–" after 4 minutes and a rating after 13, and its exact cut-off lies in
+  between, so the app may hide a rating FM shows but never shows one FM
+  hides.
 - Goal type (open play, set piece) and shot zone are not read: the goal
   descriptor bytes are not decoded.
-- Opposition players' names are not read.
-- The "chances created" column adds up to the team's clear-cut chances in one
-  match and not in the other, so it is labelled unconfirmed.
+- `+0x76` in the player record is **not captured**. It matched Jarra's one
+  key header, but gave Hargreaves 1 where FM showed 0, so what it counts is
+  unknown. Where visibility is uncertain, the value is treated as
+  unavailable.
 - Cards have not been located.
 - It is not known whether a role code tells duties apart (Winger Support from
   Winger Attack). Codes are labelled with the role and duty they were
@@ -373,19 +377,63 @@ The executable also names `MATCH_ANALYSIS_MATCH`, `PITCH_GOALS_AREAS`,
   the stadium. Scheduled copies of a fixture have no outcome at `+0x78`.
 - Player short ID = person `+0x08`.
 
+**Found on 30 September 2026:**
+
+- **Opposition names.** A player's person object starts with the player class
+  table followed by the short ID. One scan for those 12-byte pairs names
+  every player in a match, and first and last name are at person `+0x58` and
+  `+0x60`. The capture now does this, so opposition players are named, as
+  are our own who have left.
+- **Goal records.** `db::GOAL_DESCRIPTION` objects (0x70 bytes) repeat each
+  goal's eight descriptor bytes (`+0x20`), with the scoring team (`+0x28`),
+  the date (`+0x38`), the scorer's shirt (`+0x40`) and the opposing team
+  (`+0x50`). Decoding goal type still needs ground truth.
+- **Not used: the key-moments list** (`GAME_MATCH_STATS +0x70`, 20-byte
+  records with the minute and second of goals and other moments). Alongside
+  the shots it holds values between 0 and 1 that FM20 never shows. They are
+  probably an internal chance-quality figure, so the list is not read.
+- **The match archive** (`OBJECT_STORAGE<ARCHIVED_MATCH_STATS>`) is a
+  serialized stream (`SEGMENT_INPUT_STREAM`). Reading it without opening
+  reports would mean running FM's loader in the sandbox, which is deferred:
+  opening each report once works.
+- **Minutes played.** The player record holds the minute a player came on
+  (`+0x89`) and the minute he was taken off (`+0x84`), with 0 when neither
+  happened. All ten substitution times at Concord match FM's line-up export
+  (`data/research/matches/2019-11-02-concord-hungerford-lineups.html`).
+  Minutes played = (minute off, else 90) − (minute on, else 0).
+- **Ratings FM does not show.** In that export FM showed "–" for Okojie (on
+  for 4 minutes), while the record holds 6.67. The reader withholds ratings
+  under 13 minutes, the shortest stint FM was seen to rate (Millar).
+- **Per-player figures checked against FM's player stats screens** (30
+  September 2026, Concord match, read out by the product owner):
+  - Fundi's shot outcomes (1 goal, 1 saved, none missed or blocked);
+  - Cain's tackles (5 won, 0 lost) and distance (12.2 km, stored as 12,214 m
+    at `+0x44`);
+  - Jarra's headers (10 won, 3 lost); and
+  - Saydee's passes (33 of 44, 75%) and corners (2, `+0x9f`).
+
+  Blocked shots are `+0x6c`: 2 and 1 at Concord, 3 and 1 in August, exactly
+  FM's figures. Off target = shots − on target − blocked, which gives FM's
+  panel figures in both matches. Key passes (`+0x93`), chances created
+  (`+0x7a`) and dribbles (`+0x7b`) each matched FM for two players (Saydee
+  3/2/2 and Hargreaves 2/1/1; Cain's 7 dribbles too) and are captured.
+- **Print screen does not export the match Analysis tab** (the files come out
+  empty). The chalkboard's data (`MATCH_CHALKBOARD_DATA_CACHE`) is in memory
+  only while that tab is open.
+
 **Still open, in order:**
 
 1. Repeat the capture after an FM restart, to show the layout is stable
    across processes.
-2. Find minutes played, so role figures can be per 90 minutes.
-3. Decode the goal descriptor bytes, for goal type and shot zone.
-4. Read opposition players' names.
-5. Label the remaining team counters: customise FM's match stats to show
-   every available row and export again. Locate cards on a match where there
-   were some. Confirm `+0x76`.
-6. Find the match-detail archive, so backfill does not need each report
-   opened.
-7. Find out whether role codes tell duties apart.
+2. Confirm which per-player figures FM shows, from an export of the match's
+   player stats panel (the line-up export confirms ratings, goals, assists and
+   substitution times only). That settles the three withheld fields above.
+3. Goal type and shot zone: read the chalkboard data while the match Analysis
+   tab is open in FM, and decode the goal descriptor bytes against it.
+4. Label the remaining team counters, and locate cards on a match with some.
+5. Backfill from the archive without opening reports (sandbox), if still
+   wanted.
+6. Find out whether role codes tell duties apart.
 
 ## Delivery steps
 

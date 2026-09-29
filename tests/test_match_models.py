@@ -58,6 +58,24 @@ class MatchRecordTests(unittest.TestCase):
             self.match.side_of("999")
         self.assertEqual(len(self.match.detail.players_for("home")), 11)
 
+    def test_minutes_count_a_full_match_as_ninety(self) -> None:
+        document = capture_document(season())
+        players = document["matches"][-1]["detail"]["players"]
+        players[5]["wentOff"] = 63
+        players[6]["cameOn"] = 63
+        match = MatchCapture.from_document(document).matches[-1]
+        home = match.detail.players_for("home")
+        self.assertEqual([home[0].minutes, home[5].minutes, home[6].minutes], [90, 63, 27])
+        self.assertEqual(MatchRecord.from_document(match.to_document()), match)
+
+    def test_off_target_counts_blocked_shots_as_neither(self) -> None:
+        from fm_analytics.analytics.match_analysis import side_metrics
+
+        document = capture_document(season())
+        document["matches"][-1]["detail"]["players"][9]["stats"]["shots_blocked"] = 2
+        match = MatchCapture.from_document(document).matches[-1]
+        self.assertEqual(side_metrics(match, "home")["off_target"], 12 - 6 - 2)
+
     def test_a_result_only_match_has_no_detail(self) -> None:
         first = MatchCapture.from_document(capture_document(season())).matches[1]
         self.assertIsNone(first.detail)

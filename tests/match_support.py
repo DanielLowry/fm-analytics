@@ -33,11 +33,14 @@ def team_stats(**overrides: int) -> dict[str, int]:
     return stats
 
 
-def player(side: str, order: int, code: int, *, name: str | None = None, **stats: int) -> dict[str, Any]:
+def player(
+    side: str, order: int, code: int, *, name: str | None = None,
+    came_on: int | None = None, went_off: int | None = None, **stats: int,
+) -> dict[str, Any]:
     return {
         "side": side, "order": order, "started": order < 11, "shortId": 1000 + order + (0 if side == "home" else 500),
         "playerId": None, "name": name, "shirt": order + 1, "roleCode": code, "played": True,
-        "rating": 6.8, "distanceM": 10000, "stats": stats,
+        "rating": 6.8, "stats": stats, "cameOn": came_on, "wentOff": went_off,
     }
 
 

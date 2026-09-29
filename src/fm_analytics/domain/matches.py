@@ -22,6 +22,7 @@ from typing import Any, Mapping
 CAPTURE_FORMAT = "fm-analytics/match-capture"
 CAPTURE_FORMAT_VERSION = 1
 SIDES = ("home", "away")
+MATCH_MINUTES = 90
 
 # FM's match stats panel, in the order FM lists it.
 TEAM_STAT_KEYS = (
@@ -44,8 +45,11 @@ PLAYER_STAT_KEYS = (
     "assists",
     "shots",
     "shots_on_target",
+    "shots_blocked",
     "clear_cut_chances",
     "chances_created",
+    "key_passes",
+    "dribbles",
     "passes_attempted",
     "passes_completed",
     "tackles_attempted",
@@ -75,6 +79,15 @@ def _counts(raw: Any, where: str) -> Mapping[str, int]:
     if not isinstance(raw, Mapping):
         raise ValueError(f"{where} must be an object of counts")
     return MappingProxyType({str(key): _count(value, f"{where} {key}") for key, value in raw.items()})
+
+
+def _optional_minute(value: Any, where: str) -> int | None:
+    if value is None:
+        return None
+    minute = _count(value, where)
+    if minute > 200:
+        raise ValueError(f"{where} is not a match minute")
+    return minute
 
 
 def _side(value: Any, where: str) -> str:
@@ -146,9 +159,18 @@ class PlayerMatchStats:
     shirt: int
     role_code: int  # FM's role for the position played, one bit per role
     played: bool
-    rating: float | None
-    distance_m: int
+    rating: float | None  # None when FM shows none (unused, or barely on)
     stats: Mapping[str, int]
+    distance_m: int = 0
+    came_on: int | None = None  # minute a substitute came on
+    went_off: int | None = None  # minute he was taken off
+
+    @property
+    def minutes(self) -> int:
+        """Minutes on the pitch, counting a full match as FM does (90)."""
+        if not self.played:
+            return 0
+        return max((self.went_off or MATCH_MINUTES) - (self.came_on or 0), 0)
 
     def stat(self, key: str) -> int:
         return self.stats.get(key, 0)
@@ -176,8 +198,10 @@ class PlayerMatchStats:
             role_code=_count(raw.get("roleCode"), f"{where} roleCode"),
             played=bool(raw.get("played")),
             rating=float(rating) if rating is not None else None,
-            distance_m=_count(raw.get("distanceM", 0), f"{where} distanceM"),
             stats=_counts(raw.get("stats", {}), f"{where} stats"),
+            distance_m=_count(raw.get("distanceM", 0), f"{where} distanceM"),
+            came_on=_optional_minute(raw.get("cameOn"), f"{where} cameOn"),
+            went_off=_optional_minute(raw.get("wentOff"), f"{where} wentOff"),
         )
 
     def to_document(self) -> dict[str, Any]:
@@ -185,7 +209,8 @@ class PlayerMatchStats:
             "side": self.side, "order": self.order, "started": self.started,
             "shortId": self.short_id, "playerId": self.player_id, "name": self.name,
             "shirt": self.shirt, "roleCode": self.role_code, "played": self.played,
-            "rating": self.rating, "distanceM": self.distance_m, "stats": dict(self.stats),
+            "rating": self.rating, "stats": dict(self.stats),
+            "distanceM": self.distance_m, "cameOn": self.came_on, "wentOff": self.went_off,
         }
 
 

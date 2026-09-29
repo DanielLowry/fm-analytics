@@ -69,6 +69,8 @@ class Memory:
         os.close(self.fd)
 
     def read(self, address: int, size: int) -> bytes:
+        if not 0 < address < 1 << 47:
+            raise probe.ProbeError(f"not a user-space address: {address:#x}")
         return probe.read_exact(self.fd, address, size)
 
     def u64(self, address: int) -> int:
@@ -185,6 +187,35 @@ def managed_squad(memory: Memory) -> list[dict]:
     return players
 
 
+def player_names(memory: Memory, short_ids: set[int]) -> dict[int, str]:
+    """Names for match-record short IDs, found by one scan of FM's player objects.
+
+    A player's person part starts with its class table and carries the short
+    ID straight after it (+0x08), so the pair is a unique 12-byte pattern.
+    The names are the same fields the squad reader uses.
+    """
+    if not short_ids:
+        return {}
+    marker = struct.pack("<Q", memory.module_base + probe.FM20_4_4_STEAM.player_type_offset)
+    patterns = {marker + struct.pack("<I", short_id): str(short_id) for short_id in short_ids}
+    names: dict[int, str] = {}
+    for short_id, addresses in memory.scan(patterns, align=8, limit=4).items():
+        for person in addresses:
+            try:
+                name = " ".join(
+                    part for part in (
+                        probe.read_fm_string(memory.fd, person + 0x58),
+                        probe.read_fm_string(memory.fd, person + 0x60),
+                    ) if part
+                )
+            except (OSError, probe.ProbeError):
+                continue
+            if name:
+                names[int(short_id)] = name
+                break
+    return names
+
+
 def first_team_address(memory: Memory) -> int:
     contexts = probe.read_human_manager_contexts(memory.fd, memory.module_base)
     active = next((context for context in contexts if context.manager.active), None)
@@ -261,6 +292,14 @@ def build_capture(memory: Memory) -> dict[str, Any]:
             continue
         if detail is not None:
             details[key] = detail
+
+    # Opposition players, and our own who have since left, are named by one scan.
+    unnamed = {player["short_id"] for detail in details.values() for player in detail["players"] if not player["name"]}
+    names = player_names(memory, unnamed)
+    for detail in details.values():
+        for player in detail["players"]:
+            if not player["name"]:
+                player["name"] = names.get(player["short_id"])
 
     def match_json(key, result) -> dict[str, Any]:
         return {
@@ -342,7 +381,9 @@ def _detail_json(detail: dict[str, Any] | None) -> dict[str, Any] | None:
                 "roleCode": player["role_code"],
                 "played": player["played"],
                 "rating": player["rating"],
+                "cameOn": player["came_on"],
                 "distanceM": player["distance_m"],
+                "wentOff": player["went_off"],
                 "stats": player["stats"],
             }
             for player in detail["players"]
@@ -446,7 +487,7 @@ def research(memory: Memory, args: argparse.Namespace) -> None:
                 for indirect in (False, True):
                     try:
                         text = probe.read_fm_string(memory.fd, address + offset, indirect=indirect)
-                    except (OSError, probe.ProbeError):
+                    except (OSError, OverflowError, probe.ProbeError):
                         continue
                     if text and text.isprintable():
                         print(f"  +{offset:#04x} {'indirect' if indirect else 'direct'}: {text!r}")
@@ -461,6 +502,36 @@ def research(memory: Memory, args: argparse.Namespace) -> None:
         patterns = {struct.pack("<I", value): str(value) for value in args.values}
         for value, found in memory.scan(patterns, align=4).items():
             print(f"{value}: {len(found)} hits {[hex(a) for a in found[:16]]}")
+    elif args.command == "dated":
+        target = datetime.fromisoformat(args.date).date()
+        for name, tables in class_vtables(memory.executable, [args.class_name]).items():
+            for rva in tables:
+                for address in memory.instances(rva):
+                    try:
+                        data = memory.read(address, int(args.size, 0))
+                    except (OSError, probe.ProbeError):
+                        continue
+                    if any(layout.decode_fm_date(data[offset:offset + 4]) == target for offset in range(0, len(data) - 3, 2)):
+                        print(f"-- {name} {address:#x}\n{hexdump(data)}")
+    elif args.command == "near":
+        first, second = args.first, args.second
+        width = "<Q" if args.wide else "<I"
+        hits = memory.scan({struct.pack(width, first): "a", struct.pack(width, second): "b"},
+                           align=struct.calcsize(width), limit=1_000_000)
+        seconds = sorted(hits["b"])
+        import bisect
+        shown = 0
+        for a in hits["a"]:
+            index = bisect.bisect_left(seconds, a - args.within)
+            if index < len(seconds) and abs(seconds[index] - a) <= args.within:
+                start = min(a, seconds[index]) - 0x20
+                print(f"-- {first} at {a:#x}, {second} at {seconds[index]:#x}\n{hexdump(memory.read(start, args.within + 0x60))}")
+                shown += 1
+                if shown >= 12:
+                    break
+    elif args.command == "names":
+        for short_id, name in sorted(player_names(memory, set(args.short_ids)).items()):
+            print(short_id, name)
     elif args.command == "dump":
         print(hexdump(memory.read(int(args.address, 0), int(args.size, 0))))
 
@@ -477,6 +548,16 @@ def build_parser() -> argparse.ArgumentParser:
     commands.add_parser("describe").add_argument("address")
     commands.add_parser("scan").add_argument("classes", nargs="+", help="e.g. FIXTURE_RESULT@sicomps")
     commands.add_parser("find-u32").add_argument("values", nargs="+", type=int)
+    commands.add_parser("names").add_argument("short_ids", nargs="+", type=int)
+    near = commands.add_parser("near", help="places where two 4-byte values sit close together")
+    near.add_argument("first", type=lambda text: int(text, 0))
+    near.add_argument("second", type=lambda text: int(text, 0))
+    near.add_argument("--wide", action="store_true", help="8-byte values (pointers) instead of 4")
+    near.add_argument("--within", type=int, default=0x40)
+    dated = commands.add_parser("dated", help="dump a class's objects that carry a given FM date")
+    dated.add_argument("class_name")
+    dated.add_argument("date")
+    dated.add_argument("size", nargs="?", default="0x80")
     dump = commands.add_parser("dump")
     dump.add_argument("address")
     dump.add_argument("size", nargs="?", default="0x100")

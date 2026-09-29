@@ -51,8 +51,11 @@ class TeamBlockTests(unittest.TestCase):
 
 
 class PlayerRecordTests(unittest.TestCase):
-    def record(self, *, short_id=102619, code=0x80, distance=11985.0, shirt=11, side=1, rating=805) -> bytes:
+    def record(self, *, short_id=102619, code=0x80, distance=11985.0, shirt=11, side=1, rating=805,
+               came_on=0, went_off=0) -> bytes:
         record = bytearray(layout.PLAYER_RECORD_SIZE)
+        record[layout.PLAYER_CAME_ON] = came_on
+        record[layout.PLAYER_WENT_OFF] = went_off
         struct.pack_into("<I", record, layout.PLAYER_ROLE_CODE, code)
         struct.pack_into("<I", record, layout.PLAYER_SHORT_ID, short_id)
         struct.pack_into("<f", record, layout.PLAYER_DISTANCE, distance)
@@ -66,13 +69,26 @@ class PlayerRecordTests(unittest.TestCase):
     def test_a_player_line_decodes(self) -> None:
         player = layout.decode_player_record(self.record())
         self.assertEqual((player["short_id"], player["role_code"], player["shirt"], player["side"]), (102619, 0x80, 11, "away"))
-        self.assertEqual((player["rating"], player["distance_m"], player["played"]), (8.05, 11985, True))
+        self.assertEqual((player["rating"], player["played"], player["distance_m"]), (8.05, True, 11985))
         self.assertEqual(player["stats"]["goals"], 1)
-        self.assertEqual(player["stats"]["corners_taken"], len(layout.PLAYER_FIELDS))
+        last_field = layout.PLAYER_FIELDS[-1][0]
+        self.assertEqual(player["stats"][last_field], len(layout.PLAYER_FIELDS))
+        self.assertEqual(set(player["stats"]), {name for name, _offset in layout.PLAYER_FIELDS})
+
+    def test_substitution_minutes_decode(self) -> None:
+        starter = layout.decode_player_record(self.record(went_off=63))
+        self.assertEqual((starter["came_on"], starter["went_off"]), (None, 63))
+        sub = layout.decode_player_record(self.record(came_on=63))
+        self.assertEqual((sub["came_on"], sub["went_off"], sub["rating"]), (63, None, 8.05))
+
+    def test_a_player_barely_on_the_pitch_has_no_rating_as_in_fm(self) -> None:
+        # FM showed "-" for a 4-minute cameo and a rating after 13 minutes.
+        self.assertIsNone(layout.decode_player_record(self.record(came_on=86))["rating"])
+        self.assertEqual(layout.decode_player_record(self.record(came_on=77))["rating"], 8.05)
 
     def test_an_unused_substitute_has_no_rating(self) -> None:
         player = layout.decode_player_record(self.record(code=0, distance=0.0, rating=640))
-        self.assertEqual((player["played"], player["rating"], player["distance_m"]), (False, None, 0))
+        self.assertEqual((player["played"], player["rating"]), (False, None))
 
     def test_empty_squad_places_are_skipped(self) -> None:
         self.assertIsNone(layout.decode_player_record(self.record(short_id=layout.NO_PLAYER)))

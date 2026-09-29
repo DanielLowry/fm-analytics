@@ -180,6 +180,11 @@ def goals_section(review: MatchReview) -> str:
     )
 
 
+def _per_90(role, value: int) -> str:
+    rate = role.per_90(value)
+    return f" <span class='muted'>({rate:.1f} per 90)</span>" if rate is not None and value else ""
+
+
 def roles_table(review: MatchReview) -> str:
     if not review.roles:
         return "<p class='muted'>No match with full stats in this selection yet.</p>"
@@ -192,14 +197,22 @@ def roles_table(review: MatchReview) -> str:
         rows.append(
             f"<tr><td>{label}</td><td data-sort='{role.appearances}'>{role.appearances} "
             f"<span class='muted'>({role.starts} starts)</span></td>"
+            f"<td data-sort='{role.minutes}'>{role.minutes}</td>"
             f"<td data-sort='{role.shots}'>{role.shots} <span class='muted'>({role.shots_on_target} on target)</span></td>"
+            f"<td data-sort='{role.per_90(role.shots) or 0}'>{_number(role.per_90(role.shots), False)}</td>"
             f"<td data-sort='{share or 0}'>{bar}</td><td>{role.goals}</td><td>{role.assists}</td>"
-            f"<td>{role.clear_cut_chances}</td><td>{role.chances_created}</td><td>{rating}</td></tr>"
+            f"<td data-sort='{role.per_90(role.goals + role.assists) or 0}'>"
+            f"{_number(role.per_90(role.goals + role.assists), False)}</td>"
+            f"<td>{role.clear_cut_chances}</td>"
+            f"<td data-sort='{role.key_passes}'>{role.key_passes}{_per_90(role, role.key_passes)}</td>"
+            f"<td data-sort='{role.chances_created}'>{role.chances_created}{_per_90(role, role.chances_created)}</td>"
+            f"<td>{role.dribbles}</td><td>{rating}</td></tr>"
         )
     return (
-        "<div class='table-scroll'><table class='sortable'><thead><tr><th>Role</th><th>Appearances</th><th>Shots</th>"
-        "<th>Share of team shots</th><th>Goals</th><th>Assists</th><th>Clear-cut chances</th>"
-        "<th title='Probably chances created; not yet confirmed against an FM screen'>Chances created?</th>"
+        "<div class='table-scroll'><table class='sortable'><thead><tr><th>Role</th><th>Appearances</th><th>Minutes</th>"
+        "<th>Shots</th><th>Shots per 90</th><th>Share of team shots</th><th>Goals</th><th>Assists</th>"
+        "<th>Goals + assists per 90</th><th>Clear-cut chances</th><th>Key passes</th>"
+        "<th>Chances created</th><th>Dribbles</th>"
         f"<th>Average rating</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
     )
 
@@ -333,6 +346,15 @@ def review_body(
 # -- one match ----------------------------------------------------------------
 
 
+def _stint(player) -> str:
+    parts = []
+    if player.came_on:
+        parts.append(f"on {player.came_on}′")
+    if player.went_off:
+        parts.append(f"off {player.went_off}′")
+    return f" <span class='muted'>({', '.join(parts)})</span>" if parts else ""
+
+
 def _player_rows(report: MatchReport, side: str) -> str:
     detail = report.summary.match.detail
     rows = []
@@ -341,18 +363,22 @@ def _player_rows(report: MatchReport, side: str) -> str:
             continue
         stat = player.stat
         rows.append(
-            f"<tr><td>{player.shirt}</td><td>{_e(player.label)}{'' if player.started else ' <span class=muted>(sub)</span>'}</td>"
+            f"<tr><td>{player.shirt}</td><td>{_e(player.label)}</td>"
             f"<td>{_e(report.role_labels.get(player.role_code, ''))}</td>"
-            f"<td>{player.rating:.2f}</td><td>{stat('shots')} <span class='muted'>({stat('shots_on_target')})</span></td>"
+            f"<td data-sort='{player.minutes}'>{player.minutes}{_stint(player)}</td>"
+            f"<td>{f'{player.rating:.2f}' if player.rating is not None else '–'}</td>"
+            f"<td>{stat('shots')} <span class='muted'>({stat('shots_on_target')}, {stat('shots_blocked')})</span></td>"
             f"<td>{stat('goals')}</td><td>{stat('assists')}</td><td>{stat('clear_cut_chances')}</td>"
-            f"<td>{stat('chances_created')}</td><td>{stat('passes_completed')}/{stat('passes_attempted')}</td>"
+            f"<td>{stat('key_passes')}</td><td>{stat('chances_created')}</td><td>{stat('dribbles')}</td>"
+            f"<td>{stat('passes_completed')}/{stat('passes_attempted')}</td>"
             f"<td>{stat('tackles_won')}/{stat('tackles_attempted')}</td><td>{stat('headers_won')}/{stat('headers_attempted')}</td>"
-            f"<td>{stat('fouls')}</td><td>{player.distance_m / 1000:.1f} km</td></tr>"
+            f"<td>{stat('fouls')}</td><td>{stat('corners_taken')}</td>"
+            f"<td data-sort='{player.distance_m}'>{player.distance_m / 1000:.1f} km</td></tr>"
         )
     return (
-        "<div class='table-scroll'><table class='sortable'><thead><tr><th>#</th><th>Player</th><th>Role</th><th>Rating</th>"
-        "<th>Shots (on target)</th><th>Goals</th><th>Assists</th><th>Clear-cut chances</th><th>Chances created?</th>"
-        "<th>Passes</th><th>Tackles</th><th>Headers</th><th>Fouls</th><th>Distance</th></tr></thead>"
+        "<div class='table-scroll'><table class='sortable'><thead><tr><th>#</th><th>Player</th><th>Role</th><th>Minutes</th><th>Rating</th>"
+        "<th>Shots (on target, blocked)</th><th>Goals</th><th>Assists</th><th>Clear-cut chances</th>"
+        "<th>Key passes</th><th>Chances created</th><th>Dribbles</th><th>Passes</th><th>Tackles</th><th>Headers</th><th>Fouls</th><th>Corners</th><th>Distance</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
 
@@ -433,8 +459,7 @@ def match_body(report: MatchReport, catalogue: FootballCatalogue, pinned: Sequen
         f"<table style='max-width:34rem'><tbody>{panel}</tbody></table>"
         + (f"<h2>Timeline</h2><ol>{timeline}</ol>" if timeline else "")
         + "<h2>Your players</h2>" + _player_rows(report, summary.side)
-        + f"<h2>{_e(summary.opponent.name)}</h2><p class='muted'>FM shows their players' stats too; their "
-        "names are not read yet.</p>" + _player_rows(report, other)
+        + f"<h2>{_e(summary.opponent.name)}</h2>" + _player_rows(report, other)
         + note_form(report, catalogue, pinned, note)
     )
 

@@ -70,26 +70,39 @@ TEAM_FIELDS: tuple[tuple[str, int, str], ...] = (
 )
 TEAM_PLAYERS = 0x198  # vector of pointers to PLAYER_RECORD_SIZE records
 
-# Player record: one player's match stats. `chances_created` sums to the
-# team's clear-cut chances in one match and not the other; it is kept, and
-# labelled unconfirmed, until an FM screen names it.
+# Player record: one player's match stats. Only fields that add up to FM's
+# own team panel and that FM's player stats show are decoded (checked
+# against FM's screens on 30 September 2026, two players each). +0x76 is
+# NOT captured: it matched Jarra's one key header but gave Hargreaves 1 where
+# FM showed 0, so what it counts is unknown.
 PLAYER_ROLE_CODE = 0x08  # FM's role for the position played (one bit per role)
 PLAYER_SHORT_ID = 0x10  # person +0x08 in FM's database
-PLAYER_DISTANCE = 0x44  # float, metres
+PLAYER_DISTANCE = 0x44  # float, metres: FM showed Cain's 12,214 m as 12.2 km
 PLAYER_RATING = 0x5C  # u16, rating x 100
 PLAYER_SHIRT = 0x60
 PLAYER_SIDE = 0x61  # 0 home, 1 away
+PLAYER_WENT_OFF = 0x84  # minute substituted, 0 if he was not
+PLAYER_CAME_ON = 0x89  # minute he came on, 0 for a starter
+MATCH_MINUTES = 90
+# FM shows "-" instead of a rating for a player barely on the pitch: Okojie,
+# on for 4 minutes at Concord, had none; Millar, on for 13, had 7.2. The cut
+# lies in between, so ratings under the smallest rated time seen are
+# withheld: better to hide one FM shows than show one it hides.
+RATED_MINIMUM_MINUTES = 13
 PLAYER_FIELDS: tuple[tuple[str, int], ...] = (
     ("goals", 0x65),
     ("goals_conceded", 0x66),
     ("shots", 0x6A),
     ("shots_on_target", 0x6B),
+    ("shots_blocked", 0x6C),  # so off target = shots - on target - blocked, as FM's panel
     ("clear_cut_chances", 0x6E),
-    ("chances_created", 0x76),
     ("assists", 0x79),
+    ("chances_created", 0x7A),  # FM: Saydee 2, Hargreaves 1
+    ("dribbles", 0x7B),  # FM: Cain 7, Saydee 2, Hargreaves 1
     ("fouls", 0x7D),
     ("passes_attempted", 0x91),
     ("passes_completed", 0x92),
+    ("key_passes", 0x93),  # FM: Saydee 3, Hargreaves 2
     ("tackles_attempted", 0x94),
     ("tackles_won", 0x95),
     ("headers_attempted", 0x97),
@@ -156,13 +169,19 @@ def decode_player_record(record: bytes) -> dict[str, Any] | None:
     # An unused substitute has no role, has run nowhere and is given FM's
     # default 6.40, which is not a rating he earned.
     played = role_code != 0 or distance > 0
+    came_on = record[PLAYER_CAME_ON] or None
+    went_off = record[PLAYER_WENT_OFF] or None
+    minutes = max((went_off or MATCH_MINUTES) - (came_on or 0), 0) if played else 0
+    rated = played and minutes >= RATED_MINIMUM_MINUTES
     return {
         "short_id": short_id,
         "role_code": role_code,
         "shirt": shirt,
         "side": "home" if record[PLAYER_SIDE] == 0 else "away",
         "played": played,
-        "rating": struct.unpack_from("<H", record, PLAYER_RATING)[0] / 100 if played else None,
+        "came_on": came_on if played else None,
+        "went_off": went_off if played else None,
+        "rating": struct.unpack_from("<H", record, PLAYER_RATING)[0] / 100 if rated else None,
         "distance_m": round(distance) if played else 0,
         "stats": {name: record[offset] for name, offset in PLAYER_FIELDS},
     }

@@ -100,6 +100,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(top.averages_against["shots"], 6)
         self.assertEqual(top.averages_for["possession"], 40)
         self.assertEqual(top.averages_for["pass_completion"], 75)
+        self.assertEqual(top.averages_for["off_target"], 6)  # 12 shots, 6 on target, none blocked
         self.assertEqual(groups["outside"].matches, 1)
 
     def test_the_overall_record_matches_the_matches(self) -> None:
@@ -155,6 +156,19 @@ class RoleSummaryTests(unittest.TestCase):
         (winger,) = summarise_roles([(player, "m1", 10) for player in wingers], codes)
         self.assertEqual((winger.appearances, winger.shots, winger.team_shots), (2, 4, 10))
         self.assertAlmostEqual(winger.shot_share, 0.4)
+        self.assertEqual(winger.minutes, 180)
+        self.assertAlmostEqual(winger.per_90(winger.shots), 2.0)
+
+    def test_per_90_uses_the_minutes_actually_played(self) -> None:
+        codes = RoleCodes.build(MVP_CATALOGUE)
+        sub = PlayerMatchStats.from_document(
+            {**lineup("home")[10], "cameOn": 60, "stats": {"shots": 2, "key_passes": 1, "chances_created": 1}}
+        )
+        (role,) = summarise_roles([(sub, "m1", 10)], codes)
+        self.assertEqual(role.minutes, 30)
+        self.assertAlmostEqual(role.per_90(role.shots), 6.0)
+        self.assertEqual((role.key_passes, role.chances_created), (1, 1))
+        self.assertAlmostEqual(role.per_90(role.chances_created), 3.0)
 
     def test_unused_substitutes_are_not_appearances(self) -> None:
         codes = RoleCodes.build(MVP_CATALOGUE)
