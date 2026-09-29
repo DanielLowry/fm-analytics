@@ -3,6 +3,10 @@ from dataclasses import replace
 from pathlib import Path
 
 from fm_analytics.analytics import recommend_set_pieces
+from fm_analytics.analytics.set_piece_routines import (
+    ATTACKING_CORNER_INSTRUCTIONS,
+    attacking_roles,
+)
 from fm_analytics.cli import load_fixture
 from fm_analytics.domain import AttributeObservation, Visibility
 
@@ -183,6 +187,30 @@ class SetPieceRecommendationTests(unittest.TestCase):
         }
         self.assertNotIn(taker, box_players)
         self.assertEqual(attacking.players_held_back, 2)
+
+    def test_attacking_corners_use_only_fm_corner_instructions(self) -> None:
+        allowed = set(ATTACKING_CORNER_INSTRUCTIONS)
+        seen = set()
+
+        for risk in ("secure", "balanced", "aggressive"):
+            roles = attacking_roles("corner", risk)
+            instructions = {
+                role.instruction for role in roles
+                if role.taker_task_key is None
+            }
+
+            self.assertEqual(len(roles), 10)
+            self.assertLessEqual(instructions, allowed)
+            seen.update(instructions)
+
+        self.assertEqual(seen, allowed)
+        aggressive = attacking_roles("corner", "aggressive")
+        go_forward_zones = {
+            role.zone for role in aggressive if role.instruction == "Go forward"
+        }
+        self.assertEqual(
+            go_forward_zones, {"Left side of box", "Right side of box"}
+        )
 
     def test_attacking_risk_changes_rest_defence_commitment(self) -> None:
         attributes = {

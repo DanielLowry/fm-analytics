@@ -15,7 +15,6 @@ from fm_analytics.analytics import (
     MVP_CATALOGUE,
     OpponentProfile,
     RecruitmentBrief,
-    RecruitmentShortlist,
     ScoreBand,
     SquadDepthReport,
     TacticEvaluation,
@@ -24,15 +23,12 @@ from fm_analytics.analytics import (
     WeaknessReport,
     overlay_squad_export,
     opponent_system_floors,
-    shortlist_candidates,
 )
 from fm_analytics.analytics.opponent import AXIS_MAXIMUM, AXIS_MINIMUM
 from fm_analytics.domain import GameState, Player, Squad
 from fm_analytics.imports import (
     FmHtmlExport,
-    merge_fm_html_exports,
     merge_fm_squad_html_exports,
-    parse_fm_html_export,
     parse_fm_squad_html_export,
     verify_export_completeness,
 )
@@ -80,17 +76,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--fm-html-player-count",
         type=int,
         help="require the merged --fm-html export to match this count shown by FM",
-    )
-    parser.add_argument(
-        "--candidate-html",
-        type=Path,
-        nargs="+",
-        help="optional manager-visible Player Search exports for recruitment shortlists",
-    )
-    parser.add_argument(
-        "--candidate-player-count",
-        type=int,
-        help="required FM-visible row count for --candidate-html completeness",
     )
     parser.add_argument(
         "--snapshot-db",
@@ -175,17 +160,6 @@ def render(game: GameState, squad: Squad) -> str:
             f"{player.availability}{contract}"
         )
     return "\n".join(lines)
-
-
-def load_html_import(paths: Sequence[Path]) -> FmHtmlExport:
-    return merge_fm_html_exports(
-        tuple(
-            parse_fm_html_export(
-                path.read_text(encoding="utf-8", errors="replace")
-            )
-            for path in paths
-        )
-    )
 
 
 def load_squad_html_import(paths: Sequence[Path]) -> FmHtmlExport:
@@ -289,7 +263,6 @@ def render_recommendation(
     bench: BenchSelection,
     weakness_report: WeaknessReport,
     briefs: tuple[RecruitmentBrief, ...],
-    shortlists: tuple[RecruitmentShortlist, ...],
     training_targets: tuple[TrainingTarget, ...] = (),
     squad_depth: SquadDepthReport | None = None,
     opponent: OpponentProfile = OpponentProfile.neutral(),
@@ -495,30 +468,9 @@ def render_recommendation(
             f"target {brief.minimum_role_score:.1f} — {brief.reason}"
             for brief in briefs
         )
+        lines.append("For candidates against each brief, see fm-web's /scouting page.")
     else:
         lines.append("No permanent recruitment brief generated.")
-    for shortlist in shortlists:
-        brief = shortlist.brief
-        lines.extend(
-            (
-                "",
-                f"Candidates for {brief.position} / {brief.role_key}",
-                "-" * (15 + len(brief.position) + len(brief.role_key)),
-            )
-        )
-        if not shortlist.candidates:
-            lines.append("No exported candidate can reach the threshold.")
-            continue
-        for candidate in shortlist.candidates[:10]:
-            scouting = (
-                f"; scout more: {', '.join(candidate.scout_more)}"
-                if candidate.scout_more
-                else ""
-            )
-            lines.append(
-                f"{candidate.player_name:<28} {_band(candidate.role_score.score)} "
-                f"{candidate.verdict.value}{scouting}"
-            )
     return "\n".join(lines)
 
 
@@ -548,14 +500,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             raise ValueError("--my-tactics requires --recommend")
         if args.fm_html_player_count is not None and not args.fm_html:
             raise ValueError("--fm-html-player-count requires --fm-html")
-        if args.candidate_html and not args.recommend:
-            raise ValueError("--candidate-html requires --recommend")
-        if args.candidate_html and args.candidate_player_count is None:
-            raise ValueError(
-                "--candidate-html requires --candidate-player-count from the FM UI"
-            )
-        if args.candidate_player_count is not None and not args.candidate_html:
-            raise ValueError("--candidate-player-count requires --candidate-html")
         if args.fm_html and not args.recommend:
             if args.snapshot_db:
                 raise ValueError("--snapshot-db requires --recommend with --fm-html")
@@ -589,7 +533,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             weakness_report = None
             squad_depth = None
             briefs = ()
-            shortlists = ()
             if args.recommend:
                 validate_recommendation_snapshot(game, squad)
                 if args.fm_html:
@@ -623,22 +566,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 squad_depth = bundle.planning_depth
                 primary = bundle.primary
                 briefs = bundle.briefs
-                if args.candidate_html:
-                    candidate_export = load_html_import(args.candidate_html)
-                    verify_export_completeness(
-                        candidate_export,
-                        expected_players=args.candidate_player_count,
-                    )
-                    squad_ids = frozenset(player.id for player in squad.players)
-                    shortlists = tuple(
-                        shortlist_candidates(
-                            brief,
-                            candidate_export.players,
-                            MVP_CATALOGUE,
-                            excluded_player_ids=squad_ids,
-                        )
-                        for brief in briefs
-                    )
             capture = (
                 SnapshotStore(args.snapshot_db).capture(
                     game,
@@ -677,7 +604,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 bench,
                 weakness_report,
                 briefs,
-                shortlists,
                 training_targets,
                 squad_depth,
                 opponent=opponent_from_args(args),

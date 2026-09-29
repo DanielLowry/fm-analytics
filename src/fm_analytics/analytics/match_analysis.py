@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from typing import Iterable, Mapping, Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
+from fm_analytics.analytics.match_players import PlayerSeason, summarise_players
 from fm_analytics.analytics.match_roles import RoleCodes, RoleSummary, summarise_roles
 from fm_analytics.analytics.match_strength import (
     BANDS,
@@ -230,6 +231,7 @@ class MatchReview:
     tactics: tuple[TacticRow, ...]
     goals: GoalBreakdown
     roles: tuple[RoleSummary, ...]
+    players: tuple[PlayerSeason, ...]
     unconfirmed_roles: tuple[UnconfirmedRoleCode, ...]
     leagues: tuple[Competition, ...]
     excluded: int
@@ -446,6 +448,15 @@ def review_matches(
         tactics=tactics,
         goals=_goal_breakdown(selected, codes),
         roles=summarise_roles(appearances, codes),
+        players=summarise_players(
+            (
+                (player, summary.match.date, summary.opponent.name)
+                for summary in selected
+                if summary.match.detail is not None
+                for player in summary.match.detail.players_for(summary.side)
+            ),
+            codes,
+        ),
         unconfirmed_roles=_unconfirmed(selected, codes),
         leagues=tuple(competition for competition, _results in leagues),
         excluded=len(everything) - len(selected),

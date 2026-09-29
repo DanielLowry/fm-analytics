@@ -231,24 +231,6 @@ class RecommendationCliTests(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertIn("imported 3 unique players but FM shows 4", output.getvalue())
 
-    def test_candidate_import_requires_visible_count(self) -> None:
-        output = io.StringIO()
-        with redirect_stdout(output):
-            status = main(
-                [
-                    "--fixture",
-                    "unused.json",
-                    "--fm-html",
-                    "unused.html",
-                    "--recommend",
-                    "--candidate-html",
-                    "candidates.html",
-                ]
-            )
-
-        self.assertEqual(status, 1)
-        self.assertIn("requires --candidate-player-count", output.getvalue())
-
     def test_recommendation_reports_a_training_target_when_familiarity_is_the_limiter(
         self,
     ) -> None:

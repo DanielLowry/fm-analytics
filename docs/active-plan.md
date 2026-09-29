@@ -435,10 +435,11 @@ limits and what is still open. That document replaces the
   re-capture, since a squad capture is a read of the live game, not history
   that fades. Item 4 applies the lesson (append-only, migrated) to the
   database where it matters most.
-- **Two recruitment paths** (review 2.2/3.3): proposed resolution is to treat
-  the web `ScoutingCandidate` path as canonical and retire the CLI
-  HTML/`VisibleExportPlayer` shortlist rather than merge the two. Not scheduled;
-  items 2–6 build only on the web path so the split does not grow.
+- **Two recruitment paths** (review 2.2/3.3): **resolved and built 29 September
+  2026** -- see [the task brief](archive/tasks/medium-retire-cli-candidate-shortlist.md).
+  The web `ScoutingCandidate` path is canonical; the CLI's HTML/`VisibleExportPlayer`
+  shortlist (`--candidate-html`) is retired rather than merged. The CLI keeps
+  printing `RecruitmentBrief`s and now points to `/scouting` for candidates.
 - **Background scouting refresh** (review 3.2), **dashboard as an answer page**
   (2.5) and **named depth evidence** (2.3): useful polish, but none changes a
   decision in the save. Item 2 covers the depth question that matters for
@@ -456,7 +457,7 @@ limits and what is still open. That document replaces the
 | 1.1–1.4 Performance | Parked |
 | 1.5 Web cache | Parked; cache-key requirement noted above |
 | 2.1 Squad needs in scouting | Item 3 (Weakest slots) |
-| 2.2 / 3.3 Recruitment unification | Parked, with proposed resolution |
+| 2.2 / 3.3 Recruitment unification | Built 29 September 2026; see notes above |
 | 2.3 Named depth | Recruitment side in item 2; the rest parked |
 | 2.4 Player view | Done: `/squad/player/<id>` |
 | 2.5 Dashboard | Parked |

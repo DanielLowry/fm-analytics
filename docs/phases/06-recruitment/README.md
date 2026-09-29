@@ -17,28 +17,22 @@ not imply that a partially known estimate is an exact player rating.
 
 ## Implemented slices
 
-Actionable tactic weaknesses can now become position/role recruitment briefs
-with a starter or depth threshold. A shortlist scorer accepts only players
-already present in the manager-visible export, filters by visible position, and
-keeps candidates whose observed lower bound meets the threshold or whose upper
-bound could still meet it. The latter are labelled
-`possible_with_more_scouting` and carry the role attributes to investigate.
-Players below even their optimistic bound are excluded.
+Actionable tactic weaknesses become position/role recruitment briefs
+(`RecruitmentBrief`) with a starter or depth threshold, via
+`build_recruitment_briefs`. `reporting.py` computes them for every bundle; the
+CLI prints them and points to the web `/scouting` page for candidates.
 
-Candidate HTML exports must be accompanied by the result count visible in FM.
-The CLI path fails unless the merged export contains exactly that many unique
-UIDs, closing silent pagination/row-loss failures.
-
-Separately, the web scouting workspace consumes a richer manager-visible JSON
-feed with exact/ranged/unknown observations, visible facts, discovery context,
-and optional live refresh. It can filter and assess candidates by role, but it
-does not yet consume `RecommendationBundle.briefs`. The HTML path uses
-`VisibleExportPlayer` and `shortlist_candidates`; the web path uses
-`ScoutingCandidate` and `assess_scouting_candidates`. Unifying those inputs and
-services without losing provenance remains open. The
-[active plan](../../active-plan.md) parks it with a proposed resolution: treat
-the web path as canonical and retire the CLI HTML shortlist. The plan's
-recruitment items build on the web path only.
+The web scouting workspace is the one recruitment path: it consumes a richer
+manager-visible JSON feed with exact/ranged/unknown observations, visible
+facts, discovery context, and optional live refresh, and can filter and assess
+`ScoutingCandidate`s by role via `assess_scouting_candidates`. An earlier CLI
+path scored `VisibleExportPlayer` exports against a brief with its own
+`shortlist_candidates` scorer (labelling a candidate `possible_with_more_scouting`
+when only its optimistic bound cleared the threshold); it duplicated the web
+path without ever gaining its richer feed, and was retired 29 September 2026
+per the [active plan](../../active-plan.md#parked)'s resolution: the web path
+is canonical. `/scouting` does not yet consume `RecommendationBundle.briefs`
+directly; the plan's recruitment items build on the web path only.
 
 ## Prerequisites
 

@@ -81,6 +81,17 @@ def _counts(raw: Any, where: str) -> Mapping[str, int]:
     return MappingProxyType({str(key): _count(value, f"{where} {key}") for key, value in raw.items()})
 
 
+def _team_counts(raw: Any, where: str) -> Mapping[str, int]:
+    """A side's panel stats. Captures before the archive reader was aligned with
+    the live one named the team's corners `corners_taken`; they are `corners`."""
+    counts = _counts(raw, where)
+    if "corners_taken" in counts and "corners" not in counts:
+        renamed = dict(counts)
+        renamed["corners"] = renamed.pop("corners_taken")
+        return MappingProxyType(renamed)
+    return counts
+
+
 def _optional_minute(value: Any, where: str) -> int | None:
     if value is None:
         return None
@@ -265,8 +276,8 @@ class MatchDetail:
         if not isinstance(raw, Mapping):
             raise ValueError("match detail must be an object")
         return cls(
-            home=_counts(raw.get("home"), "home stats"),
-            away=_counts(raw.get("away"), "away stats"),
+            home=_team_counts(raw.get("home"), "home stats"),
+            away=_team_counts(raw.get("away"), "away stats"),
             players=tuple(PlayerMatchStats.from_document(item) for item in raw.get("players") or ()),
             events=tuple(MatchEvent.from_document(item) for item in raw.get("events") or ()),
         )

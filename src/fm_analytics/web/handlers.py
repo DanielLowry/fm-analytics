@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
 from importlib import resources
@@ -61,6 +62,7 @@ class SquadWebHandler(
             "/scouting": self._scouting_page,
             "/scouting/results": self._scouting_results_fragment,
             "/matches": self._matches_page,
+            "/api/export": self._export_api,
             "/data": self._data_page,
         }
         handler = routes.get(path)
@@ -522,6 +524,20 @@ class SquadWebHandler(
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(encoded)))
         self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        try:
+            self.wfile.write(encoded)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def _send_json(self, payload: object, status: HTTPStatus = HTTPStatus.OK, *, filename: str | None = None) -> None:
+        encoded = (json.dumps(payload, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.send_header("Cache-Control", "no-store")
+        if filename:
+            self.send_header("Content-Disposition", f'inline; filename="{filename}"')
         self.end_headers()
         try:
             self.wfile.write(encoded)

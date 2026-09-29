@@ -47,6 +47,14 @@ class MatchRecordTests(unittest.TestCase):
         self.assertEqual(again, self.match)
         self.assertEqual(again.content_hash(), self.match.content_hash())
 
+    def test_team_corners_recorded_under_the_archive_readers_old_name_read_as_corners(self) -> None:
+        document = self.match.to_document()
+        document["detail"]["home"]["corners_taken"] = document["detail"]["home"].pop("corners")
+        again = MatchRecord.from_document(document)
+        self.assertEqual(again.detail.home["corners"], 3)
+        self.assertNotIn("corners_taken", again.detail.home)
+        self.assertEqual(again.content_hash(), self.match.content_hash())
+
     def test_possession_is_each_sides_share_of_possession_time(self) -> None:
         self.assertEqual(self.match.detail.possession_percent("home"), 40)
         self.assertEqual(self.match.detail.possession_percent("away"), 60)

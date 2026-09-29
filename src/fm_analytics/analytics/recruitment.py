@@ -1,21 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import StrEnum
-from typing import Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
-from fm_analytics.analytics.role_scoring import RoleScore, score_role
 from fm_analytics.analytics.weaknesses import (
     WeaknessKind,
     WeaknessReport,
 )
-from fm_analytics.imports import VisibleExportPlayer
-
-
-class CandidateVerdict(StrEnum):
-    MEETS_THRESHOLD = "meets_threshold"
-    POSSIBLE_WITH_MORE_SCOUTING = "possible_with_more_scouting"
 
 
 @dataclass(frozen=True)
@@ -27,22 +18,6 @@ class RecruitmentBrief:
     need: str
     minimum_role_score: float
     reason: str
-
-
-@dataclass(frozen=True)
-class RecruitmentCandidate:
-    player_id: str
-    player_name: str
-    role_score: RoleScore
-    verdict: CandidateVerdict
-    scout_more: tuple[str, ...]
-
-
-@dataclass(frozen=True)
-class RecruitmentShortlist:
-    brief: RecruitmentBrief
-    catalogue_version: str
-    candidates: tuple[RecruitmentCandidate, ...]
 
 
 def build_recruitment_briefs(
@@ -88,64 +63,3 @@ def build_recruitment_briefs(
                 )
             )
     return tuple(briefs)
-
-
-def shortlist_candidates(
-    brief: RecruitmentBrief,
-    players: Sequence[VisibleExportPlayer],
-    catalogue: FootballCatalogue,
-    *,
-    excluded_player_ids: frozenset[str] = frozenset(),
-) -> RecruitmentShortlist:
-    try:
-        role = catalogue.roles[brief.role_key]
-    except KeyError as exc:
-        raise ValueError(f"unknown recruitment role {brief.role_key!r}") from exc
-
-    candidates: list[RecruitmentCandidate] = []
-    seen_ids: set[str] = set()
-    for player in players:
-        if player.id in seen_ids:
-            raise ValueError("recruitment candidate player ids must be unique")
-        seen_ids.add(player.id)
-        if player.id in excluded_player_ids:
-            continue
-        if brief.position not in player.positions:
-            continue
-        result = score_role(role, player.attributes)
-        if result.score.upper < brief.minimum_role_score:
-            continue
-        meets = result.score.lower >= brief.minimum_role_score
-        candidates.append(
-            RecruitmentCandidate(
-                player_id=player.id,
-                player_name=player.name,
-                role_score=result,
-                verdict=(
-                    CandidateVerdict.MEETS_THRESHOLD
-                    if meets
-                    else CandidateVerdict.POSSIBLE_WITH_MORE_SCOUTING
-                ),
-                scout_more=(
-                    ()
-                    if meets
-                    else tuple(gap.attribute for gap in result.information_gaps)
-                ),
-            )
-        )
-    return RecruitmentShortlist(
-        brief=brief,
-        catalogue_version=catalogue.version,
-        candidates=tuple(
-            sorted(
-                candidates,
-                key=lambda item: (
-                    item.verdict is not CandidateVerdict.MEETS_THRESHOLD,
-                    -item.role_score.score.central,
-                    -item.role_score.score.lower,
-                    item.player_name.casefold(),
-                    item.player_id,
-                ),
-            )
-        ),
-    )

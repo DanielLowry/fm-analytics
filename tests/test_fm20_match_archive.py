@@ -90,7 +90,7 @@ class ArchiveTests(unittest.TestCase):
         self.assertIsNone(home[15]["rating"])
         self.assertEqual(detail["home"]["possession_time"], 5131)
         self.assertEqual(detail["home"]["shots"], 2)
-        self.assertEqual(detail["home"]["corners_taken"], 1)
+        self.assertEqual(detail["home"]["corners"], 1)
         self.assertEqual(detail["away"]["goals"], 1)
 
     def test_the_teams_own_figures_win_where_they_differ_from_the_players_sums(self) -> None:

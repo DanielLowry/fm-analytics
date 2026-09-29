@@ -302,7 +302,6 @@ class ReportingTests(unittest.TestCase):
             bundle.bench,
             bundle.weakness_report,
             bundle.briefs,
-            (),
             bundle.training_targets,
             bundle.squad_depth,
         )

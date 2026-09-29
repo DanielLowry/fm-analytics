@@ -96,12 +96,8 @@ from fm_analytics.analytics.weaknesses import (
     assess_weaknesses,
 )
 from fm_analytics.analytics.recruitment import (
-    CandidateVerdict,
     RecruitmentBrief,
-    RecruitmentCandidate,
-    RecruitmentShortlist,
     build_recruitment_briefs,
-    shortlist_candidates,
 )
 from fm_analytics.analytics.selection_input import (
     SquadAttributeMerge,
@@ -178,7 +174,6 @@ __all__ = [
     "BenchEntry",
     "BenchSelection",
     "CandidateRoleScore",
-    "CandidateVerdict",
     "EffectiveAndPotentialRecommendation",
     "FamiliarityPolicy",
     "FootballCatalogue",
@@ -199,8 +194,6 @@ __all__ = [
     "PlayerSelectionInput",
     "ReadinessPolicy",
     "RecruitmentBrief",
-    "RecruitmentCandidate",
-    "RecruitmentShortlist",
     "RoutineAssignment",
     "RoutineRole",
     "ReplacementOption",
@@ -305,6 +298,5 @@ __all__ = [
     "recommend_set_pieces",
     "score_player_for_slot",
     "select_bench",
-    "shortlist_candidates",
     "score_role",
 ]

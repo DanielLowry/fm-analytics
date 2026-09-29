@@ -19,7 +19,21 @@ from fm_analytics.analytics.role_scoring import (
 from fm_analytics.domain import Player
 
 
-SET_PIECE_SCORING_VERSION = "set-piece-v3"
+SET_PIECE_SCORING_VERSION = "set-piece-v4"
+
+ATTACKING_CORNER_INSTRUCTIONS = (
+    "Attack near post",
+    "Lurk near post",
+    "Attack far post",
+    "Lurk far post",
+    "Mark keeper",
+    "Come short",
+    "Go forward",
+    "Attack ball from edge of area",
+    "Lurk outside edge of area",
+    "Stay back if needed",
+    "Stay back",
+)
 
 
 @dataclass(frozen=True)
@@ -65,6 +79,27 @@ _REST_DEFENCE = (
     RoleAttribute("tackling", 14), RoleAttribute("decisions", 10),
     RoleAttribute("concentration", 5),
 )
+_LURK_POST = (
+    RoleAttribute("offTheBall", 25), RoleAttribute("anticipation", 22),
+    RoleAttribute("finishing", 18), RoleAttribute("firstTouch", 12),
+    RoleAttribute("composure", 10), RoleAttribute("agility", 8),
+    RoleAttribute("balance", 5),
+)
+_GO_FORWARD = (
+    RoleAttribute("anticipation", 24), RoleAttribute("offTheBall", 24),
+    RoleAttribute("finishing", 18), RoleAttribute("composure", 12),
+    RoleAttribute("firstTouch", 12), RoleAttribute("acceleration", 10),
+)
+_ATTACK_EDGE = (
+    RoleAttribute("anticipation", 25), RoleAttribute("offTheBall", 22),
+    RoleAttribute("acceleration", 18), RoleAttribute("finishing", 15),
+    RoleAttribute("firstTouch", 10), RoleAttribute("technique", 10),
+)
+_LURK_OUTSIDE = (
+    RoleAttribute("longShots", 30), RoleAttribute("technique", 20),
+    RoleAttribute("anticipation", 18), RoleAttribute("firstTouch", 12),
+    RoleAttribute("decisions", 10), RoleAttribute("passing", 10),
+)
 
 
 def _role(
@@ -79,11 +114,115 @@ def _role(
     )
 
 
+def _attacking_corner_roles(risk: str) -> tuple[RoutineRole, ...]:
+    """Use only the player instructions available in FM's attacking-corner UI."""
+
+    taker = _role(
+        "corner_taker", "Corner taker", "Delivery", "Ball",
+        "Take the set piece", "Best delivery score for this side and curve.",
+        (RoleAttribute("corners", 50), RoleAttribute("crossing", 30),
+         RoleAttribute("technique", 20)),
+        priority=100, taker_task_key="corners",
+    )
+    attack_near = _role(
+        "corner_attack_near", "Near-post runner", "Box attack", "Near post",
+        "Attack near post", "Explosive first contact at the near post.",
+        _AERIAL_ATTACK, priority=96,
+    )
+    lurk_near = _role(
+        "corner_lurk_near", "Near-post lurker", "Box attack", "Near post",
+        "Lurk near post", "Finds space for rebounds and loose balls at the near post.",
+        _LURK_POST, priority=82,
+    )
+    attack_far = _role(
+        "corner_attack_far", "Far-post target", "Box attack", "Far post",
+        "Attack far post", "Aerial target for deeper delivery and second contact.",
+        _AERIAL_ATTACK, priority=94,
+    )
+    lurk_far = _role(
+        "corner_lurk_far", "Far-post lurker", "Box attack", "Far post",
+        "Lurk far post", "Finds space for deep knock-downs and loose balls.",
+        _LURK_POST, priority=80,
+    )
+    mark_keeper = _role(
+        "corner_mark_keeper", "Goalkeeper screen", "Box attack", "Goalkeeper zone",
+        "Mark keeper", "Occupies the goalkeeper without using the primary aerial target.",
+        (RoleAttribute("strength", 28), RoleAttribute("bravery", 22),
+         RoleAttribute("balance", 18), RoleAttribute("aggression", 14),
+         RoleAttribute("offTheBall", 10), RoleAttribute("anticipation", 8)),
+        priority=76,
+    )
+    come_short = _role(
+        "corner_come_short", "Short option", "Support", "Short corner channel",
+        "Come short", "Offers a short passing option and a second delivery angle.",
+        (RoleAttribute("firstTouch", 22), RoleAttribute("technique", 20),
+         RoleAttribute("passing", 18), RoleAttribute("decisions", 15),
+         RoleAttribute("crossing", 15), RoleAttribute("acceleration", 10)),
+        priority=86,
+    )
+    go_left = _role(
+        "corner_go_left", "Left box runner", "Box attack", "Left side of box",
+        "Go forward", "Attacks loose balls and second contacts from the left side.",
+        _GO_FORWARD, priority=74,
+    )
+    go_right = _role(
+        "corner_go_right", "Right box runner", "Box attack", "Right side of box",
+        "Go forward", "Attacks loose balls and second contacts from the right side.",
+        _GO_FORWARD, priority=73,
+    )
+    attack_edge = _role(
+        "corner_attack_edge", "Edge runner", "Box attack", "Edge of area",
+        "Attack ball from edge of area", "Arrives onto a dropping or cleared ball.",
+        _ATTACK_EDGE, priority=90,
+    )
+    lurk_outside = _role(
+        "corner_lurk_outside", "Outside-area option", "Second ball", "Outside edge of area",
+        "Lurk outside edge of area", "Collects clearances and threatens from range.",
+        _LURK_OUTSIDE, priority=88,
+    )
+    stay = _role(
+        "corner_stay", "Primary cover", "Rest defence", "Halfway line",
+        "Stay back", "Best transition defender protects the first counter lane.",
+        _REST_DEFENCE, priority=99,
+    )
+    cover = _role(
+        "corner_cover", "Secondary cover", "Rest defence", "Halfway support",
+        "Stay back if needed", "Second defender balances the opposite counter lane.",
+        _REST_DEFENCE, priority=98,
+    )
+    wide_cover = _role(
+        "corner_wide_cover", "Wide cover", "Rest defence", "Wide outlet",
+        "Stay back if needed", "Keeps possession and prevents an exposed flank.",
+        (RoleAttribute("decisions", 24), RoleAttribute("passing", 22),
+         RoleAttribute("positioning", 18), RoleAttribute("anticipation", 14),
+         RoleAttribute("pace", 12), RoleAttribute("firstTouch", 10)),
+        priority=84,
+    )
+
+    if risk == "secure":
+        return (
+            taker, attack_near, lurk_near, attack_far, come_short,
+            attack_edge, lurk_outside, stay, cover, wide_cover,
+        )
+    if risk == "balanced":
+        return (
+            taker, attack_near, attack_far, lurk_far, come_short,
+            mark_keeper, attack_edge, lurk_outside, stay, cover,
+        )
+    return (
+        taker, attack_near, lurk_near, attack_far, lurk_far,
+        mark_keeper, go_left, go_right, attack_edge, stay,
+    )
+
+
 def attacking_roles(kind: str, risk: str) -> tuple[RoutineRole, ...]:
     """Return ten outfield jobs for one attacking corner/free-kick routine."""
 
-    task_key = "corners" if kind == "corner" else "indirect_free_kicks"
-    delivery_name = "Corner taker" if kind == "corner" else "Free-kick taker"
+    if kind == "corner":
+        return _attacking_corner_roles(risk)
+
+    task_key = "indirect_free_kicks"
+    delivery_name = "Free-kick taker"
     roles = [
         _role(
             f"{kind}_taker", delivery_name, "Delivery", "Ball",

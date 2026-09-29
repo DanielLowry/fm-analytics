@@ -11,7 +11,8 @@ screens -- it consumes the same domain objects analytics always has.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
 from fm_analytics.analytics.match_analysis import (
     MatchReport,
@@ -58,6 +59,7 @@ from fm_analytics.analytics import (
     select_bench,
 )
 from fm_analytics.domain import GameState, Player, Squad
+from fm_analytics.season_export import export_document
 
 if TYPE_CHECKING:
     from fm_analytics.persistence.match_history import MatchHistory
@@ -546,4 +548,37 @@ def build_match_report(
         catalogue=catalogue,
         notes=history.notes,
         confirmed_role_codes=history.role_codes,
+    )
+
+
+def build_season_export(
+    history: MatchHistory,
+    *,
+    detail: str = "standard",
+    bundle: RecommendationBundle | None = None,
+    squad_note: str | None = None,
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+    generated_at: datetime | None = None,
+) -> dict[str, Any]:
+    """The one season export, shared by `fm-matches export` and the web server's `/api/export`.
+
+    `bundle` is the recommendation for the current squad, when one was read;
+    without it the document has no squad or recommendation sections, and
+    `squad_note` says why. See `season_export` for what each detail level holds.
+    """
+
+    def review(grouping: str, competitions: str) -> MatchReview:
+        return build_match_review(history, filters=ReviewFilters(grouping, competitions), catalogue=catalogue)
+
+    return export_document(
+        history,
+        everything=review("table", "all"),
+        competitive=review("table", "competitive"),
+        relative=review("relative", "competitive"),
+        league=review("table", "league"),
+        catalogue=catalogue,
+        detail=detail,
+        bundle=bundle,
+        squad_note=squad_note,
+        generated_at=generated_at,
     )

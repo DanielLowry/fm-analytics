@@ -320,6 +320,14 @@ def capture_panel(status: str, message: str | None, ok: bool) -> str:
     )
 
 
+def export_links() -> str:
+    links = " · ".join(f"<a href='/api/export?detail={level}'>{level}</a>" for level in ("basic", "standard", "verbose"))
+    return (
+        f"<p class='muted'>Export the season as JSON: {links}. The same document "
+        "<code>fm-matches export --detail &lt;level&gt;</code> writes.</p>"
+    )
+
+
 def review_body(
     review: MatchReview, catalogue: FootballCatalogue, *, pinned: Sequence[str], capture: str
 ) -> str:

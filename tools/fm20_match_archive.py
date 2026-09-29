@@ -55,7 +55,7 @@ SHIRT, SIDE, WENT_OFF, CAME_ON, ROLE_CODE, RATING, DISTANCE = 8, 9, 54, 58, 100,
 RECORD_LENGTH = 129
 # Team figures summed from the players: shots and chances are not in the
 # team's record next to its passing figures; the rest are read from it.
-SUMMED = ("goals", "shots", "shots_on_target", "clear_cut_chances", "corners_taken", "fouls",
+SUMMED = ("goals", "shots", "shots_on_target", "clear_cut_chances", "fouls",
           "passes_attempted", "passes_completed", "tackles_attempted", "tackles_won",
           "headers_attempted", "headers_won")
 HEADER_SEARCH = 0x400
@@ -134,7 +134,7 @@ def players(chunk: bytes) -> list[dict[str, Any]]:
 # the team's headers attempted can be one fewer than its players' sum, so the
 # team's own figures are read rather than the sums (checked on 26 matches).
 TEAM_RUN: tuple[tuple[str, int, str], ...] = (
-    ("corners_taken", -7, "<B"),
+    ("corners", -7, "<B"),  # the panel's name, as the live layout reads it
     ("fouls", -4, "<B"),
     ("passes_attempted", 0, "<H"),
     ("passes_completed", 2, "<H"),

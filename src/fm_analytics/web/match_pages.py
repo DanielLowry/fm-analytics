@@ -14,9 +14,13 @@ from urllib.parse import quote, unquote
 
 from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.analytics.match_analysis import ReviewFilters
-from fm_analytics.reporting import build_match_report, build_match_review
+from fm_analytics.bridge.errors import BridgeSourceError
+from fm_analytics.match_ingest import export_path
+from fm_analytics.reporting import build_match_report, build_match_review, build_season_export
+from fm_analytics.season_export import DETAIL_LEVELS
 from fm_analytics.web.match_render import (
     capture_panel,
+    export_links,
     match_body,
     match_url,
     review_body,
@@ -75,9 +79,52 @@ class MatchPagesMixin:
         body = review_body(
             review, MVP_CATALOGUE,
             pinned=self.server.pinned_tactics,  # type: ignore[attr-defined]
-            capture=panel,
+            capture=panel + export_links(),
         )
         self._send(_layout("Matches", "/matches", body + _SORTABLE_TABLE_SCRIPT, wide=True))  # type: ignore[attr-defined]
+
+    def _export_api(self, _path: str, query: dict[str, list[str]]) -> None:
+        """The season as JSON: `reporting.build_season_export`, as `fm-matches export` writes it.
+
+        `detail` is basic, standard (default) or verbose. With `squad=live` (the
+        default) the squad sections come from the same cached recommendation the
+        Tactics page shows, and fail closed if it cannot be built; `squad=none`
+        leaves them out.
+        """
+        server = self.server  # type: ignore[attr-defined]
+        detail = _query_first(query, "detail") or "standard"
+        squad = _query_first(query, "squad") or "live"
+        if detail not in DETAIL_LEVELS or squad not in ("live", "none"):
+            self._send_json(  # type: ignore[attr-defined]
+                {"error": f"detail must be one of {', '.join(DETAIL_LEVELS)}; squad must be live or none"},
+                HTTPStatus.BAD_REQUEST,
+            )
+            return
+        try:
+            history = server.match_history()
+        except (OSError, RuntimeError, ValueError, sqlite3.Error) as exc:
+            self._send_json({"error": f"The match history could not be read: {exc}"},  # type: ignore[attr-defined]
+                            HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        if history is None:
+            self._send_json({"error": "No matches are recorded yet."}, HTTPStatus.NOT_FOUND)  # type: ignore[attr-defined]
+            return
+        bundle = None
+        if squad == "live" and detail != "basic":
+            try:
+                bundle = server.bundle()
+            except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
+                self._send_json(  # type: ignore[attr-defined]
+                    {"error": f"The squad could not be read: {exc}. Add squad=none to export without it."},
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                )
+                return
+        document = build_season_export(
+            history, detail=detail, bundle=bundle,
+            squad_note="left out (basic)" if detail == "basic" else "left out (squad=none)",
+        )
+        filename = export_path(history.club.name, document["meta"]["game_date"], detail).name
+        self._send_json(document, filename=filename)  # type: ignore[attr-defined]
 
     def _match_page(self, path: str, _query: dict[str, list[str]]) -> None:
         key = unquote(path[len("/matches/"):])

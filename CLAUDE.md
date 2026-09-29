@@ -94,13 +94,13 @@ numbers into other documents.
   allowed role versions of a tactic, then uses an exact player-to-slot
   assignment. Read `analytics/CLAUDE.md` before changing either half: the
   separation is what makes the recommendation both fast and complete.
-- Recruitment currently exists twice and the two halves have not been
-  reconciled: `analytics/recruitment.py` turns weaknesses into briefs and
-  shortlists them against `imports.VisibleExportPlayer` (CLI, `--candidate-html`),
-  while `analytics/scouting.py` ranks `ScoutingCandidate` from a JSON feed
-  (web, `/scouting`). `VisibleExportPlayer` is a strict field subset of
-  `ScoutingCandidate`. Adding a feature to one side without collapsing the two
-  models deepens the split — prefer unifying over mirroring.
+- Recruitment has one path now: `analytics/recruitment.py::build_recruitment_briefs`
+  turns weaknesses into `RecruitmentBrief`s, and `analytics/scouting.py` ranks
+  `ScoutingCandidate` against them from the web's JSON feed (`/scouting`). The
+  CLI's older shortlist against `imports.VisibleExportPlayer`
+  (`--candidate-html`) was retired 29 September 2026 in favour of this one; the
+  CLI still prints briefs and points to `/scouting` for candidates against
+  them. Do not reintroduce a second shortlist path — extend `scouting.py`.
 - Scoring code is a transparent, reviewable POC, not a reproduction of FM's
   hidden match engine. It's fine to be wrong for football reasons; it must
   never be wrong because it read data a manager couldn't see.

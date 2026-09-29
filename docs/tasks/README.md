@@ -57,7 +57,6 @@ Start these only when the active plan schedules them.
 | [Dashboard as an answer page](medium-dashboard-answer-page.md) | Medium | Parked: dashboard | The web cache rework has landed |
 | [Named depth evidence](low-named-depth-evidence.md) | Low | Parked: named depth | The presentation rule is confirmed |
 | [Background scouting refresh](medium-background-scouting-refresh.md) | Medium | Parked: background refresh | Now, if scheduled |
-| [Retire the CLI candidate shortlist](medium-retire-cli-candidate-shortlist.md) | Medium | Parked: two recruitment paths | The product owner confirms retire-not-merge |
 | [Full-bundle performance](senior-bundle-performance.md) | Senior | Parked: performance | Now, if scheduled |
 | [Wages in the scouting capture](senior-wage-capture.md) | Senior | Parked: wages | Now, if scheduled |
 | [Remove dead imports from `web/server.py`](low-web-server-dead-imports.md) | Low | Review item 3.4 | Now |
@@ -78,6 +77,7 @@ Finished briefs move to the [archive](../archive/tasks/). Each keeps a
 | [Weakest-slot service](../archive/tasks/medium-weakest-slot-service.md) | Medium | 3 | Built 28 September 2026; role attributes added 29 September |
 | [Results log](../archive/tasks/medium-results-log.md) | Medium | 7 | Superseded: built as [match history](../match-analysis-plan.md), 29 September 2026 |
 | [Squad capture upgrade path](../archive/tasks/medium-squad-capture-migrations.md) | Medium | Parked: capture upgrade path | Built 29 September 2026 |
+| [Retire the CLI candidate shortlist](../archive/tasks/medium-retire-cli-candidate-shortlist.md) | Medium | Parked: two recruitment paths | Built 29 September 2026 |
 
 ### Deliberately without a brief
 
@@ -95,8 +95,10 @@ Finished briefs move to the [archive](../archive/tasks/). Each keeps a
 - Use only manager-visible observations. Never recover an unknown attribute
   from a raw value or lower-level research artifact.
 - Do not put scoring or database queries directly in HTML render helpers.
-- Reuse the existing web `ScoutingCandidate` path. Do not add the same feature
-  independently to the older CLI `VisibleExportPlayer` recruitment path.
+- Reuse the existing web `ScoutingCandidate` path for recruitment features; the
+  older CLI `VisibleExportPlayer` shortlist was retired 29 September 2026 (see
+  [its brief](../archive/tasks/medium-retire-cli-candidate-shortlist.md)), so
+  there is no longer a second path to keep in step.
 - Preserve exact, range, unknown, uncaptured, and historical states. They are
   not interchangeable.
 - Keep save identity in every player-knowledge query and write.

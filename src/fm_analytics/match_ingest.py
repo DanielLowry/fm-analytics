@@ -9,12 +9,14 @@ game) and prints the same review the Matches page shows, through the one
     uv run fm-matches review --group relative
     uv run fm-matches show 2019-11-02:8325133:5103652
     uv run fm-matches note 2019-11-02:8325133:5103652 --tactic vertical_442 --rating 1
+    uv run fm-matches export --detail basic          # the season as JSON, for another tool
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from dataclasses import replace
@@ -32,6 +34,7 @@ from fm_analytics.analytics.match_analysis import (
     ReviewFilters,
 )
 from fm_analytics.analytics.match_strength import GROUPINGS
+from fm_analytics.bridge import LinuxProtonDataSource
 from fm_analytics.domain.matches import MatchCapture
 from fm_analytics.knowledge_ingest import default_save_key
 from fm_analytics.persistence.match_history import (
@@ -40,12 +43,24 @@ from fm_analytics.persistence.match_history import (
     MatchRecordResult,
     MatchTimelineError,
 )
-from fm_analytics.reporting import build_match_report, build_match_review
+from fm_analytics.reporting import (
+    RecommendationBundle,
+    RecommendationPolicy,
+    build_match_report,
+    build_match_review,
+    build_recommendation_bundle,
+    build_season_export,
+    has_complete_role_attributes,
+    parse_pinned_tactics,
+    validate_recommendation_snapshot,
+)
+from fm_analytics.season_export import DETAIL_LEVELS
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATABASE = PROJECT_ROOT / "data" / "match-history.sqlite3"
 DEFAULT_CAPTURE = PROJECT_ROOT / "data" / "match-capture.json"
 CAPTURE_TOOL = PROJECT_ROOT / "tools" / "fm20_match_probe.py"
+DEFAULT_EXPORT_DIRECTORY = PROJECT_ROOT / "data" / "exports"
 CAPTURE_TIMEOUT_SECONDS = 120
 
 
@@ -89,6 +104,23 @@ def capture_and_record(
     message = run_capture_tool(output)
     result = record_capture_file(store, output, allow_rewind=allow_rewind)
     return f"{message} Recorded: {result.summary()}."
+
+
+def read_live_bundle(pinned_tactics: tuple[str, ...] = ()) -> RecommendationBundle:
+    """The current squad's recommendation, read-only from the running game, as `fm-analytics --direct-live`."""
+    try:
+        game, squad = LinuxProtonDataSource().read_snapshot()
+        validate_recommendation_snapshot(game, squad)
+    except (RuntimeError, OSError, ValueError, KeyError) as exc:
+        raise RuntimeError(f"the squad could not be read from FM ({exc}); use --squad none to export without it") from exc
+    if not has_complete_role_attributes(squad):
+        raise RuntimeError("FM has not supplied every role-scoring attribute; use --squad none to export without the squad")
+    return build_recommendation_bundle(game, squad, policy=RecommendationPolicy(pinned_tactics=pinned_tactics))
+
+
+def export_path(club_name: str, game_date: str | None, detail: str) -> Path:
+    slug = re.sub(r"[^a-z0-9]+", "-", club_name.casefold()).strip("-") or "season"
+    return DEFAULT_EXPORT_DIRECTORY / f"{slug}-{game_date or 'undated'}-{detail}.json"
 
 
 # -- text output --------------------------------------------------------------
@@ -189,6 +221,18 @@ def build_parser() -> argparse.ArgumentParser:
     note.add_argument("--tactic", help="catalogue tactic key")
     note.add_argument("--rating", type=int, help="opponent strength as you judged it before kickoff, -2..+2")
     note.add_argument("--text", default="")
+    export = commands.add_parser("export", help="the season as one JSON document")
+    export.add_argument("--detail", choices=DETAIL_LEVELS, default="standard",
+                        help="basic: records, splits and one line per match; standard: adds line-ups, "
+                             "per-90s and the squad; verbose: everything (default: %(default)s)")
+    export.add_argument("--squad", choices=("live", "none"), default="live",
+                        help="read the current squad from FM, read-only, for the squad and tactic sections "
+                             "(standard and verbose only; default: %(default)s)")
+    export.add_argument("--my-tactics", metavar="KEY[,KEY...]",
+                        help="tactics you play, primary first, as for fm-analytics --my-tactics")
+    export.add_argument("--output", type=Path,
+                        help=f"file to write, or - for stdout (default: {DEFAULT_EXPORT_DIRECTORY.relative_to(PROJECT_ROOT)}/"
+                             "<club>-<game date>-<detail>.json)")
     role = commands.add_parser("role-code", help="confirm which catalogue role an FM role code is")
     role.add_argument("code", help="the FM code, e.g. 0x800")
     role.add_argument("role", help="catalogue role key, e.g. af_attack")
@@ -244,6 +288,24 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if report is None:
                     raise ValueError(f"no match {args.match}")
                 print(_format_match(report))
+            elif args.command == "export":
+                pinned = parse_pinned_tactics(args.my_tactics)
+                wants_squad = args.squad == "live" and args.detail != "basic"
+                document = build_season_export(
+                    history,
+                    detail=args.detail,
+                    bundle=read_live_bundle(pinned) if wants_squad else None,
+                    squad_note="left out (basic)" if args.detail == "basic" else "left out (--squad none)",
+                )
+                text = json.dumps(document, indent=2, ensure_ascii=False) + "\n"
+                if str(args.output) == "-":
+                    sys.stdout.write(text)
+                else:
+                    output = args.output or export_path(history.club.name, document["meta"]["game_date"], args.detail)
+                    output.parent.mkdir(parents=True, exist_ok=True)
+                    output.write_text(text, encoding="utf-8")
+                    print(f"Wrote {output} ({args.detail}, {len(document['matches'])} matches, "
+                          f"squad {document['meta']['squad']}).")
             elif args.command == "note":
                 if args.tactic and args.tactic not in MVP_CATALOGUE.tactics:
                     raise ValueError(f"unknown tactic key {args.tactic!r}")
