@@ -1,0 +1,140 @@
+"""The Matches pages: the review, one match, and the three local POSTs.
+
+The only things these write are the local match-history database (a capture
+of what FM shows, the manager's notes on a match, and a confirmed role code).
+Nothing is ever written to FM: reading matches runs the read-only
+`tools/fm20_match_probe.py`.
+"""
+
+from __future__ import annotations
+
+import sqlite3
+from http import HTTPStatus
+from urllib.parse import quote, unquote
+
+from fm_analytics.analytics import MVP_CATALOGUE
+from fm_analytics.analytics.match_analysis import ReviewFilters
+from fm_analytics.reporting import build_match_report, build_match_review
+from fm_analytics.web.match_render import (
+    capture_panel,
+    match_body,
+    match_url,
+    review_body,
+    tactic_record_panel,
+)
+from fm_analytics.web.rendering import _SORTABLE_TABLE_SCRIPT, _error_page, _layout, _query_first
+
+
+class MatchPagesMixin:
+    def _match_record_block(self, tactic_keys, quality: int) -> str:
+        """The Tactics page's match-record box, or nothing when there is no history.
+
+        Never raises: the Tactics page must not fail because the history could not be read.
+        """
+        try:
+            history = self.server.match_history()  # type: ignore[attr-defined]
+            if history is None or not history.matches:
+                return ""
+            review = build_match_review(history, filters=ReviewFilters(grouping="rating"))
+        except Exception:  # noqa: BLE001 - see the docstring
+            return ""
+        return tactic_record_panel(review, MVP_CATALOGUE, tactic_keys, quality)
+
+    def _match_capture_panel(self) -> str:
+        server = self.server  # type: ignore[attr-defined]
+        note = server.match_capture_note
+        return capture_panel(server.match_status(), *(note if note else (None, True)))
+
+    def _matches_page(self, path: str, query: dict[str, list[str]]) -> None:
+        try:
+            filters = ReviewFilters(
+                grouping=_query_first(query, "group") or "table",
+                competitions=_query_first(query, "competitions") or "competitive",
+                venue=_query_first(query, "venue") or None,
+                tactic=_query_first(query, "tactic") or None,
+            )
+        except ValueError as exc:
+            self._send(_error_page("Matches", str(exc), path), HTTPStatus.BAD_REQUEST)  # type: ignore[attr-defined]
+            return
+        try:
+            history = self.server.match_history()  # type: ignore[attr-defined]
+        except (OSError, RuntimeError, ValueError, sqlite3.Error) as exc:
+            self._send(_error_page("Matches", f"The match history could not be read: {exc}", path),  # type: ignore[attr-defined]
+                       HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        panel = self._match_capture_panel()
+        if history is None:
+            body = panel + (
+                "<p class='intro'>No matches recorded yet. With FM running and your save loaded, use "
+                "<strong>Read matches from FM</strong>: it reads every result this season, and full stats "
+                "for your latest match.</p>"
+            )
+            self._send(_layout("Matches", "/matches", body))  # type: ignore[attr-defined]
+            return
+        review = build_match_review(history, filters=filters)
+        body = review_body(
+            review, MVP_CATALOGUE,
+            pinned=self.server.pinned_tactics,  # type: ignore[attr-defined]
+            capture=panel,
+        )
+        self._send(_layout("Matches", "/matches", body + _SORTABLE_TABLE_SCRIPT, wide=True))  # type: ignore[attr-defined]
+
+    def _match_page(self, path: str, _query: dict[str, list[str]]) -> None:
+        key = unquote(path[len("/matches/"):])
+        try:
+            history = self.server.match_history()  # type: ignore[attr-defined]
+        except (OSError, RuntimeError, ValueError, sqlite3.Error) as exc:
+            self._send(_error_page("Match", str(exc), "/matches"), HTTPStatus.SERVICE_UNAVAILABLE)  # type: ignore[attr-defined]
+            return
+        report = build_match_report(history, key) if history is not None else None
+        if report is None:
+            self._send(_error_page("Match", f"No match {key} is recorded.", "/matches"), HTTPStatus.NOT_FOUND)  # type: ignore[attr-defined]
+            return
+        summary = report.summary
+        title = f"{summary.match.home.name} {summary.match.home_goals}–{summary.match.away_goals} {summary.match.away.name}"
+        body = "<p><a href='/matches'>← All matches</a></p>" + match_body(
+            report, MVP_CATALOGUE, self.server.pinned_tactics,  # type: ignore[attr-defined]
+            history.notes.get(summary.match.key),
+        )
+        self._send(_layout(title, "/matches", body + _SORTABLE_TABLE_SCRIPT, wide=True))  # type: ignore[attr-defined]
+
+    def _post_match_capture(self) -> None:
+        """Read matches from FM (read-only) and record them, then go back."""
+        self.server.capture_matches()  # type: ignore[attr-defined]
+        self._redirect("/matches")
+
+    def _post_match_note(self) -> None:
+        form = self._read_form()  # type: ignore[attr-defined]
+        key = form.get("match", [""])[0]
+        tactic = form.get("tactic", [""])[0] or None
+        rating_text = form.get("rating", [""])[0]
+        try:
+            if tactic is not None and tactic not in MVP_CATALOGUE.tactics:
+                raise ValueError(f"{tactic!r} is not a tactic in the catalogue.")
+            rating = int(rating_text) if rating_text else None
+            self.server.add_match_note(  # type: ignore[attr-defined]
+                key, tactic_key=tactic, opponent_rating=rating, note=form.get("note", [""])[0]
+            )
+        except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
+            self._send(_error_page("Match notes", str(exc), match_url(key) if key else "/matches"),  # type: ignore[attr-defined]
+                       HTTPStatus.BAD_REQUEST)
+            return
+        self._redirect(match_url(key))
+
+    def _post_role_code(self) -> None:
+        form = self._read_form()  # type: ignore[attr-defined]
+        role = form.get("role", [""])[0]
+        try:
+            code = int(form.get("code", [""])[0])
+            if role not in MVP_CATALOGUE.roles:
+                raise ValueError(f"{role!r} is not a role in the catalogue.")
+            self.server.confirm_role_code(code, role)  # type: ignore[attr-defined]
+        except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
+            self._send(_error_page("Role code", str(exc), "/matches"), HTTPStatus.BAD_REQUEST)  # type: ignore[attr-defined]
+            return
+        self._redirect("/matches")
+
+    def _redirect(self, location: str) -> None:
+        self.send_response(HTTPStatus.SEE_OTHER)  # type: ignore[attr-defined]
+        self.send_header("Location", quote(location, safe="/:?=&%"))  # type: ignore[attr-defined]
+        self.end_headers()  # type: ignore[attr-defined]

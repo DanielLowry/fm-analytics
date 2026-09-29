@@ -11,6 +11,9 @@
 - [Task briefs](tasks/README.md) split every open and parked active-plan item
   into bounded low-, medium- and senior-level assignments with prerequisites
   and acceptance criteria.
+- [Match analysis plan](match-analysis-plan.md) documents the match history:
+  what is read live from FM, how matches are grouped by opposition strength,
+  the Matches page and `fm-matches`, and the remaining research.
 - [Analytics performance investigation](analytics-performance.md) is the
   current measured cost model and records the package, vectorisation, and
   process-parallel experiments for tactic ranking.

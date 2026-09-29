@@ -47,6 +47,10 @@ from fm_analytics.candidate_pool import DEFAULT_OUT_OF_DATE_MONTHS, compose_cand
 from fm_analytics.domain import SourceHealth, Squad
 from fm_analytics.knowledge_ingest import DEFAULT_DATABASE as DEFAULT_KNOWLEDGE_DATABASE
 from fm_analytics.knowledge_ingest import default_save_key, record_capture_file
+from fm_analytics.match_ingest import DEFAULT_DATABASE as DEFAULT_MATCH_DATABASE
+from fm_analytics.match_ingest import DEFAULT_CAPTURE as DEFAULT_MATCH_CAPTURE
+from fm_analytics.match_ingest import capture_and_record, record_capture_file as record_match_capture
+from fm_analytics.persistence.match_history import MatchHistoryStore
 from fm_analytics.persistence import PlayerKnowledgeStore, RecordResult, Verdict, VerdictRecord
 from fm_analytics.reporting import (
     RecommendationBundle,
@@ -90,10 +94,11 @@ from fm_analytics.web.rendering import (
 
 
 from fm_analytics.web.handlers import SquadWebHandler
+from fm_analytics.web.match_state import MatchHistoryState
 
 
 
-class SquadWebServer(ThreadingHTTPServer):
+class SquadWebServer(MatchHistoryState, ThreadingHTTPServer):
     """Serves `SquadWebHandler`, with a short-TTL cache in front of the source.
 
     Both the provider call and the full recommendation computation can cost
@@ -128,7 +133,10 @@ class SquadWebServer(ThreadingHTTPServer):
         knowledge_store: PlayerKnowledgeStore | None = None,
         knowledge_save_key: str | None = None,
         out_of_date_months: int = DEFAULT_OUT_OF_DATE_MONTHS,
+        match_store: MatchHistoryStore | None = None,
+        match_capture: Callable[[], str] | None = None,
     ):
+        self.setup_match_history(match_store, match_capture)
         # Appends each fresh scouting capture to the player-knowledge database
         # (see ``record_knowledge``). None disables recording.
         self.knowledge_recorder = knowledge_recorder
@@ -570,6 +578,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="do not record scouting captures into the player-knowledge database",
     )
     parser.add_argument(
+        "--match-db",
+        type=Path,
+        default=DEFAULT_MATCH_DATABASE,
+        help="match-history database the Matches page reads and records into (default: %(default)s)",
+    )
+    parser.add_argument(
         "--scouting-json",
         help="manager-visible discoverability/scouting capture JSON for the Scouting page",
     )
@@ -652,6 +666,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         def knowledge_recorder() -> RecordResult:
             return record_capture_file(knowledge_store, refresh_path)
 
+    match_store = MatchHistoryStore(args.match_db)
     server = SquadWebServer(
         (args.host, args.port), provider,
         scouting_provider=(scouting_json_provider(scouting_path) if scouting_path else None),
@@ -663,12 +678,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         knowledge_store=knowledge_store,
         knowledge_save_key=_capture_save_key(refresh_path),
         out_of_date_months=args.out_of_date_months,
+        match_store=match_store,
+        match_capture=lambda: capture_and_record(match_store),
     )
     if knowledge_recorder is not None and refresh_path.exists():
         # Catches captures made by running the tool directly since last time.
         server.record_knowledge()
         if server.knowledge_note is not None:
             print(server.knowledge_note[0])
+    if DEFAULT_MATCH_CAPTURE.exists():
+        # Catches a capture made with `fm-matches capture` or the tool directly.
+        try:
+            print(f"Match history: {record_match_capture(match_store, DEFAULT_MATCH_CAPTURE).summary()}")
+        except Exception as exc:  # noqa: BLE001 - the Matches page still works without it
+            print(f"Match history: the last capture was not recorded: {exc}", file=sys.stderr)
     print(f"FM Analytics web view listening on http://{args.host}:{args.port}")
     threading.Thread(target=server.warm_scouting_rankings, daemon=True, name="scouting-warm").start()
     try:

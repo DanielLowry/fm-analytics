@@ -39,6 +39,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator, Mapping, Sequence
 
 from fm_analytics.domain import AttributeObservation, Visibility
+from fm_analytics.persistence.migrations import bring_up_to_date
 
 if TYPE_CHECKING:
     from fm_analytics.persistence.best_known import BestKnownProfile
@@ -366,46 +367,11 @@ class PlayerKnowledgeStore:
     def initialize(self) -> None:
         """Create the file, or bring an older one up to date, or refuse it."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        latest = len(self._migrations)
         with closing(self._connect()) as connection:
-            version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version > latest:
-                raise KnowledgeStoreError(
-                    f"{self.path} is player-knowledge schema v{version}, newer than this "
-                    f"program understands (v{latest}). Update the program; do not delete the file."
-                )
-            if version == 0 and connection.execute(
-                "SELECT 1 FROM sqlite_master WHERE type = 'table' LIMIT 1"
-            ).fetchone():
-                raise KnowledgeStoreError(
-                    f"{self.path} is a SQLite database but not a player-knowledge database."
-                )
-            if version == latest:
-                return
-            if version > 0:
-                # A whole-database copy through SQLite's own backup API, so it
-                # is consistent even if another process has the file open.
-                backup = self.path.with_name(f"{self.path.name}.bak-v{version}")
-                with closing(sqlite3.connect(backup)) as target:
-                    connection.backup(target)
-            for step in range(version, latest):
-                self._apply(connection, step, self._migrations[step])
-
-    @staticmethod
-    def _apply(connection: sqlite3.Connection, step: int, migration: str) -> None:
-        """One migration and its version bump, atomically.
-
-        A migration script must not contain its own BEGIN or COMMIT.
-        """
-        script = f"BEGIN;\n{migration}\nPRAGMA user_version = {step + 1};\nCOMMIT;"
-        try:
-            connection.executescript(script)
-        except sqlite3.Error as exc:
-            if connection.in_transaction:
-                connection.execute("ROLLBACK")
-            raise KnowledgeStoreError(
-                f"migration to v{step + 1} failed and was rolled back: {exc}"
-            ) from exc
+            bring_up_to_date(
+                connection, self.path, self._migrations,
+                kind="player-knowledge", error=KnowledgeStoreError,
+            )
 
     # -- writing -----------------------------------------------------------
 

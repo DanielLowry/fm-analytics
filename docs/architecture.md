@@ -139,6 +139,14 @@ manager-visible research capture consumed by the scouting page, but it is not
 yet a stable bridge resource and the CLI HTML and web JSON recruitment paths
 have not been unified.
 
+Match history is a second, separate path. `tools/fm20_match_probe.py capture`
+reads the running game read-only: first-team results, the league's results
+and FM's match and player stats. `persistence/match_history.py` keeps each
+state of each match. `reporting.build_match_review` is the one review
+computation behind `fm-matches` and the Matches page. Its opposition-strength
+groups come from the league table rebuilt at each kickoff, not from the
+manager-set opponent profile. See [the match analysis plan](match-analysis-plan.md).
+
 `reporting.build_recommendation_bundle` is the single owned-squad calculation
 used by CLI and web. The browser currently caches source reads and bundles on
 separate short TTLs. The move to one input-keyed, single-flight cache is

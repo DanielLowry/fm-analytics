@@ -15,6 +15,7 @@ fm-analytics = "fm_analytics.cli:main"
 fm-bridge = "fm_analytics.bridge.server:main"
 fm-web = "fm_analytics.web.server:main"
 fm-knowledge = "fm_analytics.knowledge_ingest:main"
+fm-matches = "fm_analytics.match_ingest:main"
 
 [project.optional-dependencies]
 research = [

@@ -30,6 +30,7 @@ _NAV: tuple[tuple[str, str], ...] = (
     ("/set-pieces", "Set pieces"),
     ("/depth", "Depth"),
     ("/scouting", "Scouting"),
+    ("/matches", "Matches"),
     ("/data", "Data"),
 )
 
@@ -139,6 +140,37 @@ _STYLE = """
   .refresh-panel details { border: 0; padding: 0; margin: 0 0 0.5rem; }
   .refresh-panel details summary { font-weight: 500; font-size: 0.85rem; color: #456; }
   .refresh-panel form.refresh { margin: 0.5rem 0; flex-wrap: wrap; }
+  .chip { display: inline-block; min-width: 1.35rem; padding: 0.05rem 0.3rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 700; text-align: center; color: white; }
+  .chip-W { background: #2e7d32; } .chip-D { background: #8d8d8d; } .chip-L { background: #b23b2e; }
+  .form-strip { display: inline-flex; gap: 2px; flex-wrap: wrap; max-width: 16rem; }
+  .form-strip .chip { min-width: 0.9rem; padding: 0.05rem 0.2rem; font-size: 0.65rem; }
+  tr.thin td { color: #8a949e; }
+  tr.thin td .chip { opacity: 0.55; }
+  .thin-note { font-size: 0.72rem; color: #8a949e; display: block; }
+  .versus { display: grid; grid-template-columns: 2.6rem 4.5rem 2.6rem; align-items: center; gap: 0.3rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .versus .us { text-align: right; font-weight: 600; } .versus .them { color: #66707a; }
+  .versus .bars { display: flex; height: 0.5rem; border-radius: 0.25rem; overflow: hidden; background: #e6e9ec; }
+  .versus .bars .b-us { background: #1a2b3c; } .versus .bars .b-them { background: #c9a227; }
+  .share { display: inline-block; height: 0.5rem; background: #1a2b3c; border-radius: 0.25rem; vertical-align: middle; margin-right: 0.35rem; }
+  .period-chart { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.4rem; align-items: end; height: 8rem; margin: 0.75rem 0 0.25rem; }
+  .period-chart .col { display: flex; gap: 2px; align-items: end; justify-content: center; height: 100%; }
+  .period-chart .bar-for { width: 40%; background: #2e7d32; border-radius: 2px 2px 0 0; }
+  .period-chart .bar-against { width: 40%; background: #b23b2e; border-radius: 2px 2px 0 0; }
+  .period-labels { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.4rem; font-size: 0.75rem; color: #556; text-align: center; }
+  .key-for::before, .key-against::before { content: ''; display: inline-block; width: 0.7rem; height: 0.7rem; margin: 0 0.3rem 0 0.8rem; vertical-align: -1px; border-radius: 2px; }
+  .key-for::before { background: #2e7d32; } .key-against::before { background: #b23b2e; }
+  .match-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.9rem; margin: 0.75rem 0 1.25rem; }
+  .match-card { padding: 0.8rem 1rem; border: 1px solid #e0e4e8; border-radius: 0.4rem; background: white; }
+  .match-card h3 { margin: 0 0 0.45rem; font-size: 0.95rem; }
+  .match-card ol { margin: 0; padding-left: 1.2rem; font-size: 0.88rem; line-height: 1.55; }
+  td.nowrap { white-space: nowrap; }
+  .note-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.65rem; padding: 1rem; background: #f0f2f5; border-radius: 0.4rem; }
+  .note-form label { display: grid; gap: 0.2rem; font-size: 0.78rem; color: #455; }
+  .note-form select, .note-form textarea { padding: 0.35rem; border: 1px solid #bbc3cc; border-radius: 0.25rem; background: white; font: inherit; }
+  .note-form textarea { grid-column: 1 / -1; min-height: 3.5rem; }
+  .note-form button, form.inline button { padding: 0.45rem 0.8rem; border: 0; border-radius: 0.25rem; background: #1a2b3c; color: white; cursor: pointer; }
+  form.inline { display: inline-flex; gap: 0.4rem; align-items: center; margin: 0; }
+  form.inline select { padding: 0.3rem; border: 1px solid #bbc3cc; border-radius: 0.25rem; }
   #scouting-results { transition: opacity 0.15s; }
   #scouting-results.loading { opacity: 0.5; }
   .results-summary { margin: 0.3rem 0; color: #455; }

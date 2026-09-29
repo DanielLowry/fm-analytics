@@ -1,0 +1,511 @@
+#!/usr/bin/env python3
+"""Read-only reader for FM20 match data: results, team stats and player stats.
+
+``capture`` writes the manager's match history as the JSON document that
+``fm-matches`` records (``fm_analytics.match_ingest``), the way
+``fm20_scouting_feed.py`` feeds the Scouting page. The other commands are the
+research views used to find the layouts in ``fm20_match_layout.py``; see
+``docs/match-analysis-plan.md``.
+
+It never attaches to FM, never runs FM's code and never writes: every read
+goes through ``/proc/<pid>/mem`` opened read-only, after checking the process
+runs the pinned FM20 build. FM keeps running while it reads, so a capture is
+checked against FM's own match screens rather than trusted blindly.
+
+    python3 tools/fm20_match_probe.py capture --output data/match-capture.json
+    python3 tools/fm20_match_probe.py matches            # every match-stats object
+    python3 tools/fm20_match_probe.py results            # the first team's results
+    python3 tools/fm20_match_probe.py squad              # first team with match-record IDs
+    python3 tools/fm20_match_probe.py players ADDRESS    # one match's player records
+    python3 tools/fm20_match_probe.py scan CLASS...      # live instances of classes
+    python3 tools/fm20_match_probe.py describe ADDRESS   # an object's class and text
+    python3 tools/fm20_match_probe.py find-u32 VALUE...  # where 4-byte values occur
+    python3 tools/fm20_match_probe.py dump ADDRESS [SIZE]
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import mmap
+import os
+import re
+import struct
+import sys
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Iterator, Sequence
+
+if __package__ in {None, ""}:
+    project_root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(project_root))
+    sys.path.insert(0, str(project_root / "src"))
+
+from tools import fm20_linux_probe as probe
+import tools.fm20_linux_probe_runtime  # noqa: F401  (installs decode_fm_date)
+from tools import fm20_match_layout as layout
+from tools.fm20_field_workbench import PeImage, find_rtti_vtables
+from tools.fm20_status import running_pid
+
+CHUNK = 64 << 20
+CAPTURE_FORMAT = "fm-analytics/match-capture"
+CAPTURE_FORMAT_VERSION = 1
+
+
+class Memory:
+    """FM's address space, read-only."""
+
+    def __init__(self, pid: int):
+        process = Path("/proc") / str(pid)
+        with (process / "maps").open(encoding="utf-8") as maps:
+            self.module_base, executable = probe.parse_module_mapping(maps)
+        probe.validate_executable(executable)
+        self.pid = pid
+        self.executable = Path(executable)
+        self.fd = os.open(process / "mem", os.O_RDONLY | os.O_CLOEXEC)
+
+    def close(self) -> None:
+        os.close(self.fd)
+
+    def read(self, address: int, size: int) -> bytes:
+        return probe.read_exact(self.fd, address, size)
+
+    def u64(self, address: int) -> int:
+        return struct.unpack("<Q", self.read(address, 8))[0]
+
+    def writable_regions(self) -> Iterator[tuple[int, int]]:
+        with open(f"/proc/{self.pid}/maps", encoding="utf-8") as maps:
+            for line in maps:
+                parts = line.split()
+                start, end = (int(value, 16) for value in parts[0].split("-"))
+                path = parts[5] if len(parts) > 5 else ""
+                if "r" in parts[1] and "w" in parts[1] and not path.startswith("/"):
+                    yield start, end
+
+    def scan(self, patterns: dict[bytes, str], *, align: int, limit: int = 2000) -> dict[str, list[int]]:
+        pattern = re.compile(b"|".join(re.escape(needle) for needle in patterns))
+        hits: dict[str, list[int]] = {name: [] for name in patterns.values()}
+        for start, end in self.writable_regions():
+            for position in range(start, end, CHUNK):
+                try:
+                    data = os.pread(self.fd, min(CHUNK, end - position), position)
+                except OSError:
+                    continue
+                for match in pattern.finditer(data):
+                    address = position + match.start()
+                    name = patterns[match.group()]
+                    if address % align == 0 and len(hits[name]) < limit:
+                        hits[name].append(address)
+        return hits
+
+    def instances(self, rva: int) -> list[int]:
+        needle = struct.pack("<Q", self.module_base + rva)
+        return self.scan({needle: "x"}, align=8, limit=1_000_000)["x"]
+
+    def pointers(self, vector_at: bytes, offset: int, *, limit: int = 256) -> list[int]:
+        begin, end = layout.vector_bounds(vector_at, offset)
+        count = min(max(end - begin, 0) // 8, limit)
+        return list(struct.unpack(f"<{count}Q", self.read(begin, count * 8))) if count else []
+
+
+# -- the capture ------------------------------------------------------------
+
+
+class Clubs:
+    """Team object -> club reference, read once per team."""
+
+    def __init__(self, memory: Memory):
+        self.memory = memory
+        self._cache: dict[int, dict[str, str] | None] = {}
+
+    def __call__(self, team: int) -> dict[str, str] | None:
+        if team not in self._cache:
+            try:
+                club = probe.read_club_from_team(self.memory.fd, team)
+            except (OSError, probe.ProbeError):
+                club = None
+            self._cache[team] = {"id": club.id, "name": club.name} if club else None
+        return self._cache[team]
+
+
+def competition(memory: Memory, fixture_name: int) -> dict[str, str]:
+    try:
+        fixture_id = struct.unpack("<I", memory.read(fixture_name + layout.FIXTURE_NAME_ID, 4))[0]
+        comp = memory.u64(fixture_name + layout.FIXTURE_NAME_COMP)
+        name = probe.read_fm_string(memory.fd, comp + layout.COMP_NAME, indirect=False)
+        short = probe.read_fm_string(memory.fd, comp + layout.COMP_SHORT_NAME, indirect=False)
+    except (OSError, probe.ProbeError):
+        return {"id": f"fixture-name:{fixture_name:#x}", "name": "Unknown competition", "shortName": ""}
+    return {"id": str(fixture_id), "name": name or "Unknown competition", "shortName": short or ""}
+
+
+def played_results(memory: Memory) -> dict[tuple, dict[str, Any]]:
+    """Every played result FM holds, once each, keyed by date and teams."""
+    results: dict[tuple, dict[str, Any]] = {}
+    for address in memory.instances(layout.FIXTURE_RESULT):
+        try:
+            record = layout.decode_fixture_result(memory.read(address, layout.FIXTURE_RESULT_SIZE))
+        except (OSError, probe.ProbeError):
+            continue
+        if not record["played"] or record["date"] is None:
+            continue
+        key = (record["date"], record["home_team"], record["away_team"])
+        results.setdefault(key, {**record, "address": address})
+    return results
+
+
+def managed_squad(memory: Memory) -> list[dict]:
+    """The managed first team, with the short ID match records use.
+
+    A match player record names its player by a short ID stored at person
+    +0x08, beside the unique ID the squad reader already uses (+0x0C).
+    """
+    start = memory.u64(first_team_address(memory) + 0x38)
+    end = memory.u64(first_team_address(memory) + 0x40)
+    expected_type = memory.module_base + probe.FM20_4_4_STEAM.player_type_offset
+    players = []
+    for index in range((end - start) // 8):
+        try:
+            player = memory.u64(start + index * 8) + 0x8
+            person = player + 0x1C0
+            if memory.u64(person) != expected_type:
+                continue
+            short_id, unique_id = struct.unpack("<Ii", memory.read(person + 0x8, 8))
+            actual = player + 0x1E8
+            name = " ".join(
+                part for part in (
+                    probe.read_fm_string(memory.fd, actual + 0x30),
+                    probe.read_fm_string(memory.fd, actual + 0x38),
+                ) if part
+            )
+        except (OSError, probe.ProbeError):
+            continue
+        players.append({"short_id": short_id, "id": str(unique_id), "name": name})
+    return players
+
+
+def first_team_address(memory: Memory) -> int:
+    contexts = probe.read_human_manager_contexts(memory.fd, memory.module_base)
+    active = next((context for context in contexts if context.manager.active), None)
+    if active is None or active.team_address is None:
+        raise probe.ProbeError("FM20 has no active employed human manager")
+    return active.team_address
+
+
+def match_detail(memory: Memory, stats_address: int, squad: dict[int, dict]) -> dict[str, Any] | None:
+    """A match's stats panel, players and timeline, or None for a blank copy."""
+    header = memory.read(stats_address, layout.MATCH_STATS_SIZE)
+    blocks = {
+        side: memory.read(layout.pointer(header, offset), layout.TEAM_BLOCK_SIZE)
+        for side, offset in (("home", layout.STATS_HOME_BLOCK), ("away", layout.STATS_AWAY_BLOCK))
+    }
+    teams = {side: layout.decode_team_block(block) for side, block in blocks.items()}
+    if all(layout.team_block_is_empty(stats) for stats in teams.values()):
+        return None
+    players = []
+    for side, block in blocks.items():
+        order = 0
+        for record_address in memory.pointers(block, layout.TEAM_PLAYERS, limit=64):
+            player = layout.decode_player_record(memory.read(record_address, layout.PLAYER_RECORD_SIZE))
+            if player is None:
+                continue
+            known = squad.get(player["short_id"]) if side == player["side"] else None
+            players.append({
+                **player,
+                "side": side,
+                "order": order,
+                "started": order < layout.STARTERS,
+                "player_id": known["id"] if known else None,
+                "name": known["name"] if known else None,
+            })
+            order += 1
+    events = [
+        layout.decode_event(memory.read(event_address, layout.EVENT_SIZE))
+        for event_address in memory.pointers(header, layout.STATS_EVENTS)
+    ]
+    return {"home": teams["home"], "away": teams["away"], "players": players, "events": events}
+
+
+def _team_json(club: dict[str, str] | None, team: int) -> dict[str, str]:
+    return club or {"id": f"team:{team:#x}", "name": "Unknown team"}
+
+
+def build_capture(memory: Memory) -> dict[str, Any]:
+    clubs = Clubs(memory)
+    team = first_team_address(memory)
+    managed = clubs(team)
+    if managed is None:
+        raise probe.ProbeError("the managed club could not be read")
+    game_date = probe.decode_fm_date(
+        memory.read(memory.module_base + probe.FM20_4_4_STEAM.current_date_offset, 4),
+        minimum_year=2018,
+    )
+    results = played_results(memory)
+    ours = {key: result for key, result in results.items() if team in (result["home_team"], result["away_team"])}
+    competitions = {result["fixture_name"]: competition(memory, result["fixture_name"]) for result in ours.values()}
+
+    squad = {player["short_id"]: player for player in managed_squad(memory)}
+    details: dict[tuple, dict[str, Any]] = {}
+    for address in memory.instances(layout.GAME_MATCH_STATS):
+        try:
+            header = memory.read(address, layout.MATCH_STATS_SIZE)
+            result = layout.decode_fixture_result(
+                memory.read(layout.pointer(header, layout.STATS_RESULT), layout.FIXTURE_RESULT_SIZE)
+            )
+            key = (result["date"], result["home_team"], result["away_team"])
+            if key not in ours or key in details:
+                continue
+            detail = match_detail(memory, address, squad)
+        except (OSError, probe.ProbeError, struct.error):
+            continue
+        if detail is not None:
+            details[key] = detail
+
+    def match_json(key, result) -> dict[str, Any]:
+        return {
+            "date": result["date"].isoformat(),
+            "competition": competitions[result["fixture_name"]],
+            "home": _team_json(clubs(result["home_team"]), result["home_team"]),
+            "away": _team_json(clubs(result["away_team"]), result["away_team"]),
+            "homeGoals": result["home_goals"],
+            "awayGoals": result["away_goals"],
+            "attendance": result["attendance"],
+            "detail": _detail_json(details.get(key)),
+        }
+
+    league_results = []
+    for fixture_name, comp in competitions.items():
+        if not _is_league(results.values(), fixture_name, team):
+            continue
+        rows = [
+            {
+                "date": result["date"].isoformat(),
+                "home": _team_json(clubs(result["home_team"]), result["home_team"]),
+                "away": _team_json(clubs(result["away_team"]), result["away_team"]),
+                "homeGoals": result["home_goals"],
+                "awayGoals": result["away_goals"],
+            }
+            for result in results.values()
+            if result["fixture_name"] == fixture_name
+        ]
+        league_results.append({"competition": comp, "results": sorted(rows, key=lambda row: row["date"])})
+
+    return {
+        "format": CAPTURE_FORMAT,
+        "formatVersion": CAPTURE_FORMAT_VERSION,
+        "capturedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "gameDate": game_date.isoformat(),
+        "source": {"tool": "tools/fm20_match_probe.py", "managedClub": managed},
+        "matches": [match_json(key, result) for key, result in sorted(ours.items(), key=lambda item: item[0][0])],
+        "competitionResults": league_results,
+    }
+
+
+MAX_LEAGUE_TEAMS = 48
+
+
+def _is_league(results, fixture_name: int, team: int) -> bool:
+    """Whether a competition's results make a league table worth keeping.
+
+    Friendlies span thousands of clubs and a cup round gives each team one
+    match; neither has a table. A league has a bounded set of teams and the
+    managed team plays in it more than once.
+    """
+    teams: set[int] = set()
+    ours = 0
+    for result in results:
+        if result["fixture_name"] != fixture_name:
+            continue
+        teams.update((result["home_team"], result["away_team"]))
+        ours += team in (result["home_team"], result["away_team"])
+        if len(teams) > MAX_LEAGUE_TEAMS:
+            return False
+    return ours >= 2
+
+
+def _detail_json(detail: dict[str, Any] | None) -> dict[str, Any] | None:
+    if detail is None:
+        return None
+    return {
+        "home": detail["home"],
+        "away": detail["away"],
+        "players": [
+            {
+                "side": player["side"],
+                "order": player["order"],
+                "started": player["started"],
+                "shortId": player["short_id"],
+                "playerId": player["player_id"],
+                "name": player["name"],
+                "shirt": player["shirt"],
+                "roleCode": player["role_code"],
+                "played": player["played"],
+                "rating": player["rating"],
+                "distanceM": player["distance_m"],
+                "stats": player["stats"],
+            }
+            for player in detail["players"]
+        ],
+        "events": detail["events"],
+    }
+
+
+def write_capture(document: dict[str, Any], output: Path) -> None:
+    """Replace `output` atomically, so a reader never sees half a file."""
+    output.parent.mkdir(parents=True, exist_ok=True)
+    handle, temporary = tempfile.mkstemp(prefix=output.name, suffix=".tmp", dir=output.parent)
+    with os.fdopen(handle, "w", encoding="utf-8") as stream:
+        json.dump(document, stream, indent=1)
+    os.replace(temporary, output)
+
+
+# -- research views ---------------------------------------------------------
+
+
+def class_vtables(executable: Path, names: Sequence[str]) -> dict[str, list[int]]:
+    with executable.open("rb") as handle:
+        data = mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ)
+        image = PeImage.parse(data)
+        return {
+            name: [
+                int(table["rva"], 16)
+                for result in find_rtti_vtables(data, image, name)
+                for locator in result["completeObjectLocators"]
+                for table in locator["vtables"]
+            ]
+            for name in names
+        }
+
+
+def class_name_at(memory: Memory, image, address: int) -> str | None:
+    """The RTTI class of the object at `address`, if it has a vtable in FM."""
+    try:
+        vtable = memory.u64(address)
+    except (OSError, probe.ProbeError):
+        return None
+    info = image.class_at_vtable(vtable - memory.module_base)
+    return info.name if info else None
+
+
+def hexdump(data: bytes) -> str:
+    return "\n".join(
+        f"+{offset:04x}: " + " ".join(f"{byte:02x}" for byte in data[offset:offset + 16])
+        for offset in range(0, len(data), 16)
+    )
+
+
+def research(memory: Memory, args: argparse.Namespace) -> None:
+    clubs = Clubs(memory)
+    if args.command == "matches":
+        for address in memory.instances(layout.GAME_MATCH_STATS):
+            header = memory.read(address, layout.MATCH_STATS_SIZE)
+            result = layout.decode_fixture_result(
+                memory.read(layout.pointer(header, layout.STATS_RESULT), layout.FIXTURE_RESULT_SIZE)
+            )
+            detail = match_detail(memory, address, {})
+            print(json.dumps({
+                "address": hex(address),
+                "date": result["date"].isoformat() if result["date"] else None,
+                "home": (clubs(result["home_team"]) or {}).get("name"),
+                "away": (clubs(result["away_team"]) or {}).get("name"),
+                "score": f"{result['home_goals']}-{result['away_goals']}",
+                "home_stats": detail and detail["home"],
+                "away_stats": detail and detail["away"],
+            }))
+    elif args.command == "results":
+        team = first_team_address(memory)
+        for (day, home, away), result in sorted(played_results(memory).items(), key=lambda item: item[0][0]):
+            if team in (home, away):
+                comp = competition(memory, result["fixture_name"])
+                print(f"{day} {comp['shortName'] or comp['name']}: {(clubs(home) or {}).get('name')} "
+                      f"{result['home_goals']}-{result['away_goals']} {(clubs(away) or {}).get('name')}")
+    elif args.command == "squad":
+        for player in managed_squad(memory):
+            print(json.dumps(player))
+    elif args.command == "players":
+        header = memory.read(int(args.address, 0), layout.MATCH_STATS_SIZE)
+        for side, offset in (("home", layout.STATS_HOME_BLOCK), ("away", layout.STATS_AWAY_BLOCK)):
+            block = memory.read(layout.pointer(header, offset), layout.TEAM_BLOCK_SIZE)
+            records = memory.pointers(block, layout.TEAM_PLAYERS, limit=64)
+            print(f"== {side}: {len(records)} records")
+            for record in records:
+                print(f"-- {record:#x}\n{hexdump(memory.read(record, layout.PLAYER_RECORD_SIZE))}")
+    elif args.command == "scan":
+        for name, tables in class_vtables(memory.executable, args.classes).items():
+            for rva in tables:
+                found = memory.instances(rva)
+                print(f"{name} vtable {rva:#x}: {len(found)} instances {[hex(a) for a in found[:8]]}")
+    elif args.command == "describe":
+        from tools.fm20_pe_symbols import open_image
+
+        address = int(args.address, 0)
+        with open_image(memory.executable) as image:
+            print(f"{address:#x} = {class_name_at(memory, image, address)}")
+            for offset in range(0, 0x100, 8):
+                for indirect in (False, True):
+                    try:
+                        text = probe.read_fm_string(memory.fd, address + offset, indirect=indirect)
+                    except (OSError, probe.ProbeError):
+                        continue
+                    if text and text.isprintable():
+                        print(f"  +{offset:#04x} {'indirect' if indirect else 'direct'}: {text!r}")
+                try:
+                    target = memory.u64(address + offset)
+                except (OSError, probe.ProbeError):
+                    continue
+                name = class_name_at(memory, image, target) if target > 0x10000 else None
+                if name:
+                    print(f"  +{offset:#04x} -> {target:#x} = {name}")
+    elif args.command == "find-u32":
+        patterns = {struct.pack("<I", value): str(value) for value in args.values}
+        for value, found in memory.scan(patterns, align=4).items():
+            print(f"{value}: {len(found)} hits {[hex(a) for a in found[:16]]}")
+    elif args.command == "dump":
+        print(hexdump(memory.read(int(args.address, 0), int(args.size, 0))))
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--pid", type=int, help="FM process (default: the running one)")
+    commands = parser.add_subparsers(dest="command", required=True)
+    capture = commands.add_parser("capture", help="write the match-history capture JSON")
+    capture.add_argument("--output", type=Path, required=True)
+    for name in ("matches", "results", "squad"):
+        commands.add_parser(name)
+    commands.add_parser("players").add_argument("address")
+    commands.add_parser("describe").add_argument("address")
+    commands.add_parser("scan").add_argument("classes", nargs="+", help="e.g. FIXTURE_RESULT@sicomps")
+    commands.add_parser("find-u32").add_argument("values", nargs="+", type=int)
+    dump = commands.add_parser("dump")
+    dump.add_argument("address")
+    dump.add_argument("size", nargs="?", default="0x100")
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        memory = Memory(args.pid or running_pid())
+    except (OSError, probe.ProbeError, RuntimeError) as exc:
+        print(f"FM20 cannot be read: {exc}", file=sys.stderr)
+        return 2
+    try:
+        if args.command == "capture":
+            document = build_capture(memory)
+            write_capture(document, args.output)
+            detailed = sum(1 for match in document["matches"] if match["detail"])
+            print(f"Captured {len(document['matches'])} matches ({detailed} with full stats) "
+                  f"up to {document['gameDate']}.")
+        else:
+            research(memory, args)
+    except probe.ProbeError as exc:
+        print(f"FM20 match capture failed: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        memory.close()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

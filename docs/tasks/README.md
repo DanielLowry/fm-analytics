@@ -61,7 +61,7 @@ Start these only when the active plan schedules them.
 
 | Brief | Level | Plan entry | Ready when |
 |---|---|---|---|
-| [Results log](medium-results-log.md) | Medium | Item 7 | Item 7 is un-parked; storage decisions reviewed |
+| [Results log](medium-results-log.md) | Medium | Item 7 | Superseded: built as [match history](../match-analysis-plan.md), 29 September 2026 |
 | [Web cache rework](medium-web-cache-rework.md) | Medium | Parked: web cache | Now, if scheduled |
 | [Dashboard as an answer page](medium-dashboard-answer-page.md) | Medium | Parked: dashboard | The web cache rework has landed |
 | [Named depth evidence](low-named-depth-evidence.md) | Low | Parked: named depth | The presentation rule is confirmed |

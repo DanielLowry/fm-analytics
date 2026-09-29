@@ -19,6 +19,7 @@ from fm_analytics.reporting import (
     validate_recommendation_snapshot,
 )
 from fm_analytics.web.auxiliary_pages import AuxiliaryPagesMixin
+from fm_analytics.web.match_pages import MatchPagesMixin
 from fm_analytics.web.scouting_pages import ScoutingPagesMixin
 from fm_analytics.web.tactic_pages import TacticPagesMixin
 from fm_analytics.web.scouting_render import squad_player_link
@@ -36,7 +37,11 @@ from fm_analytics.web.rendering import (
 )
 
 class SquadWebHandler(
-    AuxiliaryPagesMixin, ScoutingPagesMixin, TacticPagesMixin, BaseHTTPRequestHandler
+    AuxiliaryPagesMixin,
+    MatchPagesMixin,
+    ScoutingPagesMixin,
+    TacticPagesMixin,
+    BaseHTTPRequestHandler,
 ):
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
@@ -51,6 +56,7 @@ class SquadWebHandler(
             "/depth": self._depth_page,
             "/scouting": self._scouting_page,
             "/scouting/results": self._scouting_results_fragment,
+            "/matches": self._matches_page,
             "/data": self._data_page,
         }
         handler = routes.get(path)
@@ -58,6 +64,8 @@ class SquadWebHandler(
             handler = self._scouting_player_page
         if handler is None and path.startswith("/squad/player/") and path != "/squad/player/":
             handler = self._squad_player_page
+        if handler is None and path.startswith("/matches/") and path != "/matches/":
+            handler = self._match_page
         if handler is None and path.startswith("/tactics/") and path != "/tactics/":
             handler = self._tactic_detail_page
         if handler is None:
@@ -84,6 +92,14 @@ class SquadWebHandler(
             return
         if parsed.path == "/scouting/verdict":
             self._post_scouting_verdict()
+            return
+        match_posts = {
+            "/matches/capture": self._post_match_capture,
+            "/matches/note": self._post_match_note,
+            "/matches/role-code": self._post_role_code,
+        }
+        if parsed.path in match_posts:
+            match_posts[parsed.path]()
             return
         if parsed.path != "/scouting/refresh":
             self._send(

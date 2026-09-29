@@ -1,5 +1,10 @@
 # Medium task: results log (manual entry)
 
+> **Superseded 29 September 2026.** Item 7 was built as match history read
+> live from FM, not as manual entry. See
+> [the match analysis plan](../match-analysis-plan.md); it answers the
+> decisions this brief reserved. Kept as the record of the original scope.
+
 **Active-plan item:** 7, results log, currently **parked**.
 
 **Prerequisite:** the active plan un-parks item 7, which it will do after

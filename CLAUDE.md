@@ -13,9 +13,11 @@ src/fm_analytics/bridge/     HTTP boundary onto the game process — see bridge/
 src/fm_analytics/domain/     Player/Squad/GameState and Visibility — the shared vocabulary
 src/fm_analytics/api/        HTTP client for the bridge
 src/fm_analytics/imports/    parses manager-visible FM20 HTML exports
-src/fm_analytics/persistence/  SQLite stores: the squad capture (versioned, no migrations) and
-                             the player-knowledge history (append-only, migrations required)
+src/fm_analytics/persistence/  SQLite stores: the squad capture (versioned, no migrations), and
+                             the player-knowledge and match histories (append-only, migrations
+                             required, one shared runner in migrations.py)
 src/fm_analytics/knowledge_ingest.py  scouting capture -> player-knowledge history (fm-knowledge)
+src/fm_analytics/match_ingest.py      FM match capture -> match history, and the review (fm-matches)
 src/fm_analytics/reporting.py  the ONE "compute a squad recommendation" path
 src/fm_analytics/web/        read-only browser view over reporting.py
 tools/                       low-level FM20 probe/monitor utilities (research-only)
@@ -33,7 +35,9 @@ lighter shared computation for the Squad roster: it must not evaluate tactics.
 **Never duplicate scoring logic into the CLI or web layers** — a number shown
 on a page and a number printed by the CLI must be the same number, computed
 the same way. Add or reuse a reporting helper rather than recomputing
-analytics inside a handler.
+analytics inside a handler. The match review follows the same rule:
+`reporting.build_match_review` is the one computation behind both
+`fm-matches review` and the Matches page.
 
 ## Running things
 
@@ -41,6 +45,7 @@ analytics inside a handler.
 uv run python -m unittest discover -s tests -v      # full test suite
 uv run fm-analytics --fixture src/fm_analytics/fixtures/sample-game.json --recommend
 uv run fm-web --fixture src/fm_analytics/fixtures/sample-game.json        # http://127.0.0.1:8766
+uv run fm-matches capture && uv run fm-matches review   # needs FM running; read-only
 ```
 
 No third-party packages are required for the core path (`frida` is an

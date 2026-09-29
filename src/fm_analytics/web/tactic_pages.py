@@ -167,6 +167,7 @@ class TacticPagesMixin:
             f"<p><a class='button-link' href='/tactics/{quote(selected.tactic.key, safe='')}{link_query_suffix}'>"
             "Open recommended tactic →</a></p></section>"
             + pinned_block
+            + self._match_record_block(pinned_keys, opponent.quality)  # type: ignore[attr-defined]
             + "<h2>Compare tactics</h2>"
             "<p class='muted'>A quick squad-fit comparison. Open a tactic to inspect its "
             f"XI, why each player was selected, and a {bundle.policy.bench_size}-player "

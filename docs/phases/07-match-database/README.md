@@ -2,9 +2,32 @@
 
 ## Planning status
 
-Provisional. This phase may require early reconnaissance because FM20 match
-statistics and event structures can determine what later tactical work is
-possible.
+In progress. The first slice was built on 29 September 2026; see
+[the match analysis plan](../../match-analysis-plan.md) for what it does, the
+FM memory layouts behind it and what is still open.
+
+## Implemented slice
+
+- **07.1 source reconnaissance:** done for results, competitions, FM's match
+  stats panel, player match stats and the timeline. Each was verified against
+  FM's own screens on two matches. Minutes played, goal type and zone, and
+  opposition names remain.
+- **07.2 identity and lifecycle:** a match is its date plus both club IDs.
+  Scheduled copies of a fixture (no outcome yet) are skipped. FM keeps full
+  stats only for the latest match and for any match report opened since, so
+  capture happens after each match.
+- **07.3 schema and ingestion:** `persistence/match_history.py`, append-only,
+  with migrations from v1. Ingestion is idempotent. A later capture without
+  a match's stats never hides the stats already kept.
+- **07.4 decision context:** partial. The tactic actually used is recorded
+  (the manager's note, or inferred from the line-up's role codes), kept
+  separate from any recommendation. A snapshot of the pre-match
+  recommendation is deferred.
+- **07.5 reconciliation:** FM's match stats export (Print screen → Web page)
+  for two matches is kept in `data/research/matches/` as the check.
+- **07.6 derived features:** the league table at each kickoff, opposition
+  strength groups and per-role summaries are all computed from stored
+  observations on every read, never stored.
 
 ## Outcome
 

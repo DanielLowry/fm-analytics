@@ -11,7 +11,15 @@ screens -- it consumes the same domain objects analytics always has.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
+from fm_analytics.analytics.match_analysis import (
+    MatchReport,
+    MatchReview,
+    ReviewFilters,
+    report_match,
+    review_matches,
+)
 from fm_analytics.analytics import (
     BenchSelection,
     PlayerRoleFit,
@@ -49,6 +57,9 @@ from fm_analytics.analytics import (
     select_bench,
 )
 from fm_analytics.domain import GameState, Player, Squad
+
+if TYPE_CHECKING:
+    from fm_analytics.persistence.match_history import MatchHistory
 
 
 @dataclass(frozen=True)
@@ -486,4 +497,37 @@ def build_tactic_matchday_report(
         bench=bench,
         substitution_board=substitution_board,
         selection_explanation=selection_explanation,
+    )
+
+
+def build_match_review(
+    history: MatchHistory,
+    *,
+    filters: ReviewFilters = ReviewFilters(),
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+) -> MatchReview:
+    """The one match-review computation, shared by `fm-matches review` and the Matches page."""
+    return review_matches(
+        history.matches,
+        history.league_results,
+        history.club,
+        catalogue=catalogue,
+        notes=history.notes,
+        confirmed_role_codes=history.role_codes,
+        filters=filters,
+    )
+
+
+def build_match_report(
+    history: MatchHistory, match_key: str, *, catalogue: FootballCatalogue = MVP_CATALOGUE
+) -> MatchReport | None:
+    """One match as `fm-matches show` and the match page present it."""
+    return report_match(
+        match_key,
+        history.matches,
+        history.league_results,
+        history.club,
+        catalogue=catalogue,
+        notes=history.notes,
+        confirmed_role_codes=history.role_codes,
     )

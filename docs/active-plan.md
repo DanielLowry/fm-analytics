@@ -59,7 +59,7 @@ opinion to change it (see item 7).
 | 5 | Scout from the database, with manual verdicts | Medium | 4 |
 | 6 | "Now gettable" and "re-scout due" alerts | Small | 5 |
 | — | Dedicated set-piece ratings from an HTML export | No code | — |
-| 7 | Results log | Medium | Parked |
+| 7 | Match history and review | Medium–large | Built 29 September 2026 |
 
 Items 1–3 affect the next few in-game weeks. Items 4–6 pay off over the season.
 Item 4 does not depend on 1–3: if a heavy scouting push starts before they
@@ -383,14 +383,22 @@ switches set pieces to the dedicated ratings and adds a long-throw order (see
 [set-piece-optimizer.md](set-piece-optimizer.md)). Repeat it when the squad
 changes.
 
-### 7. Results log (parked)
+### 7. Match history and review
 
-Record each match's pinned tactic, XI, opponent slider settings, score, and xG
-if visible. This is the only way to judge Vertical against Wing Play, or any
-catalogue change, on evidence. It is the seed of
-[Phase 07](phases/07-match-database/README.md). It is parked until items 1–3
-land and there is a question it needs to answer. Manual entry is acceptable
-for a first version.
+**Un-parked and widened on 29 September 2026** from a manual results log to
+match analysis, at the product owner's request: it is the evidence the
+catalogue, the opponent rules and calibration have been waiting for, and a
+match's stats are lost if they are not recorded while FM still holds them.
+
+**Status: built (29 September 2026).** The Matches page and `fm-matches` read
+every result and the league's results live from FM, read-only, with full
+stats for the latest match (and any match report opened since). They show
+results, shots, clear-cut chances and possession by opposition strength (the
+league table at kickoff by default), tactic against opposition, where goals
+come from, and which roles create and shoot. See
+[the match analysis plan](match-analysis-plan.md) for what was built, its
+limits and what is still open. That document replaces the
+[results-log brief](tasks/medium-results-log.md).
 
 ## Parked
 
@@ -414,7 +422,7 @@ for a first version.
 - **Tactical model:** nonlinear curves, instruction suitability,
   whole-tactic familiarity and calibration all stay in the
   [tactical-system roadmap](tactical-system-roadmap.md). Calibration waits for
-  item 7's data.
+  enough of item 7's match history.
 - **Opposition analysis from data, ML, automation:** Phases 08–11, unchanged.
 
 ## What happened to the previous review's items
