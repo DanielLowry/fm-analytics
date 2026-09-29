@@ -1,5 +1,9 @@
 # Low task: scouting-state regression coverage
 
+> **Complete; archived 29 September 2026.** Built 28 September 2026. The *Status*
+> section at the end records what was built and the decisions taken. Open
+> work is listed in the [task briefs index](../../tasks/README.md).
+
 **Active-plan support:** items 3–5.
 
 **Prerequisite:** none. Restrict this task to domain/web fixtures and tests;
@@ -67,3 +71,30 @@ active plan. Escalate ambiguous behaviour instead of choosing new semantics.
 - possibly a small shared builder in `tests/web_support.py`
 - `src/fm_analytics/web/scouting_render.py` or
   `src/fm_analytics/web/scouting_report.py` only for an unambiguous bug fix
+
+## Status: built (28 September 2026)
+
+`tests/test_web_scouting_states.py` (split out of `test_web_scouting.py` for
+the line cap). It has one named builder per state: current exact, current
+range, captured unknown, never captured, carried historical (from the
+knowledge history, not in the current feed) and dropped from scout reports.
+Each is asserted on both the list row and the player report. It also checks
+escaping of names, clubs, nationality, facts and the historical club line.
+No production code changed.
+
+Two inconsistencies were found and escalated rather than fixed, as the brief
+asks:
+
+1. **Min / Median / Max for an unknown or never-captured player** still render
+   0.0 / 50.0 / 100.0. That is the documented all-unknown bound in
+   `docs/scouting-workspace.md`, but item 3 says such a player is "not given
+   an invented score". Item 3's trial priority is now withheld for a player
+   with no visible attributes
+   ([trial-scenario semantics](senior-trial-scenario-semantics.md)). The
+   plain ranking columns are unchanged.
+2. **The list's attribute-sheet group headings are always empty.** In
+   `scouting_render.attribute_sheet` the per-row tooltip reuses the loop
+   variable `title`, so every `<h4>` is blanked. When a group's last
+   attribute is historical, the heading prints the tooltip text instead. The
+   player report's own sheet renders the headings correctly. **Still open**:
+   it is a one-line rename, not yet made.

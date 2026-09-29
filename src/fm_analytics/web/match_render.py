@@ -151,8 +151,7 @@ def tactic_grid(review: MatchReview) -> str:
 def goals_section(review: MatchReview) -> str:
     goals = review.goals
     if not goals.goals_for_covered and not goals.goals_against_covered:
-        return ("<p class='muted'>No match with full stats in this selection yet. Stats are read from FM "
-                "for the latest match, and for any match report you open in FM before reading again.</p>")
+        return "<p class='muted'>No goals in matches with full stats in this selection yet.</p>"
     peak = max((*goals.scored, *goals.conceded, 1))
     columns = "".join(
         f"<div class='col' title='{_e(period)}: scored {s}, conceded {c}'>"
@@ -166,11 +165,19 @@ def goals_section(review: MatchReview) -> str:
         body = "".join(f"<li>{_e(label)} <strong>{count}</strong></li>" for label, count in items) or "<li class='muted'>None yet</li>"
         return f"<div class='match-card'><h3>{_e(title)}</h3><ol>{body}</ol></div>"
 
-    return (
-        f"<p class='intro'>From the {goals.goals_for_covered} of {goals.goals_for_total} goals scored and "
-        f"{goals.goals_against_covered} of {goals.goals_against_total} conceded in matches whose full stats were "
-        "captured. <span class='key-for'>Scored</span><span class='key-against'>Conceded</span></p>"
+    timing = (
+        f"<p class='intro'>When goals came, from the {goals.timed_matches} matches whose goal times FM "
+        f"still held ({goals.timed_goals_for} scored, {goals.timed_goals_against} conceded). "
+        "<span class='key-for'>Scored</span><span class='key-against'>Conceded</span></p>"
         f"<div class='period-chart'>{columns}</div><div class='period-labels'>{labels}</div>"
+        if goals.timed_matches else
+        "<p class='muted'>Goal times are not known for these matches yet.</p>"
+    )
+    return (
+        timing
+        + f"<p class='intro'>Who scored and made them, from the {goals.goals_for_covered} of "
+        f"{goals.goals_for_total} goals scored and {goals.goals_against_covered} of "
+        f"{goals.goals_against_total} conceded in matches with full stats.</p>"
         "<div class='match-cards'>"
         + ranked("Scored by", goals.scorers)
         + ranked("Set up by (assists)", goals.assisters)
@@ -307,9 +314,9 @@ def capture_panel(status: str, message: str | None, ok: bool) -> str:
         "<div class='refresh-panel'><form class='refresh' method='post' action='/matches/capture'>"
         f"<span>{_e(status)}</span> <button type='submit'>Read matches from FM</button></form>{notice}"
         "<details><summary>How match stats get in</summary><p class='muted'>Reading is read-only: nothing is "
-        "written to FM. FM keeps full stats for your latest match, so read after each match. For an earlier "
-        "match, open its match report in FM, then read again; its stats are kept from then on. Results for "
-        "every match are read either way.</p></details></div>"
+        "written to FM and there is nothing to do in FM. Results come from the game's memory, and full stats "
+        "for every match from the match archive FM keeps on disk. Everything read is checked to add up "
+        "before it is kept.</p></details></div>"
     )
 
 
@@ -437,8 +444,8 @@ def match_body(report: MatchReport, catalogue: FootballCatalogue, pinned: Sequen
     )
     if match.detail is None:
         return header + (
-            "<p class='warn'>Only the result was captured for this match. To add its stats, open the match "
-            "report in FM, then use <a href='/matches'>Read matches from FM</a>.</p>"
+            "<p class='warn'>Only the result was found for this match: FM's archive had no stats for it "
+            "that added up.</p>"
             + note_form(report, catalogue, pinned, note)
         )
     ours, theirs = summary.ours, summary.theirs

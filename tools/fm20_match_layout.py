@@ -187,6 +187,39 @@ def decode_player_record(record: bytes) -> dict[str, Any] | None:
     }
 
 
+def detail_problems(detail: dict[str, Any], home_goals: int, away_goals: int) -> list[str]:
+    """Why a decoded match does not add up, or nothing if it does.
+
+    The layouts were checked in one FM session. If a later FM process ever
+    laid memory out differently, the numbers would stop agreeing with each
+    other, so a capture checks them and keeps only matches that agree: each
+    side's goals match the score and its players' shots, shots on target and
+    goals add up to the team's own figures.
+    """
+    problems = []
+    for side, goals in (("home", home_goals), ("away", away_goals)):
+        team = detail[side]
+        players = [player for player in detail["players"] if player["side"] == side]
+        if team.get("goals") != goals:
+            problems.append(f"{side} goals {team.get('goals')} do not match the score {goals}")
+        if team.get("possession_time", 0) <= 0:
+            problems.append(f"{side} has no possession")
+        if not 11 <= len(players) <= 23:
+            problems.append(f"{side} has {len(players)} players")
+        for key in ("shots", "shots_on_target"):
+            total = sum(player["stats"].get(key, 0) for player in players)
+            if total != team.get(key):
+                problems.append(f"{side} players' {key} add up to {total}, the team shows {team.get(key)}")
+        # An own goal counts in the score but is credited to no player of that side.
+        scored = sum(player["stats"].get("goals", 0) for player in players)
+        if scored > goals:
+            problems.append(f"{side} players scored {scored}, more than the {goals} in the score")
+        for player in players:
+            if player["rating"] is not None and not 1 <= player["rating"] <= 10:
+                problems.append(f"{side} player {player['short_id']} has rating {player['rating']}")
+    return problems
+
+
 def decode_event(record: bytes) -> dict[str, Any]:
     code = record[EVENT_CODE]
     return {

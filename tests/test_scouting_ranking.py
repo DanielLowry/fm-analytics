@@ -180,6 +180,41 @@ class RankForPositionTests(unittest.TestCase):
 
         self.assertIn(ranked[0].role_key, {"gk_defend", "sk_defend"})
 
+    # FM's sandboxed answer names every attribute for every player and returns
+    # the other family's set as unknown, so these sheets carry both sets.
+    _EVERY_ATTRIBUTE = {a.name for role in MVP_CATALOGUE.roles.values() for a in role.attributes}
+
+    def _full_sheet(self, **shown: AttributeObservation) -> dict[str, AttributeObservation]:
+        sheet = {name: AttributeObservation(Visibility.UNKNOWN) for name in self._EVERY_ATTRIBUTE}
+        sheet.update(shown)
+        return sheet
+
+    def test_an_outfielder_whose_goalkeeping_attributes_are_unknown_is_not_a_goalkeeper(self) -> None:
+        # Harry Edmondson (a striker) was a Sweeper Keeper: his unknown
+        # Handling, Reflexes, ... were taken for a goalkeeper's sheet.
+        sheet = self._full_sheet(heading=ranged(4, 10), acceleration=ranged(12, 19))
+        ranked = rank_for_position([
+            ScoutingCandidate(id="h", name="Striker", positions=(), raw_positions=("ST",), attributes=sheet),
+        ], MVP_CATALOGUE, None)
+
+        self.assertNotIn("GK", MVP_CATALOGUE.roles[ranked[0].role_key].eligible_positions)
+
+    def test_a_keeper_whose_outfield_attributes_are_unknown_is_still_a_goalkeeper(self) -> None:
+        sheet = self._full_sheet(handling=ranged(8, 15), reflexes=ranged(10, 15))
+        ranked = rank_for_position([
+            ScoutingCandidate(id="k", name="Keeper", positions=(), attributes=sheet),
+        ], MVP_CATALOGUE, None)
+
+        self.assertIn(ranked[0].role_key, {"gk_defend", "sk_defend"})
+
+    def test_a_sheet_with_nothing_shown_follows_his_positions_not_the_goalkeeping_names(self) -> None:
+        striker = ScoutingCandidate(
+            id="s", name="Unscouted", positions=(), raw_positions=("ST",), attributes=self._full_sheet(),
+        )
+        ranked = rank_for_position([striker], MVP_CATALOGUE, None, include_raw_external_positions=True)
+
+        self.assertIn("ST", MVP_CATALOGUE.roles[ranked[0].role_key].eligible_positions)
+
     def test_without_any_known_position_every_role_is_tried(self) -> None:
         nobody = ScoutingCandidate(id="n", name="No Positions", positions=(), attributes={})
 

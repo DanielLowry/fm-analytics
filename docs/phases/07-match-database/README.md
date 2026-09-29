@@ -13,9 +13,9 @@ FM memory layouts behind it and what is still open.
   FM's own screens on two matches. Minutes played, goal type and zone, and
   opposition names remain.
 - **07.2 identity and lifecycle:** a match is its date plus both club IDs.
-  Scheduled copies of a fixture (no outcome yet) are skipped. FM keeps full
-  stats only for the latest match and for any match report opened since, so
-  capture happens after each match.
+  Scheduled copies of a fixture (no outcome yet) are skipped. Full stats for
+  every match come from FM's match archive on disk (`Temporary/pks_<n>.obs`),
+  so capture can happen at any time, with nothing to do in FM.
 - **07.3 schema and ingestion:** `persistence/match_history.py`, append-only,
   with migrations from v1. Ingestion is idempotent. A later capture without
   a match's stats never hides the stats already kept.

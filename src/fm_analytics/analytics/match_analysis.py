@@ -196,6 +196,11 @@ class GoalBreakdown:
     goals_for_total: int
     goals_against_covered: int
     goals_against_total: int
+    # Goal minutes come from the match timeline, which only some full-stats
+    # matches have, so the period chart has its own, smaller coverage.
+    timed_matches: int = 0
+    timed_goals_for: int = 0
+    timed_goals_against: int = 0
 
 
 @dataclass(frozen=True)
@@ -288,12 +293,19 @@ def _goal_breakdown(summaries: Sequence[MatchSummary], codes: RoleCodes) -> Goal
     scored, conceded = Counter(), Counter()
     scorers, assisters, conceded_to = Counter(), Counter(), Counter()
     covered_for = covered_against = 0
+    timed = timed_for = timed_against = 0
     for summary in summaries:
         detail = summary.match.detail
         if detail is None:
             continue
         covered_for += summary.goals_for
         covered_against += summary.goals_against
+        if any(event.kind == "goal" for event in detail.events) or (
+            detail.events and not summary.goals_for and not summary.goals_against
+        ):
+            timed += 1
+            timed_for += summary.goals_for
+            timed_against += summary.goals_against
         for event in detail.events:
             if event.kind != "goal":
                 continue
@@ -319,6 +331,9 @@ def _goal_breakdown(summaries: Sequence[MatchSummary], codes: RoleCodes) -> Goal
         goals_for_total=sum(summary.goals_for for summary in summaries),
         goals_against_covered=covered_against,
         goals_against_total=sum(summary.goals_against for summary in summaries),
+        timed_matches=timed,
+        timed_goals_for=timed_for,
+        timed_goals_against=timed_against,
     )
 
 

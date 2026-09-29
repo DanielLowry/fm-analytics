@@ -66,8 +66,8 @@ class MatchPagesMixin:
         if history is None:
             body = panel + (
                 "<p class='intro'>No matches recorded yet. With FM running and your save loaded, use "
-                "<strong>Read matches from FM</strong>: it reads every result this season, and full stats "
-                "for your latest match.</p>"
+                "<strong>Read matches from FM</strong>: it reads every result this season and each "
+                "match's full stats. There is nothing to do in FM.</p>"
             )
             self._send(_layout("Matches", "/matches", body))  # type: ignore[attr-defined]
             return

@@ -56,7 +56,7 @@ class CoverAssessment:
 
 
 # Weakness kinds that mark a slot as needing help, either at starter or at
-# cover -- the reserved decision `senior-weakest-slot-service` and
+# cover -- the reserved decision `medium-weakest-slot-service` and
 # `senior-trial-scenario-semantics` both settle the same way: structural,
 # simultaneous and temporary gaps, and shared cover, do not by themselves
 # make a slot's *role* one worth trialling towards.

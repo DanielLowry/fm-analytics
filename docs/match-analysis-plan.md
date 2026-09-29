@@ -14,8 +14,8 @@ the plan and the reconnaissance behind it, kept as the record of why.
   reads the running game read-only and records what it sees in
   `data/match-history.sqlite3`: every first-team result this season, every
   result of the league (for the table at each kickoff), and full stats for
-  the latest match. To add an earlier match's stats, open its match report in
-  FM, then read again. `fm-web` also records `data/match-capture.json` when
+  every match, taken from the match archive FM keeps on disk. There is
+  nothing to do in FM. `fm-web` also records `data/match-capture.json` when
   it starts.
 - **The command line:**
   - `uv run fm-matches capture` reads the game and records it, in one step;
@@ -24,8 +24,9 @@ the plan and the reconnaissance behind it, kept as the record of why.
   - `list`, `show KEY`, `status`, `ingest FILE`;
   - `note KEY --tactic KEY --rating N --text ...` records your own notes; and
   - `role-code CODE ROLE_KEY` confirms which role an FM role code is.
-- **Read after every match.** FM keeps full stats only for the latest match
-  and for any match report opened since.
+- **Read whenever you like.** Every read is checked to add up (each side's
+  goals match the score, and its players' shots and shots on target match
+  the team's) before anything is kept.
 
 ### What it shows
 
@@ -240,21 +241,14 @@ needed. Each captured match is checked against FM's own match screen before
 the reader is trusted (Phase 07.5). The pre-match rating always stays manual,
 because it is the manager's judgement.
 
-**When to capture.** At first only the most recent Hungerford match had
-detailed stats in memory; the season's results were there without them.
-Opening an older match report in FM (Hampton & Richmond, 31 August) loaded
-that match's full detail, and the reader then found it. The detail is
-therefore archived, and FM loads it on demand:
-
-- **Capture after every match** as the normal path. The latest match is
-  already in memory.
-- **Backfill** by opening each earlier match report in FM once while the
-  capture runs. That is one click per match, and it is how this season's
-  earlier matches get in.
-- **Later**, find the archive itself (the executable names
-  `ARCHIVED_MATCH_STATS` storage) so that backfill needs no clicks. If loading
-  from it needs FM's own code, that call runs in the sandbox, never in the
-  game.
+**Where each match's stats come from.** FM holds full stats in memory only
+for the latest match and any match report opened since. Every match's stats
+are also in FM's match archive, `Temporary/pks_<n>.obs`, which the reader
+decodes directly (30 September 2026; see below). The product owner does
+nothing in FM: reading a file FM has already written is as safe as reading
+its memory. The archive covered all 19 competitive matches of the season on
+the first read. When a match is in memory too, the in-memory copy is used,
+because it also has the timeline (goal minutes).
 
 ## Live-read reconnaissance (29 September 2026)
 
@@ -392,10 +386,35 @@ The executable also names `MATCH_ANALYSIS_MATCH`, `PITCH_GOALS_AREAS`,
   records with the minute and second of goals and other moments). Alongside
   the shots it holds values between 0 and 1 that FM20 never shows. They are
   probably an internal chance-quality figure, so the list is not read.
-- **The match archive** (`OBJECT_STORAGE<ARCHIVED_MATCH_STATS>`) is a
-  serialized stream (`SEGMENT_INPUT_STREAM`). Reading it without opening
-  reports would mean running FM's loader in the sandbox, which is deferred:
-  opening each report once works.
+- **The match archive, decoded (30 September 2026).**
+  `OBJECT_STORAGE<ARCHIVED_MATCH_STATS>` reads C-library files, the four
+  `Temporary/pks_<n>.obs` (the file sizes equal the store's recorded sizes
+  plus a 9-byte header). Each file is that header followed by one
+  zlib-compressed chunk per match. `pks_0` held all of the club's matches;
+  the others hold other clubs' matches, which Phase 08 could use.
+  - A chunk's header names the stadium, then the home and away club IDs,
+    each after a `01` byte. A chunk is matched to a fixture by the two clubs
+    (home first) and the score.
+  - Player records are packed. Each starts `01`, the short ID, four zero
+    bytes, shirt, side and `02`. It has a 129-byte fixed part, then one
+    entry per shot, usually 15 bytes and sometimes 12. Every live field sits
+    at one fixed offset from the short ID: all 25 were checked against all
+    32 live records of the Concord match, with no differences.
+  - The team's own record holds corners, fouls, passes, tackles, headers and
+    possession. It is found by the players' passing and tackling sums, which
+    always equal the team's. The team's headers attempted was one fewer than
+    its players' sum in three matches, so the team's own figures are read.
+    Corners, fouls and headers won matched the players' sums in all 52 team
+    records.
+  - The August match decoded from the archive reproduces FM's exported panel
+    exactly, possession 55/45 included.
+  - Shot entries hold the minute and second, then two floats that fit where
+    the ball ended up in the goal plane (metres across from the centre and
+    up). All goals and saved shots fall inside the frame (under 3.66 across
+    and 2.44 up); a miss over the bar is 4.3 up and wide shots are 6–10
+    across. Not yet parsed: entries vary in length.
+  - Code: `tools/fm20_match_archive.py`, tests in
+    `tests/test_fm20_match_archive.py`.
 - **Minutes played.** The player record holds the minute a player came on
   (`+0x89`) and the minute he was taken off (`+0x84`), with 0 when neither
   happened. All ten substitution times at Concord match FM's line-up export
@@ -423,17 +442,18 @@ The executable also names `MATCH_ANALYSIS_MATCH`, `PITCH_GOALS_AREAS`,
 
 **Still open, in order:**
 
-1. Repeat the capture after an FM restart, to show the layout is stable
-   across processes.
-2. Confirm which per-player figures FM shows, from an export of the match's
-   player stats panel (the line-up export confirms ratings, goals, assists and
-   substitution times only). That settles the three withheld fields above.
-3. Goal type and shot zone: read the chalkboard data while the match Analysis
-   tab is open in FM, and decode the goal descriptor bytes against it.
-4. Label the remaining team counters, and locate cards on a match with some.
-5. Backfill from the archive without opening reports (sandbox), if still
-   wanted.
-6. Find out whether role codes tell duties apart.
+**Answered on 30 September 2026:** the layout held after an FM restart (a new
+process gave the same results, the same stats and a clean self-check), and
+the per-player figures were confirmed against FM's screens (see above).
+
+1. Parse the archive's shot entries. That gives goal minutes for archived
+   matches (so the goals-by-period chart covers the season) and shot
+   placement. Where a shot was taken from does not appear to be stored there.
+2. Goal type (open play or set piece): decode the goal descriptor bytes. It
+   needs ground truth, which FM's own goal descriptions in its archive may
+   provide.
+3. Label the remaining team counters, and locate cards on a match with some.
+4. Find out whether role codes tell duties apart.
 
 ## Delivery steps
 

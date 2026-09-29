@@ -1,8 +1,8 @@
 # Medium task: results log (manual entry)
 
-> **Superseded 29 September 2026.** Item 7 was built as match history read
+> **Superseded and archived 29 September 2026.** Item 7 was built as match history read
 > live from FM, not as manual entry. See
-> [the match analysis plan](../match-analysis-plan.md); it answers the
+> [the match analysis plan](../../match-analysis-plan.md); it answers the
 > decisions this brief reserved. Kept as the record of the original scope.
 
 **Active-plan item:** 7, results log, currently **parked**.
@@ -15,7 +15,7 @@ identity decisions below need review before implementation starts.
 
 Recording each match is the only way to judge Vertical 4-4-2 against Wing Play
 4-4-2, or any catalogue change, on evidence rather than opinion. It is also the
-seed of [Phase 07](../phases/07-match-database/README.md). Manual entry is
+seed of [Phase 07](../../phases/07-match-database/README.md). Manual entry is
 acceptable for a first version.
 
 ## Scope

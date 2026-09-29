@@ -83,7 +83,7 @@ class MatchPageTests(MatchPagesCase):
         self.record()
         status, body = self._get(self.serve(), "/matches/" + quote("2019-08-10:202:100", safe=""))
         self.assertEqual(status, 200)
-        self.assertIn("Only the result was captured", body)
+        self.assertIn("Only the result was found", body)
 
     def test_an_unknown_match_is_not_found(self) -> None:
         self.record()

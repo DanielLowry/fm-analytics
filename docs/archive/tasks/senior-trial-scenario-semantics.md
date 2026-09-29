@@ -1,13 +1,17 @@
 # Senior task: trial scenario semantics
 
+> **Complete; archived 29 September 2026.** Built 28 September 2026. The *Status*
+> section at the end records what was built and the decisions taken. Open
+> work is listed in the [task briefs index](../../tasks/README.md).
+
 **Active-plan item:** 3, worth-a-trial ranking against the weakest slots.
 
 **Prerequisite:** none to start. Settle the
 [cover-value contract](senior-cover-value-contract.md) first or alongside,
 because "could be first cover" depends on it.
 
-**Unblocks:** the [trial-priority list](medium-trial-priority-list.md), and the
-trial-priority sort that [weakest-slot navigation](low-weakest-slot-navigation.md)
+**Unblocks:** the [trial-priority list](../../tasks/medium-trial-priority-list.md), and the
+trial-priority sort that [weakest-slot navigation](../../tasks/low-weakest-slot-navigation.md)
 links to.
 
 ## Why we are doing this
@@ -29,7 +33,7 @@ the medium implementer.
   every range at its midpoint and every unknown mid-scale. It is deliberately
   separate from `score.central`, so a barely scouted player cannot outrank a
   known one in the optimiser (see "Ranking: who to scout next" in
-  [scouting-workspace.md](../scouting-workspace.md)).
+  [scouting-workspace.md](../../scouting-workspace.md)).
 - The plan's intent: **could start** means the ceiling beats the current
   starter in his best slot in any pinned tactic. **Trial priority** orders
   realistic, gettable candidates by median-scenario gain in the weakest slots,
@@ -111,7 +115,7 @@ questions above, as taken:
    elsewhere in scouting, just carried into tactic terms. A whole-XI median
    re-optimisation was rejected: it would need a parallel assignment solve
    (roughly doubling the per-candidate cost the
-   [scouting cost budget](senior-scouting-cost-budget.md) is trying to keep
+   [scouting cost budget](../../tasks/senior-scouting-cost-budget.md) is trying to keep
    down) for a number whose only declared use is ranking, not a displayed
    projected score. `floor ≤ estimate ≤ median ≤ ceiling` holds by
    construction: `RoleScore.median` is documented to sit between `score.lower`
@@ -145,7 +149,7 @@ questions above, as taken:
    across more than one tactic; this module scores one tactic at a time and
    makes no claim beyond it.
 5. **Realistic and gettable default filter state:** left to the
-   [trial-priority list](medium-trial-priority-list.md), which owns the
+   [trial-priority list](../../tasks/medium-trial-priority-list.md), which owns the
    sort's UI and default filters; this brief only supplies the value sorted
    on.
 6. **Wording:** left to the presentation brief; nothing here renders text.

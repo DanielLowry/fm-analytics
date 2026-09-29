@@ -1,16 +1,20 @@
 # Senior task: cover-value contract
 
+> **Complete; archived 29 September 2026.** Built 28 September 2026. The *Status*
+> section at the end records what was built and the decisions taken. Open
+> work is listed in the [task briefs index](../../tasks/README.md).
+
 **Active-plan item:** 2, trialist review across pinned tactics.
 
 **Prerequisite:** none.
 
-**Unblocks:** the [multi-tactic scouting service](medium-multi-tactic-scouting-service.md),
-and through it the [multi-tactic presentation](low-multi-tactic-scouting-presentation.md).
+**Unblocks:** the [multi-tactic scouting service](../../tasks/medium-multi-tactic-scouting-service.md),
+and through it the [multi-tactic presentation](../../tasks/low-multi-tactic-scouting-presentation.md).
 
 ## Why we are doing this
 
 Today a candidate who does not make a tactic's XI shows a gain of zero (see
-"Tactic impact" in [scouting-workspace.md](../scouting-workspace.md)). At
+"Tactic impact" in [scouting-workspace.md](../../scouting-workspace.md)). At
 National League South level, depth matters, and a zero hides a player who
 would be clearly better cover than what the squad has. The active plan asks
 for a **depth effect**: the slot he would be first cover for, and how his fit
@@ -72,7 +76,7 @@ contract first.
 - No existing number may change: starting gain, XI, bench, depth.
 - The work is multiplied by candidates × pinned tactics. A definition that
   re-solves the XI per candidate per slot needs checking against the
-  [scouting cost budget](senior-scouting-cost-budget.md).
+  [scouting cost budget](../../tasks/senior-scouting-cost-budget.md).
 
 ## Deliverables
 

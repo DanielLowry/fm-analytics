@@ -95,6 +95,27 @@ class PlayerRecordTests(unittest.TestCase):
         self.assertIsNone(layout.decode_player_record(self.record(shirt=layout.NO_SHIRT)))
 
 
+class ConsistencyTests(unittest.TestCase):
+    def detail(self):
+        def player(side, goals=0, shots=0, on=0):
+            return {"side": side, "short_id": 1, "rating": 7.0,
+                    "stats": {"goals": goals, "shots": shots, "shots_on_target": on}}
+        team = {"goals": 1, "shots": 3, "shots_on_target": 2, "possession_time": 5000}
+        players = [player(side, 1, 3, 2) for side in ("home", "away")]
+        players += [player(side) for side in ("home", "away") for _ in range(10)]
+        return {"home": dict(team), "away": dict(team), "players": players}
+
+    def test_a_match_that_adds_up_has_no_problems(self) -> None:
+        self.assertEqual(layout.detail_problems(self.detail(), 1, 1), [])
+
+    def test_mismatches_are_reported(self) -> None:
+        detail = self.detail()
+        detail["home"]["shots"] = 9
+        problems = layout.detail_problems(detail, 2, 1)
+        self.assertTrue(any("do not match the score" in problem for problem in problems))
+        self.assertTrue(any("shots add up to 3, the team shows 9" in problem for problem in problems))
+
+
 class EventTests(unittest.TestCase):
     def test_a_goal_and_an_unknown_event(self) -> None:
         record = bytearray(layout.EVENT_SIZE)

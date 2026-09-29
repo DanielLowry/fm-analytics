@@ -132,6 +132,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(dict(goals.assisters), {"Winger (Support) [ML/MR]": 2})
         self.assertEqual(dict(goals.conceded_to), {"Advanced Forward (Attack)": 1})
         self.assertEqual((goals.goals_for_covered, goals.goals_for_total), (2, 4))
+        self.assertEqual((goals.timed_matches, goals.timed_goals_for, goals.timed_goals_against), (1, 2, 1))
 
     def test_unknown_role_codes_are_named_as_unconfirmed_not_guessed(self) -> None:
         matches = season()

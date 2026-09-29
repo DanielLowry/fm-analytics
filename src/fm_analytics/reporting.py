@@ -45,6 +45,7 @@ from fm_analytics.analytics import (
     WeaknessKind,
     WeaknessReport,
     assess_squad_depth,
+    opponent_attribute_emphasis,
     assess_weaknesses,
     build_recruitment_briefs,
     build_role_matrix,
@@ -121,6 +122,12 @@ class WeakSlot:
     position: str
     role_key: str
     role_name: str
+    # The role's attribute weights in this slot, heaviest first (ties by
+    # name), as this tactic and the bundle's opponent profile weight them --
+    # the same weighting the weakness report scored the starter and cover
+    # with. Which of these matter enough to trigger re-scouting is the
+    # caller's threshold, not this list's.
+    role_attributes: tuple[tuple[str, float], ...]
     # "starter": the starter himself is the weak link. "cover": the starter is
     # fine, but there is no backup, or the backup drops off sharply.
     concern: str
@@ -167,9 +174,11 @@ def weakest_slots(
     starters: list[WeakSlot] = []
     covers: list[WeakSlot] = []
     seen: set[tuple[str, str, str]] = set()
+    extra_emphasis = opponent_attribute_emphasis(bundle.policy.opponent)
     for evaluation in tactics:
         report = bundle.squad_depth.per_tactic[evaluation.tactic.key]
         depth_by_slot = {slot_depth.slot.key: slot_depth for slot_depth in report.depth}
+        derived = catalogue.for_context(evaluation.tactic.key, extra_emphasis=extra_emphasis)
         for weakness in report.weaknesses:
             concern = _WEAK_SLOT_CONCERNS.get(weakness.kind)
             if concern is None:
@@ -191,6 +200,13 @@ def weakest_slots(
                     position=slot_depth.slot.position,
                     role_key=role_key,
                     role_name=catalogue.roles[role_key].name,
+                    role_attributes=tuple(
+                        (attribute.name, attribute.weight)
+                        for attribute in sorted(
+                            derived.role_for_slot(slot_depth.slot, role_key).attributes,
+                            key=lambda attribute: (-attribute.weight, attribute.name),
+                        )
+                    ),
                     concern=concern,
                     starter_name=slot_depth.starter.player_name,
                     starter_score=slot_depth.starter.tapered_attribute_score.central,

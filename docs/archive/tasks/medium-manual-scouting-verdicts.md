@@ -1,5 +1,9 @@
 # Medium task: manual scouting verdicts
 
+> **Complete; archived 29 September 2026.** Built 27 September 2026. The *Status*
+> section at the end records what was built and the decisions taken. Open
+> work is listed in the [task briefs index](../../tasks/README.md).
+
 **Active-plan item:** 5, scout from the database.
 
 **Prerequisite:** coordinate with any other branch adding a player-knowledge

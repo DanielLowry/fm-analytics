@@ -1,13 +1,17 @@
 # Medium task: weakest-slot service
 
+> **Complete; archived 29 September 2026.** Built 28 September 2026. The *Status*
+> section at the end records what was built and the decisions taken. Open
+> work is listed in the [task briefs index](../../tasks/README.md).
+
 **Active-plan item:** 3, worth-a-trial ranking against the weakest slots.
 
 **Prerequisite:** none to start. The selection decisions below must be
 approved before merge.
 
-**Unblocks:** [weakest-slot navigation](low-weakest-slot-navigation.md), the
-[trial-priority list](medium-trial-priority-list.md), and the "accepted source
-of weakest-slot role attributes" that [scouting alerts](medium-scouting-alerts.md)
+**Unblocks:** [weakest-slot navigation](../../tasks/low-weakest-slot-navigation.md), the
+[trial-priority list](../../tasks/medium-trial-priority-list.md), and the "accepted source
+of weakest-slot role attributes" that [scouting alerts](../../tasks/medium-scouting-alerts.md)
 needs.
 
 ## Why we are doing this

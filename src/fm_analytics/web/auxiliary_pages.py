@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 from http import HTTPStatus
+from urllib.parse import urlencode
 
 from fm_analytics.analytics import ATTACKING_RISKS, DELIVERY_STYLES, recommend_set_pieces
 from fm_analytics.bridge.errors import BridgeSourceError
@@ -22,53 +23,99 @@ from fm_analytics.web.rendering import (
 )
 
 
-def _set_piece_summary_cards(report) -> str:
-    wanted = (
-        ("corners", "left", "Left corner"),
-        ("corners", "right", "Right corner"),
-        ("direct_free_kicks", "left", "Left direct FK"),
-        ("direct_free_kicks", "right", "Right direct FK"),
-        ("penalties", None, "Penalty"),
+def _routine_taker(report, task_key: str, side: str | None):
+    """The routine assignment is authoritative for crossed deliveries."""
+    prefix = {
+        "corners": "attacking_corner",
+        "indirect_free_kicks": "attacking_wide_free_kick",
+    }.get(task_key)
+    if prefix is None or side is None:
+        return None, None
+    routine = next(item for item in report.routines if item.key == f"{prefix}_{side}")
+    assignment = next(
+        (item for item in routine.assignments if item.role.taker_task_key == task_key),
+        None,
     )
+    return routine, assignment
+
+
+def _set_piece_choice(report, recommendation):
+    """Return the one manager-facing choice plus its evidence state."""
+    routine, assignment = _routine_taker(
+        report, recommendation.task.key, recommendation.side
+    )
+    if assignment is not None:
+        warning = (
+            "Provisional — dedicated taker evidence is missing."
+            if recommendation.suggested is None else ""
+        )
+        return (
+            assignment.player.name,
+            _band(assignment.score.score),
+            f"Whole-routine choice · {round(routine.evidence_coverage * 100):.0f}% evidence",
+            warning,
+        )
+    candidate = recommendation.suggested
+    if candidate is None:
+        message = (
+            "More evidence needed" if recommendation.candidates else "No available player"
+        )
+        return None, "—", message, ""
+    warning = (
+        f"Proxy — {recommendation.task.proxy_for_unread_attribute} is not captured."
+        if candidate.evidence_mode == "proxy" else ""
+    )
+    return candidate.player.name, _band(candidate.score.score), candidate.evidence_label, warning
+
+
+def _set_piece_assignment_cards(report) -> str:
+    groups = (
+        ("Corners", (("corners", "left", "Left"), ("corners", "right", "Right"))),
+        (
+            "Wide free kicks",
+            (
+                ("indirect_free_kicks", "left", "Left"),
+                ("indirect_free_kicks", "right", "Right"),
+            ),
+        ),
+        (
+            "Direct free kicks",
+            (
+                ("direct_free_kicks", "left", "Left"),
+                ("direct_free_kicks", "right", "Right"),
+            ),
+        ),
+        ("Penalties", (("penalties", None, "First choice"),)),
+        ("Long throws", (("long_throws", None, "First choice"),)),
+    )
+    recommendations = {
+        (item.task.key, item.side): item for item in report.recommendations
+    }
     cards = []
-    for task_key, side, label in wanted:
-        routine_assignment = None
-        if task_key == "corners":
-            routine = next(
-                item for item in report.routines
-                if item.key == f"attacking_corner_{side}"
+    for title, entries in groups:
+        lines = []
+        for task_key, side, label in entries:
+            recommendation = recommendations[(task_key, side)]
+            player_name, _score, evidence, warning = _set_piece_choice(
+                report, recommendation
             )
-            routine_assignment = next(
-                (item for item in routine.assignments if item.role.unit == "Delivery"),
-                None,
+            evidence_class = " class='choice-warning'" if warning or player_name is None else ""
+            lines.append(
+                "<div class='set-piece-choice'>"
+                f"<span>{html.escape(label)}</span>"
+                f"<b>{html.escape(player_name) if player_name else 'No evidence-based recommendation'}</b>"
+                f"<small{evidence_class}>{html.escape(warning or evidence)}</small></div>"
             )
-        recommendation = next(
-            item for item in report.recommendations
-            if item.task.key == task_key and item.side == side
-        )
-        candidate = recommendation.suggested
-        if candidate is None:
-            routine_assignment = None
-        player_name = (
-            routine_assignment.player.name if routine_assignment else
-            candidate.player.name if candidate else None
-        )
-        evidence_label = (
-            "Whole-routine choice" if routine_assignment else
-            candidate.evidence_label if candidate else "More evidence needed"
-        )
         cards.append(
-            "<div><span>" + html.escape(label) + "</span><b>"
-            + (html.escape(player_name) if player_name else "No rated taker")
-            + "</b><small>"
-            + html.escape(evidence_label)
-            + "</small></div>"
+            "<article class='set-piece-assignment-card'>"
+            f"<h3>{html.escape(title)}</h3>{''.join(lines)}</article>"
         )
-    return "<div class='set-piece-summary'>" + "".join(cards) + "</div>"
+    return "<div class='set-piece-assignments'>" + "".join(cards) + "</div>"
 
 
-def _set_piece_routine(routine, labels: dict[str, str], *, open_by_default: bool = False) -> str:
-    rows = []
+def _set_piece_routine_plan(routine, labels: dict[str, str]) -> str:
+    assignments = []
+    evidence_rows = []
     for assignment in routine.assignments:
         contributions = sorted(
             assignment.score.contributions,
@@ -78,43 +125,91 @@ def _set_piece_routine(routine, labels: dict[str, str], *, open_by_default: bool
             f"{labels.get(item.attribute, item.attribute)} {item.observation.display()}"
             for item in contributions
         )
-        side_fit = (
-            f"<br><small>{html.escape(assignment.side_fit_label)}</small>"
-            if assignment.role.taker_task_key else ""
+        assignments.append(
+            "<div class='routine-assignment'>"
+            f"<b>{html.escape(assignment.player.name)}</b>"
+            "<span><strong>" + html.escape(assignment.role.instruction) + "</strong>"
+            f"<small>{html.escape(assignment.role.zone)}</small></span>"
+            f"<span class='set-piece-unit'>{html.escape(assignment.role.unit)}</span></div>"
         )
-        rows.append(
+        evidence_rows.append(
             "<tr>"
-            f"<td><span class='set-piece-unit'>{html.escape(assignment.role.unit)}</span></td>"
-            f"<td><b>{html.escape(assignment.role.instruction)}</b><br>"
-            f"<small>{html.escape(assignment.role.zone)}</small></td>"
-            f"<td><b>{html.escape(assignment.player.name)}</b>{side_fit}</td>"
+            f"<th scope='row'>{html.escape(assignment.player.name)}</th>"
+            f"<td>{html.escape(assignment.role.instruction)}</td>"
             f"<td>{_band(assignment.score.score)}</td>"
             f"<td>{html.escape(evidence)}</td>"
-            f"<td>{html.escape(assignment.role.explanation)}</td>"
-            "</tr>"
+            f"<td>{html.escape(assignment.role.explanation)}</td></tr>"
         )
     unfilled = (
         "<div class='advisory-banner'><b>Partial routine</b>Not enough eligible players to fill: "
         + ", ".join(html.escape(role.instruction) for role in routine.unfilled_roles)
         + ".</div>" if routine.unfilled_roles else ""
     )
-    notes = "".join(f"<li>{html.escape(note)}</li>" for note in routine.notes)
-    open_attribute = " open" if open_by_default else ""
     shape_summary = (
         f"{routine.players_in_box} in box · {routine.players_held_back} held back"
         if routine.phase == "attacking" else
         f"{routine.players_in_box} box defenders · {routine.players_held_back} outlet"
     )
+    notes = "".join(f"<li>{html.escape(note)}</li>" for note in routine.notes)
     return (
-        f"<details class='set-piece-routine'{open_attribute}><summary>"
-        f"<span>{html.escape(routine.name)}</span>"
-        f"<small>{shape_summary} · "
-        f"{round(routine.evidence_coverage * 100):.0f}% evidence</small></summary>"
-        f"<p>{html.escape(routine.objective)}</p>"
-        "<table><tr><th>Unit</th><th>FM instruction / zone</th><th>Player</th>"
-        "<th>Job fit</th><th>Strongest inputs</th><th>Purpose</th></tr>"
-        + "".join(rows) + "</table>" + unfilled
-        + "<ul class='legend'>" + notes + "</ul></details>"
+        "<section class='set-piece-routine' aria-labelledby='selected-routine'>"
+        "<div class='routine-heading'><div>"
+        f"<h3 id='selected-routine'>{html.escape(routine.name)}</h3>"
+        f"<p>{html.escape(routine.objective)}</p></div>"
+        f"<span>{shape_summary} · {round(routine.evidence_coverage * 100):.0f}% evidence</span></div>"
+        "<div class='routine-assignments'>" + "".join(assignments) + "</div>" + unfilled
+        + "<details class='routine-evidence'><summary>Why this plan?</summary>"
+        "<div class='table-scroll'><table><thead><tr>"
+        "<th scope='col'>Player</th><th scope='col'>Job</th><th scope='col'>Job fit</th>"
+        "<th scope='col'>Strongest inputs</th><th scope='col'>Purpose</th>"
+        "</tr></thead><tbody>" + "".join(evidence_rows) + "</tbody></table></div>"
+        + ("<ul class='legend'>" + notes + "</ul>" if notes else "")
+        + "</details></section>"
+    )
+
+
+def _set_piece_routine_switcher(report, selected_key: str, query: dict[str, str], labels) -> str:
+    routines = {item.key: item for item in report.routines}
+    selected = routines[selected_key]
+
+    def link(label: str, routine_key: str, active: bool) -> str:
+        href = "/set-pieces?" + urlencode({**query, "routine": routine_key})
+        current = " aria-current='page'" if active else ""
+        return f"<a href='{html.escape(href, quote=True)}'{current}>{html.escape(label)}</a>"
+
+    attacking = selected.phase == "attacking"
+    phase_tabs = (
+        link("Attacking", "attacking_corner_left", attacking)
+        + link("Defending", "defending_corner", not attacking)
+    )
+    if attacking:
+        side = selected.side or "left"
+        is_corner = selected.key.startswith("attacking_corner")
+        event_tabs = (
+            link("Corners", f"attacking_corner_{side}", is_corner)
+            + link("Wide free kicks", f"attacking_wide_free_kick_{side}", not is_corner)
+        )
+        prefix = "attacking_corner" if is_corner else "attacking_wide_free_kick"
+        side_tabs = (
+            link("Left", f"{prefix}_left", side == "left")
+            + link("Right", f"{prefix}_right", side == "right")
+        )
+        secondary = (
+            "<nav class='routine-tabs' aria-label='Attacking routine type'>" + event_tabs + "</nav>"
+            "<nav class='routine-tabs' aria-label='Delivery side'>" + side_tabs + "</nav>"
+        )
+    else:
+        is_corner = selected.key == "defending_corner"
+        secondary = (
+            "<nav class='routine-tabs' aria-label='Defensive routine type'>"
+            + link("Corners", "defending_corner", is_corner)
+            + link("Wide free kicks", "defending_wide_free_kick", not is_corner)
+            + "</nav>"
+        )
+    return (
+        "<div class='routine-switcher'>"
+        "<nav class='routine-tabs primary' aria-label='Routine phase'>" + phase_tabs + "</nav>"
+        + secondary + "</div>" + _set_piece_routine_plan(selected, labels)
     )
 
 
@@ -199,33 +294,33 @@ class AuxiliaryPagesMixin:
             if task.key in {"attacking_aerial_target", "defensive_aerial_target"}:
                 continue
             suggested = recommendation.suggested
-            if suggested is None:
-                suggested_name = (
-                    "No evidence-based suggestion"
-                    if recommendation.candidates
-                    else "No available player"
-                )
-                score, backups = "—", "—"
-                side_fit = "—"
-            else:
-                suggested_name = html.escape(suggested.player.name)
-                score = _band(suggested.score.score)
-                side_fit = html.escape(suggested.side_fit_label)
-                backups = ", ".join(
-                    html.escape(candidate.player.name)
-                    for candidate in recommendation.candidates[1:3]
-                ) or "—"
-            note = (
-                " <span class='warn'>Proxy — "
-                + html.escape(task.proxy_for_unread_attribute)
-                + " is not captured.</span>"
-                if suggested is not None and suggested.evidence_mode == "proxy" else ""
+            player_name, score, evidence_label, warning = _set_piece_choice(
+                report, recommendation
             )
+            routine, routine_assignment = _routine_taker(
+                report, task.key, recommendation.side
+            )
+            side_fit = (
+                routine_assignment.side_fit_label if routine_assignment is not None else
+                suggested.side_fit_label if suggested is not None else "—"
+            )
+            backup_names = [
+                html.escape(candidate.player.name)
+                for candidate in recommendation.candidates
+                if candidate.player.name != player_name
+            ][:2]
+            backups = ", ".join(backup_names) or "—"
+            note = (
+                "<small class='inline-warning'>" + html.escape(warning) + "</small>"
+                if warning else ""
+            )
+            displayed_name = html.escape(player_name) if player_name else "No evidence-based recommendation"
             summary_rows.append(
                 "<tr>"
-                f"<td>{html.escape(recommendation.name)}{note}</td><td><b>{suggested_name}</b></td>"
-                f"<td>{score}</td><td>{html.escape(suggested.evidence_label) if suggested else '—'}</td>"
-                f"<td>{side_fit}</td><td>{backups}</td></tr>"
+                f"<th scope='row'>{html.escape(recommendation.name)}{note}</th>"
+                f"<td><b>{displayed_name}</b></td><td>{score}</td>"
+                f"<td>{html.escape(evidence_label)}</td>"
+                f"<td>{html.escape(side_fit)}</td><td>{backups}</td></tr>"
             )
             displayed_inputs = (
                 tuple(
@@ -241,7 +336,7 @@ class AuxiliaryPagesMixin:
             )
             candidate_rows = "".join(
                 "<tr>"
-                f"<td>{html.escape(candidate.player.name)}</td>"
+                f"<th scope='row'>{html.escape(candidate.player.name)}</th>"
                 f"<td>{_band(candidate.score.score)}</td>"
                 f"<td>{html.escape(candidate.evidence_label)}</td>"
                 f"<td>{html.escape(candidate.side_fit_label)}</td>"
@@ -250,7 +345,7 @@ class AuxiliaryPagesMixin:
                 for candidate in recommendation.candidates[:5]
             )
             details.append(
-                f"<details><summary>{html.escape(recommendation.name)} — {suggested_name}</summary>"
+                f"<details><summary>{html.escape(recommendation.name)} — {displayed_name}</summary>"
                 f"<p>{html.escape(task.explanation)}</p>"
                 + (
                     "<p class='muted'>The ranking applies a visible +4.0 preference for a "
@@ -258,9 +353,12 @@ class AuxiliaryPagesMixin:
                     if recommendation.preferred_foot else ""
                 )
                 + f"<p class='muted'><b>Weighted inputs:</b> {inputs}.</p>"
-                + "<table><tr><th>Player</th><th>Attribute score</th><th>Evidence</th><th>Side fit</th><th>Inputs (in weight order)</th></tr>"
+                + "<div class='table-scroll'><table><thead><tr><th scope='col'>Player</th>"
+                "<th scope='col'>Attribute score</th><th scope='col'>Evidence</th>"
+                "<th scope='col'>Side fit</th><th scope='col'>Inputs (in weight order)</th>"
+                "</tr></thead><tbody>"
                 + candidate_rows
-                + "</table></details>"
+                + "</tbody></table></div></details>"
             )
 
         unavailable = (
@@ -269,8 +367,13 @@ class AuxiliaryPagesMixin:
             + ".</p>"
             if report.unavailable_players else ""
         )
+        routine_keys = {routine.key for routine in report.routines}
+        selected_routine_key = _query_first(_query, "routine") or "attacking_corner_left"
+        if selected_routine_key not in routine_keys:
+            selected_routine_key = "attacking_corner_left"
         controls = (
             "<form class='filters set-piece-controls' method='get' action='/set-pieces'>"
+            f"<input type='hidden' name='routine' value='{html.escape(selected_routine_key, quote=True)}'>"
             "<label>Delivery curve<select name='delivery'>"
             + _options(DELIVERY_STYLES.items(), report.delivery_style, "")
             + "</select></label><label>Attacking commitment<select name='risk'>"
@@ -286,54 +389,54 @@ class AuxiliaryPagesMixin:
         scope_note = (
             "Optimized against the selected tactic's exact XI."
             if report.uses_match_xi else
-            "Squad-wide template because role data is incomplete; rebuild against a match XI when the Data page is complete."
+            "This provisional squad-wide plan is not optimized against a match XI."
         )
-        corners = "".join(
-            _set_piece_routine(routine, labels, open_by_default=routine.side == "left")
-            for routine in report.routines if routine.key.startswith("attacking_corner")
-        )
-        free_kicks = "".join(
-            _set_piece_routine(routine, labels)
-            for routine in report.routines if routine.key.startswith("attacking_wide_free_kick")
-        )
-        defending = "".join(
-            _set_piece_routine(routine, labels, open_by_default=True)
-            for routine in report.routines if routine.phase == "defending"
-        )
+        routine_query = {
+            "delivery": report.delivery_style,
+            "risk": report.attacking_risk,
+        }
+        if selected_tactic_key:
+            routine_query["tactic"] = selected_tactic_key
         coverage = "".join(
             f"<li>{html.escape(note)}</li>" for note in report.coverage_notes
         ) or "<li>All dedicated taker inputs used by this plan are present.</li>"
+        data_warning = (
+            "" if report.uses_match_xi else
+            "<div class='set-piece-data-warning'><b>Incomplete role data</b>"
+            "Assignments are provisional. Complete the Data page, then rebuild against a match XI.</div>"
+        )
         body = (
-            "<div class='set-piece-hero'><span class='eyebrow'>Match plan</span>"
+            "<div class='set-piece-hero'><span class='eyebrow'>"
+            + ("Match plan" if report.uses_match_xi else "Provisional plan")
+            + "</span>"
             f"<h2>{html.escape(report.lineup_name)}</h2><p>{html.escape(scope_note)}</p></div>"
             + controls
-            + _set_piece_summary_cards(report)
-            + "<nav class='section-jump'><a href='#takers'>Takers</a>"
-            "<a href='#corners'>Attacking corners</a><a href='#free-kicks'>Wide free kicks</a>"
-            "<a href='#defending'>Defending</a></nav>"
-            "<h2 id='takers'>Taker depth chart</h2>"
-            "<p class='muted'>Standalone delivery specialists and two backups for each side. For corners and crossed free kicks, the routine board is the final choice because it also considers the taker's best alternative job. Direct free kicks and penalties use the top specialist here.</p>"
-            "<table><tr><th>Assignment</th><th>Top specialist</th><th>Set-piece attribute score</th>"
-            "<th>Evidence</th><th>Side fit</th><th>Backups</th></tr>"
-            + "".join(summary_rows)
-            + "</table>"
-            + "<h2 id='corners'>Attacking corners</h2>"
-            "<p>Every player receives one job: delivery, separated box zones, second ball, support, or rest defence.</p>"
-            + corners
-            + "<h2 id='free-kicks'>Attacking wide free kicks</h2>"
-            "<p>Use these for crossed deliveries. Direct shooting free kicks use the taker order above.</p>"
-            + free_kicks
-            + "<h2 id='defending'>Defensive routines</h2>"
-            + defending
-            + "<h2>Why these takers</h2>"
-            + "".join(details)
-            + "<h2>Evidence and operating notes</h2><ul class='legend'>"
-            + coverage
+            + data_warning
+            + "<section aria-labelledby='match-day-assignments'><div class='set-piece-section-heading'>"
+            "<div><h2 id='match-day-assignments'>Match-day assignments</h2>"
+            "<p>These are the final choices to copy into FM.</p></div></div>"
+            + _set_piece_assignment_cards(report)
+            + "<details class='taker-evidence'><summary>Why these takers? View specialist rankings and backups</summary>"
+            "<p class='muted'>Routine takers are chosen with the whole routine in mind. The rankings below show the underlying specialists and alternatives.</p>"
+            "<div class='table-scroll'><table><thead><tr><th scope='col'>Assignment</th>"
+            "<th scope='col'>Final choice</th><th scope='col'>Set-piece attribute score</th>"
+            "<th scope='col'>Evidence</th><th scope='col'>Side fit</th><th scope='col'>Alternatives</th>"
+            "</tr></thead><tbody>" + "".join(summary_rows) + "</tbody></table></div>"
+            + "".join(details) + "</details></section>"
+            + "<section aria-labelledby='routines'><div class='set-piece-section-heading'>"
+            "<div><h2 id='routines'>Routines</h2>"
+            "<p>Select one situation to see the instructions to copy into FM.</p></div></div>"
+            + _set_piece_routine_switcher(
+                report, selected_routine_key, routine_query, labels
+            )
+            + "</section>"
+            + "<details class='operating-notes'><summary>Evidence and operating notes</summary>"
+            "<ul class='legend'>" + coverage
             + "<li><b>Set-piece attribute score</b> is a transparent 0–100 comparison for this job, not a prediction of goals.</li>"
             "<li>Unknown values stay at the floor of the current ranking and widen its range; they never create false certainty.</li>"
             "<li>Condition and match fitness do not alter technique, but unavailable, injured, and suspended players are excluded.</li>"
             "<li>Copy the named instructions into FM, then adapt marking to the opponent's actual threats.</li></ul>"
-            + unavailable
+            + unavailable + "</details>"
         )
         self._send(_layout("Set pieces", path, body))  # type: ignore[attr-defined]
 

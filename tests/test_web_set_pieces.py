@@ -71,10 +71,37 @@ class SetPiecePageTests(unittest.TestCase):
         self.assertIn("Left-side Corners (prefer Right foot)", body)
         self.assertIn("Free Kick Taking is not captured", body)
         self.assertIn("Long throws", body)
-        self.assertIn("Attacking corners", body)
-        self.assertIn("Attacking wide free kicks", body)
-        self.assertIn("Defensive routines", body)
-        self.assertIn("Squad-wide template", body)
+        self.assertIn("Match-day assignments", body)
+        self.assertIn("Routines", body)
+        self.assertIn("Incomplete role data", body)
+        self.assertIn("provisional squad-wide plan", body)
+        self.assertIn("Chris Centreback", body)
+        self.assertIn("Provisional — dedicated taker evidence is missing", body)
+        self.assertNotIn("No rated taker", body)
+        self.assertIn("id='selected-routine'>Left attacking corner", body)
+        self.assertNotIn("id='selected-routine'>Right attacking corner", body)
+
+    def test_routine_selector_renders_only_the_requested_plan(self) -> None:
+        port = self._serve(FIXTURE)
+        status, body = self._get(
+            port,
+            "/set-pieces?routine=defending_wide_free_kick&delivery=outswinging&risk=secure",
+        )
+
+        self.assertEqual(status, 200)
+        self.assertIn("id='selected-routine'>Defending wide free kicks", body)
+        self.assertNotIn("id='selected-routine'>Left attacking corner", body)
+        self.assertIn("routine=defending_corner", body)
+        self.assertIn("delivery=outswinging", body)
+        self.assertIn("risk=secure", body)
+
+    def test_unknown_routine_falls_back_to_left_attacking_corner(self) -> None:
+        status, body = self._get(
+            self._serve(FIXTURE), "/set-pieces?routine=not-a-routine"
+        )
+
+        self.assertEqual(status, 200)
+        self.assertIn("id='selected-routine'>Left attacking corner", body)
 
     def test_complete_data_uses_the_selected_match_xi_and_risk(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -91,6 +118,8 @@ class SetPiecePageTests(unittest.TestCase):
         self.assertIn("3 held back", body)
         self.assertIn("Attack near post", body)
         self.assertIn("Stay back", body)
+        self.assertIn("Why these takers? View specialist rankings and backups", body)
+        self.assertIn("Why this plan?", body)
 
 
 if __name__ == "__main__":

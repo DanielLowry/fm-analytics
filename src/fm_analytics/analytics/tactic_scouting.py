@@ -75,8 +75,10 @@ class TacticScoutingAssessment:
     player_median: float = 0.0
     # Whether this candidate's ceiling alone would beat the current XI, i.e.
     # the tactic's assignment optimiser would select him if every unknown
-    # attribute and range resolved in his favour. Never true for a candidate
-    # who already starts at the central estimate.
+    # attribute and range resolved in his favour. Usually true for a
+    # candidate who already starts at the central estimate, but not
+    # guaranteed: the comparison is with the current XI's own ceiling, which
+    # rises when owned players have ranged or unknown attributes.
     could_start: bool = False
     # The one slot, if any, where this candidate would be an outright
     # improvement on today's first cover. None for a candidate who starts

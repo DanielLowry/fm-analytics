@@ -114,6 +114,9 @@ class WeakestSlotsTests(unittest.TestCase):
         self.assertEqual(result[0].slot_key, "slot-0")
         self.assertEqual(result[0].starter_name, "Player 01")
         self.assertEqual(result[0].role_name, "Generic")
+        # The test role weights a single attribute; the alerts brief reads
+        # this list to decide which unknowns matter for a weak slot.
+        self.assertEqual(result[0].role_attributes, (("quality", 1),))
         self.assertTrue(all(item.concern == "cover" for item in result[1:]))
         # slot-0's weak starter also has no backup, so it is flagged both
         # ways -- once under each concern -- and every slot (including

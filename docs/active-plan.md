@@ -392,7 +392,8 @@ match's stats are lost if they are not recorded while FM still holds them.
 
 **Status: built (29 September 2026).** The Matches page and `fm-matches` read
 every result and the league's results live from FM, read-only, with full
-stats for the latest match (and any match report opened since). They show
+stats for every match from the match archive FM keeps on disk; there is
+nothing to do in FM. They show
 results, shots, clear-cut chances and possession by opposition strength (the
 league table at kickoff by default), tactic against opposition, where goals
 come from, and which roles create and shoot. See

@@ -44,6 +44,7 @@ if __package__ in {None, ""}:
 
 from tools import fm20_linux_probe as probe
 import tools.fm20_linux_probe_runtime  # noqa: F401  (installs decode_fm_date)
+from tools import fm20_match_archive as archive
 from tools import fm20_match_layout as layout
 from tools.fm20_field_workbench import PeImage, find_rtti_vtables
 from tools.fm20_status import running_pid
@@ -216,6 +217,30 @@ def player_names(memory: Memory, short_ids: set[int]) -> dict[int, str]:
     return names
 
 
+def temporary_folder(pid: int) -> Path | None:
+    """FM's Temporary folder, where it keeps its match archive, from the files it has open."""
+    fds = Path("/proc") / str(pid) / "fd"
+    try:
+        for link in fds.iterdir():
+            try:
+                target = Path(os.readlink(link))
+            except OSError:
+                continue
+            if target.parent.name == "Temporary" and target.name.startswith("pks_"):
+                return target.parent
+    except OSError:
+        pass
+    return None
+
+
+def default_temporary_folder(executable: Path) -> Path | None:
+    """Where Proton keeps FM20's Temporary folder, for when FM has no archive file open."""
+    library = executable.parents[2]  # .../steamapps
+    folder = (library / "compatdata" / "1100600" / "pfx" / "drive_c" / "users" / "steamuser" / "AppData"
+              / "Local" / "Sports Interactive" / "Football Manager 2020" / "Temporary")
+    return folder if folder.is_dir() else None
+
+
 def first_team_address(memory: Memory) -> int:
     contexts = probe.read_human_manager_contexts(memory.fd, memory.module_base)
     active = next((context for context in contexts if context.manager.active), None)
@@ -278,6 +303,7 @@ def build_capture(memory: Memory) -> dict[str, Any]:
 
     squad = {player["short_id"]: player for player in managed_squad(memory)}
     details: dict[tuple, dict[str, Any]] = {}
+    rejected: list[dict[str, Any]] = []
     for address in memory.instances(layout.GAME_MATCH_STATS):
         try:
             header = memory.read(address, layout.MATCH_STATS_SIZE)
@@ -290,7 +316,34 @@ def build_capture(memory: Memory) -> dict[str, Any]:
             detail = match_detail(memory, address, squad)
         except (OSError, probe.ProbeError, struct.error):
             continue
-        if detail is not None:
+        if detail is None:
+            continue
+        problems = layout.detail_problems(detail, ours[key]["home_goals"], ours[key]["away_goals"])
+        if problems:
+            rejected.append({"date": key[0].isoformat(), "problems": problems})
+        else:
+            details[key] = detail
+    if rejected and not details:
+        raise probe.ProbeError(
+            "FM's match stats did not add up for any match, so FM's memory layout may have "
+            "changed; nothing was saved. " + "; ".join(rejected[0]["problems"])
+        )
+
+    # Every other match's full stats, from the archive FM keeps on disk.
+    folder = temporary_folder(memory.pid) or default_temporary_folder(memory.executable)
+    missing = [key for key in ours if key not in details]
+    fixtures = []
+    for key in missing:
+        home, away = clubs(ours[key]["home_team"]), clubs(ours[key]["away_team"])
+        if home and away and home["id"].isdigit() and away["id"].isdigit() and home["id"] != away["id"]:
+            fixtures.append((key, int(home["id"]), int(away["id"]), ours[key]["home_goals"], ours[key]["away_goals"]))
+    if folder is not None and fixtures:
+        our_side = {key: "home" if ours[key]["home_team"] == team else "away" for key in missing}
+        for key, detail in archive.find_matches(folder, fixtures).items():
+            for player in detail["players"]:
+                known = squad.get(player["short_id"]) if player["side"] == our_side[key] else None
+                player["player_id"] = known["id"] if known else None
+                player["name"] = known["name"] if known else None
             details[key] = detail
 
     # Opposition players, and our own who have since left, are named by one scan.
@@ -338,6 +391,7 @@ def build_capture(memory: Memory) -> dict[str, Any]:
         "source": {"tool": "tools/fm20_match_probe.py", "managedClub": managed},
         "matches": [match_json(key, result) for key, result in sorted(ours.items(), key=lambda item: item[0][0])],
         "competitionResults": league_results,
+        "rejectedDetails": rejected,
     }
 
 
@@ -578,6 +632,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             detailed = sum(1 for match in document["matches"] if match["detail"])
             print(f"Captured {len(document['matches'])} matches ({detailed} with full stats) "
                   f"up to {document['gameDate']}.")
+            for item in document["rejectedDetails"]:
+                print(f"Stats for {item['date']} did not add up and were left out: "
+                      + "; ".join(item["problems"]))
         else:
             research(memory, args)
     except probe.ProbeError as exc:

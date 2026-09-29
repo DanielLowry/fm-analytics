@@ -138,8 +138,8 @@ def format_review(review: MatchReview) -> str:
     goals = review.goals
     lines += [
         "",
-        f"Goals by period (from {goals.goals_for_covered} of {goals.goals_for_total} scored and "
-        f"{goals.goals_against_covered} of {goals.goals_against_total} conceded, full-stats matches):",
+        f"Goals by period (from the {goals.timed_matches} matches with goal times: "
+        f"{goals.timed_goals_for} scored, {goals.timed_goals_against} conceded):",
         "  " + "  ".join(f"{p}: {s}-{c}" for p, s, c in zip(goals.periods, goals.scored, goals.conceded)),
         "  Scored by: " + (", ".join(f"{label} {n}" for label, n in goals.scorers) or "-"),
         "  Made by:   " + (", ".join(f"{label} {n}" for label, n in goals.assisters) or "-"),
