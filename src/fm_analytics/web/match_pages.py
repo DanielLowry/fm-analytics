@@ -24,6 +24,7 @@ from fm_analytics.web.match_render import (
     match_body,
     match_url,
     review_body,
+    tactic_history_panel,
     tactic_record_panel,
 )
 from fm_analytics.web.rendering import _SORTABLE_TABLE_SCRIPT, _error_page, _layout, _query_first
@@ -43,6 +44,20 @@ class MatchPagesMixin:
         except Exception:  # noqa: BLE001 - see the docstring
             return ""
         return tactic_record_panel(review, MVP_CATALOGUE, tactic_keys, quality)
+
+    def _tactic_history_block(self, tactic_key: str) -> str:
+        """A tactic page's record of the matches played with it, or nothing when there is no history.
+
+        Never raises, for the same reason as `_match_record_block`.
+        """
+        try:
+            history = self.server.match_history()  # type: ignore[attr-defined]
+            if history is None or not history.matches:
+                return ""
+            review = build_match_review(history, filters=ReviewFilters(tactic=tactic_key))
+        except Exception:  # noqa: BLE001 - see the docstring
+            return ""
+        return tactic_history_panel(review, MVP_CATALOGUE, tactic_key)
 
     def _match_capture_panel(self) -> str:
         server = self.server  # type: ignore[attr-defined]

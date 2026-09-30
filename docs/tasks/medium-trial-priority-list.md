@@ -60,7 +60,8 @@ The semantics brief deliberately left these to this task:
 
 - The median formula, flag definitions or priority value.
 - Choosing weakest slots.
-- The weakest-slot header links; the navigation brief owns those.
+- The weakest-slot header links themselves; [the navigation brief](../archive/tasks/low-weakest-slot-navigation.md)
+  built them, and this task only adds its sort to them.
 
 ## Success criteria
 
@@ -69,7 +70,8 @@ The semantics brief deliberately left these to this task:
 - A player with no visible attributes never shows a priority number.
 - Flags match the semantics brief's worked examples.
 - Existing sorts and their results are unchanged.
-- Together with the navigation brief: one click goes from "Wing Play 4-4-2 is
+- Together with the built [weakest-slot navigation](../archive/tasks/low-weakest-slot-navigation.md):
+  one click goes from "Wing Play 4-4-2 is
   weakest at ML" to realistic ML targets ordered by trial priority.
 - The disclaimer is present wherever the median is shown.
 - Focused tests and the full suite pass.

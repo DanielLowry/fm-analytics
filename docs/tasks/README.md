@@ -40,12 +40,11 @@ Items 1 and 4 are built and need no brief. Completed briefs are listed under
 | [Multi-tactic scouting service](medium-multi-tactic-scouting-service.md) | Medium | 2 | The cost budget has set a page-load budget (the cover-value contract is built) |
 | [Multi-tactic scouting presentation](low-multi-tactic-scouting-presentation.md) | Low | 2 | The service returns a stable presentation model |
 | [Trial-priority list](medium-trial-priority-list.md) | Medium | 3 | Now |
-| [Weakest-slot navigation](low-weakest-slot-navigation.md) | Low | 3 | Now; the trial-priority sort in its links waits for the trial-priority list |
 | [Scouting alerts](medium-scouting-alerts.md) | Medium | 6 | Now; decide first how "newly realistic" is detected (see its prerequisites) |
 
 The scouting cost budget is the only brief still blocking another: the
-multi-tactic service waits on it. The trial-priority list, weakest-slot
-navigation and scouting alerts can all start now.
+multi-tactic service waits on it. The trial-priority list and scouting alerts
+can both start now.
 
 ### Parked items
 
@@ -78,6 +77,7 @@ Finished briefs move to the [archive](../archive/tasks/). Each keeps a
 | [Results log](../archive/tasks/medium-results-log.md) | Medium | 7 | Superseded: built as [match history](../match-analysis-plan.md), 29 September 2026 |
 | [Squad capture upgrade path](../archive/tasks/medium-squad-capture-migrations.md) | Medium | Parked: capture upgrade path | Built 29 September 2026 |
 | [Retire the CLI candidate shortlist](../archive/tasks/medium-retire-cli-candidate-shortlist.md) | Medium | Parked: two recruitment paths | Built 29 September 2026 |
+| [Weakest-slot navigation](../archive/tasks/low-weakest-slot-navigation.md) | Low | 3 | Built 30 September 2026 |
 
 ### Deliberately without a brief
 

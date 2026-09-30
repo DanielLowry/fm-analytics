@@ -4,8 +4,10 @@ import unittest
 from pathlib import Path
 from urllib.parse import quote
 
+from fm_analytics.analytics.match_analysis import ReviewFilters
 from fm_analytics.match_ingest import record_capture_file
 from fm_analytics.persistence.match_history import MatchHistoryStore
+from fm_analytics.reporting import build_match_review
 
 from tests.match_support import capture_document, season
 from tests.web_support import FIXTURE, WebServerHelpers, write_complete_fixture
@@ -150,6 +152,32 @@ class TacticsPanelTests(MatchPagesCase):
         port = self.serve(write_complete_fixture(self.directory))
         _status, body = self._get(port, "/tactics")
         self.assertNotIn("Your match record", body)
+        _status, body = self._get(port, "/tactics/vertical_442")
+        self.assertNotIn("How this tactic has played", body)
+        self.assertNotIn("#tactic-history", body)
+
+    def test_a_tactic_page_shows_how_that_tactic_has_played(self) -> None:
+        self.record()
+        port = self.serve(write_complete_fixture(self.directory))
+        status, body = self._get(port, "/tactics/vertical_442")
+        self.assertEqual(status, 200)
+        self.assertIn("How this tactic has played", body)
+        self.assertIn("href='#tactic-history'", body)
+        self.assertIn("W1 D0 L0", body)  # the 2-1 over Alpha, inferred from its line-up
+        self.assertIn("When goals came", body)
+        self.assertIn("Penalties: 0 for, 0 against", body)
+        self.assertIn(DETAILED_URL, body)
+        self.assertIn("/matches?tactic=vertical_442", body)
+        # The same record `fm-matches review --tactic vertical_442` computes.
+        history = self.store.load_history("club:100")
+        review = build_match_review(history, filters=ReviewFilters(tactic="vertical_442"))
+        self.assertEqual((review.overall.wins, review.overall.draws, review.overall.losses), (1, 0, 0))
+
+    def test_a_tactic_never_played_says_so(self) -> None:
+        self.record()
+        port = self.serve(write_complete_fixture(self.directory))
+        _status, body = self._get(port, "/tactics/wing_play_442")
+        self.assertIn("No league or cup match recorded with this tactic yet", body)
 
 
 if __name__ == "__main__":

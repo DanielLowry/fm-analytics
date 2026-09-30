@@ -54,7 +54,7 @@ opinion to change it (see item 7).
 |---|---|---|---|---|
 | 1 | Pinned tactics | Small | — | Built 26 September 2026 |
 | 2 | Trialist review across pinned tactics, including depth | Small–medium | 1 | Cover value built 28 September; **My tactics** mode open |
-| 3 | Worth-a-trial ranking against the weakest slots | Small–medium | 1, 2 | Scoring and weak-slot list built 28 September; page open |
+| 3 | Worth-a-trial ranking against the weakest slots | Small–medium | 1, 2 | Scoring, weak-slot list and the `/scouting` header built; **Trial priority** sort open |
 | 4 | Record scouting knowledge in our own database | Small–medium | — | Built 26 September 2026 |
 | 5 | Scout from the database, with manual verdicts | Medium | 4 | Built 28 September 2026 |
 | 6 | "Now gettable" and "re-scout due" alerts | Small | 5 | Open; unblocked |
@@ -198,7 +198,8 @@ terms.
 weakest at ML" to a list of realistic ML targets ordered by trial priority.
 
 **Status: the scoring and the weak-slot list are built (28 September 2026),
-nothing on `/scouting` yet.** `TacticScoutingAssessment` now carries
+and the Weakest slots header is on `/scouting` (30 September 2026); the Trial
+priority sort itself is not.** `TacticScoutingAssessment` now carries
 `player_median` (a candidate's own median role score in his best slot/role,
 not a whole-XI reprojection), `could_start` (his ceiling alone would win a
 starting slot) and `trial_priority` (his median, only when his best slot is
@@ -209,10 +210,13 @@ reports into an ordered, capped list of weak starter/cover slots, ready to
 drive both the weakest-slots header and the trial-priority filter -- see
 [the trial-scenario semantics](archive/tasks/senior-trial-scenario-semantics.md) and
 [the weakest-slot service](archive/tasks/medium-weakest-slot-service.md) for the
-decisions taken. The **Weakest slots** header, the **Trial priority** sort
-itself, and the Scout First grouping are still open -- see
-[the trial-priority list](tasks/medium-trial-priority-list.md) and
-[weakest-slot navigation](tasks/low-weakest-slot-navigation.md).
+decisions taken. The header now turns each of those rows into one click from
+"Wing Play is weak at ML" to the candidate list for that tactic, position and
+role, which is the first half of this item's *Done when*; see
+[weakest-slot navigation](archive/tasks/low-weakest-slot-navigation.md). Still
+open are the **Trial priority** sort itself with its median and flag columns,
+and the Scout First grouping -- see
+[the trial-priority list](tasks/medium-trial-priority-list.md).
 
 ### 4. Record scouting knowledge in our own database
 

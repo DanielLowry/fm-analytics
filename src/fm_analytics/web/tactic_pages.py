@@ -446,6 +446,7 @@ class TacticPagesMixin:
             + _opponent_controls(opponent, action=path)
             + "</details>"
         )
+        history_panel = self._tactic_history_block(tactic_key)  # type: ignore[attr-defined]
         body = (
             f"<p class='fm-tactic-back'><a href='{html.escape(tactics_href, quote=True)}'>← All tactics</a></p>"
             + "<section class='fm-tactic-decision'>"
@@ -458,7 +459,8 @@ class TacticPagesMixin:
             + "<div class='fm-tactic-actions'>"
             "<a class='button-link' href='#starting-xi'>Review starting XI</a>"
             "<a class='button-link secondary' href='#matchday-risks'>Check matchday risks</a>"
-            "</div></section>"
+            + ("<a class='button-link secondary' href='#tactic-history'>How it has played</a>" if history_panel else "")
+            + "</div></section>"
             + "<section class='fm-decision-grid fm-tactic-summary' aria-label='Matchday summary'>"
             "<article class='fm-decision-stat'><span>Starting XI</span>"
             f"<b>{selected_count} / {total_slots}</b><small>{line_up_note}</small></article>"
@@ -494,6 +496,7 @@ class TacticPagesMixin:
             + f"{total_slots} positions</span></div>"
             "<details class='fm-coverage-details'><summary>View cover for every position</summary>"
             "<div class='coverage-grid'>" + "".join(coverage_cards) + "</div></details></section>"
+            + history_panel
             + "<section class='fm-workspace-panel fm-tactic-evidence'>"
             "<div class='fm-panel-heading'><div><h2>Tactical instructions and evidence</h2>"
             "<p>Use this after the matchday choices are clear: it explains the score, shape, and FM settings.</p>"

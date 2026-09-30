@@ -150,8 +150,8 @@ def tactic_grid(review: MatchReview) -> str:
 
 def goals_section(review: MatchReview) -> str:
     goals = review.goals
-    if not goals.goals_for_covered and not goals.goals_against_covered:
-        return "<p class='muted'>No goals in matches with full stats in this selection yet.</p>"
+    if not goals.goals_for_total and not goals.goals_against_total:
+        return "<p class='muted'>No goals in this selection yet.</p>"
     peak = max((*goals.scored, *goals.conceded, 1))
     columns = "".join(
         f"<div class='col' title='{_e(period)}: scored {s}, conceded {c}'>"
@@ -166,24 +166,36 @@ def goals_section(review: MatchReview) -> str:
         return f"<div class='match-card'><h3>{_e(title)}</h3><ol>{body}</ol></div>"
 
     timing = (
-        f"<p class='intro'>When goals came, from the {goals.timed_matches} matches whose goal times FM "
-        f"still held ({goals.timed_goals_for} scored, {goals.timed_goals_against} conceded). "
+        f"<p class='intro'>When goals came, from the {goals.timed_matches} of {len(review.matches)} matches "
+        f"whose goal times are known ({goals.timed_goals_for} scored, {goals.timed_goals_against} conceded). "
         "<span class='key-for'>Scored</span><span class='key-against'>Conceded</span></p>"
         f"<div class='period-chart'>{columns}</div><div class='period-labels'>{labels}</div>"
         if goals.timed_matches else
-        "<p class='muted'>Goal times are not known for these matches yet.</p>"
+        "<p class='muted'>Goal times are not known for these matches yet: read matches from FM to fill them in.</p>"
     )
-    return (
-        timing
-        + f"<p class='intro'>Who scored and made them, from the {goals.goals_for_covered} of "
+    discipline = (
+        f"<p class='muted'>Penalties: {goals.penalties_for} for, {goals.penalties_against} against · "
+        f"own goals: {goals.own_goals_for} for, {goals.own_goals_against} against · "
+        f"sent off: {goals.sent_off_ours} of ours, {goals.sent_off_theirs} of theirs.</p>"
+    )
+    who = (
+        f"<p class='intro'>Who scored and made them, from the {goals.goals_for_covered} of "
         f"{goals.goals_for_total} goals scored and {goals.goals_against_covered} of "
         f"{goals.goals_against_total} conceded in matches with full stats.</p>"
         "<div class='match-cards'>"
         + ranked("Scored by", goals.scorers)
         + ranked("Set up by (assists)", goals.assisters)
         + ranked("Conceded to", goals.conceded_to)
-        + "</div><p class='muted'>Goal type (open play, corner, free kick) and where the shot came from "
-        "are not read from FM yet.</p>"
+        + "</div>"
+        if goals.goals_for_covered or goals.goals_against_covered else
+        "<p class='muted'>Scorers by role need matches with full stats; none in this selection has them.</p>"
+    )
+    return (
+        timing
+        + discipline
+        + who
+        + "<p class='muted'>Penalties and own goals are read from FM; whether any other goal came from open "
+        "play or a set piece, and where the shot came from, are not read yet.</p>"
     )
 
 
@@ -592,4 +604,45 @@ def tactic_record_panel(
         "<div class='opponent-summary'><strong>Your match record</strong> "
         "<span class='muted'>(evidence only; it changes no score)</span>"
         f"<ul>{''.join(lines)}</ul>{rated}<a href='/matches'>All matches →</a></div>"
+    )
+
+
+def tactic_history_panel(review: MatchReview, catalogue: FootballCatalogue, tactic_key: str) -> str:
+    """The tactic page's record of league and cup matches played with this tactic. Evidence only."""
+    name = catalogue.tactics[tactic_key].name if tactic_key in catalogue.tactics else tactic_key
+    overall = review.overall
+    heading = (
+        "<section class='fm-workspace-panel fm-tactic-history' id='tactic-history'>"
+        "<div class='fm-panel-heading'><div><h2>How this tactic has played</h2>"
+        f"<p>Your league and cup matches with {_e(name)}: the tactic from your note on the match, or from "
+        "its line-up when that fits this tactic alone. What happened, not a prediction; it changes no score.</p>"
+        f"</div><span class='fm-panel-count'>{overall.matches} match{'' if overall.matches == 1 else 'es'}</span></div>"
+    )
+    if not overall.matches:
+        return heading + "<p class='muted'>No league or cup match recorded with this tactic yet.</p></section>"
+    ppg = f"{overall.points_per_game:.2f}"
+    sample = "enough to compare" if overall.enough else f"too few to read ({overall.matches} of {MIN_GROUP_MATCHES})"
+    detailed = sum(1 for summary in review.matches if summary.ours)
+    stats = (
+        "<section class='fm-decision-grid' aria-label='Record with this tactic'>"
+        "<article class='fm-decision-stat'><span>Record</span>"
+        f"<b>W{overall.wins} D{overall.draws} L{overall.losses}</b><small>{form_strip(review.matches[-6:])}</small></article>"
+        "<article class='fm-decision-stat'><span>Points per game</span>"
+        f"<b>{ppg}</b><small>{sample}</small></article>"
+        "<article class='fm-decision-stat'><span>Goals</span>"
+        f"<b>{overall.goals_for}–{overall.goals_against}</b><small>{detailed} of {overall.matches} with full stats</small></article>"
+        "</section>"
+    )
+    return (
+        heading
+        + stats
+        + "<h3>Against different opposition</h3>"
+        + group_table(review.groups, review.matches, first_column="Opposition")
+        + "<h3>When goals came</h3>"
+        + goals_section(review)
+        + "<details><summary>Every match with this tactic</summary>"
+        + matches_table(review.matches, catalogue)
+        + "</details>"
+        f"<p><a href='/matches?tactic={quote(tactic_key)}'>Review these matches on the Matches page →</a></p>"
+        "</section>"
     )

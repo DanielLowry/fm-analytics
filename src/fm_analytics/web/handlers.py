@@ -281,7 +281,7 @@ class SquadWebHandler(
             + risks
             + "<a class='fm-command-action' href='/depth'>Review squad depth</a></section>"
             + pinned_panel
-            "</div>"
+            + "</div>"
             + diagnostic
             + "<p class='muted'>Squad, Roles, Tactics, and Depth need complete role-scoring attributes; "
             "Data works regardless and shows exactly what is missing.</p>"

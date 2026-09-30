@@ -10,9 +10,9 @@
 [cover-value contract](senior-cover-value-contract.md) first or alongside,
 because "could be first cover" depends on it.
 
-**Unblocks:** the [trial-priority list](../../tasks/medium-trial-priority-list.md), and the
-trial-priority sort that [weakest-slot navigation](../../tasks/low-weakest-slot-navigation.md)
-links to.
+**Unblocks:** the [trial-priority list](../../tasks/medium-trial-priority-list.md), which owns
+the trial-priority sort that the links in
+[weakest-slot navigation](low-weakest-slot-navigation.md) will carry.
 
 ## Why we are doing this
 

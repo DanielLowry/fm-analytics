@@ -9,7 +9,7 @@
 **Prerequisite:** none to start. The selection decisions below must be
 approved before merge.
 
-**Unblocks:** [weakest-slot navigation](../../tasks/low-weakest-slot-navigation.md), the
+**Unblocks:** [weakest-slot navigation](low-weakest-slot-navigation.md), the
 [trial-priority list](../../tasks/medium-trial-priority-list.md), and the "accepted source
 of weakest-slot role attributes" that [scouting alerts](../../tasks/medium-scouting-alerts.md)
 needs.
