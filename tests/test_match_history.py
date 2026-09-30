@@ -2,8 +2,10 @@ import sqlite3
 import tempfile
 import unittest
 from contextlib import closing
+from datetime import date
 from pathlib import Path
 
+from fm_analytics.analytics.match_interventions import InterventionProposal, InterventionSnapshot
 from fm_analytics.domain.matches import MatchCapture
 from fm_analytics.persistence.match_history import (
     MIGRATIONS,
@@ -16,6 +18,30 @@ from tests.match_support import capture_document, season
 
 KEY = "club:100"
 DETAILED = "2019-09-01:100:201"
+
+
+def intervention() -> InterventionProposal:
+    return InterventionProposal(
+        finding_key="finishing_recent",
+        problem_class="finishing",
+        title="Test finishing selection",
+        hypothesis="Conversion may be the issue.",
+        controlled_intervention="Change one forward only.",
+        expected_benefit="More goals from the same chances.",
+        success_condition="Conversion improves.",
+        stop_condition="Chance supply falls.",
+        target_matches=5,
+        started_after_date=date(2019, 9, 1),
+        started_after_match_key=DETAILED,
+        baseline=InterventionSnapshot(
+            matches=5, points_per_game=1.0, conversion_pct=8.0,
+            shots_for=10.0, clear_cut_chances_for=1.5,
+            shots_against=9.0, clear_cut_chances_against=0.8,
+            adjusted_shots_for=0.0, adjusted_clear_cut_chances_for=0.0,
+            adjusted_clear_cut_chances_against=0.0,
+        ),
+        manager_note="Try Appau",
+    )
 
 
 def capture(matches=None, **kwargs) -> MatchCapture:
@@ -116,6 +142,35 @@ class NotesAndRoleCodeTests(StoreCase):
         with self.assertRaises(ValueError):
             self.store.confirm_role_code(0, "af_attack")
 
+    def test_one_intervention_is_active_until_an_append_only_outcome_closes_it(self) -> None:
+        started = self.store.start_intervention(KEY, intervention())
+        self.assertTrue(started.active)
+        history = self.store.load_history(KEY)
+        self.assertEqual(history.interventions[0].proposal.manager_note, "Try Appau")
+        with self.assertRaisesRegex(ValueError, "active intervention"):
+            self.store.start_intervention(KEY, intervention())
+
+        self.store.finish_intervention(
+            KEY, started.id, outcome="not_supported", note="No improvement"
+        )
+        closed = self.store.load_history(KEY).interventions[0]
+        self.assertFalse(closed.active)
+        self.assertEqual((closed.outcome, closed.outcome_note), ("not_supported", "No improvement"))
+        # Closing is an event, not a mutation of the frozen starting record.
+        with closing(sqlite3.connect(self.path)) as connection:
+            self.assertEqual(connection.execute("SELECT count(*) FROM interventions").fetchone()[0], 1)
+            self.assertEqual(connection.execute("SELECT count(*) FROM intervention_events").fetchone()[0], 1)
+        self.assertTrue(self.store.start_intervention(KEY, intervention()).active)
+
+    def test_intervention_input_and_outcomes_are_validated(self) -> None:
+        with self.assertRaisesRegex(ValueError, "500"):
+            self.store.start_intervention(
+                KEY, InterventionProposal(**{**intervention().__dict__, "manager_note": "x" * 501})
+            )
+        started = self.store.start_intervention(KEY, intervention())
+        with self.assertRaisesRegex(ValueError, "outcome"):
+            self.store.finish_intervention(KEY, started.id, outcome="maybe")
+
 
 class MigrationTests(StoreCase):
     ADD_COLUMN = "ALTER TABLE match_notes ADD COLUMN mood TEXT;"
@@ -135,6 +190,15 @@ class MigrationTests(StoreCase):
         self.assertEqual(self.user_version(), len(MIGRATIONS) + 1)
         backup = self.path.with_name(self.path.name + f".bak-v{len(MIGRATIONS)}")
         self.assertEqual(self.user_version(backup), len(MIGRATIONS))
+
+    def test_a_real_v1_history_is_upgraded_to_the_intervention_schema(self) -> None:
+        legacy = MatchHistoryStore(self.path, migrations=MIGRATIONS[:1])
+        legacy.record(capture(), save_key=KEY)
+        self.assertEqual(self.user_version(), 1)
+        history = self.store.load_history(KEY)
+        self.assertEqual((len(history.matches), history.interventions), (6, ()))
+        self.assertEqual(self.user_version(), 2)
+        self.assertEqual(self.user_version(self.path.with_name(self.path.name + ".bak-v1")), 1)
 
     def test_a_file_from_a_newer_program_is_refused_not_touched(self) -> None:
         MatchHistoryStore(self.path, migrations=(*MIGRATIONS, self.ADD_COLUMN)).initialize()

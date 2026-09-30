@@ -35,8 +35,16 @@ RESULT_AWAY_TEAM = 0x10
 RESULT_FIXTURE_NAME = 0x20  # db::FIXTURE_NAME: which competition
 RESULT_DATE = 0x4C
 RESULT_ATTENDANCE = 0x5C
+# Each side's score is five bytes, 0xFF for a stage not played: after 90
+# minutes, after extra time, the penalty shootout, and the aggregate over two
+# legs (the fifth was never set). Checked on 30 September 2026 against all 541
+# of the 41,044 results FM held that went beyond 90 minutes, and Hungerford's
+# FA Trophy replay with Slough (1-1 after 90, won 2-1 after extra time).
 RESULT_HOME_GOALS = 0x64
 RESULT_AWAY_GOALS = 0x69
+SCORE_AFTER_EXTRA_TIME = 1
+SCORE_PENALTIES = 2
+NOT_PLAYED = 0xFF
 RESULT_INCIDENTS = 0x70  # vector of INCIDENT_SIZE entries; a null pointer when there are none
 RESULT_OUTCOME = 0x78  # two bytes; both zero until the match is played
 
@@ -152,15 +160,26 @@ def vector_bounds(data: bytes, offset: int) -> tuple[int, int]:
     return struct.unpack_from("<QQ", data, offset)
 
 
+def _stage(record: bytes, stage: int) -> tuple[int, int] | None:
+    home, away = record[RESULT_HOME_GOALS + stage], record[RESULT_AWAY_GOALS + stage]
+    return None if NOT_PLAYED in (home, away) else (home, away)
+
+
 def decode_fixture_result(record: bytes) -> dict[str, Any]:
+    at_90 = (record[RESULT_HOME_GOALS], record[RESULT_AWAY_GOALS])
+    after_extra_time = _stage(record, SCORE_AFTER_EXTRA_TIME)
+    home_goals, away_goals = after_extra_time or at_90
     return {
         "home_team": pointer(record, RESULT_HOME_TEAM),
         "away_team": pointer(record, RESULT_AWAY_TEAM),
         "fixture_name": pointer(record, RESULT_FIXTURE_NAME),
         "date": decode_fm_date(record[RESULT_DATE:RESULT_DATE + 4]),
         "attendance": struct.unpack_from("<I", record, RESULT_ATTENDANCE)[0],
-        "home_goals": record[RESULT_HOME_GOALS],
-        "away_goals": record[RESULT_AWAY_GOALS],
+        # The score FM shows: after extra time when it was played.
+        "home_goals": home_goals,
+        "away_goals": away_goals,
+        "score_at_90": at_90 if after_extra_time else None,
+        "penalties": _stage(record, SCORE_PENALTIES),
         "incidents_vector": pointer(record, RESULT_INCIDENTS),
         # Scheduled copies of a fixture carry 0-0 and no outcome.
         "played": record[RESULT_OUTCOME] != 0 or record[RESULT_OUTCOME + 1] != 0,

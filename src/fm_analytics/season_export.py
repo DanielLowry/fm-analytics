@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping
 from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.match_analysis import METRICS, MIN_GROUP_MATCHES, GroupSummary, MatchReview, MatchSummary
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
+from fm_analytics.analytics.match_interventions import InterventionEvaluation
 from fm_analytics.analytics.match_players import PlayerSeason
 from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.analytics.match_strength import league_table
@@ -227,6 +228,16 @@ def _match(summary: MatchSummary, kind: str, codes: RoleCodes, catalogue: Footba
     }
     if summary.note:
         row["note"] = summary.note
+
+    def ours_first(score: tuple[int, int]) -> str:
+        home, away = score
+        return f"{home}-{away}" if summary.side == "home" else f"{away}-{home}"
+
+    if match.after_extra_time:
+        row["after_extra_time"] = True
+        row["score_at_90"] = ours_first(match.score_at_90)
+    if match.penalties:
+        row["penalties"] = ours_first(match.penalties)
     goals = [incident for incident in match.incidents if incident.is_goal]
     if goals:
         row["goals"] = [
@@ -393,6 +404,12 @@ def _caveats(everything: MatchReview, competitive: MatchReview, bundle, as_of: d
     ]
     if len(everything.matches) > detailed:
         caveats.append(f"{len(everything.matches) - detailed} match(es) have the result only, no stats.")
+    if any(summary.match.after_extra_time for summary in competitive.matches):
+        caveats.append(
+            "A score is the final one, after extra time where it was played (after_extra_time, score_at_90); "
+            "a penalty shootout is shown beside it and not counted as a win or a loss. Extra-time goals "
+            "count in the 90+ period."
+        )
     if competitive.goals.timed_matches < len(competitive.matches):
         caveats.append(
             f"Goal minutes exist for {competitive.goals.timed_matches} of {len(competitive.matches)} "
@@ -419,6 +436,7 @@ def export_document(
     relative: MatchReview,
     league: MatchReview,
     diagnostics: MatchDiagnostics,
+    intervention: InterventionEvaluation | None,
     catalogue: FootballCatalogue,
     detail: str = "standard",
     bundle: RecommendationBundle | None = None,
@@ -465,7 +483,10 @@ def export_document(
             "by_venue": [_group(group) for group in competitive.venues],
             "by_tactic": [{"tactic": row.label, **_group(row.overall)} for row in competitive.tactics],
         },
-        "diagnostics": diagnostics.to_document(),
+        "diagnostics": diagnostics.to_document() | {
+            "active_intervention": intervention.to_document() if intervention else None,
+            "intervention_history": [item.to_document() for item in history.interventions],
+        },
         "goals": {
             "our_goals_by_scorer_role": dict(goals.scorers),
             "our_goals_by_assister_role": dict(goals.assisters),

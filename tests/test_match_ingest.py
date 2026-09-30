@@ -9,9 +9,19 @@ from unittest import mock
 
 from fm_analytics import match_ingest
 from fm_analytics.analytics.match_analysis import ReviewFilters
-from fm_analytics.match_ingest import format_diagnostics, format_review, main, record_capture_file
+from fm_analytics.match_ingest import (
+    format_diagnostics,
+    format_intervention,
+    format_review,
+    main,
+    record_capture_file,
+)
 from fm_analytics.persistence.match_history import MatchHistoryStore
-from fm_analytics.reporting import build_match_diagnostics, build_match_review
+from fm_analytics.reporting import (
+    build_match_diagnostics,
+    build_match_intervention_evaluation,
+    build_match_review,
+)
 
 from tests.match_support import capture_document, season
 
@@ -55,7 +65,14 @@ class IngestAndReadTests(CliCase):
         self.assertEqual(code, 0)
         history = MatchHistoryStore(self.db).load_history("club:100")
         review = build_match_review(history, filters=ReviewFilters(grouping="relative"))
-        expected = format_review(review) + format_diagnostics(build_match_diagnostics(review))
+        lifecycle_review = build_match_review(
+            history, filters=ReviewFilters(grouping="table", competitions="competitive")
+        )
+        expected = (
+            format_review(review)
+            + format_diagnostics(build_match_diagnostics(review))
+            + format_intervention(build_match_intervention_evaluation(history, lifecycle_review))
+        )
         self.assertEqual(text.strip(), expected.strip())
         self.assertIn("Above us", text)
         self.assertIn("Top current opportunities", text)

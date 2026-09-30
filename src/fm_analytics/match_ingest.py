@@ -34,6 +34,7 @@ from fm_analytics.analytics.match_analysis import (
     ReviewFilters,
 )
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
+from fm_analytics.analytics.match_interventions import InterventionEvaluation
 from fm_analytics.analytics.match_strength import GROUPINGS
 from fm_analytics.bridge import LinuxProtonDataSource
 from fm_analytics.domain.matches import MatchCapture
@@ -48,6 +49,7 @@ from fm_analytics.reporting import (
     RecommendationBundle,
     RecommendationPolicy,
     build_match_diagnostics,
+    build_match_intervention_evaluation,
     build_match_report,
     build_match_review,
     build_recommendation_bundle,
@@ -230,6 +232,24 @@ def format_diagnostics(diagnostics: MatchDiagnostics) -> str:
     return "\n".join(lines)
 
 
+def format_intervention(evaluation: InterventionEvaluation | None) -> str:
+    if evaluation is None:
+        return ""
+    proposal = evaluation.intervention.proposal
+    lines = [
+        "",
+        "Active controlled test:",
+        f"  {proposal.title} [{evaluation.status_label}]",
+        f"  Test: {proposal.controlled_intervention}",
+        f"  Progress: {evaluation.exposures} of {evaluation.target_matches} eligible exposures",
+        f"  Review: {evaluation.summary}",
+        *(f"  Evidence: {item}" for item in evaluation.evidence),
+    ]
+    if proposal.manager_note:
+        lines.append(f"  Manager note: {proposal.manager_note}")
+    return "\n".join(lines)
+
+
 # -- command line -------------------------------------------------------------
 
 
@@ -313,7 +333,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.command == "review":
                 filters = ReviewFilters(args.group, args.competitions, args.venue, args.tactic)
                 review = build_match_review(history, filters=filters)
-                print(format_review(review) + format_diagnostics(build_match_diagnostics(review)))
+                lifecycle_review = build_match_review(
+                    history, filters=ReviewFilters(grouping="table", competitions="competitive")
+                )
+                print(
+                    format_review(review)
+                    + format_diagnostics(build_match_diagnostics(review))
+                    + format_intervention(
+                        build_match_intervention_evaluation(history, lifecycle_review)
+                    )
+                )
             elif args.command == "list":
                 review = build_match_review(history, filters=ReviewFilters(competitions="all"))
                 for summary in review.matches:

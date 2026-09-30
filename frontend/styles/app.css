@@ -413,6 +413,10 @@
   .fm-routine-panel .routine-heading h3, .fm-routine-panel .routine-assignment > b { color: var(--color-ink-900); }
   .fm-routine-panel .routine-heading p, .fm-routine-panel .routine-assignment small { color: var(--color-ink-500); }
   .fm-routine-panel .set-piece-unit { color: var(--color-brand-700); background: var(--color-brand-50); }
+  .fm-routine-panel .routine-assignment-note > summary { color: var(--color-brand-700); }
+  .fm-routine-panel .routine-assignment-reason { border-color: var(--color-brand-300); background: var(--fm-card); }
+  .fm-routine-panel .routine-assignment-reason p, .fm-routine-panel .routine-assignment-reason dd { color: var(--color-ink-700); }
+  .fm-routine-panel .routine-assignment-reason dt, .fm-routine-panel .routine-assignment-reason > small { color: var(--color-ink-500); }
   .fm-routine-panel .routine-evidence { border-color: var(--fm-border); background: var(--fm-card); }
   .fm-routine-panel .routine-evidence > summary { color: var(--color-brand-700); }
   .fm-set-piece-notes { margin-bottom: 0; }
@@ -446,6 +450,32 @@
   .fm-diagnostic-empty { margin: 0; padding: .8rem; border: 1px dashed var(--fm-border); border-radius: .55rem; color: var(--color-ink-500); font-size: .84rem; }
   .fm-diagnostic-limits { margin: 1rem 0 0; border-color: var(--fm-border); border-radius: .55rem; background: var(--fm-page); }
   .fm-diagnostic-limits > summary { color: var(--color-brand-700); font-size: .8rem; }
+  .fm-active-intervention { margin: 0 0 1rem; padding: 1rem; border: 1px solid var(--color-brand-300); border-left: 4px solid var(--color-brand-600); border-radius: .7rem; background: color-mix(in srgb, var(--color-brand-50) 72%, var(--fm-card)); }
+  .fm-active-intervention.status-stop { border-color: #d89b8e; border-left-color: #a8402f; background: #fff4f1; }
+  .fm-active-intervention.status-not_supported, .fm-active-intervention.status-inconclusive { border-color: #e2c48b; border-left-color: #bd7a11; background: #fff8e9; }
+  .fm-intervention-top { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+  .fm-intervention-top h3 { margin: .25rem 0 .45rem; color: var(--color-ink-900); font-size: 1rem; }
+  .fm-active-intervention > p { margin: .35rem 0; color: var(--color-ink-600); font-size: .83rem; line-height: 1.45; }
+  .fm-intervention-status { flex: none; padding: .24rem .5rem; border-radius: 999px; background: var(--color-brand-600); color: white; font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+  .status-stop .fm-intervention-status { background: #a8402f; }
+  .status-not_supported .fm-intervention-status, .status-inconclusive .fm-intervention-status { background: #9a620d; }
+  .fm-intervention-note { padding: .45rem .55rem; border-radius: .4rem; background: color-mix(in srgb, var(--fm-card) 72%, transparent); }
+  .fm-intervention-progress { display: grid; grid-template-columns: auto minmax(5rem, 1fr) auto; align-items: center; gap: .6rem; margin: .75rem 0; color: var(--color-ink-600); font-size: .76rem; }
+  .fm-intervention-progress > div { height: .42rem; overflow: hidden; border-radius: 999px; background: var(--fm-border); }
+  .fm-intervention-progress i { display: block; height: 100%; border-radius: inherit; background: var(--color-brand-600); }
+  .fm-intervention-verdict { font-weight: 650; }
+  .fm-intervention-controls, .fm-start-intervention { margin: .8rem 0 0; padding-top: .75rem; border-top: 1px solid var(--fm-border); }
+  .fm-intervention-controls label, .fm-start-intervention label { display: block; color: var(--color-ink-600); font-size: .72rem; font-weight: 650; }
+  .fm-intervention-controls input, .fm-start-intervention input:not([type='hidden']) { width: 100%; margin-top: .25rem; border-color: var(--fm-border); border-radius: .42rem; background: var(--fm-card); color: var(--color-ink-800); font-size: .78rem; }
+  .fm-intervention-controls > div { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .55rem; }
+  .fm-intervention-controls button, .fm-start-intervention button { padding: .42rem .62rem; border-radius: .42rem; background: var(--color-brand-600); color: white; font-size: .73rem; font-weight: 700; }
+  .fm-intervention-controls button.secondary { border: 1px solid var(--fm-border); background: var(--fm-card); color: var(--color-ink-700); }
+  .fm-intervention-controls button.danger { background: #a8402f; }
+  .fm-start-intervention button { width: 100%; margin-top: .5rem; }
+  .fm-intervention-history { margin: 0 0 1rem; border-color: var(--fm-border); border-radius: .55rem; background: var(--fm-page); }
+  .fm-intervention-history > summary { color: var(--color-brand-700); font-size: .8rem; }
+  .fm-intervention-history ul { margin: .55rem 0 0; padding-left: 1rem; color: var(--color-ink-600); font-size: .78rem; }
+  .fm-intervention-history li + li { margin-top: .35rem; }
   .fm-match-capture-panel { padding: 0; overflow: hidden; }
   .fm-match-capture-panel .refresh-panel { margin: 0; border: 0; border-radius: 0; background: transparent; }
   .fm-match-capture-panel .refresh { margin: 0; padding: .85rem 1rem; border-bottom: 1px solid var(--fm-border); }
@@ -487,6 +517,12 @@
   :root.dark .fm-diagnostic-card .eyebrow { color: #e4c896; }
   :root.dark .fm-confidence { background: #49391e; color: #f0d7a2; }
   :root.dark .fm-confidence.medium { background: #204c31; color: #b9e8c8; }
+  :root.dark .fm-active-intervention { background: #153826; }
+  :root.dark .fm-active-intervention.status-stop { background: #3c2423; }
+  :root.dark .fm-active-intervention.status-not_supported, :root.dark .fm-active-intervention.status-inconclusive { background: #3b2e17; }
+  :root.dark .fm-intervention-top h3 { color: #f5f8fc; }
+  :root.dark .fm-intervention-controls input, :root.dark .fm-start-intervention input:not([type='hidden']) { background: #1d2b3e; color: #e7edf5; }
+  :root.dark .fm-intervention-controls button.secondary { background: #1d2b3e; color: #dce6f2; }
   :root.dark .fm-set-piece-alerts .set-piece-data-warning { background: #3b2e17; color: #f0d7a2; }
   :root.dark .fm-tactic-decision { background: linear-gradient(135deg, #153826, var(--fm-card) 68%); }
   :root.dark .fm-tactic-decision-heading h2, :root.dark .fm-coverage-panel .coverage-card > b, :root.dark .fm-tactic-evidence .in-possession-section h3 { color: #f5f8fc; }
@@ -529,6 +565,10 @@
     .fm-diagnostic-heading .fm-one-test { margin-top: .45rem; text-align: left; }
     .fm-diagnostic-test { grid-template-columns: 1fr; gap: .08rem; }
     .fm-diagnostic-test dd + dt { margin-top: .35rem; }
+    .fm-intervention-top { display: block; }
+    .fm-intervention-status { display: inline-block; margin-bottom: .45rem; }
+    .fm-intervention-progress { grid-template-columns: 1fr auto; }
+    .fm-intervention-progress > span { grid-column: 1 / -1; }
     .fm-routine-panel .routine-switcher { align-items: flex-start; }
     .fm-routine-panel .routine-tabs.primary { padding: 0 0 .55rem; border: 0; border-bottom: 1px solid var(--fm-border); }
   }

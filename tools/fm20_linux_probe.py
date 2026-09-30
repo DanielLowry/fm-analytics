@@ -557,10 +557,18 @@ def read_player_contract(
     )
 
 
-def read_availability(memory_fd: int, player_address: int) -> tuple[str, bool, bool]:
+def read_availability(
+    memory_fd: int, player_address: int
+) -> tuple[str, bool, bool | None]:
+    """Return (availability, injured, suspended).
+
+    Suspension is not read: no memory location for an active ban has been
+    identified. The vector at injuries+0x18 that this once treated as a
+    suspension flag is a dated event log that is non-empty for players who are
+    not suspended, so it is reported as unknown (None) rather than guessed.
+    """
     injuries = read_u64(memory_fd, player_address + 0xD8)
     injured = False
-    suspended = False
     if injuries:
         start = read_u64(memory_fd, injuries)
         end = read_u64(memory_fd, injuries + 0x8)
@@ -571,16 +579,7 @@ def read_availability(memory_fd: int, player_address: int) -> tuple[str, bool, b
         else:
             injury_count = (end - start) // 8
         injured = injury_count > 0
-        suspended = read_u64(memory_fd, injuries + 0x18) != 0
-    if injured and suspended:
-        availability = "injured_and_suspended"
-    elif injured:
-        availability = "injured"
-    elif suspended:
-        availability = "suspended"
-    else:
-        availability = "available"
-    return availability, injured, suspended
+    return ("injured" if injured else "available"), injured, None
 
 
 def _read_team_squad_players(

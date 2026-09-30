@@ -10,6 +10,7 @@ from fm_analytics.persistence.match_history import MatchHistoryStore
 from fm_analytics.reporting import build_match_review
 
 from tests.match_support import capture_document, season
+from tests.test_match_diagnostics import diagnostic_season
 from tests.web_support import FIXTURE, WebServerHelpers, write_complete_fixture
 
 DETAILED = "2019-09-01:100:201"
@@ -139,6 +140,52 @@ class MatchPostTests(MatchPagesCase):
         status, body = self._get(port, "/matches")
         self.assertEqual(status, 200)
         self.assertIn("FM20 is not running", body)
+
+    def test_a_controlled_test_can_start_but_a_second_cannot_until_it_is_closed(self) -> None:
+        self.capture.write_text(
+            json.dumps(capture_document(diagnostic_season(10), game_date="2019-09-20")),
+            encoding="utf-8",
+        )
+        self.record()
+        port = self.serve()
+        _status, body = self._get(port, "/matches")
+        self.assertIn("Start this controlled test", body)
+
+        status, location, _body = self._post(
+            port,
+            "/matches/intervention/start",
+            "finding=role_output%3Ab2b_support&note=Test+Appau",
+        )
+        self.assertEqual((status, location), (303, "/matches"))
+        active = self.store.load_history("club:100").interventions[0]
+        self.assertTrue(active.active)
+        _status, body = self._get(port, "/matches")
+        self.assertIn("Active controlled test", body)
+        self.assertIn("Test Appau", body)
+        self.assertNotIn("Start this controlled test", body)
+
+        status, _location, body = self._post(
+            port, "/matches/intervention/start", "finding=role_output%3Ab2b_support"
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("active intervention", body)
+
+        status, _location, body = self._post(
+            port,
+            "/matches/intervention/finish",
+            f"intervention={active.id}&outcome=adopted",
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("five eligible exposures", body)
+
+        status, location, _body = self._post(
+            port,
+            "/matches/intervention/finish",
+            f"intervention={active.id}&outcome=stopped&note=Changed+plan",
+        )
+        self.assertEqual((status, location), (303, "/matches"))
+        closed = self.store.load_history("club:100").interventions[0]
+        self.assertEqual((closed.active, closed.outcome), (False, "stopped"))
 
 
 class TacticsPanelTests(MatchPagesCase):

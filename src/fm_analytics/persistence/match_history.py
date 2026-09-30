@@ -23,11 +23,18 @@ import hashlib
 import json
 import sqlite3
 from contextlib import closing, contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterator, Mapping, Sequence
 
+from fm_analytics.analytics.match_interventions import (
+    INTERVENTION_OUTCOMES,
+    InterventionProposal,
+    InterventionSnapshot,
+    StoredIntervention,
+    validate_intervention_note,
+)
 from fm_analytics.domain.matches import (
     Competition,
     LeagueResult,
@@ -125,8 +132,41 @@ CREATE TABLE role_codes (
 );
 """
 
+_V2 = """
+-- One controlled diagnostic test at a time.  The proposal and baseline are
+-- immutable; closing a test is an append-only event, like match notes.
+CREATE TABLE interventions (
+    id INTEGER PRIMARY KEY,
+    save_id INTEGER NOT NULL REFERENCES saves(id),
+    finding_key TEXT NOT NULL,
+    problem_class TEXT NOT NULL,
+    title TEXT NOT NULL,
+    hypothesis TEXT NOT NULL,
+    controlled_intervention TEXT NOT NULL,
+    expected_benefit TEXT NOT NULL,
+    success_condition TEXT NOT NULL,
+    stop_condition TEXT NOT NULL,
+    target_matches INTEGER NOT NULL CHECK (target_matches BETWEEN 4 AND 6),
+    started_at TEXT NOT NULL,
+    started_after_date TEXT NOT NULL,
+    started_after_match_key TEXT NOT NULL,
+    baseline_json TEXT NOT NULL,
+    manager_note TEXT NOT NULL CHECK (length(manager_note) <= 500)
+);
+CREATE INDEX interventions_by_save ON interventions (save_id, id);
+
+CREATE TABLE intervention_events (
+    id INTEGER PRIMARY KEY,
+    intervention_id INTEGER NOT NULL REFERENCES interventions(id),
+    recorded_at TEXT NOT NULL,
+    outcome TEXT NOT NULL CHECK (outcome IN ('adopted', 'not_supported', 'stopped')),
+    note TEXT NOT NULL CHECK (length(note) <= 500)
+);
+CREATE INDEX intervention_events_by_intervention ON intervention_events (intervention_id, id);
+"""
+
 # Append only. Version N of the file is the result of applying MIGRATIONS[:N].
-MIGRATIONS: tuple[str, ...] = (_V1,)
+MIGRATIONS: tuple[str, ...] = (_V1, _V2)
 
 
 @dataclass(frozen=True)
@@ -175,6 +215,7 @@ class MatchHistory:
     notes: Mapping[str, MatchNote]
     role_codes: Mapping[int, str]
     last_game_date: date | None
+    interventions: tuple[StoredIntervention, ...] = ()
 
 
 def _now() -> str:
@@ -301,6 +342,90 @@ class MatchHistoryStore:
                 (code, role_key.strip(), _now()),
             )
 
+    def start_intervention(self, save_key: str, proposal: InterventionProposal) -> StoredIntervention:
+        """Persist one manager-started test; a save may have only one active test."""
+        if not proposal.finding_key.strip() or not proposal.title.strip():
+            raise ValueError("an intervention needs a finding key and title")
+        if not 4 <= proposal.target_matches <= 6:
+            raise ValueError("an intervention must be evaluated after 4 to 6 matches")
+        note = validate_intervention_note(proposal.manager_note)
+        self.initialize()
+        started_at = _now()
+        with closing(self._connect()) as connection, _transaction(connection):
+            save_id = self._existing_save_id(connection, save_key)
+            if not connection.execute(
+                "SELECT 1 FROM match_versions WHERE save_id = ? AND match_key = ?",
+                (save_id, proposal.started_after_match_key),
+            ).fetchone():
+                raise ValueError("the intervention baseline match is not recorded for this save")
+            active = connection.execute(
+                """
+                SELECT 1 FROM interventions i
+                WHERE i.save_id = ? AND NOT EXISTS (
+                    SELECT 1 FROM intervention_events e WHERE e.intervention_id = i.id
+                ) LIMIT 1
+                """,
+                (save_id,),
+            ).fetchone()
+            if active is not None:
+                raise ValueError("finish or stop the active intervention before starting another")
+            intervention_id = connection.execute(
+                """
+                INSERT INTO interventions (
+                    save_id, finding_key, problem_class, title, hypothesis,
+                    controlled_intervention, expected_benefit, success_condition,
+                    stop_condition, target_matches, started_at, started_after_date,
+                    started_after_match_key, baseline_json, manager_note
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    save_id, proposal.finding_key, proposal.problem_class, proposal.title,
+                    proposal.hypothesis, proposal.controlled_intervention,
+                    proposal.expected_benefit, proposal.success_condition,
+                    proposal.stop_condition, proposal.target_matches, started_at,
+                    proposal.started_after_date.isoformat(), proposal.started_after_match_key,
+                    json.dumps(proposal.baseline.to_document(), sort_keys=True), note,
+                ),
+            ).lastrowid
+        return StoredIntervention(
+            intervention_id,
+            replace(proposal, manager_note=note),
+            started_at,
+        )
+
+    def finish_intervention(
+        self,
+        save_key: str,
+        intervention_id: int,
+        *,
+        outcome: str,
+        note: str = "",
+    ) -> None:
+        """Append the manager's disposition of an active test."""
+        if outcome not in INTERVENTION_OUTCOMES:
+            raise ValueError(f"an intervention outcome must be one of {', '.join(INTERVENTION_OUTCOMES)}")
+        if not isinstance(intervention_id, int) or isinstance(intervention_id, bool) or intervention_id <= 0:
+            raise ValueError("an intervention id must be a positive whole number")
+        note = validate_intervention_note(note)
+        self.initialize()
+        with closing(self._connect()) as connection, _transaction(connection):
+            save_id = self._existing_save_id(connection, save_key)
+            row = connection.execute(
+                "SELECT id FROM interventions WHERE id = ? AND save_id = ?",
+                (intervention_id, save_id),
+            ).fetchone()
+            if row is None:
+                raise ValueError("that intervention is not recorded for this save")
+            if connection.execute(
+                "SELECT 1 FROM intervention_events WHERE intervention_id = ?", (intervention_id,)
+            ).fetchone():
+                raise ValueError("that intervention is already closed")
+            connection.execute(
+                "INSERT INTO intervention_events (intervention_id, recorded_at, outcome, note) "
+                "VALUES (?, ?, ?, ?)",
+                (intervention_id, _now(), outcome, note),
+            )
+
     # -- reading -----------------------------------------------------------
 
     def saves(self) -> tuple[MatchSaveSummary, ...]:
@@ -384,6 +509,21 @@ class MatchHistoryStore:
                 row["code"]: row["role_key"]
                 for row in connection.execute("SELECT code, role_key FROM role_codes ORDER BY id")
             }
+            interventions = tuple(
+                _intervention_from_row(row)
+                for row in connection.execute(
+                    """
+                    SELECT i.*, e.recorded_at AS ended_at, e.outcome, e.note AS outcome_note
+                    FROM interventions i
+                    LEFT JOIN intervention_events e ON e.id = (
+                        SELECT max(latest.id) FROM intervention_events latest
+                        WHERE latest.intervention_id = i.id
+                    )
+                    WHERE i.save_id = ? ORDER BY i.id DESC
+                    """,
+                    (save["id"],),
+                )
+            )
             last = connection.execute(
                 "SELECT max(game_date) FROM captures WHERE save_id = ?", (save["id"],)
             ).fetchone()[0]
@@ -395,6 +535,7 @@ class MatchHistoryStore:
             notes=notes,
             role_codes=role_codes,
             last_game_date=date.fromisoformat(last) if last else None,
+            interventions=interventions,
         )
 
     def match_versions(self, save_key: str, match_key: str) -> tuple[MatchRecord, ...]:
@@ -446,6 +587,32 @@ def _capture_hash(capture: MatchCapture) -> str:
     }
     text = json.dumps(payload, sort_keys=True)
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _intervention_from_row(row: sqlite3.Row) -> StoredIntervention:
+    proposal = InterventionProposal(
+        finding_key=row["finding_key"],
+        problem_class=row["problem_class"],
+        title=row["title"],
+        hypothesis=row["hypothesis"],
+        controlled_intervention=row["controlled_intervention"],
+        expected_benefit=row["expected_benefit"],
+        success_condition=row["success_condition"],
+        stop_condition=row["stop_condition"],
+        target_matches=row["target_matches"],
+        started_after_date=date.fromisoformat(row["started_after_date"]),
+        started_after_match_key=row["started_after_match_key"],
+        baseline=InterventionSnapshot.from_document(json.loads(row["baseline_json"])),
+        manager_note=row["manager_note"],
+    )
+    return StoredIntervention(
+        id=row["id"],
+        proposal=proposal,
+        started_at=row["started_at"],
+        ended_at=row["ended_at"],
+        outcome=row["outcome"],
+        outcome_note=row["outcome_note"] or "",
+    )
 
 
 @contextmanager

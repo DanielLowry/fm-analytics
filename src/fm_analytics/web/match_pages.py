@@ -18,6 +18,7 @@ from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.match_ingest import export_path
 from fm_analytics.reporting import (
     build_match_diagnostics,
+    build_match_intervention_evaluation,
     build_match_report,
     build_match_review,
     build_season_export,
@@ -96,8 +97,15 @@ class MatchPagesMixin:
             self._send(_layout("Matches", "/matches", body))  # type: ignore[attr-defined]
             return
         review = build_match_review(history, filters=filters)
+        diagnostic_review = build_match_review(
+            history, filters=ReviewFilters(grouping="table", competitions="competitive")
+        )
         body = review_body(
-            review, build_match_diagnostics(review), MVP_CATALOGUE,
+            review,
+            build_match_diagnostics(diagnostic_review),
+            build_match_intervention_evaluation(history, diagnostic_review),
+            history.interventions,
+            MVP_CATALOGUE,
             pinned=self.server.pinned_tactics,  # type: ignore[attr-defined]
             capture=panel + export_links(),
         )
@@ -198,6 +206,38 @@ class MatchPagesMixin:
             self.server.confirm_role_code(code, role)  # type: ignore[attr-defined]
         except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
             self._send(_error_page("Role code", str(exc), "/matches"), HTTPStatus.BAD_REQUEST)  # type: ignore[attr-defined]
+            return
+        self._redirect("/matches")
+
+    def _post_intervention_start(self) -> None:
+        form = self._read_form()  # type: ignore[attr-defined]
+        finding_key = form.get("finding", [""])[0]
+        try:
+            self.server.start_match_intervention(  # type: ignore[attr-defined]
+                finding_key, form.get("note", [""])[0]
+            )
+        except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
+            self._send(  # type: ignore[attr-defined]
+                _error_page("Controlled intervention", str(exc), "/matches"),
+                HTTPStatus.BAD_REQUEST,
+            )
+            return
+        self._redirect("/matches")
+
+    def _post_intervention_finish(self) -> None:
+        form = self._read_form()  # type: ignore[attr-defined]
+        try:
+            intervention_id = int(form.get("intervention", [""])[0])
+            self.server.finish_match_intervention(  # type: ignore[attr-defined]
+                intervention_id,
+                outcome=form.get("outcome", [""])[0],
+                note=form.get("note", [""])[0],
+            )
+        except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
+            self._send(  # type: ignore[attr-defined]
+                _error_page("Controlled intervention", str(exc), "/matches"),
+                HTTPStatus.BAD_REQUEST,
+            )
             return
         self._redirect("/matches")
 

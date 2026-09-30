@@ -70,6 +70,19 @@ class MatchRecordTests(unittest.TestCase):
         document["incidents"] = []
         self.assertEqual(MatchRecord.from_document(document).content_hash(), self.match.content_hash())
 
+    def test_extra_time_and_a_shootout_round_trip_and_are_absent_otherwise(self) -> None:
+        self.assertFalse(self.match.after_extra_time)
+        self.assertNotIn("scoreAt90", self.match.to_document())
+        document = self.match.to_document()
+        document.update({"scoreAt90": [1, 1], "penalties": [5, 4]})
+        record = MatchRecord.from_document(document)
+        self.assertTrue(record.after_extra_time)
+        self.assertEqual((record.score_at_90, record.penalties), ((1, 1), (5, 4)))
+        self.assertEqual(MatchRecord.from_document(record.to_document()), record)
+        document["penalties"] = [5]
+        with self.assertRaisesRegex(ValueError, "penalties"):
+            MatchRecord.from_document(document)
+
     def test_an_incident_of_an_unknown_kind_is_refused(self) -> None:
         document = self.match.to_document()
         document["incidents"] = [{"minute": 5, "side": "home", "kind": "missed_penalty", "playerShortId": 1}]

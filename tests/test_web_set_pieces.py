@@ -127,6 +127,9 @@ class SetPiecePageTests(unittest.TestCase):
             self.assertIn(instruction, body)
         self.assertNotIn("Close down short", body)
         self.assertNotIn("Mark edge of area", body)
+        self.assertEqual(body.count("class='routine-assignment-note'"), 11)
+        self.assertIn("Strongest visible inputs", body)
+        self.assertIn("every player can fill only one job", body)
 
     def test_complete_data_uses_the_selected_match_xi_and_risk(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -149,6 +152,9 @@ class SetPiecePageTests(unittest.TestCase):
         self.assertIn("Stay back", body)
         self.assertIn("Why these takers? View specialist rankings and backups", body)
         self.assertIn("Why this plan?", body)
+        self.assertEqual(body.count("class='routine-assignment-note'"), 10)
+        self.assertIn("Delivery-side fit", body)
+        self.assertIn("Strongest visible inputs", body)
 
 
 if __name__ == "__main__":

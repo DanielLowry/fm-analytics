@@ -109,12 +109,32 @@ def _set_piece_routine_plan(routine, labels: dict[str, str]) -> str:
             f"{labels.get(item.attribute, item.attribute)} {item.observation.display()}"
             for item in contributions
         )
+        side_fit = (
+            "<div><dt>Delivery-side fit</dt><dd>"
+            + html.escape(assignment.side_fit_label)
+            + "</dd></div>"
+            if assignment.role.taker_task_key else ""
+        )
+        selection_note = (
+            "<details class='routine-assignment-note'><summary>Why "
+            + html.escape(assignment.player.name)
+            + "?</summary><div class='routine-assignment-reason'>"
+            f"<p>{html.escape(assignment.role.explanation)}</p><dl>"
+            f"<div><dt>Job fit</dt><dd>{_band(assignment.score.score)}</dd></div>"
+            "<div><dt>Strongest visible inputs</dt><dd>"
+            + (html.escape(evidence) if evidence else "More evidence needed")
+            + "</dd></div>" + side_fit + "</dl>"
+            "<small>This is a whole-routine choice: every player can fill only one job, "
+            "so the optimizer maximizes the combined fit of the complete routine.</small>"
+            "</div></details>"
+        )
         assignments.append(
             "<div class='routine-assignment'>"
             f"<b>{html.escape(assignment.player.name)}</b>"
             "<span><strong>" + html.escape(assignment.role.instruction) + "</strong>"
             f"<small>{html.escape(assignment.role.zone)}</small></span>"
-            f"<span class='set-piece-unit'>{html.escape(assignment.role.unit)}</span></div>"
+            f"<span class='set-piece-unit'>{html.escape(assignment.role.unit)}</span>"
+            + selection_note + "</div>"
         )
         evidence_rows.append(
             "<tr>"
@@ -195,4 +215,3 @@ def _set_piece_routine_switcher(report, selected_key: str, query: dict[str, str]
         "<nav class='routine-tabs primary' aria-label='Routine phase'>" + phase_tabs + "</nav>"
         + secondary + "</div>" + _set_piece_routine_plan(selected, labels)
     )
-

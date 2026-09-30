@@ -19,6 +19,7 @@ from fm_analytics.analytics.match_analysis import (
     MatchSummary,
 )
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
+from fm_analytics.analytics.match_interventions import InterventionEvaluation, StoredIntervention
 from fm_analytics.analytics.match_strength import GROUPING_LABELS
 from fm_analytics.analytics.opponent import AXIS_DEFINITIONS
 
@@ -341,7 +342,63 @@ def export_links() -> str:
     )
 
 
-def diagnostics_section(diagnostics: MatchDiagnostics) -> str:
+def _intervention_panel(
+    evaluation: InterventionEvaluation | None,
+    interventions: Sequence[StoredIntervention],
+) -> str:
+    closed = [item for item in interventions if not item.active]
+    history = ""
+    if closed:
+        rows = "".join(
+            f"<li><strong>{_e(item.proposal.title)}</strong> — {_e((item.outcome or 'closed').replace('_', ' '))}"
+            + (f" · {_e(item.outcome_note)}" if item.outcome_note else "") + "</li>"
+            for item in closed[:5]
+        )
+        history = (
+            "<details class='fm-intervention-history'><summary>Previous controlled tests</summary>"
+            f"<ul>{rows}</ul></details>"
+        )
+    if evaluation is None:
+        return history
+    item = evaluation.intervention
+    proposal = item.proposal
+    progress = min(100, 100 * evaluation.exposures / evaluation.target_matches)
+    evidence = "".join(f"<li>{_e(line)}</li>" for line in evaluation.evidence)
+    note = (
+        f"<p class='fm-intervention-note'><strong>Manager note:</strong> {_e(proposal.manager_note)}</p>"
+        if proposal.manager_note else ""
+    )
+    outcome_buttons = (
+        "<button type='submit' name='outcome' value='adopted'>Record as adopted</button>"
+        "<button class='secondary' type='submit' name='outcome' value='not_supported'>Close as not supported</button>"
+        if evaluation.review_due else ""
+    )
+    controls = (
+        "<form class='fm-intervention-controls' method='post' action='/matches/intervention/finish'>"
+        f"<input type='hidden' name='intervention' value='{item.id}'>"
+        "<label>Closing note <input name='note' maxlength='500' placeholder='What did you learn?'></label>"
+        f"<div>{outcome_buttons}<button class='danger' type='submit' name='outcome' value='stopped'>Stop test</button></div>"
+        "</form>"
+    )
+    return (
+        f"<article class='fm-active-intervention status-{_e(evaluation.status)}'>"
+        "<div class='fm-intervention-top'><div><span class='eyebrow'>Active controlled test</span>"
+        f"<h3>{_e(proposal.title)}</h3></div><span class='fm-intervention-status'>{_e(evaluation.status_label)}</span></div>"
+        f"<p>{_e(proposal.hypothesis)}</p><p><strong>Test:</strong> {_e(proposal.controlled_intervention)}</p>"
+        + note
+        + "<div class='fm-intervention-progress'><span>Eligible evidence</span>"
+        f"<div><i style='width:{progress:.0f}%'></i></div><strong>{evaluation.exposures} / {evaluation.target_matches}</strong></div>"
+        f"<p class='fm-intervention-verdict'>{_e(evaluation.summary)}</p>"
+        + (f"<ul class='fm-diagnostic-evidence'>{evidence}</ul>" if evidence else "")
+        + controls + "</article>" + history
+    )
+
+
+def diagnostics_section(
+    diagnostics: MatchDiagnostics,
+    intervention: InterventionEvaluation | None,
+    interventions: Sequence[StoredIntervention],
+) -> str:
     """The explainable diagnostic result; all decisions were made in analytics."""
     quality = diagnostics.quality
     gate_class = "ready" if quality.team_findings_allowed else "waiting"
@@ -358,6 +415,15 @@ def diagnostics_section(diagnostics: MatchDiagnostics) -> str:
 
     opportunity_cards = []
     for finding in diagnostics.opportunities:
+        start = ""
+        if intervention is None:
+            start = (
+                "<form class='fm-start-intervention' method='post' action='/matches/intervention/start'>"
+                f"<input type='hidden' name='finding' value='{_e(finding.key)}'>"
+                "<label>Test note <input name='note' maxlength='500' "
+                "placeholder='Optional: player or exact setting'></label>"
+                "<button type='submit'>Start this controlled test</button></form>"
+            )
         opportunity_cards.append(
             "<article class='fm-diagnostic-card opportunity'>"
             f"<div class='fm-diagnostic-card-head'><span class='eyebrow'>{_e(finding.problem_class)}</span>"
@@ -369,7 +435,8 @@ def diagnostics_section(diagnostics: MatchDiagnostics) -> str:
             f"<dt>Expected benefit</dt><dd>{_e(finding.expected_benefit)}</dd>"
             f"<dt>Evaluate after</dt><dd>{finding.evaluation_matches} eligible matches or starts</dd>"
             f"<dt>Success</dt><dd>{_e(finding.success_condition)}</dd>"
-            f"<dt>Stop condition</dt><dd>{_e(finding.stop_condition)}</dd></dl></article>"
+            f"<dt>Stop condition</dt><dd>{_e(finding.stop_condition)}</dd></dl>"
+            + start + "</article>"
         )
     opportunities = (
         "<div class='fm-diagnostic-cards'>" + "".join(opportunity_cards) + "</div>"
@@ -395,7 +462,8 @@ def diagnostics_section(diagnostics: MatchDiagnostics) -> str:
         if limitations else ""
     )
     return (
-        gate
+        _intervention_panel(intervention, interventions)
+        + gate
         + "<div class='fm-diagnostic-heading'><div><h3>Top current opportunities</h3>"
         "<p>Ranked by the strongest exploitable evidence, not by a tactic score.</p></div>"
         "<p class='fm-one-test'><strong>Run one controlled test at a time.</strong> Evaluate it after five eligible matches.</p></div>"
@@ -409,6 +477,8 @@ def diagnostics_section(diagnostics: MatchDiagnostics) -> str:
 def review_body(
     review: MatchReview,
     diagnostics: MatchDiagnostics,
+    intervention: InterventionEvaluation | None,
+    interventions: Sequence[StoredIntervention],
     catalogue: FootballCatalogue,
     *,
     pinned: Sequence[str],
@@ -462,8 +532,8 @@ def review_body(
         f"<b>{detailed} / {overall.matches}</b><small>matches with full stats</small></article></section>"
         + panel(
             "Diagnostic engine",
-            "Evidence-gated hypotheses from this selection, adjusted for opponent strength and venue.",
-            diagnostics_section(diagnostics),
+            "Season-wide evidence-gated hypotheses, adjusted for opponent strength and venue. Review filters below do not move the recommendation.",
+            diagnostics_section(diagnostics, intervention, interventions),
             panel_class="fm-match-diagnostics",
         )
         + "<section class='fm-workspace-panel fm-match-capture-panel'>" + capture + "</section>"

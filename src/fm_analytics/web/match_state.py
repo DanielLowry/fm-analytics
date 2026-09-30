@@ -10,7 +10,11 @@ import sys
 import threading
 from typing import Callable
 
+from fm_analytics.analytics import MVP_CATALOGUE
+from fm_analytics.analytics.match_analysis import ReviewFilters
+from fm_analytics.analytics.match_interventions import evaluate_intervention, propose_intervention
 from fm_analytics.persistence.match_history import MatchHistory, MatchHistoryStore
+from fm_analytics.reporting import build_match_diagnostics, build_match_review
 
 
 class MatchHistoryState:
@@ -84,3 +88,46 @@ class MatchHistoryState:
         if self.match_store is None:
             raise ValueError("Match history is switched off.")
         self.match_store.confirm_role_code(code, role_key)
+
+    def start_match_intervention(self, finding_key: str, note: str = "") -> None:
+        """Freeze a current season-wide diagnostic and its baseline."""
+        history = self.match_history()
+        if history is None or self.match_store is None:
+            raise ValueError("No matches are recorded yet.")
+        review = build_match_review(
+            history,
+            filters=ReviewFilters(grouping="table", competitions="competitive"),
+            catalogue=MVP_CATALOGUE,
+        )
+        diagnostics = build_match_diagnostics(review)
+        proposal = propose_intervention(review, diagnostics, finding_key, manager_note=note)
+        self.match_store.start_intervention(history.save_key, proposal)
+
+    def finish_match_intervention(
+        self,
+        intervention_id: int,
+        *,
+        outcome: str,
+        note: str = "",
+    ) -> None:
+        key = self._match_key()
+        if key is None or self.match_store is None:
+            raise ValueError("No matches are recorded yet.")
+        if outcome != "stopped":
+            history = self.match_history()
+            review = build_match_review(
+                history,
+                filters=ReviewFilters(grouping="table", competitions="competitive"),
+                catalogue=MVP_CATALOGUE,
+            )
+            active = next(
+                (item for item in history.interventions if item.active and item.id == intervention_id),
+                None,
+            )
+            if active is None:
+                raise ValueError("that active intervention is not recorded for this save")
+            if not evaluate_intervention(review, active).review_due:
+                raise ValueError("collect all five eligible exposures before recording the result")
+        self.match_store.finish_intervention(
+            key, intervention_id, outcome=outcome, note=note
+        )

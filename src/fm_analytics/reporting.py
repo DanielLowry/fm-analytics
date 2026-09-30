@@ -22,6 +22,7 @@ from fm_analytics.analytics.match_analysis import (
     review_matches,
 )
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics, diagnose_matches
+from fm_analytics.analytics.match_interventions import InterventionEvaluation, evaluate_intervention
 from fm_analytics.analytics import (
     BenchSelection,
     PlayerRoleFit,
@@ -542,6 +543,15 @@ def build_match_diagnostics(review: MatchReview) -> MatchDiagnostics:
     return diagnose_matches(review)
 
 
+def build_match_intervention_evaluation(
+    history: MatchHistory,
+    review: MatchReview,
+) -> InterventionEvaluation | None:
+    """Evaluate the save's one active controlled test against the current review."""
+    active = next((item for item in history.interventions if item.active), None)
+    return evaluate_intervention(review, active) if active is not None else None
+
+
 def build_match_report(
     history: MatchHistory, match_key: str, *, catalogue: FootballCatalogue = MVP_CATALOGUE
 ) -> MatchReport | None:
@@ -587,6 +597,7 @@ def build_season_export(
         relative=relative,
         league=league,
         diagnostics=build_match_diagnostics(competitive),
+        intervention=build_match_intervention_evaluation(history, competitive),
         catalogue=catalogue,
         detail=detail,
         bundle=bundle,

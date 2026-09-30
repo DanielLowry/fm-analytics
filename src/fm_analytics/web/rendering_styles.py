@@ -253,6 +253,14 @@ _STYLE = """
   .routine-assignment > b { color: #1a2b3c; }
   .routine-assignment > span:not(.set-piece-unit) { display: grid; gap: 0.1rem; }
   .routine-assignment small { color: #667; }
+  details.routine-assignment-note { grid-column: 1 / -1; margin: -0.15rem 0 0; padding: 0; border: 0; background: transparent; }
+  details.routine-assignment-note > summary { width: max-content; color: #31545c; font-size: 0.76rem; font-weight: 600; }
+  .routine-assignment-reason { margin-top: 0.45rem; padding: 0.65rem 0.75rem; border-left: 3px solid #9fb6cf; border-radius: 0.25rem; background: #f7f9fa; }
+  .routine-assignment-reason p { margin: 0 0 0.45rem; font-size: 0.82rem; }
+  .routine-assignment-reason dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 0.45rem; margin: 0 0 0.45rem; }
+  .routine-assignment-reason dt { color: #667; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+  .routine-assignment-reason dd { margin: 0.08rem 0 0; font-size: 0.8rem; }
+  .routine-assignment-reason > small { display: block; font-size: 0.72rem; line-height: 1.4; }
   details.routine-evidence { margin: 0; padding: 0.7rem 1rem; border: 0; border-top: 1px solid #d6dee2; border-radius: 0; background: #fbfcfd; }
   details.routine-evidence > summary { color: #31545c; }
   details.routine-evidence table { min-width: 760px; margin-bottom: 0; }

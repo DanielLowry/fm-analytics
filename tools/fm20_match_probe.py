@@ -403,6 +403,10 @@ def build_capture(memory: Memory) -> dict[str, Any]:
             "attendance": result["attendance"],
             "detail": _detail_json(details.get(key)),
         }
+        if result["score_at_90"]:
+            document["scoreAt90"] = list(result["score_at_90"])
+        if result["penalties"]:
+            document["penalties"] = list(result["penalties"])
         if key in incidents:
             document["incidents"] = incidents[key]
         return document

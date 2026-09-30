@@ -19,6 +19,7 @@ from fm_analytics.persistence.match_history import MatchHistoryStore
 from fm_analytics.reporting import RecommendationPolicy, build_match_review, build_recommendation_bundle, build_season_export
 
 from tests.match_support import capture_document, lineup, season
+from tests.test_match_history import intervention
 from tests.web_support import WebServerHelpers, write_complete_fixture
 
 DETAILED = "2019-09-01:100:201"
@@ -58,6 +59,8 @@ class DetailLevelTests(HistoryCase):
             )
             self.assertEqual(document["formatVersion"], 2)
             self.assertIn("top_opportunities", document["diagnostics"])
+            self.assertIsNone(document["diagnostics"]["active_intervention"])
+            self.assertEqual(document["diagnostics"]["intervention_history"], [])
             self.assertEqual(document["meta"]["detail"], detail)
             self.assertEqual(json.loads(json.dumps(document)), document)
 
@@ -71,6 +74,16 @@ class DetailLevelTests(HistoryCase):
         self.assertEqual(document["season"]["friendlies"]["played"], 1)
         self.assertEqual(document["season"]["cups"]["played"], 1)
         self.assertEqual(len(document["matches"]), 6)  # but listed
+
+    def test_an_active_intervention_and_its_frozen_baseline_are_exported(self) -> None:
+        started = self.store.start_intervention("club:100", intervention())
+        self.history = self.store.load_history("club:100")
+        diagnostics = self.export("basic")["diagnostics"]
+        active = diagnostics["active_intervention"]
+        self.assertEqual((active["id"], active["finding_key"]), (started.id, "finishing_recent"))
+        self.assertEqual(active["baseline"]["conversion_pct"], 8.0)
+        self.assertEqual(active["evaluation"]["status"], "collecting")
+        self.assertEqual(len(diagnostics["intervention_history"]), 1)
 
     def test_the_league_table_is_rebuilt_as_of_the_last_capture(self) -> None:
         season = self.export("basic")["season"]
@@ -103,6 +116,22 @@ class DetailLevelTests(HistoryCase):
         self.assertEqual(len(match["their_players"]), 11)
         self.assertEqual(match["our_players"][10]["stats"], {"shots": 5, "goals": 1, "clear_cut_chances": 2})
         self.assertEqual([event["minute"] for event in match["timeline"] if event["event"] == "goal"], [12, 50, 93])
+
+    def test_a_cup_tie_after_extra_time_and_penalties_reads_from_our_side(self) -> None:
+        matches = season()
+        cup = next(match for match in matches if match["competition"]["name"] == "Test Cup")
+        # We were away: 1-1 after 90 and after extra time, and won 5-4 on penalties.
+        cup.update({"homeGoals": 1, "awayGoals": 1, "scoreAt90": [1, 1], "penalties": [4, 5]})
+        self.capture.write_text(json.dumps(capture_document(matches)), encoding="utf-8")
+        record_capture_file(self.store, self.capture)
+        self.history = self.store.load_history("club:100")
+        document = self.export("basic")
+        row = next(match for match in document["matches"] if match["type"] == "cup")
+        self.assertEqual((row["score"], row["result"]), ("1-1", "D"))  # a shootout is not a win
+        self.assertEqual((row["after_extra_time"], row["score_at_90"], row["penalties"]), (True, "1-1", "5-4"))
+        self.assertTrue(any("after extra time" in caveat for caveat in document["meta"]["caveats"]))
+        league = self.detailed(document)
+        self.assertNotIn("after_extra_time", league)
 
     def test_every_level_lists_each_matchs_goals_and_red_cards_from_our_side(self) -> None:
         matches = season()

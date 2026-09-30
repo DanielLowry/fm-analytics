@@ -21,7 +21,7 @@ verified collection semantics.
 | Position labels | Slot eligibility | Natural/accomplished labels implemented and observed live | Use labels only; do not expose raw familiarity precision |
 | Condition | Current readiness | Visible whole-number percentage implemented and observed live | Keep separate from role quality |
 | Match fitness/sharpness | Current readiness | Visible whole-number percentage implemented and observed live | Confirm display naming used in reports |
-| Injury and suspension | Hard/soft availability constraints | Extraction implemented; controlled positive live cases not yet recorded | Verify injured, suspended, and combined scenarios |
+| Injury and suspension | Hard/soft availability constraints | Injury extraction implemented; suspension is NOT extracted (reported unknown) -- the old injuries+0x18 read was a dated event log, not a ban flag | Find the real ban location using a known suspended player |
 | Derived availability | Selection constraint and explanation | Implemented from the visible flags above | Keep the string vocabulary open |
 | Contract and owning club | Explain loans; later squad planning | Implemented, including a live loan case | Not required for initial XI scoring |
 | Playing attributes | Role suitability and tactic fit | Exact owned first-team attributes wired into the live bridge with fail-closed allowlist and roster checks; live bridge integration run pending | External exact/range/unknown inputs remain gated by baseline knowledge, reports, and discoverability |

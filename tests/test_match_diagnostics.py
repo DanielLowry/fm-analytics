@@ -5,6 +5,11 @@ from datetime import date, timedelta
 from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.analytics.match_analysis import ReviewFilters, review_matches, side_metrics
 from fm_analytics.analytics.match_diagnostics import diagnose_matches
+from fm_analytics.analytics.match_interventions import (
+    StoredIntervention,
+    evaluate_intervention,
+    propose_intervention,
+)
 from fm_analytics.domain.matches import MatchCapture, TeamRef
 
 from tests.match_support import ALPHA, LEAGUE, US, capture_document, detail, lineup, match, team_stats
@@ -128,6 +133,48 @@ class MatchDiagnosticTests(unittest.TestCase):
         self.assertIn("invalid_or_incomplete_team_stats", {
             issue.code for issue in diagnostics.quality.issues
         })
+
+    def test_an_extra_time_panel_is_not_compared_with_ninety_minute_matches(self) -> None:
+        matches = diagnostic_season(5)
+        matches[-1]["scoreAt90"] = [0, 0]
+        diagnostics = diagnose_matches(review_for(matches))
+        self.assertEqual(diagnostics.quality.eligible_team_matches, 4)
+        self.assertIn("extra_time_not_comparable", {
+            issue.code for issue in diagnostics.quality.issues
+        })
+
+
+class InterventionEvaluationTests(unittest.TestCase):
+    def test_a_role_test_collects_only_post_start_role_exposures_then_evaluates(self) -> None:
+        baseline_review = review_for(diagnostic_season(10))
+        diagnostics = diagnose_matches(baseline_review)
+        proposal = propose_intervention(
+            baseline_review, diagnostics, "role_output:b2b_support", manager_note="Test Appau"
+        )
+        intervention = StoredIntervention(1, proposal, "2019-09-11T12:00:00+00:00")
+
+        collecting = evaluate_intervention(review_for(diagnostic_season(12)), intervention)
+        self.assertEqual((collecting.status, collecting.exposures), ("collecting", 2))
+
+        matches = diagnostic_season(15)
+        for item in matches[-5:]:
+            box_to_box = item["detail"]["players"][6]
+            box_to_box["rating"] = 7.0
+            box_to_box["stats"]["chances_created"] = 1
+        evaluated = evaluate_intervention(review_for(matches), intervention)
+        self.assertEqual((evaluated.status, evaluated.exposures), ("supported", 5))
+        self.assertTrue(evaluated.review_due)
+        self.assertIn("Role rating", " ".join(evaluated.evidence))
+
+    def test_a_started_test_freezes_the_finding_and_five_match_baseline(self) -> None:
+        review = review_for(diagnostic_season(10))
+        diagnostics = diagnose_matches(review)
+        proposal = propose_intervention(review, diagnostics, "role_output:b2b_support")
+        self.assertEqual(proposal.target_matches, 5)
+        self.assertEqual(proposal.baseline.matches, 5)
+        self.assertEqual(proposal.started_after_match_key, review.matches[-1].match.key)
+        with self.assertRaisesRegex(ValueError, "no longer current"):
+            propose_intervention(review, diagnostics, "not-a-finding")
 
 
 if __name__ == "__main__":

@@ -272,7 +272,12 @@ held in several copies. The known fields are:
 - apparently the league round `+0x3a` (17 on 2 November) and a running ID
   `+0x58`;
 - attendance `+0x5c` (344), and apparently away fans `+0x60` (22);
-- home goals `+0x64` and away goals `+0x69`;
+- home goals `+0x64` and away goals `+0x69`, each five bytes with `0xff`
+  for a stage not played: after 90 minutes, after extra time, the penalty
+  shootout and the aggregate over two legs (decoded 30 September 2026 from
+  all 541 results FM held that went beyond 90 minutes; the FA Trophy replay
+  with Slough, 1-1 after 90 and won 2-1 after extra time, first showed that
+  only the 90-minute score had been read);
 - a result code `+0x78` (`09 09` for a draw); and
 - a pointer `+0x70` to the match's incidents, null when there are none
   (decoded 30 September 2026, below).

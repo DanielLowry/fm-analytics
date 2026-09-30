@@ -9,14 +9,18 @@ def fm_date(day: date) -> bytes:
     return struct.pack("<HH", day.timetuple().tm_yday | 0x4A00, day.year)  # high bits are flags
 
 
-def fixture_result(*, played: bool = True, home_goals: int = 2, away_goals: int = 2) -> bytes:
+def fixture_result(
+    *, played: bool = True, home_goals: int = 2, away_goals: int = 2,
+    home_score: bytes | None = None, away_score: bytes | None = None,
+) -> bytes:
+    """A result record; each side's score is FM's five bytes, 0xff for a stage not played."""
     record = bytearray(layout.FIXTURE_RESULT_SIZE)
     struct.pack_into("<QQ", record, layout.RESULT_HOME_TEAM, 0x1000, 0x2000)
     struct.pack_into("<Q", record, layout.RESULT_FIXTURE_NAME, 0x3000)
     record[layout.RESULT_DATE:layout.RESULT_DATE + 4] = fm_date(date(2019, 11, 2))
     struct.pack_into("<I", record, layout.RESULT_ATTENDANCE, 344)
-    record[layout.RESULT_HOME_GOALS] = home_goals
-    record[layout.RESULT_AWAY_GOALS] = away_goals
+    record[layout.RESULT_HOME_GOALS:layout.RESULT_HOME_GOALS + 5] = home_score or bytes([home_goals]) + b"\xff" * 4
+    record[layout.RESULT_AWAY_GOALS:layout.RESULT_AWAY_GOALS + 5] = away_score or bytes([away_goals]) + b"\xff" * 4
     if played:
         record[layout.RESULT_OUTCOME:layout.RESULT_OUTCOME + 2] = b"\x09\x09"
     return bytes(record)
@@ -28,7 +32,24 @@ class FixtureResultTests(unittest.TestCase):
         self.assertEqual(result["date"], date(2019, 11, 2))
         self.assertEqual((result["home_team"], result["away_team"], result["fixture_name"]), (0x1000, 0x2000, 0x3000))
         self.assertEqual((result["home_goals"], result["away_goals"], result["attendance"]), (2, 2, 344))
+        self.assertEqual((result["score_at_90"], result["penalties"]), (None, None))
         self.assertTrue(result["played"])
+
+    def test_the_score_is_after_extra_time_when_it_was_played(self) -> None:
+        # Hungerford Town v Slough Town, FA Trophy replay, as FM holds it: 1-1 after 90, 2-1 after extra time.
+        result = layout.decode_fixture_result(
+            fixture_result(home_score=bytes.fromhex("0102ffffff"), away_score=bytes.fromhex("0101ffffff"))
+        )
+        self.assertEqual((result["home_goals"], result["away_goals"]), (2, 1))
+        self.assertEqual((result["score_at_90"], result["penalties"]), ((1, 1), None))
+
+    def test_a_shootout_is_read_beside_the_score(self) -> None:
+        # Al-Jaish 1-1 Lokomotiv Toshkent after extra time, 3-4 on penalties.
+        result = layout.decode_fixture_result(
+            fixture_result(home_score=bytes.fromhex("010103ffff"), away_score=bytes.fromhex("010104ffff"))
+        )
+        self.assertEqual((result["home_goals"], result["away_goals"], result["penalties"]), (1, 1, (3, 4)))
+        self.assertEqual(result["score_at_90"], (1, 1))
 
     def test_a_scheduled_copy_is_not_played_even_at_nil_nil(self) -> None:
         self.assertFalse(layout.decode_fixture_result(fixture_result(played=False, home_goals=0, away_goals=0))["played"])

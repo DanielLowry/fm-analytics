@@ -194,7 +194,9 @@ class MatchDiagnostics:
 
 def _valid_team_stats(summary: MatchSummary) -> bool:
     detail = summary.match.detail
-    if detail is None:
+    # FM's panel includes extra time in the totals.  Comparing that 120-minute
+    # sample with ordinary 90-minute matches would manufacture an improvement.
+    if detail is None or summary.match.after_extra_time:
         return False
     for side in (summary.side, "away" if summary.side == "home" else "home"):
         panel = detail.team(side)
@@ -206,6 +208,14 @@ def _valid_team_stats(summary: MatchSummary) -> bool:
         if min(shots, on_target, clear_cut) < 0 or on_target > shots or clear_cut > shots:
             return False
     return True
+
+
+def eligible_team_summaries(review: MatchReview) -> tuple[MatchSummary, ...]:
+    """Chronological matches whose core panels can safely support a finding."""
+    return tuple(sorted(
+        (summary for summary in review.matches if _valid_team_stats(summary)),
+        key=lambda row: (row.match.date, row.match.key),
+    ))
 
 
 def _average(rows: Sequence[MatchSummary], side: str, metric: str) -> float | None:
@@ -282,6 +292,16 @@ def _window(
     )
 
 
+def diagnostic_window(
+    key: str,
+    label: str,
+    rows: Sequence[MatchSummary],
+    season: Sequence[MatchSummary],
+) -> DiagnosticWindow:
+    """Public window builder used when evaluating a controlled intervention."""
+    return _window(key, label, rows, season)
+
+
 def _complete_goal_sequence(summary: MatchSummary) -> tuple[tuple[int, str], ...] | None:
     match = summary.match
     goals = [incident for incident in match.incidents if incident.is_goal]
@@ -307,6 +327,8 @@ class _GameState:
 def _game_state(rows: Sequence[MatchSummary]) -> _GameState:
     covered = led_not_won = late_scored = late_conceded = excluded = 0
     for row in rows:
+        if row.match.after_extra_time:
+            continue
         if any(incident.kind == "sent_off" for incident in row.match.incidents):
             excluded += 1
             continue
@@ -663,7 +685,8 @@ def _assurances(
 def diagnose_matches(review: MatchReview) -> MatchDiagnostics:
     """Build explainable, evidence-gated diagnostics for one selected review."""
     full = [summary for summary in review.matches if summary.match.detail is not None]
-    eligible = sorted((summary for summary in review.matches if _valid_team_stats(summary)), key=lambda row: row.match.date)
+    eligible = list(eligible_team_summaries(review))
+    extra_time = sum(1 for summary in full if summary.match.after_extra_time)
     unconfirmed = sum(item.appearances for item in review.unconfirmed_roles)
     issues: list[DiagnosticIssue] = []
     if len(eligible) < MIN_TEAM_MATCHES:
@@ -672,11 +695,18 @@ def diagnose_matches(review: MatchReview) -> MatchDiagnostics:
             f"Only {len(eligible)} eligible full-stat matches; team findings need {MIN_TEAM_MATCHES}.",
             ("team findings",),
         ))
-    if len(full) != len(eligible):
+    invalid_panels = len(full) - len(eligible) - extra_time
+    if invalid_panels:
         issues.append(DiagnosticIssue(
             "invalid_or_incomplete_team_stats",
-            f"{len(full) - len(eligible)} full-stat match(es) lack a valid shots/on-target/clear-cut-chances panel.",
+            f"{invalid_panels} full-stat match(es) lack a valid shots/on-target/clear-cut-chances panel.",
             ("those matches",),
+        ))
+    if extra_time:
+        issues.append(DiagnosticIssue(
+            "extra_time_not_comparable",
+            f"{extra_time} extra-time match(es) are excluded because their panel totals cover 120 minutes.",
+            ("team windows",),
         ))
     if len(eligible) < MIN_BASELINE_MATCHES:
         issues.append(DiagnosticIssue(

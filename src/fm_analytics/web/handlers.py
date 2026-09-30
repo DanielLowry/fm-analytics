@@ -129,6 +129,8 @@ class SquadWebHandler(
             "/matches/capture": self._post_match_capture,
             "/matches/note": self._post_match_note,
             "/matches/role-code": self._post_role_code,
+            "/matches/intervention/start": self._post_intervention_start,
+            "/matches/intervention/finish": self._post_intervention_finish,
         }
         if parsed.path in match_posts:
             match_posts[parsed.path]()

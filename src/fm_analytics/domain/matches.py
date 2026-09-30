@@ -95,6 +95,15 @@ def _team_counts(raw: Any, where: str) -> Mapping[str, int]:
     return counts
 
 
+def _score(value: Any, where: str) -> tuple[int, int] | None:
+    """An optional (home, away) score for one stage of a match."""
+    if value is None:
+        return None
+    if not isinstance(value, (list, tuple)) or len(value) != 2:
+        raise ValueError(f"{where} must be [home, away]")
+    return _count(value[0], where), _count(value[1], where)
+
+
 def _optional_minute(value: Any, where: str) -> int | None:
     if value is None:
         return None
@@ -353,6 +362,14 @@ class MatchRecord:
     # Goals and sendings-off in match order; empty for a capture made before
     # they were read, and for a 0-0 without a red card.
     incidents: tuple[MatchIncident, ...] = ()
+    # home_goals/away_goals are the score FM shows, after extra time when it
+    # was played; these are (home, away) for the stages beyond 90 minutes.
+    score_at_90: tuple[int, int] | None = None
+    penalties: tuple[int, int] | None = None
+
+    @property
+    def after_extra_time(self) -> bool:
+        return self.score_at_90 is not None
 
     @property
     def key(self) -> str:
@@ -386,6 +403,8 @@ class MatchRecord:
             attendance=_count(attendance, f"{where} attendance") if attendance is not None else None,
             detail=MatchDetail.from_document(raw.get("detail")),
             incidents=tuple(MatchIncident.from_document(item) for item in raw.get("incidents") or ()),
+            score_at_90=_score(raw.get("scoreAt90"), f"{where} scoreAt90"),
+            penalties=_score(raw.get("penalties"), f"{where} penalties"),
         )
 
     def to_document(self) -> dict[str, Any]:
@@ -399,8 +418,12 @@ class MatchRecord:
             "attendance": self.attendance,
             "detail": self.detail.to_document() if self.detail else None,
         }
-        # Left out when empty, so a match recorded before incidents were read
+        # Left out when empty, so a match recorded before these were read
         # keeps its content hash and is not stored again for nothing.
+        if self.score_at_90:
+            document["scoreAt90"] = list(self.score_at_90)
+        if self.penalties:
+            document["penalties"] = list(self.penalties)
         if self.incidents:
             document["incidents"] = [incident.to_document() for incident in self.incidents]
         return document
