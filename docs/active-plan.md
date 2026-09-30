@@ -422,6 +422,20 @@ come from, and which roles create and shoot. See
 limits and what is still open. That document replaces the
 [results-log brief](archive/tasks/medium-results-log.md).
 
+## UI review follow-up — documented, not yet scheduled
+
+The [30 September UI review](ui-review-2026-09-30.md) records the remaining
+dark-theme contrast, mobile overflow, keyboard-navigation and Scouting-state
+defects, followed by proposed layout, navigation and visual-consistency work.
+It includes evidence, ten open checklist items and acceptance criteria. The
+TailAdmin-inspired shell is implemented, but visual/interaction acceptance is
+not complete.
+
+The user requested documentation of these findings. This does not reorder
+items 1–7 or un-park caching, background refresh or dashboard work. When UI
+implementation is scheduled, use that checklist and coordinate the Scouting
+layout with items 2–3 rather than creating a separate recruitment workflow.
+
 ## Parked
 
 - **Wages and affordability:** later, as a fact in item 4's database.

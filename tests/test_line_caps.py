@@ -35,6 +35,7 @@ SKIP_DIRS = {
     "build",
     "dist",
     "migrations",
+    "node_modules",
     "obj",
 }
 SKIP_PREFIXES = (".", "_")
@@ -126,4 +127,3 @@ class LineCapTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -70,6 +70,13 @@ previous operational slice (caching, background refresh, dashboard) is parked
 there; its detail is in the archived
 [application improvement review](../../archive/plans/app-improvement-review-2026-09-19.md).
 
+The TailAdmin-inspired shell is implemented, but the
+[30 September 2026 UI review](../../ui-review-2026-09-30.md) found remaining
+contrast, responsive-layout and interaction defects. Its open checklist also
+covers results-first layouts, player reports, Matches, navigation and shared
+visual components. This is documented follow-up, not completed UI acceptance
+or a change to the active plan's delivery priorities.
+
 ### 11.6 — Operational hardening
 
 Add startup configuration, graceful shutdown, local access controls if needed,

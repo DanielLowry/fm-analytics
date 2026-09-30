@@ -24,6 +24,7 @@ from fm_analytics.analytics import (
     WeaknessKind,
     WeaknessReport,
 )
+from fm_analytics.web.scouting_notices import _knowledge_notice, _refresh_notice
 
 
 _NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
@@ -905,30 +906,6 @@ class ScoutingPoolNotBuilt(RuntimeError):
 
 
 POOL_NOT_BUILT_EXIT_CODE = 3
-
-
-def _refresh_notice(refreshed: str | None) -> str:
-    """Say which route produced the capture, so the risky one is never silent."""
-    if refreshed == "1":
-        return (
-            "<p class='muted'>Scouting data refreshed by reading the list FM had "
-            "already built. Nothing was written to FM.</p>"
-        )
-    if refreshed == "rebuilt":
-        return (
-            "<p class='warn'>Scouting data refreshed by asking FM to build its "
-            "player list inside the running game. If this save later fails to "
-            "load, this is the step to suspect.</p>"
-        )
-    return ""
-
-
-def _knowledge_notice(note: tuple[str, bool] | None) -> str:
-    """Say whether the latest scouting capture was kept in the player-knowledge history."""
-    if note is None:
-        return ""
-    message, recorded = note
-    return f"<p class='{'muted' if recorded else 'warn'}'>{html.escape(message)}</p>"
 
 
 def _pool_not_built_page() -> str:

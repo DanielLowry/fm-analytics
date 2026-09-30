@@ -8,6 +8,10 @@
   boundaries.
 - [Active plan](active-plan.md) is the current backlog: the next work, ranked
   by likely effect on in-game results against implementation effort.
+- [UI review and finishing checklist](ui-review-2026-09-30.md) records the
+  remaining theme, responsive layout, navigation and consistency findings,
+  with proposed fixes and acceptance checks. Follow-up is documented, not yet
+  scheduled; the active plan still decides delivery priority.
 - [Task briefs](tasks/README.md) split every open and parked active-plan item
   into bounded low-, medium- and senior-level assignments with prerequisites
   and acceptance criteria. Finished briefs move to the
