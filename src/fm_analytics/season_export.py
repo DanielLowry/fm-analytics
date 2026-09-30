@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.match_analysis import METRICS, MIN_GROUP_MATCHES, GroupSummary, MatchReview, MatchSummary
+from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
 from fm_analytics.analytics.match_players import PlayerSeason
 from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.analytics.match_strength import league_table
@@ -36,7 +37,7 @@ if TYPE_CHECKING:
     from fm_analytics.reporting import RecommendationBundle
 
 EXPORT_FORMAT = "fm-analytics/season-export"
-EXPORT_FORMAT_VERSION = 1
+EXPORT_FORMAT_VERSION = 2
 DETAIL_LEVELS = ("basic", "standard", "verbose")
 STANDARD_TACTIC_RANKING = 10
 SUMMARY_STATS = ("goals", "assists", "shots", "shots_on_target", "key_passes")
@@ -347,9 +348,16 @@ def _recommendation(bundle: RecommendationBundle, detail: str) -> dict[str, Any]
                     "role": entry.primary_assignment.intrinsic_role_score.role_name,
                     "selection_score": _round(entry.primary_assignment.selection_score.central, 1),
                     "covers": list(entry.covered_slots),
+                    "credible_covers": list(entry.credible_slots),
                 }
                 for entry in bundle.bench.entries
             ],
+            "bench_coverage": {
+                "credible_cover_ratio": bundle.bench.credible_cover_ratio,
+                "credible": list(bundle.bench.credible_covered_slots),
+                "below_threshold": list(bundle.bench.weakly_covered_slots),
+                "uncovered": list(bundle.bench.uncovered_slots),
+            },
         },
         "weak_points": [
             {"kind": weakness.kind.value, "message": weakness.message}
@@ -410,6 +418,7 @@ def export_document(
     competitive: MatchReview,
     relative: MatchReview,
     league: MatchReview,
+    diagnostics: MatchDiagnostics,
     catalogue: FootballCatalogue,
     detail: str = "standard",
     bundle: RecommendationBundle | None = None,
@@ -456,6 +465,7 @@ def export_document(
             "by_venue": [_group(group) for group in competitive.venues],
             "by_tactic": [{"tactic": row.label, **_group(row.overall)} for row in competitive.tactics],
         },
+        "diagnostics": diagnostics.to_document(),
         "goals": {
             "our_goals_by_scorer_role": dict(goals.scorers),
             "our_goals_by_assister_role": dict(goals.assisters),

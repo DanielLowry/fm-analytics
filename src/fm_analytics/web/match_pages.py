@@ -16,7 +16,12 @@ from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.analytics.match_analysis import ReviewFilters
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.match_ingest import export_path
-from fm_analytics.reporting import build_match_report, build_match_review, build_season_export
+from fm_analytics.reporting import (
+    build_match_diagnostics,
+    build_match_report,
+    build_match_review,
+    build_season_export,
+)
 from fm_analytics.season_export import DETAIL_LEVELS
 from fm_analytics.web.match_render import (
     capture_panel,
@@ -92,7 +97,7 @@ class MatchPagesMixin:
             return
         review = build_match_review(history, filters=filters)
         body = review_body(
-            review, MVP_CATALOGUE,
+            review, build_match_diagnostics(review), MVP_CATALOGUE,
             pinned=self.server.pinned_tactics,  # type: ignore[attr-defined]
             capture=panel + export_links(),
         )

@@ -43,11 +43,20 @@ use the selected XI's score bounds; they do not express uncertainty over which
 XI would be selected.
 
 The selected shape now also receives an explainable seven-player bench. Only
-selectable non-starters are considered; greedy selection prioritizes new
-XI-slot coverage and then role/readiness quality. Each substitute reports every
-slot they can cover, their primary assignment, and any collective coverage
-gaps. This is a deliberately transparent MVP heuristic rather than a claim
-about competition-specific bench rules or match-state substitution planning.
+selectable non-starters are considered. The reserve goalkeeper comes first;
+bounded look-ahead then keeps the widest formation-position spread achievable
+with the remaining places. Within that constraint, greedy selection prioritizes
+new credible XI-slot coverage (today's score is at least 80% of the selected
+starter's), nominally uncovered slots, and improvements to the best cover
+already selected. Role/readiness quality breaks the remaining ties. Each
+substitute reports every slot they can fill, which of those are credible, their
+primary assignment, and both below-threshold and uncovered collective gaps.
+This prevents both a low-scoring utility player from making several positions
+look safely covered and an attractive early pick from crowding a unique
+position off the final bench. It remains a deliberately transparent heuristic
+rather than a claim about competition-specific bench rules or match-state
+substitution planning. The configured bench is planned as a complete unit; a
+different competition limit is recalculated, not made by truncating this list.
 
 The full pipeline has now run against a real unchanged-save Physical export.
 It produced a feasible partial XI and exposed the squad's missing left-sided

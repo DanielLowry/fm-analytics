@@ -569,9 +569,15 @@ class AuxiliaryPagesMixin:
             return
         required = required_role_attributes()
         rows = []
+        complete_players = 0
+        no_familiarity_readings = 0
         for player in squad.players:
             missing = sorted(required.difference(player.attributes))
             familiarity_count = len(player.position_familiarity)
+            if not missing:
+                complete_players += 1
+            if not familiarity_count:
+                no_familiarity_readings += 1
             preferred_foot = (
                 html.escape(player.preferred_foot)
                 if player.preferred_foot
@@ -599,13 +605,24 @@ class AuxiliaryPagesMixin:
             else "<p class='muted'>No other club squads (youth, reserves, ...) were read.</p>"
         )
         body = (
+            "<section class='fm-data-hero'><span class='eyebrow'>System readiness</span>"
+            "<h2>Make the evidence visible</h2>"
+            f"<p>Role scoring needs {len(required)} attributes per player. Position familiarity adds precision but is never guessed.</p>"
+            "<div class='fm-decision-grid fm-data-summary'>"
+            f"<section class='fm-decision-stat'><span>Complete profiles</span><b>{complete_players}</b><small>Ready for every role score</small></section>"
+            f"<section class='fm-decision-stat'><span>Needs attributes</span><b>{len(squad.players) - complete_players}</b><small>Cannot be fully role scored</small></section>"
+            f"<section class='fm-decision-stat'><span>No familiarity reading</span><b>{no_familiarity_readings}</b><small>Still usable; less position precision</small></section>"
+            "</div></section>"
+            "<section class='fm-workspace-panel fm-data-panel'><div class='fm-panel-heading'><div>"
+            "<h2>Senior squad coverage</h2>"
             f"<p>Required role-scoring attributes: {len(required)}. "
-            f"<code>positionFamiliarity</code> is additive and optional -- absence means "
+            f"<code>positionFamiliarity</code> is additive and optional — absence means "
             "no reading is available yet, not that a player is unfamiliar everywhere.</p>"
-            "<table><tr><th>Player</th><th>Attribute coverage</th>"
+            "</div></div><div class='fm-table-card'><table><tr><th>Player</th><th>Attribute coverage</th>"
             "<th>Missing attributes</th><th>Position familiarity</th><th>Preferred foot</th></tr>"
             + "".join(rows)
-            + "</table>"
-            + other_coverage
+            + "</table></div></section>"
+            + "<section class='fm-workspace-panel fm-data-other-teams'><h2>Other club squads</h2>"
+            + other_coverage + "</section>"
         )
         self._send(_layout("Data", path, body))  # type: ignore[attr-defined]

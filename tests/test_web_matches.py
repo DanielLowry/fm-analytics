@@ -50,8 +50,10 @@ class ReviewPageTests(MatchPagesCase):
         status, body = self._get(self.serve(), "/matches")
         self.assertEqual(status, 200)
         for heading in ("Against different opposition", "Your tactics against each kind of opponent",
-                        "Home and away", "Where goals come from", "Who creates and shoots"):
+                        "Home and away", "Where goals come from", "Who creates and shoots",
+                        "Top current opportunities", "Do not change"):
             self.assertIn(heading, body)
+        self.assertIn("Evidence gate", body)
         self.assertIn("W2 D2 L1", body)  # the same record `fm-matches review` prints
         self.assertIn("Early season", body)
         self.assertIn("too few to read", body)

@@ -87,12 +87,29 @@ class ScoutingPagesMixin:
 
     def _scouting_body(self, query, candidates, filters: ScoutingFilters) -> str:
         limit = _scouting_limit(query)
+        current_feed = sum(1 for candidate in candidates if candidate.in_current_feed)
+        history_only = len(candidates) - current_feed
+        focus = "Open exploration"
+        if filters.tactic_key in MVP_CATALOGUE.tactics:
+            focus = MVP_CATALOGUE.tactics[filters.tactic_key].name
+        elif filters.role_key in MVP_CATALOGUE.roles:
+            focus = MVP_CATALOGUE.roles[filters.role_key].name
+        elif filters.position:
+            focus = filters.position
         return (
             _scouting_tab_nav(query)
-            + "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div>"
+            + "<section class='fm-scouting-hero'><span class='eyebrow'>Recruitment workspace</span>"
             "<h2>Recruitment shortlist</h2><p>Only players in the manager-visible discovery feed are shown. "
             "Attribute-based role scores preserve their <b>floor / estimate / ceiling</b>; a player with "
-            "no known role attributes is a reason to scout, not a claim that they are good.</p></div></div>"
+            "no known role attributes is a reason to scout, not a claim that they are good.</p>"
+            "<div class='fm-decision-grid fm-scouting-summary'>"
+            f"<section class='fm-decision-stat'><span>Players in capture</span><b>{len(candidates)}</b><small>{current_feed} current feed" + (f" · {history_only} from history" if history_only else "") + "</small></section>"
+            f"<section class='fm-decision-stat'><span>Active view</span><b>{'Scouted' if filters.scouted_only else 'All players'}</b><small>{'Scout reports only' if filters.scouted_only else 'Manager-visible Player Search'}</small></section>"
+            f"<section class='fm-decision-stat'><span>Current focus</span><b>{html.escape(focus)}</b><small>{'Tactic, position, or role ranking' if focus != 'Open exploration' else 'Choose a tactic or role to rank fit'}</small></section>"
+            "</div></section>"
+            + "<section class='fm-workspace-panel fm-scouting-capture-panel'><div class='fm-panel-heading'><div>"
+            "<h2>Capture and refresh</h2><p>Refresh reads visible scouting data without changing the Football Manager save.</p>"
+            "</div></div>"
             + _refresh_notice(_query_first(query, "refreshed"))
             + _knowledge_notice(self.server.knowledge_note)  # type: ignore[attr-defined]
             + _scouting_refresh_panel(filters.scouted_only)
@@ -203,7 +220,10 @@ class ScoutingPagesMixin:
             "Choose a tactic",
         )
         impact = (
+            "<section class='fm-workspace-panel fm-player-tactic-impact'><div class='fm-panel-heading'><div>"
             "<h2>Tactic impact</h2>"
+            "<p>Test this player against a specific tactic without changing your current squad recommendation.</p>"
+            "</div></div>"
             f"<form class='filters' method='get' action='{html.escape(path, quote=True)}'>"
             f"<label>Tactic<select name='tactic'>{tactic_options}</select></label>"
             "<label class='check'><input name='includeRawPositions' type='checkbox' value='1'"
@@ -233,17 +253,18 @@ class ScoutingPagesMixin:
                         opponent=bundle.policy.opponent,
                         include_raw_external_positions=include_raw_positions,
                     )
-                    impact += tactic_player_impact(
+                    impact += "<div class='fm-player-impact-result'>" + tactic_player_impact(
                         assessments[0] if assessments else None,
                         tactic=tactic,
                         baseline=baseline,
-                    )
+                    ) + "</div>"
                 except (OSError, RuntimeError, ValueError, KeyError) as exc:
                     impact += (
-                        "<p class='warn'>Tactic analysis needs a complete current squad: "
+                        "<p class='warn fm-player-impact-result'>Tactic analysis needs a complete current squad: "
                         + html.escape(str(exc))
                         + "</p>"
                     )
+        impact += "</section>"
         self._send(
             _layout(
                 f"Scouting report · {candidate.name}",

@@ -18,6 +18,7 @@ from fm_analytics.analytics.match_analysis import (
     MatchReview,
     MatchSummary,
 )
+from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
 from fm_analytics.analytics.match_strength import GROUPING_LABELS
 from fm_analytics.analytics.opponent import AXIS_DEFINITIONS
 
@@ -340,8 +341,78 @@ def export_links() -> str:
     )
 
 
+def diagnostics_section(diagnostics: MatchDiagnostics) -> str:
+    """The explainable diagnostic result; all decisions were made in analytics."""
+    quality = diagnostics.quality
+    gate_class = "ready" if quality.team_findings_allowed else "waiting"
+    gate = (
+        f"<div class='fm-diagnostic-gate {gate_class}'><strong>Evidence gate</strong> "
+        f"{quality.eligible_team_matches} of {quality.selected_matches} selected matches have valid "
+        f"full team stats; team findings require 5.</div>"
+    )
+
+    def evidence(items: Sequence[str]) -> str:
+        return "<ul class='fm-diagnostic-evidence'>" + "".join(
+            f"<li>{_e(item)}</li>" for item in items
+        ) + "</ul>"
+
+    opportunity_cards = []
+    for finding in diagnostics.opportunities:
+        opportunity_cards.append(
+            "<article class='fm-diagnostic-card opportunity'>"
+            f"<div class='fm-diagnostic-card-head'><span class='eyebrow'>{_e(finding.problem_class)}</span>"
+            f"<span class='fm-confidence {_e(finding.confidence)}'>{_e(finding.confidence)} confidence</span></div>"
+            f"<h4>{_e(finding.title)}</h4><p>{_e(finding.hypothesis)}</p>"
+            + evidence(finding.evidence)
+            + "<dl class='fm-diagnostic-test'>"
+            f"<dt>Controlled test</dt><dd>{_e(finding.intervention)}</dd>"
+            f"<dt>Expected benefit</dt><dd>{_e(finding.expected_benefit)}</dd>"
+            f"<dt>Evaluate after</dt><dd>{finding.evaluation_matches} eligible matches or starts</dd>"
+            f"<dt>Success</dt><dd>{_e(finding.success_condition)}</dd>"
+            f"<dt>Stop condition</dt><dd>{_e(finding.stop_condition)}</dd></dl></article>"
+        )
+    opportunities = (
+        "<div class='fm-diagnostic-cards'>" + "".join(opportunity_cards) + "</div>"
+        if opportunity_cards else
+        "<p class='fm-diagnostic-empty'>No opportunity currently clears both the evidence gate and the effect threshold.</p>"
+    )
+
+    assurances = (
+        "<div class='fm-diagnostic-cards assurances'>" + "".join(
+            "<article class='fm-diagnostic-card assurance'>"
+            f"<h4>{_e(item.title)}</h4>{evidence(item.evidence)}</article>"
+            for item in diagnostics.do_not_change
+        ) + "</div>"
+        if diagnostics.do_not_change else
+        "<p class='muted'>No area has enough positive evidence to protect yet.</p>"
+    )
+    limitations = [issue.message for issue in quality.issues] + [
+        f"{item.title}: {item.reason}" for item in diagnostics.unavailable
+    ]
+    details = (
+        "<details class='fm-diagnostic-limits'><summary>Evidence limits and unavailable diagnoses</summary>"
+        + evidence(limitations) + "</details>"
+        if limitations else ""
+    )
+    return (
+        gate
+        + "<div class='fm-diagnostic-heading'><div><h3>Top current opportunities</h3>"
+        "<p>Ranked by the strongest exploitable evidence, not by a tactic score.</p></div>"
+        "<p class='fm-one-test'><strong>Run one controlled test at a time.</strong> Evaluate it after five eligible matches.</p></div>"
+        + opportunities
+        + "<div class='fm-diagnostic-heading protect'><div><h3>Do not change</h3>"
+        "<p>Areas where the evidence says the current process is working.</p></div></div>"
+        + assurances + details
+    )
+
+
 def review_body(
-    review: MatchReview, catalogue: FootballCatalogue, *, pinned: Sequence[str], capture: str
+    review: MatchReview,
+    diagnostics: MatchDiagnostics,
+    catalogue: FootballCatalogue,
+    *,
+    pinned: Sequence[str],
+    capture: str,
 ) -> str:
     overall = review.overall
     ppg = f"{overall.points_per_game:.2f}" if overall.points_per_game is not None else "–"
@@ -389,7 +460,13 @@ def review_body(
         f"<b>{ppg}</b><small>{sample_note}</small></article>"
         "<article class='fm-decision-stat'><span>Evidence</span>"
         f"<b>{detailed} / {overall.matches}</b><small>matches with full stats</small></article></section>"
-        "<section class='fm-workspace-panel fm-match-capture-panel'>" + capture + "</section>"
+        + panel(
+            "Diagnostic engine",
+            "Evidence-gated hypotheses from this selection, adjusted for opponent strength and venue.",
+            diagnostics_section(diagnostics),
+            panel_class="fm-match-diagnostics",
+        )
+        + "<section class='fm-workspace-panel fm-match-capture-panel'>" + capture + "</section>"
         + "<section class='fm-workspace-panel fm-match-filter-panel' id='review-filters'><div class='fm-panel-heading'><div>"
         "<h2>Review filters</h2><p>Choose the comparison that matters, then read results before drawing conclusions.</p>"
         "</div></div>" + review_filters(review, catalogue, pinned) + "</section>"

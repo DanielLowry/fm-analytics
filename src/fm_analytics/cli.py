@@ -400,7 +400,7 @@ def render_recommendation(
         )
     lines.extend(("", "Substitutes", "-----------"))
     if bench.entries:
-        for entry in bench.entries:
+        for priority, entry in enumerate(bench.entries, start=1):
             primary = entry.primary_assignment
             warnings = (
                 f"; {', '.join(primary.readiness_warnings)}"
@@ -408,15 +408,22 @@ def render_recommendation(
                 else ""
             )
             lines.append(
-                f"{entry.player_name:<28} primary {primary.slot.key} "
+                f"{priority}. {entry.player_name:<25} primary {primary.slot.key} "
                 f"({primary.intrinsic_role_score.role_name}, "
                 f"selection {primary.selection_score.central:.1f}); "
-                f"covers {', '.join(entry.covered_slots)}{warnings}"
+                f"credible {', '.join(entry.credible_slots) or 'none'}; "
+                f"can fill {', '.join(entry.covered_slots)}{warnings}"
             )
     else:
         lines.append("No selectable non-starter is available.")
     if bench.uncovered_slots:
         lines.append("Bench coverage gaps: " + ", ".join(bench.uncovered_slots))
+    if bench.weakly_covered_slots:
+        lines.append(
+            "Below-threshold bench cover: "
+            + ", ".join(bench.weakly_covered_slots)
+            + f" (best option below {bench.credible_cover_ratio:.0%} of the starter)"
+        )
     lines.append(
         f"Versions: catalogue {selected.tactic.catalogue_version}; "
         f"readiness {selected.readiness_version}; fit {selected.fit_version}; "

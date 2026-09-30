@@ -31,7 +31,7 @@ from fm_analytics.analytics.match_strength import (
 )
 from fm_analytics.domain.matches import MATCH_MINUTES, Competition, LeagueResult, MatchRecord, TeamRef
 
-MIN_GROUP_MATCHES = 3
+MIN_GROUP_MATCHES = 5
 COMPETITION_SCOPES = ("league", "competitive", "all")
 COMPETITION_SCOPE_LABELS = {
     "league": "League only",
@@ -87,18 +87,20 @@ def side_metrics(match: MatchRecord, side: str) -> dict[str, float | None] | Non
     players = detail.players_for(side)
     # FM's panel counts a blocked shot as neither on nor off target.
     off_target = (
-        team.get("shots", 0) - team.get("shots_on_target", 0)
+        team["shots"] - team["shots_on_target"]
         - sum(player.stat("shots_blocked") for player in players)
-        if players else None
+        if players and "shots" in team and "shots_on_target" in team else None
     )
     return {
-        "shots": team.get("shots", 0),
-        "shots_on_target": team.get("shots_on_target", 0),
+        # A missing panel value is unknown, not a zero.  The diagnostic gate
+        # relies on that distinction and older partial captures remain honest.
+        "shots": team.get("shots"),
+        "shots_on_target": team.get("shots_on_target"),
         "off_target": off_target,
-        "clear_cut_chances": team.get("clear_cut_chances", 0),
+        "clear_cut_chances": team.get("clear_cut_chances"),
         "possession": detail.possession_percent(side),
-        "corners": team.get("corners", 0),
-        "fouls": team.get("fouls", 0),
+        "corners": team.get("corners"),
+        "fouls": team.get("fouls"),
         "pass_completion": _percent(team.get("passes_completed", 0), team.get("passes_attempted", 0)),
         "tackles_won": _percent(team.get("tackles_won", 0), team.get("tackles_attempted", 0)),
         "headers_won": _percent(team.get("headers_won", 0), team.get("headers_attempted", 0)),
@@ -465,7 +467,7 @@ def review_matches(
         for key in tactic_keys
     )
     appearances = [
-        (player, summary.match.key, summary.ours["shots"] if summary.ours else 0)
+        (player, summary.match.key, int(summary.ours["shots"] or 0) if summary.ours else 0)
         for summary in selected
         if summary.match.detail is not None
         for player in summary.match.detail.players_for(summary.side)

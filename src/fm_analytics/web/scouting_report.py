@@ -94,13 +94,13 @@ def _history_banner(candidate: ScoutingCandidate) -> str:
     )
     if not history.in_current_feed:
         return (
-            f"<div class='history-banner'>{NOT_CURRENT_BADGE} <b>Not in the current scouting "
+            f"<div class='history-banner fm-player-history'>{NOT_CURRENT_BADGE} <b>Not in the current scouting "
             "feed.</b> Everything here is what you saw earlier in this save, as of the dates "
             "shown; he may since have moved, signed a new contract or stopped being gettable."
             + age + "</div>"
         )
     return (
-        "<div class='history-banner'>Some attributes FM no longer shows are filled in from "
+        "<div class='history-banner fm-player-history'>Some attributes FM no longer shows are filled in from "
         "what you saw earlier; they are marked <i>historical</i> with the day they were last "
         "seen." + age + "</div>"
     )
@@ -159,9 +159,10 @@ def verdict_panel(
     )
     note = verdict.note if verdict is not None else ""
     return (
-        "<section class='verdict-panel'><h2>Signing verdict</h2>"
-        "<p class='muted'>Your own decision, kept in this tool's local knowledge "
-        "database: FM is never told, and nothing about it comes from a hidden rating.</p>"
+        "<section class='fm-workspace-panel fm-verdict-panel'><div class='fm-panel-heading'><div>"
+        "<h2>Signing verdict</h2>"
+        "<p>Your own decision, kept in this tool's local knowledge database: FM is never told, "
+        "and nothing about it comes from a hidden rating.</p></div></div>"
         + state
         + "<form class='verdict' method='post' action='/scouting/verdict'>"
         f"<input type='hidden' name='player_id' value='{html.escape(player_id, quote=True)}'>"
@@ -193,15 +194,16 @@ def squad_player_report(player, catalogue) -> str:
     ]
     scores = build_player_role_scores(player, catalogue=catalogue)
     headline = (
+        "<section class='fm-workspace-panel fm-player-score-summary'><div class='fm-panel-heading'><div>"
         "<h2>Best-role scores</h2>"
-        "<p class='muted'>The same three scores, calculated the same way, as the Squad roster: "
+        "<p>The same three scores, calculated the same way, as the Squad roster: "
         "<b>attribute-based</b> (attributes and role fit only), <b>in-position</b> (adds positional "
         "familiarity) and <b>today’s selection score</b> (adds match readiness). "
-        "Each shows the player's strongest role by that measure.</p>"
-        "<table><tr><th>Attribute-based role score (best role)</th>"
+        "Each shows the player's strongest role by that measure.</p></div></div>"
+        "<div class='fm-player-table'><table><tr><th>Attribute-based role score (best role)</th>"
         "<th>In-position role score (best role)</th>"
         "<th>Today’s selection score (best role)</th></tr>"
-        f"<tr>{role_score_cells(scores)}</tr></table>"
+        f"<tr>{role_score_cells(scores)}</tr></table></div></section>"
     )
     return _player_detail_report(
         player.name, player.attributes, player.positions, player.position_familiarity,
@@ -240,39 +242,48 @@ def _player_detail_report(
         for position in positions
     )
     fact_rows = "".join(
-        f"<tr><th>{html.escape(label)}</th><td>{html.escape(value)}</td></tr>"
+        "<div><dt>" + html.escape(label) + "</dt><dd>" + html.escape(value) + "</dd></div>"
         for label, value in facts if value
-    ) or "<tr><td colspan='2' class='muted'>No additional facts captured</td></tr>"
+    ) or "<p class='muted'>No additional facts captured.</p>"
     return (
-        f"<p><a href='{html.escape(back_href, quote=True)}'>← {html.escape(back_label)}</a></p>"
-        "<h2>Player information</h2><table class='report-facts'>" + fact_rows + "</table>"
+        "<div class='fm-player-report'>"
+        f"<p class='fm-player-back'><a href='{html.escape(back_href, quote=True)}'>← {html.escape(back_label)}</a></p>"
+        "<section class='fm-player-profile'><div class='fm-panel-heading'><div>"
+        "<span class='eyebrow'>Player profile</span><h2>Player information</h2>"
+        f"<p>{html.escape(', '.join(player_positions) or 'No positions captured')}</p>"
+        "</div></div><dl class='fm-player-facts'>" + fact_rows + "</dl></section>"
         + headline +
+        "<section class='fm-workspace-panel fm-player-attributes'><div class='fm-panel-heading'><div>"
         "<h2>Current attributes</h2>"
         + (
-            "<p class='muted'>Values visible now, plus remembered values marked "
+            "<p>Values visible now, plus remembered values marked "
             "<i>historical</i> where FM shows nothing today; both are used in the scores "
             "below. Ranges retain the uncertainty scouting reported.</p>"
             if readings else
-            "<p class='muted'>Only values visible now are used in the scores below. "
+            "<p>Only values visible now are used in the scores below. "
             "Ranges retain the uncertainty currently reported by scouting.</p>"
         )
-        + attributes_html
+        + "</div></div><div class='fm-player-attribute-groups'>" + attributes_html + "</div></section>"
         + historical_html
+        + "<section class='fm-workspace-panel fm-player-position-summary'><div class='fm-panel-heading'><div>"
         + "<h2>Position score summary</h2>"
-        "<p class='muted'>Each row uses the highest estimated attribute-based role score among the roles available "
+        "<p>Each row uses the highest estimated attribute-based role score among the roles available "
         "at that position. Positions are kept in the table even when they have not been captured, "
         "so it also shows the modelled potential after positional training.</p>"
-        + _position_score_summary(attributes, positions, catalogue, familiarity, policy)
+        + "</div></div><div class='fm-player-table'>" + _position_score_summary(attributes, positions, catalogue, familiarity, policy) + "</div></section>"
+        + "<section class='fm-workspace-panel fm-player-familiarity'><div class='fm-panel-heading'><div>"
         + "<h2>Position familiarity</h2>"
-        f"<p class='muted'>Familiarity is {html.escape(familiarity_source)}. The multiplier is the "
+        f"<p>Familiarity is {html.escape(familiarity_source)}. The multiplier is the "
         "same discount used for an in-position score; a missing rating is left unknown rather than assumed.</p>"
-        "<table><tr><th>Position</th><th>Position captured</th><th>Familiarity / in-position multiplier</th></tr>"
-        + position_rows + "</table>"
+        "</div></div><div class='fm-player-table'><table><tr><th>Position</th><th>Position captured</th><th>Familiarity / in-position multiplier</th></tr>"
+        + position_rows + "</table></div></section>"
+        + "<section class='fm-workspace-panel fm-player-role-scores'><div class='fm-panel-heading'><div>"
         + "<h2>All attribute-based role scores by position</h2>"
-        "<p class='muted'>Floor and ceiling are the bounds supported by scouting. The cautious estimate is deliberately "
+        "<p>Floor and ceiling are the bounds supported by scouting. The cautious estimate is deliberately "
         "conservative when an attribute is unknown; estimate treats unknown attributes as mid-scale. "
         "In-position estimate applies the listed familiarity multiplier where one was captured.</p>"
-        + score_sections
+        + "</div></div><div class='fm-player-role-groups'>" + score_sections + "</div></section>"
+        "</div>"
     )
 
 
@@ -309,9 +320,9 @@ def _full_attribute_sheet(
         if rows:
             groups.append(
                 f"<section class='report-attribute-group'><h3>{title}</h3>"
-                "<table><tr><th>Attribute</th><th>Scouted value</th>"
+                "<div class='fm-player-table'><table><tr><th>Attribute</th><th>Scouted value</th>"
                 + ("<th>Seen</th>" if readings else "") + "</tr>"
-                + "".join(rows) + "</table></section>"
+                + "".join(rows) + "</table></div></section>"
             )
     if groups:
         return "".join(groups)
@@ -329,12 +340,13 @@ def _historical_attribute_section(attributes, observed_at: str | None) -> str:
         return ""
     when = html.escape(observed_at or "date not captured")
     return (
+        "<section class='fm-workspace-panel fm-player-history-detail'><div class='fm-panel-heading'><div>"
         "<h2>Past scouting knowledge</h2>"
         "<p class='warn'><b>Historical only.</b> These values were last visible on "
         f"<b>{when}</b>. They are not treated as current and are not used in any "
         "score, filter, or recommendation on this page, except where the same value "
-        "appears above marked <i>historical</i>.</p>"
-        + _full_attribute_sheet(attributes)
+        "appears above marked <i>historical</i>.</p></div></div>"
+        "<div class='fm-player-attribute-groups'>" + _full_attribute_sheet(attributes) + "</div></section>"
     )
 
 
@@ -430,9 +442,9 @@ def _position_role_scores(attributes, position, catalogue, familiarity, policy) 
     return (
         f"<section class='position-role-report'><h3>{html.escape(position)} "
         f"<span class='muted'>— familiarity {familiarity_text}</span></h3>"
-        "<table><tr><th>Role</th><th>Floor</th><th>Cautious estimate</th><th>Estimate</th>"
+        "<div class='fm-player-table'><table><tr><th>Role</th><th>Floor</th><th>Cautious estimate</th><th>Estimate</th>"
         "<th>Ceiling</th><th>In-position estimate</th><th>Breakdown</th></tr>"
-        + "".join(rows) + "</table></section>"
+        + "".join(rows) + "</table></div></section>"
     )
 
 

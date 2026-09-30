@@ -92,7 +92,7 @@ class ReviewTests(unittest.TestCase):
     def test_groups_count_results_and_flag_small_samples(self) -> None:
         groups = {group.key: group for group in review().groups}
         self.assertEqual((groups["early"].matches, groups["early"].draws, groups["early"].losses), (3, 2, 1))
-        self.assertTrue(groups["early"].enough)
+        self.assertFalse(groups["early"].enough)  # findings now need five matches
         top = groups["top"]
         self.assertEqual((top.matches, top.wins, top.detailed), (1, 1, 1))
         self.assertFalse(top.enough)

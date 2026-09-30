@@ -77,6 +77,7 @@ from fm_analytics.analytics.position_comparison import (
 )
 from fm_analytics.analytics.bench_selection import (
     BenchEntry,
+    BenchPolicy,
     BenchSelection,
     select_bench,
 )
@@ -172,6 +173,7 @@ __all__ = [
     "AXIS_DEFINITIONS",
     "FORMATION_DEFINITIONS",
     "BenchEntry",
+    "BenchPolicy",
     "BenchSelection",
     "CandidateRoleScore",
     "EffectiveAndPotentialRecommendation",

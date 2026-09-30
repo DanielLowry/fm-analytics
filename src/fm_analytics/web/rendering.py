@@ -5,6 +5,8 @@ from __future__ import annotations
 import html
 import re
 import subprocess
+from hashlib import sha256
+from importlib import resources
 from pathlib import Path
 from typing import Callable, Sequence
 from urllib.parse import urlencode
@@ -594,6 +596,25 @@ def _position_display(candidate, *, include_raw_external_positions: bool) -> str
     return html.escape(", ".join(positions) or "Not yet captured")
 
 
+def _asset_url(filename: str) -> str:
+    """Return a content-versioned URL for a bundled shell asset.
+
+    HTML responses are deliberately not cached, while the asset handler may
+    cache a stylesheet for an hour.  A digest in the URL lets a normal page
+    refresh pick up a newly built stylesheet without making every static
+    response uncacheable.  Do not memoise this: local development rebuilds
+    assets while the server is still running.
+    """
+    try:
+        content = resources.files("fm_analytics.web").joinpath("static", filename).read_bytes()
+    except FileNotFoundError:
+        # Preserve the useful static-handler error when assets have not been
+        # built yet instead of preventing the page itself from rendering.
+        return f"/static/{filename}"
+    digest = sha256(content).hexdigest()[:12]
+    return f"/static/{filename}?v={digest}"
+
+
 def _layout(title: str, active_path: str, body: str, *, wide: bool = False) -> str:
     """Render a shared shell while legacy page fragments migrate incrementally.
 
@@ -607,13 +628,21 @@ def _layout(title: str, active_path: str, body: str, *, wide: bool = False) -> s
         breadcrumb=None if active_path == "/" else _section_for(active_path),
         wide=wide,
         navigation=_navigation(active_path),
+        assets={"css": _asset_url("app.css"), "js": _asset_url("app.js")},
         body=Markup(body),
         legacy_style=Markup(_STYLE),
     )
 
 
 def _error_page(title: str, message: str, active_path: str = "/") -> str:
-    return _layout(title, active_path, f"<p class='error'>{html.escape(message)}</p>")
+    body = (
+        "<section class='fm-error-state'><span class='eyebrow'>Action needed</span>"
+        f"<h2>{html.escape(title)}</h2>"
+        f"<p class='error'>{html.escape(message)}</p>"
+        "<p class='muted'>Check the data source, then return to the section when it is available.</p>"
+        "</section>"
+    )
+    return _layout(title, active_path, body)
 
 
 def _band(value) -> str:
@@ -828,7 +857,7 @@ def _scouting_tab_nav(query: dict[str, list[str]]) -> str:
         return f"<a class='{css_class}' href='{href}'>{html.escape(label)}</a>"
 
     return (
-        "<nav class='scouting-tabs'>"
+        "<nav class='scouting-tabs fm-scouting-tabs'>"
         + link("scouted", "Scouted players")
         + link("all", "All players (Player Search)")
         + "</nav>"
@@ -911,34 +940,36 @@ def _pool_not_built_page() -> str:
     no native call at all.
     """
     body = (
+        "<section class='fm-scouting-empty-hero'><span class='eyebrow'>Scouting data needed</span>"
         "<h2>FM has not built its player list yet</h2>"
         "<p>This app normally reads the list of players you are allowed to know "
         "about straight out of FM's memory, without touching the game. FM builds "
         "that list while you play, and it starts empty each time you launch FM. "
         "It is empty right now, so there is nothing to read.</p>"
-        "<p class='muted'>Nothing has been sent to FM. Your save has not been "
-        "touched.</p>"
-        "<h3>Recommended: build it in FM yourself</h3>"
+        "<p>Nothing has been sent to FM. Your save has not been touched.</p></section>"
+        "<section class='fm-workspace-panel fm-scouting-safe-refresh'><div class='fm-panel-heading'><div>"
+        "<h2>Recommended: build it in FM yourself</h2>"
         "<p>Switch to FM, open <b>Scouting &rarr; Players &rarr; Player Search</b> "
         "once, then come back and refresh. FM builds the list as part of its "
         "normal work, and this app goes back to only reading. You need to do this "
-        "once per FM session, not once per refresh.</p>"
+        "once per FM session, not once per refresh.</p></div></div>"
         "<form class='refresh' method='post' action='/scouting/refresh'>"
         "<button type='submit'>I have opened Player Search &mdash; refresh</button>"
-        "</form>"
-        "<h3 class='warn'>Or: let this app ask FM to build it</h3>"
+        "</form></section>"
+        "<section class='fm-workspace-panel fm-scouting-risk-refresh'><div class='fm-panel-heading'><div>"
+        "<h2>Or: let this app ask FM to build it</h2>"
         "<p>This runs FM's own code inside your running game to build the list. "
         "It usually works, and it is how this page behaved until now. But it "
         "interrupts FM at a moment FM did not choose, and that is the step "
         "suspected of producing saves that write successfully and then fail to "
         "load.</p>"
-        "<p><b>Only do this on a save you would not mind losing</b>, or after "
-        "taking a copy of your save file.</p>"
+        "<p><b>Only do this on a save you would not mind losing</b>, or after taking a copy of your save file.</p>"
+        "</div></div>"
         "<form class='refresh' method='post' action='/scouting/refresh'>"
         "<input type='hidden' name='allow_rebuild' value='1'>"
         "<button type='submit' class='danger'>Ask FM to build the list "
         "(risks this save)</button>"
-        "</form>"
+        "</form></section>"
     )
     return _layout("Scouting", "/scouting", body)
 

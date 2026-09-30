@@ -33,6 +33,7 @@ from fm_analytics.analytics.match_analysis import (
     MatchReview,
     ReviewFilters,
 )
+from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
 from fm_analytics.analytics.match_strength import GROUPINGS
 from fm_analytics.bridge import LinuxProtonDataSource
 from fm_analytics.domain.matches import MatchCapture
@@ -46,6 +47,7 @@ from fm_analytics.persistence.match_history import (
 from fm_analytics.reporting import (
     RecommendationBundle,
     RecommendationPolicy,
+    build_match_diagnostics,
     build_match_report,
     build_match_review,
     build_recommendation_bundle,
@@ -193,6 +195,41 @@ def format_review(review: MatchReview) -> str:
     return "\n".join(lines)
 
 
+def format_diagnostics(diagnostics: MatchDiagnostics) -> str:
+    """Plain-text form of the same findings shown on the Matches page."""
+    quality = diagnostics.quality
+    lines = [
+        "",
+        "Diagnostic engine",
+        f"Evidence gate: {quality.eligible_team_matches} of {quality.selected_matches} selected matches "
+        f"are eligible (team findings need 5).",
+        "",
+        "Top current opportunities:",
+    ]
+    if not diagnostics.opportunities:
+        lines.append("  None clears both the evidence gate and the effect threshold.")
+    for index, finding in enumerate(diagnostics.opportunities, start=1):
+        lines += [
+            f"  {index}. {finding.title} [{finding.confidence} confidence; {finding.problem_class}]",
+            f"     Hypothesis: {finding.hypothesis}",
+            *(f"     Evidence: {item}" for item in finding.evidence),
+            f"     Test: {finding.intervention}",
+            f"     Expected benefit: {finding.expected_benefit}",
+            f"     Evaluate after: {finding.evaluation_matches} eligible matches or starts",
+            f"     Stop: {finding.stop_condition}",
+        ]
+    lines += ["", "Do not change:"]
+    if not diagnostics.do_not_change:
+        lines.append("  No area has enough positive evidence to protect yet.")
+    for item in diagnostics.do_not_change:
+        lines.append(f"  - {item.title}: {' '.join(item.evidence)}")
+    if quality.issues or diagnostics.unavailable:
+        lines += ["", "Evidence limits:"]
+        lines += [f"  - {issue.message}" for issue in quality.issues]
+        lines += [f"  - {item.title}: {item.reason}" for item in diagnostics.unavailable]
+    return "\n".join(lines)
+
+
 # -- command line -------------------------------------------------------------
 
 
@@ -275,7 +312,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 raise ValueError("that save has no recorded matches")
             if args.command == "review":
                 filters = ReviewFilters(args.group, args.competitions, args.venue, args.tactic)
-                print(format_review(build_match_review(history, filters=filters)))
+                review = build_match_review(history, filters=filters)
+                print(format_review(review) + format_diagnostics(build_match_diagnostics(review)))
             elif args.command == "list":
                 review = build_match_review(history, filters=ReviewFilters(competitions="all"))
                 for summary in review.matches:

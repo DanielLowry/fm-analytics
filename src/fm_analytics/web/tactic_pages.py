@@ -493,7 +493,7 @@ class TacticPagesMixin:
             "<div class='fm-panel-heading'><div><h2>Substitution coverage</h2>"
             "<p>Options are scored for the exact replacement role, today.</p>"
             "</div><span class='fm-panel-count'>"
-            + f"{total_slots} positions</span></div>"
+            + f"{total_slots} starting slots</span></div>"
             "<details class='fm-coverage-details'><summary>View cover for every position</summary>"
             "<div class='coverage-grid'>" + "".join(coverage_cards) + "</div></details></section>"
             + history_panel

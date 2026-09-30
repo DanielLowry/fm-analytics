@@ -194,11 +194,13 @@ class SquadWebServerTests(WebServerHelpers, unittest.TestCase):
             port = self._serve(fixture_path)
             status, body = self._get(port, "/tactics/balanced_442")
             self.assertEqual(status, 200)
-            self.assertIn("Take players from the top", body)
+            self.assertIn("The whole bench is planned together", body)
             self.assertIn("<th>Priority</th>", body)
             self.assertIn("<td><b>1</b></td>", body)
             self.assertIn("Backup Goalkeeper", body)
             self.assertIn("Reserve goalkeeper", body)
+            self.assertIn("credible cover (at least 80% of the starter's score)", body)
+            self.assertIn("<th>Credible cover</th><th>Can fill</th>", body)
             self.assertNotIn("No eligible reserve goalkeeper", body)
 
     def test_unknown_tactic_detail_is_not_found(self) -> None:

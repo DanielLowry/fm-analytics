@@ -54,8 +54,10 @@ class DetailLevelTests(HistoryCase):
             document = self.export(detail)
             self.assertEqual(
                 list(document),
-                ["format", "formatVersion", "meta", "season", "review", "goals", "roles", "players", "matches"],
+                ["format", "formatVersion", "meta", "season", "review", "diagnostics", "goals", "roles", "players", "matches"],
             )
+            self.assertEqual(document["formatVersion"], 2)
+            self.assertIn("top_opportunities", document["diagnostics"])
             self.assertEqual(document["meta"]["detail"], detail)
             self.assertEqual(json.loads(json.dumps(document)), document)
 
@@ -147,6 +149,14 @@ class SquadSectionTests(HistoryCase):
         primary = document["recommendation"]["primary"]
         self.assertEqual(primary["tactic_key"], bundle_last)  # the first pin is the primary, not the top
         self.assertEqual(len(primary["xi"]), len(bundle.primary.assignments))
+        self.assertEqual(
+            primary["bench_coverage"]["credible_cover_ratio"],
+            bundle.bench.credible_cover_ratio,
+        )
+        self.assertEqual(
+            primary["bench_coverage"]["below_threshold"],
+            list(bundle.bench.weakly_covered_slots),
+        )
         self.assertEqual(document["meta"]["squad"], f"read at game date {bundle.game.game_date.isoformat()}")
 
     def test_verbose_has_every_attribute_and_the_whole_ranking(self) -> None:

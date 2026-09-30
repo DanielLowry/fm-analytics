@@ -59,19 +59,24 @@ def tactic_checks_body() -> str:
                 f"<ul class='check-failures'>{problem_items}</ul></details>"
             )
         sections.append(
-            f"<section id='{html.escape(check.tactic.key)}'><h2>"
-            f"{html.escape(check.tactic.name)}</h2><p class='muted'>"
+            f"<section class='fm-workspace-panel fm-checks-tactic' id='{html.escape(check.tactic.key)}'><div class='fm-panel-heading'><div><h2>"
+            f"{html.escape(check.tactic.name)}</h2><p>"
             f"{len(check.failures)} of {check.combination_count} permitted role "
-            f"combinations fail.</p>{''.join(items)}</section>"
+            f"combinations fail.</p></div><span class='fm-panel-count'>{len(check.failures)} flagged</span></div>{''.join(items)}</section>"
         )
     return (
-        "<div class='advisory-banner'><b>Experimental, player-independent checks</b>"
+        "<section class='fm-checks-hero'><span class='eyebrow'>Catalogue guardrails</span>"
+        "<h2>Structural tactic checks</h2>"
+        "<p>These player-independent checks identify role combinations that lack a basic structural requirement before player quality is considered.</p>"
+        "<div class='fm-decision-grid fm-checks-summary'>"
+        f"<section class='fm-decision-stat'><span>Tactics checked</span><b>{len(checks)}</b><small>In the current catalogue</small></section>"
+        f"<section class='fm-decision-stat'><span>Permitted combinations</span><b>{combinations}</b><small>Across those tactics</small></section>"
+        f"<section class='fm-decision-stat'><span>Flagged combinations</span><b>{failures}</b><small>Need a catalogue review</small></section>"
+        "</div></section>"
+        "<section class='fm-checks-method'><b>Experimental, player-independent checks</b>"
         "Each role is assigned simple points for jobs such as providing width or "
         "making forward runs. These checks use hand-authored assumptions. They ignore player "
         "ability and do not predict match performance. Their sufficiency factor does "
-        "affect tactic rankings."
-        "</div><div class='check-summary'>"
-        f"<span>{len(checks)} tactics</span><span>{combinations} permitted combinations</span>"
-        f"<span>{failures} failing combinations</span></div>"
-        + ("".join(sections) if sections else "<p>No combinations fail the current checks.</p>")
+        "affect tactic rankings.</section>"
+        + ("".join(sections) if sections else "<section class='fm-workspace-panel fm-checks-clear'><p>No combinations fail the current checks.</p></section>")
     )

@@ -21,6 +21,7 @@ from fm_analytics.analytics.match_analysis import (
     report_match,
     review_matches,
 )
+from fm_analytics.analytics.match_diagnostics import MatchDiagnostics, diagnose_matches
 from fm_analytics.analytics import (
     BenchSelection,
     PlayerRoleFit,
@@ -536,6 +537,11 @@ def build_match_review(
     )
 
 
+def build_match_diagnostics(review: MatchReview) -> MatchDiagnostics:
+    """The shared diagnostic pass over a computed match review."""
+    return diagnose_matches(review)
+
+
 def build_match_report(
     history: MatchHistory, match_key: str, *, catalogue: FootballCatalogue = MVP_CATALOGUE
 ) -> MatchReport | None:
@@ -570,12 +576,17 @@ def build_season_export(
     def review(grouping: str, competitions: str) -> MatchReview:
         return build_match_review(history, filters=ReviewFilters(grouping, competitions), catalogue=catalogue)
 
+    everything = review("table", "all")
+    competitive = review("table", "competitive")
+    relative = review("relative", "competitive")
+    league = review("table", "league")
     return export_document(
         history,
-        everything=review("table", "all"),
-        competitive=review("table", "competitive"),
-        relative=review("relative", "competitive"),
-        league=review("table", "league"),
+        everything=everything,
+        competitive=competitive,
+        relative=relative,
+        league=league,
+        diagnostics=build_match_diagnostics(competitive),
         catalogue=catalogue,
         detail=detail,
         bundle=bundle,

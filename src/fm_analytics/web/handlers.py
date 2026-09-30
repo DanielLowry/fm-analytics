@@ -474,13 +474,15 @@ class SquadWebHandler(
                 for player in team.players
             ]
             sections.append(
-                f"<h3>Other squad (FM team marker {team.marker})</h3>"
-                "<table><tr><th>Player</th><th>Age</th><th>Positions</th>"
-                "<th>Availability</th></tr>" + "".join(rows) + "</table>"
+                "<section class='fm-other-team'>"
+                f"<h3>Other squad <span>FM team marker {team.marker}</span></h3>"
+                "<div class='fm-table-card'><table><tr><th>Player</th><th>Age</th><th>Positions</th>"
+                "<th>Availability</th></tr>" + "".join(rows) + "</table></div></section>"
             )
         return (
-            "<p class='muted'>Other squads are listed for visibility only; they are "
-            "not included in role or tactic selection.</p>" + "".join(sections)
+            "<section class='fm-workspace-panel fm-other-teams-panel'><div class='fm-panel-heading'><div>"
+            "<h2>Other club squads</h2><p>Listed for visibility only; they are not included in role or tactic selection.</p>"
+            "</div></div>" + "".join(sections) + "</section>"
         )
 
     def _roles_page(self, path: str, _query: dict[str, list[str]]) -> None:
@@ -488,40 +490,54 @@ class SquadWebHandler(
         if bundle is None:
             return
         rows = []
+        uncertain_count = 0
         for role_key, comparison in sorted(
             bundle.role_matrix.role_rankings.items(),
             key=lambda item: item[1].candidates[0].role_score.role_name,
         ):
             best = comparison.selected
             certainty = "certain" if comparison.decision_certain else "uncertain"
+            if not comparison.decision_certain:
+                uncertain_count += 1
             rows.append(
                 "<tr>"
                 f"<td>{html.escape(best.role_score.role_name)}</td>"
                 f"<td>{html.escape(best.player_name)}</td>"
                 f"<td>{_band(best.role_score.score)}</td>"
                 f"<td>{len(comparison.candidates)}</td>"
-                f"<td>{certainty}</td>"
+                f"<td><span class='fm-role-decision fm-role-decision-{certainty}'>{certainty}</span></td>"
                 "</tr>"
             )
         uncovered = (
-            "<p class='muted'>No eligible squad member for: "
+            "<section class='fm-role-uncovered'><b>No eligible squad member for:</b> "
             + ", ".join(sorted(bundle.role_matrix.uncovered_roles))
-            + "</p>"
+            + "</section>"
             if bundle.role_matrix.uncovered_roles
             else ""
         )
         body = (
+            "<section class='fm-roles-hero'><span class='eyebrow'>Squad intelligence</span>"
+            "<h2>Role coverage at a glance</h2>"
+            "<p>See the current best fit for every role before taking a tactic into matchday selection.</p>"
+            "<div class='fm-decision-grid fm-roles-summary'>"
+            f"<section class='fm-decision-stat'><span>Roles covered</span><b>{len(rows)}</b><small>With an eligible player</small></section>"
+            f"<section class='fm-decision-stat'><span>Uncertain calls</span><b>{uncertain_count}</b><small>A rival may overtake when scouted</small></section>"
+            f"<section class='fm-decision-stat'><span>Uncovered roles</span><b>{len(bundle.role_matrix.uncovered_roles)}</b><small>No eligible squad member</small></section>"
+            "</div></section>"
+            "<section class='fm-workspace-panel fm-roles-panel'><div class='fm-panel-heading'><div>"
             "<h2>Best player per role</h2>"
-            "<ul class='legend'>"
+            "<p>Attribute-based score measures role fit only; it excludes positional familiarity and match readiness.</p>"
+            "</div></div>"
+            "<details class='fm-roles-guide'><summary>How to read this table</summary><ul class='legend'>"
             "<li><b>Attribute-based role score</b>: attributes weighted for this specific role and duty. "
             "It deliberately excludes positional familiarity and match readiness, so it compares underlying "
             "role suitability only. The weighting is fixed per role/duty — it does not vary by tactic.</li>"
             "<li><b>Uncertain</b>: a rival could still overtake once scouted</li>"
-            "</ul>"
-            "<table><tr><th>Role</th><th>Best player</th><th>Attribute-based role score</th>"
+            "</ul></details>"
+            "<div class='fm-table-card'><table><tr><th>Role</th><th>Best player</th><th>Attribute-based role score</th>"
             "<th>Eligible candidates</th><th>Decision</th></tr>"
             + "".join(rows)
-            + "</table>"
+            + "</table></div></section>"
             + uncovered
         )
         self._send(_layout("Roles", path, body))
