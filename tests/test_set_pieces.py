@@ -5,7 +5,9 @@ from pathlib import Path
 from fm_analytics.analytics import recommend_set_pieces
 from fm_analytics.analytics.set_piece_routines import (
     ATTACKING_CORNER_INSTRUCTIONS,
+    DEFENDING_CORNER_INSTRUCTIONS,
     attacking_roles,
+    defensive_roles,
 )
 from fm_analytics.cli import load_fixture
 from fm_analytics.domain import AttributeObservation, Visibility
@@ -211,6 +213,18 @@ class SetPieceRecommendationTests(unittest.TestCase):
         self.assertEqual(
             go_forward_zones, {"Left side of box", "Right side of box"}
         )
+
+    def test_defending_corners_use_each_fm_outfield_instruction_once(self) -> None:
+        roles = defensive_roles("corner")
+        outfield_instructions = [
+            role.instruction for role in roles if not role.goalkeeper
+        ]
+
+        self.assertEqual(len(roles), 11)
+        self.assertCountEqual(
+            outfield_instructions, DEFENDING_CORNER_INSTRUCTIONS
+        )
+        self.assertEqual(len(outfield_instructions), len(set(outfield_instructions)))
 
     def test_attacking_risk_changes_rest_defence_commitment(self) -> None:
         attributes = {

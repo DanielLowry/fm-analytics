@@ -33,6 +33,7 @@ SKIP_DIRS = {
     "__pycache__",
     "bin",
     "build",
+    "data",
     "dist",
     "migrations",
     "node_modules",

@@ -19,7 +19,7 @@ from fm_analytics.analytics.role_scoring import (
 from fm_analytics.domain import Player
 
 
-SET_PIECE_SCORING_VERSION = "set-piece-v4"
+SET_PIECE_SCORING_VERSION = "set-piece-v5"
 
 ATTACKING_CORNER_INSTRUCTIONS = (
     "Attack near post",
@@ -33,6 +33,19 @@ ATTACKING_CORNER_INSTRUCTIONS = (
     "Lurk outside edge of area",
     "Stay back if needed",
     "Stay back",
+)
+
+DEFENDING_CORNER_INSTRUCTIONS = (
+    "Mark near post",
+    "Mark far post",
+    "Zonally mark 6 yard box near post",
+    "Zonally mark 6 yard box centre",
+    "Zonally mark 6 yard box far post",
+    "Go back",
+    "Man mark",
+    "Mark tall player",
+    "Edge of area",
+    "Stay forward",
 )
 
 
@@ -309,8 +322,91 @@ def attacking_roles(kind: str, risk: str) -> tuple[RoutineRole, ...]:
     return tuple(roles)
 
 
+def _defending_corner_roles() -> tuple[RoutineRole, ...]:
+    """Use the ten outfield instructions available in FM's defending-corner UI."""
+
+    keeper = _role(
+        "def_corner_keeper", "Goalkeeper", "Goalkeeper", "Goal line / six-yard box",
+        "Defend area", "Claim or clear deliveries and organise the six-yard box.",
+        (RoleAttribute("aerialReach", 28), RoleAttribute("commandOfArea", 26),
+         RoleAttribute("handling", 16), RoleAttribute("communication", 12),
+         RoleAttribute("anticipation", 10), RoleAttribute("decisions", 8)),
+        priority=100, goalkeeper=True,
+    )
+    post_near = _role(
+        "def_corner_post_near", "Near-post guard", "Box defence", "Near post",
+        "Mark near post", "Protects the fastest delivery route.",
+        _AERIAL_DEFENCE, priority=99,
+    )
+    post_far = _role(
+        "def_corner_post_far", "Far-post guard", "Box defence", "Far post",
+        "Mark far post", "Protects deep deliveries and recycled crosses.",
+        _AERIAL_DEFENCE, priority=98,
+    )
+    zonal_near = _role(
+        "def_corner_zonal_near", "Near-post zonal defender", "Box defence",
+        "Six-yard box near post", "Zonally mark 6 yard box near post",
+        "Attacks deliveries entering the near side of the six-yard box.",
+        _AERIAL_DEFENCE, priority=95,
+    )
+    zonal_centre = _role(
+        "def_corner_zonal_centre", "Central zonal defender", "Box defence",
+        "Six-yard box centre", "Zonally mark 6 yard box centre",
+        "Attacks deliveries entering the centre of the six-yard box.",
+        _AERIAL_DEFENCE, priority=97,
+    )
+    zonal_far = _role(
+        "def_corner_zonal_far", "Far-post zonal defender", "Box defence",
+        "Six-yard box far post", "Zonally mark 6 yard box far post",
+        "Attacks deliveries entering the far side of the six-yard box.",
+        _AERIAL_DEFENCE, priority=94,
+    )
+    go_back = _role(
+        "def_corner_go_back", "Spare box defender", "Box defence", "Penalty spot",
+        "Go back", "Reads loose balls and covers a lost marker.",
+        _AERIAL_DEFENCE, priority=88,
+    )
+    man_mark = _role(
+        "def_corner_man_mark", "Man marker", "Box defence", "Central danger",
+        "Man mark", "Tracks a designated opposition runner.",
+        (RoleAttribute("marking", 28), RoleAttribute("anticipation", 20),
+         RoleAttribute("positioning", 18), RoleAttribute("concentration", 14),
+         RoleAttribute("strength", 10), RoleAttribute("tackling", 10)),
+        priority=93,
+    )
+    mark_tall = _role(
+        "def_corner_mark_tall", "Primary aerial marker", "Box defence", "Central danger",
+        "Mark tall player", "Takes the opponent's strongest aerial threat.",
+        _AERIAL_DEFENCE, priority=96,
+    )
+    edge = _role(
+        "def_corner_edge", "Edge-of-area guard", "Second ball", "Edge of area",
+        "Edge of area", "Closes down clearances and late shooters.",
+        (RoleAttribute("anticipation", 24), RoleAttribute("positioning", 22),
+         RoleAttribute("concentration", 16), RoleAttribute("acceleration", 14),
+         RoleAttribute("tackling", 12), RoleAttribute("decisions", 12)),
+        priority=86,
+    )
+    forward = _role(
+        "def_corner_forward", "Counter outlet", "Outlet", "Halfway line",
+        "Stay forward", "Pins back defenders and gives the clearance a target.",
+        (RoleAttribute("pace", 24), RoleAttribute("acceleration", 20),
+         RoleAttribute("firstTouch", 16), RoleAttribute("offTheBall", 14),
+         RoleAttribute("strength", 12), RoleAttribute("dribbling", 8),
+         RoleAttribute("passing", 6)),
+        priority=82,
+    )
+    return (
+        keeper, post_near, post_far, zonal_near, zonal_centre, zonal_far,
+        go_back, man_mark, mark_tall, edge, forward,
+    )
+
+
 def defensive_roles(kind: str) -> tuple[RoutineRole, ...]:
     """Return the goalkeeper and ten outfield defensive jobs."""
+
+    if kind == "corner":
+        return _defending_corner_roles()
 
     keeper = _role(
         f"def_{kind}_keeper", "Goalkeeper", "Goalkeeper", "Goal line / six-yard box",

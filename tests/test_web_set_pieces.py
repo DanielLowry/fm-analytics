@@ -103,6 +103,31 @@ class SetPiecePageTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("id='selected-routine'>Left attacking corner", body)
 
+    def test_defending_corner_uses_the_fm_instruction_names(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            port = self._serve(_complete_fixture(Path(directory)))
+            status, body = self._get(
+                port,
+                "/set-pieces?tactic=balanced_442&routine=defending_corner",
+            )
+
+        self.assertEqual(status, 200)
+        for instruction in (
+            "Mark near post",
+            "Mark far post",
+            "Zonally mark 6 yard box near post",
+            "Zonally mark 6 yard box centre",
+            "Zonally mark 6 yard box far post",
+            "Go back",
+            "Man mark",
+            "Mark tall player",
+            "Edge of area",
+            "Stay forward",
+        ):
+            self.assertIn(instruction, body)
+        self.assertNotIn("Close down short", body)
+        self.assertNotIn("Mark edge of area", body)
+
     def test_complete_data_uses_the_selected_match_xi_and_risk(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             port = self._serve(_complete_fixture(Path(directory)))
