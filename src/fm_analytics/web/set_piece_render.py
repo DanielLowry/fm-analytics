@@ -5,13 +5,17 @@ from __future__ import annotations
 import html
 from urllib.parse import urlencode
 
+from fm_analytics.analytics.set_piece_templates import FREE_KICK_TYPE_TABS
 from fm_analytics.web.rendering import _band
 
-def _routine_taker(report, task_key: str, side: str | None):
+def _routine_taker(
+    report, task_key: str, side: str | None, routine_prefix: str | None = None,
+):
     """The routine assignment is authoritative for crossed deliveries."""
-    prefix = {
+    prefix = routine_prefix or {
         "corners": "attacking_corner",
-        "indirect_free_kicks": "attacking_wide_free_kick",
+        "direct_free_kicks": "attacking_direct_free_kick",
+        "indirect_free_kicks": "attacking_indirect_wide",
     }.get(task_key)
     if prefix is None or side is None:
         return None, None
@@ -23,10 +27,10 @@ def _routine_taker(report, task_key: str, side: str | None):
     return routine, assignment
 
 
-def _set_piece_choice(report, recommendation):
+def _set_piece_choice(report, recommendation, routine_prefix: str | None = None):
     """Return the one manager-facing choice plus its evidence state."""
     routine, assignment = _routine_taker(
-        report, recommendation.task.key, recommendation.side
+        report, recommendation.task.key, recommendation.side, routine_prefix
     )
     if assignment is not None:
         warning = (
@@ -54,23 +58,43 @@ def _set_piece_choice(report, recommendation):
 
 def _set_piece_assignment_cards(report) -> str:
     groups = (
-        ("Corners", (("corners", "left", "Left"), ("corners", "right", "Right"))),
         (
-            "Wide free kicks",
+            "Corners",
             (
-                ("indirect_free_kicks", "left", "Left"),
-                ("indirect_free_kicks", "right", "Right"),
+                ("corners", "left", "Left", "attacking_corner"),
+                ("corners", "right", "Right", "attacking_corner"),
             ),
         ),
         (
             "Direct free kicks",
             (
-                ("direct_free_kicks", "left", "Left"),
-                ("direct_free_kicks", "right", "Right"),
+                ("direct_free_kicks", "left", "Left", "attacking_direct_free_kick"),
+                ("direct_free_kicks", "right", "Right", "attacking_direct_free_kick"),
             ),
         ),
-        ("Penalties", (("penalties", None, "First choice"),)),
-        ("Long throws", (("long_throws", None, "First choice"),)),
+        (
+            "Direct (small chance of shot)",
+            (
+                ("direct_free_kicks", "left", "Left", "attacking_direct_small_chance"),
+                ("direct_free_kicks", "right", "Right", "attacking_direct_small_chance"),
+            ),
+        ),
+        (
+            "Indirect (wide)",
+            (
+                ("indirect_free_kicks", "left", "Left", "attacking_indirect_wide"),
+                ("indirect_free_kicks", "right", "Right", "attacking_indirect_wide"),
+            ),
+        ),
+        (
+            "Indirect (deep)",
+            (
+                ("indirect_free_kicks", "left", "Left", "attacking_indirect_deep"),
+                ("indirect_free_kicks", "right", "Right", "attacking_indirect_deep"),
+            ),
+        ),
+        ("Penalties", (("penalties", None, "First choice", None),)),
+        ("Long throws", (("long_throws", None, "First choice", None),)),
     )
     recommendations = {
         (item.task.key, item.side): item for item in report.recommendations
@@ -78,10 +102,10 @@ def _set_piece_assignment_cards(report) -> str:
     cards = []
     for title, entries in groups:
         lines = []
-        for task_key, side, label in entries:
+        for task_key, side, label, routine_prefix in entries:
             recommendation = recommendations[(task_key, side)]
             player_name, _score, evidence, warning = _set_piece_choice(
-                report, recommendation
+                report, recommendation, routine_prefix
             )
             evidence_class = " class='choice-warning'" if warning or player_name is None else ""
             lines.append(
@@ -149,11 +173,20 @@ def _set_piece_routine_plan(routine, labels: dict[str, str]) -> str:
         + ", ".join(html.escape(role.instruction) for role in routine.unfilled_roles)
         + ".</div>" if routine.unfilled_roles else ""
     )
-    shape_summary = (
-        f"{routine.players_in_box} in box · {routine.players_held_back} held back"
-        if routine.phase == "attacking" else
-        f"{routine.players_in_box} box defenders · {routine.players_held_back} outlet"
-    )
+    if routine.phase == "attacking":
+        shape_summary = (
+            f"{routine.players_in_box} in box · "
+            f"{routine.players_held_back} held back"
+        )
+    else:
+        wall_players = sum(
+            assignment.role.instruction == "Wall"
+            for assignment in routine.assignments
+        )
+        shape_summary = (
+            f"{routine.players_in_box} box defenders · {wall_players} in wall · "
+            f"{routine.players_held_back} outlet"
+        )
     notes = "".join(f"<li>{html.escape(note)}</li>" for note in routine.notes)
     return (
         "<section class='set-piece-routine' aria-labelledby='selected-routine'>"
@@ -188,12 +221,17 @@ def _set_piece_routine_switcher(report, selected_key: str, query: dict[str, str]
     )
     if attacking:
         side = selected.side or "left"
-        is_corner = selected.key.startswith("attacking_corner")
-        event_tabs = (
-            link("Corners", f"attacking_corner_{side}", is_corner)
-            + link("Wide free kicks", f"attacking_wide_free_kick_{side}", not is_corner)
+        attacking_types = (("Corners", "attacking_corner"),) + tuple(
+            (label, f"attacking_{kind}") for kind, label in FREE_KICK_TYPE_TABS
         )
-        prefix = "attacking_corner" if is_corner else "attacking_wide_free_kick"
+        prefix = next(
+            routine_prefix for _label, routine_prefix in attacking_types
+            if selected.key.startswith(f"{routine_prefix}_")
+        )
+        event_tabs = "".join(
+            link(label, f"{routine_prefix}_{side}", prefix == routine_prefix)
+            for label, routine_prefix in attacking_types
+        )
         side_tabs = (
             link("Left", f"{prefix}_left", side == "left")
             + link("Right", f"{prefix}_right", side == "right")
@@ -203,11 +241,15 @@ def _set_piece_routine_switcher(report, selected_key: str, query: dict[str, str]
             "<nav class='routine-tabs' aria-label='Delivery side'>" + side_tabs + "</nav>"
         )
     else:
-        is_corner = selected.key == "defending_corner"
+        defending_types = (("Corners", "defending_corner"),) + tuple(
+            (label, f"defending_{kind}") for kind, label in FREE_KICK_TYPE_TABS
+        )
         secondary = (
             "<nav class='routine-tabs' aria-label='Defensive routine type'>"
-            + link("Corners", "defending_corner", is_corner)
-            + link("Wide free kicks", "defending_wide_free_kick", not is_corner)
+            + "".join(
+                link(label, routine_key, selected.key == routine_key)
+                for label, routine_key in defending_types
+            )
             + "</nav>"
         )
     return (

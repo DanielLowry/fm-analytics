@@ -238,7 +238,7 @@ _STYLE = """
   .taker-evidence > details { margin: 0.55rem 0; background: #fbfcfd; }
   .inline-warning { display: block; margin-top: 0.15rem; color: #8a5a00; font-weight: 400; }
   .routine-switcher { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem 1rem; margin: 0.75rem 0; }
-  nav.routine-tabs { display: flex; gap: 0.25rem; margin: 0; padding: 0; background: transparent; }
+  nav.routine-tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0; padding: 0; background: transparent; }
   nav.routine-tabs a { margin: 0; padding: 0.4rem 0.7rem; color: #31545c; background: #e8eef0; border-radius: 1rem; font-size: 0.85rem; text-decoration: none; }
   nav.routine-tabs a[aria-current=page] { color: white; background: #315f68; font-weight: 600; }
   nav.routine-tabs.primary { padding-right: 1rem; border-right: 1px solid #ccd5d9; }

@@ -25,6 +25,7 @@ from fm_analytics.analytics.set_piece_routines import (
     attacking_roles,
     defensive_roles,
 )
+from fm_analytics.analytics import set_piece_templates
 from fm_analytics.analytics.role_scoring import (
     RoleAttribute,
     RoleDefinition,
@@ -360,10 +361,7 @@ def _build_routines(
     lineup_positions: Mapping[str, str],
 ) -> tuple[SetPieceRoutine, ...]:
     routines = []
-    for kind, title, objective in (
-        ("corner", "Attacking corner", "Create separated first-contact, second-ball and transition responsibilities."),
-        ("wide_free_kick", "Attacking wide free kick", "Attack the near post, far post and edge while retaining a second player over the ball and enough counter cover."),
-    ):
+    for kind, title, objective, situation_note in set_piece_templates.ATTACKING_ROUTINE_TEMPLATES:
         for side in ("left", "right"):
             routines.append(_optimise_routine(
                 key=f"attacking_{kind}_{side}",
@@ -375,10 +373,11 @@ def _build_routines(
                 notes=(
                     f"{ATTACKING_RISKS[attacking_risk]} template: reserve "
                     f"{'three players' if attacking_risk == 'secure' else 'two players' if attacking_risk == 'balanced' else 'one player'} in rest-defence jobs.",
+                    situation_note,
                     "If the opponent leaves extra players forward, move the lowest-priority box runner into cover.",
                 ),
             ))
-    routines.extend((
+    routines.append(
         _optimise_routine(
             key="defending_corner", name="Defending corners", phase="defending", side=None,
             objective="Protect both posts and the central delivery while retaining one counter outlet.",
@@ -386,16 +385,20 @@ def _build_routines(
             recommendations=recommendations,
             lineup_positions=lineup_positions,
             notes=("Primary and secondary aerial markers are intentionally different players.", "Drop the counter outlet only when protecting a late lead or facing overwhelming aerial pressure."),
-        ),
-        _optimise_routine(
-            key="defending_wide_free_kick", name="Defending wide free kicks", phase="defending", side=None,
-            objective="Protect the goal with a wall, track runners and keep one counter outlet.",
-            roles=defensive_roles("free_kick"), players=players,
+        )
+    )
+    for kind, title, objective, wall_note in set_piece_templates.DEFENDING_FREE_KICK_TEMPLATES:
+        routines.append(_optimise_routine(
+            key=f"defending_{kind}", name=f"Defending {title.lower()}",
+            phase="defending", side=None, objective=objective,
+            roles=defensive_roles(kind), players=players,
             recommendations=recommendations,
             lineup_positions=lineup_positions,
-            notes=("Adjust the number of wall players in FM for the shooting angle and distance.", "Keep the edge-of-area player free to attack clearances; drop the outlet only when protecting a late lead."),
-        ),
-    ))
+            notes=(
+                wall_note,
+                "Keep the edge-of-area player free to attack clearances; drop the outlet only when protecting a late lead.",
+            ),
+        ))
     return tuple(routines)
 
 
@@ -488,7 +491,7 @@ def _is_goalkeeper(player: Player, lineup_positions: Mapping[str, str]) -> bool:
 def _unit_order(unit: str) -> int:
     return {
         "Delivery": 0, "Box attack": 1, "Support": 2, "Second ball": 3,
-        "Rest defence": 4, "Goalkeeper": 0, "Box defence": 1,
+        "Rest defence": 4, "Goalkeeper": 0, "Wall": 1, "Box defence": 1,
         "Wide defence": 2, "Outlet": 4,
     }.get(unit, 9)
 

@@ -404,7 +404,7 @@
   .fm-set-piece-evidence > summary { color: var(--color-brand-700); font-size: .84rem; }
   .fm-set-piece-evidence .table-scroll, .fm-routine-panel .table-scroll { border-color: var(--fm-border); }
   .fm-routine-panel .routine-switcher { margin: 0 0 .8rem; }
-  .fm-routine-panel .routine-tabs { gap: .35rem; }
+  .fm-routine-panel .routine-tabs { flex-wrap: wrap; gap: .35rem; }
   .fm-routine-panel .routine-tabs a { color: var(--color-ink-600); background: var(--fm-page); border: 1px solid var(--fm-border); border-radius: .5rem; }
   .fm-routine-panel .routine-tabs a[aria-current=page] { color: white; background: var(--color-brand-600); border-color: var(--color-brand-600); }
   .fm-routine-panel .routine-tabs.primary { border-color: var(--fm-border); }

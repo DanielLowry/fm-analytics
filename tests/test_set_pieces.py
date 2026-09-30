@@ -233,36 +233,59 @@ class SetPieceRecommendationTests(unittest.TestCase):
         seen = set()
         expected_cover = {"secure": 3, "balanced": 2, "aggressive": 1}
 
-        for risk in ("secure", "balanced", "aggressive"):
-            roles = attacking_roles("wide_free_kick", risk)
-            instructions = {
-                role.instruction for role in roles
-                if role.taker_task_key is None
-            }
+        task_keys = {
+            "direct_free_kick": "direct_free_kicks",
+            "direct_small_chance": "direct_free_kicks",
+            "indirect_wide": "indirect_free_kicks",
+            "indirect_deep": "indirect_free_kicks",
+        }
+        for kind, task_key in task_keys.items():
+            for risk in ("secure", "balanced", "aggressive"):
+                roles = attacking_roles(kind, risk)
+                instructions = {
+                    role.instruction for role in roles
+                    if role.taker_task_key is None
+                }
 
-            self.assertEqual(len(roles), 10)
-            self.assertLessEqual(instructions, allowed)
-            self.assertEqual(
-                sum(role.instruction == "Stay back" for role in roles),
-                expected_cover[risk],
-            )
-            seen.update(instructions)
+                self.assertEqual(len(roles), 10)
+                self.assertLessEqual(instructions, allowed)
+                self.assertEqual(
+                    next(role.taker_task_key for role in roles if role.taker_task_key),
+                    task_key,
+                )
+                self.assertEqual(
+                    sum(role.instruction == "Stay back" for role in roles),
+                    expected_cover[risk],
+                )
+                seen.update(instructions)
 
         self.assertEqual(seen, allowed)
 
     def test_defending_free_kicks_use_only_fm_instructions(self) -> None:
-        roles = defensive_roles("free_kick")
-        outfield_instructions = [
-            role.instruction for role in roles if not role.goalkeeper
-        ]
+        expected_counts = {
+            "direct_free_kick": (5, 1, 2),
+            "direct_small_chance": (4, 2, 2),
+            "indirect_wide": (3, 3, 2),
+            "indirect_deep": (0, 4, 4),
+        }
+        seen = set()
 
-        self.assertEqual(len(roles), 11)
-        self.assertEqual(set(outfield_instructions), set(DEFENDING_FREE_KICK_INSTRUCTIONS))
-        self.assertEqual(outfield_instructions.count("Wall"), 3)
-        self.assertEqual(outfield_instructions.count("Man mark"), 3)
-        self.assertEqual(outfield_instructions.count("Go back"), 2)
-        self.assertEqual(outfield_instructions.count("Edge of area"), 1)
-        self.assertEqual(outfield_instructions.count("Stay forward"), 1)
+        for kind, (walls, markers, cover) in expected_counts.items():
+            roles = defensive_roles(kind)
+            instructions = [
+                role.instruction for role in roles if not role.goalkeeper
+            ]
+
+            self.assertEqual(len(roles), 11)
+            self.assertLessEqual(set(instructions), set(DEFENDING_FREE_KICK_INSTRUCTIONS))
+            self.assertEqual(instructions.count("Wall"), walls)
+            self.assertEqual(instructions.count("Man mark"), markers)
+            self.assertEqual(instructions.count("Go back"), cover)
+            self.assertEqual(instructions.count("Edge of area"), 1)
+            self.assertEqual(instructions.count("Stay forward"), 1)
+            seen.update(instructions)
+
+        self.assertEqual(seen, set(DEFENDING_FREE_KICK_INSTRUCTIONS))
 
     def test_attacking_risk_changes_rest_defence_commitment(self) -> None:
         attributes = {

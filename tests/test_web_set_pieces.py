@@ -72,6 +72,9 @@ class SetPiecePageTests(unittest.TestCase):
         self.assertIn("Free Kick Taking is not captured", body)
         self.assertIn("Long throws", body)
         self.assertIn("Match-day assignments", body)
+        self.assertIn("Direct (small chance of shot)", body)
+        self.assertIn("Indirect (wide)", body)
+        self.assertIn("Indirect (deep)", body)
         self.assertIn("Routines", body)
         self.assertIn("Incomplete role data", body)
         self.assertIn("provisional squad-wide plan", body)
@@ -89,7 +92,9 @@ class SetPiecePageTests(unittest.TestCase):
         )
 
         self.assertEqual(status, 200)
-        self.assertIn("id='selected-routine'>Defending wide free kicks", body)
+        self.assertIn(
+            "id='selected-routine'>Defending indirect free kicks (wide)", body
+        )
         self.assertNotIn("id='selected-routine'>Left attacking corner", body)
         self.assertIn("routine=defending_corner", body)
         self.assertIn("delivery=outswinging", body)
@@ -136,7 +141,7 @@ class SetPiecePageTests(unittest.TestCase):
             port = self._serve(_complete_fixture(Path(directory)))
             status, body = self._get(
                 port,
-                "/set-pieces?tactic=balanced_442&routine=defending_wide_free_kick",
+                "/set-pieces?tactic=balanced_442&routine=defending_indirect_wide",
             )
 
         self.assertEqual(status, 200)
@@ -163,7 +168,7 @@ class SetPiecePageTests(unittest.TestCase):
             port = self._serve(_complete_fixture(Path(directory)))
             status, body = self._get(
                 port,
-                "/set-pieces?tactic=balanced_442&routine=attacking_wide_free_kick_left",
+                "/set-pieces?tactic=balanced_442&routine=attacking_indirect_wide_left",
             )
 
         self.assertEqual(status, 200)
@@ -185,6 +190,27 @@ class SetPiecePageTests(unittest.TestCase):
         ):
             self.assertNotIn(old_instruction, body)
         self.assertEqual(body.count("class='routine-assignment-note'"), 10)
+
+    def test_free_kick_routine_selector_lists_all_four_types_by_phase(self) -> None:
+        port = self._serve(FIXTURE)
+        attacking_status, attacking_body = self._get(
+            port, "/set-pieces?routine=attacking_direct_free_kick_left"
+        )
+        defending_status, defending_body = self._get(
+            port, "/set-pieces?routine=defending_direct_free_kick"
+        )
+
+        self.assertEqual((attacking_status, defending_status), (200, 200))
+        for label in (
+            "Direct",
+            "Direct (small chance of shot)",
+            "Indirect (wide)",
+            "Indirect (deep)",
+        ):
+            self.assertIn(label, attacking_body)
+            self.assertIn(label, defending_body)
+        self.assertIn("id='selected-routine'>Left direct free kick", attacking_body)
+        self.assertIn("id='selected-routine'>Defending direct free kicks", defending_body)
 
     def test_complete_data_uses_the_selected_match_xi_and_risk(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

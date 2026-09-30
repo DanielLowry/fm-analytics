@@ -186,6 +186,11 @@ class AuxiliaryPagesMixin:
         )
         routine_keys = {routine.key for routine in report.routines}
         selected_routine_key = _query_first(_query, "routine") or "attacking_corner_left"
+        selected_routine_key = {
+            "attacking_wide_free_kick_left": "attacking_indirect_wide_left",
+            "attacking_wide_free_kick_right": "attacking_indirect_wide_right",
+            "defending_wide_free_kick": "defending_indirect_wide",
+        }.get(selected_routine_key, selected_routine_key)
         if selected_routine_key not in routine_keys:
             selected_routine_key = "attacking_corner_left"
         controls = (
