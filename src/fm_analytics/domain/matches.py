@@ -1,8 +1,9 @@
 """Matches as the manager saw them: results, FM's match stats and player stats.
 
 A `MatchCapture` is what `tools/fm20_match_probe.py capture` read from the
-game: the managed first team's results, full stats for any match FM still
-held in memory, and every result of the leagues it plays in (so the table at
+game: the managed first team's results with their goals and sendings-off,
+full stats for every match FM still held in memory or in its match archive,
+and every result of the leagues it plays in (so the table at
 each kickoff can be rebuilt). Everything in it is on FM's own match screens.
 
 Stats are key/value maps rather than fixed fields, so a newly decoded FM stat
@@ -23,6 +24,8 @@ CAPTURE_FORMAT = "fm-analytics/match-capture"
 CAPTURE_FORMAT_VERSION = 1
 SIDES = ("home", "away")
 MATCH_MINUTES = 90
+INCIDENT_KINDS = ("goal", "own_goal", "penalty", "sent_off")
+GOAL_INCIDENTS = frozenset({"goal", "own_goal", "penalty"})
 
 # FM's match stats panel, in the order FM lists it.
 TEAM_STAT_KEYS = (
@@ -291,6 +294,53 @@ class MatchDetail:
 
 
 @dataclass(frozen=True)
+class MatchIncident:
+    """A goal or a sending-off, from the result FM keeps for every match.
+
+    `side` is the side a goal counts for, so an own goal's side is not its
+    scorer's; for a sending-off it is the side of the player sent off.
+    """
+
+    minute: int
+    added_time: int
+    side: str
+    kind: str
+    player_short_id: int
+    player: str | None = None
+
+    @property
+    def is_goal(self) -> bool:
+        return self.kind in GOAL_INCIDENTS
+
+    @property
+    def clock(self) -> str:
+        """The minute as FM shows it: 45, or 90+4."""
+        return f"{self.minute}+{self.added_time}" if self.added_time else str(self.minute)
+
+    @classmethod
+    def from_document(cls, raw: Mapping[str, Any]) -> MatchIncident:
+        where = "a match incident"
+        kind = raw.get("kind")
+        if kind not in INCIDENT_KINDS:
+            raise ValueError(f"{where} kind must be one of {', '.join(INCIDENT_KINDS)}")
+        player = raw.get("player")
+        return cls(
+            minute=_count(raw.get("minute"), f"{where} minute"),
+            added_time=_count(raw.get("addedTime", 0), f"{where} addedTime"),
+            side=_side(raw.get("side"), f"{where} side"),
+            kind=kind,
+            player_short_id=_count(raw.get("playerShortId"), f"{where} playerShortId"),
+            player=str(player) if player else None,
+        )
+
+    def to_document(self) -> dict[str, Any]:
+        return {
+            "minute": self.minute, "addedTime": self.added_time, "side": self.side, "kind": self.kind,
+            "playerShortId": self.player_short_id, "player": self.player,
+        }
+
+
+@dataclass(frozen=True)
 class MatchRecord:
     date: date
     competition: Competition
@@ -300,6 +350,9 @@ class MatchRecord:
     away_goals: int
     attendance: int | None = None
     detail: MatchDetail | None = None
+    # Goals and sendings-off in match order; empty for a capture made before
+    # they were read, and for a 0-0 without a red card.
+    incidents: tuple[MatchIncident, ...] = ()
 
     @property
     def key(self) -> str:
@@ -332,10 +385,11 @@ class MatchRecord:
             away_goals=_count(raw.get("awayGoals"), f"{where} awayGoals"),
             attendance=_count(attendance, f"{where} attendance") if attendance is not None else None,
             detail=MatchDetail.from_document(raw.get("detail")),
+            incidents=tuple(MatchIncident.from_document(item) for item in raw.get("incidents") or ()),
         )
 
     def to_document(self) -> dict[str, Any]:
-        return {
+        document = {
             "date": self.date.isoformat(),
             "competition": self.competition.to_document(),
             "home": self.home.to_document(),
@@ -345,6 +399,11 @@ class MatchRecord:
             "attendance": self.attendance,
             "detail": self.detail.to_document() if self.detail else None,
         }
+        # Left out when empty, so a match recorded before incidents were read
+        # keeps its content hash and is not stored again for nothing.
+        if self.incidents:
+            document["incidents"] = [incident.to_document() for incident in self.incidents]
+        return document
 
     def content_hash(self) -> str:
         text = json.dumps(self.to_document(), sort_keys=True, separators=(",", ":"))

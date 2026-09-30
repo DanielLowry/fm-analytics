@@ -55,6 +55,27 @@ class MatchRecordTests(unittest.TestCase):
         self.assertNotIn("corners_taken", again.detail.home)
         self.assertEqual(again.content_hash(), self.match.content_hash())
 
+    def test_incidents_round_trip_and_an_empty_list_keeps_the_old_content_hash(self) -> None:
+        document = self.match.to_document()
+        self.assertNotIn("incidents", document)
+        document["incidents"] = [
+            {"minute": 90, "addedTime": 4, "side": "home", "kind": "penalty", "playerShortId": 7, "player": "Home 11"},
+            {"minute": 18, "side": "away", "kind": "sent_off", "playerShortId": 9},
+        ]
+        record = MatchRecord.from_document(document)
+        self.assertEqual([incident.clock for incident in record.incidents], ["90+4", "18"])
+        self.assertEqual([incident.is_goal for incident in record.incidents], [True, False])
+        self.assertEqual(MatchRecord.from_document(record.to_document()), record)
+        self.assertNotEqual(record.content_hash(), self.match.content_hash())
+        document["incidents"] = []
+        self.assertEqual(MatchRecord.from_document(document).content_hash(), self.match.content_hash())
+
+    def test_an_incident_of_an_unknown_kind_is_refused(self) -> None:
+        document = self.match.to_document()
+        document["incidents"] = [{"minute": 5, "side": "home", "kind": "missed_penalty", "playerShortId": 1}]
+        with self.assertRaisesRegex(ValueError, "kind"):
+            MatchRecord.from_document(document)
+
     def test_possession_is_each_sides_share_of_possession_time(self) -> None:
         self.assertEqual(self.match.detail.possession_percent("home"), 40)
         self.assertEqual(self.match.detail.possession_percent("away"), 60)

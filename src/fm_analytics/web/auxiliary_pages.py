@@ -405,38 +405,67 @@ class AuxiliaryPagesMixin:
             "<div class='set-piece-data-warning'><b>Incomplete role data</b>"
             "Assignments are provisional. Complete the Data page, then rebuild against a match XI.</div>"
         )
+        taker_recommendations = tuple(
+            item for item in report.recommendations
+            if item.task.key not in {"attacking_aerial_target", "defensive_aerial_target"}
+        )
+        actionable_takers = sum(
+            1 for item in taker_recommendations
+            if _set_piece_choice(report, item)[0] is not None
+        )
+        settings = (
+            "<details class='fm-set-piece-settings'><summary>Adjust plan settings</summary>"
+            "<p class='muted'>Change the match XI, delivery curve, or attacking commitment, then rebuild the plan.</p>"
+            + controls
+            + "</details>"
+        )
         body = (
-            "<div class='set-piece-hero'><span class='eyebrow'>"
+            "<section class='fm-set-piece-decision'><span class='eyebrow'>"
             + ("Match plan" if report.uses_match_xi else "Provisional plan")
             + "</span>"
-            f"<h2>{html.escape(report.lineup_name)}</h2><p>{html.escape(scope_note)}</p></div>"
-            + controls
-            + data_warning
-            + "<section aria-labelledby='match-day-assignments'><div class='set-piece-section-heading'>"
+            f"<h2>{html.escape(report.lineup_name)}</h2><p>{html.escape(scope_note)}</p>"
+            + "<div class='fm-set-piece-actions'><a class='button-link' href='#match-day-assignments'>"
+            "Review assignments</a><a class='button-link secondary' href='#routines'>Open routines</a></div></section>"
+            + "<section class='fm-decision-grid fm-set-piece-summary' aria-label='Set-piece plan summary'>"
+            "<article class='fm-decision-stat'><span>Plan scope</span><b>"
+            + ("Match XI" if report.uses_match_xi else "Squad-wide")
+            + "</b><small>"
+            + ("tactic-specific selections" if report.uses_match_xi else "provisional selections")
+            + "</small></article>"
+            "<article class='fm-decision-stat'><span>Final takers</span><b>"
+            f"{actionable_takers} / {len(taker_recommendations)}</b><small>roles with a named choice</small></article>"
+            "<article class='fm-decision-stat'><span>Routine templates</span><b>"
+            f"{len(report.routines)}</b><small>attacking and defensive situations</small></article></section>"
+            + ("<section class='fm-workspace-panel fm-set-piece-alerts'>" + data_warning
+               + "<details><summary>Plan checks and coverage</summary><ul class='fm-risk-list'>"
+               + coverage + "</ul>" + unavailable + "</details></section>")
+            + settings
+            + "<section class='fm-workspace-panel fm-set-piece-assignments-panel' aria-labelledby='match-day-assignments'><div class='fm-panel-heading'>"
             "<div><h2 id='match-day-assignments'>Match-day assignments</h2>"
-            "<p>These are the final choices to copy into FM.</p></div></div>"
+            "<p>These are the final choices to copy into FM.</p></div><span class='fm-panel-count'>"
+            f"{actionable_takers} named takers</span></div>"
             + _set_piece_assignment_cards(report)
-            + "<details class='taker-evidence'><summary>Why these takers? View specialist rankings and backups</summary>"
+            + "<details class='taker-evidence fm-set-piece-evidence'><summary>Why these takers? View specialist rankings and backups</summary>"
             "<p class='muted'>Routine takers are chosen with the whole routine in mind. The rankings below show the underlying specialists and alternatives.</p>"
             "<div class='table-scroll'><table><thead><tr><th scope='col'>Assignment</th>"
             "<th scope='col'>Final choice</th><th scope='col'>Set-piece attribute score</th>"
             "<th scope='col'>Evidence</th><th scope='col'>Side fit</th><th scope='col'>Alternatives</th>"
             "</tr></thead><tbody>" + "".join(summary_rows) + "</tbody></table></div>"
             + "".join(details) + "</details></section>"
-            + "<section aria-labelledby='routines'><div class='set-piece-section-heading'>"
+            + "<section class='fm-workspace-panel fm-routine-panel' aria-labelledby='routines'><div class='fm-panel-heading'>"
             "<div><h2 id='routines'>Routines</h2>"
             "<p>Select one situation to see the instructions to copy into FM.</p></div></div>"
             + _set_piece_routine_switcher(
                 report, selected_routine_key, routine_query, labels
             )
             + "</section>"
-            + "<details class='operating-notes'><summary>Evidence and operating notes</summary>"
+            + "<section class='fm-workspace-panel fm-set-piece-notes'><details class='operating-notes'><summary>Evidence and operating notes</summary>"
             "<ul class='legend'>" + coverage
             + "<li><b>Set-piece attribute score</b> is a transparent 0–100 comparison for this job, not a prediction of goals.</li>"
             "<li>Unknown values stay at the floor of the current ranking and widen its range; they never create false certainty.</li>"
             "<li>Condition and match fitness do not alter technique, but unavailable, injured, and suspended players are excluded.</li>"
             "<li>Copy the named instructions into FM, then adapt marking to the opponent's actual threats.</li></ul>"
-            + unavailable + "</details>"
+            + unavailable + "</details></section>"
         )
         self._send(_layout("Set pieces", path, body))  # type: ignore[attr-defined]
 

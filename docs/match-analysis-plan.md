@@ -86,7 +86,10 @@ both the page and `fm-matches review` use.
 - **No HTML import.**
 - **Roles come from FM's role code** for the position played. Eight codes
   were confirmed by the product owner on 29 September for Vertical 4-4-2's
-  roles. A new code is shown as an unconfirmed role, with a form to confirm
+  roles. On 30 September `0x80000000` was corrected from Deep-Lying Forward
+  (the catalogue's default for that slot, not what was played) to Pressing
+  Forward (Support), and tactic inference now accepts a slot's listed
+  alternative roles. A new code is shown as an unconfirmed role, with a form to confirm
   it once; it is never guessed.
 - **A match is identified by its date and both club IDs** (a club plays at
   most once a day) rather than by a generated ID.
@@ -100,13 +103,15 @@ both the page and `fm-matches review` use.
   "–" after 4 minutes and a rating after 13, and its exact cut-off lies in
   between, so the app may hide a rating FM shows but never shows one FM
   hides.
-- Goal type (open play, set piece) and shot zone are not read: the goal
-  descriptor bytes are not decoded.
+- Penalties and own goals are read (from each result's incidents, below), but
+  whether any other goal came from open play or a set piece, and the shot
+  zone, are not: the goal descriptor bytes are not decoded.
 - `+0x76` in the player record is **not captured**. It matched Jarra's one
   key header, but gave Hargreaves 1 where FM showed 0, so what it counts is
   unknown. Where visibility is uncertain, the value is treated as
   unavailable.
-- Cards have not been located.
+- Sendings-off are read from each result's incidents; yellow cards have not
+  been located.
 - It is not known whether a role code tells duties apart (Winger Support from
   Winger Attack). Codes are labelled with the role and duty they were
   confirmed as.
@@ -248,7 +253,7 @@ decodes directly (30 September 2026; see below). The product owner does
 nothing in FM: reading a file FM has already written is as safe as reading
 its memory. The archive covered all 19 competitive matches of the season on
 the first read. When a match is in memory too, the in-memory copy is used,
-because it also has the timeline (goal minutes).
+because it also has the timeline (assists and clear-cut chances by minute).
 
 ## Live-read reconnaissance (29 September 2026)
 
@@ -269,8 +274,22 @@ held in several copies. The known fields are:
 - attendance `+0x5c` (344), and apparently away fans `+0x60` (22);
 - home goals `+0x64` and away goals `+0x69`;
 - a result code `+0x78` (`09 09` for a draw); and
-- a pointer to the goal list `+0x70`, which is null for 0–0 matches and not
-  yet decoded.
+- a pointer `+0x70` to the match's incidents, null when there are none
+  (decoded 30 September 2026, below).
+
+**A result's incidents (goals and sendings-off), decoded 30 September 2026.**
+`+0x70` points to a vector of 8-byte entries in match order: player short ID
+`+0x00` (the scorer, or the player sent off), side `+0x04` (0 home, 1 away:
+the side a goal counts for, or the sent-off player's side), type `+0x05`,
+minute `+0x06` and added time `+0x07` (90+4 is minute 90, added time 4). Type
+0 is a goal, 1 an own goal (it counts for the other side and is not in the
+scorer's goals: Mason at Slough), 2 a penalty (Johnson v Oxford City, Kearney
+for Dulwich) and 3 a sending-off (Klukowski at Weymouth, Tomlinson at
+Billericay), confirmed by the manager in FM. Every one of Hungerford's 28
+results adds up to its score, and each scorer and side matches the 26 matches'
+player stats. Because every result has this, goal minutes cover the whole
+season, including matches with no stats; a capture keeps a match's incidents
+only when its goals add up to the score, and an unseen type fails the list.
 
 **Latest match detail: `GAME_MATCH_STATS`, 0xd0 bytes.** Its `+0x08` points to
 the match's result record. It holds:
@@ -446,13 +465,13 @@ The executable also names `MATCH_ANALYSIS_MATCH`, `PITCH_GOALS_AREAS`,
 process gave the same results, the same stats and a clean self-check), and
 the per-player figures were confirmed against FM's screens (see above).
 
-1. Parse the archive's shot entries. That gives goal minutes for archived
-   matches (so the goals-by-period chart covers the season) and shot
-   placement. Where a shot was taken from does not appear to be stored there.
+1. Parse the archive's shot entries for shot placement. (Goal minutes for
+   every match now come from each result's incidents.) Where a shot was taken
+   from does not appear to be stored there.
 2. Goal type (open play or set piece): decode the goal descriptor bytes. It
    needs ground truth, which FM's own goal descriptions in its archive may
    provide.
-3. Label the remaining team counters, and locate cards on a match with some.
+3. Label the remaining team counters, and locate yellow cards on a match with some.
 4. Find out whether role codes tell duties apart.
 
 ## Delivery steps

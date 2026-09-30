@@ -226,6 +226,20 @@ def _match(summary: MatchSummary, kind: str, codes: RoleCodes, catalogue: Footba
     }
     if summary.note:
         row["note"] = summary.note
+    goals = [incident for incident in match.incidents if incident.is_goal]
+    if goals:
+        row["goals"] = [
+            {"minute": goal.clock, "team": "us" if goal.side == summary.side else "them", "scorer": goal.player}
+            | ({"penalty": True} if goal.kind == "penalty" else {})
+            | ({"own_goal": True} if goal.kind == "own_goal" else {})
+            for goal in goals
+        ]
+    sent_off = [incident for incident in match.incidents if incident.kind == "sent_off"]
+    if sent_off:
+        row["sent_off"] = [
+            {"minute": item.clock, "team": "us" if item.side == summary.side else "them", "player": item.player}
+            for item in sent_off
+        ]
     if detail == "basic" or match.detail is None:
         return row
     side = summary.side
@@ -371,10 +385,10 @@ def _caveats(everything: MatchReview, competitive: MatchReview, bundle, as_of: d
     ]
     if len(everything.matches) > detailed:
         caveats.append(f"{len(everything.matches) - detailed} match(es) have the result only, no stats.")
-    if competitive.goals.timed_matches < detailed:
+    if competitive.goals.timed_matches < len(competitive.matches):
         caveats.append(
-            f"Goal minutes exist for {competitive.goals.timed_matches} competitive match(es) only; "
-            "goals.by_period covers just those."
+            f"Goal minutes exist for {competitive.goals.timed_matches} of {len(competitive.matches)} "
+            "competitive matches; goals.by_period covers just those. Run `fm-matches capture` to fill them in."
         )
     if everything.unconfirmed_roles:
         caveats.append(
@@ -423,7 +437,7 @@ def export_document(
                 "with_full_stats": sum(1 for summary in everything.matches if summary.match.detail is not None),
                 "competitive": len(competitive.matches),
                 "league": len(league.matches),
-                "with_goal_timeline": goals.timed_matches,
+                "with_goal_times": goals.timed_matches,
             },
             "squad": (
                 "left out (basic)" if detail == "basic"
@@ -452,6 +466,9 @@ def export_document(
                 "matches_with_goal_minutes": goals.timed_matches,
                 "periods": list(goals.periods), "scored": list(goals.scored), "conceded": list(goals.conceded),
             },
+            "penalties": {"for": goals.penalties_for, "against": goals.penalties_against},
+            "own_goals": {"for": goals.own_goals_for, "against": goals.own_goals_against},
+            "sent_off": {"ours": goals.sent_off_ours, "theirs": goals.sent_off_theirs},
         },
         "roles": [
             {

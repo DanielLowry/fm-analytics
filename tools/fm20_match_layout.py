@@ -37,7 +37,24 @@ RESULT_DATE = 0x4C
 RESULT_ATTENDANCE = 0x5C
 RESULT_HOME_GOALS = 0x64
 RESULT_AWAY_GOALS = 0x69
+RESULT_INCIDENTS = 0x70  # vector of INCIDENT_SIZE entries; a null pointer when there are none
 RESULT_OUTCOME = 0x78  # two bytes; both zero until the match is played
+
+# A result's incidents (goals and sendings-off), in match order. Checked on 30
+# September 2026 against all 28 of Hungerford's results that season (each
+# score adds up), the 26 matches with player stats (each scorer, his side and
+# his goals), and the manager's reading of FM for the penalties and red cards.
+INCIDENT_SIZE = 8
+INCIDENT_PLAYER = 0x00  # u32 short ID (person +0x08): the scorer, or the player sent off
+INCIDENT_SIDE = 0x04  # 0 home, 1 away: the side a goal counts for, or the side of the player sent off
+INCIDENT_TYPE = 0x05
+INCIDENT_MINUTE = 0x06
+INCIDENT_ADDED_TIME = 0x07  # 90+4 is minute 90, added time 4
+# An own goal counts for the other side and is not in the scorer's own goals
+# (Mason at Slough). Penalties: Johnson v Oxford City, Kearney for Dulwich.
+# Sendings-off: Klukowski at Weymouth, Tomlinson at Billericay.
+INCIDENT_KINDS = {0: "goal", 1: "own_goal", 2: "penalty", 3: "sent_off"}
+GOAL_KINDS = frozenset({"goal", "own_goal", "penalty"})
 
 # db::FIXTURE_NAME -> db::COMP, whose names are plain FM strings.
 FIXTURE_NAME_ID = 0x08
@@ -144,6 +161,7 @@ def decode_fixture_result(record: bytes) -> dict[str, Any]:
         "attendance": struct.unpack_from("<I", record, RESULT_ATTENDANCE)[0],
         "home_goals": record[RESULT_HOME_GOALS],
         "away_goals": record[RESULT_AWAY_GOALS],
+        "incidents_vector": pointer(record, RESULT_INCIDENTS),
         # Scheduled copies of a fixture carry 0-0 and no outcome.
         "played": record[RESULT_OUTCOME] != 0 or record[RESULT_OUTCOME + 1] != 0,
     }
@@ -217,6 +235,40 @@ def detail_problems(detail: dict[str, Any], home_goals: int, away_goals: int) ->
         for player in players:
             if player["rating"] is not None and not 1 <= player["rating"] <= 10:
                 problems.append(f"{side} player {player['short_id']} has rating {player['rating']}")
+    return problems
+
+
+def decode_incidents(raw: bytes) -> list[dict[str, Any]]:
+    """A result's incidents, as read from its incident vector."""
+    incidents = []
+    for offset in range(0, len(raw) - len(raw) % INCIDENT_SIZE, INCIDENT_SIZE):
+        code = raw[offset + INCIDENT_TYPE]
+        incidents.append({
+            "minute": raw[offset + INCIDENT_MINUTE],
+            "addedTime": raw[offset + INCIDENT_ADDED_TIME],
+            "side": "home" if raw[offset + INCIDENT_SIDE] == 0 else "away",
+            "kind": INCIDENT_KINDS.get(code, "unknown"),
+            "code": code,
+            "playerShortId": struct.unpack_from("<I", raw, offset + INCIDENT_PLAYER)[0],
+        })
+    return incidents
+
+
+def incident_problems(incidents: list[dict[str, Any]], home_goals: int, away_goals: int) -> list[str]:
+    """Why a result's incidents do not add up to its score, or nothing if they do.
+
+    An incident type never seen before fails the whole list rather than being
+    guessed at, since it might be a goal the score depends on.
+    """
+    problems = []
+    if any(incident["kind"] == "unknown" for incident in incidents):
+        problems.append("an incident has a type never seen before")
+    for side, score in (("home", home_goals), ("away", away_goals)):
+        counted = sum(1 for item in incidents if item["side"] == side and item["kind"] in GOAL_KINDS)
+        if counted != score:
+            problems.append(f"{side} has {counted} goals listed, the score {score}")
+    if any(not 1 <= incident["minute"] <= 130 for incident in incidents):
+        problems.append("an incident minute is outside a match")
     return problems
 
 

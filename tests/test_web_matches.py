@@ -74,7 +74,7 @@ class MatchPageTests(MatchPagesCase):
         self.assertIn("Hungerford Town 2–1 Alpha", body)
         self.assertIn("1 of 4", body)
         self.assertIn("Home 11", body)
-        self.assertIn("Deep-Lying Forward (Support)", body)
+        self.assertIn("Pressing Forward (Support)", body)
         self.assertIn("From the roles in the line-up this looks like", body)
         self.assertIn("Minutes", body)
         self.assertIn("action='/matches/note'", body)

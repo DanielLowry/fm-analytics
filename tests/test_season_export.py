@@ -102,6 +102,29 @@ class DetailLevelTests(HistoryCase):
         self.assertEqual(match["our_players"][10]["stats"], {"shots": 5, "goals": 1, "clear_cut_chances": 2})
         self.assertEqual([event["minute"] for event in match["timeline"] if event["event"] == "goal"], [12, 50, 93])
 
+    def test_every_level_lists_each_matchs_goals_and_red_cards_from_our_side(self) -> None:
+        matches = season()
+        matches[-1]["incidents"] = [
+            {"minute": 12, "side": "home", "kind": "goal", "playerShortId": 1, "player": "Home 10"},
+            {"minute": 50, "side": "away", "kind": "penalty", "playerShortId": 2, "player": "Away 11"},
+            {"minute": 70, "side": "away", "kind": "sent_off", "playerShortId": 3, "player": "Away 4"},
+            {"minute": 90, "addedTime": 3, "side": "home", "kind": "own_goal", "playerShortId": 4, "player": "Away 2"},
+        ]
+        self.capture.write_text(json.dumps(capture_document(matches)), encoding="utf-8")
+        record_capture_file(self.store, self.capture)
+        self.history = self.store.load_history("club:100")
+        document = self.export("basic")
+        match = self.detailed(document)
+        self.assertEqual(match["goals"], [
+            {"minute": "12", "team": "us", "scorer": "Home 10"},
+            {"minute": "50", "team": "them", "scorer": "Away 11", "penalty": True},
+            {"minute": "90+3", "team": "us", "scorer": "Away 2", "own_goal": True},
+        ])
+        self.assertEqual(match["sent_off"], [{"minute": "70", "team": "them", "player": "Away 4"}])
+        goals = document["goals"]
+        self.assertEqual((goals["penalties"], goals["own_goals"], goals["sent_off"]),
+                         ({"for": 0, "against": 1}, {"for": 1, "against": 0}, {"ours": 0, "theirs": 1}))
+
     def test_an_unknown_level_is_refused(self) -> None:
         with self.assertRaisesRegex(ValueError, "basic, standard, verbose"):
             self.export("everything")

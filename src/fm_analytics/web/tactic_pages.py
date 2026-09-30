@@ -277,7 +277,7 @@ class TacticPagesMixin:
                 "</div>"
             )
             xi_rows.append(
-                "<tr>"
+                "<tr class='fm-xi-row'>"
                 f"<td>{html.escape(assignment.slot.key)}</td>"
                 f"<td>{html.escape(assignment.slot.position)}</td>"
                 f"<td>{html.escape(assignment.intrinsic_role_score.role_name)}</td>"
@@ -286,20 +286,22 @@ class TacticPagesMixin:
                 f"{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
                 f"<td><b>{_band(assignment.selection_score)}</b></td>"
                 "</tr>"
-                "<tr class='explanation-row'><td colspan='6'>"
+                "<tr class='explanation-row fm-xi-explanation'><td colspan='6'>"
+                "<div class='fm-slot-rationale'>"
                 + _slot_reasoning(
                     assignment.slot,
                     assignment.intrinsic_role_score.role_key,
                     assignment.intrinsic_role_score.role_name,
                 )
-                + f"<details><summary>Why {html.escape(assignment.player_name)}?</summary>"
+                + "</div>"
+                + f"<details class='fm-selection-details'><summary>Why {html.escape(assignment.player_name)}?</summary>"
                 f"{selection_path}{warnings}"
                 "<p class='muted'>Alternatives use this exact role; the other ten slots are "
                 "re-optimised for each comparison.</p>"
-                "<table><tr><th>Alternative</th><th>Role fit</th><th>In-position</th>"
+                "<div class='fm-alternative-table'><table><tr><th>Alternative</th><th>Role fit</th><th>In-position</th>"
                 "<th>Condition / sharpness</th><th>Today</th><th>Why not selected</th></tr>"
                 + alternatives
-                + "</table></details></td></tr>"
+                + "</table></div></details></td></tr>"
             )
         if evaluation.unfilled_slots:
             xi_rows.append(
@@ -396,38 +398,116 @@ class TacticPagesMixin:
                 + html.escape(opponent_shortfalls)
                 + ".</div>"
             )
-        body = (
-            f"<p><a href='{html.escape(tactics_href, quote=True)}'>← Back to tactics</a></p>"
+        risk_count = _injury_risk_count(bundle.squad_depth.per_tactic[tactic_key])
+        risk_items = []
+        if evaluation.unfilled_slots:
+            risk_items.append(
+                "<li><b>Line-up:</b> cannot fill "
+                + html.escape(", ".join(slot.key for slot in evaluation.unfilled_slots))
+                + ".</li>"
+            )
+        if risk_count:
+            risk_items.append(
+                f"<li><b>Cover:</b> {risk_count} starting slot"
+                f"{'s' if risk_count != 1 else ''} lack reliable replacement cover.</li>"
+            )
+        if structural_problems:
+            risk_items.append(
+                "<li><b>Tactic balance:</b> selected roles miss "
+                + html.escape(_tactical_shortfalls(structural_problems))
+                + ".</li>"
+            )
+        risk_summary = (
+            "<ul class='fm-risk-list'>" + "".join(risk_items) + "</ul>"
+            if risk_items
+            else "<p class='fm-risk-clear'>No immediate line-up, cover, or tactic-balance issue is flagged.</p>"
+        )
+        selected_count = len(evaluation.assignments)
+        total_slots = len(evaluation.tactic.slots)
+        line_up_note = (
+            "all slots selected"
+            if selected_count == total_slots
+            else "slots selected today"
+        )
+        balance_note = (
+            "all structural checks met"
+            if not structural_problems
+            else "structural check needs review"
+        )
+        recommendation_label = (
+            "Recommended today"
+            if bundle.recommendation.selected.tactic.key == tactic_key
+            else "Tactic review"
+        )
+        opponent_profile = (
+            f"<details class='fm-tactic-opponent'{' open' if active_axes else ''}>"
+            "<summary>Adjust opponent profile</summary>"
+            "<p class='muted'>Use a scout report to tune the match-up; the URL keeps these assumptions.</p>"
             + _opponent_controls(opponent, action=path)
-            + opponent_context
-            + "<section class='tactic-hero'>"
-            f"<span class='eyebrow'>{html.escape(evaluation.tactic.formation)}</span>"
+            + "</details>"
+        )
+        body = (
+            f"<p class='fm-tactic-back'><a href='{html.escape(tactics_href, quote=True)}'>← All tactics</a></p>"
+            + "<section class='fm-tactic-decision'>"
+            "<div class='fm-tactic-decision-heading'>"
+            f"<span class='eyebrow'>{recommendation_label} · {html.escape(evaluation.tactic.formation)}</span>"
             f"<h2>{html.escape(evaluation.tactic.name)}</h2>"
-            f"<p class='tactic-headline'>{html.escape(issue)}</p></section>"
+            f"<p class='tactic-headline'>{html.escape(issue)}</p></div>"
             + score_summary
+            + opponent_context
+            + "<div class='fm-tactic-actions'>"
+            "<a class='button-link' href='#starting-xi'>Review starting XI</a>"
+            "<a class='button-link secondary' href='#matchday-risks'>Check matchday risks</a>"
+            "</div></section>"
+            + "<section class='fm-decision-grid fm-tactic-summary' aria-label='Matchday summary'>"
+            "<article class='fm-decision-stat'><span>Starting XI</span>"
+            f"<b>{selected_count} / {total_slots}</b><small>{line_up_note}</small></article>"
+            "<article class='fm-decision-stat'><span>Bench plan</span>"
+            f"<b>{len(report.bench.entries)} / {bundle.policy.bench_size}</b><small>substitute places prioritised</small></article>"
+            "<article class='fm-decision-stat'><span>Tactic balance</span>"
+            f"<b>{evaluation.tactic_balance_multiplier * 100:.0f}%</b><small>{balance_note}</small></article>"
+            "</section>"
+            + "<section class='fm-workspace-panel fm-tactic-risks' id='matchday-risks'>"
+            "<div class='fm-panel-heading'><div><h2>Matchday risks</h2>"
+            "<p>Check these before committing to the line-up. Evidence and alternatives remain attached to each decision below.</p>"
+            "</div><span class='fm-panel-count'>"
+            + (f"{len(risk_items)} to review" if risk_items else "clear")
+            + "</span></div>"
+            + risk_summary
             + structural_warning
-            + score_breakdown
-            + in_possession_section(evaluation.tactic)
-            + rationale
-            + training
-            + "<h2>Starting XI</h2>"
-            "<p class='muted'>Best available XI for this tactic today. Open a player for "
-            "alternatives and the selection reasoning.</p>"
-            "<table><tr><th>Slot</th><th>Position</th><th>Role</th><th>Player</th>"
+            + "</section>"
+            + opponent_profile
+            + "<section class='fm-workspace-panel fm-starting-xi' id='starting-xi'>"
+            "<div class='fm-panel-heading'><div><h2>Starting XI</h2>"
+            "<p>Best available XI today. Expand a player to inspect role fit, readiness, and exact-role alternatives.</p>"
+            "</div><span class='fm-panel-count'>"
+            + f"{selected_count} selected</span></div>"
+            "<div class='fm-table-card'><table><tr><th>Slot</th><th>Position</th><th>Role</th><th>Player</th>"
             "<th>Condition / fitness</th><th>Today</th></tr>"
             + "".join(xi_rows)
-            + "</table>"
+            + "</table></div></section>"
             + bench_section
-            + "<h2>Substitution coverage</h2>"
-            "<details><summary>View cover for every position</summary>"
-            "<p class='muted'>Scores are for the exact replacement role, today.</p>"
-            "<div class='coverage-grid'>" + "".join(coverage_cards) + "</div></details>"
-            "<details class='score-guide'><summary>Score guide</summary>"
+            + "<section class='fm-workspace-panel fm-coverage-panel'>"
+            "<div class='fm-panel-heading'><div><h2>Substitution coverage</h2>"
+            "<p>Options are scored for the exact replacement role, today.</p>"
+            "</div><span class='fm-panel-count'>"
+            + f"{total_slots} positions</span></div>"
+            "<details class='fm-coverage-details'><summary>View cover for every position</summary>"
+            "<div class='coverage-grid'>" + "".join(coverage_cards) + "</div></details></section>"
+            + "<section class='fm-workspace-panel fm-tactic-evidence'>"
+            "<div class='fm-panel-heading'><div><h2>Tactical instructions and evidence</h2>"
+            "<p>Use this after the matchday choices are clear: it explains the score, shape, and FM settings.</p>"
+            "</div></div>"
+            + in_possession_section(evaluation.tactic)
+            + rationale
+            + (f"<div class='fm-tactic-training'>{training}</div>" if training else "")
+            + score_breakdown
+            + "<details class='score-guide'><summary>Score guide</summary>"
             "<div class='score-guide-grid'>"
             "<article><b>Role fit</b><span>How well a player’s visible attributes suit the role.</span></article>"
             "<article><b>Position</b><span>Role fit adjusted for positional familiarity.</span></article>"
             "<article><b>Today</b><span>Position score adjusted for condition and match fitness.</span></article>"
-            "</div></details>"
+            "</div></details></section>"
         )
         self._send(_layout(evaluation.tactic.name, "/tactics", body))
 

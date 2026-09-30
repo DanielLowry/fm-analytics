@@ -7,7 +7,9 @@ role, so a code is mapped to a catalogue role key:
 
 * `CONFIRMED_ROLE_CODES` holds codes confirmed by the manager against FM's own
   tactics screen (29 September 2026, Vertical 4-4-2 in the Concord Rangers and
-  Hampton & Richmond matches);
+  Hampton & Richmond matches). `0x80000000` was first taken from the
+  catalogue's default role for that slot (Deep-Lying Forward); the manager
+  corrected it on 30 September to the Pressing Forward he actually plays;
 * codes the manager confirms later are stored in the match history and
   override these; and
 * any other code is shown as an unconfirmed role, never guessed.
@@ -33,7 +35,7 @@ CONFIRMED_ROLE_CODES: Mapping[int, str] = {
     0x80: "winger_ml_mr_support",
     0x800: "af_attack",
     0x10000: "b2b_support",
-    0x80000000: "dlf_support",
+    0x80000000: "pf_support",
 }
 
 
@@ -60,10 +62,12 @@ class RoleCodes:
         return self.catalogue.roles[key].name
 
     def infer_tactic(self, starters: Iterable[PlayerMatchStats]) -> str | None:
-        """The one catalogue tactic whose roles are exactly these eleven, if any.
+        """The one catalogue tactic these eleven roles fill, if any.
 
-        Uses each slot's own role, so a tactic is inferred only when the
-        line-up matches it role for role, and only when no other tactic does.
+        Each role must take a distinct slot that permits it: the slot's own
+        role or an alternative the tactic lists for it, as FM lets a manager
+        swap a Deep-Lying Forward for a Pressing Forward and keep the shape.
+        Nothing is inferred when more than one tactic fits.
         """
         roles = []
         for player in starters:
@@ -73,13 +77,31 @@ class RoleCodes:
             roles.append(key)
         if len(roles) != 11:
             return None
-        wanted = Counter(roles)
         matches = [
             tactic.key
             for tactic in self.catalogue.tactics.values()
-            if Counter(slot.role_key for slot in tactic.slots) == wanted
+            if _fills(self.catalogue, tactic, roles)
         ]
         return matches[0] if len(matches) == 1 else None
+
+
+def _fills(catalogue: FootballCatalogue, tactic, roles: list[str]) -> bool:
+    """Whether every role can take its own slot that permits it (a bipartite matching)."""
+    permitted = [set(catalogue.role_keys_for_slot(slot)) for slot in tactic.slots]
+    if len(permitted) != len(roles):
+        return False
+    holder: dict[int, int] = {}  # slot index -> role index
+
+    def place(role: int, tried: set[int]) -> bool:
+        for slot, allowed in enumerate(permitted):
+            if roles[role] in allowed and slot not in tried:
+                tried.add(slot)
+                if slot not in holder or place(holder[slot], tried):
+                    holder[slot] = role
+                    return True
+        return False
+
+    return all(place(role, set()) for role in range(len(roles)))
 
 
 @dataclass(frozen=True)

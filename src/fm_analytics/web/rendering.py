@@ -797,17 +797,35 @@ def _scouting_view(query: dict[str, list[str]]) -> str:
     return view if view in {"scouted", "all"} else "all"
 
 
+def _scouting_href(query: dict[str, list[str]], **updates: str | None) -> str:
+    """A `/scouting` URL built from the filters already in the address bar.
+
+    Every parameter the caller does not name is carried over untouched --
+    market, knowledge, visibility, the active tab, the row limit and the
+    multi-value ``fact.*`` filters alike -- so following a link never quietly
+    discards the manager's other filters. Naming a parameter replaces it,
+    which is how a link supplies the tactic, position or role it is about;
+    naming it ``None`` or ``""`` drops it, which is how a link clears the
+    filters it supersedes. Empty values are dropped either way.
+    """
+    params = {key: list(values) for key, values in query.items() if values}
+    for key, value in updates.items():
+        params.pop(key, None)
+        if value not in (None, ""):
+            params[key] = [str(value)]
+    return "/scouting?" + urlencode(
+        [(key, value) for key, values in params.items() for value in values]
+    )
+
+
 def _scouting_tab_nav(query: dict[str, list[str]]) -> str:
     """Switch tabs while keeping every other filter in the URL intact."""
     active = _scouting_view(query)
-    kept = {key: values for key, values in query.items() if key != "view" and values}
 
     def link(view: str, label: str) -> str:
-        params = dict(kept)
-        params["view"] = [view]
-        query_string = urlencode([(key, value) for key, values in params.items() for value in values])
         css_class = "tab-active" if view == active else "tab"
-        return f"<a class='{css_class}' href='/scouting?{query_string}'>{html.escape(label)}</a>"
+        href = _scouting_href(query, view=view)
+        return f"<a class='{css_class}' href='{href}'>{html.escape(label)}</a>"
 
     return (
         "<nav class='scouting-tabs'>"

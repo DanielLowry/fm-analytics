@@ -297,7 +297,7 @@ def review_filters(review: MatchReview, catalogue: FootballCatalogue, pinned: Se
         (key, catalogue.tactics[key].name) for key in tactic_keys if key in catalogue.tactics
     ] + [(NO_TACTIC, "Tactic not known")]
     return (
-        "<form class='filters' method='get' action='/matches'>"
+        "<form class='filters fm-match-filters' method='get' action='/matches'>"
         f"<label>Group opponents by{select('group', list(GROUPING_LABELS.items()), filters.grouping)}</label>"
         f"<label>Competitions{select('competitions', list(COMPETITION_SCOPE_LABELS.items()), filters.competitions)}</label>"
         f"<label>Venue{select('venue', [('', 'Home and away'), ('home', 'Home'), ('away', 'Away')], filters.venue)}</label>"
@@ -334,27 +334,85 @@ def review_body(
     overall = review.overall
     ppg = f"{overall.points_per_game:.2f}" if overall.points_per_game is not None else "–"
     detailed = sum(1 for s in review.matches if s.ours)
-    return (
-        capture
-        + "<p class='intro'>How your matches have played out against different kinds of opponent. "
+    sample_note = (
+        "enough matches to start comparing groups"
+        if overall.enough
+        else f"early season — groups need {MIN_GROUP_MATCHES} matches before they are reliable"
+    )
+
+    def panel(
+        title: str,
+        description: str,
+        content: str,
+        *,
+        panel_class: str = "",
+        panel_id: str = "",
+    ) -> str:
+        identifier = f" id='{panel_id}'" if panel_id else ""
+        return (
+            f"<section class='fm-workspace-panel fm-match-panel {panel_class}'{identifier}>"
+            "<div class='fm-panel-heading'><div>"
+            f"<h2>{title}</h2><p>{description}</p>"
+            "</div></div>"
+            + content
+            + "</section>"
+        )
+
+    season_intro = (
+        "How your matches have played out against different kinds of opponent. "
         f"<strong>{overall.matches}</strong> matches (W{overall.wins} D{overall.draws} L{overall.losses}, "
         f"{ppg} points a game); <strong>{detailed}</strong> with full stats. Figures are yours against theirs, "
-        f"per match. A group under {MIN_GROUP_MATCHES} matches is greyed out: too few to read anything into.</p>"
-        + review_filters(review, catalogue, pinned)
-        + f"<h2>Against different opposition</h2><p class='muted'>{_e(review.grouping_label)}.</p>"
-        + group_table(review.groups, review.matches, first_column="Opposition")
-        + "<h2>Your tactics against each kind of opponent</h2>"
-        "<p class='muted'>A tactic comes from your note on the match or, failing that, from the roles in the "
-        "line-up when they match exactly one tactic.</p>"
-        + tactic_grid(review)
-        + "<h2>Home and away</h2>"
-        + group_table(review.venues, review.matches, first_column="Venue")
-        + "<h2>Where goals come from</h2>" + goals_section(review)
-        + "<h2>Who creates and shoots</h2><p class='muted'>By the role each player was set to in the match, "
-        "including substitutes, from matches with full stats.</p>"
-        + roles_table(review)
-        + unconfirmed_roles_form(review, catalogue)
-        + "<h2>Matches</h2>" + matches_table(review.matches, catalogue)
+        f"per match. A group under {MIN_GROUP_MATCHES} matches is greyed out: too few to read anything into."
+    )
+    return (
+        "<section class='fm-match-review-hero'><span class='eyebrow'>Season review</span>"
+        "<h2>Your results, read in context</h2>"
+        f"<p>{season_intro}</p>"
+        "<div class='fm-match-review-actions'><a class='button-link' href='#match-list'>Browse matches</a>"
+        "<a class='button-link secondary' href='#review-filters'>Adjust review</a></div></section>"
+        "<section class='fm-decision-grid fm-match-summary' aria-label='Season summary'>"
+        "<article class='fm-decision-stat'><span>Record</span>"
+        f"<b>W{overall.wins} D{overall.draws} L{overall.losses}</b><small>{overall.matches} matches selected</small></article>"
+        "<article class='fm-decision-stat'><span>Points per game</span>"
+        f"<b>{ppg}</b><small>{sample_note}</small></article>"
+        "<article class='fm-decision-stat'><span>Evidence</span>"
+        f"<b>{detailed} / {overall.matches}</b><small>matches with full stats</small></article></section>"
+        "<section class='fm-workspace-panel fm-match-capture-panel'>" + capture + "</section>"
+        + "<section class='fm-workspace-panel fm-match-filter-panel' id='review-filters'><div class='fm-panel-heading'><div>"
+        "<h2>Review filters</h2><p>Choose the comparison that matters, then read results before drawing conclusions.</p>"
+        "</div></div>" + review_filters(review, catalogue, pinned) + "</section>"
+        + panel(
+            "Against different opposition",
+            _e(review.grouping_label) + ".",
+            group_table(review.groups, review.matches, first_column="Opposition"),
+            panel_class="fm-match-opposition",
+        )
+        + panel(
+            "Your tactics against each kind of opponent",
+            "A tactic comes from your note on the match or, failing that, from the roles in the line-up when they match exactly one tactic.",
+            tactic_grid(review),
+            panel_class="fm-match-tactics",
+        )
+        + panel(
+            "Home and away",
+            "The same selected matches, separated by venue.",
+            group_table(review.venues, review.matches, first_column="Venue"),
+        )
+        + panel("Where goals come from", "Timing and scorer information from the available match evidence.", goals_section(review), panel_class="fm-match-goals")
+        + panel(
+            "Who creates and shoots",
+            "By the role each player was set to in the match, including substitutes, from matches with full stats.",
+            roles_table(review),
+            panel_class="fm-match-roles",
+        )
+        + ("<section class='fm-workspace-panel fm-match-confirmations'>" + unconfirmed_roles_form(review, catalogue) + "</section>" if review.unconfirmed_roles else "")
+        + panel(
+            "Matches",
+            "Open a match to review its scoreline, stats, players, and manager note.",
+            matches_table(review.matches, catalogue),
+            panel_class="fm-match-list",
+            panel_id="match-list",
+        )
     )
 
 
@@ -447,17 +505,34 @@ def match_body(report: MatchReport, catalogue: FootballCatalogue, pinned: Sequen
     if match.attendance:
         context.append(f"Attendance {match.attendance:,}.")
     header = (
-        f"<p class='muted'>{match.date:%A %d %B %Y} · {_e(match.competition.name)} · {summary.venue}</p>"
-        f"<p class='intro'>{chip(summary.result)} {' '.join(context)}</p>"
+        "<section class='fm-match-detail-hero'><span class='eyebrow'>Match review</span>"
+        f"<p class='fm-match-detail-meta'>{match.date:%A %d %B %Y} · {_e(match.competition.name)} · {summary.venue}</p>"
+        f"<div class='fm-match-detail-result'>{chip(summary.result)}<p>{' '.join(context)}</p></div></section>"
     )
-    if match.detail is None:
-        return header + (
-            "<p class='warn'>Only the result was found for this match: FM's archive had no stats for it "
-            "that added up.</p>"
-            + note_form(report, catalogue, pinned, note)
+
+    def panel(title: str, description: str, content: str, *, panel_class: str = "") -> str:
+        return (
+            f"<section class='fm-workspace-panel fm-match-panel fm-match-detail-panel {panel_class}'>"
+            "<div class='fm-panel-heading'><div>"
+            f"<h2>{title}</h2>"
+            + (f"<p>{description}</p>" if description else "")
+            + "</div></div>"
+            + content
+            + "</section>"
         )
+
+    if match.detail is None:
+        return header + panel(
+            "Match evidence",
+            "The result is retained, but detailed match stats are not available for this fixture.",
+            "<p class='warn'>Only the result was found for this match: FM's archive had no stats for it "
+            "that added up.</p>",
+            panel_class="fm-match-evidence-gap",
+        ) + "<section class='fm-workspace-panel fm-match-notes-panel'>" + note_form(
+            report, catalogue, pinned, note
+        ) + "</section>"
     ours, theirs = summary.ours, summary.theirs
-    panel = "".join(
+    stat_rows = "".join(
         f"<tr><td>{_e(label)}</td><td>{versus(ours[key], theirs[key], percentage)}</td></tr>"
         for key, label, percentage in METRICS
     )
@@ -470,12 +545,14 @@ def match_body(report: MatchReport, catalogue: FootballCatalogue, pinned: Sequen
     other = "away" if summary.side == "home" else "home"
     return (
         header
-        + "<h2>Match stats</h2><p class='muted'>You, then them, as FM's match stats panel shows them.</p>"
-        f"<table style='max-width:34rem'><tbody>{panel}</tbody></table>"
-        + (f"<h2>Timeline</h2><ol>{timeline}</ol>" if timeline else "")
-        + "<h2>Your players</h2>" + _player_rows(report, summary.side)
-        + f"<h2>{_e(summary.opponent.name)}</h2>" + _player_rows(report, other)
-        + note_form(report, catalogue, pinned, note)
+        + "<section class='fm-workspace-panel fm-match-score-panel'><div class='fm-panel-heading'><div>"
+        "<h2>Match stats</h2><p>You, then them, as FM's match stats panel shows them.</p>"
+        "</div></div><div class='fm-table-card fm-match-stat-table'>"
+        f"<table><tbody>{stat_rows}</tbody></table></div></section>"
+        + (panel("Timeline", "Key goals and clear-cut chances recorded in the match timeline.", f"<ol class='fm-match-timeline'>{timeline}</ol>", panel_class="fm-match-timeline-panel") if timeline else "")
+        + panel("Your players", "Minutes, match contribution, and role for your side.", _player_rows(report, summary.side), panel_class="fm-match-players")
+        + panel(_e(summary.opponent.name), "Their recorded player statistics.", _player_rows(report, other), panel_class="fm-match-players")
+        + "<section class='fm-workspace-panel fm-match-notes-panel'>" + note_form(report, catalogue, pinned, note) + "</section>"
     )
 
 

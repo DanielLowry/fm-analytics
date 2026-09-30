@@ -158,6 +158,22 @@ def played_results(memory: Memory) -> dict[tuple, dict[str, Any]]:
     return results
 
 
+MAX_INCIDENTS = 40
+
+
+def read_incidents(memory: Memory, result: dict[str, Any]) -> list[dict[str, Any]] | None:
+    """A result's goals and sendings-off (empty when there were none), or None when unreadable."""
+    if not result["incidents_vector"]:
+        return []
+    try:
+        begin, end = layout.vector_bounds(memory.read(result["incidents_vector"], 0x10), 0)
+        if end < begin or end - begin > layout.INCIDENT_SIZE * MAX_INCIDENTS:
+            return None
+        return layout.decode_incidents(memory.read(begin, end - begin)) if end > begin else []
+    except (OSError, probe.ProbeError, struct.error):
+        return None
+
+
 def managed_squad(memory: Memory) -> list[dict]:
     """The managed first team, with the short ID match records use.
 
@@ -346,16 +362,38 @@ def build_capture(memory: Memory) -> dict[str, Any]:
                 player["name"] = known["name"] if known else None
             details[key] = detail
 
+    # Every result's goals and sendings-off, kept only when the goals add up to the score.
+    incidents: dict[tuple, list[dict[str, Any]]] = {}
+    for key, result in ours.items():
+        found = read_incidents(memory, result)
+        problems = (
+            ["could not be read"] if found is None
+            else layout.incident_problems(found, result["home_goals"], result["away_goals"])
+        )
+        if problems:
+            rejected.append({"date": key[0].isoformat(), "problems": [f"goals and red cards: {p}" for p in problems]})
+        else:
+            incidents[key] = found
+
     # Opposition players, and our own who have since left, are named by one scan.
+    known = {short_id: player["name"] for short_id, player in squad.items()}
+    known.update({
+        player["short_id"]: player["name"]
+        for detail in details.values() for player in detail["players"] if player["name"]
+    })
     unnamed = {player["short_id"] for detail in details.values() for player in detail["players"] if not player["name"]}
+    unnamed |= {item["playerShortId"] for found in incidents.values() for item in found} - set(known)
     names = player_names(memory, unnamed)
     for detail in details.values():
         for player in detail["players"]:
             if not player["name"]:
                 player["name"] = names.get(player["short_id"])
+    for found in incidents.values():
+        for item in found:
+            item["player"] = known.get(item["playerShortId"]) or names.get(item["playerShortId"])
 
     def match_json(key, result) -> dict[str, Any]:
-        return {
+        document = {
             "date": result["date"].isoformat(),
             "competition": competitions[result["fixture_name"]],
             "home": _team_json(clubs(result["home_team"]), result["home_team"]),
@@ -365,6 +403,9 @@ def build_capture(memory: Memory) -> dict[str, Any]:
             "attendance": result["attendance"],
             "detail": _detail_json(details.get(key)),
         }
+        if key in incidents:
+            document["incidents"] = incidents[key]
+        return document
 
     league_results = []
     for fixture_name, comp in competitions.items():
@@ -633,7 +674,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Captured {len(document['matches'])} matches ({detailed} with full stats) "
                   f"up to {document['gameDate']}.")
             for item in document["rejectedDetails"]:
-                print(f"Stats for {item['date']} did not add up and were left out: "
+                print(f"Part of {item['date']} did not add up and was left out: "
                       + "; ".join(item["problems"]))
         else:
             research(memory, args)

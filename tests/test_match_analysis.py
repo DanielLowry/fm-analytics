@@ -118,6 +118,15 @@ class ReviewTests(unittest.TestCase):
         unknown = review(ReviewFilters(tactic=NO_TACTIC))
         self.assertEqual(len(unknown.matches), 4)
 
+    def test_a_permitted_alternate_role_still_names_the_tactic_but_two_fits_name_none(self) -> None:
+        # Vertical 4-4-2 lists Pressing Forward as an alternative to its default Deep-Lying Forward.
+        self.assertEqual(MVP_CATALOGUE.tactics["vertical_442"].slots[-2].role_key, "dlf_support")
+        detailed = {s.match.key: s for s in review().matches}["2019-09-01:100:201"]
+        self.assertEqual(detailed.tactic_key, "vertical_442")
+        # With a Deep-Lying Forward the same eleven also fit Direct Counter 4-4-2.
+        both = review(confirmed={0x80000000: "dlf_support"})
+        self.assertIsNone({s.match.key: s for s in both.matches}["2019-09-01:100:201"].tactic_key)
+
     def test_venue_and_rating_filters(self) -> None:
         self.assertEqual({s.side for s in review(ReviewFilters(venue="away")).matches}, {"away"})
         rated = review(ReviewFilters(grouping="rating"), notes={"2019-08-10:202:100": Note(opponent_rating=2)})
@@ -128,11 +137,31 @@ class ReviewTests(unittest.TestCase):
         goals = review().goals
         self.assertEqual(dict(zip(goals.periods, goals.scored)), {"1-15": 1, "16-30": 0, "31-45": 0, "46-60": 0, "61-75": 0, "76-90": 0, "90+": 1})
         self.assertEqual(sum(goals.conceded), 1)
-        self.assertEqual(dict(goals.scorers), {"Deep-Lying Forward (Support)": 1, "Advanced Forward (Attack)": 1})
+        self.assertEqual(dict(goals.scorers), {"Pressing Forward (Support)": 1, "Advanced Forward (Attack)": 1})
         self.assertEqual(dict(goals.assisters), {"Winger (Support) [ML/MR]": 2})
         self.assertEqual(dict(goals.conceded_to), {"Advanced Forward (Attack)": 1})
         self.assertEqual((goals.goals_for_covered, goals.goals_for_total), (2, 4))
-        self.assertEqual((goals.timed_matches, goals.timed_goals_for, goals.timed_goals_against), (1, 2, 1))
+        # The timeline times the 2-1; the 0-0 has no goals to time.
+        self.assertEqual((goals.timed_matches, goals.timed_goals_for, goals.timed_goals_against), (2, 2, 1))
+
+    def test_a_results_incidents_time_its_goals_and_count_penalties_own_goals_and_red_cards(self) -> None:
+        matches = season()
+        # Bravo 2-0 us, a result with no stats: a penalty in first-half added time,
+        # an own goal in second-half added time, and one of ours sent off.
+        matches[2]["incidents"] = [
+            {"minute": 45, "addedTime": 2, "side": "home", "kind": "penalty", "playerShortId": 1},
+            {"minute": 60, "side": "away", "kind": "sent_off", "playerShortId": 2, "player": "Home 5"},
+            {"minute": 90, "addedTime": 3, "side": "home", "kind": "own_goal", "playerShortId": 3},
+        ]
+        goals = review(matches=matches).goals
+        conceded = dict(zip(goals.periods, goals.conceded))
+        self.assertEqual((conceded["31-45"], conceded["90+"]), (1, 1))
+        self.assertEqual((goals.timed_matches, goals.timed_goals_against), (3, 3))
+        self.assertEqual((goals.penalties_against, goals.own_goals_against, goals.sent_off_ours), (1, 1, 1))
+        self.assertEqual((goals.penalties_for, goals.own_goals_for, goals.sent_off_theirs), (0, 0, 0))
+        # Incidents that do not account for the whole score time nothing.
+        matches[2]["incidents"] = matches[2]["incidents"][:1]
+        self.assertEqual(review(matches=matches).goals.timed_matches, 2)
 
     def test_unknown_role_codes_are_named_as_unconfirmed_not_guessed(self) -> None:
         matches = season()

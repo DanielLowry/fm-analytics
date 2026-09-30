@@ -37,11 +37,13 @@ from fm_analytics.analytics import (
     sort_scouting_assessments,
 )
 from fm_analytics.persistence import Verdict
+from fm_analytics.reporting import weakest_slots
 from fm_analytics.web.scouting_script import _SCOUTING_LIVE_FILTER_SCRIPT
 from fm_analytics.web.scouting_render import (
     ranking_results,
     role_results,
     tactic_ranking_results,
+    weakest_slots_panel,
 )
 from fm_analytics.web.scouting_report import (
     player_scouting_report,
@@ -95,6 +97,7 @@ class ScoutingPagesMixin:
             + _knowledge_notice(self.server.knowledge_note)  # type: ignore[attr-defined]
             + _scouting_refresh_panel(filters.scouted_only)
             + "</section>"
+            + self._weak_slots_block(query)
             + self._scouting_filters_form(
                 filters, candidates, self.server.pinned_tactics, limit,  # type: ignore[attr-defined]
                 show_rejected=_show_rejected(query),
@@ -109,6 +112,25 @@ class ScoutingPagesMixin:
             + "</div>"
             + _SCOUTING_LIVE_FILTER_SCRIPT
         )
+
+    def _weak_slots_block(self, query: dict[str, list[str]]) -> str:
+        """The **Weakest slots** header: the prepared rows, or a calm empty state.
+
+        The weakness reports were computed when the bundle was built; this
+        only asks ``reporting`` which of them the manager should act on, so
+        the block can never disagree with ``/depth`` about where a tactic is
+        weak, and it selects nothing of its own. A squad that cannot be
+        analysed yet keeps the block in place with a sentence saying why
+        rather than losing it, so the page's shape does not depend on how
+        complete the squad is.
+        """
+        try:
+            rows = weakest_slots(self.server.bundle())  # type: ignore[attr-defined]
+        except (OSError, RuntimeError, ValueError, KeyError) as exc:
+            return weakest_slots_panel(
+                (), query, note=f"Weakest slots need a complete current squad: {exc}"
+            )
+        return weakest_slots_panel(rows, query)
 
     def _listed_candidates(self, query: dict[str, list[str]], candidates):
         """The pool the list shows: players the manager rejected are hidden.

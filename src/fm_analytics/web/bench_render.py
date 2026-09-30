@@ -54,14 +54,16 @@ def bench_priority_section(
         else ""
     )
     return (
-        "<h2>Matchday bench</h2>"
-        f"<p class='muted'>{len(bench.entries)} of {bench_size} substitute places selected "
-        "for this tactic. Take players from the top when fewer places are allowed: "
-        "the reserve goalkeeper comes first, then new positional coverage, then "
-        "playing quality.</p>"
+        "<section class='fm-workspace-panel fm-bench-panel' id='matchday-bench'>"
+        "<div class='fm-panel-heading'><div><h2>Matchday bench</h2>"
+        f"<p>{len(bench.entries)} of {bench_size} substitute places selected for this tactic. "
+        "Take players from the top when fewer places are allowed: the reserve goalkeeper "
+        "comes first, then new positional coverage, then playing quality.</p>"
+        "</div><span class='fm-panel-count'>"
+        f"{len(bench.entries)} selected</span></div>"
         + warning
-        + "<table><tr><th>Priority</th><th>Substitute</th><th>Why this priority</th>"
+        + "<div class='fm-table-card'><table><tr><th>Priority</th><th>Substitute</th><th>Why this priority</th>"
         "<th>Best use</th><th>All slots covered</th></tr>"
         + rows_html
-        + "</table>"
+        + "</table></div></section>"
     )

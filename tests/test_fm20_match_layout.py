@@ -37,6 +37,34 @@ class FixtureResultTests(unittest.TestCase):
         self.assertIsNone(layout.decode_fm_date(struct.pack("<HH", 0, 2019)))
 
 
+# Concord Rangers 2-2 Hungerford Town as FM holds it (30 September 2026), plus a
+# made-up sending-off: 18' away, which does not count in the score.
+CONCORD = bytes.fromhex(
+    "db90010001001300" "857d010000003f00" "ad70010001004200" "258601000000 5a01".replace(" ", "")
+    + "c49d010001031200"
+)
+
+
+class IncidentTests(unittest.TestCase):
+    def test_goals_and_a_sending_off_decode_in_match_order(self) -> None:
+        incidents = layout.decode_incidents(CONCORD)
+        self.assertEqual(
+            [(i["minute"], i["addedTime"], i["side"], i["kind"]) for i in incidents],
+            [(19, 0, "away", "goal"), (63, 0, "home", "goal"), (66, 0, "away", "goal"),
+             (90, 1, "home", "goal"), (18, 0, "away", "sent_off")],
+        )
+        self.assertEqual(incidents[0]["playerShortId"], 102619)
+        self.assertEqual(layout.incident_problems(incidents, 2, 2), [])
+
+    def test_a_list_that_does_not_add_up_or_has_a_new_type_is_reported(self) -> None:
+        incidents = layout.decode_incidents(CONCORD)
+        self.assertEqual(layout.incident_problems(incidents, 3, 2), ["home has 2 goals listed, the score 3"])
+        unknown = bytearray(CONCORD)
+        unknown[layout.INCIDENT_TYPE] = 9
+        problems = layout.incident_problems(layout.decode_incidents(bytes(unknown)), 2, 2)
+        self.assertIn("an incident has a type never seen before", problems)
+
+
 class TeamBlockTests(unittest.TestCase):
     def test_the_panel_fields_decode_at_their_offsets(self) -> None:
         block = bytearray(layout.TEAM_BLOCK_SIZE)

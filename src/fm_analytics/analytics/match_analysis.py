@@ -29,7 +29,7 @@ from fm_analytics.analytics.match_strength import (
     Strength,
     StrengthCalculator,
 )
-from fm_analytics.domain.matches import Competition, LeagueResult, MatchRecord, TeamRef
+from fm_analytics.domain.matches import MATCH_MINUTES, Competition, LeagueResult, MatchRecord, TeamRef
 
 MIN_GROUP_MATCHES = 3
 COMPETITION_SCOPES = ("league", "competitive", "all")
@@ -197,11 +197,21 @@ class GoalBreakdown:
     goals_for_total: int
     goals_against_covered: int
     goals_against_total: int
-    # Goal minutes come from the match timeline, which only some full-stats
-    # matches have, so the period chart has its own, smaller coverage.
+    # Goal minutes come from each result's goals and sendings-off, which every
+    # match captured since 30 September 2026 has, else from the timeline of a
+    # match FM still held in memory; the period chart counts only matches whose
+    # every goal is timed.
     timed_matches: int = 0
     timed_goals_for: int = 0
     timed_goals_against: int = 0
+    # From the same incidents: penalties and own goals for and against, and
+    # players sent off on each side.
+    penalties_for: int = 0
+    penalties_against: int = 0
+    own_goals_for: int = 0
+    own_goals_against: int = 0
+    sent_off_ours: int = 0
+    sent_off_theirs: int = 0
 
 
 @dataclass(frozen=True)
@@ -291,28 +301,45 @@ def summarise_matches(
     return tuple(summaries)
 
 
+def _period(minute: int, added_time: int = 0) -> str:
+    """A goal's period; first-half added time stays in 31-45, second-half added time is 90+."""
+    if minute >= MATCH_MINUTES and added_time:
+        minute += added_time
+    return next(label for label, low, high in PERIODS if low <= minute <= high)
+
+
 def _goal_breakdown(summaries: Sequence[MatchSummary], codes: RoleCodes) -> GoalBreakdown:
     scored, conceded = Counter(), Counter()
     scorers, assisters, conceded_to = Counter(), Counter(), Counter()
+    incidents = Counter()
     covered_for = covered_against = 0
     timed = timed_for = timed_against = 0
     for summary in summaries:
-        detail = summary.match.detail
+        match, detail = summary.match, summary.match.detail
+        goals = [incident for incident in match.incidents if incident.is_goal]
+        events = [event for event in detail.events if event.kind == "goal"] if detail else []
+        if len(goals) == summary.goals_for + summary.goals_against:
+            timed_by = [(goal.side, _period(goal.minute, goal.added_time)) for goal in goals]
+        elif detail and (events or (detail.events and not summary.goals_for and not summary.goals_against)):
+            timed_by = [(event.side, _period(event.minute)) for event in events]
+        else:
+            timed_by = None
+        if timed_by is not None:
+            timed += 1
+            timed_for += summary.goals_for
+            timed_against += summary.goals_against
+            for side, period in timed_by:
+                (scored if side == summary.side else conceded)[period] += 1
+        for incident in match.incidents:
+            ours = incident.side == summary.side
+            if incident.kind in ("penalty", "own_goal"):
+                incidents[f"{incident.kind}_{'for' if ours else 'against'}"] += 1
+            elif incident.kind == "sent_off":
+                incidents["sent_off_ours" if ours else "sent_off_theirs"] += 1
         if detail is None:
             continue
         covered_for += summary.goals_for
         covered_against += summary.goals_against
-        if any(event.kind == "goal" for event in detail.events) or (
-            detail.events and not summary.goals_for and not summary.goals_against
-        ):
-            timed += 1
-            timed_for += summary.goals_for
-            timed_against += summary.goals_against
-        for event in detail.events:
-            if event.kind != "goal":
-                continue
-            period = next(label for label, low, high in PERIODS if low <= event.minute <= high)
-            (scored if event.side == summary.side else conceded)[period] += 1
         for player in detail.players:
             if player.side == summary.side:
                 if player.stat("goals"):
@@ -336,6 +363,12 @@ def _goal_breakdown(summaries: Sequence[MatchSummary], codes: RoleCodes) -> Goal
         timed_matches=timed,
         timed_goals_for=timed_for,
         timed_goals_against=timed_against,
+        penalties_for=incidents["penalty_for"],
+        penalties_against=incidents["penalty_against"],
+        own_goals_for=incidents["own_goal_for"],
+        own_goals_against=incidents["own_goal_against"],
+        sent_off_ours=incidents["sent_off_ours"],
+        sent_off_theirs=incidents["sent_off_theirs"],
     )
 
 

@@ -255,6 +255,15 @@ class SquadWebHandler(
             if risk_items
             else "<p>There are no persistent depth risks in the tactics currently being planned.</p>"
         )
+        pinned_panel = (
+            "<section class='fm-card fm-command-card'><h2>My tactics</h2>"
+            f"<p><b>{html.escape(pinned_names[0])}</b> is your primary tactic.</p>"
+            "<p class='mt-3'>"
+            + html.escape(", ".join(pinned_names[1:]) or "No additional tactics pinned")
+            + "</p><a class='fm-command-action' href='/tactics'>Review my tactics</a></section>"
+            if pinned_names
+            else ""
+        )
         diagnostic = (
             f"<p class='error'>{html.escape(bundle_error)}</p>" if bundle_error else ""
         )
@@ -271,6 +280,7 @@ class SquadWebHandler(
             "<section class='fm-card fm-command-card'><h2>Depth watchlist</h2>"
             + risks
             + "<a class='fm-command-action' href='/depth'>Review squad depth</a></section>"
+            + pinned_panel
             "</div>"
             + diagnostic
             + "<p class='muted'>Squad, Roles, Tactics, and Depth need complete role-scoring attributes; "

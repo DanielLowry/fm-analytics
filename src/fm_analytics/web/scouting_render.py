@@ -32,6 +32,7 @@ from fm_analytics.web.rendering import (
     role_score_cells,
     _MAX_SCOUTING_ROWS,
     _label,
+    _scouting_href,
     _scouting_knowledge_cell,
 )
 
@@ -228,6 +229,68 @@ def no_results(heading: str, *, pool_size: int, scouted_only: bool) -> str:
             )
         )
     return f"<h2>{heading}</h2><p class='muted'>{reason}</p>"
+
+
+_CONCERN_LABELS = {"starter": "Starter", "cover": "Cover"}
+
+_EMPTY_WEAK_SLOT_NOTE = "No weak slots in the tactics in play right now."
+
+
+def weakest_slots_panel(rows, query: dict[str, list[str]], *, note: str | None = None) -> str:
+    """The **Weakest slots** navigation block at the top of ``/scouting``.
+
+    ``rows`` is the prepared ``reporting.weakest_slots`` result -- which slots
+    need help and why -- so nothing here decides or re-scores a weakness. Each
+    row is one link to the candidate list for that tactic, position and role,
+    with the concern spelled out in words next to it rather than left to a
+    colour. With no rows the block stays in place and says why in ``note``:
+    the manager should see that the answer is "nothing is weak", not that the
+    panel failed to load.
+    """
+    heading = (
+        "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div>"
+        "<h2>Weakest slots</h2>"
+        "<p>Where the tactics in play need help. Each link opens the candidates "
+        "for that tactic, position and role.</p></div>"
+    )
+    if not rows:
+        return heading + f"</div><p class='muted'>{html.escape(note or _EMPTY_WEAK_SLOT_NOTE)}</p></section>"
+
+    items: list[str] = []
+    for row in rows:
+        where = (
+            row.slot_key
+            if row.slot_key == row.position
+            else f"{row.slot_key} ({row.position})"
+        )
+        # The link supplies the table's tactic, position and role, so it also
+        # owns the sort and the name search: carrying those over would either
+        # order a different table or search for somebody else entirely.
+        href = _scouting_href(
+            query,
+            tactic=row.tactic_key,
+            position=row.position,
+            role=row.role_key,
+            name=None,
+            sort=None,
+            dir=None,
+        )
+        concern = _CONCERN_LABELS.get(row.concern, row.concern)
+        items.append(
+            "<li>"
+            f"<a href='{html.escape(href, quote=True)}'>"
+            f"{html.escape(row.tactic_name)} · {html.escape(where)} · "
+            f"{html.escape(row.role_name)}</a>"
+            f"<span class='muted'> — {html.escape(concern)} concern: "
+            f"{html.escape(row.message)}</span>"
+            "</li>"
+        )
+    return (
+        heading
+        + f"<span class='fm-panel-count'>{len(rows)} slot(s)</span></div>"
+        + f"<ul class='fm-risk-list'>{''.join(items)}</ul>"
+        + "</section>"
+    )
 
 
 _SHOW_MORE_STEP = 100
