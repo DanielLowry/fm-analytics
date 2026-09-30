@@ -295,7 +295,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     history,
                     detail=args.detail,
                     bundle=read_live_bundle(pinned) if wants_squad else None,
-                    squad_note="left out (basic)" if args.detail == "basic" else "left out (--squad none)",
+                    squad_note="left out (--squad none)",
                 )
                 text = json.dumps(document, indent=2, ensure_ascii=False) + "\n"
                 if str(args.output) == "-":

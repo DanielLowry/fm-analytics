@@ -426,10 +426,11 @@ def export_document(
                 "with_goal_timeline": goals.timed_matches,
             },
             "squad": (
-                f"read at game date {bundle.game.game_date.isoformat()}" if bundle is not None
+                "left out (basic)" if detail == "basic"
+                else f"read at game date {bundle.game.game_date.isoformat()}" if bundle is not None
                 else squad_note or "not included"
             ),
-            "caveats": _caveats(everything, competitive, bundle, as_of),
+            "caveats": _caveats(everything, competitive, bundle if detail != "basic" else None, as_of),
         },
         "season": _season(history, everything, competitive, league, as_of),
         "review": {

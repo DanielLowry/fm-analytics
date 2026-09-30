@@ -39,7 +39,8 @@ on a page and a number printed by the CLI must be the same number, computed
 the same way. Add or reuse a reporting helper rather than recomputing
 analytics inside a handler. The match review follows the same rule:
 `reporting.build_match_review` is the one computation behind both
-`fm-matches review` and the Matches page.
+`fm-matches review` and the Matches page, and `reporting.build_season_export`
+the one behind `fm-matches export` and the web's `/api/export`.
 
 ## Running things
 
@@ -48,6 +49,7 @@ uv run python -m unittest discover -s tests -v      # full test suite
 uv run fm-analytics --fixture src/fm_analytics/fixtures/sample-game.json --recommend
 uv run fm-web --fixture src/fm_analytics/fixtures/sample-game.json        # http://127.0.0.1:8766
 uv run fm-matches capture && uv run fm-matches review   # needs FM running; read-only
+uv run fm-matches export --detail basic|standard|verbose  # season JSON -> data/exports/
 ```
 
 No third-party packages are required for the core path (`frida` is an

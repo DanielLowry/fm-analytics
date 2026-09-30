@@ -121,7 +121,7 @@ class MatchPagesMixin:
                 return
         document = build_season_export(
             history, detail=detail, bundle=bundle,
-            squad_note="left out (basic)" if detail == "basic" else "left out (squad=none)",
+            squad_note="left out (squad=none)",
         )
         filename = export_path(history.club.name, document["meta"]["game_date"], detail).name
         self._send_json(document, filename=filename)  # type: ignore[attr-defined]

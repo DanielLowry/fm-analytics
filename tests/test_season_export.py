@@ -121,7 +121,9 @@ class SquadSectionTests(HistoryCase):
         ranking = document["recommendation"]["tactic_ranking"]
         self.assertEqual([row["rank"] for row in ranking][:10], list(range(1, 11)))
         self.assertEqual(ranking[-1]["tactic_key"], bundle_last)
-        self.assertEqual(len(document["recommendation"]["primary"]["xi"]), 11)
+        primary = document["recommendation"]["primary"]
+        self.assertEqual(primary["tactic_key"], bundle_last)  # the first pin is the primary, not the top
+        self.assertEqual(len(primary["xi"]), len(bundle.primary.assignments))
         self.assertEqual(document["meta"]["squad"], f"read at game date {bundle.game.game_date.isoformat()}")
 
     def test_verbose_has_every_attribute_and_the_whole_ranking(self) -> None:
@@ -132,7 +134,9 @@ class SquadSectionTests(HistoryCase):
         self.assertIn("recruitment_briefs", document["recommendation"])
 
     def test_basic_never_carries_the_squad(self) -> None:
-        self.assertNotIn("squad", self.export("basic", bundle=self.bundle()))
+        document = self.export("basic", bundle=self.bundle())
+        self.assertNotIn("squad", document)
+        self.assertEqual(document["meta"]["squad"], "left out (basic)")
 
 
 class PlayerSeasonTests(unittest.TestCase):
