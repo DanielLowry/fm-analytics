@@ -31,6 +31,7 @@ from fm_analytics.analytics import (
     default_descending,
     filter_position_rankings,
     filter_scouting_candidates,
+    filter_trial_priority_candidates,
     filter_tactic_assessments,
     rank_for_position,
     scouting_mode,
@@ -252,6 +253,7 @@ class ScoutingPagesMixin:
                         familiarity_policy=bundle.policy.familiarity,
                         opponent=bundle.policy.opponent,
                         include_raw_external_positions=include_raw_positions,
+                        weakness_report=bundle.squad_depth.per_tactic.get(tactic.key),
                     )
                     impact += "<div class='fm-player-impact-result'>" + tactic_player_impact(
                         assessments[0] if assessments else None,
@@ -386,7 +388,11 @@ class ScoutingPagesMixin:
                 + html.escape(str(exc))
                 + "</p>"
             )
-        pool = filter_scouting_candidates(candidates, filters)
+        pool = (
+            filter_trial_priority_candidates(candidates, filters)
+            if filters.ranking_sort == "trial_priority"
+            else filter_scouting_candidates(candidates, filters)
+        )
         tactic = MVP_CATALOGUE.tactics[filters.tactic_key]
         baseline = bundle.recommendation.by_tactic_key(filters.tactic_key)
         assessments = filter_tactic_assessments(
@@ -402,6 +408,7 @@ class ScoutingPagesMixin:
                 include_raw_external_positions=filters.include_raw_external_positions,
                 position=filters.position,
                 role_key=filters.role_key,
+                weakness_report=bundle.squad_depth.per_tactic.get(tactic.key),
             ),
             filters,
         )
@@ -425,6 +432,7 @@ class ScoutingPagesMixin:
                 limit=limit,
                 pool_size=len(candidates),
                 scouted_only=filters.scouted_only,
+                trial_priority=filters.ranking_sort == "trial_priority",
             )
         )
 

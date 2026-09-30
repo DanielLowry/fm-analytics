@@ -89,6 +89,39 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         self.assertIn("XI gain", player_body)
         self.assertIn("Starts", player_body)
 
+    def test_trial_priority_explains_its_rule_and_keeps_unscored_players_separate(self) -> None:
+        required = required_role_attributes()
+
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="ready", name="Ready Target", positions=("ST",),
+                    attributes={name: AttributeObservation(Visibility.KNOWN, value=20) for name in required},
+                    in_player_search=True, transfer_interest="yes", attributes_observed_at="2019-07-21",
+                ),
+                ScoutingCandidate(
+                    id="scout", name="Scout Target", positions=("ST",), attributes={},
+                    in_player_search=True, loan_interest="maybe", attributes_observed_at="2019-07-21",
+                ),
+                ScoutingCandidate(
+                    id="not-gettable", name="Not Gettable", positions=("ST",), attributes={},
+                    in_player_search=True, attributes_observed_at="2019-07-21",
+                ),
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            port = self._serve(write_complete_fixture(Path(directory)), scouting_provider)
+            status, body = self._get(port, "/scouting?tactic=balanced_442&sort=trial_priority")
+
+        self.assertEqual(status, 200)
+        self.assertIn("Trial priority", body)
+        self.assertIn("Median scenario", body)
+        self.assertIn("choosing whom to look at, never whom to sign", body)
+        self.assertIn("Ready Target", body)
+        self.assertIn("Scout first", body)
+        self.assertIn("Scout Target", body)
+        self.assertNotIn("Not Gettable", body)
+
     def test_scouting_results_fragment_matches_the_full_page_for_the_same_filters(self) -> None:
         """The live-filter endpoint must compute the same thing the full page does."""
         def scouting_provider():

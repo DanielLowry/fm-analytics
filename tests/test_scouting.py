@@ -8,6 +8,7 @@ from fm_analytics.analytics import (
     assess_scouting_candidates,
     available_fact_values,
     filter_scouting_candidates,
+    filter_trial_priority_candidates,
 )
 from fm_analytics.domain import AttributeObservation, Visibility
 
@@ -301,6 +302,18 @@ class ScoutingTests(unittest.TestCase):
             filter_scouting_candidates(candidates, ScoutingFilters(name_contains="nobody")),
             (),
         )
+
+    def test_trial_priority_keeps_only_current_candidates_with_a_visible_route(self) -> None:
+        candidates = [
+            candidate("interested", {}, in_player_search=True, transfer_interest="maybe"),
+            candidate("listed", {}, in_player_search=True, transfer_status="transfer_listed"),
+            candidate("not-in-search", {}, in_player_search=False, transfer_interest="yes"),
+            candidate("no-signal", {}, in_player_search=True),
+        ]
+
+        result = filter_trial_priority_candidates(candidates, ScoutingFilters())
+
+        self.assertEqual([item.id for item in result], ["interested", "listed"])
 
 
 if __name__ == "__main__":

@@ -363,6 +363,14 @@ def _tactic_columns(raw_positions: bool) -> list[_Column]:
         _Column("XI gain", "tactic_gain", lambda _r, item: (
             f"<td>{_three_gains(item.score_gain.floor, item.score_gain.estimate, item.score_gain.ceiling)}</td>"
         ), "The change to the best XI once the whole line-up is re-optimised."),
+        _Column("Trial priority", "trial_priority", lambda _r, item: (
+            f"<td>{item.trial_priority:.1f}</td>"
+            if item.trial_priority is not None else "<td>—</td>"
+        ), "Median player fit in a weak slot. It orders who to look at, never whom to sign."),
+        _Column("Median scenario", "player_median", lambda _r, item: (
+            f"<td>{item.player_median:.1f}</td>"
+        ), "A midpoint for ranges and unknowns; it is for choosing whom to look at, never whom to sign."),
+        _Column("Trial outlook", None, lambda _r, item: f"<td>{_trial_outlook(item)}</td>"),
         _Column("Outcome", None, lambda _r, item: f"<td>{_tactic_outcome(item)}</td>"),
     ]
     return columns + _tail_columns(_knowledge_cell)
@@ -378,6 +386,15 @@ def _tactic_outcome(item: TacticScoutingAssessment) -> str:
     )
 
 
+def _trial_outlook(item: TacticScoutingAssessment) -> str:
+    flags = []
+    if item.could_start:
+        flags.append("Could start")
+    if item.could_be_first_cover:
+        flags.append("Could be first cover")
+    return "<br>".join(flags) if flags else "No trial case yet"
+
+
 def tactic_ranking_results(
     assessments: Sequence[TacticScoutingAssessment],
     *,
@@ -390,12 +407,21 @@ def tactic_ranking_results(
     limit: int = _MAX_SCOUTING_ROWS,
     pool_size: int = 0,
     scouted_only: bool = False,
+    trial_priority: bool = False,
 ) -> str:
     """Render squad-relative candidate rankings for one selected tactic."""
     heading = f"Impact on {html.escape(tactic.name)}"
     if not assessments:
         return no_results(heading, pool_size=pool_size, scouted_only=scouted_only)
-    displayed = assessments[:limit]
+    scout_first = tuple(
+        item for item in assessments
+        if item.known_attributes + item.ranged_attributes == 0
+    ) if trial_priority else ()
+    scored = tuple(
+        item for item in assessments
+        if item.known_attributes + item.ranged_attributes > 0
+    ) if trial_priority else assessments
+    displayed = scored[:limit]
     explanation = (
         f"<p>Current score: <b>{baseline.score.central:.1f}</b>. Candidates are ranked by "
         "the change to the best XI after the whole line-up and permitted roles are "
@@ -405,15 +431,45 @@ def tactic_ranking_results(
         "available, fully fit and match fit; owned players retain today’s readiness. "
         "Floor / estimate / ceiling preserve scouting uncertainty, and the candidate "
         "may enter the XI only in the scenarios where he improves it.</p>"
+        "<p class='muted'><b>Median scenario</b> is for choosing whom to look at, never whom to sign. "
+        "Trial priority is shown only for a player with visible role attributes whose best job is a weak slot.</p>"
     )
+    scout_first_block = _trial_scout_first(scout_first) if trial_priority else ""
     return _results_view(
         heading, total=len(assessments), shown=len(displayed), limit=limit,
         sort_label=sort_label, descending=descending,
-        lead=f"Current tactic score <b>{baseline.score.central:.1f}</b>.",
-        explanation=explanation,
-        table=_sortable_table(
-            _tactic_columns(raw_positions), displayed, sort=sort, descending=descending
+        lead=(
+            f"Current tactic score <b>{baseline.score.central:.1f}</b>."
+            + (" Trial priority keeps your filters and additionally requires a current Player Search result "
+               "with a visible interest or gettable-market signal." if trial_priority else "")
         ),
+        explanation=explanation,
+        table=(
+            _sortable_table(_tactic_columns(raw_positions), displayed, sort=sort, descending=descending)
+            if displayed else "<p class='muted'>No scored trial candidates match these filters.</p>"
+        ) + scout_first_block,
+    )
+
+
+def _trial_scout_first(assessments: Sequence[TacticScoutingAssessment]) -> str:
+    """Unscored candidates, grouped under the job the tactic can inspect first."""
+    if not assessments:
+        return ""
+    groups: dict[str, list[TacticScoutingAssessment]] = {}
+    for item in assessments:
+        groups.setdefault(item.best_slot_key, []).append(item)
+    blocks = []
+    for slot_key, items in sorted(groups.items()):
+        names = ", ".join(
+            scouting_player_link(item.candidate)
+            for item in sorted(items, key=lambda value: (value.candidate.name.casefold(), value.candidate.id))
+        )
+        blocks.append(f"<li><b>{html.escape(slot_key)}</b>: {names}</li>")
+    return (
+        "<section class='fm-scout-first'><h3>Scout first</h3>"
+        "<p>These candidates have no visible role attributes, so no priority or score is claimed. "
+        "They are grouped by the weakest job the tactic can inspect first.</p>"
+        f"<ul>{''.join(blocks)}</ul></section>"
     )
 
 

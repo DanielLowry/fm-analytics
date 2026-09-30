@@ -49,6 +49,22 @@ def is_transfer_listed(candidate: "ScoutingCandidate") -> bool:
     return candidate.transfer_status in _LISTED_STATUSES
 
 
+def is_realistic_trial_candidate(candidate: "ScoutingCandidate") -> bool:
+    """Whether today's capture gives a concrete reason a trial is attainable."""
+    months = contract_months_left(candidate)
+    return bool(
+        candidate.in_current_feed
+        and candidate.in_player_search is True
+        and (
+            candidate.transfer_interest is not None
+            or candidate.loan_interest is not None
+            or is_free_agent(candidate)
+            or is_transfer_listed(candidate)
+            or (months is not None and months <= 6)
+        )
+    )
+
+
 def contract_months_left(candidate: "ScoutingCandidate") -> int | None:
     if candidate.contract_end is None or candidate.captured_game_date is None:
         return None
@@ -223,6 +239,7 @@ TACTIC_RANKING_SORTS = {
     "tactic_ceiling_gain": "XI gain (ceiling)",
     "tactic_score": "Projected tactic score",
     "tactic_fit": "Player fit in tactic",
+    "trial_priority": "Trial priority",
 }
 # With a role chosen the table is one role's targets, so "best role" and the
 # position-familiarity columns do not exist; "priority" is the scouting order
@@ -639,6 +656,16 @@ def filter_scouting_candidates(
             continue
         filtered.append(candidate)
     return tuple(sorted(filtered, key=lambda item: (item.name.casefold(), item.id)))
+
+
+def filter_trial_priority_candidates(
+    candidates: Sequence[ScoutingCandidate], filters: ScoutingFilters
+) -> tuple[ScoutingCandidate, ...]:
+    """Keep the user's filters, adding the trial view's realistic/gettable rule."""
+    return tuple(
+        item for item in filter_scouting_candidates(candidates, filters)
+        if is_realistic_trial_candidate(item)
+    )
 
 
 def available_fact_values(candidates: Sequence[ScoutingCandidate]) -> dict[str, tuple[str, ...]]:
