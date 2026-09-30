@@ -131,6 +131,61 @@ class SetPiecePageTests(unittest.TestCase):
         self.assertIn("Strongest visible inputs", body)
         self.assertIn("every player can fill only one job", body)
 
+    def test_defending_free_kick_uses_the_fm_instruction_names(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            port = self._serve(_complete_fixture(Path(directory)))
+            status, body = self._get(
+                port,
+                "/set-pieces?tactic=balanced_442&routine=defending_wide_free_kick",
+            )
+
+        self.assertEqual(status, 200)
+        for instruction in (
+            "Man mark",
+            "Go back",
+            "Edge of area",
+            "Wall",
+            "Stay forward",
+        ):
+            self.assertIn(instruction, body)
+        for old_instruction in (
+            "Mark near post",
+            "Mark far post",
+            "Mark tall player",
+            "Close down short",
+            "Mark edge of area",
+        ):
+            self.assertNotIn(old_instruction, body)
+        self.assertEqual(body.count("class='routine-assignment-note'"), 11)
+
+    def test_attacking_free_kick_uses_the_fm_instruction_names(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            port = self._serve(_complete_fixture(Path(directory)))
+            status, body = self._get(
+                port,
+                "/set-pieces?tactic=balanced_442&routine=attacking_wide_free_kick_left",
+            )
+
+        self.assertEqual(status, 200)
+        for instruction in (
+            "Stay back",
+            "Attack ball from edge",
+            "Stand with taker",
+            "Go forward",
+            "Attack near post",
+            "Attack far post",
+        ):
+            self.assertIn(instruction, body)
+        for old_instruction in (
+            "Stay back if needed",
+            "Attack ball from centre",
+            "Lurk outside area",
+            "Come short",
+            "Mark keeper",
+        ):
+            self.assertNotIn(old_instruction, body)
+        self.assertEqual(body.count("class='routine-assignment-note'"), 10)
+
     def test_complete_data_uses_the_selected_match_xi_and_risk(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             port = self._serve(_complete_fixture(Path(directory)))

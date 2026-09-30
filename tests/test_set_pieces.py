@@ -5,7 +5,9 @@ from pathlib import Path
 from fm_analytics.analytics import recommend_set_pieces
 from fm_analytics.analytics.set_piece_routines import (
     ATTACKING_CORNER_INSTRUCTIONS,
+    ATTACKING_FREE_KICK_INSTRUCTIONS,
     DEFENDING_CORNER_INSTRUCTIONS,
+    DEFENDING_FREE_KICK_INSTRUCTIONS,
     attacking_roles,
     defensive_roles,
 )
@@ -225,6 +227,42 @@ class SetPieceRecommendationTests(unittest.TestCase):
             outfield_instructions, DEFENDING_CORNER_INSTRUCTIONS
         )
         self.assertEqual(len(outfield_instructions), len(set(outfield_instructions)))
+
+    def test_attacking_free_kicks_use_only_fm_instructions(self) -> None:
+        allowed = set(ATTACKING_FREE_KICK_INSTRUCTIONS)
+        seen = set()
+        expected_cover = {"secure": 3, "balanced": 2, "aggressive": 1}
+
+        for risk in ("secure", "balanced", "aggressive"):
+            roles = attacking_roles("wide_free_kick", risk)
+            instructions = {
+                role.instruction for role in roles
+                if role.taker_task_key is None
+            }
+
+            self.assertEqual(len(roles), 10)
+            self.assertLessEqual(instructions, allowed)
+            self.assertEqual(
+                sum(role.instruction == "Stay back" for role in roles),
+                expected_cover[risk],
+            )
+            seen.update(instructions)
+
+        self.assertEqual(seen, allowed)
+
+    def test_defending_free_kicks_use_only_fm_instructions(self) -> None:
+        roles = defensive_roles("free_kick")
+        outfield_instructions = [
+            role.instruction for role in roles if not role.goalkeeper
+        ]
+
+        self.assertEqual(len(roles), 11)
+        self.assertEqual(set(outfield_instructions), set(DEFENDING_FREE_KICK_INSTRUCTIONS))
+        self.assertEqual(outfield_instructions.count("Wall"), 3)
+        self.assertEqual(outfield_instructions.count("Man mark"), 3)
+        self.assertEqual(outfield_instructions.count("Go back"), 2)
+        self.assertEqual(outfield_instructions.count("Edge of area"), 1)
+        self.assertEqual(outfield_instructions.count("Stay forward"), 1)
 
     def test_attacking_risk_changes_rest_defence_commitment(self) -> None:
         attributes = {

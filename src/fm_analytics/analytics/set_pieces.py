@@ -362,7 +362,7 @@ def _build_routines(
     routines = []
     for kind, title, objective in (
         ("corner", "Attacking corner", "Create separated first-contact, second-ball and transition responsibilities."),
-        ("wide_free_kick", "Attacking wide free kick", "Attack three delivery lanes without sacrificing the edge or counter cover."),
+        ("wide_free_kick", "Attacking wide free kick", "Attack the near post, far post and edge while retaining a second player over the ball and enough counter cover."),
     ):
         for side in ("left", "right"):
             routines.append(_optimise_routine(
@@ -389,11 +389,11 @@ def _build_routines(
         ),
         _optimise_routine(
             key="defending_wide_free_kick", name="Defending wide free kicks", phase="defending", side=None,
-            objective="Defend first contact, protect the second phase and keep a route out.",
+            objective="Protect the goal with a wall, track runners and keep one counter outlet.",
             roles=defensive_roles("free_kick"), players=players,
             recommendations=recommendations,
             lineup_positions=lineup_positions,
-            notes=("Use the same responsibilities from either side; mirror the near/far-post positions in FM.", "Do not use the quickest outlet as a post guard unless no credible aerial defender is available."),
+            notes=("Adjust the number of wall players in FM for the shooting angle and distance.", "Keep the edge-of-area player free to attack clearances; drop the outlet only when protecting a late lead."),
         ),
     ))
     return tuple(routines)
