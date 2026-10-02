@@ -38,6 +38,7 @@ from fm_analytics.web.rendering_content import (
     _tactical_shortfalls,
     _tactic_notes,
 )
+from fm_analytics.web.ui import cell_details
 from fm_analytics.web.rendering_styles import _STYLE
 from fm_analytics.web.scouting_notices import _knowledge_notice, _refresh_notice, _refresh_job_notice
 
@@ -81,7 +82,7 @@ _INJURY_RISK_KINDS = frozenset(
     {WeaknessKind.NO_BACKUP, WeaknessKind.WEAK_BACKUP, WeaknessKind.SHARED_COVER}
 )
 _MAX_SCOUTING_ROWS = 100
-# Each row carries an attribute sheet, so a page is heavy well before this.
+# Limit mounted rows; the complete scouting snapshot is stored separately.
 _SCOUTING_ROW_CEILING = 1000
 
 _TACTICAL_DIMENSION_LABELS = {
@@ -165,11 +166,16 @@ def role_score_cells(scores) -> str:
     eligible role) so a ``table.sortable`` can order by the number, not the text.
     """
     def sort_attr(value) -> str:
-        return f" data-sort='{value.central:.4f}'" if value is not None else ""
+        return f" data-sort='{value.central:.4f}'" if value is not None else " data-sort=''"
+
+    def display(role_name, score, note=""):
+        return "<b>" + _band(score) + "</b>" + cell_details(
+            role_name.split(" (", 1)[0], [role_name, note]
+        )
 
     best = scores.attribute_based
     if best is not None:
-        attribute = f"{html.escape(best.role_name)} ({_band(best.role_score.score)})"
+        attribute = display(best.role_name, best.role_score.score)
     else:
         attribute = "<span class='muted'>no eligible role</span>"
     in_position = scores.in_position
@@ -179,18 +185,19 @@ def role_score_cells(scores) -> str:
             if in_position.familiarity_known
             else f"{in_position.position} unknown (assumed {in_position.familiarity_rating}/20)"
         )
-        in_position_text = (
-            f"{html.escape(in_position.role_name)} ({html.escape(familiarity)})<br>"
-            f"<b>{_band(in_position.position_adjusted_score)}</b>"
-        )
+        in_position_text = display(in_position.role_name, in_position.position_adjusted_score, familiarity)
+        if not in_position.familiarity_known:
+            in_position_text += "<span class='muted'>Familiarity unknown</span>"
     else:
         in_position_text = "<span class='muted'>no eligible role</span>"
     selection = scores.selection
     if selection is not None:
-        selection_text = (
-            f"{html.escape(selection.role_name)} ({selection.position} {selection.familiarity_rating}/20)<br>"
-            f"<b>{_band(selection.selection_score)}</b>"
+        selection_text = display(
+            selection.role_name, selection.selection_score,
+            f"{selection.position} {selection.familiarity_rating}/20",
         )
+        if not selection.familiarity_known:
+            selection_text += "<span class='muted'>Familiarity unknown</span>"
     else:
         selection_text = "<span class='muted'>not selectable today</span>"
     return (
@@ -198,55 +205,6 @@ def role_score_cells(scores) -> str:
         f"<td{sort_attr(in_position.position_adjusted_score if in_position else None)}>{in_position_text}</td>"
         f"<td{sort_attr(selection.selection_score if selection else None)}>{selection_text}</td>"
     )
-
-
-_SORTABLE_TABLE_SCRIPT = """
-<script>
-(function () {
-  // Client-side column sort for tables marked class="sortable". A cell's
-  // data-sort attribute, when present, is the sort value (numbers compare
-  // numerically); otherwise its text is used. Empty values always sort last.
-  document.querySelectorAll('table.sortable').forEach(function (table) {
-    var headers = table.querySelectorAll('tr:first-child > th');
-    headers.forEach(function (th, column) {
-      th.classList.add('sort-header');
-      th.tabIndex = 0;
-      function sort() {
-        var descending = th.getAttribute('aria-sort') === 'ascending';
-        headers.forEach(function (other) { other.removeAttribute('aria-sort'); });
-        th.setAttribute('aria-sort', descending ? 'descending' : 'ascending');
-        var body = table.tBodies[0];
-        var rows = Array.prototype.slice.call(body.rows).filter(function (row) {
-          return row.querySelector('td');
-        });
-        function value(row) {
-          var cell = row.cells[column];
-          if (!cell) return '';
-          return cell.hasAttribute('data-sort') ? cell.getAttribute('data-sort') : cell.textContent.trim();
-        }
-        function compare(a, b) {
-          var x = value(a), y = value(b);
-          if (x === '' && y === '') return 0;
-          if (x === '') return 1;
-          if (y === '') return -1;
-          var nx = parseFloat(x), ny = parseFloat(y);
-          var result = (!isNaN(nx) && !isNaN(ny) && /^[-+]?[0-9.]/.test(x) && /^[-+]?[0-9.]/.test(y))
-            ? nx - ny : x.localeCompare(y, undefined, {sensitivity: 'base'});
-          return descending ? -result : result;
-        }
-        var keyed = rows.map(function (row, index) { return [row, index]; });
-        keyed.sort(function (a, b) { return compare(a[0], b[0]) || a[1] - b[1]; });
-        keyed.forEach(function (pair) { body.appendChild(pair[0]); });
-      }
-      th.addEventListener('click', sort);
-      th.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); sort(); }
-      });
-    });
-  });
-})();
-</script>
-"""
 
 
 def _injury_risk_count(report: WeaknessReport) -> int:
@@ -288,6 +246,7 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
     ranking_sort = sort_for_mode(
         _query_first(query, "sort"), scouting_mode(tactic_key, role_key)
     )
+    expiring_months = _query_number(query, "expiringMonths", integer=True)
     return ScoutingFilters(
         tactic_key=tactic_key,
         position=_query_first(query, "position"), role_key=role_key,
@@ -304,7 +263,7 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         scouted_only=_scouting_view(query) == "scouted",
         include_former_scouted=_query_first(query, "everScouted") == "1",
         market=_query_first(query, "market") or "any",
-        expiring_months=_query_number(query, "expiringMonths", integer=True) or 6,
+        expiring_months=6 if expiring_months is None else expiring_months,
         maximum_value=_query_number(query, "maxValue", integer=True),
         transfer_interest=_query_first(query, "transferInterest") or "any",
         loan_interest=_query_first(query, "loanInterest") or "any",

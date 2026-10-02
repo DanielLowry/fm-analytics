@@ -576,3 +576,70 @@
     *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
   }
 }
+
+/* Semantic colours also cover the remaining legacy panels and controls. */
+:root.dark {
+  --color-ink-400: #aebed0;
+  --color-ink-500: #bac8d8;
+  --color-ink-600: #c8d4e2;
+  --color-ink-700: #d6e1ed;
+  --color-ink-800: #e7edf5;
+  --color-ink-900: #f5f8fc;
+  --color-brand-50: #1d382e;
+  --color-brand-700: #91e0ad;
+}
+body.fm-app .fm-legacy { color: var(--color-ink-800); }
+body.fm-app .fm-legacy :is(input:not([type='range']), select, textarea) { background-color: var(--fm-card); color: var(--color-ink-800); border-color: var(--fm-border); }
+body.fm-app .fm-legacy :is(.opponent-panel, .refresh-panel, .opponent-summary, .score-summary, .score-guide, .selection-flow > div, .routine-assignment-note, .role-inputs, .note-form, form.filters) { background-color: var(--fm-card); color: var(--color-ink-800); border-color: var(--fm-border); }
+body.fm-app .fm-legacy :is(.muted, p.intro, .legend, .opponent-help, .opponent-slider small, .refresh-panel summary) { color: var(--color-ink-500); }
+body.fm-app .fm-legacy :is(.opponent-details legend, .opponent-choice, .opponent-detail, form.filters label, .set-piece-assignment-card strong, .set-piece-assignment-card b) { color: var(--color-ink-700); }
+:root.dark body.fm-app .fm-legacy a:not(.button-link):not(.fm-command-action):not(.tab-active) { color: #91e0ad; }
+:root.dark body.fm-app .fm-legacy :is(code, .tag) { background: #25344a; color: #d8e3f0; }
+:root.dark body.fm-app .fm-legacy :is(.warn, .error) { color: #f0c48b; }
+body.fm-app .fm-legacy :is(th, td) { border-color: var(--fm-border); }
+body.fm-app .fm-legacy th { background-color: var(--fm-page); color: var(--color-ink-600); }
+body.fm-app .fm-legacy td { font-variant-numeric: tabular-nums; }
+body.fm-app .fm-legacy [hidden] { display: none !important; }
+body.fm-app .fm-table-scroll { min-width: 0; max-width: 100%; overflow: auto; }
+body.fm-app .fm-table-toolbar { display: flex; align-items: end; flex-wrap: wrap; gap: .6rem; margin: .65rem 0 .45rem; font-size: .76rem; color: var(--color-ink-500); }
+body.fm-app .fm-table-toolbar label { display: grid; gap: .2rem; flex: 1 1 12rem; max-width: 28rem; }
+body.fm-app .fm-table-toolbar input { min-width: 0; width: 100%; border: 1px solid var(--fm-border); border-radius: .45rem; padding: .4rem .55rem; font-size: .8rem; }
+body.fm-app .fm-table-toolbar button { padding: .4rem .6rem; border: 1px solid var(--fm-border); border-radius: .45rem; color: var(--color-ink-700); background: var(--fm-card); cursor: pointer; }
+body.fm-app .fm-table-empty { padding: .7rem; color: var(--color-ink-500); }
+body.fm-app .fm-cell-details { min-width: 8rem; max-width: 32ch; border: 0; margin: .15rem 0; padding: 0; font-size: .78rem; }
+body.fm-app .fm-cell-details > summary { color: var(--color-brand-700); font-weight: 550; }
+body.fm-app .fm-cell-details ul { list-style: disc; margin: .45rem 0; padding-left: 1.1rem; color: var(--color-ink-600); line-height: 1.4; }
+body.fm-app .fm-cell-details li + li { margin-top: .3rem; }
+body.fm-app .fm-disclosure > summary { color: var(--color-ink-800); cursor: pointer; font-size: .9rem; font-weight: 650; }
+body.fm-app .fm-disclosure[open] > summary { margin-bottom: .9rem; }
+body.fm-app .fm-section-nav { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .8rem; }
+body.fm-app .fm-section-nav a { padding: .45rem .65rem; border: 1px solid var(--fm-border); border-radius: .45rem; color: var(--color-brand-700); background: var(--fm-card); font-size: .8rem; }
+body.fm-app .fm-scouting-context { margin: 0 0 .7rem; color: var(--color-ink-500); font-size: .8rem; }
+body.fm-app :is(.fm-player-report, .fm-player-report > *, .fm-player-role-groups, .fm-player-attribute-groups, .fm-player-attribute-groups > *, .fm-player-facts > div, .fm-match-panel, .fm-workspace-panel) { min-width: 0; }
+body.fm-app :is(.fm-player-facts dd, .fm-player-profile, .fm-panel-heading p) { overflow-wrap: anywhere; }
+body.fm-app [id] { scroll-margin-top: 6rem; }
+body.fm-app .position-role-report { margin-bottom: .65rem; }
+body.fm-app .sort-header { cursor: pointer; }
+body.fm-app th[aria-sort='none']::after { content: ' ↕'; color: var(--color-ink-400); }
+@media (max-width: 639px) {
+  body.fm-app .fm-player-attribute-groups, body.fm-app .fm-player-role-groups { grid-template-columns: minmax(0, 1fr); }
+}
+body.fm-app .fm-skip-link { position: fixed; top: .5rem; left: .5rem; z-index: 60; transform: translateY(-200%); padding: .55rem .8rem; border-radius: .5rem; color: white; background: #0f6a40; }
+body.fm-app .fm-skip-link:focus { transform: none; }
+:root.dark body.fm-app .fm-legacy :is(.score-breakdown, .tactic-rationale, .technical-formula, .assessment-card, .score-guide-grid article, .metric-grid div, .routine-assignment-reason, .taker-evidence, .operating-notes, .set-piece-routine, details.routine-evidence, .coverage-card, .routine-assignment-note, .set-piece-assignment-card, .match-card, .table-scroll, .taker-evidence > details, .tactic-rationale-grid > p) { background-color: var(--fm-card); color: var(--color-ink-800); border-color: var(--fm-border); }
+:root.dark body.fm-app .fm-legacy :is(.score-summary, .overall-score, .score-driver b, .score-drivers, .selection-flow b, .set-piece-assignment-card b, .set-piece-assignment-card strong, .set-piece-assignment-card p, .set-piece-assignment-card .taker-name) { color: var(--color-ink-800); }
+:root.dark body.fm-app .fm-page-kicker, :root.dark body.fm-app .eyebrow { color: #91e0ad; }
+body.fm-app .fm-scouting-results .bar { background: var(--fm-border); }
+body.fm-app .fm-scouting-results .bar-fill { background: #629c7b; }
+body.fm-app .fm-scouting-results .bar-mark { background: var(--color-ink-900); }
+body.fm-app .fm-player-more { margin: .8rem 0 0; padding: .6rem 0 0; border: 0; border-top: 1px solid var(--fm-border); }
+body.fm-app .fm-player-more .fm-player-facts { margin-top: .7rem; }
+body.fm-app .fm-legacy .opponent-details { background-color: var(--fm-card); color: var(--color-ink-800); border-color: var(--fm-border); }
+body.fm-app .fm-legacy .button-link.secondary { border: 1px solid var(--fm-border); background: var(--fm-card); color: var(--color-ink-700); }
+body.fm-app .fm-command-action:hover, body.fm-app .fm-decision-hero .button-link:hover, body.fm-app .fm-tactic-actions .button-link:hover { background: #0b5133; color: white; }
+body.fm-app .fm-legacy input[type='checkbox']:checked { background-color: #0f6a40; color: white; border-color: #0f6a40; }
+:root.dark body.fm-app .fm-legacy .instruction-pill:not(.unset) { background: var(--fm-page); color: var(--color-ink-800); border-color: var(--fm-border); }
+:root.dark body.fm-app .fm-legacy .versus .bars { background: var(--fm-border); }
+:root.dark body.fm-app .fm-legacy .versus .bars .b-us { background: #4fa477; }
+body.fm-app .fm-legacy form.inline { display: flex; flex-wrap: wrap; max-width: 100%; gap: .4rem; }
+body.fm-app .fm-legacy form.inline select { flex: 1 1 12rem; min-width: 0; max-width: 100%; }

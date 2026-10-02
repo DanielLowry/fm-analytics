@@ -13,6 +13,7 @@ from fm_analytics.analytics import (
     ScoutingCandidate,
     default_descending,
 )
+from fm_analytics.web.scouting_snapshot import SNAPSHOT, snapshot_data
 from fm_analytics.domain.models import Visibility
 from fm_analytics.web.rendering import (
     _label,
@@ -119,13 +120,12 @@ class _Column:
 def _sortable_table(
     columns: Sequence[_Column], items: Sequence[Any], *, sort: str, descending: bool
 ) -> str:
-    """The one results table every scouting view uses.
+    """Render the shared scouting table and, when requested, its full snapshot.
 
-    A column with a ``sort`` key renders as a button the page's script turns
-    into a server-side re-sort (so the top of a long list is the true top by
-    that column, not the top of what was on screen); the active column is
-    marked with an arrow and ``aria-sort``. Which columns exist is the caller's
-    choice, which is why every view can offer the same behaviour.
+    Sort buttons identify the analytics sort key. JavaScript uses the server's
+    precomputed complete-pool orders; ordinary GET requests retain server-side
+    sorting. Snapshot rows are stored as inert JSON, with only 100 mounted in
+    the response frame, so a large pool does not create a large initial DOM.
     """
     cells = []
     for column in columns:
@@ -141,13 +141,16 @@ def _sortable_table(
             f"<th{aria}><button type='button' class='sort-btn'{title} data-sort='{column.sort}' "
             f"data-default='{default}'>{column.title}{arrow}</button></th>"
         )
-    rows = "".join(
-        "<tr>" + "".join(column.cell(rank, item) for column in columns) + "</tr>"
+    rendered = [
+        f"<tr data-player-id='{html.escape(item.candidate.id, quote=True)}'>"
+        + "".join(column.cell(rank, item) for column in columns) + "</tr>"
         for rank, item in enumerate(items, start=1)
-    )
+    ]
+    snapshot = snapshot_data(items, rendered) if SNAPSHOT.get() is not None else ""
+    rows = "".join(rendered[:100] if snapshot else rendered)
     return (
         "<div class='table-scroll'><table class='results'>"
-        f"<tr>{''.join(cells)}</tr>{rows}</table></div>"
+        f"<thead><tr>{''.join(cells)}</tr></thead><tbody>{rows}</tbody></table></div>" + snapshot
     )
 
 

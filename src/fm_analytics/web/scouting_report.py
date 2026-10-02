@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import html
 
+from fm_analytics.web.ui import ordered_positions, position_key
 from fm_analytics.analytics import (
     FamiliarityPolicy,
     ScoutingCandidate,
@@ -37,6 +38,7 @@ def player_scouting_report(
     *,
     headline: str = "",
     verdict: str = "",
+    back_href: str = "/scouting?view=scouted",
 ) -> str:
     """Render a scouted player's exhaustive report.
 
@@ -70,7 +72,7 @@ def player_scouting_report(
         candidate.name, candidate.attributes,
         candidate.positions_for(include_raw_external_positions=True),
         candidate.raw_position_familiarity or {}, facts, catalogue,
-        back_href="/scouting?view=scouted", back_label="Back to scouted players",
+        back_href=back_href, back_label="Back to scouting",
         familiarity_source="the captured raw 0–20 position rating",
         headline=_history_banner(candidate) + verdict + headline,
         attributes_captured=candidate.current_attributes_captured,
@@ -200,9 +202,9 @@ def squad_player_report(player, catalogue) -> str:
         "<b>attribute-based</b> (attributes and role fit only), <b>in-position</b> (adds positional "
         "familiarity) and <b>today’s selection score</b> (adds match readiness). "
         "Each shows the player's strongest role by that measure.</p></div></div>"
-        "<div class='fm-player-table'><table><tr><th>Attribute-based role score (best role)</th>"
-        "<th>In-position role score (best role)</th>"
-        "<th>Today’s selection score (best role)</th></tr>"
+        "<div class='fm-player-table'><table><tr><th title='Attribute-based role score (best role)'>Role fit</th>"
+        "<th title='In-position role score (best role)'>In-position</th>"
+        "<th title='Today’s selection score (best role)'>Today</th></tr>"
         f"<tr>{role_score_cells(scores)}</tr></table></div></section>"
     )
     return _player_detail_report(
@@ -222,7 +224,7 @@ def _player_detail_report(
 ) -> str:
     """Render every attribute and catalogue role for a scouted or owned player."""
     policy = FamiliarityPolicy()
-    positions = sorted({
+    positions = ordered_positions({
         position for role in catalogue.roles.values() for position in role.eligible_positions
     })
     known_positions = set(player_positions)
@@ -239,21 +241,31 @@ def _player_detail_report(
     )
     score_sections = "".join(
         _position_role_scores(attributes, position, catalogue, familiarity, policy)
-        for position in positions
+        for position in sorted(positions, key=lambda p: (p not in known_positions, position_key(p)))
     )
-    fact_rows = "".join(
-        "<div><dt>" + html.escape(label) + "</dt><dd>" + html.escape(value) + "</dd></div>"
-        for label, value in facts if value
-    ) or "<p class='muted'>No additional facts captured.</p>"
+    main_labels = {"Club", "Age", "Nationality", "Footedness", "Scouting knowledge", "Availability", "Condition", "Match fitness", "Preferred foot"}
+    def render_facts(items):
+        return "".join(
+            "<div><dt>" + html.escape(label) + "</dt><dd>" + html.escape(value) + "</dd></div>"
+            for label, value in items if value
+        )
+    fact_rows = render_facts((label, value) for label, value in facts if label in main_labels or label in {"Injured", "Suspended"} and value == "Yes")
+    extra_facts = render_facts((label, value) for label, value in facts if label not in main_labels and not (label in {"Injured", "Suspended"} and value == "Yes"))
+    more_facts = ("<details class='fm-disclosure fm-player-more'><summary>More player information</summary>"
+                  "<dl class='fm-player-facts'>" + extra_facts + "</dl></details>") if extra_facts else ""
     return (
         "<div class='fm-player-report'>"
         f"<p class='fm-player-back'><a href='{html.escape(back_href, quote=True)}'>← {html.escape(back_label)}</a></p>"
-        "<section class='fm-player-profile'><div class='fm-panel-heading'><div>"
+        "<section class='fm-player-profile' id='player-overview'><div class='fm-panel-heading'><div>"
         "<span class='eyebrow'>Player profile</span><h2>Player information</h2>"
         f"<p>{html.escape(', '.join(player_positions) or 'No positions captured')}</p>"
-        "</div></div><dl class='fm-player-facts'>" + fact_rows + "</dl></section>"
+        "</div></div><dl class='fm-player-facts'>" + fact_rows + "</dl>" + more_facts + "</section>"
+        + "<nav class='fm-section-nav' aria-label='Player report sections'>"
+        "<a href='#player-overview'>Overview</a><a href='#player-attributes'>Attributes</a>"
+        "<a href='#player-roles'>Role fit</a>"
+        + ("<a href='#player-history'>History</a>" if historical_html else "") + "</nav>"
         + headline +
-        "<section class='fm-workspace-panel fm-player-attributes'><div class='fm-panel-heading'><div>"
+        "<details class='fm-workspace-panel fm-disclosure fm-player-attributes' id='player-attributes'><summary>Current attributes</summary><div><div class='fm-panel-heading'><div>"
         "<h2>Current attributes</h2>"
         + (
             "<p>Values visible now, plus remembered values marked "
@@ -263,7 +275,7 @@ def _player_detail_report(
             "<p>Only values visible now are used in the scores below. "
             "Ranges retain the uncertainty currently reported by scouting.</p>"
         )
-        + "</div></div><div class='fm-player-attribute-groups'>" + attributes_html + "</div></section>"
+        + "</div></div><div class='fm-player-attribute-groups'>" + attributes_html + "</div></div></details>"
         + historical_html
         + "<section class='fm-workspace-panel fm-player-position-summary'><div class='fm-panel-heading'><div>"
         + "<h2>Position score summary</h2>"
@@ -271,13 +283,13 @@ def _player_detail_report(
         "at that position. Positions are kept in the table even when they have not been captured, "
         "so it also shows the modelled potential after positional training.</p>"
         + "</div></div><div class='fm-player-table'>" + _position_score_summary(attributes, positions, catalogue, familiarity, policy) + "</div></section>"
-        + "<section class='fm-workspace-panel fm-player-familiarity'><div class='fm-panel-heading'><div>"
+        + "<details class='fm-workspace-panel fm-disclosure fm-player-familiarity'><summary>Position familiarity</summary><div><div class='fm-panel-heading'><div>"
         + "<h2>Position familiarity</h2>"
         f"<p>Familiarity is {html.escape(familiarity_source)}. The multiplier is the "
         "same discount used for an in-position score; a missing rating is left unknown rather than assumed.</p>"
         "</div></div><div class='fm-player-table'><table><tr><th>Position</th><th>Position captured</th><th>Familiarity / in-position multiplier</th></tr>"
-        + position_rows + "</table></div></section>"
-        + "<section class='fm-workspace-panel fm-player-role-scores'><div class='fm-panel-heading'><div>"
+        + position_rows + "</table></div></div></details>"
+        + "<section class='fm-workspace-panel fm-player-role-scores' id='player-roles'><div class='fm-panel-heading'><div>"
         + "<h2>All attribute-based role scores by position</h2>"
         "<p>Floor and ceiling are the bounds supported by scouting. The cautious estimate is deliberately "
         "conservative when an attribute is unknown; estimate treats unknown attributes as mid-scale. "
@@ -340,13 +352,13 @@ def _historical_attribute_section(attributes, observed_at: str | None) -> str:
         return ""
     when = html.escape(observed_at or "date not captured")
     return (
-        "<section class='fm-workspace-panel fm-player-history-detail'><div class='fm-panel-heading'><div>"
+        "<details class='fm-workspace-panel fm-disclosure fm-player-history-detail' id='player-history'><summary>Attribute history</summary><div><div class='fm-panel-heading'><div>"
         "<h2>Past scouting knowledge</h2>"
         "<p class='warn'><b>Historical only.</b> These values were last visible on "
         f"<b>{when}</b>. They are not treated as current and are not used in any "
         "score, filter, or recommendation on this page, except where the same value "
         "appears above marked <i>historical</i>.</p></div></div>"
-        "<div class='fm-player-attribute-groups'>" + _full_attribute_sheet(attributes) + "</div></section>"
+        "<div class='fm-player-attribute-groups'>" + _full_attribute_sheet(attributes) + "</div></div></details>"
     )
 
 
@@ -440,11 +452,11 @@ def _position_role_scores(attributes, position, catalogue, familiarity, policy) 
         )
     familiarity_text = "not captured" if rating is None else f"{rating}/20 (×{multiplier:.2f})"
     return (
-        f"<section class='position-role-report'><h3>{html.escape(position)} "
-        f"<span class='muted'>— familiarity {familiarity_text}</span></h3>"
+        f"<details class='position-role-report fm-disclosure'><summary>{html.escape(position)} "
+        f"<span class='muted'>— familiarity {familiarity_text}</span></summary>"
         "<div class='fm-player-table'><table><tr><th>Role</th><th>Floor</th><th>Cautious estimate</th><th>Estimate</th>"
         "<th>Ceiling</th><th>In-position estimate</th><th>Breakdown</th></tr>"
-        + "".join(rows) + "</table></div></section>"
+        + "".join(rows) + "</table></div></details>"
     )
 
 

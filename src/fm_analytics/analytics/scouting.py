@@ -439,6 +439,13 @@ def rank_for_position(
                 cache[key] = (candidate, ranking)
         if ranking is not None:
             rankings.append(ranking)
+    return sort_position_rankings(rankings, sort=sort, descending=descending)
+
+
+def sort_position_rankings(
+    rankings: Sequence[PositionRanking], *, sort: str = "median", descending: bool = True
+) -> tuple[PositionRanking, ...]:
+    """Sort already-scored rankings without evaluating any role again."""
     value = {
         "median": lambda r: r.median,
         "minimum": lambda r: r.minimum,

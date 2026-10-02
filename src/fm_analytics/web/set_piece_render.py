@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 from urllib.parse import urlencode
 
+from fm_analytics.web.ui import cell_details
 from fm_analytics.analytics.set_piece_templates import FREE_KICK_TYPE_TABS
 from fm_analytics.web.rendering import _band
 
@@ -166,7 +167,7 @@ def _set_piece_routine_plan(routine, labels: dict[str, str]) -> str:
             f"<td>{html.escape(assignment.role.instruction)}</td>"
             f"<td>{_band(assignment.score.score)}</td>"
             f"<td>{html.escape(evidence)}</td>"
-            f"<td>{html.escape(assignment.role.explanation)}</td></tr>"
+            f"<td>{cell_details('Why this job?', assignment.role.explanation)}</td></tr>"
         )
     unfilled = (
         "<div class='advisory-banner'><b>Partial routine</b>Not enough eligible players to fill: "

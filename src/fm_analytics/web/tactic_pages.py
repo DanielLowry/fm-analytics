@@ -6,6 +6,7 @@ import html
 from http import HTTPStatus
 from urllib.parse import quote, unquote
 
+from fm_analytics.web.ui import position_key, cell_details
 from fm_analytics.analytics import MVP_CATALOGUE, OpponentProfile
 from fm_analytics.reporting import RecommendationBundle
 from fm_analytics.web.bench_render import bench_priority_section
@@ -106,14 +107,14 @@ class TacticPagesMixin:
                 f"<td>{rank}</td>"
                 f"<td><b>{html.escape(evaluation.tactic.name)}</b>{recommendation}"
                 + (
-                    f"<br><span class='muted'>{html.escape(evaluation.tactic.when_to_use)}</span>"
+                    cell_details("When to use", evaluation.tactic.when_to_use)
                     if evaluation.tactic.when_to_use else ""
                 )
                 + "</td>"
                 f"<td>{html.escape(evaluation.tactic.formation)}</td>"
                 f"<td><b>{_band(evaluation.score)}</b></td>"
                 f"<td>{'Full XI' if evaluation.has_legal_xi else 'Incomplete XI'}</td>"
-                f"<td>{html.escape(issue)}</td>"
+                f"<td>{cell_details('Review issue', issue) if issue not in ('—', 'None') else html.escape(issue)}</td>"
                 + opponent_columns
                 + f"<td><a class='tactic-link' href='/tactics/{quote(tactic_key, safe='')}{link_query_suffix}'>"
                 "View tactic →</a></td>"
@@ -159,7 +160,9 @@ class TacticPagesMixin:
                 + "</table></div></section>"
             )
         body = (
-            _opponent_controls(opponent)
+            "<details class='fm-disclosure fm-tactic-opponent'><summary>Opponent profile · "
+            + html.escape(" · ".join(active_axes) or "Neutral") + "</summary>"
+            + _opponent_controls(opponent) + "</details>"
             + profile_summary
             + "<section class='fm-decision-hero'>"
             f"<span class='eyebrow'>Recommended {'for this opponent' if active_axes else 'for today'}</span>"
@@ -238,7 +241,7 @@ class TacticPagesMixin:
             item.starter.slot.key: item for item in report.selection_explanation.slots
         }
         xi_rows = []
-        for assignment in evaluation.assignments:
+        for assignment in sorted(evaluation.assignments, key=lambda item: (position_key(item.slot.position), position_key(item.slot.key))):
             player = players_by_id[assignment.player_id]
             explanation = explanation_by_slot[assignment.slot.key]
             alternatives = "".join(
@@ -287,13 +290,13 @@ class TacticPagesMixin:
                 f"<td><b>{_band(assignment.selection_score)}</b></td>"
                 "</tr>"
                 "<tr class='explanation-row fm-xi-explanation'><td colspan='6'>"
-                "<div class='fm-slot-rationale'>"
+                "<details class='fm-slot-rationale fm-disclosure'><summary>Slot responsibilities</summary>"
                 + _slot_reasoning(
                     assignment.slot,
                     assignment.intrinsic_role_score.role_key,
                     assignment.intrinsic_role_score.role_name,
                 )
-                + "</div>"
+                + "</details>"
                 + f"<details class='fm-selection-details'><summary>Why {html.escape(assignment.player_name)}?</summary>"
                 f"{selection_path}{warnings}"
                 "<p class='muted'>Alternatives use this exact role; the other ten slots are "
@@ -316,7 +319,7 @@ class TacticPagesMixin:
 
         targets = {target.starter.slot.key: target for target in report.substitution_board.targets}
         coverage_cards = []
-        for slot in evaluation.tactic.slots:
+        for slot in sorted(evaluation.tactic.slots, key=lambda item: (position_key(item.position), position_key(item.key))):
             target = targets.get(slot.key)
             if target is None:
                 cover = "<span class='warn'>Starting slot is unfilled</span>"

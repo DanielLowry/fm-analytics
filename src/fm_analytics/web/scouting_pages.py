@@ -13,8 +13,9 @@ import sqlite3
 from http import HTTPStatus
 from typing import Sequence
 
-from urllib.parse import quote, unquote
+from urllib.parse import quote, unquote, urlsplit
 
+from fm_analytics.web.ui import ordered_positions
 from fm_analytics.analytics import (
     DEFAULT_SORT_BY_MODE,
     FamiliarityPolicy,
@@ -39,7 +40,7 @@ from fm_analytics.analytics import (
 )
 from fm_analytics.persistence import Verdict
 from fm_analytics.reporting import weakest_slots
-from fm_analytics.web.scouting_script import _SCOUTING_LIVE_FILTER_SCRIPT
+from fm_analytics.web.scouting_snapshot import SNAPSHOT, snapshot_data
 from fm_analytics.web.scouting_render import (
     ranking_results,
     role_results,
@@ -94,50 +95,27 @@ class ScoutingPagesMixin:
         limit = _scouting_limit(query)
         current_feed = sum(1 for candidate in candidates if candidate.in_current_feed)
         history_only = len(candidates) - current_feed
-        focus = "Open exploration"
-        if filters.tactic_key in MVP_CATALOGUE.tactics:
-            focus = MVP_CATALOGUE.tactics[filters.tactic_key].name
-        elif filters.role_key in MVP_CATALOGUE.roles:
-            focus = MVP_CATALOGUE.roles[filters.role_key].name
-        elif filters.position:
-            focus = filters.position
         return (
-            _scouting_tab_nav(query)
-            + "<section class='fm-scouting-hero'><span class='eyebrow'>Recruitment workspace</span>"
-            "<h2>Recruitment shortlist</h2><p>Only players in the manager-visible discovery feed are shown. "
-            "Attribute-based role scores preserve their <b>floor / estimate / ceiling</b>; a player with "
-            "no known role attributes is a reason to scout, not a claim that they are good.</p>"
-            "<div class='fm-decision-grid fm-scouting-summary'>"
-            f"<section class='fm-decision-stat'><span>Players in capture</span><b>{len(candidates)}</b><small>{current_feed} current feed" + (f" · {history_only} from history" if history_only else "") + "</small></section>"
-            f"<section class='fm-decision-stat'><span>Active view</span><b>{'Scouted' if filters.scouted_only else 'All players'}</b><small>{'Scout reports only' if filters.scouted_only else 'Manager-visible Player Search'}</small></section>"
-            f"<section class='fm-decision-stat'><span>Current focus</span><b>{html.escape(focus)}</b><small>{'Tactic, position, or role ranking' if focus != 'Open exploration' else 'Choose a tactic or role to rank fit'}</small></section>"
-            "</div></section>"
-            + "<section class='fm-workspace-panel fm-scouting-capture-panel'><div class='fm-panel-heading'><div>"
-            "<h2>Capture and refresh</h2><p>Refresh reads visible scouting data without changing the Football Manager save.</p>"
-            "</div></div>"
+            "<p class='fm-scouting-context'>"
+            f"{current_feed} players in current capture" + (f" · {history_only} from history" if history_only else "")
+            + " · Scores retain floor / estimate / ceiling.</p>"
+            + _scouting_tab_nav(query)
             + _refresh_notice(_query_first(query, "refreshed"))
-            + _refresh_job_notice(
-                refresh_job, self.server.scouting_capture_age  # type: ignore[attr-defined]
-            )
-            + _knowledge_notice(self.server.knowledge_note)  # type: ignore[attr-defined]
-            + _scouting_refresh_panel(filters.scouted_only)
-            + "</section>"
-            + (_pool_not_built_body() if refresh_job.needs_player_search else "")
-            + scouting_alerts_panel(self.server.scouting_alerts(candidates))  # type: ignore[attr-defined]
-            + self._weak_slots_block(query)
+            + _refresh_job_notice(refresh_job, self.server.scouting_capture_age)
+            + _knowledge_notice(self.server.knowledge_note)
+            + ( _pool_not_built_body() if refresh_job.needs_player_search else "")
+            + "<details class='fm-disclosure fm-workspace-panel fm-scouting-capture-panel'>"
+            "<summary>Capture and refresh</summary>" + _scouting_refresh_panel(filters.scouted_only) + "</details>"
             + self._scouting_filters_form(
-                filters, candidates, self.server.pinned_tactics, limit,  # type: ignore[attr-defined]
+                filters, candidates, self.server.pinned_tactics, limit,
                 show_rejected=_show_rejected(query),
             )
-            # The filters' own option lists come from every candidate, rejected
-            # or not: hiding a player from the results must never narrow the
-            # choices the manager can still filter by.
             + "<div id='scouting-results' class='fm-workspace-panel fm-scouting-results' aria-live='polite'>"
-            + self._scouting_results_block(
-                self._listed_candidates(query, candidates), filters, limit
-            )
+            + self._scouting_results_block(self._listed_candidates(query, candidates), filters, limit)
             + "</div>"
-            + _SCOUTING_LIVE_FILTER_SCRIPT
+            + "<details class='fm-disclosure fm-workspace-panel'><summary>Squad needs and scouting alerts</summary>"
+            + scouting_alerts_panel(self.server.scouting_alerts(candidates))
+            + self._weak_slots_block(query) + "</details>"
         )
 
     def _weak_slots_block(self, query: dict[str, list[str]]) -> str:
@@ -191,6 +169,26 @@ class ScoutingPagesMixin:
                 f"<p class='warn'>{html.escape(str(exc))}</p>", HTTPStatus.SERVICE_UNAVAILABLE
             )
             return
+        if _query_first(query, "snapshot") == "1":
+            mode = scouting_mode(filters.tactic_key, filters.role_key)
+            # Ordinary filtering never changes the score. Load the whole pool
+            # for this scoring context, including rows currently hidden by a
+            # filter or verdict, so clearing a filter cannot lose candidates.
+            context = ScoutingFilters(
+                tactic_key=filters.tactic_key, position=filters.position, role_key=filters.role_key,
+                include_raw_external_positions=filters.include_raw_external_positions,
+                include_former_scouted=True, ranking_sort=DEFAULT_SORT_BY_MODE[mode],
+            )
+            rejected = {pid for pid, record in self.server.current_verdicts().items() if record.verdict == Verdict.REJECT}
+            token = SNAPSHOT.set({"mode": mode, "rejected": rejected})
+            try:
+                body = self._scouting_results_block(candidates, context, max(1, len(candidates)))
+                if "id='scouting-snapshot'" not in body and "<p class='muted'>" in body:
+                    body += snapshot_data([], [])
+            finally:
+                SNAPSHOT.reset(token)
+            self._send(body)
+            return
         self._send(
             self._scouting_results_block(
                 self._listed_candidates(query, candidates), filters, _scouting_limit(query)
@@ -214,6 +212,7 @@ class ScoutingPagesMixin:
                 HTTPStatus.NOT_FOUND,
             )
             return
+        return_href = _safe_scouting_return(_query_first(query, "return"))
         tactic_key = _query_first(query, "tactic")
         include_raw_positions = _query_first(query, "includeRawPositions") == "1"
         tactic_options = _options(
@@ -235,6 +234,7 @@ class ScoutingPagesMixin:
             "<p>Test this player against a specific tactic without changing your current squad recommendation.</p>"
             "</div></div>"
             f"<form class='filters' method='get' action='{html.escape(path, quote=True)}'>"
+            f"<input type='hidden' name='return' value='{html.escape(return_href, quote=True)}'>"
             f"<label>Tactic<select name='tactic'>{tactic_options}</select></label>"
             "<label class='check'><input name='includeRawPositions' type='checkbox' value='1'"
             + (" checked" if include_raw_positions else "")
@@ -283,6 +283,7 @@ class ScoutingPagesMixin:
                 player_scouting_report(
                     candidate,
                     MVP_CATALOGUE,
+                    back_href=return_href,
                     headline=impact,
                     verdict=verdict_panel(
                         self.server.current_verdicts().get(player_id),  # type: ignore[attr-defined]
@@ -477,7 +478,7 @@ class ScoutingPagesMixin:
             return _options(((value, value) for value in values(name)), selected, "Any")
 
         mode = scouting_mode(filters.tactic_key, filters.role_key)
-        positions = sorted({
+        positions = ordered_positions({
             position for role in MVP_CATALOGUE.roles.values() for position in role.eligible_positions
         })
         # Structural fact from the catalogue (which roles are eligible for
@@ -633,6 +634,7 @@ def _sort_options(selected: str, mode: str, include_raw: bool) -> str:
         available = key in SORTS_BY_MODE[mode] and (include_raw or not needs_raw)
         options.append(
             f"<option value='{key}' data-modes='{modes}'"
+            + f" data-default='{'desc' if default_descending(key) else 'asc'}'"
             + (" data-raw='1'" if needs_raw else "")
             + (" selected" if key == selected else "")
             + ("" if available else " hidden disabled")
@@ -671,3 +673,15 @@ def _scouting_refresh_panel(scouted_only: bool) -> str:
         "attributes and transfer/loan interest, from FM's own code run read-only. "
         "Nothing is sent to FM.</span></form></section>"
     )
+
+
+def _safe_scouting_return(value: str | None) -> str:
+    """Accept only the local scouting list as a report's return destination."""
+    if value and not any(char in value for char in "\r\n\\"):
+        try:
+            parsed = urlsplit(value)
+        except ValueError:
+            return "/scouting?view=scouted"
+        if not parsed.scheme and not parsed.netloc and parsed.path == "/scouting":
+            return value
+    return "/scouting?view=scouted"

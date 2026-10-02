@@ -6,6 +6,7 @@ import html
 from http import HTTPStatus
 from urllib.parse import urlencode
 
+from fm_analytics.web.ui import position_key
 from fm_analytics.analytics import ATTACKING_RISKS, DELIVERY_STYLES, recommend_set_pieces
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.reporting import (
@@ -316,7 +317,8 @@ class AuxiliaryPagesMixin:
             )
         persistent = depth_report.persistent_weaknesses
         occasional = depth_report.occasional_weaknesses
-        flagged = {depth.position for depth in persistent} | {
+        persistent_positions = {depth.position for depth in persistent}
+        flagged = persistent_positions | {
             depth.position for depth in occasional
         }
 
@@ -348,15 +350,12 @@ class AuxiliaryPagesMixin:
             )
 
         rows = "".join(
-            _row(depth, "persistent", "badge-persistent") for depth in persistent
-        )
-        rows += "".join(
-            _row(depth, "occasional", "badge-occasional") for depth in occasional
-        )
-        rows += "".join(
-            _row(depth, "ok", "badge-ok")
-            for position, depth in sorted(depth_report.positions.items())
-            if position not in flagged
+            _row(
+                depth,
+                "persistent" if position in persistent_positions else "occasional" if position in flagged else "ok",
+                "badge-persistent" if position in persistent_positions else "badge-occasional" if position in flagged else "badge-ok",
+            )
+            for position, depth in sorted(depth_report.positions.items(), key=lambda item: position_key(item[0]))
         )
         body = (
             scope_note

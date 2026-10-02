@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Sequence
 from urllib.parse import quote
 
+from fm_analytics.web.ui import ordered_positions, cell_details
 from fm_analytics.analytics import (
     FamiliarityPolicy,
     PositionRanking,
@@ -132,7 +133,7 @@ def _positions_column(raw_positions: bool) -> _Column:
         positions = candidate.positions_for(include_raw_external_positions=raw_positions)
         if not positions:
             return "<td><span class='muted'>Not yet captured</span></td>"
-        return f"<td>{html.escape(', '.join(positions))}</td>"
+        return f"<td>{html.escape(', '.join(ordered_positions(positions)))}</td>"
 
     return _Column(
         "Positions" + (" (raw external data)" if raw_positions else ""), None, cell
@@ -165,6 +166,16 @@ def _score_columns() -> list[_Column]:
     ]
 
 
+def _attribute_report_link(candidate: ScoutingCandidate) -> str:
+    known, ranged = _visible_observation_counts(candidate.attributes)
+    historical = len(candidate.history.attributes) if candidate.history else 0
+    label = f"Attributes ({known + ranged} shown" + (f", {historical} historical" if historical else "") + ")"
+    note = ("<span class='warn'>Not captured from FM</span>" if not candidate.current_attributes_captured else
+            "<span class='muted'>No attributes currently visible</span>" if not known + ranged else "")
+    return (f"<a href='/scouting/player/{quote(candidate.id, safe='')}#player-attributes'>"
+            + html.escape(label) + "</a>" + ("<br>" + note if note else ""))
+
+
 def _tail_columns(known_cell: Callable[[Any], str] | None = None) -> list[_Column]:
     columns = []
     if known_cell is not None:
@@ -175,10 +186,10 @@ def _tail_columns(known_cell: Callable[[Any], str] | None = None) -> list[_Colum
     columns.append(_Column(
         "Past knowledge", None, lambda _r, item: f"<td>{past_knowledge_cell(item.candidate)}</td>",
         "Earlier, dated observations. A remembered value is used in the scores only "
-        "where FM shows nothing today, and is marked historical in the attribute sheet.",
+        "where FM shows nothing today, and is marked historical in the player report.",
     ))
     columns.append(_Column(
-        "Attributes", None, lambda _r, item: f"<td>{attribute_sheet(item.candidate)}</td>"
+        "Attributes", None, lambda _r, item: f"<td>{_attribute_report_link(item.candidate)}</td>"
     ))
     return columns
 
@@ -267,7 +278,7 @@ def _recommendation_cell(item: ScoutingAssessment) -> str:
     )
     return (
         f"<td class='rec'><span class='badge {badge}'>{label}</span><br>"
-        f"<span class='muted'>{html.escape(reason)}</span>{scout_next}</td>"
+        f"{cell_details('Scouting detail', [reason, 'Scout next: ' + ', '.join(item.scout_next)] if item.scout_next else reason)}</td>"
     )
 
 

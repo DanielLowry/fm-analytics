@@ -518,6 +518,7 @@ def review_body(
         f"per match. A group under {MIN_GROUP_MATCHES} matches is greyed out: too few to read anything into."
     )
     return (
+        "<nav class='fm-section-nav' aria-label='Match review sections'><a href='#match-list'>Matches</a><a href='#review-filters'>Review filters</a><a href='#match-analysis'>Analysis</a></nav>"
         "<section class='fm-match-review-hero'><span class='eyebrow'>Season review</span>"
         "<h2>Your results, read in context</h2>"
         f"<p>{season_intro}</p>"
@@ -530,16 +531,25 @@ def review_body(
         f"<b>{ppg}</b><small>{sample_note}</small></article>"
         "<article class='fm-decision-stat'><span>Evidence</span>"
         f"<b>{detailed} / {overall.matches}</b><small>matches with full stats</small></article></section>"
+        + "<section class='fm-workspace-panel fm-match-capture-panel'>" + capture + "</section>"
+        + "<section class='fm-workspace-panel fm-match-filter-panel' id='review-filters'><div class='fm-panel-heading'><div>"
+        "<h2>Review filters</h2><p>Choose the comparison that matters, then read results before drawing conclusions.</p>"
+        "</div></div>" + review_filters(review, catalogue, pinned) + "</section>"
+        + panel(
+            "Matches",
+            "Open a match to review its scoreline, stats, players, and manager note.",
+            matches_table(review.matches, catalogue),
+            panel_class="fm-match-list",
+            panel_id="match-list",
+        )
+        + "<details class='fm-workspace-panel fm-disclosure' id='match-analysis'><summary>Analysis and diagnostics</summary>"
         + panel(
             "Diagnostic engine",
             "Season-wide evidence-gated hypotheses, adjusted for opponent strength and venue. Review filters below do not move the recommendation.",
             diagnostics_section(diagnostics, intervention, interventions),
             panel_class="fm-match-diagnostics",
         )
-        + "<section class='fm-workspace-panel fm-match-capture-panel'>" + capture + "</section>"
-        + "<section class='fm-workspace-panel fm-match-filter-panel' id='review-filters'><div class='fm-panel-heading'><div>"
-        "<h2>Review filters</h2><p>Choose the comparison that matters, then read results before drawing conclusions.</p>"
-        "</div></div>" + review_filters(review, catalogue, pinned) + "</section>"
+
         + panel(
             "Against different opposition",
             _e(review.grouping_label) + ".",
@@ -565,13 +575,8 @@ def review_body(
             panel_class="fm-match-roles",
         )
         + ("<section class='fm-workspace-panel fm-match-confirmations'>" + unconfirmed_roles_form(review, catalogue) + "</section>" if review.unconfirmed_roles else "")
-        + panel(
-            "Matches",
-            "Open a match to review its scoreline, stats, players, and manager note.",
-            matches_table(review.matches, catalogue),
-            panel_class="fm-match-list",
-            panel_id="match-list",
-        )
+
+        + "</details>"
     )
 
 

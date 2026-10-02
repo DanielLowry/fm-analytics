@@ -41,8 +41,8 @@ def scouting_json_provider(path: str | Path, *, allow_missing: bool = False) -> 
     is produced; it does not hide malformed data or a disappeared loaded feed.
     """
     resolved = Path(path)
-    # The live filters re-request the pool on every keystroke. Parsing it is
-    # cheap next to scoring it, but the score cache in ``rank_for_position`` is
+    # Scoring-context requests reuse this pool. Parsing is cheap next to
+    # scoring, but the score cache in ``rank_for_position`` is
     # keyed on the candidate *objects*, so handing back the same tuple until the
     # file changes is what lets that cache hit at all. A refresh rewrites the
     # file, which changes its modification time and size.

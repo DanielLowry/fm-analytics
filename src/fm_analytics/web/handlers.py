@@ -9,6 +9,7 @@ from http.server import BaseHTTPRequestHandler
 from importlib import resources
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
+from fm_analytics.web.ui import ordered_positions, position_key
 from fm_analytics.analytics import MVP_CATALOGUE, OpponentProfile
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.domain import Squad
@@ -28,7 +29,6 @@ from fm_analytics.web.tactic_pages import TacticPagesMixin
 from fm_analytics.web.scouting_render import squad_player_link
 from fm_analytics.web.scouting_report import squad_player_report
 from fm_analytics.web.rendering import (
-    _SORTABLE_TABLE_SCRIPT,
     _band,
     _error_page,
     _layout,
@@ -254,19 +254,19 @@ class SquadWebHandler(
             self._send(_error_page("Squad", str(exc), path), HTTPStatus.SERVICE_UNAVAILABLE)
             return
         rows = []
-        for player in squad.players:
+        for player in sorted(squad.players, key=lambda item: (min((position_key(p) for p in item.positions), default=(99, "")), item.name.casefold())):
             scores = build_player_role_scores(player, role_matrix)
             rows.append(
                 "<tr>"
                 f"<td>{squad_player_link(player)}</td>"
-                f"<td>{', '.join(player.positions)}</td>"
+                f"<td>{', '.join(ordered_positions(player.positions))}</td>"
                 f"<td>{player.condition_percent if player.condition_percent is not None else '?'}%</td>"
                 f"<td>{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
                 f"<td>{html.escape(player.availability)}</td>"
                 f"{role_score_cells(scores)}"
                 "</tr>"
             )
-        positions = tuple(sorted({position for role in MVP_CATALOGUE.roles.values() for position in role.eligible_positions}))
+        positions = ordered_positions({position for role in MVP_CATALOGUE.roles.values() for position in role.eligible_positions})
         role_options = (
             tuple((key, MVP_CATALOGUE.roles[key].name) for key in comparison.available_role_keys)
             if comparison is not None
@@ -285,13 +285,12 @@ class SquadWebHandler(
             "<p class='muted'>Click a column heading to sort. Each score names the player’s strongest role by that measure.</p>"
             "<div class='fm-table-card'><table class='sortable'><tr><th>Player</th><th>Positions</th><th>Condition</th>"
             "<th>Match fitness</th><th>Availability</th>"
-            "<th>Attribute-based role score (best role)</th>"
-            "<th>In-position role score (best role)</th>"
-            "<th>Today’s selection score (best role)</th></tr>"
+            "<th title='Attribute-based role score (best role)'>Role fit</th>"
+            "<th title='In-position role score (best role)'>In-position</th>"
+            "<th title='Today’s selection score (best role)'>Today</th></tr>"
             + "".join(rows)
             + "</table></div></section>"
             + self._other_teams_section(squad)
-            + _SORTABLE_TABLE_SCRIPT
         )
         self._send(_layout("Squad", path, body))
 
@@ -399,7 +398,7 @@ class SquadWebHandler(
                 "<tr>"
                 f"<td>{html.escape(player.name)}</td>"
                 f"<td>{player.age if player.age is not None else '?'}</td>"
-                f"<td>{', '.join(player.positions)}</td>"
+                f"<td>{', '.join(ordered_positions(player.positions))}</td>"
                 f"<td>{html.escape(player.availability)}</td>"
                 "</tr>"
                 for player in team.players
@@ -424,7 +423,7 @@ class SquadWebHandler(
         uncertain_count = 0
         for role_key, comparison in sorted(
             bundle.role_matrix.role_rankings.items(),
-            key=lambda item: item[1].candidates[0].role_score.role_name,
+            key=lambda item: (min(position_key(p) for p in MVP_CATALOGUE.roles[item[0]].eligible_positions), item[1].candidates[0].role_score.role_name),
         ):
             best = comparison.selected
             certainty = "certain" if comparison.decision_certain else "uncertain"
@@ -433,7 +432,7 @@ class SquadWebHandler(
             rows.append(
                 "<tr>"
                 f"<td>{html.escape(best.role_score.role_name)}</td>"
-                f"<td>{html.escape(best.player_name)}</td>"
+                f"<td><a href='/squad/player/{quote(best.player_id, safe='')}'>{html.escape(best.player_name)}</a></td>"
                 f"<td>{_band(best.role_score.score)}</td>"
                 f"<td>{len(comparison.candidates)}</td>"
                 f"<td><span class='fm-role-decision fm-role-decision-{certainty}'>{certainty}</span></td>"

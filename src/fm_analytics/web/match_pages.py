@@ -33,7 +33,7 @@ from fm_analytics.web.match_render import (
     tactic_history_panel,
     tactic_record_panel,
 )
-from fm_analytics.web.rendering import _SORTABLE_TABLE_SCRIPT, _error_page, _layout, _query_first
+from fm_analytics.web.rendering import _error_page, _layout, _query_first
 
 
 class MatchPagesMixin:
@@ -109,7 +109,7 @@ class MatchPagesMixin:
             pinned=self.server.pinned_tactics,  # type: ignore[attr-defined]
             capture=panel + export_links(),
         )
-        self._send(_layout("Matches", "/matches", body + _SORTABLE_TABLE_SCRIPT, wide=True))  # type: ignore[attr-defined]
+        self._send(_layout("Matches", "/matches", body, wide=True))  # type: ignore[attr-defined]
 
     def _export_api(self, _path: str, query: dict[str, list[str]]) -> None:
         """The season as JSON: `reporting.build_season_export`, as `fm-matches export` writes it.
@@ -171,7 +171,7 @@ class MatchPagesMixin:
             report, MVP_CATALOGUE, self.server.pinned_tactics,  # type: ignore[attr-defined]
             history.notes.get(summary.match.key),
         )
-        self._send(_layout(title, "/matches", body + _SORTABLE_TABLE_SCRIPT, wide=True))  # type: ignore[attr-defined]
+        self._send(_layout(title, "/matches", body, wide=True))  # type: ignore[attr-defined]
 
     def _post_match_capture(self) -> None:
         """Read matches from FM (read-only) and record them, then go back."""

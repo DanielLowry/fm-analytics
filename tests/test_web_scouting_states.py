@@ -207,7 +207,7 @@ class ScoutingStateTests(WebServerHelpers, unittest.TestCase):
     def _row(body: str, player_id: str) -> str:
         """The one results row for a player, matched on his stable link."""
         marker = f"/scouting/player/{player_id}"
-        for row in re.findall(r"<tr>.*?</tr>", body, re.S):
+        for row in re.findall(r"<tr(?: [^>]*)?>.*?</tr>", body, re.S):
             if marker in row:
                 return row
         raise AssertionError(f"{player_id} has no row in the results table")
@@ -256,7 +256,7 @@ class ScoutingStateTests(WebServerHelpers, unittest.TestCase):
         self.assertNotIn(f"{AF_ATTACK_ATTRIBUTE_COUNT} ranged", row)
         self.assertNotIn(f"{AF_ATTACK_ATTRIBUTE_COUNT} unknown", row)
         self.assertIn("Proven fit", row)
-        self.assertIn("<span>Pace</span><b>15</b>", row)
+        self.assertIn("/scouting/player/state-exact#player-attributes", row)
         self.assertIn("<td>Pace</td><td>15</td>", self._section(report, "<h2>Current attributes</h2>"))
 
     def test_a_current_range_keeps_both_ends(self) -> None:
@@ -269,7 +269,7 @@ class ScoutingStateTests(WebServerHelpers, unittest.TestCase):
         self.assertIn(f"{AF_ATTACK_ATTRIBUTE_COUNT} ranged", row)
         self.assertNotIn(f"{AF_ATTACK_ATTRIBUTE_COUNT} unknown", row)
         self.assertIn("Scout to decide", row)
-        self.assertIn("<span>Pace</span><b>9-15</b>", row)
+        self.assertIn("/scouting/player/state-range#player-attributes", row)
         self.assertIn("<td>Pace</td><td>9-15</td>", self._section(report, "<h2>Current attributes</h2>"))
         self.assertIn("Ranges retain the uncertainty", report)
 
@@ -308,8 +308,8 @@ class ScoutingStateTests(WebServerHelpers, unittest.TestCase):
         unknown_row = self._row(listing, "state-unknown")
         uncaptured_row = self._row(listing, "state-uncaptured")
 
-        # The list sheet marks an unknown with a dash and never a figure.
-        self.assertIn("<span>Pace</span><b>-</b>", unknown_row)
+        # The table links to the full report without inventing attribute values.
+        self.assertIn("/scouting/player/state-unknown#player-attributes", unknown_row)
         self.assertNotIn("<span>Pace</span><b>15</b>", unknown_row)
         # The report marks it with a question mark.
         self.assertIn("<td>Pace</td><td>?</td>", unknown_report)

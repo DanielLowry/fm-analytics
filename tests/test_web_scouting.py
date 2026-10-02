@@ -45,7 +45,7 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         self.assertIn("name='tactic'", body)
         self.assertIn("Generic position / role ranking", body)
         self.assertIn("id='scouting-results'", body)
-        self.assertIn("fetch(", body)
+        self.assertIn('/static/app.js?v=', body)
 
     def test_scouting_can_rank_targets_by_gain_for_a_selected_tactic(self) -> None:
         required = required_role_attributes()
@@ -415,7 +415,7 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         self.assertIn("name='sort'", body)
         self.assertIn("Ceiling (best case)", body)
 
-    def test_the_browse_table_shows_each_players_attributes(self) -> None:
+    def test_the_browse_table_links_to_full_attributes(self) -> None:
         def scouting_provider():
             return (
                 ScoutingCandidate(
@@ -429,7 +429,10 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         _status, body = self._get(port, "/scouting?view=scouted")
 
         self.assertIn("<th>Attributes</th>", body)
-        self.assertIn("9-15", body)
+        self.assertIn("/scouting/player/external-1#player-attributes", body)
+        status, report = self._get(port, "/scouting/player/external-1")
+        self.assertEqual(status, 200)
+        self.assertIn("9-15", report)
 
     def test_uncaptured_player_search_attributes_are_not_reported_as_none(self) -> None:
         def scouting_provider():

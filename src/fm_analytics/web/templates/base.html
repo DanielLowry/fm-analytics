@@ -9,6 +9,7 @@
     {{ legacy_style }}
   </head>
   <body class="fm-app">
+    <a class="fm-skip-link" href="#main-content">Skip to content</a>
     <div class="fm-shell">
       <aside class="fm-sidebar" id="primary-navigation" aria-label="Primary navigation">
         <a class="fm-sidebar-brand" href="/" aria-label="FM Analytics command centre">
@@ -35,7 +36,7 @@
           <!--FM_STATUS-->
           <button class="fm-icon-button" type="button" data-theme-toggle aria-pressed="false" aria-label="Use dark theme">◐</button>
         </header>
-        <main class="fm-main" id="main-content">
+        <main class="fm-main" id="main-content" tabindex="-1">
           <div class="fm-page">
             <div class="fm-page-header">
               <div class="fm-page-heading"><span class="fm-page-kicker">{{ section }}</span><h1 class="fm-page-title">{{ title }}</h1></div>
