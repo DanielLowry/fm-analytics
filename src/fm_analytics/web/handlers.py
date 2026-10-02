@@ -20,6 +20,7 @@ from fm_analytics.reporting import (
     has_complete_role_attributes,
     validate_recommendation_snapshot,
 )
+from fm_analytics.web.actions import WebActionsMixin
 from fm_analytics.web.auxiliary_pages import AuxiliaryPagesMixin
 from fm_analytics.web.match_pages import MatchPagesMixin
 from fm_analytics.web.scouting_pages import ScoutingPagesMixin
@@ -27,18 +28,17 @@ from fm_analytics.web.tactic_pages import TacticPagesMixin
 from fm_analytics.web.scouting_render import squad_player_link
 from fm_analytics.web.scouting_report import squad_player_report
 from fm_analytics.web.rendering import (
-    ScoutingPoolNotBuilt,
     _SORTABLE_TABLE_SCRIPT,
     _band,
     _error_page,
     _layout,
     _options,
     _query_first,
-    _pool_not_built_page,
     role_score_cells,
 )
 
 class SquadWebHandler(
+    WebActionsMixin,
     AuxiliaryPagesMixin,
     MatchPagesMixin,
     ScoutingPagesMixin,
@@ -107,77 +107,6 @@ class SquadWebHandler(
             self.wfile.write(content)
         except (BrokenPipeError, ConnectionResetError):
             pass
-
-    def do_POST(self) -> None:  # noqa: N802
-        parsed = urlparse(self.path)
-        if parsed.path == "/health/refresh":
-            started = self.server.request_health_check()  # type: ignore[attr-defined]
-            self.send_response(HTTPStatus.SEE_OTHER)
-            self.send_header("Location", "/?health=" + ("started" if started else "running"))
-            self.end_headers()
-            return
-        if parsed.path == "/refresh":
-            started = self.server.request_refresh()  # type: ignore[attr-defined]
-            self.send_response(HTTPStatus.SEE_OTHER)
-            self.send_header("Location", "/?refresh=" + ("started" if started else "running"))
-            self.end_headers()
-            return
-        if parsed.path == "/scouting/verdict":
-            self._post_scouting_verdict()
-            return
-        match_posts = {
-            "/matches/capture": self._post_match_capture,
-            "/matches/note": self._post_match_note,
-            "/matches/role-code": self._post_role_code,
-            "/matches/intervention/start": self._post_intervention_start,
-            "/matches/intervention/finish": self._post_intervention_finish,
-        }
-        if parsed.path in match_posts:
-            match_posts[parsed.path]()
-            return
-        if parsed.path != "/scouting/refresh":
-            self._send(
-                _error_page("Not found", "No such action.", parsed.path),
-                HTTPStatus.NOT_FOUND,
-            )
-            return
-        form = self._read_form()
-        allow_rebuild = form.get("allow_rebuild", [""])[0] == "1"
-        return_view = form.get("return_view", [""])[0]
-        if return_view not in {"all", "scouted"}:
-            return_view = ""
-        try:
-            self.server.refresh_scouting(allow_rebuild=allow_rebuild)  # type: ignore[attr-defined]
-        except ScoutingPoolNotBuilt:
-            # Nothing was written to FM. Let the manager pick between the
-            # read-only route and the one that runs FM's code in the live save.
-            self._send(_pool_not_built_page(), HTTPStatus.CONFLICT)
-            return
-        except (OSError, RuntimeError, ValueError) as exc:
-            self._send(
-                _error_page("Scouting refresh", str(exc), "/scouting"),
-                HTTPStatus.SERVICE_UNAVAILABLE,
-            )
-            return
-        self.send_response(HTTPStatus.SEE_OTHER)
-        refresh_kind = "rebuilt" if allow_rebuild else "1"
-        self.send_header(
-            "Location",
-            "/scouting?"
-            + (f"view={return_view}&" if return_view else "")
-            + "refreshed=" + refresh_kind,
-        )
-        self.end_headers()
-
-    def _read_form(self) -> dict[str, list[str]]:
-        """Parse a bounded form body; an unreadable body is simply no consent."""
-        try:
-            length = int(self.headers.get("Content-Length") or 0)
-        except ValueError:
-            return {}
-        if not 0 < length <= 4096:
-            return {}
-        return parse_qs(self.rfile.read(length).decode("utf-8", "replace"))
 
     def _dashboard(self, path: str, _query: dict[str, list[str]]) -> None:
         try:

@@ -117,6 +117,7 @@ from fm_analytics.analytics.squad_depth import (
     assess_squad_depth,
 )
 from fm_analytics.analytics.scouting_candidate import CandidateHistory, HistoricalReading
+from fm_analytics.analytics.scouting_alerts import ScoutingAlert, ScoutingAlerts, build_scouting_alerts
 from fm_analytics.analytics.scouting import (
     PositionRanking,
     MARKET_FILTERS,
@@ -229,6 +230,8 @@ __all__ = [
     "SetPieceRoutine",
     "SetPieceTask",
     "ScoutingAssessment",
+    "ScoutingAlert",
+    "ScoutingAlerts",
     "ScoutingCandidate",
     "CandidateHistory",
     "HistoricalReading",
@@ -264,6 +267,7 @@ __all__ = [
     "WeaknessReport",
     "assess_squad_depth",
     "assess_scouting_candidates",
+    "build_scouting_alerts",
     "assess_opponent_fit",
     "available_fact_values",
     "filter_scouting_candidates",

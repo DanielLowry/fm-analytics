@@ -628,6 +628,37 @@ class PlayerKnowledgeStore:
             ).fetchall()
         return tuple(_decoded_profile(row) for row in rows)
 
+    def previous_profiles(
+        self, save_key: str, as_of: str
+    ) -> dict[str, dict[str, Any]]:
+        """Profiles at the previous in-game sighting, isolated to one save.
+
+        Profiles are stored only when facts change. Comparing their last two
+        change rows would repeat a transition forever and miss a contract
+        approaching expiry without any changed facts. Compare sightings
+        instead, resolving the profile that was effective on the prior day.
+        """
+        _iso(as_of, "as_of")
+        self.initialize()
+        with closing(self._connect()) as connection:
+            rows = connection.execute(
+                "WITH previous AS ("
+                " SELECT v.*, ROW_NUMBER() OVER (PARTITION BY v.player_id "
+                " ORDER BY v.observed_on DESC) AS rn"
+                " FROM sightings v JOIN saves s ON s.id = v.save_id"
+                " WHERE s.key = ? AND v.kind = 'profile' AND v.observed_on <= ?"
+                ") SELECT p.observed_on, p.player_id, "
+                f"{', '.join('o.' + name for name in PROFILE_FIELDS)} "
+                "FROM previous p JOIN profile_observations o ON o.id = ("
+                " SELECT id FROM profile_observations"
+                " WHERE save_id = p.save_id AND player_id = p.player_id"
+                " AND observed_on <= p.observed_on"
+                " ORDER BY observed_on DESC, id DESC LIMIT 1"
+                ") WHERE p.rn = 2",
+                (save_key, as_of),
+            ).fetchall()
+        return {row["player_id"]: _decoded_profile(row) for row in rows}
+
     def best_known_profile(
         self, save_key: str, player_id: str, as_of: str
     ) -> BestKnownProfile | None:

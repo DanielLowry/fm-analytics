@@ -43,6 +43,7 @@ from fm_analytics.web.scouting_script import _SCOUTING_LIVE_FILTER_SCRIPT
 from fm_analytics.web.scouting_render import (
     ranking_results,
     role_results,
+    scouting_alerts_panel,
     tactic_ranking_results,
     weakest_slots_panel,
 )
@@ -58,10 +59,12 @@ from fm_analytics.web.rendering import (
     _label,
     _layout,
     _options,
+    _pool_not_built_body,
     _query_first,
     _raw_position_notice,
     _knowledge_notice,
     _refresh_notice,
+    _refresh_job_notice,
     _scouting_filters,
     _scouting_limit,
     _scouting_tab_nav,
@@ -87,6 +90,7 @@ class ScoutingPagesMixin:
         self._send(_layout("Scouting", path, self._scouting_body(query, candidates, filters), wide=True))
 
     def _scouting_body(self, query, candidates, filters: ScoutingFilters) -> str:
+        refresh_job = self.server.scouting_refresh_job  # type: ignore[attr-defined]
         limit = _scouting_limit(query)
         current_feed = sum(1 for candidate in candidates if candidate.in_current_feed)
         history_only = len(candidates) - current_feed
@@ -112,9 +116,14 @@ class ScoutingPagesMixin:
             "<h2>Capture and refresh</h2><p>Refresh reads visible scouting data without changing the Football Manager save.</p>"
             "</div></div>"
             + _refresh_notice(_query_first(query, "refreshed"))
+            + _refresh_job_notice(
+                refresh_job, self.server.scouting_capture_age  # type: ignore[attr-defined]
+            )
             + _knowledge_notice(self.server.knowledge_note)  # type: ignore[attr-defined]
             + _scouting_refresh_panel(filters.scouted_only)
             + "</section>"
+            + (_pool_not_built_body() if refresh_job.needs_player_search else "")
+            + scouting_alerts_panel(self.server.scouting_alerts(candidates))  # type: ignore[attr-defined]
             + self._weak_slots_block(query)
             + self._scouting_filters_form(
                 filters, candidates, self.server.pinned_tactics, limit,  # type: ignore[attr-defined]

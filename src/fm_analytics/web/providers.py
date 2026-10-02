@@ -31,12 +31,14 @@ def empty_scouting_provider() -> ScoutingProvider:
     return lambda: ()
 
 
-def scouting_json_provider(path: str | Path) -> ScoutingProvider:
+def scouting_json_provider(path: str | Path, *, allow_missing: bool = False) -> ScoutingProvider:
     """Read a manager-visible scouting capture without coupling web UI to tools.
 
     The JSON document is either a list of candidate objects or an object with
     a ``players`` list. It is deliberately a separate feed from the owned
     squad provider: external-player discovery has its own evidence boundary.
+    ``allow_missing`` permits an empty initial workspace until its first capture
+    is produced; it does not hide malformed data or a disappeared loaded feed.
     """
     resolved = Path(path)
     # The live filters re-request the pool on every keystroke. Parsing it is
@@ -47,7 +49,12 @@ def scouting_json_provider(path: str | Path) -> ScoutingProvider:
     loaded: list[tuple[tuple[int, int], tuple[ScoutingCandidate, ...]]] = []
 
     def provide() -> tuple[ScoutingCandidate, ...]:
-        stat = resolved.stat()
+        try:
+            stat = resolved.stat()
+        except FileNotFoundError:
+            if allow_missing and not loaded:
+                return ()
+            raise
         stamp = (stat.st_mtime_ns, stat.st_size)
         if loaded and loaded[0][0] == stamp:
             return loaded[0][1]

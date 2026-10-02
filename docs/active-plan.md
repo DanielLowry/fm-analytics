@@ -57,7 +57,7 @@ opinion to change it (see item 7).
 | 3 | Worth-a-trial ranking against the weakest slots | Small–medium | 1, 2 | Scoring, weak-slot list and the `/scouting` header built; **Trial priority** sort open |
 | 4 | Record scouting knowledge in our own database | Small–medium | — | Built 26 September 2026 |
 | 5 | Scout from the database, with manual verdicts | Medium | 4 | Built 28 September 2026 |
-| 6 | "Now gettable" and "re-scout due" alerts | Small | 5 | Open; unblocked |
+| 6 | "Now gettable" and "re-scout due" alerts | Small | 5 | Built 1 October 2026 |
 | — | Dedicated set-piece ratings from an HTML export | No code | — | Manager action |
 | 7 | Match history and review | Medium–large | — | Built 29 September 2026 |
 
@@ -388,11 +388,13 @@ A block on `/scouting`, computed from the database after each refresh:
   than a configurable age (six months by default), or who still has unknowns
   in attributes that matter for a weakest-slot role.
 
-**Status: not started, and unblocked (29 September 2026).** Item 5 and the
-weakest-slot list (with each weak role's attribute weights) are built. One
-question comes first. The knowledge history does not record transfer or loan
-interest, so "newly matches the realistic switch" has no stored previous state
-to compare with. See [the task brief](tasks/medium-scouting-alerts.md).
+**Status: built (1 October 2026).** The page shows free-agent, transfer-listed
+and six-month contract-window transitions, suppressing Reject verdicts, plus
+Watch reminders for stale knowledge or missing highest-weight attributes in
+weak roles. Comparisons use previous in-game sightings, so an unchanged later
+capture clears a transition. The stale cutoff reuses `--out-of-date-months`.
+Interest-based "newly realistic" is deferred because previous interest is not
+stored. See [the completed brief](archive/tasks/medium-scouting-alerts.md).
 
 ### Quick win: dedicated set-piece ratings (no code)
 
@@ -458,7 +460,11 @@ layout with items 2–3 rather than creating a separate recruitment workflow.
   The web `ScoutingCandidate` path is canonical; the CLI's HTML/`VisibleExportPlayer`
   shortlist (`--candidate-html`) is retired rather than merged. The CLI keeps
   printing `RecruitmentBrief`s and now points to `/scouting` for candidates.
-- **Background scouting refresh** (review 3.2), **dashboard as an answer page**
+- **Background scouting refresh** (review 3.2): **built 1 October 2026** at the
+  user's request. Immediate POST redirects, guarded job state, atomic capture
+  replacement, capture age, and manual status reload keep the last good feed
+  available during a run. See [the completed brief](archive/tasks/medium-background-scouting-refresh.md).
+- **Dashboard as an answer page**
   (2.5) and **named depth evidence** (2.3): useful polish, but none changes a
   decision in the save. Item 2 covers the depth question that matters for
   recruitment.
@@ -480,5 +486,5 @@ layout with items 2–3 rather than creating a separate recruitment workflow.
 | 2.4 Player view | Done: `/squad/player/<id>` |
 | 2.5 Dashboard | Parked |
 | 3.1 Capture upgrade path | Built 29 September 2026; see notes above |
-| 3.2 Background refresh | Parked |
+| 3.2 Background refresh | Built 1 October 2026 |
 | 3.4 Dead imports | Not re-checked; trivial cleanup when next touching `web/server.py` |

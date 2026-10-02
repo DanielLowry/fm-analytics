@@ -40,11 +40,9 @@ Items 1 and 4 are built and need no brief. Completed briefs are listed under
 | [Multi-tactic scouting service](medium-multi-tactic-scouting-service.md) | Medium | 2 | The cost budget has set a page-load budget (the cover-value contract is built) |
 | [Multi-tactic scouting presentation](low-multi-tactic-scouting-presentation.md) | Low | 2 | The service returns a stable presentation model |
 | [Trial-priority list](medium-trial-priority-list.md) | Medium | 3 | Now |
-| [Scouting alerts](medium-scouting-alerts.md) | Medium | 6 | Now; decide first how "newly realistic" is detected (see its prerequisites) |
 
 The scouting cost budget is the only brief still blocking another: the
-multi-tactic service waits on it. The trial-priority list and scouting alerts
-can both start now.
+multi-tactic service waits on it. The trial-priority list can start now.
 
 ### Parked items
 
@@ -55,7 +53,6 @@ Start these only when the active plan schedules them.
 | [Web cache rework](medium-web-cache-rework.md) | Medium | Parked: web cache | Now, if scheduled |
 | [Dashboard as an answer page](medium-dashboard-answer-page.md) | Medium | Parked: dashboard | The web cache rework has landed |
 | [Named depth evidence](low-named-depth-evidence.md) | Low | Parked: named depth | The presentation rule is confirmed |
-| [Background scouting refresh](medium-background-scouting-refresh.md) | Medium | Parked: background refresh | Now, if scheduled |
 | [Full-bundle performance](senior-bundle-performance.md) | Senior | Parked: performance | Now, if scheduled |
 | [Wages in the scouting capture](senior-wage-capture.md) | Senior | Parked: wages | Now, if scheduled |
 | [Remove dead imports from `web/server.py`](low-web-server-dead-imports.md) | Low | Review item 3.4 | Now |
@@ -78,6 +75,8 @@ Finished briefs move to the [archive](../archive/tasks/). Each keeps a
 | [Squad capture upgrade path](../archive/tasks/medium-squad-capture-migrations.md) | Medium | Parked: capture upgrade path | Built 29 September 2026 |
 | [Retire the CLI candidate shortlist](../archive/tasks/medium-retire-cli-candidate-shortlist.md) | Medium | Parked: two recruitment paths | Built 29 September 2026 |
 | [Weakest-slot navigation](../archive/tasks/low-weakest-slot-navigation.md) | Low | 3 | Built 30 September 2026 |
+| [Background scouting refresh](../archive/tasks/medium-background-scouting-refresh.md) | Medium | Review 3.2 | Built 1 October 2026 |
+| [Scouting alerts](../archive/tasks/medium-scouting-alerts.md) | Medium | 6 | Built 1 October 2026 |
 
 ### Deliberately without a brief
 

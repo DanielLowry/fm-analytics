@@ -1,9 +1,9 @@
 # Medium task: background scouting refresh
 
-**Active-plan status:** parked (see [Parked](../active-plan.md#parked)). Old
+**Active-plan status:** built (see [active plan](../../active-plan.md)). Old
 review item 3.2.
 
-**Prerequisite:** the active plan schedules this item. If anyone has
+**Prerequisite:** the user selected this item for implementation. If anyone has
 uncommitted changes to `tools/fm20_scouting_feed.py`, coordinate with them;
 the recommended design below avoids editing that tool.
 
@@ -76,3 +76,35 @@ too.
 - `src/fm_analytics/web/rendering.py` (`_scouting_refresh_command`)
 - `src/fm_analytics/web/scouting_pages.py`, `scouting_script.py`
 - `tests/test_web_scouting.py`, `tests/test_web_server.py`
+
+## Status
+
+Built 1 October 2026. Refresh POSTs immediately redirect to the selected
+scouting tab, with duplicate requests reported as already running. A guarded
+job record retains timestamps, success messages, errors, and rebuild consent.
+The page shows capture age and offers a manual reload link during a run.
+
+The capture command writes to a sibling `.tmp` file, uses the previous capture
+as its base, and atomically replaces the good feed only after successful exit.
+The complete candidate document is validated before replacement. The first
+capture becomes readable without restarting, and refresh updates save identity
+before reading knowledge or verdicts for the new feed.
+Failure and timeout remove the temporary file and preserve the good feed.
+Readers do not take the job lock. Knowledge is recorded once after a success,
+followed by ranking warm-up; recording failures remain separate notices.
+An unbuilt Player Search pool still offers the original safe recovery and
+explicit rebuild-consent choices.
+
+Decisions: manual reload, with no automatic full-page polling. HTTP shutdown
+does not wait for the daemon worker. If the process stays alive, the bounded
+capture can finish; process exit may leave only a temporary file, never a
+partly written good capture. No native game call was added.
+
+Focused tests exercise response latency, duplicate refusal, concurrent reads,
+atomic success, failure/timeout preservation, recording, consent, and shutdown.
+The live capture timing is not remeasured: command tests use fake subprocesses
+and the HTTP latency test holds a fake capture open.
+
+Verification: all 1,243 unittest tests passed, including the repository file-size
+checks. Python compilation, package build, isolated wheel imports/catalogue
+check, and the bridge fixture HTTP smoke test also passed.

@@ -1,5 +1,6 @@
 import sqlite3
 import tempfile
+import time
 import unittest
 from contextlib import closing
 from pathlib import Path
@@ -556,14 +557,15 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
 
         port = self._serve(FIXTURE, scouting_refresh=refresh)
         status, location, _body = self._post(port, "/scouting/refresh")
-        refreshed_status, refreshed_body = self._get(port, "/scouting?refreshed=1")
+        refreshed_status, refreshed_body = self._get(port, "/scouting?refreshed=started")
 
         self.assertEqual(status, 303)
-        self.assertEqual(location, "/scouting?refreshed=1")
+        self.assertEqual(location, "/scouting?refreshed=started")
         self.assertEqual(calls, [False])
         self.assertEqual(refreshed_status, 200)
         self.assertIn("Refresh scouting data", refreshed_body)
-        self.assertIn("Scouting data refreshed", refreshed_body)
+        self.assertIn("Refresh succeeded", refreshed_body)
+        self.assertIn("Captured scouting data", refreshed_body)
 
     def test_all_players_main_refresh_never_runs_fm_code(self) -> None:
         """Saves broke on 26 September 2026 when a button hydrated by running FM's
@@ -585,7 +587,7 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         self.assertIn("Refresh scouting data", main_form)
         self.assertNotIn("danger", main_form)
         self.assertEqual(status, 303)
-        self.assertEqual(location, "/scouting?view=all&refreshed=1")
+        self.assertEqual(location, "/scouting?view=all&refreshed=started")
         self.assertEqual(calls, [False])
         self.assertIn("Nothing was written to FM", refreshed)
 
@@ -604,7 +606,7 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
 
         self.assertIn("Refresh scouted players", page)
         self.assertEqual(status, 303)
-        self.assertEqual(location, "/scouting?view=scouted&refreshed=1")
+        self.assertEqual(location, "/scouting?view=scouted&refreshed=started")
         self.assertEqual(calls, [False])
 
     def test_refresh_command_passes_allow_rebuild_through_to_the_capture_tool(self) -> None:
@@ -615,13 +617,26 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
             run.return_value.stdout = "Captured scouting data"
             run.return_value.stderr = ""
 
+            target = Path(directory) / "scouting.json"
+            target.write_text('{"old": true}', encoding="utf-8")
+            def capture(*_args, **_kwargs):
+                target.with_suffix(".json.tmp").write_text('{"players": []}', encoding="utf-8")
+                return run.return_value
+
+            run.side_effect = capture
+
             message = _scouting_refresh_command(
-                Path(directory) / "scouting.json"
+                target
             )(allow_rebuild=True)
+            self.assertEqual(target.read_text(encoding="utf-8"), '{"players": []}')
+            self.assertFalse(target.with_suffix(".json.tmp").exists())
 
         command = run.call_args.args[0]
         self.assertIn("--allow-rebuild", command)
         self.assertNotIn("--hydrate-active-search", command)
+        self.assertNotIn("--replace", command)
+        self.assertEqual(command[command.index("--output") + 1], str(target) + ".tmp")
+        self.assertEqual(command[command.index("--base-feed") + 1], str(target))
         self.assertEqual(message, "Captured scouting data")
 
     def test_refresh_defaults_to_no_rebuild_and_says_nothing_was_written(self) -> None:
@@ -642,12 +657,13 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
             raise ScoutingPoolNotBuilt("FM has not built this manager's pool yet.")
 
         port = self._serve(FIXTURE, scouting_refresh=refresh)
-        status, _location, body = self._post(port, "/scouting/refresh")
+        status, location, _body = self._post(port, "/scouting/refresh")
+        time.sleep(0.02)
+        _page_status, body = self._get(port, location)
 
-        self.assertEqual(status, 409)
+        self.assertEqual(status, 303)
+        self.assertIn("Refresh failed", body)
         self.assertIn("Player Search", body)
-        self.assertIn("Nothing has been sent to FM", body)
-        self.assertIn("allow_rebuild", body)
 
     def test_rebuild_happens_only_when_the_form_carries_consent(self) -> None:
         calls = []
@@ -664,8 +680,10 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
 
         self.assertEqual(status, 303)
         self.assertEqual(calls, [True])
-        self.assertEqual(location, "/scouting?refreshed=rebuilt")
-        self.assertIn("inside the running game", refreshed_body)
+        self.assertEqual(location, "/scouting?refreshed=started")
+        self.assertIn("Refresh", refreshed_body)
+        self.assertIn("save risk", refreshed_body)
+        self.assertNotIn("Nothing was written to FM", refreshed_body)
 
     def test_scouting_page_requires_opt_in_for_raw_external_positions(self) -> None:
         def scouting_provider():

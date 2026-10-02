@@ -213,6 +213,33 @@ class SaveIsolationAndTimelineTests(StoreCase):
 
 
 class BestKnownProfileTests(StoreCase):
+    def test_previous_profiles_return_the_prior_state_for_one_save(self) -> None:
+        self.store.record(capture("2019-09-01", player(profile={"has_contract": True})))
+        self.store.record(capture("2019-10-01", player(profile={"has_contract": False})))
+        self.store.record(capture(
+            "2019-09-15", player(profile={"has_contract": False}), key="club:2"
+        ))
+
+        previous = self.store.previous_profiles("club:1", "2019-10-01")
+
+        self.assertEqual(set(previous), {"1"})
+        self.assertIs(previous["1"]["has_contract"], True)
+        self.assertEqual(previous["1"]["observed_on"], "2019-09-01")
+
+    def test_previous_profiles_advance_when_an_unchanged_player_is_seen_again(self) -> None:
+        self.store.record(capture("2019-09-01", player(profile={"has_contract": True})))
+        self.store.record(capture("2019-10-01", player(profile={"has_contract": False})))
+        self.store.record(capture("2019-10-02", player(profile={"has_contract": False})))
+
+        prior = self.store.previous_profiles("club:1", "2019-10-02")["1"]
+
+        self.assertIs(prior["has_contract"], False)
+        self.assertEqual(prior["observed_on"], "2019-10-01")
+        self.assertIs(
+            self.store.previous_profiles("club:1", "2019-10-01")["1"]["has_contract"], True
+        )
+        self.assertEqual(self.store.previous_profiles("club:1", "2019-09-01"), {})
+
     def test_exact_and_range_readings_round_trip_with_their_dates_and_sources(self) -> None:
         self.store.record(
             capture("2019-09-08", player(attributes={"pace": known(14), "passing": spread(9, 13)}))

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import os
 import re
 import subprocess
 from hashlib import sha256
@@ -38,7 +39,7 @@ from fm_analytics.web.rendering_content import (
     _tactic_notes,
 )
 from fm_analytics.web.rendering_styles import _STYLE
-from fm_analytics.web.scouting_notices import _knowledge_notice, _refresh_notice
+from fm_analytics.web.scouting_notices import _knowledge_notice, _refresh_notice, _refresh_job_notice
 
 
 _NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
@@ -420,7 +421,12 @@ def _pool_not_built_page() -> str:
     first and styled as the primary action because it gets the same data with
     no native call at all.
     """
-    body = (
+    return _layout("Scouting", "/scouting", _pool_not_built_body())
+
+
+def _pool_not_built_body() -> str:
+    """Recovery choices, also shown after a background refresh fails."""
+    return (
         "<section class='fm-scouting-empty-hero'><span class='eyebrow'>Scouting data needed</span>"
         "<h2>FM has not built its player list yet</h2>"
         "<p>This app normally reads the list of players you are allowed to know "
@@ -452,7 +458,6 @@ def _pool_not_built_page() -> str:
         "(risks this save)</button>"
         "</form></section>"
     )
-    return _layout("Scouting", "/scouting", body)
 
 
 def _scouting_refresh_command(path: Path) -> Callable[..., str]:
@@ -462,6 +467,9 @@ def _scouting_refresh_command(path: Path) -> Callable[..., str]:
     target = path.resolve()
 
     def refresh(*, allow_rebuild: bool = False) -> str:
+        from fm_analytics.web.providers import scouting_json_provider
+
+        temporary = target.with_suffix(target.suffix + ".tmp")
         command = [
             "uv",
             "run",
@@ -470,30 +478,37 @@ def _scouting_refresh_command(path: Path) -> Callable[..., str]:
             "python",
             str(capture_tool),
             "--output",
-            str(target),
+            str(temporary),
         ]
         if allow_rebuild:
             command.append("--allow-rebuild")
         if target.exists():
-            command.extend(("--base-feed", str(target), "--replace"))
+            command.extend(("--base-feed", str(target)))
         try:
-            result = subprocess.run(
-                command,
-                cwd=project_root,
-                capture_output=True,
-                text=True,
-                timeout=240,
-                check=False,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise RuntimeError("Scouting refresh timed out after four minutes.") from exc
-        if result.returncode == POOL_NOT_BUILT_EXIT_CODE:
-            raise ScoutingPoolNotBuilt(
-                (result.stderr or result.stdout or "").strip()[-2_000:]
-            )
-        if result.returncode != 0:
-            detail = (result.stderr or result.stdout or "unknown capture failure").strip()
-            raise RuntimeError(f"Scouting refresh failed: {detail[-2_000:]}")
-        return (result.stdout or "Scouting data refreshed.").strip()
+            temporary.unlink(missing_ok=True)
+            try:
+                result = subprocess.run(
+                    command,
+                    cwd=project_root,
+                    capture_output=True,
+                    text=True,
+                    timeout=240,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise RuntimeError("Scouting refresh timed out after four minutes.") from exc
+            if result.returncode == POOL_NOT_BUILT_EXIT_CODE:
+                raise ScoutingPoolNotBuilt(
+                    (result.stderr or result.stdout or "").strip()[-2_000:]
+                )
+            if result.returncode != 0:
+                detail = (result.stderr or result.stdout or "unknown capture failure").strip()
+                raise RuntimeError(f"Scouting refresh failed: {detail[-2_000:]}")
+            # Validate the complete feed before promoting it to last-good data.
+            scouting_json_provider(temporary)()
+            os.replace(temporary, target)
+            return (result.stdout or "Scouting data refreshed.").strip()
+        finally:
+            temporary.unlink(missing_ok=True)
 
     return refresh

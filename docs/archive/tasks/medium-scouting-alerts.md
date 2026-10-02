@@ -6,20 +6,20 @@
 verdicts, and an accepted source of weakest-slot role attributes. **All met by
 29 September 2026:**
 
-- [best-known profiles](../archive/tasks/medium-best-known-player-profiles.md)
-  and the [database-backed candidate pool](../archive/tasks/medium-database-candidate-pool.md),
+- [best-known profiles](medium-best-known-player-profiles.md)
+  and the [database-backed candidate pool](medium-database-candidate-pool.md),
   whose `CandidateHistory.out_of_date` already applies a six-month threshold;
-- [manual verdicts](../archive/tasks/medium-manual-scouting-verdicts.md)
+- [manual verdicts](medium-manual-scouting-verdicts.md)
   (`PlayerKnowledgeStore.current_verdicts`); and
 - `WeakSlot.role_attributes` from the
-  [weakest-slot service](../archive/tasks/medium-weakest-slot-service.md).
+  [weakest-slot service](medium-weakest-slot-service.md).
 
 One gap remains. Free-agent, listed and contract-end transitions can be read
 from `profile_observations` (`has_contract`, `transfer_status`,
 `contract_end`). A **newly realistic** transition (Player Search or
 transfer/loan interest) has no stored previous state: the knowledge history
 does not record interest yet (see "Known gaps" in
-[scouting-workspace.md](../scouting-workspace.md)).
+[scouting-workspace.md](../../scouting-workspace.md)).
 
 ## Why we are doing this
 
@@ -96,3 +96,41 @@ existing player report or filtered list.
 - `src/fm_analytics/web/scouting_pages.py`
 - `src/fm_analytics/web/scouting_render.py`
 - a focused new test module plus `tests/test_web_scouting.py`
+
+## Status
+
+Built 1 October 2026. A pure alert service supplies reason codes, report links,
+role context, and missing attribute names to the Scouting page's two alert
+collections. Empty results show a quiet empty state. Market transitions and
+stale reminders remain available even when the owned squad is incomplete;
+missing-role reminders use the accepted weakest-slot service when available.
+
+Decisions:
+
+- Compare the two latest in-game sightings, resolving the profile effective
+  on the previous day. Change-only profile rows are insufficient: they would
+  repeat alerts forever and miss an unchanged contract approaching expiry.
+  Later unchanged sightings clear a transition; reloads of the same in-game
+  state retain it. All history queries are isolated by save and date.
+- The near-contract window is six game months, using the existing canonical
+  contract-month calculation. Staleness reuses `CandidateHistory.out_of_date`
+  and the configurable `--out-of-date-months` cutoff; messages show that cutoff.
+- Important attributes are those tied for the highest accepted role weight.
+  Exact and ranged values are information; unknown or omitted important
+  values trigger a Watch reminder. Unrelated unknowns do not.
+- Order market reasons as free, listed, contract, then name and id. Order stale
+  reminders before missing-role reminders; the first matching weak slot uses
+  the weakest-slot service's order. A player can have several specific reasons.
+- Newly realistic via interest or Player Search is deferred from this first
+  version, as permitted by the brief: previous interest is not recorded, so a
+  transition cannot be substantiated. Free/listed predicates and contract
+  calculations reuse the application's canonical market rules. History-only
+  market facts never generate current gettable alerts.
+
+Tests cover transitions, unchanged recaptures, no previous observation, save
+isolation, Reject suppression, Target/Watch retention, configurable stale
+cutoffs, important unknowns, escaping, and the refresh-to-page integration.
+
+Verification: all 1,243 unittest tests passed. Python compilation, package
+build, isolated wheel imports/catalogue check, and bridge fixture HTTP smoke
+test also passed.
