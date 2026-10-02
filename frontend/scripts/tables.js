@@ -1,5 +1,6 @@
 // Shared table behaviour. Work only with rendered data; keep explanation rows
 // attached to their owning row, even when filtering or sorting a starting XI.
+import { initTableCopies } from './table-copy.js';
 export const POSITION_ORDER = ['GK', 'DL', 'DCL', 'DC', 'DCR', 'DR', 'WBL', 'DMCL', 'DMC', 'DM', 'DMCR', 'WBR', 'ML', 'MCL', 'MC', 'MCR', 'MR', 'AML', 'AMCL', 'AMC', 'AMCR', 'AMR', 'STL', 'STCL', 'STC', 'ST', 'STCR', 'STR'];
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 const empty = (value) => value === '' || /^(?:[?—–-]%?|not (?:yet )?captured|no eligible role|not selectable today)$/i.test(value);
@@ -84,4 +85,5 @@ export function initTables(scope = document) {
     reset.addEventListener('click', () => { search.value = ''; append(original); headers.forEach((th, col) => th.setAttribute('aria-sort', defaultPosition && col === positionColumn ? 'ascending' : 'none')); update(); });
     update();
   });
+  initTableCopies(scope);
 }

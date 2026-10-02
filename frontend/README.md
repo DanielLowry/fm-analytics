@@ -31,6 +31,12 @@ Numeric `data-sort` values take precedence over display text. Starting-XI
 explanations remain attached to their owning row. Tables scroll within their
 own containers, including nested tables in player reports.
 
+Every table also has a small Copy to clipboard button, provided by
+`table-copy.js`. It copies headers and visible rows in their current order as
+tab-separated text for spreadsheet pasting. Closed explanations and nested
+tables are excluded from a cell's text; each nested table has its own button.
+The legacy copy fallback supports pages served without the Clipboard API.
+
 Scouting uses `scouting.js` and the pure display predicates in
 `scouting-data.js`. The browser loads a complete snapshot for the selected
 position, role, tactic and raw-position policy from `/scouting/results?snapshot=1`.

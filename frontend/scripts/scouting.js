@@ -1,4 +1,5 @@
 import { positionValue } from "./tables.js";
+import { initTableCopies } from "./table-copy.js";
 import { orderedSnapshotRows } from "./scouting-data.js";
 // Display cached, server-scored candidates. No scoring runs in the browser.
 export function initScouting() {
@@ -133,6 +134,7 @@ export function initScouting() {
       results.append(panel);
     }
     table.querySelectorAll('th').forEach((th) => { const button = th.querySelector('.sort-btn'); th.removeAttribute('aria-sort'); if (button) { button.textContent = button.textContent.replace(/ [▲▼]$/, ''); if (button.dataset.sort === sort) { th.setAttribute('aria-sort', direction === 'desc' ? 'descending' : 'ascending'); button.textContent += direction === 'desc' ? ' ▼' : ' ▲'; } } });
+    initTableCopies(results);
     const heading = results.querySelector('h2'); if (heading) heading.textContent = heading.textContent.replace(/ \(\d+\)$/, '') + ` (${rows.length})`;
     const summary = results.querySelector('.results-summary'); if (summary) summary.textContent = `Sorted by ${option?.textContent || sort} · ${direction === 'desc' ? 'high to low' : 'low to high'}. Scores retain uncertainty.`;
     status.textContent = `${rows.length} candidates · filters and sorting apply instantly.`;
@@ -160,7 +162,7 @@ export function initScouting() {
       if (!source) {
         // A genuinely empty scoring context has no table or snapshot.
         if (parsed.querySelector('.warn')) throw new Error(parsed.querySelector('.warn').textContent);
-        results.innerHTML = parsed.body.innerHTML; status.textContent = 'No candidates for this scoring context.'; history.replaceState(null, '', '/scouting?' + paramsForForm()); return;
+        results.innerHTML = parsed.body.innerHTML; initTableCopies(results); status.textContent = 'No candidates for this scoring context.'; history.replaceState(null, '', '/scouting?' + paramsForForm()); return;
       }
       const data = JSON.parse(source.textContent); source.remove();
       const snapshot = { data, frame: parsed.body.innerHTML, byId: new Map(data.rows.map((row) => [row.id, row])) };
