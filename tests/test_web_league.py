@@ -1,0 +1,205 @@
+import json
+import tempfile
+import threading
+import time
+import unittest
+from dataclasses import replace
+from datetime import timedelta
+from pathlib import Path
+from unittest.mock import patch
+
+from fm_analytics.domain.leagues import LeagueCapture
+from fm_analytics.persistence.league_history import LeagueHistoryStore
+from fm_analytics.web.league_state import LeagueState, league_json_provider
+from tests.league_support import league_capture
+from tests.web_support import WebServerHelpers
+
+
+class LeagueStateTests(unittest.TestCase):
+    def setUp(self):
+        self.capture = league_capture()
+        self.state = LeagueState()
+        self.state.read = lambda: (self.capture.game, self.capture.teams[0].squad)
+        self.state.setup_league(lambda: self.capture)
+
+    def test_cache_reuses_reports_and_recomputes_changed_knowledge_and_scope(self):
+        with patch("fm_analytics.web.league_state.build_league_comparison", return_value=object()) as build:
+            first = self.state.league_report("balanced_442")
+            self.assertIs(self.state.league_report("balanced_442"), first)
+            self.assertEqual(build.call_count, 1)
+            self.state.league_report()
+            self.assertEqual(build.call_count, 2)
+            self.capture = replace(self.capture, membership_evidence="New participant observation")
+            self.state.league_report("balanced_442")
+            self.assertEqual(build.call_count, 3)
+            self.assertEqual(len(self.state._league_reports), 2)
+
+    def test_mismatched_context_and_same_day_owned_observations_are_refused(self):
+        game, owned = self.state.read()
+        for different in (replace(game, game_date=game.game_date+timedelta(days=1)),
+                          replace(game, human_manager=replace(game.human_manager, id="another-manager")),
+                          replace(game, controlled_club=replace(game.controlled_club, id="another-club"))):
+            self.state.read = lambda: (different, owned)
+            with self.assertRaisesRegex(ValueError, "different dates"):
+                self.state.league_report()
+        self.state.read = lambda: (game, replace(owned, players=owned.players[:-1]))
+        with self.assertRaisesRegex(ValueError, "different observations"):
+            self.state.league_report()
+
+    def test_bad_file_replacement_does_not_silently_serve_an_old_capture(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/"league.json"
+            path.write_text(json.dumps(self.capture.to_document()))
+            provider = league_json_provider(path)
+            self.assertEqual(provider(), self.capture)
+            path.write_text('{"partial":')
+            with self.assertRaises(ValueError):
+                provider()
+            path.write_text(json.dumps(self.capture.to_document()))
+            self.assertEqual(provider(), self.capture)
+
+    def test_background_view_returns_loading_and_joins_a_single_job(self):
+        started, finish = threading.Event(), threading.Event()
+        report = type("Report", (), {"capture": self.capture})()
+        def compute(*args, **kwargs):
+            started.set()
+            finish.wait(5)
+            return report
+        with patch("fm_analytics.web.league_state.build_league_comparison", side_effect=compute) as build:
+            self.assertEqual(self.state.league_view().status, "loading")
+            self.assertTrue(started.wait(2))
+            self.assertEqual(self.state.league_view().status, "loading")
+            thread = self.state._league_thread
+            finish.set()
+            thread.join(2)
+            self.assertIs(self.state.league_view().report, report)
+            self.assertEqual(build.call_count, 1)
+
+    def test_failed_refresh_retains_only_same_save_and_scope_and_can_retry(self):
+        report = type("Report", (), {"capture": self.capture})()
+        with patch("fm_analytics.web.league_state.build_league_comparison", return_value=report):
+            self.state.league_report("balanced_442")
+        self.capture = replace(self.capture, membership_evidence="New observation")
+        with patch("fm_analytics.web.league_state.build_league_comparison", side_effect=RuntimeError("Read failed")):
+            view = self.state.league_view("balanced_442")
+            self.assertIs(view.report, report)
+            thread = self.state._league_thread
+            if thread is not None:
+                thread.join(2)
+            view = self.state.league_view("balanced_442")
+            self.assertEqual(view.error, "Read failed")
+            self.assertEqual(view.status, "error")
+        with patch("fm_analytics.web.league_state.build_league_comparison", return_value=report):
+            self.state.league_view("balanced_442", retry=True)
+            thread = self.state._league_thread
+            if thread is not None:
+                thread.join(2)
+            self.assertEqual(self.state.league_view("balanced_442").status, "ready")
+        self.capture = replace(self.capture, save_key="different-save")
+        with patch("fm_analytics.web.league_state.build_league_comparison", side_effect=RuntimeError("Read failed")):
+            self.assertIsNone(self.state.league_view("balanced_442").report)
+            thread = self.state._league_thread
+            if thread is not None:
+                thread.join(2)
+
+
+class LeagueWebTests(WebServerHelpers, unittest.TestCase):
+    def _get(self, port, path):
+        deadline = time.monotonic()+8
+        while True:
+            status, body = super()._get(port, path)
+            if (status != 202 and "data-league-pending" not in body) or time.monotonic() >= deadline:
+                return status, body
+            self.assertIn("Updating league comparison", body)
+            time.sleep(.01)
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.capture = league_capture()
+        self.fixture = Path(self.directory.name)/"owned.json"
+        self.fixture.write_text(json.dumps({"game": self.capture.game.to_dict(),
+                                           "squad": self.capture.teams[0].squad.to_dict()}))
+        self.store = LeagueHistoryStore(Path(self.directory.name)/"history.sqlite3")
+        self.port = self._serve(self.fixture, league_provider=lambda: self.capture, league_store=self.store)
+
+    def test_overview_has_all_clubs_ranges_own_marker_and_unscored_status(self):
+        status, body = self._get(self.port, "/league?tactic=balanced_442")
+        self.assertEqual(status, 200)
+        for text in ("Strong club", "Unscouted club", "Partial club", "your club", "Roster incomplete",
+                     "Example league data", "among 3 scored clubs", "role='img'", "uncaptured"):
+            self.assertIn(text, body)
+        self.assertEqual(self.store.latest(self.capture.save_key, self.capture.competition.id,
+                                          as_of=self.capture.game.game_date), self.capture)
+
+    def test_team_has_all_scenarios_roster_filters_and_actionable_gaps(self):
+        status, body = self._get(self.port, "/league/teams/rival-2?tactic=balanced_442&position=GK")
+        self.assertEqual(status, 200)
+        for text in ("Conservative best XI", "Floor XI", "Ceiling XI", "Rank the squad", "Scout more",
+                     "Missing position familiarity", "fm-league-pitch"):
+            self.assertIn(text, body)
+        roster = body.split("<h2>Rank the squad</h2>")[1]
+        self.assertIn("Unscouted club player 0", roster)
+        self.assertNotIn("Unscouted club player 1</a>", roster)
+
+    def test_profile_distinguishes_missing_observations_and_escapes_display_names(self):
+        document = self.capture.to_document()
+        player = document["teams"][2]["squad"]["players"][0]
+        player["name"] = "<script>alert('x')</script>"
+        del player["attributes"]["passing"]
+        self.capture = LeagueCapture.from_document(document)
+        status, body = self._get(self.port, f"/league/teams/rival-2/players/{player['id']}?tactic=balanced_442")
+        self.assertEqual(status, 200)
+        self.assertIn("&lt;script&gt;", body)
+        self.assertNotIn("<script>alert", body)
+        self.assertIn("Uncaptured", body)
+        self.assertIn("?</td>", body)
+        for row in document["teams"][2]["squad"]["players"]:
+            row["attributes"] = {}
+        self.capture = LeagueCapture.from_document(document)
+        status, body = self._get(self.port, "/league/teams/rival-2?tactic=balanced_442")
+        self.assertEqual(status, 200)
+        self.assertIn("Capture needed", body)
+
+    def test_unknown_routes_controls_and_failed_capture_are_explicit(self):
+        for path, expected in (("/league?tactic=invalid", 400), ("/league?sort=invalid", 400),
+                               ("/league/teams/rival-1?role=invalid", 400),
+                               ("/league/teams/absent", 404),
+                               ("/league/teams/rival-1/players/absent", 404)):
+            with self.subTest(path=path):
+                self.assertEqual(self._get(self.port, path)[0], expected)
+        self.capture = replace(self.capture, game=replace(self.capture.game, game_date=self.capture.game.game_date+timedelta(days=1)),
+                               teams=tuple(replace(r, squad=replace(r.squad, as_of_date=r.squad.as_of_date+timedelta(days=1)))
+                                           for r in self.capture.teams))
+        status, body = self._get(self.port, "/league?tactic=balanced_442")
+        self.assertEqual(status, 400)
+        self.assertIn("different dates", body)
+
+    def test_no_capture_has_a_useful_empty_state(self):
+        port = self._serve(self.fixture)
+        status, body = self._get(port, "/league")
+        self.assertEqual(status, 200)
+        self.assertIn("League data needed", body)
+
+    def test_failed_background_job_exposes_a_retry_and_redirects_to_clean_query(self):
+        from fm_analytics.web.league_state import build_league_comparison
+        calls = 0
+        def compute(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise RuntimeError("Source unavailable")
+            return build_league_comparison(*args, **kwargs)
+        with patch("fm_analytics.web.league_state.build_league_comparison", side_effect=compute):
+            status, body = self._get(self.port, "/league?tactic=balanced_442")
+            self.assertEqual(status, 503)
+            self.assertIn("Retry comparison", body)
+            self.assertIn("Source unavailable", body)
+            status, body = self._get(self.port, "/league?tactic=balanced_442&retry=1")
+            self.assertEqual(status, 303)
+            self.assertEqual(self._get(self.port, "/league?tactic=balanced_442")[0], 200)
+            self.assertEqual(calls, 2)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -269,7 +269,7 @@ class Player:
             )
 
     @classmethod
-    def from_dict(cls, raw: Mapping[str, Any]) -> Player:
+    def from_dict(cls, raw: Mapping[str, Any], *, allow_unknown_positions: bool = False) -> Player:
         raw = _mapping(raw, "player")
         contract = _nullable_mapping(raw, "contract")
         attributes = _mapping(_required(raw, "attributes"), "attributes")
@@ -278,7 +278,7 @@ class Player:
             name=_required_string(raw, "name"),
             date_of_birth=_nullable_date(raw, "dateOfBirth"),
             age=_nullable_int(raw, "age"),
-            positions=_required_string_array(raw, "positions"),
+            positions=_required_string_array(raw, "positions", allow_empty=allow_unknown_positions),
             club_id=_required_string(raw, "clubId"),
             condition_percent=_nullable_int(raw, "conditionPercent"),
             match_fitness_percent=_nullable_int(raw, "matchFitnessPercent"),
@@ -380,7 +380,7 @@ class Squad:
         )
 
     @classmethod
-    def from_dict(cls, raw: Mapping[str, Any]) -> Squad:
+    def from_dict(cls, raw: Mapping[str, Any], *, allow_unknown_positions: bool = False) -> Squad:
         raw = _mapping(raw, "squad")
         club = _nullable_mapping(raw, "club")
         players = _required_list(raw, "players")
@@ -391,7 +391,8 @@ class Squad:
             club=Club.from_dict(club) if club is not None else None,
             as_of_date=_required_date(raw, "asOfDate"),
             players=tuple(
-                Player.from_dict(_mapping(player, "players item")) for player in players
+                Player.from_dict(_mapping(player, "players item"), allow_unknown_positions=allow_unknown_positions)
+                for player in players
             ),
             other_teams=tuple(
                 SquadTeam.from_dict(_mapping(team, "otherTeams item")) for team in other_teams
@@ -524,9 +525,9 @@ def _required_list(raw: Mapping[str, Any], name: str) -> list[Any]:
     return value
 
 
-def _required_string_array(raw: Mapping[str, Any], name: str) -> tuple[str, ...]:
+def _required_string_array(raw: Mapping[str, Any], name: str, *, allow_empty: bool = False) -> tuple[str, ...]:
     values = _required_list(raw, name)
-    if not values:
+    if not values and not allow_empty:
         raise ValueError(f"{name} must not be empty")
     return tuple(_string(value, f"{name} item") for value in values)
 

@@ -3,12 +3,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import Mapping
 
 from fm_analytics.analytics.catalogue import TacticDefinition, TacticSlot
 from fm_analytics.analytics.role_scoring import RoleScore, ScoreBand
 from fm_analytics.analytics.tactical_system import SystemAssessment
 from fm_analytics.domain import AttributeObservation, Player
+
+
+class SelectionObjective(StrEnum):
+    """Which end of the observed score band to optimise, retaining its evidence."""
+
+    LOWER = "lower"
+    CENTRAL = "central"
+    UPPER = "upper"
 
 
 @dataclass(frozen=True)

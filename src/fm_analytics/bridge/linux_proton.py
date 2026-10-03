@@ -22,22 +22,14 @@ from fm_analytics.domain import (
     Squad,
     SquadTeam,
 )
+from fm_analytics.domain.attributes import VISIBLE_ATTRIBUTES
 
 from .errors import BridgeSourceError
 
 
-# Kept at the bridge boundary as an independent allowlist. The owned reader
-# must supply exactly these proven FM20 display attributes for every player.
-OWNED_ATTRIBUTE_ALLOWLIST = frozenset({
-    "aerialReach", "acceleration", "aggression", "agility", "anticipation",
-    "balance", "bravery", "commandOfArea", "communication", "composure",
-    "concentration", "corners", "crossing", "decisions", "determination",
-    "dribbling", "finishing", "firstTouch", "flair", "handling", "heading",
-    "jumpingReach", "kicking", "longShots", "marking", "naturalFitness",
-    "offTheBall", "oneOnOnes", "pace", "passing", "positioning",
-    "reflexes", "rushingOut", "stamina", "strength", "tackling", "teamwork",
-    "technique", "throwing", "vision", "workRate",
-})
+# Independent of catalogue weights; shared with the league capture boundary.
+# The owned reader must supply exactly these proven display attributes.
+OWNED_ATTRIBUTE_ALLOWLIST = VISIBLE_ATTRIBUTES
 
 
 # The two attribute-scope modes the app is expected to offer as a user-facing

@@ -19,6 +19,7 @@ from math import sqrt
 from typing import Sequence
 
 from fm_analytics.analytics.xi_models import (
+    SelectionObjective,
     _AssignmentState,
     _CandidateAssignment,
 )
@@ -38,19 +39,24 @@ def state_signature(state: _AssignmentState) -> tuple[tuple[int, str, str], ...]
 def best_assignment_for_role_version(
     choices: tuple[tuple[_CandidateAssignment, ...], ...],
     full_mask: int,
+    *,
+    objective: SelectionObjective = SelectionObjective.CENTRAL,
 ) -> _AssignmentState:
     """Return the exact best full XI, or the best explainable partial XI."""
-    full = _best_full_fit_assignment(choices, full_mask)
+    objective = SelectionObjective(objective)
+    full = _best_full_fit_assignment(choices, full_mask, objective=objective)
     if full is not None:
         return full
     return _best_partial_assignment(
-        choices, slot_count=full_mask.bit_count()
+        choices, slot_count=full_mask.bit_count(), objective=objective
     )[1]
 
 
 def _best_full_fit_assignment(
     choices: tuple[tuple[_CandidateAssignment, ...], ...],
     full_mask: int,
+    *,
+    objective: SelectionObjective = SelectionObjective.CENTRAL,
 ) -> _AssignmentState | None:
     """Optimize the square-root mean without enumerating full XIs.
 
@@ -59,13 +65,14 @@ def _best_full_fit_assignment(
     remains a standard linear assignment problem.
     """
     slot_count = full_mask.bit_count()
-    return _maximum_balanced_assignment(choices, slot_count=slot_count)
+    return _maximum_balanced_assignment(choices, slot_count=slot_count, objective=objective)
 
 
 def _maximum_balanced_assignment(
     choices: tuple[tuple[_CandidateAssignment, ...], ...],
     *,
     slot_count: int,
+    objective: SelectionObjective = SelectionObjective.CENTRAL,
 ) -> _AssignmentState | None:
     """Find the legal full XI with the greatest square-root utility.
 
@@ -81,7 +88,7 @@ def _maximum_balanced_assignment(
         return None
 
     highest_utility = max(
-        sqrt(choice.assignment.selection_score.central)
+        sqrt(getattr(choice.assignment.selection_score, objective))
         for candidates in by_slot
         for choice in candidates.values()
     )
@@ -90,7 +97,7 @@ def _maximum_balanced_assignment(
             (
                 round(
                     highest_utility
-                    - sqrt(candidates[player_index].assignment.selection_score.central),
+                    - sqrt(getattr(candidates[player_index].assignment.selection_score, objective)),
                     6,
                 )
                 if player_index in candidates
@@ -109,7 +116,7 @@ def _maximum_balanced_assignment(
     )
     return _AssignmentState(
         total=round(
-            sum(choice.assignment.selection_score.central for choice in assignments), 6
+            sum(getattr(choice.assignment.selection_score, objective) for choice in assignments), 6
         ),
         assignments=assignments,
     )
@@ -119,6 +126,7 @@ def _best_partial_assignment(
     choices: tuple[tuple[_CandidateAssignment, ...], ...],
     *,
     slot_count: int,
+    objective: SelectionObjective = SelectionObjective.CENTRAL,
 ) -> tuple[int, _AssignmentState]:
     """Find the best incomplete XI when a legal XI cannot be filled.
 
@@ -131,7 +139,7 @@ def _best_partial_assignment(
     best_possible_utility = sum(
         max(
             (
-                sqrt(choice.assignment.selection_score.central)
+                sqrt(getattr(choice.assignment.selection_score, objective))
                 for choice in candidates.values()
             ),
             default=0.0,
@@ -141,7 +149,7 @@ def _best_partial_assignment(
     filled_slot_bonus = best_possible_utility + 1
     highest_weight = filled_slot_bonus + max(
         (
-            sqrt(choice.assignment.selection_score.central)
+            sqrt(getattr(choice.assignment.selection_score, objective))
             for candidates in by_slot
             for choice in candidates.values()
         ),
@@ -155,7 +163,7 @@ def _best_partial_assignment(
                 round(
                     highest_weight
                     - filled_slot_bonus
-                    - sqrt(candidates[player_index].assignment.selection_score.central),
+                    - sqrt(getattr(candidates[player_index].assignment.selection_score, objective)),
                     6,
                 )
                 if player_index in candidates
@@ -177,7 +185,7 @@ def _best_partial_assignment(
     mask = sum(1 << choice.slot_index for choice in assignments)
     return mask, _AssignmentState(
         total=round(
-            sum(choice.assignment.selection_score.central for choice in assignments), 6
+            sum(getattr(choice.assignment.selection_score, objective) for choice in assignments), 6
         ),
         assignments=assignments,
     )

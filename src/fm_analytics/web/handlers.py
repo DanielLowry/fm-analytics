@@ -27,6 +27,7 @@ from fm_analytics.web.auxiliary_pages import AuxiliaryPagesMixin
 from fm_analytics.web.match_pages import MatchPagesMixin
 from fm_analytics.web.scouting_pages import ScoutingPagesMixin
 from fm_analytics.web.tactic_pages import TacticPagesMixin
+from fm_analytics.web.league_pages import LeaguePagesMixin
 from fm_analytics.web.scouting_render import squad_player_link
 from fm_analytics.web.scouting_report import squad_player_report
 from fm_analytics.web.rendering import (
@@ -39,6 +40,7 @@ from fm_analytics.web.rendering import (
 )
 
 class SquadWebHandler(
+    LeaguePagesMixin,
     WebActionsMixin,
     AuxiliaryPagesMixin,
     MatchPagesMixin,
@@ -63,10 +65,13 @@ class SquadWebHandler(
             "/scouting": self._scouting_page,
             "/scouting/results": self._scouting_results_fragment,
             "/matches": self._matches_page,
+            "/league": self._league_page,
             "/api/export": self._export_api,
             "/data": self._data_page,
         }
         handler = routes.get(path)
+        if handler is None and path.startswith("/league/teams/"):
+            handler = self._league_team_page
         if handler is None and path.startswith("/scouting/player/") and path != "/scouting/player/":
             handler = self._scouting_player_page
         if handler is None and path.startswith("/squad/player/") and path != "/squad/player/":

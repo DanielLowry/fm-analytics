@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Sequence
 
 from fm_analytics.analytics.match_analysis import (
     MatchReport,
@@ -60,6 +60,9 @@ from fm_analytics.analytics import (
     recommend_tactic_effective_and_potential,
     select_bench,
 )
+from fm_analytics.analytics.team_comparison import TeamXIComparison, compare_team_xi
+from fm_analytics.analytics.league_comparison import LeagueReport, build_league_report
+from fm_analytics.domain.leagues import LeagueCapture
 from fm_analytics.domain import GameState, Player, Squad
 from fm_analytics.season_export import export_document
 
@@ -302,6 +305,44 @@ def has_complete_role_attributes(
     required = required_role_attributes(catalogue)
     return bool(squad.players) and all(
         required.issubset(player.attributes) for player in squad.players
+    )
+
+
+def build_league_comparison(
+    capture: LeagueCapture,
+    *,
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+    policy: RecommendationPolicy = RecommendationPolicy(),
+    tactic_keys: tuple[str, ...] | None = None,
+) -> LeagueReport:
+    return build_league_report(capture, catalogue, tactic_keys=tactic_keys,
+                              readiness_policy=policy.readiness, familiarity_policy=policy.familiarity,
+                              fit_policy=policy.tactic_fit)
+
+
+def build_team_xi_comparison(
+    squad: Squad,
+    *,
+    roster_complete: bool,
+    positions_complete: bool,
+    tactic_keys: Sequence[str] | None = None,
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+    policy: RecommendationPolicy = RecommendationPolicy(),
+) -> TeamXIComparison:
+    """Compare a verified roster without unrelated full-bundle analyses.
+
+    The comparison uses a neutral opponent and the caller's existing selection
+    policies. Pins do not restrict the comparison unless supplied as tactic_keys.
+    """
+    return compare_team_xi(
+        tuple(PlayerSelectionInput.from_player(player) for player in squad.players),
+        catalogue,
+        roster_complete=roster_complete,
+        positions_complete=positions_complete,
+        tactic_keys=tactic_keys,
+        readiness_policy=policy.readiness,
+        familiarity_policy=policy.familiarity,
+        fit_policy=policy.tactic_fit,
     )
 
 

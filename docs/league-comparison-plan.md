@@ -1,9 +1,77 @@
 # League team comparison plan
 
-**Status:** planned, 3 October 2026; implementation has not started.
+**Status:** in progress, 3 October 2026. Scenario scoring, dated capture history,
+and comparison screens are built for supplied captures. Automatic live league
+acquisition remains open.
 **Request:** rank the players at every club in our league, select each club's
 best XI, score it with our existing team model, and compare clubs while showing
 the uncertainty caused by incomplete scouting.
+
+## First implementation slice (3 October 2026)
+
+- `SelectionObjective` now threads lower/central/upper selection through the
+  existing assignment solver, legal role versions, and tactic ranking. Default
+  central results remain unchanged; original attribute observations are retained.
+- `analytics/team_comparison.py::compare_team_xi` reselects the XI for all three
+  scenarios. It returns the independently optimised team band separately from
+  the central lineup's own band. Explicit roster/position-completeness flags
+  prevent partial or unverifiable teams from receiving a comparable score.
+- `reporting.build_team_xi_comparison` exposes this through the shared reporting
+  layer, using existing selection policies and a neutral opponent. The default
+  tactic search includes the whole catalogue; a supplied tactic shortlist
+  restricts all three scenarios equally.
+- Focused tests cover exact-score parity, a ceiling-only unknown reserve,
+  endpoint changes of roles and tactics, exhaustive shared-position assignment,
+  zero-score unknown squads, taper bounds, incomplete rosters, and reporting.
+- A new passive `league-roster-inventory` controller recipe found stable roster
+  ID vectors for all 22 clubs represented in 352 National League South results,
+  at game date **21 February 2020**, with no read failures or operator action.
+  The managed club is Hungerford Town, ID `5103652`; active manager ID
+  `1915435143`. This is diagnostic identity evidence, not production approval.
+  The immutable session and adapter reports are indexed in the research corpus.
+
+The remaining data gate is an authoritative current participant list (including
+preseason), public first-team roster validation, and manager-visible external
+positions. The inventory deliberately reads no external attributes, readiness,
+or raw positions and cannot feed the scoring service.
+
+## Capture-driven screens (3 October 2026)
+
+- A strict [versioned capture contract](contracts/league-capture.md) carries dated
+  participant/roster evidence, visible observations, and completeness flags.
+  Unknown positions can be stored, but prevent a comparable team score.
+  Research inventories, hidden attributes, and external numeric familiarity
+  are rejected. Uncaptured attributes remain distinct from observed unknowns.
+- A separate migrated SQLite store appends whole capture revisions by explicit
+  save key, records same-date changes, refuses backward-date ingestion without
+  a branch key, and never retrieves future observations for an as-of query.
+- `/league` shows every captured club, independently selected best-XI ranges,
+  interval ranks, own-club highlighting, common-tactic controls, and uncertainty
+  sorting. Incomplete clubs remain visible without a score or rank.
+- Team drilldowns show conservative/floor/ceiling pitch XIs, full roster
+  rankings with position/role filters, visible player attributes, and the
+  largest role-scoring information gaps in central and ceiling selections.
+- External unknown availability is provisionally available, with an explicit
+  assumption. Owned availability follows the existing scorer unchanged.
+  Readiness/familiarity fallbacks are shown; comparisons using them are labelled
+  conditional. The league's owned observations must agree with the web squad.
+- A single background worker computes one revision at a time, with at most one
+  pending request. Repeated polling joins that job. A previous completed report
+  in the same save/tactic scope stays usable with an update notice; failures
+  expose a retry. Completed reports are cached in a bounded in-memory LRU.
+- `--league-json` opts into a supplied capture; an explicit demo generator
+  allows screen review without inventing a live league. No default live or
+  synthetic capture is silently substituted.
+- The seeded 22-club, 22-player, mixed-knowledge benchmark covers all 50 tactics
+  and three scenarios. Cold computation took 22.497 seconds, with a 0.0117-second
+  cached report. See [the performance record](analytics-performance.md#league-comparison-workload-3-october-2026)
+  for the generator and limits. This justified moving HTTP requests off the
+  computing path; it does not establish the cost of a live full league.
+
+Still open: verified automatic live membership/roster/position acquisition,
+reuse of unchanged team computations across capture revisions, and scouting
+priorities measured by their effect on comparisons with us. The initial gap
+list ranks intrinsic role uncertainty rather than claiming that league impact.
 
 ## Product decisions
 
@@ -202,13 +270,15 @@ The numbers above are illustrative. The page should:
 
 For fully comparable teams, a possible strength-position interval follows
 from strict interval separation: best position is one plus the number of
-other teams whose floors exceed this team's ceiling; worst position is the
-number of comparable teams minus those whose ceilings are below its floor.
-Touching or overlapping ranges remain unresolved. When any league club cannot
+other teams whose floors exceed this team's ceiling; worst position is one
+plus the number of other teams whose ceilings strictly exceed its floor.
+Exact ties share a competition rank even when another club has an uncertain
+score. Touching or overlapping ranges generally leave ordering unresolved.
+When any league club cannot
 be compared, label positions **among N scored clubs** instead of implying a
-complete league ranking. When all comparable scores are exact, use competition
-ranking (one plus the number of strictly higher scores), so equal scores share
-a position. Otherwise the position interval describes unresolved ordering;
+complete league ranking. When all comparable scores are exact, the endpoints
+collapse to competition ranking (one plus the number of strictly higher scores).
+Otherwise the position interval describes unresolved ordering;
 alphabetical or ID ordering is presentation only.
 
 The team page shows a pitch XI with roles and slot ranges, alternative

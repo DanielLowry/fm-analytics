@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "id": "league-roster-inventory",
+  "purpose": "league-roster-source-reconnaissance",
+  "question": "Can played league results locate stable first-team roster identity vectors without reading external attributes or raw positions?",
+  "adapter": "fm20-league-inventory",
+  "build": "fm20-20.4.4-1442341",
+  "safety": "passive-live",
+  "operator_interaction": "none",
+  "requires_live_process": true,
+  "timeout_seconds": 90,
+  "required_registry_facts": ["active-object", "main-database-collections"],
+  "reusable_corpus_states": [],
+  "decision": {
+    "adapter_exit_codes": [0],
+    "adapter_statuses": ["complete"],
+    "minimum_rosters": 2
+  },
+  "limitations": [
+    "Played results are a diagnostic locator, not a complete current membership source.",
+    "A stable vector does not prove manager-visible roster membership; UI validation is required.",
+    "This recipe never reads external attributes, readiness, or raw position ratings and cannot supply production LeagueCapture data."
+  ]
+}

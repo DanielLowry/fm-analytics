@@ -35,6 +35,7 @@ from fm_analytics.analytics.xi_models import (
     FamiliarityPolicy,
     PlayerSelectionInput,
     ReadinessPolicy,
+    SelectionObjective,
     SlotAssignment,
     TacticEvaluation,
     TacticFitPolicy,
@@ -55,6 +56,7 @@ def evaluate_tactic(
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
     role_score_cache: RoleScoreCache | None = None,
+    objective: SelectionObjective = SelectionObjective.CENTRAL,
 ) -> TacticEvaluation:
     return _evaluate_tactic(
         tactic,
@@ -65,6 +67,7 @@ def evaluate_tactic(
         fit_policy=fit_policy,
         opponent=opponent,
         role_score_cache=role_score_cache,
+        objective=SelectionObjective(objective),
     )
 
 
@@ -81,6 +84,7 @@ def _evaluate_tactic(
     opponent: OpponentProfile,
     role_score_cache: RoleScoreCache | None = None,
     forced_assignment: tuple[int, str, str] | None = None,
+    objective: SelectionObjective = SelectionObjective.CENTRAL,
 ) -> TacticEvaluation:
     if tactic.key not in catalogue.tactics or catalogue.tactics[tactic.key] != tactic:
         raise ValueError("tactic must belong to the supplied football catalogue")
@@ -121,6 +125,7 @@ def _evaluate_tactic(
         catalogue,
         opponent,
         forced_roles=forced_roles,
+        objective=objective,
     )
     unfilled = tuple(
         slot
@@ -166,7 +171,9 @@ def recommend_tactic(
     fit_policy: TacticFitPolicy = TacticFitPolicy(),
     opponent: OpponentProfile = OpponentProfile.neutral(),
     role_score_cache: RoleScoreCache | None = None,
+    objective: SelectionObjective = SelectionObjective.CENTRAL,
 ) -> TacticRecommendation:
+    objective = SelectionObjective(objective)
     evaluations = tuple(
         evaluate_tactic(
             tactic,
@@ -177,10 +184,11 @@ def recommend_tactic(
             fit_policy=fit_policy,
             opponent=opponent,
             role_score_cache=role_score_cache,
+            objective=objective,
         )
         for tactic in catalogue.tactics.values()
     )
-    return rank_evaluations(evaluations)
+    return rank_evaluations(evaluations, objective=objective)
 
 
 def recommend_tactic_effective_and_potential(
@@ -581,6 +589,7 @@ def _best_role_version(
     opponent: OpponentProfile,
     *,
     forced_roles: dict[int, str] | None = None,
+    objective: SelectionObjective = SelectionObjective.CENTRAL,
 ) -> tuple[
     int,
     _AssignmentState,
@@ -615,7 +624,7 @@ def _best_role_version(
         if not catalogue.role_version_is_legal(tactic, role_keys):
             continue
         version_choices = _choices_for_role_version(choices, role_keys)
-        state = best_assignment_for_role_version(version_choices, full_mask)
+        state = best_assignment_for_role_version(version_choices, full_mask, objective=objective)
         mask = sum(1 << choice.slot_index for choice in state.assignments)
         assignments = tuple(
             choice.assignment
@@ -645,8 +654,8 @@ def _best_role_version(
         )
         if (
             best is None
-            or _role_version_key(candidate, full_mask)
-            < _role_version_key(best, full_mask)
+            or _role_version_key(candidate, full_mask, objective=objective)
+            < _role_version_key(best, full_mask, objective=objective)
         ):
             best = candidate
 
@@ -669,12 +678,14 @@ def _best_role_version(
 def _role_version_key(
     candidate: _RoleVersionEvaluation,
     full_mask: int,
+    *,
+    objective: SelectionObjective = SelectionObjective.CENTRAL,
 ) -> tuple[bool, int, float, float, tuple[tuple[int, str, str], ...]]:
     return (
         candidate.mask != full_mask,
         -candidate.mask.bit_count(),
-        -candidate.score.central,
-        -candidate.xi_score.central,
+        -getattr(candidate.score, objective),
+        -getattr(candidate.xi_score, objective),
         state_signature(candidate.state),
     )
 

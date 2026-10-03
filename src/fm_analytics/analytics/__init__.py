@@ -57,6 +57,7 @@ from fm_analytics.analytics.xi_selection import (
     score_player_for_slot,
 )
 from fm_analytics.analytics.tactic_ranking import TacticRankingExecutor
+from fm_analytics.analytics.xi_models import SelectionObjective
 from fm_analytics.analytics.tactic_structure import (
     StructuralCombinationFailure,
     TacticStructureCheck,
@@ -238,6 +239,7 @@ __all__ = [
     "ScoutingFilters",
     "ScoutingPriority",
     "SelectionAlternative",
+    "SelectionObjective",
     "SlotAssignment",
     "SlotSelectionExplanation",
     "SlotDepth",

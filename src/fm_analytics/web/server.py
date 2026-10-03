@@ -79,6 +79,8 @@ from fm_analytics.web.rendering import ScoutingPoolNotBuilt, _scouting_refresh_c
 
 from fm_analytics.web.handlers import SquadWebHandler
 from fm_analytics.web.match_state import MatchHistoryState
+from fm_analytics.web.league_state import LeagueState, league_json_provider
+from fm_analytics.persistence.league_history import LeagueHistoryStore
 
 
 @dataclass(frozen=True)
@@ -93,7 +95,7 @@ class ScoutingRefreshJob:
 
 
 
-class SquadWebServer(MatchHistoryState, ThreadingHTTPServer):
+class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
     """Serves `SquadWebHandler`, with a short-TTL cache in front of the source.
 
     Both the provider call and the full recommendation computation can cost
@@ -131,7 +133,10 @@ class SquadWebServer(MatchHistoryState, ThreadingHTTPServer):
         out_of_date_months: int = DEFAULT_OUT_OF_DATE_MONTHS,
         match_store: MatchHistoryStore | None = None,
         match_capture: Callable[[], str] | None = None,
+        league_provider=None,
+        league_store: LeagueHistoryStore | None = None,
     ):
+        self.setup_league(league_provider, league_store)
         self.setup_match_history(match_store, match_capture)
         # Appends each fresh scouting capture to the player-knowledge database
         # (see ``record_knowledge``). None disables recording.
@@ -588,6 +593,9 @@ class SquadWebServer(MatchHistoryState, ThreadingHTTPServer):
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Serve the read-only squad decision-support view")
+    parser.add_argument("--league-json", type=Path, help="dated manager-visible league capture for team comparison")
+    parser.add_argument("--league-db", type=Path, default=Path("data/league-history.sqlite3"),
+                        help="append-only league and roster capture history")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8766)
     parser.add_argument(
@@ -780,6 +788,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         out_of_date_months=args.out_of_date_months,
         match_store=match_store,
         match_capture=lambda: capture_and_record(match_store),
+        league_provider=league_json_provider(args.league_json) if args.league_json else None,
+        league_store=LeagueHistoryStore(args.league_db) if args.league_json else None,
     )
     if knowledge_recorder is not None and refresh_path.exists():
         # Catches captures made by running the tool directly since last time.

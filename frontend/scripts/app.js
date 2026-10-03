@@ -5,6 +5,9 @@ import { initSquadFilters } from "./position-roles.js";
   initTables();
   initSquadFilters();
   initScouting();
+  if (document.querySelector('[data-league-pending]')) {
+    window.setTimeout(() => location.reload(), 3000);
+  }
   const openSection = () => {
     if (!location.hash) return;
     let target;

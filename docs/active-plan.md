@@ -60,7 +60,7 @@ opinion to change it (see item 7).
 | 6 | "Now gettable" and "re-scout due" alerts | Small | 5 | Built 1 October 2026 |
 | — | Dedicated set-piece ratings from an HTML export | No code | — | Manager action |
 | 7 | Match history and review | Medium–large | — | Built 29 September 2026 |
-| 8 | [League team comparison](league-comparison-plan.md) | Medium–large | Verified league membership/rosters; shared scenario optimisation | Planned 3 October 2026 |
+| 8 | [League team comparison](league-comparison-plan.md) | Medium–large | Verified league membership/rosters; shared scenario optimisation | Capture-driven scoring/screens/history built 3 October; live source open |
 
 Items 1–3 affect the next few in-game weeks. Items 4–6 pay off over the season.
 Item 4 does not depend on 1–3: if a heavy scouting push starts before they

@@ -19,6 +19,20 @@ Validate both files with:
 python3 tools/validate_research_catalog.py
 ```
 
+The `league-roster-inventory` recipe performs read-only roster identity
+reconnaissance through the same controller:
+
+```bash
+uv run python tools/fm20_research.py run league-roster-inventory --json
+```
+
+On 3 October 2026 it located stable roster ID vectors for 22 National League
+South clubs at game date 21 February 2020. It reads no external attributes,
+readiness, or raw positions. Played results remain a diagnostic locator;
+complete current league membership and manager-visible roster/position
+semantics are unverified. This recipe cannot produce a production league
+capture. See [the league comparison plan](../docs/league-comparison-plan.md).
+
 Plan the first controller recipe without touching FM:
 
 ```bash

@@ -151,6 +151,21 @@ uv run fm-web --direct-live --fm-html squad-general.html squad-physical.html \
   --fm-html-player-count 17
 ```
 
+The **League** page compares captured clubs using the shared best-XI scorer,
+with independently selected floor/conservative/ceiling XIs, player rankings,
+and scouting gaps. Supply a dated [league capture](docs/contracts/league-capture.md)
+with `--league-json`; `--league-db` selects its append-only history database.
+Automatic live league capture is still being validated. To review an explicit
+synthetic example:
+
+```bash
+uv run python -m tools.league_demo
+uv run fm-web --fixture data/league-demo/squad.json --league-json data/league-demo/league.json
+```
+
+Open `/league`. Computing a new comparison runs in the background; the page
+updates automatically and keeps a completed report visible while updating.
+
 The Scouting page can rank the external candidate pool against any selected
 tactic. It re-optimises that tactic's XI and role combination for each target,
 then shows the projected tactic score, score gain, best job, and likely

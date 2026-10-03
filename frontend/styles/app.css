@@ -643,3 +643,10 @@ body.fm-app .fm-legacy input[type='checkbox']:checked { background-color: #0f6a4
 :root.dark body.fm-app .fm-legacy .versus .bars .b-us { background: #4fa477; }
 body.fm-app .fm-legacy form.inline { display: flex; flex-wrap: wrap; max-width: 100%; gap: .4rem; }
 body.fm-app .fm-legacy form.inline select { flex: 1 1 12rem; min-width: 0; max-width: 100%; }
+/* League score intervals and accessible formation rows. */
+body.fm-app .fm-league-range { display: block; width: 10rem; height: .8rem; margin-top: .4rem; }
+body.fm-app tr.our-club td { background: var(--color-brand-50); font-weight: 600; }
+body.fm-app .fm-league-pitch { padding: 1rem; border: 1px solid var(--fm-border); border-radius: .7rem; background: var(--color-brand-50); }
+body.fm-app .fm-league-pitch > div { display: flex; flex-wrap: wrap; justify-content: center; gap: .7rem; margin: .5rem 0; }
+body.fm-app .fm-league-pitch article { flex: 0 1 12rem; padding: .7rem; border: 1px solid var(--fm-border); border-radius: .5rem; background: var(--fm-card); text-align: center; }
+body.fm-app .fm-league-pitch small, body.fm-app .fm-league-pitch span { display: block; margin-top: .2rem; color: var(--color-ink-600); }

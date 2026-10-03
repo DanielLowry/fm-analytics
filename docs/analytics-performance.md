@@ -398,6 +398,39 @@ projection over several complete inputs. At minimum compare:
 The four tie changes found with SciPy should become named regression fixtures.
 An optimiser that merely preserves the winner or central score is insufficient.
 
+## League comparison workload (3 October 2026)
+
+The capture-driven league report reuses the shared scorer for independent
+lower/conservative/upper selections. This is a separate workload from the
+owned effective/potential ranking above. Reproduce it with:
+
+```bash
+uv run python -m tools.benchmark_league_comparison --clubs 22 --players 22 --seed 7
+```
+
+The generator guarantees eleven balanced-442 positions in each squad, with
+two to four observed positions per player, and duplicates no player IDs. It
+uses independently seeded clubs, full readiness, and an approximate attribute
+mix of 40% exact, 30% ranged, 20% unknown, and 10% uncaptured. External numeric
+familiarity is absent, using the existing eligibility fallback. Owned positions
+have familiarity 20. All clubs have complete synthetic roster evidence.
+
+With Python 3.12.3 on an AMD Ryzen 9 9900X3D (12 cores/24 threads), and
+`fm20-expanded-tactics-v2-position-weights` (50 tactics, 84 roles), a sequential
+cold report took **22.497 seconds**. An unchanged capture reused the identical
+completed report in **0.0117 seconds**, including content hashing/context
+validation. All 22 clubs produced legal comparable XIs. These are one-run
+development measurements, not a page-load SLA or a live-league estimate. The
+workload does not claim to validate actual FM membership, positions, or
+observations.
+
+The HTTP path consequently uses a single background computing job with one
+replaceable pending request. It publishes whole revisions and retains a
+previous completed view within the same save/tactic scope. The calculation is
+still sequential; per-team reuse across changed captures and any process-pool
+speedup remain unmeasured follow-up work. HTTP requests never wait for the
+full cold calculation before displaying progress.
+
 ## Refreshing this document
 
 Re-run the baselines whenever any of these changes:

@@ -64,7 +64,7 @@ def load_recipe(recipe_id: str) -> dict[str, Any]:
     if recipe.get("schema_version") != 1 or recipe.get("id") != recipe_id:
         raise ControllerError(f"{path}: invalid recipe schema or ID")
     adapter = recipe.get("adapter")
-    if adapter not in {"fm20-field-workbench", *FRIDA_ADAPTERS}:
+    if adapter not in {"fm20-field-workbench", "fm20-league-inventory", *FRIDA_ADAPTERS}:
         raise ControllerError(f"recipe uses unsupported adapter {adapter!r}")
     allowed_safety = (
         {"passive-live", "guarded-native-call"} if adapter in COLD_PROPERTY_ADAPTERS else {"passive-live"}
@@ -76,7 +76,10 @@ def load_recipe(recipe_id: str) -> dict[str, Any]:
     timeout = recipe.get("timeout_seconds")
     if not isinstance(timeout, int) or not 5 <= timeout <= 300:
         raise ControllerError("recipe timeout_seconds must be an integer from 5 to 300")
-    if adapter == "fm20-field-workbench":
+    if adapter == "fm20-league-inventory":
+        if recipe.get("operator_interaction") != "none":
+            raise ControllerError("league inventory must not require operator interaction")
+    elif adapter == "fm20-field-workbench":
         if recipe.get("adapter_mode") != "run":
             raise ControllerError("field-workbench recipes may use only non-interactive run mode")
         fields = recipe.get("fields")
@@ -233,6 +236,9 @@ def _adapter_command(
     report: Path,
     remote_address: str | None = None,
 ) -> list[str]:
+    if recipe["adapter"] == "fm20-league-inventory":
+        return [sys.executable, str(ROOT / "tools" / "fm20_league_inventory.py"),
+                "--pid", str(pid), "--report", str(report)]
     if recipe["adapter"] == "fm20-field-workbench":
         command = [
             sys.executable,
@@ -343,6 +349,18 @@ def _adapter_passed(
         completed.returncode in decision["adapter_exit_codes"]
         and adapter_report.get("status") in decision["adapter_statuses"]
     )
+    if recipe["adapter"] == "fm20-league-inventory":
+        summary.update({"stable": adapter_report.get("stable"),
+                        "rosters_read": adapter_report.get("rostersRead", 0)})
+        passed = passed and all((
+            adapter_report.get("researchOnly") is True,
+            adapter_report.get("membershipComplete") is False,
+            adapter_report.get("rosterVisibilityVerified") is False,
+            adapter_report.get("positionsVisibilityVerified") is False,
+            summary["stable"] is True,
+            summary["rosters_read"] >= decision.get("minimum_rosters", 2),
+        ))
+        return passed, summary
     if recipe["adapter"] == "fm20-field-workbench":
         summary["live_status"] = adapter_report.get("liveStatus")
         passed = passed and adapter_report.get("liveStatus") == decision["require_live_status"]

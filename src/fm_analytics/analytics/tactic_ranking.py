@@ -18,14 +18,20 @@ from fm_analytics.analytics.xi_models import (
     FamiliarityPolicy,
     PlayerSelectionInput,
     ReadinessPolicy,
+    SelectionObjective,
     TacticEvaluation,
     TacticFitPolicy,
     TacticRecommendation,
 )
 
 
-def rank_evaluations(evaluations: Sequence[TacticEvaluation]) -> TacticRecommendation:
+def rank_evaluations(
+    evaluations: Sequence[TacticEvaluation],
+    *,
+    objective: SelectionObjective = SelectionObjective.CENTRAL,
+) -> TacticRecommendation:
     """Apply the one canonical, deterministic tactic-ranking order."""
+    objective = SelectionObjective(objective)
     return TacticRecommendation(
         evaluations=tuple(
             sorted(
@@ -33,7 +39,7 @@ def rank_evaluations(evaluations: Sequence[TacticEvaluation]) -> TacticRecommend
                 key=lambda item: (
                     not item.has_legal_xi,
                     -len(item.assignments),
-                    -item.score.central,
+                    -getattr(item.score, objective),
                     -item.score.lower,
                     item.tactic.key,
                 ),

@@ -44,7 +44,7 @@ from fm_analytics.web.scouting_notices import _knowledge_notice, _refresh_notice
 
 
 _NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
-    ("Overview", (("/", "Command centre", "⌂"),)),
+    ("Overview", (("/", "Command centre", "⌂"), ("/league", "League", "≋"))),
     (
         "Squad intelligence",
         (

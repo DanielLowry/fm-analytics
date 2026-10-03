@@ -9,7 +9,7 @@ from typing import Sequence
 from fm_analytics.analytics import MVP_CATALOGUE, TacticDefinition, TacticSlot
 
 _NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
-    ("Overview", (("/", "Command centre", "⌂"),)),
+    ("Overview", (("/", "Command centre", "⌂"), ("/league", "League", "≋"))),
     ("Squad intelligence", (("/squad", "Squad", "◫"), ("/roles", "Roles", "◎"), ("/depth", "Depth", "↕"))),
     ("Matchday", (("/tactics", "Tactics", "⌁"), ("/tactic-checks", "Tactic checks", "✓"), ("/set-pieces", "Set pieces", "✦"), ("/matches", "Matches", "▤"))),
     ("Recruitment", (("/scouting", "Scouting", "⌕"),)),
@@ -254,4 +254,3 @@ def _position_display(candidate, *, include_raw_external_positions: bool) -> str
         include_raw_external_positions=include_raw_external_positions
     )
     return html.escape(", ".join(positions) or "Not yet captured")
-

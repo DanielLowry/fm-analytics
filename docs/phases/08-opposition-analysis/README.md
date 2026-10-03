@@ -12,6 +12,14 @@ overview. This personnel-comparison slice needs verified membership and player
 knowledge, rather than the match-history prerequisites for the pre-match
 reports below. Actual opponent lineup and tendency forecasting remain deferred.
 
+The first implementation slice now supports lower/central/upper XI reselection
+through the shared scorer. A passive identity inventory read stable roster
+vectors for 22 National League South clubs without reading external attributes
+or positions. Dated capture history, team/player drilldowns, and a league
+overview now work with supplied captures, using a bounded background job.
+Automatic live membership and visible rival positions remain open; see the
+plan's progress record and capture contract.
+
 ## Outcome
 
 Generate a concise pre-match opposition report that separates observed facts,

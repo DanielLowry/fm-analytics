@@ -1,10 +1,45 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-09-15",
+  "updated_at": "2026-10-03",
   "runtime_artifact_root": "data/research",
   "build": "fm20-20.4.4-1442341",
   "save": "research-save",
   "entries": [
+    {
+      "id": "league-roster-inventory-2020-02-21",
+      "state": "league-roster-identities",
+      "game_date": "2020-02-21",
+      "manager_id": "1915435143",
+      "screens": [],
+      "captures": [
+        {
+          "id": "league-roster-inventory-session-20261003",
+          "kind": "controller-session-report",
+          "path": "data/research/sessions/league-roster-inventory-20261003T072122931176Z.json",
+          "sha256": "5908324f25b980d084bae88933bbd5035ad926131796be6bc195d3352942e037",
+          "outcome": "passed"
+        },
+        {
+          "id": "league-roster-inventory-identities-20261003",
+          "kind": "read-only-identity-inventory",
+          "path": "data/research/sessions/league-roster-inventory-20261003T072122931176Z.adapter.json",
+          "sha256": "58d9abbf7bdb20572ec67bbe29c495e1658e9f183cefe8bdd233dfc61b973109",
+          "outcome": "passed"
+        }
+      ],
+      "verified_facts": [
+        "The active managed club was Hungerford Town, ID 5103652, on 21 February 2020.",
+        "352 played National League South results located 22 candidate club first-team roster vectors.",
+        "All 22 identity vectors were readable and unchanged on a second read; no external attributes, readiness, or raw positions were read."
+      ],
+      "reusable_for": ["candidate league roster identity validation", "league participant source investigation"],
+      "limitations": [
+        "Played results do not establish complete current league membership, particularly before any matches.",
+        "Stable roster vectors are not yet validated against manager-visible squad lists.",
+        "Manager-visible external position acquisition and a production capture contract remain open."
+      ],
+      "known_contrasts": []
+    },
     {
       "id": "player-search-senior-vanarama-ui-source",
       "state": "player-search-senior-vanarama",
