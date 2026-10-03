@@ -290,6 +290,25 @@ Two decisions follow from this, made by the product owner on 16 September
    stays scoped to the owned squad, where full knowledge makes it safe by
    definition.
 
+**3 October 2026: FM's position gate found.** It is not in the label: the
+label is handed an already-decided value. The decision is one function,
+`FM+0x1fb1910`, called by Player Search's position filter
+(`PERSON_POSITION_FILTER_RULE`), `GAME_PLAYER` slot `0x98` and
+`GAME_SCOUTED_PERSON_TAG`'s property getter. It asks the manager's knowledge
+context about fact `0x50` through the same classification core the attribute
+builder uses (`FM+0x15a4dc0`; 0 unknown, 1 partial, 2 full). It returns the
+lowest rating FM shows: **18** (Natural only) when unknown, **16** when partly
+known, otherwise the caller's default. Adam Mann's case above is the unknown
+case: his 16s were hidden. Run in the sandbox for 409 league rivals and our 33
+players, the two calls agreed for every player, and FM's per-position rating
+getter returned the raw bytes for all 72 players checked.
+`tools/fm20_visible_positions.py` publishes only positions at or above FM's
+answer, and the live league capture uses it. Status: `cold-query-proven`, with
+a predicted shown/hidden list per rival in
+`data/research/visibility/position-knowledge-threshold-*.json`. It becomes
+`ui-verified` once a few of those players' position diagrams are checked in
+FM. The scouting feed's `rawPositions` gap can then be closed the same way.
+
 ## Prerequisites
 
 - Phase 00 has proved safe live reads on the supported environment

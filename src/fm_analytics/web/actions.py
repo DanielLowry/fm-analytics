@@ -36,6 +36,9 @@ class WebActionsMixin:
         if parsed.path in match_posts:
             match_posts[parsed.path]()
             return
+        if parsed.path == "/league/capture":
+            self._post_league_capture()  # type: ignore[attr-defined]
+            return
         if parsed.path != "/scouting/refresh":
             self._send(
                 _error_page("Not found", "No such action.", parsed.path),

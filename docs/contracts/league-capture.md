@@ -2,8 +2,10 @@
 
 The League pages consume a supplied JSON file through `fm-web --league-json`.
 This contract is implemented by `domain/leagues.py`; it is separate from the
-bridge squad contract and from research-only league inventories. The current
-reader does not automatically capture all league teams from FM.
+bridge squad contract and from research-only league inventories.
+`tools/fm20_league_capture.py` produces it live from FM, read-only (see
+"Capture the live league" below); `tools/league_demo.py` produces a labelled
+synthetic example.
 
 ## Envelope
 
@@ -43,8 +45,11 @@ range endpoints must be in 1–20. An omitted attribute means **Uncaptured**;
 Neither form removes a player from the roster.
 
 External `positions` must contain only positions supported by manager-visible
-evidence. An empty array records missing position knowledge, and requires
-`positionsComplete: false`. External numeric `positionFamiliarity` is refused:
+evidence. The live capture lists the positions FM itself shows: FM's own
+position-knowledge check (`tools/fm20_visible_positions.py`) gives the lowest
+rating it displays for that player (Natural only, 16 and above, or every
+position), and only positions at or above it are listed. An empty array
+records missing position knowledge, and requires `positionsComplete: false`. External numeric `positionFamiliarity` is refused:
 current research demonstrates that internal familiarity can reveal positions
 hidden in FM's interface. The existing eligibility fallback is shown as an
 assumption. Owned familiarity can use the established owned capture path.
@@ -79,6 +84,26 @@ with at most one pending request and two cached reports. Previous completed
 reports stay visible only within the same save/tactic scope, with an update
 notice and their original date. A failed calculation exposes a retry.
 This initial implementation recomputes all clubs when the capture changes.
+
+## Capture the live league
+
+With FM running, start `uv run fm-web --direct-live` and press **Read the
+league from FM** on `/league`. That runs the capture tool, which can also be
+run directly:
+
+```bash
+uv run --extra research python tools/fm20_league_capture.py   # -> data/league-capture.json
+```
+
+In live mode the server's league file defaults to `data/league-capture.json`.
+`--league-json` points it elsewhere.
+
+The capture lists every first team whose league link is ours this season,
+checked against any played league results. Our own row is read exactly as the
+Squad page reads it. Rival availability is `unknown`. The file is replaced
+whole, and the web picks up a new capture on the next page load. After the
+game date moves on, the page shows **League out of date** with the button,
+because a capture from another date is never compared with today's squad.
 
 ## Review an example
 

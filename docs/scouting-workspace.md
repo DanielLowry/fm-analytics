@@ -716,6 +716,12 @@ for role and position filtering. The page warns that the data can reveal
 secondary positions FM has not shown the manager. The checkbox does nothing
 until the feed has been recaptured with the command above.
 
+FM's own position gate was found on 3 October 2026
+(`tools/fm20_visible_positions.py`; see phase 03, "Position familiarity:
+accepted short-term gap"). The league capture already uses it. Once it is
+checked against FM's position diagrams, the scouting feed can fill
+manager-visible `positions` the same way and retire this exception.
+
 Every external and scouted candidate's visible attributes and transfer/loan
 interest are captured automatically through the sandbox (see "Every player's
 attributes and interest, through the sandbox" above) -- there is no longer a

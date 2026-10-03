@@ -337,6 +337,11 @@ def build_league_comparison(
     policy: RecommendationPolicy = RecommendationPolicy(),
     tactic_keys: tuple[str, ...] | None = None,
 ) -> LeagueReport:
+    """The one league comparison, behind `/league` and its team pages.
+
+    Recent form (`squad_form`) is deliberately not applied: it exists only for
+    our own players, and a comparison must score every club on the same inputs.
+    """
     return build_league_report(capture, catalogue, tactic_keys=tactic_keys,
                               readiness_policy=policy.readiness, familiarity_policy=policy.familiarity,
                               fit_policy=policy.tactic_fit)

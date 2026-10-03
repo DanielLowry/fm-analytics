@@ -151,12 +151,20 @@ uv run fm-web --direct-live --fm-html squad-general.html squad-physical.html \
   --fm-html-player-count 17
 ```
 
-The **League** page compares captured clubs using the shared best-XI scorer,
-with independently selected floor/conservative/ceiling XIs, player rankings,
-and scouting gaps. Supply a dated [league capture](docs/contracts/league-capture.md)
-with `--league-json`; `--league-db` selects its append-only history database.
-Automatic live league capture is still being validated. To review an explicit
-synthetic example:
+The **League** page compares every club in your league using the shared
+best-XI scorer, with independently selected floor/conservative/ceiling XIs,
+player rankings, and scouting gaps. With `fm-web --direct-live`, press **Read
+the league from FM** on that page: it reads every club's first team read-only,
+with only the attributes and positions FM shows you for other clubs' players,
+into `data/league-capture.json`. The same read from the command line:
+
+```bash
+uv run --extra research python tools/fm20_league_capture.py
+```
+
+Any dated [league capture](docs/contracts/league-capture.md) can also be
+supplied with `--league-json`; `--league-db` selects its append-only history
+database. To review an explicit synthetic example:
 
 ```bash
 uv run python -m tools.league_demo

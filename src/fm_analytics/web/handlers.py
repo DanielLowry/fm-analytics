@@ -417,6 +417,7 @@ class SquadWebHandler(
                 f"Squad player · {player.name}", "/squad",
                 squad_player_report(
                     player, MVP_CATALOGUE,
+                    club=squad.club.name if squad.club else None,
                     squad_label=f"Other squad · FM team marker {team.marker}" if team else "First team",
                     back_href="/squad#other-club-squads" if team else "/squad",
                     contract_panel=self._contract_panel_for(player.id),

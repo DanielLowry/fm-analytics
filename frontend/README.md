@@ -37,6 +37,12 @@ tab-separated text for spreadsheet pasting. Closed explanations and nested
 tables are excluded from a cell's text; each nested table has its own button.
 The legacy copy fallback supports pages served without the Clipboard API.
 
+Player reports also have a Copy player to clipboard button beside the profile.
+It copies name, age, club, captured positional familiarity except 1/20, and
+the full relevant attribute groups as readable text. Goalkeepers use the
+goalkeeping attribute set; scouting ranges, unknowns and historical dates
+remain intact.
+
 Squad and Scouting share `position-roles.js` and the catalogue choices from
 `web/ui.py`. Position changes replace role choices immediately, preserve a
 compatible selection and clear an incompatible one. Squad requires a position

@@ -9,6 +9,7 @@ from urllib.parse import quote, unquote, urlencode
 from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.analytics.league_comparison import order_teams, rank_team_players, team_information_gaps
 from fm_analytics.bridge.errors import BridgeSourceError
+from fm_analytics.web.league_state import LeagueOutOfDate
 from fm_analytics.web.rendering import _error_page, _layout, _options as _base_options, _query_first
 
 escape = html.escape
@@ -62,7 +63,9 @@ def _context(report):
     return (example + f"<p class='fm-metric-note'>{escape(capture.competition.name)} · {escape(capture.season)} · "
             f"{capture.game.game_date.isoformat()} · {report.comparable_count}/{len(report.teams)} clubs scored{partial}</p>"
             "<p class='intro'>Ranges reflect attribute knowledge under the stated selection assumptions. "
-            "Unknown attributes use 1 conservatively and span 1–20. Overlapping ranges leave the order unresolved.</p>")
+            "Unknown attributes use 1 conservatively and span 1–20. Overlapping ranges leave the order unresolved.</p>"
+            "<p class='fm-metric-note'>Recent form is left out for every club, yours included, because it is only "
+            "known for your players. Your score here can therefore differ from the Tactics page, which adds it.</p>")
 
 
 def _status(team):
@@ -96,7 +99,29 @@ def _xi(team, scenario, tactic):
             + "<div class='fm-league-pitch'>" + "".join(lines) + "</div>")
 
 
+def _read_panel(server) -> str:
+    """The "Read the league from FM" button, when this server can read FM."""
+    if getattr(server, "league_capture", None) is None:
+        return ""
+    note = ""
+    if server.league_capture_note:
+        message, ok = server.league_capture_note
+        note = f"<p class='{'muted' if ok else 'error'}'>{escape(message)}</p>"
+    return ("<div class='refresh-panel'><form class='refresh' method='post' action='/league/capture'>"
+            "<button type='submit'>Read the league from FM</button></form>" + note
+            + "<details><summary>What gets read</summary><p class='muted'>Reading is read-only: nothing is written "
+            "to FM and there is nothing to do in FM. Every club in your league and its first-team squad come "
+            "from the game's memory. For other clubs' players you get only what FM shows you: their visible "
+            "attributes, and the positions FM shows on their profile, which depend on how well you know them. "
+            "It takes a few seconds; the comparison is then worked out in the background.</p></details></div>")
+
+
 class LeaguePagesMixin:
+    def _post_league_capture(self) -> None:
+        """Read the league from FM (read-only), then go back to the League page."""
+        self.server.capture_league_from_fm()
+        self._redirect("/league")
+
     def _league_report_or_error(self, query):
         self._league_notice = ""
         tactic = _query_first(query, "tactic") or ""
@@ -130,6 +155,10 @@ class LeaguePagesMixin:
                     self._send(_layout("League", "/league", self._league_notice), HTTPStatus.SERVICE_UNAVAILABLE)
                     return False
             return view.report
+        except LeagueOutOfDate as exc:
+            self._send(_layout("League", "/league", "<section class='fm-decision-hero'><h2>League out of date</h2>"
+                               f"<p>{escape(str(exc))}</p>" + _read_panel(self.server) + "</section>"),
+                       HTTPStatus.CONFLICT)
         except (ValueError, TypeError, KeyError) as exc:
             self._send(_error_page("League", str(exc), "/league"), HTTPStatus.BAD_REQUEST)
         except (OSError, RuntimeError, sqlite3.Error, BridgeSourceError) as exc:
@@ -141,9 +170,12 @@ class LeaguePagesMixin:
         if report is False:
             return
         if report is None:
+            reading = getattr(self.server, "league_capture", None) is not None
             self._send(_layout("League", "/league", "<section class='fm-decision-hero'><h2>League data needed</h2>"
-                       "<p>Team comparisons will appear once a current league capture is available. "
-                       "Player knowledge remains available in <a href='/scouting'>Scouting</a>.</p></section>"))
+                       + ("<p>Read the league from FM to compare every club's best XI with yours.</p>" if reading else
+                          "<p>Team comparisons will appear once a current league capture is available.</p>")
+                       + "<p>Player knowledge remains available in <a href='/scouting'>Scouting</a>.</p>"
+                       + _read_panel(self.server) + "</section>"))
             return
         tactic, sort = _query_first(query, "tactic") or "", _query_first(query, "sort") or "central"
         try:
@@ -160,7 +192,8 @@ class LeaguePagesMixin:
                         + (" · your club" if own else "") + f"</td><td>{_range(score)}{_range_bar(score)}</td>"
                         + f"<td>{f'{score.central:.1f}' if score else '—'}</td><td>{escape(team.comparison.central.selected.tactic.name) if score else escape(_status(team))}</td>"
                         + f"<td>{_knowledge(team)}</td><td>{escape(team.relative_to_us)}</td></tr>")
-        body = ("<section class='fm-decision-hero'><h2>Compare your league</h2>" + _context(report) + "</section>"
+        body = ("<section class='fm-decision-hero'><h2>Compare your league</h2>" + _context(report)
+                + _read_panel(self.server) + "</section>"
                 + "<section class='fm-workspace-panel'>" + _controls(tactic, sort)
                 + f"<p>Possible strength positions among {report.comparable_count} scored clubs. Ordered by {escape(sort)}; positions describe the model under its selection assumptions.</p>"
                 + "<div class='fm-table-scroll'><table><thead><tr><th>Position</th><th>Club</th><th>Best XI range</th><th>Conservative</th><th>Central system / status</th><th>Role inputs</th><th>Compared with us</th></tr></thead><tbody>"

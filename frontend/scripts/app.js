@@ -1,12 +1,13 @@
 import { initScouting } from "./scouting.js";
 import { initTables } from "./tables.js";
 import { initSquadFilters } from "./position-roles.js";
-import { initPlayerAttributeExports } from "./attribute-export.js";
+import { initPlayerAttributeExports, initPlayerCopies } from "./attribute-export.js";
 (() => {
   initTables();
   initSquadFilters();
   initScouting();
   initPlayerAttributeExports();
+  initPlayerCopies();
   if (document.querySelector('[data-league-pending]')) {
     window.setTimeout(() => location.reload(), 3000);
   }

@@ -60,6 +60,7 @@ uv run fm-matches capture && uv run fm-matches review   # needs FM running; read
 uv run fm-matches export --detail basic|standard|verbose  # season JSON -> data/exports/
 uv run fm-matches coverage [--days N | --all]   # which appearances could count towards form
 uv run fm-matches form                          # each player's recent form in each job
+uv run --extra research python tools/fm20_league_capture.py   # whole league -> data/league-capture.json (FM running)
 ```
 
 No third-party packages are required for the core path (`frida` is an

@@ -17,8 +17,10 @@ through the shared scorer. A passive identity inventory read stable roster
 vectors for 22 National League South clubs without reading external attributes
 or positions. Dated capture history, team/player drilldowns, and a league
 overview now work with supplied captures, using a bounded background job.
-Automatic live membership and visible rival positions remain open; see the
-plan's progress record and capture contract.
+Live membership, rosters, visible attributes and FM's own visible rival
+positions are now read by `tools/fm20_league_capture.py` (and the League
+page's read button), pending a check of a few players and squads against FM's
+screens; see the plan's "Live league capture" record.
 
 ## Outcome
 

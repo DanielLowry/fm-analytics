@@ -424,6 +424,18 @@ development measurements, not a page-load SLA or a live-league estimate. The
 workload does not claim to validate actual FM membership, positions, or
 observations.
 
+**First live league (3 October 2026).** The real National League South
+capture from `tools/fm20_league_capture.py` at game date 28 May 2020 had 22
+clubs and 442 players (33 ours, 14–24 per rival), with FM's own visible
+attributes. Most rival attributes were ranged or unknown, and rival positions
+were limited to what FM shows. On the same machine and catalogue, the full
+cold comparison took **15.5 seconds**, and 21 clubs had a legal XI. Reading
+the league from FM took 6.6 seconds. This is a single measurement of one
+save's real squads, not a benchmark generator. Why it costs less than the
+synthetic case above was not measured. The likely reason is that FM shows
+fewer positions for most rivals than the generator's two to four, and eligible
+slots drive the cost.
+
 The HTTP path consequently uses a single background computing job with one
 replaceable pending request. It publishes whole revisions and retains a
 previous completed view within the same save/tactic scope. The calculation is

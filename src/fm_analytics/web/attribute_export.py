@@ -84,6 +84,44 @@ def candidate_export_record(candidate, *, include_raw_positions=False):
     )
 
 
+def player_copy_text(record):
+    """A readable full-player profile using the same observations as exports."""
+    lines = [f"{label}: {record[key] if record[key] is not None else '?'}"
+             for label, key in (("Name", "name"), ("Age", "age"), ("Club", "club"))]
+    lines.extend(("", "Positional Familiarity"))
+    familiarity = record["familiarity"]
+    positions = [position for position in ordered_positions(familiarity) if familiarity[position] != 1]
+    lines.extend(f"{position}: {familiarity[position]}/20" for position in positions)
+    if not positions:
+        lines.append("None" if familiarity else "?")
+
+    schema = export_schema()["attributes"]
+    relevant = {key for family in record["families"] for key, _label in schema[family]}
+    for title, keys in ATTRIBUTE_GROUPS:
+        keys = [key for key in keys if key in relevant]
+        if not keys:
+            continue
+        lines.extend(("", title))
+        for key in keys:
+            value = record["attributes"].get(key, "?")
+            last_seen = record["historical"].get(key)
+            if last_seen:
+                value += f" (historical; last seen {last_seen})"
+            lines.append(f"{attribute_label(key)}: {value}")
+    return "\n".join(lines)
+
+
+def player_copy_control(record):
+    source = json.dumps(player_copy_text(record), ensure_ascii=True).replace("<", "\\u003c")
+    return (
+        "<div class='fm-table-toolbar' data-player-copy>"
+        "<button type='button' class='fm-table-copy' disabled>Copy player to clipboard</button>"
+        "<span class='fm-table-copy-status' role='status' aria-live='polite'></span>"
+        "<script type='application/json' data-player-copy-text>" + source + "</script>"
+        "<noscript>Enable JavaScript to copy the player.</noscript></div>"
+    )
+
+
 def export_controls(*, records=None):
     """Buttons use the live filtered list, or a report's fixed single record."""
     payload = {"schema": export_schema()}

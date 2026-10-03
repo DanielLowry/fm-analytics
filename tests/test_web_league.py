@@ -15,6 +15,35 @@ from tests.league_support import league_capture
 from tests.web_support import WebServerHelpers
 
 
+class LeagueCaptureCommandTests(unittest.TestCase):
+    def run_tool(self, returncode, stdout="", stderr=""):
+        from subprocess import CompletedProcess
+        from fm_analytics.web.league_state import CAPTURE_TOOL, league_capture_command
+        with patch("fm_analytics.web.league_state.subprocess.run",
+                   return_value=CompletedProcess([], returncode, stdout, stderr)) as run:
+            try:
+                return league_capture_command("out/league.json")()
+            finally:
+                command = run.call_args.args[0]
+                self.assertEqual(command[-3:], [str(CAPTURE_TOOL), "--output", "out/league.json"])
+                self.assertIn("research", command)
+
+    def test_success_is_summarised_in_plain_words(self):
+        message = self.run_tool(0, json.dumps({"clubs": 22, "players": 442, "gameDate": "2020-05-28"}))
+        self.assertEqual(message, "Read 22 clubs and 442 players from FM at game date 2020-05-28.")
+
+    def test_failure_carries_the_tools_own_reason(self):
+        with self.assertRaisesRegex(RuntimeError, "FM changed during the capture"):
+            self.run_tool(1, stderr="League capture failed: FM changed during the capture; try again")
+
+    def test_a_missing_file_is_nothing_read_yet_only_when_allowed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/"league.json"
+            self.assertIsNone(league_json_provider(path, allow_missing=True)())
+            with self.assertRaises(FileNotFoundError):
+                league_json_provider(path)()
+
+
 class LeagueStateTests(unittest.TestCase):
     def setUp(self):
         self.capture = league_capture()
@@ -127,7 +156,8 @@ class LeagueWebTests(WebServerHelpers, unittest.TestCase):
         status, body = self._get(self.port, "/league?tactic=balanced_442")
         self.assertEqual(status, 200)
         for text in ("Strong club", "Unscouted club", "Partial club", "your club", "Roster incomplete",
-                     "Example league data", "among 3 scored clubs", "role='img'", "uncaptured"):
+                     "Example league data", "among 3 scored clubs", "role='img'", "uncaptured",
+                     "Recent form is left out for every club"):
             self.assertIn(text, body)
         self.assertEqual(self.store.latest(self.capture.save_key, self.capture.competition.id,
                                           as_of=self.capture.game.game_date), self.capture)
@@ -180,6 +210,40 @@ class LeagueWebTests(WebServerHelpers, unittest.TestCase):
         status, body = self._get(port, "/league")
         self.assertEqual(status, 200)
         self.assertIn("League data needed", body)
+
+    def test_reading_the_league_from_fm_is_offered_and_reported(self):
+        reads = []
+
+        def capture():
+            reads.append(1)
+            if len(reads) == 2:
+                raise RuntimeError("FM20 is not running")
+            return "Read 3 clubs and 33 players from FM at game date 2019-09-04."
+
+        port = self._serve(self.fixture, league_provider=lambda: None, league_capture=capture)
+        status, body = self._get(port, "/league")
+        self.assertIn("League data needed", body)
+        self.assertIn("Read the league from FM", body)
+        self.assertEqual(self._post(port, "/league/capture")[:2], (303, "/league"))
+        self.assertIn("Read 3 clubs and 33 players", self._get(port, "/league")[1])
+        self._post(port, "/league/capture")
+        self.assertIn("The league could not be read from FM: FM20 is not running", self._get(port, "/league")[1])
+        self.assertEqual(len(reads), 2)
+
+    def test_a_league_read_on_an_earlier_date_asks_to_be_read_again(self):
+        older = replace(self.capture, game=replace(self.capture.game, game_date=self.capture.game.game_date-timedelta(days=1)),
+                        teams=tuple(replace(r, squad=replace(r.squad, as_of_date=r.squad.as_of_date-timedelta(days=1)))
+                                    for r in self.capture.teams))
+        port = self._serve(self.fixture, league_provider=lambda: older, league_capture=lambda: "read")
+        status, body = self._get(port, "/league")
+        self.assertEqual(status, 409)
+        self.assertIn("League out of date", body)
+        self.assertIn("Read it again", body)
+        self.assertIn("action='/league/capture'", body)
+
+    def test_without_fm_there_is_no_read_button(self):
+        status, body = self._get(self.port, "/league?tactic=balanced_442")
+        self.assertNotIn("/league/capture", body)
 
     def test_failed_background_job_exposes_a_retry_and_redirects_to_clean_query(self):
         from fm_analytics.web.league_state import build_league_comparison

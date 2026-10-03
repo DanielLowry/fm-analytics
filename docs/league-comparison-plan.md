@@ -1,8 +1,10 @@
 # League team comparison plan
 
 **Status:** in progress, 3 October 2026. Scenario scoring, dated capture history,
-and comparison screens are built for supplied captures. Automatic live league
-acquisition remains open.
+and comparison screens are built. A live read-only capture of the whole league
+(`tools/fm20_league_capture.py`) now supplies them, with FM's own attribute and
+position visibility. It awaits a check of a few players and squads against FM's
+screens before slice 1 counts as done; see "Live league capture" below.
 **Request:** rank the players at every club in our league, select each club's
 best XI, score it with our existing team model, and compare clubs while showing
 the uncertainty caused by incomplete scouting.
@@ -33,7 +35,8 @@ the uncertainty caused by incomplete scouting.
 The remaining data gate is an authoritative current participant list (including
 preseason), public first-team roster validation, and manager-visible external
 positions. The inventory deliberately reads no external attributes, readiness,
-or raw positions and cannot feed the scoring service.
+or raw positions and cannot feed the scoring service. (All three are now read
+by the live capture below, pending the checks against FM listed there.)
 
 ## Capture-driven screens (3 October 2026)
 
@@ -68,10 +71,71 @@ or raw positions and cannot feed the scoring service.
   for the generator and limits. This justified moving HTTP requests off the
   computing path; it does not establish the cost of a live full league.
 
-Still open: verified automatic live membership/roster/position acquisition,
-reuse of unchanged team computations across capture revisions, and scouting
-priorities measured by their effect on comparisons with us. The initial gap
-list ranks intrinsic role uncertainty rather than claiming that league impact.
+Still open: reuse of unchanged team computations across capture revisions, and
+scouting priorities measured by their effect on comparisons with us. The
+initial gap list ranks intrinsic role uncertainty rather than claiming that
+league impact.
+
+## Live league capture (3 October 2026)
+
+With `fm-web --direct-live`, the League page has a **Read the league from FM**
+button. It runs `tools/fm20_league_capture.py` in its own process, which writes
+`data/league-capture.json`, the server's default league file in live mode. The
+same tool can be run directly. A capture from an earlier game date shows
+**League out of date** with the button, rather than an error. Everything is
+read-only, and FM's own code runs only in the sandbox. Nothing runs inside the
+game.
+
+- **Clubs.** Each first team carries FM's link to this season's league
+  (`team + 0x50`, the same competition object as the league's fixtures). On
+  the National League South save, exactly 22 of 127,012 teams carried it,
+  identical to the clubs in its 352 played results. The link needs no played
+  matches, so it should also hold before the season starts (not yet checked
+  on an early-season save). When league results exist, any played club missing
+  from the link marks membership incomplete.
+- **Squads.** Each club's first-team squad vector, the same one our own squad
+  comes from, so every club has the same scope as ours.
+- **Attributes.** FM's own visibility builder, exactly as the Scouting
+  capture uses it.
+- **Positions.** Found today by disassembly: FM decides which of another
+  club's positions to show with one function (`FM+0x1fb1910`), called by
+  Player Search's position filter, the player object and the scouted-player
+  data. It asks the manager's knowledge about the player's positions and
+  returns the lowest rating FM shows: 18 (Natural only) when nothing is known,
+  16 when partly known, everything when fully known. That is exactly Adam
+  Mann's case from September, where two Accomplished positions showed as
+  Ineffectual. FM's per-position rating getter returned the raw bytes for all
+  72 players checked, so the shown positions are the ratings at or above FM's
+  answer. The ratings themselves are never published. See
+  `tools/fm20_visible_positions.py`.
+- **Our club.** The same read as the Squad page, so the web's check that the
+  league's own row matches our squad passes.
+- Rival readiness, injuries and contracts are not read. Availability is
+  `unknown` and labelled as an assumption, as the contract already allows.
+
+First live run, game date 28 May 2020: 22 clubs, 442 players (33 ours), every
+squad and every player's positions read, in 6.6 seconds. Of the 409 rivals,
+FM showed 107 Natural-only, 257 partly known and 45 fully known. The full
+comparison (all 50 tactics, three scenarios) took 15.5 seconds. 21 clubs were
+scored. Maidstone United showed **Cannot verify XI** because its first-team
+squad held no goalkeeper on that date. Every rival range overlapped ours
+(39.2): rival conservative scores were 14.8–26.5 and ceilings 39.3–56.0, so
+nothing is called above or below us.
+
+Recent form is not applied in this comparison, for any club. It exists only
+for our own players, so applying it would score us on different inputs from
+everyone else. The League page says so, because our score there can differ
+from the Tactics page, which does apply it.
+
+**Before slice 1 is accepted**, check in FM, on the same game date:
+
+1. A few rivals' position diagrams against the predicted shown/hidden
+   positions in `data/research/visibility/position-knowledge-threshold-*.json`
+   (one Natural-only, one partly known, one fully known player).
+2. Maidstone United's first-team squad: no goalkeeper, as the capture found?
+   Also one other club's first-team list against the capture's count.
+3. Once a new season starts, rerun the capture before the first league match,
+   to confirm that the league link already names the new season's clubs.
 
 ## Product decisions
 

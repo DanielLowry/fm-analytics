@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import html
 
-from fm_analytics.web.attribute_export import candidate_export_record, export_controls, player_export_record
+from fm_analytics.web.attribute_export import (
+    candidate_export_record, export_controls, player_copy_control, player_export_record,
+)
 from fm_analytics.web.ui import ordered_positions, position_key
 from fm_analytics.analytics import (
     FamiliarityPolicy,
@@ -181,7 +183,8 @@ def verdict_panel(
 
 
 def squad_player_report(
-    player, catalogue, *, squad_label: str | None = None, back_href: str = "/squad", contract_panel: str = "",
+    player, catalogue, *, club: str | None = None, squad_label: str | None = None,
+    back_href: str = "/squad", contract_panel: str = "",
 ) -> str:
     """Render the equivalent report for a player in any owned club squad.
 
@@ -190,6 +193,7 @@ def squad_player_report(
     """
     contract = player.contract
     facts = [
+        ("Club", club),
         ("Squad", squad_label),
         ("Age", str(player.age) if player.age is not None else None),
         ("Availability", player.availability),
@@ -223,7 +227,7 @@ def squad_player_report(
         headline=contract_panel + headline,
         export_record=player_export_record(
             player.name, player.age, player.attributes, player.positions, player.position_familiarity,
-            familiarity_source="Squad familiarity (0–20)",
+            club=club, familiarity_source="Squad familiarity (0–20)",
         ),
     )
 
@@ -273,7 +277,8 @@ def _player_detail_report(
         "<section class='fm-player-profile' id='player-overview'><div class='fm-panel-heading'><div>"
         "<span class='eyebrow'>Player profile</span><h2>Player information</h2>"
         f"<p>{html.escape(', '.join(player_positions) or 'No positions captured')}</p>"
-        "</div></div><dl class='fm-player-facts'>" + fact_rows + "</dl>" + more_facts + "</section>"
+        "</div></div>" + (player_copy_control(export_record) if export_record else "")
+        + "<dl class='fm-player-facts'>" + fact_rows + "</dl>" + more_facts + "</section>"
         + "<nav class='fm-section-nav' aria-label='Player report sections'>"
         "<a href='#player-overview'>Overview</a><a href='#player-attributes'>Attributes</a>"
         "<a href='#player-roles'>Role fit</a>"

@@ -79,7 +79,8 @@ from fm_analytics.web.rendering import ScoutingPoolNotBuilt, _scouting_refresh_c
 
 from fm_analytics.web.handlers import SquadWebHandler
 from fm_analytics.web.match_state import MatchHistoryState
-from fm_analytics.web.league_state import LeagueState, league_json_provider
+from fm_analytics.web.league_state import DEFAULT_CAPTURE as DEFAULT_LEAGUE_CAPTURE
+from fm_analytics.web.league_state import LeagueState, league_capture_command, league_json_provider
 from fm_analytics.persistence.league_history import LeagueHistoryStore
 
 
@@ -135,8 +136,9 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
         match_capture: Callable[[], str] | None = None,
         league_provider=None,
         league_store: LeagueHistoryStore | None = None,
+        league_capture: Callable[[], str] | None = None,
     ):
-        self.setup_league(league_provider, league_store)
+        self.setup_league(league_provider, league_store, league_capture)
         self.setup_match_history(match_store, match_capture)
         # Appends each fresh scouting capture to the player-knowledge database
         # (see ``record_knowledge``). None disables recording.
@@ -602,7 +604,9 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Serve the read-only squad decision-support view")
-    parser.add_argument("--league-json", type=Path, help="dated manager-visible league capture for team comparison")
+    parser.add_argument("--league-json", type=Path,
+                        help="dated manager-visible league capture for team comparison; with --direct-live it "
+                             "defaults to data/league-capture.json, which the League page's read button writes")
     parser.add_argument("--league-db", type=Path, default=Path("data/league-history.sqlite3"),
                         help="append-only league and roster capture history")
     parser.add_argument("--host", default="127.0.0.1")
@@ -783,6 +787,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return record_capture_file(knowledge_store, refresh_path)
 
     match_store = MatchHistoryStore(args.match_db)
+    league_path = args.league_json or (DEFAULT_LEAGUE_CAPTURE if args.direct_live else None)
     server = SquadWebServer(
         (args.host, args.port), provider,
         scouting_provider=scouting_json_provider(refresh_path, allow_missing=True),
@@ -797,8 +802,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         out_of_date_months=args.out_of_date_months,
         match_store=match_store,
         match_capture=lambda: capture_and_record(match_store),
-        league_provider=league_json_provider(args.league_json) if args.league_json else None,
-        league_store=LeagueHistoryStore(args.league_db) if args.league_json else None,
+        league_provider=league_json_provider(league_path, allow_missing=args.direct_live) if league_path else None,
+        league_store=LeagueHistoryStore(args.league_db) if league_path else None,
+        # Reading FM needs FM: only a live server offers the League page's read button.
+        league_capture=league_capture_command(league_path) if args.direct_live else None,
     )
     if knowledge_recorder is not None and refresh_path.exists():
         # Catches captures made by running the tool directly since last time.

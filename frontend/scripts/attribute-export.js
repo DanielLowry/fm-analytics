@@ -47,3 +47,20 @@ export function initPlayerAttributeExports() {
     if (data.rows) initAttributeExports(panel, () => data.rows);
   });
 }
+
+export function initPlayerCopies() {
+  document.querySelectorAll('[data-player-copy]').forEach(panel => {
+    const value = JSON.parse(panel.querySelector('[data-player-copy-text]').textContent);
+    const button = panel.querySelector('button');
+    const status = panel.querySelector('[role="status"]');
+    button.disabled = false;
+    button.addEventListener('click', async () => {
+      button.disabled = true; status.textContent = '';
+      try {
+        await copyText(value);
+        status.textContent = 'Player copied!';
+      } catch { status.textContent = 'Could not copy. Try again.'; }
+      finally { button.disabled = false; }
+    });
+  });
+}
