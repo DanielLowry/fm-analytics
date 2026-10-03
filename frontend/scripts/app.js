@@ -1,7 +1,9 @@
 import { initScouting } from "./scouting.js";
 import { initTables } from "./tables.js";
+import { initSquadFilters } from "./position-roles.js";
 (() => {
   initTables();
+  initSquadFilters();
   initScouting();
   const openSection = () => {
     if (!location.hash) return;

@@ -37,6 +37,16 @@ tab-separated text for spreadsheet pasting. Closed explanations and nested
 tables are excluded from a cell's text; each nested table has its own button.
 The legacy copy fallback supports pages served without the Clipboard API.
 
+Squad and Scouting share `position-roles.js` and the catalogue choices from
+`web/ui.py`. Position changes replace role choices immediately, preserve a
+compatible selection and clear an incompatible one. Squad requires a position
+before enabling roles; Scouting allows roles across any position. Compare
+remains an explicit GET submission for the server's scored squad comparison.
+When other club squads are captured, its Squad selector offers the first team,
+each other squad and the whole club. Other-squad tables display the shared
+best-role scores and link to full position reports with a return link to their
+section of the Squad page. Tactic/XI inputs still come from the first team.
+
 Scouting uses `scouting.js` and the pure display predicates in
 `scouting-data.js`. The browser loads a complete snapshot for the selected
 position, role, tactic and raw-position policy from `/scouting/results?snapshot=1`.

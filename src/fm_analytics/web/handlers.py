@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import html
 import json
+from dataclasses import replace
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
 from importlib import resources
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
-from fm_analytics.web.ui import ordered_positions, position_key
+from fm_analytics.web.ui import ordered_positions, position_key, position_role_choices
 from fm_analytics.analytics import MVP_CATALOGUE, OpponentProfile
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.domain import Squad
@@ -241,12 +242,25 @@ class SquadWebHandler(
                     "see the Data page for exactly what is missing."
                 )
             role_matrix = build_squad_role_matrix(squad)
+            team_key = _query_first(_query, "team") or "first"
+            team_choices = (("first", "First team"), ("all", "All club squads")) + tuple(
+                (str(team.marker), f"Other squad · FM team marker {team.marker}")
+                for team in squad.other_teams
+            )
+            if team_key not in dict(team_choices):
+                raise ValueError("that club squad is not in the current capture")
+            if team_key == "first":
+                comparison_players = squad.players
+            elif team_key == "all":
+                comparison_players = squad.all_players()
+            else:
+                comparison_players = next(team.players for team in squad.other_teams if str(team.marker) == team_key)
             position = _query_first(_query, "position")
             role_key = _query_first(_query, "role")
             if role_key and not position:
                 raise ValueError("choose a position before choosing a role")
             comparison = (
-                build_squad_position_comparison(squad, position, role_key=role_key)
+                build_squad_position_comparison(replace(squad, players=comparison_players, other_teams=()), position, role_key=role_key)
                 if position
                 else None
             )
@@ -273,12 +287,17 @@ class SquadWebHandler(
             else ()
         )
         comparison_body = self._position_comparison_section(
-            comparison, position, role_key, positions, role_options
+            comparison, position, role_key, positions, role_options,
+            team_choices=team_choices if squad.other_teams else (), team_key=team_key,
+            player_teams={
+                **{player.id: "First team" for player in squad.players},
+                **{player.id: f"Other squad · {team.marker}" for team in squad.other_teams for player in team.players},
+            } if squad.other_teams and team_key == "all" else None,
         )
         body = (
             comparison_body
             + "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div>"
-            "<h2>Roster overview</h2>"
+            + f"<h2>{'First-team roster' if squad.other_teams else 'Roster overview'}</h2>"
             "<p><b>Attribute-based role score</b> uses role fit only; <b>in-position</b> adds familiarity; "
             "<b>today’s selection</b> also adds match readiness.</p></div>"
             f"<span class='fm-panel-count'>{len(squad.players)} players</span></div>"
@@ -298,18 +317,25 @@ class SquadWebHandler(
     def _position_comparison_section(
         comparison, position: str | None, role_key: str | None,
         positions: tuple[str, ...], role_options: tuple[tuple[str, str], ...],
+        *, team_choices: tuple[tuple[str, str], ...] = (), team_key: str = "first",
+        player_teams: dict[str, str] | None = None,
     ) -> str:
         form = (
             "<section class='fm-workspace-panel fm-compare-panel'><div class='fm-panel-heading'><div>"
             "<h2>Compare a position</h2>"
             "<p>Choose a position to compare like-for-like. Pinning a role is optional; "
             "otherwise each player is shown in their best compatible role there.</p></div></div>"
-            "<form class='filters' method='get' action='/squad'>"
-            "<label>Position<select name='position'>"
+            "<form class='filters squad-filters' method='get' action='/squad'>"
+            + ("<label>Squad<select name='team'>" + _options(team_choices, team_key, "") + "</select></label>" if team_choices else "")
+            + "<label>Position<select name='position'>"
             + _options(((item, item) for item in positions), position, "Choose a position")
-            + "</select></label><label>Role (optional)<select name='role'>"
+            + "</select></label><label>Role (optional)<select name='role'"
+            + (" disabled" if not position else "") + ">"
             + _options(role_options, role_key, "Best role at this position")
-            + "</select></label><button type='submit'>Compare</button></form></section>"
+            + "</select></label><button type='submit'>Compare</button></form>"
+            "<script id='position-roles-data' type='application/json'>"
+            + json.dumps(position_role_choices(MVP_CATALOGUE)).replace("</", "<\\/")
+            + "</script></section>"
         )
         if comparison is None:
             return form
@@ -332,9 +358,11 @@ class SquadWebHandler(
             else:
                 today = "<span class='warn'>Not selectable</span>"
                 status = html.escape("; ".join(entry.unavailability_reasons))
+            team_cell = f"<td>{html.escape(player_teams.get(entry.player_id, 'Not captured'))}</td>" if player_teams else ""
             rows.append(
                 "<tr>"
                 f"<td>{rank}</td><td><a href='/squad/player/{quote(entry.player_id)}'>{html.escape(entry.player_name)}</a></td>"
+                f"{team_cell}"
                 f"<td>{html.escape(assignment.intrinsic_role_score.role_name)}</td>"
                 f"<td>{familiarity}</td>"
                 f"<td data-sort='{assignment.intrinsic_role_score.score.central:.4f}'>{_band(assignment.intrinsic_role_score.score)}</td>"
@@ -347,71 +375,79 @@ class SquadWebHandler(
             form
             + "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div>"
             + f"<h2>{html.escape(comparison.position)} comparison</h2>"
-            + f"<p>Role: {role_description}. {len(comparison.entries)} players are captured as eligible for "
+            + f"<p>Role: {role_description}. "
+            + (f"Squad: {html.escape(dict(team_choices)[team_key])}. " if team_choices else "")
+            + f"{len(comparison.entries)} players are captured as eligible for "
             + f"{html.escape(comparison.position)}; {comparison.players_not_captured_for_position} are not assessed for this position. "
             + "Sorted by in-position estimate. ‘Today’ adds readiness and is suppressed when the player cannot be selected.</p>"
-            + "</div></div><div class='fm-table-card'><table class='sortable'><tr><th>Rank</th><th>Player</th><th>Role</th><th>Familiarity</th>"
+            + "</div></div><div class='fm-table-card'><table class='sortable'><tr><th>Rank</th><th>Player</th>"
+            + ("<th>Squad</th>" if player_teams else "")
+            + "<th>Role</th><th>Familiarity</th>"
             + "<th>Attribute role score</th><th>In-position estimate</th><th>Condition</th><th>Match fitness</th>"
             + "<th>Today’s score</th><th>Status</th></tr>"
             + "".join(rows) + "</table></div></section>"
         )
 
     def _squad_player_page(self, path: str, _query: dict[str, list[str]]) -> None:
-        """Show the detailed role, attribute, and familiarity report for one squad member."""
+        """Show the detailed report for a player in any captured club squad."""
         player_id = unquote(path.removeprefix("/squad/player/"))
         try:
             _game, squad = self.server.read()  # type: ignore[attr-defined]
         except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
             self._send(_error_page("Squad player report", str(exc), "/squad"), HTTPStatus.SERVICE_UNAVAILABLE)
             return
-        player = next((item for item in squad.players if item.id == player_id), None)
+        player = next((item for item in squad.all_players() if item.id == player_id), None)
         if player is None:
             self._send(
-                _error_page("Squad player report", "That player is not in the current senior squad.", "/squad"),
+                _error_page("Squad player report", "That player is not in the current club squads.", "/squad"),
                 HTTPStatus.NOT_FOUND,
             )
             return
+        team = next((team for team in squad.other_teams if any(item.id == player_id for item in team.players)), None)
         self._send(
             _layout(
                 f"Squad player · {player.name}", "/squad",
-                squad_player_report(player, MVP_CATALOGUE),
+                squad_player_report(
+                    player, MVP_CATALOGUE,
+                    squad_label=f"Other squad · FM team marker {team.marker}" if team else "First team",
+                    back_href="/squad#other-club-squads" if team else "/squad",
+                ),
             )
         )
 
     @staticmethod
     def _other_teams_section(squad: Squad) -> str:
-        """The club's other squads (youth, reserves, ...), listed but not scored.
+        """Current estimates for other squads, using the shared score rules.
 
-        These players are deliberately outside role/tactic/XI selection here:
-        that machinery was designed and tuned for senior first-team selection,
-        and folding in youth players without a considered policy (age-adjusted
-        expectations, development context) would be a football judgement call
-        this page should not make silently. FM's own name for each squad is
-        not decoded yet -- see docs/property-discovery-playbook.md -- so each
-        is labelled by FM's own raw marker rather than a guessed name.
+        Displaying estimates does not add these players to tactic/XI selection.
+        FM squad names are not decoded, so retain the captured team marker.
         """
         if not squad.other_teams:
             return ""
         sections = []
         for team in squad.other_teams:
+            role_matrix = build_squad_role_matrix(replace(squad, players=team.players, other_teams=()))
             rows = [
                 "<tr>"
-                f"<td>{html.escape(player.name)}</td>"
+                f"<td>{squad_player_link(player)}</td>"
                 f"<td>{player.age if player.age is not None else '?'}</td>"
                 f"<td>{', '.join(ordered_positions(player.positions))}</td>"
                 f"<td>{html.escape(player.availability)}</td>"
+                f"{role_score_cells(build_player_role_scores(player, role_matrix))}"
                 "</tr>"
-                for player in team.players
+                for player in sorted(team.players, key=lambda item: (min((position_key(p) for p in item.positions), default=(99, "")), item.name.casefold()))
             ]
             sections.append(
                 "<section class='fm-other-team'>"
                 f"<h3>Other squad <span>FM team marker {team.marker}</span></h3>"
                 "<div class='fm-table-card'><table><tr><th>Player</th><th>Age</th><th>Positions</th>"
-                "<th>Availability</th></tr>" + "".join(rows) + "</table></div></section>"
+                "<th>Availability</th><th>Role fit</th><th>In-position</th><th>Today</th></tr>" + "".join(rows) + "</table></div></section>"
             )
         return (
-            "<section class='fm-workspace-panel fm-other-teams-panel'><div class='fm-panel-heading'><div>"
-            "<h2>Other club squads</h2><p>Listed for visibility only; they are not included in role or tactic selection.</p>"
+            "<section class='fm-workspace-panel fm-other-teams-panel' id='other-club-squads'><div class='fm-panel-heading'><div>"
+            "<h2>Other club squads</h2><p>Current estimates use the same scoring rules as the first team. "
+            "Open a player for estimates at every position. Missing inputs retain their uncertainty.</p>"
+            "<p class='muted'>Tactic and starting-XI plans use the first team.</p>"
             "</div></div>" + "".join(sections) + "</section>"
         )
 

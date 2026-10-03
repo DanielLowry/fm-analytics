@@ -60,10 +60,18 @@ opinion to change it (see item 7).
 | 6 | "Now gettable" and "re-scout due" alerts | Small | 5 | Built 1 October 2026 |
 | — | Dedicated set-piece ratings from an HTML export | No code | — | Manager action |
 | 7 | Match history and review | Medium–large | — | Built 29 September 2026 |
+| 8 | [League team comparison](league-comparison-plan.md) | Medium–large | Verified league membership/rosters; shared scenario optimisation | Planned 3 October 2026 |
 
 Items 1–3 affect the next few in-game weeks. Items 4–6 pay off over the season.
 Item 4 does not depend on 1–3: if a heavy scouting push starts before they
 land, do item 4 first so those observations are recorded.
+
+Item 8 is newly requested work: rank every league club's players, select and
+score its best XI with the same model as ours, and compare clubs using ranges
+for incomplete scouting. Its [delivery plan](league-comparison-plan.md) starts
+with a league/roster data proof, then adds scenario selection, team drilldowns,
+and the league overview. It does not require match-tendency forecasting or
+replace the remaining recruitment priorities above.
 
 Every open and parked item has a bounded brief in
 [Task briefs](tasks/README.md); finished briefs move to the

@@ -1,6 +1,7 @@
 import { positionValue } from "./tables.js";
 import { initTableCopies } from "./table-copy.js";
 import { orderedSnapshotRows } from "./scouting-data.js";
+import { roleOptionsUpdater } from "./position-roles.js";
 // Display cached, server-scored candidates. No scoring runs in the browser.
 export function initScouting() {
   const form = document.querySelector('form.scouting-filters');
@@ -15,31 +16,7 @@ export function initScouting() {
   var limitInput = field('limit');
   var rawBox = field('includeRawPositions');
 
-  var rolesByPosition = {};
-  var roleData = document.getElementById('position-roles-data');
-  if (roleData) {
-    try { rolesByPosition = JSON.parse(roleData.textContent); }
-    catch (error) { rolesByPosition = {}; }
-  }
-
-  function refreshRoleOptions() {
-    if (!positionSelect || !roleSelect) return;
-    var previous = roleSelect.value;
-    var roles = rolesByPosition[positionSelect.value] || rolesByPosition[''] || [];
-    roleSelect.innerHTML = '';
-    var blank = document.createElement('option');
-    blank.value = '';
-    blank.textContent = 'Any role';
-    roleSelect.appendChild(blank);
-    roles.forEach(function (pair) {
-      var option = document.createElement('option');
-      option.value = pair[0];
-      option.textContent = pair[1];
-      if (pair[0] === previous) option.selected = true;
-      roleSelect.appendChild(option);
-    });
-    if (!roleSelect.value) roleSelect.value = '';
-  }
+  const refreshRoleOptions = roleOptionsUpdater(form);
 
   function tableMode() {
     if (tacticSelect && tacticSelect.value) return 'tactic';

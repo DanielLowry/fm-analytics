@@ -15,7 +15,7 @@ from typing import Sequence
 
 from urllib.parse import quote, unquote, urlsplit
 
-from fm_analytics.web.ui import ordered_positions
+from fm_analytics.web.ui import ordered_positions, position_role_choices
 from fm_analytics.analytics import (
     DEFAULT_SORT_BY_MODE,
     FamiliarityPolicy,
@@ -484,18 +484,8 @@ class ScoutingPagesMixin:
         # Structural fact from the catalogue (which roles are eligible for
         # which position) -- not a score, so embedding it for the client-side
         # role-narrowing script does not duplicate any analytics computation.
-        roles_by_position = {
-            position: sorted(
-                ((key, role.name) for key, role in MVP_CATALOGUE.roles.items()
-                 if position in role.eligible_positions),
-                key=lambda item: item[1],
-            )
-            for position in positions
-        }
-        every_role = sorted(
-            ((key, role.name) for key, role in MVP_CATALOGUE.roles.items()), key=lambda item: item[1]
-        )
-        roles_by_position[""] = every_role
+        roles_by_position = position_role_choices(MVP_CATALOGUE)
+        every_role = roles_by_position[""]
         tactic_options = _options(
             _tactic_choices(
                 ((key, tactic.name) for key, tactic in sorted(

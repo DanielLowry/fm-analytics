@@ -108,7 +108,7 @@ class SquadWebServerTests(WebServerHelpers, unittest.TestCase):
             self.assertIn("Play-now tactic score", tactics)
             self.assertIn("Set-piece attribute score", set_pieces)
 
-    def test_squad_page_lists_other_teams_without_scoring_them(self) -> None:
+    def test_other_squads_show_scores_and_link_to_position_reports(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             fixture_path = write_complete_fixture(Path(directory))
             document = json.loads(fixture_path.read_text(encoding="utf-8"))
@@ -128,7 +128,74 @@ class SquadWebServerTests(WebServerHelpers, unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn("Yusuf Youth", body)
             self.assertIn("team marker 9", body)
-            self.assertIn("not included in role or tactic selection", body)
+            self.assertIn("href='/squad/player/youth-1'", body)
+            other_table = body.split("id='other-club-squads'", 1)[1]
+            self.assertIn("<th>In-position</th>", other_table)
+            self.assertIn("data-sort='", other_table)
+            # Identical captured players must receive identical best-role scores
+            # irrespective of the squad they belong to.
+            first_row = body.split("href='/squad/player/player-1'", 1)[1].split("</tr>", 1)[0]
+            other_row = body.split("href='/squad/player/youth-1'", 1)[1].split("</tr>", 1)[0]
+            self.assertEqual(first_row.split("<td")[-3:], other_row.split("<td")[-3:])
+            status, report = self._get(port, '/squad/player/youth-1')
+            self.assertEqual(status, 200)
+            self.assertIn('Position score summary', report)
+            self.assertIn('In-position estimate', report)
+            self.assertIn('FM team marker 9', report)
+            self.assertIn("href='/squad#other-club-squads'", report)
+
+    def test_position_comparison_can_select_another_squad_or_the_whole_club(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture_path = write_complete_fixture(Path(directory))
+            document = json.loads(fixture_path.read_text(encoding='utf-8'))
+            document['squad']['players'][0]['positionFamiliarity'] = {'GK': 10}
+            document['squad']['otherTeams'] = [{
+                'marker': 9,
+                'players': [{**document['squad']['players'][0], 'id': 'youth-1', 'name': 'Yusuf Youth', 'positionFamiliarity': {'GK': 20}}],
+            }]
+            fixture_path.write_text(json.dumps(document), encoding='utf-8')
+            port = self._serve(fixture_path)
+            for scope, first, other in [('first', True, False), ('9', False, True), ('all', True, True)]:
+                with self.subTest(scope=scope):
+                    status, body = self._get(port, '/squad?position=GK&role=gk_defend&team=' + scope)
+                    self.assertEqual(status, 200)
+                    comparison = body.split('<h2>GK comparison</h2>', 1)[1].split('</table>', 1)[0]
+                    self.assertEqual("href='/squad/player/player-1'" in comparison, first)
+                    self.assertEqual('Yusuf Youth' in comparison, other)
+                    self.assertIn(f"value='{scope}' selected", body)
+                    if scope == 'all':
+                        self.assertLess(comparison.index('Yusuf Youth'), comparison.index("href='/squad/player/player-1'"))
+                        self.assertIn('<th>Squad</th>', comparison)
+                        self.assertIn('47.4', comparison)
+            # Displaying or comparing these players must not put them in the XI.
+            status, tactic = self._get(port, '/tactics/balanced_442')
+            self.assertEqual(status, 200)
+            self.assertNotIn('Yusuf Youth', tactic)
+
+    def test_other_squad_estimates_tolerate_missing_data_and_empty_squads(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fixture_path = write_complete_fixture(Path(directory))
+            document = json.loads(fixture_path.read_text(encoding='utf-8'))
+            document['squad']['otherTeams'] = [
+                {'marker': 9, 'players': [{
+                    **document['squad']['players'][0], 'id': 'unobserved', 'name': '<Unknown> Player',
+                    'attributes': {}, 'positionFamiliarity': {}, 'conditionPercent': None, 'matchFitnessPercent': None,
+                }]},
+                {'marker': 10, 'players': []},
+            ]
+            fixture_path.write_text(json.dumps(document), encoding='utf-8')
+            port = self._serve(fixture_path)
+            for path in ['/squad', '/squad?position=GK&team=9', '/squad?position=GK&team=10', '/squad/player/unobserved']:
+                with self.subTest(path=path):
+                    status, body = self._get(port, path)
+                    self.assertEqual(status, 200)
+                    self.assertNotIn('<Unknown>', body)
+                    if path == '/squad':
+                        self.assertIn('0.0 (0.0–100.0)', body)
+                        self.assertIn('Familiarity unknown', body)
+            status, body = self._get(port, '/squad/player/not-at-this-club')
+            self.assertEqual(status, 404)
+            self.assertIn('not in the current club squads', body)
 
     def test_data_page_reports_other_team_coverage(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

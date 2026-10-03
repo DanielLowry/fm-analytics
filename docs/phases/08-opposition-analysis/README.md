@@ -5,6 +5,13 @@
 Outline only. The available match history and opposition visibility will shape
 the report far more than an up-front feature wish list.
 
+**Update, 3 October 2026:** [league team comparison](../../league-comparison-plan.md)
+now has a concrete plan: verified league rosters, ranked players, best-XI
+floor/central/ceiling optimisation through the existing scorer, and a league
+overview. This personnel-comparison slice needs verified membership and player
+knowledge, rather than the match-history prerequisites for the pre-match
+reports below. Actual opponent lineup and tendency forecasting remain deferred.
+
 ## Outcome
 
 Generate a concise pre-match opposition report that separates observed facts,
@@ -61,4 +68,3 @@ persisted. Record usefulness feedback without rewriting the original report.
 - Claiming causal weaknesses from small samples
 - Fully automated tactical recommendations
 - Computer-vision analysis of the match engine
-

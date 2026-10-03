@@ -178,10 +178,11 @@ def verdict_panel(
     )
 
 
-def squad_player_report(player, catalogue) -> str:
-    """Render the equivalent report for an owned senior-squad player."""
+def squad_player_report(player, catalogue, *, squad_label: str | None = None, back_href: str = "/squad") -> str:
+    """Render the equivalent report for a player in any owned club squad."""
     contract = player.contract
     facts = [
+        ("Squad", squad_label),
         ("Age", str(player.age) if player.age is not None else None),
         ("Availability", player.availability),
         ("Condition", f"{player.condition_percent}%" if player.condition_percent is not None else None),
@@ -209,7 +210,7 @@ def squad_player_report(player, catalogue) -> str:
     )
     return _player_detail_report(
         player.name, player.attributes, player.positions, player.position_familiarity,
-        facts, catalogue, back_href="/squad", back_label="Back to squad",
+        facts, catalogue, back_href=back_href, back_label="Back to squad",
         familiarity_source="the captured 0–20 position familiarity rating",
         headline=headline,
     )
@@ -243,7 +244,7 @@ def _player_detail_report(
         _position_role_scores(attributes, position, catalogue, familiarity, policy)
         for position in sorted(positions, key=lambda p: (p not in known_positions, position_key(p)))
     )
-    main_labels = {"Club", "Age", "Nationality", "Footedness", "Scouting knowledge", "Availability", "Condition", "Match fitness", "Preferred foot"}
+    main_labels = {"Club", "Squad", "Age", "Nationality", "Footedness", "Scouting knowledge", "Availability", "Condition", "Match fitness", "Preferred foot"}
     def render_facts(items):
         return "".join(
             "<div><dt>" + html.escape(label) + "</dt><dd>" + html.escape(value) + "</dd></div>"

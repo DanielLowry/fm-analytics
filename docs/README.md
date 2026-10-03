@@ -19,6 +19,9 @@
 - [Match analysis plan](match-analysis-plan.md) documents the match history:
   what is read live from FM, how matches are grouped by opposition strength,
   the Matches page and `fm-matches`, and the remaining research.
+- [League team comparison plan](league-comparison-plan.md) covers complete
+  league rosters, player rankings, best-XI score ranges, and a league overview
+  using the same scoring model as our own team. Planned 3 October 2026.
 - [Analytics performance investigation](analytics-performance.md) is the
   current measured cost model and records the package, vectorisation, and
   process-parallel experiments for tactic ranking.

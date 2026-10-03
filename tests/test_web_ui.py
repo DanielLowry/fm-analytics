@@ -4,6 +4,7 @@ import json
 import re
 import shutil
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 from urllib.parse import urlencode
@@ -11,7 +12,7 @@ from urllib.parse import urlencode
 from fm_analytics.web.scouting_pages import _safe_scouting_return
 from fm_analytics.web.ui import ordered_positions
 from tests.test_web_scouting_states import ALL_STATE_PLAYERS
-from tests.web_support import FIXTURE, ROOT, WebServerHelpers
+from tests.web_support import FIXTURE, ROOT, WebServerHelpers, write_complete_fixture
 
 
 class TableConventionTests(unittest.TestCase):
@@ -102,3 +103,27 @@ class ScoutingSnapshotTests(WebServerHelpers, unittest.TestCase):
         self.assertIn("class='position-role-report fm-disclosure'><summary>", body)
         self.assertNotIn("class='position-role-report fm-disclosure' open", body)
         self.assertLess(body.index("href='#player-roles'"), body.index("id='player-roles'"))
+
+
+class SquadFilterTests(WebServerHelpers, unittest.TestCase):
+    def test_role_choices_for_other_positions_are_available_before_comparing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            port = self._serve(write_complete_fixture(Path(directory)))
+            for path in ('/squad', '/squad?position=DR&role=fb_support'):
+                with self.subTest(path=path):
+                    status, body = self._get(port, path)
+                    self.assertEqual(status, 200)
+                    source = re.search(r"<script id='position-roles-data' type='application/json'>(.*?)</script>", body, re.S)
+                    self.assertIsNotNone(source)
+                    roles = json.loads(source.group(1))
+                    keys = lambda position: {key for key, _ in roles[position]}
+                    self.assertIn('gk_defend', keys('GK'))
+                    self.assertIn('fb_support', keys('DR'))
+                    self.assertIn('af_attack', keys('ST'))
+                    self.assertNotIn('af_attack', keys('DR'))
+                    self.assertNotIn('fb_support', keys('GK'))
+                    self.assertIn("class='filters squad-filters'", body)
+                    if path == '/squad':
+                        self.assertIn("<select name='role' disabled>", body)
+                    else:
+                        self.assertIn("value='fb_support' selected", body)

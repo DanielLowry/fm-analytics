@@ -88,6 +88,9 @@ Finished briefs move to the [archive](../archive/tasks/). Each keeps a
   [tactical-system roadmap](../tactical-system-roadmap.md).
 - **Opposition analysis from data, machine learning and automation** stay in
   Phases 08–11 of the [delivery roadmap](../phases/README.md).
+  The newly requested [league team comparison](../league-comparison-plan.md)
+  is active-plan item 8 and has a delivery plan; implementation briefs follow
+  its initial league/roster data-contract gate.
 
 ## Rules shared by every brief
 
