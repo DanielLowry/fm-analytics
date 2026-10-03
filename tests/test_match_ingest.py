@@ -91,6 +91,16 @@ class IngestAndReadTests(CliCase):
         _code, text = self.run_cli("show", DETAILED)
         self.assertIn("Wing Play 4-4-2", text)
 
+    def test_coverage_prints_the_shared_computation(self) -> None:
+        self.run_cli("ingest", self.capture)
+        code, text = self.run_cli("coverage", "--all")
+        self.assertEqual(code, 0)
+        self.assertIn("Form evidence, the whole history to 2019-09-05: 1 matches with full stats, 11 appearances.", text)
+        self.assertIn("player not identified", text)  # the fixture's players have no squad IDs
+        self.assertIn("position not recorded", text)
+        code, text = self.run_cli("coverage", "--days", "3")
+        self.assertIn("2019-09-02 to 2019-09-05: 0 matches", text)
+
     def test_bad_input_is_an_error_not_a_crash(self) -> None:
         self.run_cli("ingest", self.capture)
         self.assertEqual(self.run_cli("note", DETAILED, "--tactic", "no_such_tactic")[0], 1)

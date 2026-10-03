@@ -52,6 +52,9 @@ RECORD_FIELDS: tuple[tuple[str, int], ...] = (
     ("corners_taken", 123),
 )
 SHIRT, SIDE, WENT_OFF, CAME_ON, ROLE_CODE, RATING, DISTANCE = 8, 9, 54, 58, 100, 109, 113
+# The live record's starting position (u16, then its centre side) and position
+# played (u16); see fm20_match_layout.PLAYER_START_POSITION.
+START_POSITION, START_CENTRE_SIDE, POSITION = 11, 13, 96
 RECORD_LENGTH = 129
 # Team figures summed from the players: shots and chances are not in the
 # team's record next to its passing figures; the rest are read from it.
@@ -102,6 +105,12 @@ def decode_player(chunk: bytes, at: int) -> dict[str, Any]:
         "rating": struct.unpack_from("<H", chunk, at + RATING)[0] / 100 if rated else None,
         "distance_m": round(distance) if played else 0,
         "stats": {name: chunk[at + offset] for name, offset in RECORD_FIELDS},
+        **layout.decode_positions(
+            struct.unpack_from("<H", chunk, at + START_POSITION)[0],
+            chunk[at + START_CENTRE_SIDE],
+            struct.unpack_from("<H", chunk, at + POSITION)[0],
+            played,
+        ),
     }
 
 

@@ -197,12 +197,13 @@ def _team_panel(team: Mapping[str, int], players: Iterable[PlayerMatchStats]) ->
 
 def _line(player: PlayerMatchStats, codes: RoleCodes, *, full: bool) -> dict[str, Any]:
     line: dict[str, Any] = {
-        "name": player.label, "role": codes.label(player.role_code), "started": player.started,
-        "minutes": player.minutes, "rating": player.rating,
+        "name": player.label, "role": codes.label(player.role_code), "position": player.position,
+        "started": player.started, "minutes": player.minutes, "rating": player.rating,
     }
     if full:
         line.update({
             "player_id": player.player_id, "shirt": player.shirt,
+            "start_position": player.start_position, "start_centre_side": player.start_centre_side,
             "came_on": player.came_on, "went_off": player.went_off,
             "distance_km": _round(player.distance_m / 1000),
             # Zeros are left out to keep a season's lines readable; a missing key is 0.

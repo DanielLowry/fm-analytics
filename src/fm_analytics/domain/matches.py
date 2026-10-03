@@ -26,6 +26,12 @@ SIDES = ("home", "away")
 MATCH_MINUTES = 90
 INCIDENT_KINDS = ("goal", "own_goal", "penalty", "sent_off")
 GOAL_INCIDENTS = frozenset({"goal", "own_goal", "penalty"})
+# FM's pitch positions, as a match records where a player played: the
+# catalogue's position names, plus FM's sweeper.
+PITCH_POSITIONS = frozenset(
+    {"GK", "SW", "DR", "DL", "DC", "WBR", "WBL", "DM", "MR", "ML", "MC", "AMR", "AML", "AMC", "ST"}
+)
+CENTRE_SIDES = ("left", "right")
 
 # FM's match stats panel, in the order FM lists it.
 TEAM_STAT_KEYS = (
@@ -119,6 +125,14 @@ def _side(value: Any, where: str) -> str:
     return value
 
 
+def _optional_choice(value: Any, choices, where: str) -> str | None:
+    if value is None:
+        return None
+    if value not in choices:
+        raise ValueError(f"{where} must be one of {', '.join(sorted(choices))}")
+    return value
+
+
 def _date(value: Any, where: str) -> date:
     try:
         return date.fromisoformat(value)
@@ -180,13 +194,20 @@ class PlayerMatchStats:
     player_id: str | None  # FM's unique ID when the player is in the managed squad
     name: str | None
     shirt: int
-    role_code: int  # FM's role for the position played, one bit per role
+    role_code: int  # FM's code for the role he played; see analytics.match_roles
     played: bool
     rating: float | None  # None when FM shows none (unused, or barely on)
     stats: Mapping[str, int]
     distance_m: int = 0
     came_on: int | None = None  # minute a substitute came on
     went_off: int | None = None  # minute he was taken off
+    # Where FM says he played (a PITCH_POSITIONS name), where he started (None
+    # for a substitute) and, in a central pair, on which side he started. All
+    # None in captures made before they were read, and when FM's value is not
+    # a single known position.
+    position: str | None = None
+    start_position: str | None = None
+    start_centre_side: str | None = None
 
     @property
     def minutes(self) -> int:
@@ -225,16 +246,31 @@ class PlayerMatchStats:
             distance_m=_count(raw.get("distanceM", 0), f"{where} distanceM"),
             came_on=_optional_minute(raw.get("cameOn"), f"{where} cameOn"),
             went_off=_optional_minute(raw.get("wentOff"), f"{where} wentOff"),
+            position=_optional_choice(raw.get("position"), PITCH_POSITIONS, f"{where} position"),
+            start_position=_optional_choice(raw.get("startPosition"), PITCH_POSITIONS, f"{where} startPosition"),
+            start_centre_side=_optional_choice(
+                raw.get("startCentreSide"), CENTRE_SIDES, f"{where} startCentreSide"
+            ),
         )
 
     def to_document(self) -> dict[str, Any]:
-        return {
+        document = {
             "side": self.side, "order": self.order, "started": self.started,
             "shortId": self.short_id, "playerId": self.player_id, "name": self.name,
             "shirt": self.shirt, "roleCode": self.role_code, "played": self.played,
             "rating": self.rating, "stats": dict(self.stats),
             "distanceM": self.distance_m, "cameOn": self.came_on, "wentOff": self.went_off,
         }
+        # Left out when unknown, so a match recorded before positions were read
+        # keeps its content hash and is not stored again for nothing.
+        for key, value in (
+            ("position", self.position),
+            ("startPosition", self.start_position),
+            ("startCentreSide", self.start_centre_side),
+        ):
+            if value is not None:
+                document[key] = value
+        return document
 
 
 @dataclass(frozen=True)

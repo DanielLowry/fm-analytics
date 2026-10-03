@@ -101,10 +101,13 @@ class TeamBlockTests(unittest.TestCase):
 
 class PlayerRecordTests(unittest.TestCase):
     def record(self, *, short_id=102619, code=0x80, distance=11985.0, shirt=11, side=1, rating=805,
-               came_on=0, went_off=0) -> bytes:
+               came_on=0, went_off=0, start=0, centre=0, position=0) -> bytes:
         record = bytearray(layout.PLAYER_RECORD_SIZE)
         record[layout.PLAYER_CAME_ON] = came_on
         record[layout.PLAYER_WENT_OFF] = went_off
+        struct.pack_into("<H", record, layout.PLAYER_START_POSITION, start)
+        record[layout.PLAYER_START_CENTRE_SIDE] = centre
+        struct.pack_into("<H", record, layout.PLAYER_POSITION, position)
         struct.pack_into("<I", record, layout.PLAYER_ROLE_CODE, code)
         struct.pack_into("<I", record, layout.PLAYER_SHORT_ID, short_id)
         struct.pack_into("<f", record, layout.PLAYER_DISTANCE, distance)
@@ -142,6 +145,30 @@ class PlayerRecordTests(unittest.TestCase):
     def test_empty_squad_places_are_skipped(self) -> None:
         self.assertIsNone(layout.decode_player_record(self.record(short_id=layout.NO_PLAYER)))
         self.assertIsNone(layout.decode_player_record(self.record(shirt=layout.NO_SHIRT)))
+
+    def positions(self, **record) -> tuple:
+        player = layout.decode_player_record(self.record(**record))
+        return player["start_position"], player["start_centre_side"], player["position"]
+
+    def test_where_a_starter_started_and_played_decodes(self) -> None:
+        # Fundi, the left-sided Advanced Forward, and a right-back.
+        self.assertEqual(self.positions(start=0x4000, centre=0x10, position=0x4000), ("ST", "left", "ST"))
+        self.assertEqual(self.positions(start=0x400, centre=0x20, position=0x400), ("MC", "right", "MC"))
+        self.assertEqual(self.positions(start=0x4, position=0x4), ("DR", None, "DR"))
+
+    def test_a_substitute_has_a_position_played_but_no_start(self) -> None:
+        self.assertEqual(self.positions(came_on=60, position=0x8), (None, None, "DL"))
+
+    def test_a_starter_can_end_somewhere_else(self) -> None:
+        self.assertEqual(self.positions(start=0x200, position=0x400), ("ML", None, "MC"))
+
+    def test_anything_but_one_known_position_is_left_unknown(self) -> None:
+        self.assertEqual(self.positions(start=0x4400, position=0x4400), (None, None, None))  # two bits
+        self.assertEqual(self.positions(start=0x8000, position=0x8000), (None, None, None))  # beyond ST
+        self.assertEqual(self.positions(start=0x4000, centre=0x27, position=0x4000), ("ST", None, "ST"))
+
+    def test_a_player_who_never_came_on_has_no_position(self) -> None:
+        self.assertEqual(self.positions(code=0, distance=0.0, start=0x4000, position=0x4000), (None, None, None))
 
 
 class ConsistencyTests(unittest.TestCase):

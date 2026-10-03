@@ -83,6 +83,31 @@ class MatchRecordTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "penalties"):
             MatchRecord.from_document(document)
 
+    def test_positions_round_trip_and_their_absence_keeps_the_old_content_hash(self) -> None:
+        document = self.match.to_document()
+        self.assertNotIn("position", document["detail"]["players"][0])
+        self.assertIsNone(self.match.detail.players[0].position)
+        striker = document["detail"]["players"][10]
+        striker.update({"position": "ST", "startPosition": "ST", "startCentreSide": "left"})
+        substitute = document["detail"]["players"][0]
+        substitute.update({"position": "DL", "startPosition": None, "startCentreSide": None})
+        record = MatchRecord.from_document(document)
+        line = record.detail.players[10]
+        self.assertEqual((line.position, line.start_position, line.start_centre_side), ("ST", "ST", "left"))
+        self.assertNotIn("startPosition", record.to_document()["detail"]["players"][0])
+        self.assertEqual(MatchRecord.from_document(record.to_document()), record)
+        self.assertNotEqual(record.content_hash(), self.match.content_hash())
+        for line in document["detail"]["players"]:
+            line.update({"position": None, "startPosition": None, "startCentreSide": None})
+        self.assertEqual(MatchRecord.from_document(document).content_hash(), self.match.content_hash())
+
+    def test_a_position_or_centre_side_fm_does_not_have_is_refused(self) -> None:
+        for key, value in (("position", "STC"), ("startPosition", "CB"), ("startCentreSide", "middle")):
+            document = self.match.to_document()
+            document["detail"]["players"][10][key] = value
+            with self.assertRaisesRegex(ValueError, key):
+                MatchRecord.from_document(document)
+
     def test_an_incident_of_an_unknown_kind_is_refused(self) -> None:
         document = self.match.to_document()
         document["incidents"] = [{"minute": 5, "side": "home", "kind": "missed_penalty", "playerShortId": 1}]

@@ -91,6 +91,44 @@ role. Investigate the archived tactical/lineup objects for actual position,
 duty and tactic settings. Reuse the field-acquisition workbench and existing
 live/archive readers; do not introduce guessed offsets or hidden engine inputs.
 
+**Progress, 3 October 2026.** FM's player match record holds each player's
+starting position (with which of a central pair) and position played,
+substitutes included; the capture now reads both (see
+[match-analysis-plan.md](match-analysis-plan.md), "Found on 3 October").
+Against the checklist above:
+
+- **Position (3):** answered from FM's own record, so no manager confirmation
+  is needed for it: DL and DR, ML and MR are distinct positions there.
+  Captures made before 3 October have none until the next capture re-reads
+  the archive.
+- **Substitutions and changes (4):** a substitute carries the role code and
+  position of the job he did, which can differ from the player he replaced
+  when the shape changes. A starter whose position played differs from his
+  starting position moved. A role change within one appearance is not
+  visible: there is one role code per appearance.
+- **Codes are labels, not identities:** the left-sided Advanced Forward
+  (Attack) has two codes (`0x800` to 26 December 2019, `0x80000` after), for
+  a reason not yet known. With `0x80000` confirmed, 44 of the 50 detailed
+  matches infer Vertical 4-4-2 (it was 28).
+- **Duty (1, 2):** answered: the code does not record duty. On 28 March
+  2020 Bellamy played CM(S) beside Hargreaves at CM(D), and both carry `0x20`
+  (confirmed by the manager). A code therefore names a role *family*; tactic
+  inference matches by family (46 of the 51 detailed matches now infer
+  Vertical 4-4-2), and the duty comes from the tactic: the slot a player
+  filled must allow exactly one duty of his role. Starters are matched to
+  slots position by position, using which of a central pair they started
+  in; a substitute takes the slot of the player he replaced in the same
+  position, and one who came on in a changed shape is not used.
+
+`uv run fm-matches coverage` (`reporting.build_appearance_coverage`, over
+`analytics/appearance_context.py`) is this section's completion check. On 3
+October 2026, for the last 90 game days (16 matches, 221 appearances): none
+usable yet, 166 usable once each match's inferred tactic is confirmed, and 55
+not usable. The largest group, 40, is the centre-backs: Vertical 4-4-2 lets
+either play Defend or Cover, so their duty stays unsettled until the manager
+says which he plays. The rest are substitutes in a changed shape, players no
+longer in the squad, and cameos FM did not rate.
+
 Add optional observed context and provenance to the match appearance contract
 only when its semantics are verified. Preserve raw role codes. Existing
 captures remain readable with unknown context, and any new persisted tables

@@ -10,6 +10,7 @@ game) and prints the same review the Matches page shows, through the one
     uv run fm-matches show 2019-11-02:8325133:5103652
     uv run fm-matches note 2019-11-02:8325133:5103652 --tactic vertical_442 --rating 1
     uv run fm-matches export --detail basic          # the season as JSON, for another tool
+    uv run fm-matches coverage                       # which appearances could count towards form
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ from pathlib import Path
 from typing import Sequence
 
 from fm_analytics.analytics import MVP_CATALOGUE
+from fm_analytics.analytics.appearance_context import RECENT_GAME_DAYS, AppearanceCoverage
 from fm_analytics.analytics.match_analysis import (
     COMPETITION_SCOPES,
     METRICS,
@@ -48,6 +50,7 @@ from fm_analytics.persistence.match_history import (
 from fm_analytics.reporting import (
     RecommendationBundle,
     RecommendationPolicy,
+    build_appearance_coverage,
     build_match_diagnostics,
     build_match_intervention_evaluation,
     build_match_report,
@@ -250,6 +253,47 @@ def format_intervention(evaluation: InterventionEvaluation | None) -> str:
     return "\n".join(lines)
 
 
+def format_coverage(coverage: AppearanceCoverage, club_id: str) -> str:
+    tactics, roles = MVP_CATALOGUE.tactics, MVP_CATALOGUE.roles
+    tactic_name = lambda key: tactics[key].name if key in tactics else key  # noqa: E731
+    window = (
+        f"{coverage.since} to {coverage.until}" if coverage.since else f"the whole history to {coverage.until}"
+    )
+    lines = [
+        f"Form evidence, {window}: {coverage.matches} matches with full stats, "
+        f"{len(coverage.appearances)} appearances.",
+        "Form may only use an appearance whose player, tactic, position and role with its duty are all known.",
+        "",
+        f"  Usable now:                                   {len(coverage.usable):>4}",
+        f"  Usable once each match's tactic is confirmed: {len(coverage.awaiting_tactic):>4}",
+        f"  Not usable:                                   {len(coverage.excluded):>4}",
+        *(f"    {reason:<43}{count:>5}" for reason, count in coverage.reasons()),
+    ]
+    jobs = coverage.jobs()
+    if jobs:
+        lines += ["", "Jobs with evidence (usable / waiting for the tactic to be confirmed):"]
+        for job in jobs:
+            lines.append(f"  {tactic_name(job.tactic_key)[:24]:<24} {job.position:<4} "
+                         f"{roles[job.role_key].name[:34]:<34} {job.usable:>3} / {job.awaiting}")
+    unsettled = coverage.unsettled_duties()
+    if unsettled:
+        lines += ["", "Duty not settled (the tactic allows more than one there, and FM's role code has no duty):"]
+        for tactic_key, position, family, count in unsettled:
+            lines.append(f"  {tactic_name(tactic_key)[:24]:<24} {position:<4} {family[:34]:<34} {count:>3} appearances")
+    to_confirm = coverage.matches_to_confirm()
+    if to_confirm:
+        lines += ["", "Matches whose tactic was inferred from the line-up; confirming it makes these usable:"]
+        for item in to_confirm:
+            match = item.match
+            side = match.side_of(club_id)
+            opponent = match.team("away" if side == "home" else "home").name
+            venue = "H" if side == "home" else "A"
+            lines.append(f"  {match.key:<28} {opponent[:22]:<22} ({venue})  {tactic_name(item.tactic_key)[:24]:<24} "
+                         f"{item.appearances:>2} appearances")
+        lines.append("Confirm one with: fm-matches note <match> --tactic <key>")
+    return "\n".join(lines)
+
+
 # -- command line -------------------------------------------------------------
 
 
@@ -290,6 +334,13 @@ def build_parser() -> argparse.ArgumentParser:
     export.add_argument("--output", type=Path,
                         help=f"file to write, or - for stdout (default: {DEFAULT_EXPORT_DIRECTORY.relative_to(PROJECT_ROOT)}/"
                              "<club>-<game date>-<detail>.json)")
+    coverage = commands.add_parser(
+        "coverage", help="which recent appearances could count towards form, and what stops the rest"
+    )
+    window = coverage.add_mutually_exclusive_group()
+    window.add_argument("--days", type=int, default=RECENT_GAME_DAYS,
+                        help="game days back from the latest capture (default: %(default)s)")
+    window.add_argument("--all", action="store_true", help="the whole history")
     role = commands.add_parser("role-code", help="confirm which catalogue role an FM role code is")
     role.add_argument("code", help="the FM code, e.g. 0x800")
     role.add_argument("role", help="catalogue role key, e.g. af_attack")
@@ -343,6 +394,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                         build_match_intervention_evaluation(history, lifecycle_review)
                     )
                 )
+            elif args.command == "coverage":
+                coverage = build_appearance_coverage(history, days=None if args.all else args.days)
+                print(format_coverage(coverage, history.club.id))
             elif args.command == "list":
                 review = build_match_review(history, filters=ReviewFilters(competitions="all"))
                 for summary in review.matches:

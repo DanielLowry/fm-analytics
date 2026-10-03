@@ -11,10 +11,13 @@ HOME_CLUB, AWAY_CLUB = 8325133, 5103652
 
 def packed_player(short_id: int, shirt: int, side: int, *, shots: int = 0, goals: int = 0,
                   passes=(20, 15), tackles=(2, 1), headers=(3, 2), role_code=0x80, rating=700,
-                  came_on=0, went_off=0, corners=0, fouls=1) -> bytes:
+                  came_on=0, went_off=0, corners=0, fouls=1, start=0, centre=0, position=0) -> bytes:
     record = bytearray(archive.RECORD_LENGTH)
     struct.pack_into("<I", record, 0, short_id)
     record[archive.SHIRT], record[archive.SIDE], record[archive.SIDE + 1] = shirt, side, 2
+    struct.pack_into("<H", record, archive.START_POSITION, start)
+    record[archive.START_CENTRE_SIDE] = centre
+    struct.pack_into("<H", record, archive.POSITION, position)
     stats = {"goals": goals, "shots": shots, "shots_on_target": shots, "passes_attempted": passes[0],
              "passes_completed": passes[1], "tackles_attempted": tackles[0], "tackles_won": tackles[1],
              "headers_attempted": headers[0], "headers_won": headers[1], "corners_taken": corners, "fouls": fouls}
@@ -92,6 +95,17 @@ class ArchiveTests(unittest.TestCase):
         self.assertEqual(detail["home"]["shots"], 2)
         self.assertEqual(detail["home"]["corners"], 1)
         self.assertEqual(detail["away"]["goals"], 1)
+
+    def test_positions_decode_as_in_the_live_record(self) -> None:
+        body = (b"\x00" * 8
+                + packed_player(94381, 10, 1, start=0x4000, centre=0x10, position=0x4000)
+                + packed_player(31039, 15, 1, came_on=57, start=0, position=0x8)
+                + packed_player(20527, 16, 1, role_code=0, start=0, position=0))
+        lines = {p["shirt"]: p for p in archive.players(body)}
+        place = lambda p: (p["start_position"], p["start_centre_side"], p["position"])  # noqa: E731
+        self.assertEqual(place(lines[10]), ("ST", "left", "ST"))
+        self.assertEqual(place(lines[15]), (None, None, "DL"))  # a substitute has no start
+        self.assertEqual(place(lines[16]), (None, None, None))  # nor does a player who never came on
 
     def test_the_teams_own_figures_win_where_they_differ_from_the_players_sums(self) -> None:
         detail, problems = archive.decode_match(chunk(headers_attempted=47), 0, 0)

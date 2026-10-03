@@ -21,7 +21,14 @@ from fm_analytics.analytics.match_analysis import (
     report_match,
     review_matches,
 )
+from fm_analytics.analytics.appearance_context import (
+    RECENT_GAME_DAYS,
+    AppearanceCoverage,
+    appearance_contexts,
+    summarise_coverage,
+)
 from fm_analytics.analytics.contract_planning import ContractPolicy, ContractReview, assess_contracts
+from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics, diagnose_matches
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, evaluate_intervention
 from fm_analytics.analytics import (
@@ -578,6 +585,26 @@ def build_match_review(
         confirmed_role_codes=history.role_codes,
         filters=filters,
     )
+
+
+def build_appearance_coverage(
+    history: MatchHistory,
+    *,
+    days: int | None = RECENT_GAME_DAYS,
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+) -> AppearanceCoverage:
+    """The one appearance-context computation, behind `fm-matches coverage`.
+
+    Which of the last `days` game days' appearances (all of them with None)
+    have a trustworthy player, tactic, position and role with its duty, and
+    why the rest do not. See `analytics.appearance_context`.
+    """
+    codes = RoleCodes.build(catalogue, history.role_codes)
+    contexts = appearance_contexts(history.matches, history.club.id, notes=history.notes, codes=codes)
+    dates = [match.date for match in history.matches]
+    until = history.last_game_date or (max(dates) if dates else None)
+    since = until - timedelta(days=days) if until is not None and days is not None else None
+    return summarise_coverage(contexts, since=since, until=until)
 
 
 def build_contract_review(

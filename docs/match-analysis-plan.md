@@ -90,7 +90,12 @@ both the page and `fm-matches review` use.
   (the catalogue's default for that slot, not what was played) to Pressing
   Forward (Support), and tactic inference now accepts a slot's listed
   alternative roles. A new code is shown as an unconfirmed role, with a form to confirm
-  it once; it is never guessed.
+  it once; it is never guessed. On 3 October `0x80000` was confirmed as a
+  second code for the left-sided Advanced Forward (Attack).
+- **Positions come from FM's record of where each player played** (from 3
+  October 2026): the starting position, which of a central pair he started
+  in, and the position played, substitutes included. Captures made before
+  then have no positions.
 - **A match is identified by its date and both club IDs** (a club plays at
   most once a day) rather than by a generated ID.
 - **No snapshot of the pre-match recommendation** (Phase 07.4). It is
@@ -112,9 +117,18 @@ both the page and `fm-matches review` use.
   unavailable.
 - Sendings-off are read from each result's incidents; yellow cards have not
   been located.
-- It is not known whether a role code tells duties apart (Winger Support from
-  Winger Attack). Codes are labelled with the role and duty they were
-  confirmed as.
+- A role code does not tell duties apart: Central Midfielder (Support) and
+  (Defend) both carry `0x20` (28 March 2020, confirmed by the manager). Codes
+  are still labelled with the role and duty they were confirmed as, but a
+  tactic is matched by role family, and a duty is only settled by the slot a
+  player filled (`analytics/appearance_context.py`).
+- One role can have more than one code, and why is not known: the left
+  striker's Advanced Forward (Attack) changed from `0x800` to `0x80000` on 28
+  December 2019 with nothing else in the record changing, after two late
+  substitutes into that position had already shown `0x80000`.
+- The position played has no left/right for a central pair: FM leaves that
+  byte empty in the managed club's matches (it is set in some matches between
+  other clubs). Only the starting position says which of a pair a player was.
 - The layout was checked on two matches in one FM session. It has not yet
   been re-checked after an FM restart.
 
@@ -351,7 +365,9 @@ the match's result record. It holds:
   | Field | Offset |
   |---|---|
   | Player (short ID, which is person `+0x08`, next to the unique ID at `+0x0C`) | `+0x10` (u32) |
-  | Position played (a bit per pitch position; a substitute takes the bit of the player he replaced) | `+0x08` (u32) |
+  | Role code (one bit; see `analytics/match_roles.py`) | `+0x08` (u32) |
+  | Starting position (a bit per pitch position, 0 for a substitute), then which of a central pair (`0x10` left, `0x20` right) | `+0x48` (u16), `+0x4a` |
+  | Position played (substitutes included) | `+0x50` (u16) |
   | Shirt number / squad place, side (0 home, 1 away) | `+0x60`, `+0x61` |
   | Rating × 100 (6.40 for an unused substitute: ignore it when distance is 0) | `+0x5c` (u16) |
   | Distance covered, metres | `+0x44` (float) |
@@ -463,6 +479,32 @@ The executable also names `MATCH_ANALYSIS_MATCH`, `PITCH_GOALS_AREAS`,
 - **Print screen does not export the match Analysis tab** (the files come out
   empty). The chalkboard's data (`MATCH_CHALKBOARD_DATA_CACHE`) is in memory
   only while that tab is open.
+
+**Found on 3 October 2026 (positions):**
+
+- **Where each player played.** The record holds a starting position at
+  `+0x48` (archive `+11`) and the position played at `+0x50` (archive
+  `+96`), each a bit set in FM's own order with right before left: GK, SW,
+  DR, DL, DC, WBR, WBL, DM, MR, ML, MC, AMR, AML, AMC, ST. The byte after the
+  starting position says which of a central pair he started in (`0x10` left,
+  `0x20` right; 0 when alone there). These were the only live offsets that
+  gave all 32 players of the 21 March 2020 match the values the archive
+  holds for them.
+- **Checked against the manager's tactic:** Bevans and Collier, his
+  right-backs, decode as DR; Fundi, his left-sided Advanced Forward, as ST
+  left; the Pressing Forward as ST right, with a different code (`0x40000`)
+  on 14 September, when he says he occasionally plays a Target Man.
+- **Checked across the archive:** the 14,000-odd team sheets in the
+  archive files decode to real formations (4-4-2, 4-2-3-1, 3-5-2 with
+  wing-backs and so on). A starter's position played equals his starting
+  position in 99.96% of cases, and the rest are sensible moves (an outfield
+  player in goal, a wide midfielder into the middle). 41,705 of 41,707
+  substitutes have exactly one position played.
+- **FM's line-up list runs right to left** (GK, DR, DC right, DC left, DL,
+  MR, ...), so a player's place in the list is not needed to tell sides apart.
+- **A substitute does not always take the replaced player's role code.** When
+  the shape changes with a substitution (Saydee off from MR, Appau on into
+  MC), the substitute carries the code and position of the job he did.
 
 **Still open, in order:**
 

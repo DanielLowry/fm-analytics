@@ -117,6 +117,20 @@ class DetailLevelTests(HistoryCase):
         self.assertEqual(match["our_players"][10]["stats"], {"shots": 5, "goals": 1, "clear_cut_chances": 2})
         self.assertEqual([event["minute"] for event in match["timeline"] if event["event"] == "goal"], [12, 50, 93])
 
+    def test_line_ups_show_where_each_player_played_and_verbose_where_he_started(self) -> None:
+        self.assertIsNone(self.detailed(self.export("standard"))["our_players"][10]["position"])
+        matches = season()
+        striker = matches[-1]["detail"]["players"][10]
+        striker.update({"position": "ST", "startPosition": "ST", "startCentreSide": "left"})
+        self.capture.write_text(json.dumps(capture_document(matches)), encoding="utf-8")
+        record_capture_file(self.store, self.capture)
+        self.history = self.store.load_history("club:100")
+        standard = self.detailed(self.export("standard"))["our_players"][10]
+        self.assertEqual(standard["position"], "ST")
+        self.assertNotIn("start_position", standard)
+        verbose = self.detailed(self.export("verbose"))["our_players"][10]
+        self.assertEqual((verbose["start_position"], verbose["start_centre_side"]), ("ST", "left"))
+
     def test_a_cup_tie_after_extra_time_and_penalties_reads_from_our_side(self) -> None:
         matches = season()
         cup = next(match for match in matches if match["competition"]["name"] == "Test Cup")

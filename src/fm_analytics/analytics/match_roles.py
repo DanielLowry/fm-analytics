@@ -1,9 +1,15 @@
 """Which role each player played in a match, and which tactic that adds up to.
 
-FM's player match record carries a role code for the position a player
-filled: one bit per role, the same code on the same role in every match, and a
-substitute takes the code of the player he replaced. FM does not name the
-role, so a code is mapped to a catalogue role key:
+FM's player match record carries a role code for the job a player did: one
+bit set, and usually the same code for the same role in every match. A
+substitute carries the code of the job he did, which is not always that of the
+player he replaced when the shape changed with the substitution (a winger off,
+a Central Midfielder (Defend) on). One role can have more than one code: the
+manager's left-sided Advanced Forward (Attack) is `0x800` up to 26 December
+2019 and `0x80000` from 28 December, with nothing else in his record changing
+(confirmed on 3 October 2026), so a code is a label to confirm, never an
+identity to infer from. FM does not name the role, so a code is mapped to a
+catalogue role key:
 
 * `CONFIRMED_ROLE_CODES` holds codes confirmed by the manager against FM's own
   tactics screen (29 September 2026, Vertical 4-4-2 in the Concord Rangers and
@@ -14,12 +20,18 @@ role, so a code is mapped to a catalogue role key:
   override these; and
 * any other code is shown as an unconfirmed role, never guessed.
 
-Whether a code distinguishes duty (Winger Support from Winger Attack) is not
-yet known; it is labelled with the role and duty it was confirmed as.
+**A code does not record duty.** On 28 March 2020 Bellamy played Central
+Midfielder (Support) beside Hargreaves at Central Midfielder (Defend), and both
+carry `0x20` (confirmed by the manager on 3 October 2026). A code is labelled
+with the duty it was confirmed as, but it names a role *family*
+(`role_family`): Central Midfielder, whatever the duty. A tactic is matched
+by family, and which duty a player had can only come from the slot he filled
+(see `analytics.appearance_context`).
 """
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from dataclasses import dataclass
 from typing import Iterable, Mapping
@@ -38,6 +50,19 @@ CONFIRMED_ROLE_CODES: Mapping[int, str] = {
     0x80000000: "pf_support",
 }
 
+# "Central Midfielder (Defend)", "Winger (Support) [ML/MR]": every catalogue role
+# name is a role, its duty in brackets, then any positions that tell it apart.
+_ROLE_NAME = re.compile(r"^(?P<role>.+?) \((?P<duty>[^)]+)\)(?P<where> \[[^\]]+\])?$")
+
+
+def role_family(catalogue: FootballCatalogue, role_key: str) -> str:
+    """The role without its duty: "Central Midfielder", "Winger [ML/MR]"."""
+    name = catalogue.roles[role_key].name
+    parts = _ROLE_NAME.match(name)
+    if parts is None:
+        raise ValueError(f"role {role_key!r} is not named 'Role (Duty)': {name!r}")
+    return parts["role"] + (parts["where"] or "")
+
 
 @dataclass(frozen=True)
 class RoleCodes:
@@ -55,6 +80,11 @@ class RoleCodes:
     def role_key(self, code: int) -> str | None:
         return self.codes.get(code)
 
+    def family(self, code: int) -> str | None:
+        """The role family a confirmed code names; its duty is not in the code."""
+        key = self.codes.get(code)
+        return role_family(self.catalogue, key) if key is not None else None
+
     def label(self, code: int) -> str:
         key = self.codes.get(code)
         if key is None:
@@ -67,14 +97,15 @@ class RoleCodes:
         Each role must take a distinct slot that permits it: the slot's own
         role or an alternative the tactic lists for it, as FM lets a manager
         swap a Deep-Lying Forward for a Pressing Forward and keep the shape.
+        A role is matched by family, since its code does not say its duty.
         Nothing is inferred when more than one tactic fits.
         """
         roles = []
         for player in starters:
-            key = self.codes.get(player.role_code)
-            if key is None:
+            family = self.family(player.role_code)
+            if family is None:
                 return None
-            roles.append(key)
+            roles.append(family)
         if len(roles) != 11:
             return None
         matches = [
@@ -86,8 +117,10 @@ class RoleCodes:
 
 
 def _fills(catalogue: FootballCatalogue, tactic, roles: list[str]) -> bool:
-    """Whether every role can take its own slot that permits it (a bipartite matching)."""
-    permitted = [set(catalogue.role_keys_for_slot(slot)) for slot in tactic.slots]
+    """Whether every role family can take its own slot that permits it (a bipartite matching)."""
+    permitted = [
+        {role_family(catalogue, key) for key in catalogue.role_keys_for_slot(slot)} for slot in tactic.slots
+    ]
     if len(permitted) != len(roles):
         return False
     holder: dict[int, int] = {}  # slot index -> role index

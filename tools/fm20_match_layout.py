@@ -108,7 +108,22 @@ PLAYER_SHIRT = 0x60
 PLAYER_SIDE = 0x61  # 0 home, 1 away
 PLAYER_WENT_OFF = 0x84  # minute substituted, 0 if he was not
 PLAYER_CAME_ON = 0x89  # minute he came on, 0 for a starter
+# Where he played, as FM's position bit set (POSITIONS). The starting position
+# is 0 for a substitute and is followed by which of a central pair he started
+# in; the position played is set for substitutes too, and FM leaves its own
+# side byte 0 in the managed club's matches, so only the start has a side.
+# Checked on 3 October 2026: the only offsets that gave all 32 players of
+# Havant & Waterlooville 2-0 Hungerford Town (21 March 2020) the positions the
+# archive holds for them, and the manager's right-backs (Bevans, Collier) and
+# left-sided Advanced Forward (Fundi) decode as DR and ST, left.
+PLAYER_START_POSITION = 0x48  # u16
+PLAYER_START_CENTRE_SIDE = 0x4A
+PLAYER_POSITION = 0x50  # u16
 MATCH_MINUTES = 90
+# FM's position bits, lowest first: right before left, as FM writes "D (RLC)".
+# The archive's 14,000-odd team sheets decode to real formations with these.
+POSITIONS = ("GK", "SW", "DR", "DL", "DC", "WBR", "WBL", "DM", "MR", "ML", "MC", "AMR", "AML", "AMC", "ST")
+CENTRE_SIDES = {0x10: "left", 0x20: "right"}  # 0 when he is the only one there
 # FM shows "-" instead of a rating for a player barely on the pitch: Okojie,
 # on for 4 minutes at Concord, had none; Millar, on for 13, had 7.2. The cut
 # lies in between, so ratings under the smallest rated time seen are
@@ -221,6 +236,33 @@ def decode_player_record(record: bytes) -> dict[str, Any] | None:
         "rating": struct.unpack_from("<H", record, PLAYER_RATING)[0] / 100 if rated else None,
         "distance_m": round(distance) if played else 0,
         "stats": {name: record[offset] for name, offset in PLAYER_FIELDS},
+        **decode_positions(
+            struct.unpack_from("<H", record, PLAYER_START_POSITION)[0],
+            record[PLAYER_START_CENTRE_SIDE],
+            struct.unpack_from("<H", record, PLAYER_POSITION)[0],
+            played,
+        ),
+    }
+
+
+def position_name(bits: int) -> str | None:
+    """The position a bit set names, or None unless exactly one known bit is set."""
+    if bits <= 0 or bits & (bits - 1) or bits >= 1 << len(POSITIONS):
+        return None
+    return POSITIONS[bits.bit_length() - 1]
+
+
+def decode_positions(start_bits: int, centre_flag: int, played_bits: int, played: bool) -> dict[str, str | None]:
+    """Where a player started (and on which side of a central pair) and where he played.
+
+    Anything that is not exactly one known position is left unknown rather
+    than guessed, as is all of it for a player who never came on.
+    """
+    start = position_name(start_bits) if played else None
+    return {
+        "start_position": start,
+        "start_centre_side": CENTRE_SIDES.get(centre_flag) if start else None,
+        "position": position_name(played_bits) if played else None,
     }
 
 

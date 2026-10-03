@@ -129,6 +129,15 @@ class ReviewTests(unittest.TestCase):
         both = review(confirmed={0x80000000: "dlf_support"})
         self.assertIsNone({s.match.key: s for s in both.matches}["2019-09-01:100:201"].tactic_key)
 
+    def test_a_role_is_matched_by_family_because_its_code_has_no_duty(self) -> None:
+        # 28 March 2020: Central Midfielder (Support) beside (Defend), both FM code 0x20.
+        # Vertical 4-4-2 allows Central Midfielder (Support) where the Box-to-Box plays.
+        matches = season()
+        codes = (0x1, 0x4, 0x2, 0x2, 0x4, 0x80, 0x20, 0x20, 0x80, 0x80000000, 0x800)
+        matches[-1]["detail"]["players"] = lineup("home", codes)
+        detailed = {s.match.key: s for s in review(matches=matches).matches}["2019-09-01:100:201"]
+        self.assertEqual(detailed.tactic_key, "vertical_442")
+
     def test_venue_and_rating_filters(self) -> None:
         self.assertEqual({s.side for s in review(ReviewFilters(venue="away")).matches}, {"away"})
         rated = review(ReviewFilters(grouping="rating"), notes={"2019-08-10:202:100": Note(opponent_rating=2)})

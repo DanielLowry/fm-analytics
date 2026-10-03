@@ -445,6 +445,11 @@ silently treating it as independent.
   `{"passing": 9}` map (one file per position group; the JSON is the source of
   truth, there is no CSV). Loaded once at import time into
   `catalogue.MVP_CATALOGUE`. Scoring is linear in these weights.
+- `appearance_context.py` — which exact job (tactic, position, role with its
+  duty) each recorded appearance was, and why one cannot be used, for recent
+  form (`docs/tactic-role-form-plan.md`). FM's role code has no duty, so a code
+  names a role family (`match_roles.role_family`) and the duty comes from the
+  slot the player filled. It changes no score.
 - `squad_depth.py` / `bench_selection.py` / `weaknesses.py` — all consume
   the XI evaluations `xi_selection.py` already produced. They shouldn't
   re-run tactic evaluation themselves.
