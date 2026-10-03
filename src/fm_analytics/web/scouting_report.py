@@ -178,8 +178,14 @@ def verdict_panel(
     )
 
 
-def squad_player_report(player, catalogue, *, squad_label: str | None = None, back_href: str = "/squad") -> str:
-    """Render the equivalent report for a player in any owned club squad."""
+def squad_player_report(
+    player, catalogue, *, squad_label: str | None = None, back_href: str = "/squad", contract_panel: str = "",
+) -> str:
+    """Render the equivalent report for a player in any owned club squad.
+
+    `contract_panel` is the already-rendered Contracts verdict for him, shown
+    above his scores; empty when the squad could not be assessed.
+    """
     contract = player.contract
     facts = [
         ("Squad", squad_label),
@@ -212,7 +218,7 @@ def squad_player_report(player, catalogue, *, squad_label: str | None = None, ba
         player.name, player.attributes, player.positions, player.position_familiarity,
         facts, catalogue, back_href=back_href, back_label="Back to squad",
         familiarity_source="the captured 0–20 position familiarity rating",
-        headline=headline,
+        headline=contract_panel + headline,
     )
 
 

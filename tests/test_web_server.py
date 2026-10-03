@@ -23,7 +23,7 @@ class SquadWebServerTests(WebServerHelpers, unittest.TestCase):
             fixture_path = write_complete_fixture(Path(directory))
             port = self._serve(fixture_path)
 
-            for path in ("/", "/squad", "/roles", "/tactics", "/tactic-checks", "/set-pieces", "/depth", "/scouting", "/data"):
+            for path in ("/", "/squad", "/roles", "/tactics", "/tactic-checks", "/set-pieces", "/depth", "/contracts", "/scouting", "/data"):
                 with self.subTest(path=path):
                     status, body = self._get(port, path)
                     self.assertEqual(status, 200)

@@ -10,8 +10,8 @@ screens -- it consumes the same domain objects analytics always has.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, replace
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Sequence
 
 from fm_analytics.analytics.match_analysis import (
@@ -21,6 +21,7 @@ from fm_analytics.analytics.match_analysis import (
     report_match,
     review_matches,
 )
+from fm_analytics.analytics.contract_planning import ContractPolicy, ContractReview, assess_contracts
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics, diagnose_matches
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, evaluate_intervention
 from fm_analytics.analytics import (
@@ -576,6 +577,55 @@ def build_match_review(
         notes=history.notes,
         confirmed_role_codes=history.role_codes,
         filters=filters,
+    )
+
+
+def build_contract_review(
+    bundle: RecommendationBundle,
+    history: MatchHistory | None,
+    *,
+    include_other_squads: bool = False,
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+    policy: ContractPolicy = ContractPolicy(),
+) -> ContractReview:
+    """The one contract-planning computation, behind `/contracts` and the squad player report.
+
+    Form is the match review's own per-player summary, restricted to
+    competitive matches in the policy's window to the game date; the position
+    score is `build_player_role_scores`' in-position figure (the Squad page's);
+    replaceability is the bundle's weakness report for the tactic actually
+    played (the Depth page's). See `analytics.contract_planning`.
+    """
+    squad, game_date = bundle.squad, bundle.game.game_date
+    seasons = {}
+    if history is None:
+        note = "No match history is recorded, so form is missing and verdicts rest on contracts and attributes alone."
+    elif squad.club is not None and history.club.id != squad.club.id:
+        note = (
+            f"The recorded match history is for {history.club.name}, not {squad.club.name}, "
+            "so it is not used for form."
+        )
+    else:
+        start = game_date - timedelta(days=policy.rating_window_days)
+        recent = replace(history, matches=tuple(match for match in history.matches if start < match.date <= game_date))
+        review = build_match_review(recent, filters=ReviewFilters(competitions="competitive"), catalogue=catalogue)
+        seasons = {season.player_id: season for season in review.players if season.player_id}
+        note = None if seasons else "No competitive match in the last year has player ratings recorded yet."
+    others = tuple(player for team in squad.other_teams for player in team.players) if include_other_squads else ()
+    return assess_contracts(
+        squad.players,
+        other_players=others,
+        game_date=game_date,
+        club_id=squad.club.id if squad.club else None,
+        seasons=seasons,
+        position_fits={
+            player.id: build_player_role_scores(player, bundle.role_matrix, catalogue=catalogue).in_position
+            for player in (*squad.players, *others)
+        },
+        weakness_report=bundle.weakness_report,
+        tactic_name=bundle.primary.tactic.name,
+        history_note=note,
+        policy=policy,
     )
 
 

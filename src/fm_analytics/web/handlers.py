@@ -24,6 +24,7 @@ from fm_analytics.reporting import (
 )
 from fm_analytics.web.actions import WebActionsMixin
 from fm_analytics.web.auxiliary_pages import AuxiliaryPagesMixin
+from fm_analytics.web.contract_pages import ContractPagesMixin
 from fm_analytics.web.match_pages import MatchPagesMixin
 from fm_analytics.web.scouting_pages import ScoutingPagesMixin
 from fm_analytics.web.tactic_pages import TacticPagesMixin
@@ -43,6 +44,7 @@ class SquadWebHandler(
     LeaguePagesMixin,
     WebActionsMixin,
     AuxiliaryPagesMixin,
+    ContractPagesMixin,
     MatchPagesMixin,
     ScoutingPagesMixin,
     TacticPagesMixin,
@@ -62,6 +64,7 @@ class SquadWebHandler(
             "/tactic-checks": self._tactic_checks_page,
             "/set-pieces": self._set_pieces_page,
             "/depth": self._depth_page,
+            "/contracts": self._contracts_page,
             "/scouting": self._scouting_page,
             "/scouting/results": self._scouting_results_fragment,
             "/matches": self._matches_page,
@@ -416,6 +419,7 @@ class SquadWebHandler(
                     player, MVP_CATALOGUE,
                     squad_label=f"Other squad · FM team marker {team.marker}" if team else "First team",
                     back_href="/squad#other-club-squads" if team else "/squad",
+                    contract_panel=self._contract_panel_for(player.id),
                 ),
             )
         )

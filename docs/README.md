@@ -26,6 +26,10 @@
 - [League capture contract](contracts/league-capture.md) defines dated
   membership/roster evidence, visible observations, history, and an explicit
   synthetic demo for reviewing the comparison pages.
+- [Contract planning](contract-planning.md) documents the Contracts page,
+  built 3 October 2026: which owned players to secure, renew or let go, by
+  crossing contract risk with form, position score and replaceability, with a
+  worked example on the real squad and one open data gate.
 - [Analytics performance investigation](analytics-performance.md) is the
   current measured cost model and records the package, vectorisation, and
   process-parallel experiments for tactic ranking.

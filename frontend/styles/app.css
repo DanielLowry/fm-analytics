@@ -650,3 +650,107 @@ body.fm-app .fm-league-pitch { padding: 1rem; border: 1px solid var(--fm-border)
 body.fm-app .fm-league-pitch > div { display: flex; flex-wrap: wrap; justify-content: center; gap: .7rem; margin: .5rem 0; }
 body.fm-app .fm-league-pitch article { flex: 0 1 12rem; padding: .7rem; border: 1px solid var(--fm-border); border-radius: .5rem; background: var(--fm-card); text-align: center; }
 body.fm-app .fm-league-pitch small, body.fm-app .fm-league-pitch span { display: block; margin-top: .2rem; color: var(--color-ink-600); }
+/* Contract planning: verdict and risk colours, action cards, contract lanes. */
+body.fm-app .fm-contract-v-secure { --v: #0f6a40; --v-bg: #e3f4ea; }
+body.fm-app .fm-contract-v-renew { --v: #1f63a0; --v-bg: #e4eefa; }
+body.fm-app .fm-contract-v-keep { --v: #4d7518; --v-bg: #eef5e1; }
+body.fm-app .fm-contract-v-call { --v: #9a5b00; --v-bg: #fff2d6; }
+body.fm-app .fm-contract-v-replace { --v: #6a4c9c; --v-bg: #efe9f8; }
+body.fm-app .fm-contract-v-letgo { --v: #8c3d33; --v-bg: #f8e7e4; }
+body.fm-app .fm-contract-v-quiet { --v: #536174; --v-bg: #eef1f4; }
+:root.dark body.fm-app .fm-contract-v-secure { --v: #7fd6a2; --v-bg: #173a2a; }
+:root.dark body.fm-app .fm-contract-v-renew { --v: #8cc0f0; --v-bg: #1a3048; }
+:root.dark body.fm-app .fm-contract-v-keep { --v: #b5d97e; --v-bg: #29361a; }
+:root.dark body.fm-app .fm-contract-v-call { --v: #f0c06a; --v-bg: #3b2e17; }
+:root.dark body.fm-app .fm-contract-v-replace { --v: #c4abf0; --v-bg: #2e2545; }
+:root.dark body.fm-app .fm-contract-v-letgo { --v: #f0a59a; --v-bg: #3c2423; }
+:root.dark body.fm-app .fm-contract-v-quiet { --v: #b9c8d9; --v-bg: #223246; }
+body.fm-app .fm-contract-page h2, body.fm-app .fm-contract-page h3 { margin: 0; padding: 0; border: 0; }
+body.fm-app .fm-contract-page .fm-panel-heading h2 { margin: 0 0 .3rem; display: flex; align-items: center; gap: .5rem; }
+body.fm-app .fm-contract-page table { margin: 0; }
+body.fm-app .fm-contract-hero h2 { margin: .2rem 0 .35rem; }
+body.fm-app .fm-contract-names { color: var(--color-ink-700); font-weight: 650; }
+body.fm-app .fm-contract-note { margin-top: .6rem; padding: .55rem .7rem; border: 1px solid #ecd3a3; border-radius: .55rem; background: #fff7e6; color: #6c4913; font-size: .84rem; }
+:root.dark body.fm-app .fm-contract-note { border-color: #5c4723; background: #3b2e17; color: #f0d7a2; }
+body.fm-app .fm-contract-scope { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; margin: 0 0 1rem; padding: .75rem .85rem; border: 1px solid var(--fm-border); border-radius: .75rem; }
+body.fm-app .fm-contract-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .7rem; margin: 0 0 1rem; }
+body.fm-app .fm-legacy a.fm-contract-tile { border-top: 3px solid var(--v); color: inherit; text-decoration: none; transition: border-color 120ms ease, transform 120ms ease; }
+body.fm-app .fm-legacy a.fm-contract-tile:hover { border-color: var(--v); transform: translateY(-1px); }
+body.fm-app .fm-contract-tile b { color: var(--v); font-size: 1.6rem; }
+body.fm-app .fm-contract-group + .fm-contract-group { margin-top: 1.25rem; padding-top: 1.1rem; border-top: 1px dashed var(--fm-border); }
+body.fm-app .fm-contract-group h3 { display: flex; align-items: center; gap: .5rem; font-size: .95rem; }
+body.fm-app .fm-contract-group-count { color: var(--color-ink-500); font-size: .78rem; font-weight: 650; }
+body.fm-app .fm-contract-advice { margin: .3rem 0 .75rem; color: var(--color-ink-500); font-size: .83rem; }
+body.fm-app .fm-contract-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 27rem), 1fr)); gap: .75rem; }
+body.fm-app .fm-contract-card { display: grid; align-content: start; gap: .7rem; min-width: 0; padding: .85rem .95rem; border: 1px solid var(--fm-border); border-left: 4px solid var(--v); border-radius: .75rem; background: var(--fm-card); }
+body.fm-app .fm-contract-card-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: .65rem; }
+body.fm-app .fm-contract-rank { display: grid; width: 1.8rem; height: 1.8rem; place-items: center; border-radius: 999px; background: var(--v-bg); color: var(--v); font-size: .78rem; font-weight: 750; }
+body.fm-app .fm-contract-who { min-width: 0; }
+body.fm-app .fm-contract-who a { color: var(--color-ink-900); font-size: .95rem; font-weight: 700; text-decoration: none; overflow-wrap: anywhere; }
+body.fm-app .fm-contract-who a:hover { text-decoration: underline; }
+body.fm-app .fm-contract-who span { display: block; margin-top: .1rem; color: var(--color-ink-500); font-size: .74rem; }
+body.fm-app .fm-contract-keep { display: grid; justify-items: center; min-width: 2.6rem; line-height: 1; }
+body.fm-app .fm-contract-keep b { color: var(--color-ink-900); font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+body.fm-app .fm-contract-keep small { margin-top: .15rem; color: var(--color-ink-400); font-size: .6rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+body.fm-app .fm-contract-readings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem .9rem; margin: 0; padding: .7rem .75rem; border-radius: .55rem; background: var(--fm-page); }
+body.fm-app .fm-contract-readings dt { color: var(--color-ink-500); font-size: .64rem; font-weight: 700; letter-spacing: .045em; text-transform: uppercase; }
+body.fm-app .fm-contract-readings dd { display: flex; flex-wrap: wrap; align-items: center; gap: .15rem .5rem; margin: .2rem 0 0; min-width: 0; }
+body.fm-app .fm-contract-readings dd b { color: var(--color-ink-900); font-size: .92rem; font-variant-numeric: tabular-nums; }
+body.fm-app .fm-contract-readings dd small { flex-basis: 100%; color: var(--color-ink-500); font-size: .72rem; line-height: 1.35; overflow-wrap: anywhere; }
+body.fm-app .fm-contract-spark { flex: 0 0 auto; overflow: visible; }
+body.fm-app .fm-contract-spark polyline { fill: none; stroke: var(--v, #0f6a40); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+body.fm-app .fm-contract-spark circle { fill: var(--v, #0f6a40); }
+body.fm-app .fm-contract-spark-ref { stroke: var(--color-ink-400); stroke-width: .75; stroke-dasharray: 2 2; opacity: .55; }
+body.fm-app .fm-contract-chips { display: flex; flex-wrap: wrap; gap: .3rem; }
+body.fm-app .fm-contract-chip { padding: .14rem .5rem; border: 1px solid transparent; border-radius: 999px; font-size: .7rem; font-weight: 600; line-height: 1.45; }
+body.fm-app .fm-contract-chip-good { background: #e3f4ea; color: #155c37; }
+body.fm-app .fm-contract-chip-neutral { border-color: var(--fm-border); background: var(--fm-page); color: var(--color-ink-600); }
+body.fm-app .fm-contract-chip-warn { background: #fff2d6; color: #7a4f00; }
+body.fm-app .fm-contract-chip-bad { background: #fbe6e3; color: #8f2a22; }
+:root.dark body.fm-app .fm-contract-chip-good { background: #173a2a; color: #9fe2b9; }
+:root.dark body.fm-app .fm-contract-chip-warn { background: #3b2e17; color: #f0d7a2; }
+:root.dark body.fm-app .fm-contract-chip-bad { background: #3c2423; color: #f4b8ae; }
+body.fm-app .fm-contract-risk { display: inline-flex; align-items: center; gap: .3rem; padding: .18rem .55rem; border-radius: 999px; font-size: .7rem; font-weight: 700; white-space: nowrap; }
+body.fm-app .fm-contract-risk::before { content: ''; width: .45rem; height: .45rem; border-radius: 999px; background: currentColor; }
+body.fm-app .fm-contract-risk-now { background: #fde8e6; color: #b42318; }
+body.fm-app .fm-contract-risk-soon { background: #fff1d1; color: #8a5a00; }
+body.fm-app .fm-contract-risk-later { background: #e3eef8; color: #1f5f8f; }
+body.fm-app .fm-contract-risk-settled { background: #e6f2ea; color: #3f6b4f; }
+body.fm-app .fm-contract-risk-unknown { background: #eef1f4; color: #5b6573; }
+:root.dark body.fm-app .fm-contract-risk-now { background: #45201d; color: #ffaba1; }
+:root.dark body.fm-app .fm-contract-risk-soon { background: #3b2e17; color: #f3cf86; }
+:root.dark body.fm-app .fm-contract-risk-later { background: #1a3048; color: #9cc8f0; }
+:root.dark body.fm-app .fm-contract-risk-settled { background: #173a2a; color: #9fe2b9; }
+:root.dark body.fm-app .fm-contract-risk-unknown { background: #223246; color: #b9c8d9; }
+body.fm-app .fm-contract-verdict { display: inline-flex; align-items: center; padding: .2rem .6rem; border-radius: 999px; background: var(--v-bg); color: var(--v); font-size: .74rem; font-weight: 750; white-space: nowrap; }
+body.fm-app .fm-contract-lane { display: grid; grid-template-columns: minmax(10rem, 15rem) minmax(0, 1fr); gap: .9rem; padding: .75rem 0; border-top: 1px solid var(--fm-border); }
+body.fm-app .fm-contract-lane-label b { display: block; color: var(--color-ink-900); font-size: .88rem; }
+body.fm-app .fm-contract-lane-label span { display: block; margin-top: .15rem; color: var(--color-ink-500); font-size: .73rem; line-height: 1.4; }
+body.fm-app .fm-contract-lane-players { display: flex; flex-wrap: wrap; align-content: start; gap: .35rem; }
+body.fm-app .fm-legacy .fm-contract-dot { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .55rem; border: 1px solid color-mix(in srgb, var(--v) 28%, transparent); border-radius: 999px; background: var(--v-bg); color: var(--v) !important; font-size: .74rem; font-weight: 650; text-decoration: none; }
+body.fm-app .fm-legacy a.fm-contract-dot:hover { border-color: var(--v); }
+body.fm-app .fm-contract-dot b { padding: .02rem .25rem; border-radius: .25rem; background: var(--v); color: var(--fm-card); font-size: .56rem; letter-spacing: .04em; }
+body.fm-app .fm-contract-legend { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .2rem; padding-top: .75rem; border-top: 1px solid var(--fm-border); }
+body.fm-app .fm-contract-page details.fm-contract-method { padding: 1rem 1.1rem; }
+body.fm-app .fm-contract-method > summary { color: var(--color-ink-800); font-size: .9rem; font-weight: 650; }
+body.fm-app .fm-contract-method ul { margin: .75rem 0 0; padding-left: 1.1rem; color: var(--color-ink-600); font-size: .84rem; line-height: 1.55; }
+body.fm-app .fm-contract-method li + li { margin-top: .4rem; }
+body.fm-app .fm-contract-panel { border-left: 4px solid var(--v); }
+body.fm-app .fm-contract-panel .fm-panel-heading h2 { margin: 0 0 .35rem; border: 0; padding: 0; }
+body.fm-app .fm-contract-panel .fm-panel-heading p { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; }
+body.fm-app .fm-contract-panel .fm-contract-readings { margin-bottom: .7rem; }
+body.fm-app .fm-contract-panel .fm-player-back { margin-top: .8rem; }
+body.fm-app .fm-contract-page .fm-table-card td .fm-contract-chips { min-width: 16rem; }
+@media (max-width: 1199px) {
+  body.fm-app .fm-contract-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 639px) {
+  body.fm-app .fm-contract-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.fm-app .fm-contract-card-head { grid-template-columns: auto minmax(0, 1fr) auto; }
+  body.fm-app .fm-contract-card-head .fm-contract-risk { grid-column: 2 / -1; grid-row: 2; justify-self: start; }
+  body.fm-app .fm-contract-readings { grid-template-columns: minmax(0, 1fr); }
+  body.fm-app .fm-contract-lane { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+}
+body.fm-app .fm-contract-page details.fm-contract-unused { margin: 1rem 0 0; padding: .7rem .85rem; border: 1px dashed var(--fm-border); border-radius: .65rem; background: var(--fm-page); }
+body.fm-app .fm-contract-unused > summary { color: var(--color-ink-700); font-size: .84rem; font-weight: 650; }
+:root.dark body.fm-app .fm-contract-tile b { color: var(--v); }

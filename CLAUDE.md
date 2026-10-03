@@ -41,6 +41,8 @@ analytics inside a handler. The match review follows the same rule:
 `reporting.build_match_review` is the one computation behind both
 `fm-matches review` and the Matches page, and `reporting.build_season_export`
 the one behind `fm-matches export` and the web's `/api/export`.
+`reporting.build_contract_review` is the one computation behind `/contracts`
+and the squad player report's Contract plan panel.
 
 ## Running things
 
