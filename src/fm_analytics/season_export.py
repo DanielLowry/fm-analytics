@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.in_transition import in_transition_selected_instructions
+from fm_analytics.analytics.in_possession import in_possession_instruction_strings
 from fm_analytics.analytics.out_of_possession import out_of_possession_selected_instructions
 from fm_analytics.analytics.match_analysis import METRICS, MIN_GROUP_MATCHES, GroupSummary, MatchReview, MatchSummary
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
@@ -346,6 +347,7 @@ def _recommendation(bundle: RecommendationBundle, detail: str) -> dict[str, Any]
             "mentality": primary.tactic.mentality,
             "instructions": list(
                 primary.tactic.instructions
+                + in_possession_instruction_strings(primary.tactic.in_possession)
                 + in_transition_selected_instructions(primary.tactic.in_transition)
                 + out_of_possession_selected_instructions(primary.tactic.out_of_possession)
             ),

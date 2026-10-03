@@ -198,7 +198,7 @@ the dataclass:
 - **Fixed** (`attackingWidth`, `passingDirectness`, `tempo`, `passIntoSpace`,
   `playOutOfDefence`, `focusPlay`, `workBallIntoBox`): part of what makes
   this tactic *this* tactic, always hand-authored. Only a handful of
-  tactics have been given these so far (`vertical_442`, `wing_play_442`);
+  tactics have been given these so far (`balanced_442`, `attacking_424`, `vertical_442`, `wing_play_442`);
   the rest report every fixed field as missing. `TacticDefinition.in_possession_missing_fields`
   is what `web/in_possession_render.py` reads to flag the gap on the tactic
   page rather than silently showing nothing — filling in the rest is
@@ -289,8 +289,10 @@ legacy `instructions` string, but its `instructionRationale` stays: the loader
 accepts explanations of structured transition instructions. Duplicates and
 conflicts between structured and legacy transition choices are rejected.
 
+`balanced_442` and `attacking_424` have complete transition blocks, including
+goalkeeper distribution.
 `vertical_442` and `wing_play_442` carry their existing transition choices in
-this block. Goalkeeper distribution is unauthored; other tactics retain their
+this block, with goalkeeper distribution unauthored; other tactics retain their
 legacy instruction lists, which are shown alongside the phase's missing fields.
 
 ## Out-of-possession settings
@@ -329,8 +331,9 @@ CLI, export and catalogue-index presentation. Explanations may refer to
 structured defensive instructions. Once a field is authored, a legacy string
 for that same setting is refused, including contradictory and duplicate
 choices. Migrating a tactic removes those legacy strings and retains their
-`instructionRationale` text. `vertical_442` carries its existing standard
-lines structurally; its remaining fields are unauthored. Other tactics' legacy
+`instructionRationale` text. `balanced_442` and `attacking_424` have complete defensive blocks.
+`vertical_442` carries its existing standard lines structurally; its remaining
+fields are unauthored. Other tactics' legacy
 defensive instructions remain visible alongside the new section.
 
 ## The opponent

@@ -147,8 +147,8 @@ class TacticsAndDepthPageTests(unittest.TestCase):
             self.assertIn(html.escape(slot.why), body)
 
     def test_tactic_detail_flags_missing_in_possession_settings(self) -> None:
-        # balanced_442 has not been given an inPossession block yet.
-        status, body = self._get("/tactics/balanced_442")
+        # lowblock_442 has not been given an inPossession block yet.
+        status, body = self._get("/tactics/lowblock_442")
 
         self.assertEqual(status, 200)
         self.assertIn("In possession", body)
@@ -156,15 +156,22 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertIn("Not set</b>", body)
 
     def test_tactic_detail_shows_specified_in_possession_settings(self) -> None:
-        # vertical_442 has a fully specified inPossession block.
-        tactic = MVP_CATALOGUE.tactics["vertical_442"]
-        self.assertEqual(tactic.in_possession_missing_fields, ())
-        status, body = self._get("/tactics/vertical_442")
+        for key in ("vertical_442", "balanced_442", "attacking_424"):
+            with self.subTest(key=key):
+                tactic = MVP_CATALOGUE.tactics[key]
+                self.assertEqual(tactic.in_possession_missing_fields, ())
+                status, body = self._get(f"/tactics/{key}")
 
-        self.assertEqual(status, 200)
-        self.assertNotIn("Not yet set:", body)
-        self.assertIn("Every fixed in-possession setting is specified.", body)
-        self.assertIn(html.escape(tactic.in_possession.attacking_width), body)
+                self.assertEqual(status, 200)
+                self.assertNotIn("Not yet set:", body)
+                self.assertIn("Every fixed in-possession setting is specified.", body)
+                self.assertIn(html.escape(tactic.in_possession.attacking_width), body)
+                if key in ("balanced_442", "attacking_424"):
+                    self.assertEqual(tactic.in_transition_missing_fields, ())
+                    self.assertEqual(tactic.out_of_possession_missing_fields, ())
+                    self.assertIn("Every in-transition setting is specified.", body)
+                    self.assertIn("Every out-of-possession setting is specified.", body)
+                    self.assertNotIn("Not set</b>", body)
 
     def test_tactic_detail_says_which_attributes_the_tactic_leans_on(self) -> None:
         status, body = self._get("/tactics/balanced_442")

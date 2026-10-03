@@ -3,22 +3,53 @@
   "name": "Attacking 4-2-4",
   "formation": "4-2-4",
   "mentality": "Attacking",
-  "instructions": [
-    "Fairly Wide",
-    "More Direct Passing",
-    "Higher Tempo",
-    "Pass Into Space",
-    "Counter-Press",
-    "Counter",
-    "Higher Line of Engagement",
-    "Higher Defensive Line"
-  ],
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "More Direct Passing",
+      "tempo": "Higher Tempo",
+      "passIntoSpace": true,
+      "playOutOfDefence": false,
+      "focusPlay": "Balanced",
+      "workBallIntoBox": false
+    },
+    "dependsOnPlayers": {
+      "overlapLeft": false,
+      "overlapRight": false,
+      "underlapLeft": false,
+      "underlapRight": false,
+      "crossingType": "Low",
+      "shootOnSight": false,
+      "hitEarlyCrosses": false,
+      "playForSetPieces": false,
+      "dribbleLess": false,
+      "runAtDefence": true,
+      "beMoreExpressive": false,
+      "beMoreDisciplined": false
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": "Counter-Press",
+    "whenPossessionWon": "Counter",
+    "goalkeeperPace": "Distribute Quickly",
+    "distributionTargets": ["Distribute To Flanks"],
+    "distributionTypes": ["Take Long Kicks"]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Higher",
+    "defensiveLine": "Higher",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "More Urgent",
+    "preventShortGKDistribution": false
+  },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "sk_defend",
-      "why": "Sweeper keeper covers the space behind a high line, which this shape leaves open."
+      "why": "Sweeper keeper covers the space behind a high line and distributes quickly with long kicks toward the flanks to release the wide attackers."
     },
     {
       "key": "DL",
@@ -109,18 +140,15 @@
   "style": "Attacking 4-2-4",
   "description": "A deliberately high-risk 4-2-4 that commits four players to the front line, presses aggressively after losses and moves the ball forward quickly. It is a forcing tactic rather than a default shape.",
   "whyGood": "The DLF supplies the connection the shape would otherwise lack, the DLP provides central distribution, and the other three attackers provide width, box threat and runs beyond. The BWM gives the exposed two-man midfield a dedicated ball-winner.",
-  "whyThisShape": "Four forwards and only two central midfielders: the most one-sided shape in the catalogue. Four attackers pin the opposition back line, and the two midfielders win the ball and feed it forward at once.",
+  "whyThisShape": "Four forwards and only two central midfielders: the most one-sided shape in the catalogue. Four attackers pin the opposition back line, and the two midfielders win the ball and feed it forward at once. Fairly wide attacking width stretches the back line; more direct passing and higher tempo bypass the crowded middle and reach the forwards before the defence resets. Pass into space gives the mobile attackers deliveries to run onto, without requiring a patient build-up from defence or working every chance into the box. Low crosses and running at defence are starting fallbacks to review against the selected attackers. Quick goalkeeper distribution with long kicks toward the flanks keeps the wide attackers involved immediately after a save. More urgent pressing supports the counter-press, while neutral tighter marking and no forced prevention of short goalkeeper distribution avoid adding a man-marking or goalkeeper-press assignment to an already exposed two-man midfield.",
   "whenToUse": "When you need to force the game, particularly when chasing a result or when you can sustain pressure against an opponent whose defensive structure is being overwhelmed.",
   "whenNotToUse": "Against opponents who can play through pressure or exploit space around the two central midfielders and behind the high defensive line. It is too structurally aggressive to serve as a routine season-long default.",
   "instructionRationale": {
-    "Fairly Wide": "Stretches the opponent so the four forwards have space to work in.",
-    "More Direct Passing": "With only two midfielders, quicker forward passes skip the middle of the pitch entirely.",
-    "Higher Tempo": "Gets the ball to the forwards before the defence has set.",
-    "Pass Into Space": "Gives the fast forwards balls to run onto behind a high line.",
     "Counter-Press": "Wins the ball back at once so you can attack again while the opponent is still out of shape.",
     "Counter": "Attacks quickly on winning the ball, before the opposition can recover their shape.",
     "Higher Line of Engagement": "Keeps the press high, so the attackers are supported by pressure on the ball.",
-    "Higher Defensive Line": "Keeps the team compact so two midfielders have less ground to cover, at the cost of exposing slower defenders."
+    "Higher Defensive Line": "Keeps the team compact so two midfielders have less ground to cover, at the cost of exposing slower defenders.",
+    "More Urgent Pressing": "Closes the ball carrier sooner to support immediate regains without choosing the most extreme pressing setting."
   },
   "attributeEmphasis": [
     {

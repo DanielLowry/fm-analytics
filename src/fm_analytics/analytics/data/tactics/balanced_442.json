@@ -3,20 +3,53 @@
   "name": "Balanced 4-4-2",
   "formation": "4-4-2",
   "mentality": "Balanced",
-  "instructions": [
-    "Fairly Wide",
-    "Slightly More Direct Passing",
-    "Counter",
-    "Regroup",
-    "Standard Line of Engagement",
-    "Standard Defensive Line"
-  ],
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Slightly More Direct Passing",
+      "tempo": "Standard",
+      "passIntoSpace": false,
+      "playOutOfDefence": false,
+      "focusPlay": "Balanced",
+      "workBallIntoBox": false
+    },
+    "dependsOnPlayers": {
+      "overlapLeft": false,
+      "overlapRight": false,
+      "underlapLeft": false,
+      "underlapRight": false,
+      "crossingType": "Mixed",
+      "shootOnSight": false,
+      "hitEarlyCrosses": false,
+      "playForSetPieces": false,
+      "dribbleLess": false,
+      "runAtDefence": false,
+      "beMoreExpressive": false,
+      "beMoreDisciplined": true
+    },
+    "timeWasting": "Sometimes"
+  },
+  "inTransition": {
+    "whenPossessionLost": "Regroup",
+    "whenPossessionWon": "Counter",
+    "goalkeeperPace": "Neither",
+    "distributionTargets": ["Distribute To Flanks", "Distribute To Full Backs"],
+    "distributionTypes": ["Roll It Out", "Take Long Kicks"]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "Standard",
+    "preventShortGKDistribution": false
+  },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes directly to the strikers or full-backs; no sweeping needed in a flat block."
+      "why": "Rolls the ball to full-backs when they are available or kicks longer toward the flanks to bypass central pressure; no sweeping needed in a flat block."
     },
     {
       "key": "DL",
@@ -107,12 +140,10 @@
   "style": "Balanced 4-4-2",
   "description": "A simple two-banks-of-four structure with natural width and two complementary forwards.",
   "whyGood": "It is easy to recruit for, tactically clear and gives a useful baseline against more specialised systems.",
-  "whyThisShape": "Two flat banks of four with two strikers, the most familiar shape in the game. It is easy to understand, gives every player a clear job, and puts two strikers against two centre-backs. It is thin in central midfield against a three.",
+  "whyThisShape": "Two flat banks of four with two strikers, the most familiar shape in the game. It is easy to understand, gives every player a clear job, and puts two strikers against two centre-backs. Fairly wide attacking width lets the wingers and full-backs stretch the opponent, while slightly more direct passing reaches the forwards without demanding intricate midfield combinations. Standard tempo, balanced focus and no forced passes into space keep it a steady baseline rather than an all-out vertical attack. Mixed crossing and disciplined play are starting fallbacks to review against the selected players. The goalkeeper can roll to available full-backs or kick longer toward the flanks, with no fixed instruction to rush or slow distribution. Standard pressing and lines preserve the two banks without forcing tighter marking or a press on short goalkeeper distribution. It is thin in central midfield against a three.",
   "whenToUse": "As a solid default, or when you have two good strikers and two decent wingers. It is also the shape most lower-league squads can fill without a specialist.",
   "whenNotToUse": "Against a team with three central midfielders who will pass through the middle, since your two are outnumbered.",
   "instructionRationale": {
-    "Fairly Wide": "Wingers and full-backs stretch the opponent so the two strikers have space.",
-    "Slightly More Direct Passing": "Gets the ball to the strikers quicker than short passing does, which suits a pair of forwards.",
     "Counter": "Breaks quickly when the ball is won, using the pace of the wingers and second striker.",
     "Regroup": "Falls back into the two banks of four after losing the ball.",
     "Standard Line of Engagement": "A balanced press: engages when the ball reaches the midfield banks.",
