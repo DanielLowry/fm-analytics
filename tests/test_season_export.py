@@ -250,7 +250,9 @@ class ExportCliTests(HistoryCase):
         with mock.patch.object(match_ingest, "read_live_bundle", return_value=bundle) as live:
             code, text = self.run_cli("--my-tactics", "vertical_442", "--output", "-")
         self.assertEqual(code, 0, text)
-        live.assert_called_once_with(("vertical_442",))
+        live.assert_called_once()
+        pinned, history = live.call_args.args
+        self.assertEqual((pinned, history.club.id), (("vertical_442",), "100"))  # form comes from this history
         self.assertEqual(len(json.loads(text)["squad"]), 11)
         instructions = json.loads(text)["recommendation"]["primary"]["instructions"]
         self.assertIn("Counter", instructions)

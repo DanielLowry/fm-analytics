@@ -13,8 +13,9 @@ from typing import Callable
 from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.analytics.match_analysis import ReviewFilters
 from fm_analytics.analytics.match_interventions import evaluate_intervention, propose_intervention
-from fm_analytics.persistence.match_history import MatchHistory, MatchHistoryStore
-from fm_analytics.reporting import build_match_diagnostics, build_match_review
+from fm_analytics.analytics.player_form import FormLookup
+from fm_analytics.persistence.match_history import MatchHistory, MatchHistoryError, MatchHistoryStore
+from fm_analytics.reporting import build_match_diagnostics, build_match_review, squad_form
 
 
 class MatchHistoryState:
@@ -44,6 +45,20 @@ class MatchHistoryState:
         key = self._match_key()
         return self.match_store.load_history(key) if key else None
 
+    def recent_form(self, game, squad) -> FormLookup | None:
+        """Recent form for the recommendation, from this save's match history.
+
+        None when there is no usable history. A history that cannot be read
+        leaves form out rather than stopping the recommendation.
+        """
+        if self.match_store is None:
+            return None
+        try:
+            return squad_form(self.match_history(), game, squad)
+        except MatchHistoryError as exc:
+            print(f"Recent form left out: {exc}", file=sys.stderr)
+            return None
+
     def match_status(self) -> str:
         """One line for the Matches page: what is recorded so far."""
         if self.match_store is None:
@@ -67,6 +82,7 @@ class MatchHistoryState:
             return
         try:
             self.match_capture_note = (self.match_capture(), True)
+            self.forget_recommendations()
         except Exception as exc:  # noqa: BLE001 - reported on the page, never a crash
             self.match_capture_note = (str(exc), False)
             print(f"Matches were not read: {exc}", file=sys.stderr)
@@ -83,11 +99,13 @@ class MatchHistoryState:
         self.match_store.add_note(
             key, match_key, tactic_key=tactic_key, opponent_rating=opponent_rating, note=note
         )
+        self.forget_recommendations()  # a match's tactic decides which job its ratings count for
 
     def confirm_role_code(self, code: int, role_key: str) -> None:
         if self.match_store is None:
             raise ValueError("Match history is switched off.")
         self.match_store.confirm_role_code(code, role_key)
+        self.forget_recommendations()
 
     def start_match_intervention(self, finding_key: str, note: str = "") -> None:
         """Freeze a current season-wide diagnostic and its baseline."""

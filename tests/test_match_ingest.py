@@ -95,11 +95,35 @@ class IngestAndReadTests(CliCase):
         self.run_cli("ingest", self.capture)
         code, text = self.run_cli("coverage", "--all")
         self.assertEqual(code, 0)
-        self.assertIn("Form evidence, the whole history to 2019-09-05: 1 matches with full stats, 11 appearances.", text)
-        self.assertIn("player not identified", text)  # the fixture's players have no squad IDs
-        self.assertIn("position not recorded", text)
+        self.assertIn("Ratings up to 2019-09-05: 1 matches, 11 appearances.", text)
+        self.assertIn("player not in the squad when captured", text)  # the fixture's players have no squad IDs
+        self.assertIn("position not recorded (older capture)", text)
         code, text = self.run_cli("coverage", "--days", "3")
-        self.assertIn("2019-09-02 to 2019-09-05: 0 matches", text)
+        self.assertIn("from 2019-09-02 to 2019-09-05: 0 matches", text)
+
+    def test_form_prints_the_shared_computation(self) -> None:
+        self.run_cli("ingest", self.capture)
+        code, text = self.run_cli("form")
+        self.assertEqual(code, 0)
+        self.assertIn("Recent form up to 2019-09-05: each player's last 10 ratings in a job", text)
+        # The fixture's line-up has no squad IDs or positions, so no job is known.
+        self.assertIn("No player has a rated game in a known job in that time.", text)
+
+    def test_usual_roles_list_the_open_duties_and_record_a_pick(self) -> None:
+        self.run_cli("ingest", self.capture)
+        code, text = self.run_cli("usual-roles", "vertical_442")
+        self.assertEqual(code, 0)
+        self.assertIn("DCL   Central Defender (Defend) (cd_defend) or Central Defender (Cover) (cd_cover)", text)
+        self.assertNotIn("MCR", text)  # the role code tells Box-to-Box from Central Midfielder
+        code, text = self.run_cli("usual-roles", "vertical_442", "DCL=cd_defend")
+        self.assertEqual(code, 0)
+        self.assertIn("usual: Central Defender (Defend)", text)
+        self.assertEqual(MatchHistoryStore(self.db).load_history("club:100").usual_roles,
+                         {("vertical_442", "DCL"): "cd_defend"})
+        code, text = self.run_cli("usual-roles", "vertical_442", "MCR=b2b_support")
+        self.assertEqual(code, 1)
+        self.assertIn("name a slot and role from the list below", text)
+        self.assertEqual(self.run_cli("usual-roles", "no_such_tactic")[0], 1)
 
     def test_bad_input_is_an_error_not_a_crash(self) -> None:
         self.run_cli("ingest", self.capture)

@@ -4,20 +4,22 @@ Recent form may only count towards a player's score for the exact job it was
 earned in: the tactic, the position, and the role with its duty (see
 docs/tactic-role-form-plan.md §1). This works that job out for every
 appearance with full stats, says where each part came from, and why an
-appearance cannot (yet) be used. It changes no score.
+appearance cannot be used. It changes no score.
 
 * **Player:** FM's unique ID. A player without one is never matched by name.
 * **Position:** FM's own record of where he played. A starter who ended
   somewhere else did two jobs, and one rating cannot be split between them.
 * **Role:** the family of a role code the manager confirmed. The code does
   not record duty, so the duty comes from the tactic: the slot he filled must
-  allow exactly one duty of his role. The starting eleven are matched to the
+  allow exactly one duty of his role, or, where it allows more (either
+  Vertical 4-4-2 centre-back may play Cover), the manager must have said which
+  he usually plays there in this save. The starting eleven are matched to the
   tactic's slots position by position, using which of a central pair each
   started in (ignored if the catalogue's sides cannot be reconciled with FM's);
   a substitute takes the slot of the player he replaced in the same position.
-* **Tactic:** the manager's note. A tactic inferred from the line-up is a
-  suggestion to confirm: uniqueness in our catalogue cannot show which
-  instructions were really used, so those appearances wait for confirmation.
+* **Tactic:** FM does not record it. It is the manager's note on the match if
+  he added one, else the one catalogue tactic the starting eleven fits, as the
+  match review and export show it (the manager's decision, 3 October 2026).
 """
 
 from __future__ import annotations
@@ -32,24 +34,28 @@ from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.match_roles import RoleCodes, role_family
 from fm_analytics.domain.matches import MatchRecord, PlayerMatchStats
 
-CONFIRMED, INFERRED = "confirmed", "inferred"
+# Where the tactic came from.
+NOTE = "your note"
+LINE_UP = "the line-up"  # the one catalogue tactic the starting eleven fits
+# Where a settled duty came from.
+FROM_TACTIC = "the tactic"  # the slot allows one duty of his role
+FROM_USUAL = "your usual set-up"  # the manager's usual pick for that slot
 RECENT_GAME_DAYS = 90  # the form plan's window
 
 # Why an appearance cannot count towards form, in the order they are checked.
 FRIENDLY = "friendly"
-NO_PLAYER_ID = "player not identified"
-NO_RATING = "no FM rating"
-NO_POSITION = "position not recorded"
-MOVED = "changed position during the match"
-UNCONFIRMED_ROLE = "role code not confirmed"
-NO_TACTIC = "tactic not known"
-DOES_NOT_FIT = "does not fit the tactic"
-NEW_SHAPE = "came on in a changed shape"
-DUTY_UNSETTLED = "duty not settled by the tactic"
-UNCONFIRMED_TACTIC = "tactic inferred, not confirmed"
+NO_PLAYER_ID = "player not in the squad when captured"
+NO_RATING = "FM gave no rating (too few minutes)"
+NO_POSITION = "position not recorded (older capture)"
+MOVED = "moved position during the match"
+UNCONFIRMED_ROLE = "role not known (unconfirmed FM code)"
+NO_TACTIC = "no tactic fits the line-up"
+DOES_NOT_FIT = "role doesn't match the tactic there"
+NEW_SHAPE = "came on as the shape changed"
+DUTY_UNSETTLED = "duty unknown (the tactic allows two)"
 EXCLUSIONS = (
     FRIENDLY, NO_PLAYER_ID, NO_RATING, NO_POSITION, MOVED, UNCONFIRMED_ROLE,
-    NO_TACTIC, DOES_NOT_FIT, NEW_SHAPE, DUTY_UNSETTLED, UNCONFIRMED_TACTIC,
+    NO_TACTIC, DOES_NOT_FIT, NEW_SHAPE, DUTY_UNSETTLED,
 )
 
 _SLOT_SIDES = {"L": "left", "C": "centre", "R": "right"}
@@ -60,10 +66,11 @@ class AppearanceContext:
     match: MatchRecord
     player: PlayerMatchStats
     tactic_key: str | None
-    tactic_source: str | None  # CONFIRMED, INFERRED, or None when not known
+    tactic_source: str | None  # NOTE, LINE_UP, or None when not known
     role_family: str | None  # from a confirmed role code
     slot_key: str | None  # the tactic's slot he filled, when only one fits
     role_key: str | None  # his role with its duty, when the tactic settles it
+    duty_source: str | None  # FROM_TACTIC or FROM_USUAL when role_key is set
     exclusions: tuple[str, ...]
 
     @property
@@ -74,35 +81,41 @@ class AppearanceContext:
     def usable(self) -> bool:
         return not self.exclusions
 
-    @property
-    def awaits_tactic_confirmation(self) -> bool:
-        """Everything is settled except that the tactic was only inferred."""
-        return self.exclusions == (UNCONFIRMED_TACTIC,)
-
 
 @dataclass(frozen=True)
 class _Placement:
     slot_key: str | None = None
     role_key: str | None = None
+    duty_source: str | None = None
     problem: str | None = None  # DOES_NOT_FIT, NEW_SHAPE or DUTY_UNSETTLED
 
 
 def appearance_contexts(
-    matches: Iterable[MatchRecord], club_id: str, *, notes: Mapping[str, object], codes: RoleCodes
+    matches: Iterable[MatchRecord],
+    club_id: str,
+    *,
+    notes: Mapping[str, object],
+    codes: RoleCodes,
+    usual_roles: Mapping[tuple[str, str], str] = {},
 ) -> tuple[AppearanceContext, ...]:
-    """Every appearance of ours in a match with full stats, oldest match first."""
+    """Every appearance of ours in a match with full stats, oldest match first.
+
+    `usual_roles` maps (tactic key, slot key) to the role the manager usually
+    plays there, for slots that allow more than one duty of a role.
+    """
     contexts = []
     for match in sorted(matches, key=lambda m: (m.date, m.key)):
         if match.detail is None:
             continue
         ours = [player for player in match.detail.players_for(match.side_of(club_id)) if player.played]
         tactic_key = getattr(notes.get(match.key), "tactic_key", None)
-        source = CONFIRMED if tactic_key else None
+        source = NOTE if tactic_key else None
         if tactic_key is None:
             tactic_key = codes.infer_tactic(player for player in ours if player.started)
-            source = INFERRED if tactic_key else None
+            source = LINE_UP if tactic_key else None
         tactic = codes.catalogue.tactics.get(tactic_key) if tactic_key else None
-        placements = _place(tactic, codes, ours) if tactic is not None else {}
+        usual = {slot: role for (key, slot), role in usual_roles.items() if key == tactic_key}
+        placements = _place(tactic, codes, ours, usual) if tactic is not None else {}
         for player in ours:
             family = codes.family(player.role_code)
             placement = placements.get(player.short_id, _Placement(problem=DOES_NOT_FIT))
@@ -114,6 +127,7 @@ def appearance_contexts(
                 role_family=family,
                 slot_key=placement.slot_key if tactic else None,
                 role_key=placement.role_key if tactic else None,
+                duty_source=placement.duty_source if tactic else None,
                 exclusions=_exclusions(match, player, family, source, placement),
             ))
     return tuple(contexts)
@@ -137,12 +151,12 @@ def _exclusions(match, player, family, source, placement) -> tuple[str, ...]:
         reasons.append(NO_TACTIC)
     elif player.position is not None and family is not None and placement.problem:
         reasons.append(placement.problem)
-    if source == INFERRED:
-        reasons.append(UNCONFIRMED_TACTIC)
     return tuple(reasons)
 
 
-def _place(tactic, codes: RoleCodes, ours: Sequence[PlayerMatchStats]) -> dict[int, _Placement]:
+def _place(
+    tactic, codes: RoleCodes, ours: Sequence[PlayerMatchStats], usual: Mapping[str, str]
+) -> dict[int, _Placement]:
     """Each player's slot and role in the tactic, by short ID, as far as the tactic settles them."""
     catalogue = codes.catalogue
     slots_at = defaultdict(list)
@@ -155,7 +169,7 @@ def _place(tactic, codes: RoleCodes, ours: Sequence[PlayerMatchStats]) -> dict[i
         if player.started and player.start_position is not None:
             starters_at[player.start_position].append(player)
     for position, players in starters_at.items():
-        placements.update(_place_group(catalogue, codes, slots_at.get(position, []), players))
+        placements.update(_place_group(catalogue, codes, slots_at.get(position, []), players, usual))
 
     slots_by_key = {slot.key: slot for slot in tactic.slots}
     for sub in sorted((p for p in ours if not p.started and p.position), key=lambda p: p.came_on or 0):
@@ -172,14 +186,12 @@ def _place(tactic, codes: RoleCodes, ours: Sequence[PlayerMatchStats]) -> dict[i
             slots = [slots_by_key[inherited.slot_key]]
         else:
             slots = slots_at.get(sub.position, [])
-        options = {slot.key: _family_roles(catalogue, slot, codes.family(sub.role_code)) for slot in slots}
-        placements[sub.short_id] = _settled(
-            {key for key, roles in options.items() if roles}, {role for roles in options.values() for role in roles}
-        )
+        family = codes.family(sub.role_code)
+        placements[sub.short_id] = _settled({slot.key: _family_roles(catalogue, slot, family) for slot in slots}, usual)
     return placements
 
 
-def _place_group(catalogue: FootballCatalogue, codes: RoleCodes, slots, players) -> dict[int, _Placement]:
+def _place_group(catalogue: FootballCatalogue, codes: RoleCodes, slots, players, usual) -> dict[int, _Placement]:
     """Match the starters at one position to the tactic's slots there."""
     if len(slots) != len(players):
         return {player.short_id: _Placement(problem=DOES_NOT_FIT) for player in players}
@@ -207,19 +219,43 @@ def _place_group(catalogue: FootballCatalogue, codes: RoleCodes, slots, players)
         return {player.short_id: _Placement(problem=DOES_NOT_FIT) for player in players}
     placements = {}
     for index, (player, family) in enumerate(zip(players, families)):
-        chosen = [slots[order[index]] for order in valid]
-        roles = {key for slot in chosen for key in _family_roles(catalogue, slot, family)}
-        placements[player.short_id] = _settled({slot.key for slot in chosen}, roles)
+        chosen = {slots[order[index]].key: slots[order[index]] for order in valid}
+        options = {key: _family_roles(catalogue, slot, family) for key, slot in chosen.items()}
+        placements[player.short_id] = _settled(options, usual)
     return placements
 
 
-def _settled(slot_keys: set[str], roles: set[str]) -> _Placement:
-    slot_key = next(iter(slot_keys)) if len(slot_keys) == 1 else None
+def _settled(options: Mapping[str, tuple[str, ...]], usual: Mapping[str, str]) -> _Placement:
+    """A player's job from the slots he could have filled and the roles of his family each allows."""
+    fitting = {key: roles for key, roles in options.items() if roles}
+    slot_key = next(iter(fitting)) if len(fitting) == 1 else None
+    roles = {role for allowed in fitting.values() for role in allowed}
     if not roles:
         return _Placement(slot_key, problem=DOES_NOT_FIT)
-    if len(roles) > 1:
-        return _Placement(slot_key, problem=DUTY_UNSETTLED)
-    return _Placement(slot_key, next(iter(roles)))
+    if len(roles) == 1:
+        return _Placement(slot_key, next(iter(roles)), FROM_TACTIC)
+    # The tactic allows several duties of his role: the manager's usual pick settles it.
+    picked = {usual.get(key) if usual.get(key) in allowed else None for key, allowed in fitting.items()}
+    if len(picked) == 1 and None not in picked:
+        return _Placement(slot_key, picked.pop(), FROM_USUAL)
+    return _Placement(slot_key, problem=DUTY_UNSETTLED)
+
+
+def duty_choices(catalogue: FootballCatalogue, tactic_key: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """(slot key, roles) for each slot that allows two duties of one role, which FM's code cannot tell apart.
+
+    Only these need the manager's usual pick: elsewhere the role code and
+    the slot settle the duty on their own.
+    """
+    choices = []
+    for slot in catalogue.tactics[tactic_key].slots:
+        by_family = defaultdict(list)
+        for key in catalogue.role_keys_for_slot(slot):
+            by_family[role_family(catalogue, key)].append(key)
+        shared = tuple(key for keys in by_family.values() if len(keys) > 1 for key in keys)
+        if shared:
+            choices.append((slot.key, shared))
+    return tuple(choices)
 
 
 def _family_roles(catalogue: FootballCatalogue, slot, family: str | None) -> tuple[str, ...]:
@@ -233,19 +269,11 @@ def _family_roles(catalogue: FootballCatalogue, slot, family: str | None) -> tup
 
 
 @dataclass(frozen=True)
-class MatchToConfirm:
-    match: MatchRecord
-    tactic_key: str
-    appearances: int  # how many would become usable
-
-
-@dataclass(frozen=True)
 class JobEvidence:
     tactic_key: str
     position: str
     role_key: str
-    usable: int
-    awaiting: int
+    appearances: int
 
 
 @dataclass(frozen=True)
@@ -265,15 +293,8 @@ class AppearanceCoverage:
         return tuple(context for context in self.appearances if context.usable)
 
     @property
-    def awaiting_tactic(self) -> tuple[AppearanceContext, ...]:
-        return tuple(context for context in self.appearances if context.awaits_tactic_confirmation)
-
-    @property
     def excluded(self) -> tuple[AppearanceContext, ...]:
-        return tuple(
-            context for context in self.appearances
-            if not context.usable and not context.awaits_tactic_confirmation
-        )
+        return tuple(context for context in self.appearances if not context.usable)
 
     def reasons(self) -> list[tuple[str, int]]:
         """Each reason and how many excluded appearances it applies to, in EXCLUSIONS order."""
@@ -288,24 +309,12 @@ class AppearanceCoverage:
         )
         return [(*job, count) for job, count in counts.most_common()]
 
-    def matches_to_confirm(self) -> tuple[MatchToConfirm, ...]:
-        """Matches whose inferred tactic, once confirmed, makes appearances usable, latest first."""
-        waiting = Counter(context.match.key for context in self.awaiting_tactic)
-        found = {
-            context.match.key: MatchToConfirm(context.match, context.tactic_key, waiting[context.match.key])
-            for context in self.awaiting_tactic
-        }
-        return tuple(sorted(found.values(), key=lambda item: (item.match.date, item.match.key), reverse=True))
-
     def jobs(self) -> tuple[JobEvidence, ...]:
-        """The exact jobs (tactic, position, role) with usable or waiting appearances, most first."""
-        usable, awaiting = Counter(), Counter()
-        for context in self.appearances:
-            if context.usable or context.awaits_tactic_confirmation:
-                job = (context.tactic_key, context.position, context.role_key)
-                (usable if context.usable else awaiting)[job] += 1
-        jobs = [JobEvidence(*job, usable[job], awaiting[job]) for job in set(usable) | set(awaiting)]
-        return tuple(sorted(jobs, key=lambda job: (-(job.usable + job.awaiting), job.tactic_key, job.position, job.role_key)))
+        """The exact jobs (tactic, position, role) with usable appearances, most first."""
+        counts = Counter((context.tactic_key, context.position, context.role_key) for context in self.usable)
+        jobs = [JobEvidence(*job, count) for job, count in counts.items()]
+        jobs.sort(key=lambda job: (-job.appearances, job.tactic_key, job.position, job.role_key))
+        return tuple(jobs)
 
 
 def summarise_coverage(

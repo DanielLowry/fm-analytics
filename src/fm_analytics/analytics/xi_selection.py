@@ -406,12 +406,18 @@ def score_player_for_slot(
     require_selectable: bool = True,
     taper_policy: AttributeTaperPolicy = AttributeTaperPolicy(),
     role_score_cache: RoleScoreCache | None = None,
+    tactic_key: str | None = None,
 ) -> SlotAssignment | None:
     """Score a legal player/slot pairing for one allowed role.
 
     With no `role_key`, return the player's strongest permitted role for this
     slot.  The joint optimiser passes every permitted role explicitly so it
     can trade a little individual quality for a materially better XI system.
+
+    With a `tactic_key`, the player's recent form in that exact job (this
+    tactic, this slot's position, this role) is applied last, per candidate
+    role, so it can change who plays and which alternate role is chosen. With
+    none (tactic-free views, cover and weakness checks) form plays no part.
     """
     if require_selectable and not _is_available(player, readiness_policy):
         return None
@@ -441,6 +447,19 @@ def score_player_for_slot(
             catalogue.role_for_slot(slot, candidate_role), player.attributes,
             cache=role_score_cache,
         )
+        before_form = ScoreBand(
+            lower=_selection_adjust(
+                intrinsic.score.lower, readiness_penalty, familiarity_multiplier, taper.multiplier.lower,
+            ),
+            central=_selection_adjust(
+                intrinsic.score.central, readiness_penalty, familiarity_multiplier, taper.multiplier.central,
+            ),
+            upper=_selection_adjust(
+                intrinsic.score.upper, readiness_penalty, familiarity_multiplier, taper.multiplier.upper,
+            ),
+        )
+        form = player.form.get((tactic_key, slot.position, candidate_role), 1.0) if tactic_key else 1.0
+        selection = _apply_form(before_form, form)
         assignments.append(
             SlotAssignment(
                 slot=slot,
@@ -451,22 +470,11 @@ def score_player_for_slot(
                 readiness_warnings=readiness_warnings,
                 familiarity_multiplier=familiarity_multiplier,
                 familiarity_warnings=familiarity_warnings,
-                selection_score=ScoreBand(
-                    lower=_selection_adjust(
-                        intrinsic.score.lower, readiness_penalty, familiarity_multiplier,
-                        taper.multiplier.lower,
-                    ),
-                    central=_selection_adjust(
-                        intrinsic.score.central, readiness_penalty, familiarity_multiplier,
-                        taper.multiplier.central,
-                    ),
-                    upper=_selection_adjust(
-                        intrinsic.score.upper, readiness_penalty, familiarity_multiplier,
-                        taper.multiplier.upper,
-                    ),
-                ),
+                selection_score=selection,
                 taper_multiplier=taper.multiplier,
                 taper_notes=taper.notes,
+                form_multiplier=form,
+                form_change=round(selection.central - before_form.central, 6),
             )
         )
     return min(
@@ -503,6 +511,7 @@ def _build_choices(
                     familiarity_policy=familiarity_policy,
                     role_key=role_key,
                     role_score_cache=role_score_cache,
+                    tactic_key=tactic.key,
                 )
                 if assignment is None:
                     continue
@@ -538,6 +547,17 @@ def _readiness(
         + (100 - match_fitness) * policy.match_fitness_penalty_weight
     )
     return round(penalty, 6), tuple(warnings)
+
+
+def _apply_form(score: ScoreBand, multiplier: float) -> ScoreBand:
+    """Recent form, applied last; exactly unchanged with no form, and never above 100."""
+    if multiplier == 1.0:
+        return score
+    return ScoreBand(
+        lower=round(min(100.0, score.lower * multiplier), 6),
+        central=round(min(100.0, score.central * multiplier), 6),
+        upper=round(min(100.0, score.upper * multiplier), 6),
+    )
 
 
 def _selection_adjust(

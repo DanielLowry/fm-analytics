@@ -120,6 +120,7 @@ def select_bench(
                     readiness_policy=readiness_policy,
                     familiarity_policy=familiarity_policy,
                     role_score_cache=role_score_cache,
+                    tactic_key=evaluation.tactic.key,
                 )
             )
             is not None

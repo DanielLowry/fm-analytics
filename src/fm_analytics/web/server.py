@@ -436,6 +436,7 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
                     opponent=opponent, pinned_tactics=self.pinned_tactics
                 ),
                 ranking_executor=self.ranking_executor,
+                form=self.recent_form(game, squad),
             )
         except (BridgeSourceError, OSError, ValueError, KeyError):
             raise
@@ -453,6 +454,13 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
             if self._snapshot_at is None:
                 self._snapshot_at = datetime.now(timezone.utc)
         return built
+
+    def forget_recommendations(self) -> None:
+        """Drop every computed recommendation, so the next page rebuilds it from the
+        same squad: new matches, notes or role codes change recent form."""
+        with self._lock:
+            self._bundle_results.clear()
+            self._tactic_report_cache.clear()
 
     def request_refresh(self) -> bool:
         """Start a full snapshot refresh without blocking an HTTP request."""
@@ -477,6 +485,7 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
                     pinned_tactics=self.pinned_tactics,
                 ),
                 ranking_executor=self.ranking_executor,
+                form=self.recent_form(game, squad),
             )
         except (BridgeSourceError, OSError, ValueError, KeyError) as exc:
             with self._lock:

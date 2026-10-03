@@ -32,9 +32,15 @@ class PlayerSelectionInput:
     condition_percent: int | None
     match_fitness_percent: int | None
     position_familiarity: Mapping[str, int] = field(default_factory=dict)
+    # Recent form, as a score multiplier per exact job: (tactic key, position,
+    # role key) -> multiplier. A job that is not here has no form (exactly 1.0).
+    # See `analytics.player_form`.
+    form: Mapping[tuple[str, str, str], float] = field(default_factory=dict)
 
     @classmethod
-    def from_player(cls, player: Player) -> PlayerSelectionInput:
+    def from_player(
+        cls, player: Player, form: Mapping[tuple[str, str, str], float] | None = None
+    ) -> PlayerSelectionInput:
         return cls(
             id=player.id,
             name=player.name,
@@ -46,6 +52,7 @@ class PlayerSelectionInput:
             condition_percent=player.condition_percent,
             match_fitness_percent=player.match_fitness_percent,
             position_familiarity=player.position_familiarity,
+            form=form or {},
         )
 
 
@@ -183,6 +190,10 @@ class SlotAssignment:
     # multiplier band (1.0 = no shortfall), and why. See `attribute_taper`.
     taper_multiplier: ScoreBand = ScoreBand(1.0, 1.0, 1.0)
     taper_notes: tuple[str, ...] = ()
+    # Recent form in this exact job (tactic, position, role): the multiplier
+    # applied last, and the points it moved the central selection score.
+    form_multiplier: float = 1.0
+    form_change: float = 0.0
 
     @property
     def tapered_attribute_score(self) -> ScoreBand:

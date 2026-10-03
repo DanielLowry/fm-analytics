@@ -91,6 +91,7 @@ def explain_tactic_selection(
                 readiness_policy=readiness_policy,
                 familiarity_policy=familiarity_policy,
                 role_key=starter.intrinsic_role_score.role_key,
+                tactic_key=evaluation.tactic.key,
             )
             if assignment is not None:
                 candidates.append(assignment)
@@ -132,8 +133,10 @@ def explain_tactic_selection(
         explanations.append(
             SlotSelectionExplanation(
                 starter=starter,
+                # Form is applied after readiness, so take it back out first.
                 readiness_score_cost=round(
-                    starter.tapered_score.central - starter.selection_score.central,
+                    starter.tapered_score.central
+                    - (starter.selection_score.central - starter.form_change),
                     6,
                 ),
                 alternatives=tuple(alternatives),

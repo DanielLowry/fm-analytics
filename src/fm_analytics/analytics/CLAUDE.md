@@ -450,6 +450,16 @@ silently treating it as independent.
   form (`docs/tactic-role-form-plan.md`). FM's role code has no duty, so a code
   names a role family (`match_roles.role_family`) and the duty comes from the
   slot the player filled. It changes no score.
+- `player_form.py` — each player's recent form in each of those exact jobs: his
+  last 10 ratings there, newer ones counting more, as a multiplier of at most
+  ±2% (`FormLookup.multiplier`, exactly 1.0 with no ratings). It reaches scoring
+  only through `PlayerSelectionInput.form`, keyed (tactic, position, role):
+  `score_player_for_slot` applies it last, per candidate role, when given a
+  `tactic_key`, so it can change who plays and which alternate role is chosen.
+  Callers without a tactic (Squad/Roles views, `cover_value`, weaknesses and
+  depth, which read `tapered_attribute_score`) never see form. Build player
+  inputs with `reporting.selection_inputs` / `RecommendationBundle.selection_players`,
+  never bare `from_player`, wherever the result is compared with the bundle.
 - `squad_depth.py` / `bench_selection.py` / `weaknesses.py` — all consume
   the XI evaluations `xi_selection.py` already produced. They shouldn't
   re-run tactic evaluation themselves.

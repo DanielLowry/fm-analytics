@@ -29,6 +29,7 @@ from fm_analytics.analytics.appearance_context import (
 )
 from fm_analytics.analytics.contract_planning import ContractPolicy, ContractReview, assess_contracts
 from fm_analytics.analytics.match_roles import RoleCodes
+from fm_analytics.analytics.player_form import FormLookup, FormPolicy, build_form
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics, diagnose_matches
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, evaluate_intervention
 from fm_analytics.analytics import (
@@ -91,6 +92,19 @@ class RecommendationBundle:
     role_matrix: RoleMatrix
     briefs: tuple[RecruitmentBrief, ...]
     policy: RecommendationPolicy
+    # Recent form from the match history that every score above includes;
+    # None when there is no history for this club (every score is then as before).
+    form: FormLookup | None = None
+
+    @property
+    def selection_players(self) -> tuple[PlayerSelectionInput, ...]:
+        """The squad as the recommendation scored it, form included.
+
+        Anything that re-scores players against this bundle (a tactic's matchday
+        report, scouting projections) must use these, or its numbers would not
+        match the ranking's.
+        """
+        return selection_inputs(self.squad, self.form)
 
     @property
     def primary(self) -> TacticEvaluation:
@@ -432,6 +446,14 @@ def validate_recommendation_snapshot(game: GameState, squad: Squad) -> None:
         raise ValueError("game and squad observations have different managed clubs")
 
 
+def selection_inputs(squad: Squad, form: FormLookup | None = None) -> tuple[PlayerSelectionInput, ...]:
+    """The squad as the tactic scorer takes it, each player carrying his recent form."""
+    return tuple(
+        PlayerSelectionInput.from_player(player, form.for_player(player.id) if form else None)
+        for player in squad.players
+    )
+
+
 def build_recommendation_bundle(
     game: GameState,
     squad: Squad,
@@ -439,6 +461,7 @@ def build_recommendation_bundle(
     catalogue: FootballCatalogue = MVP_CATALOGUE,
     policy: RecommendationPolicy = RecommendationPolicy(),
     ranking_executor: TacticRankingExecutor | None = None,
+    form: FormLookup | None = None,
 ) -> RecommendationBundle:
     """Run every analytics pass a squad recommendation needs, once.
 
@@ -446,13 +469,14 @@ def build_recommendation_bundle(
     probe, fixture, HTML overlay) and for `validate_recommendation_snapshot`
     and completeness checks beforehand; this function assumes a squad that is
     already coherent and attribute-complete enough to score.
+
+    `form` (see `squad_form`) nudges each player's score in each exact job he
+    has recent ratings in; None leaves every score as it was without it.
     """
     unknown_pins = [key for key in policy.pinned_tactics if key not in catalogue.tactics]
     if unknown_pins:
         raise ValueError("unknown pinned tactic(s): " + ", ".join(unknown_pins))
-    selection_players = tuple(
-        PlayerSelectionInput.from_player(player) for player in squad.players
-    )
+    selection_players = selection_inputs(squad, form)
     role_score_cache = RoleScoreCache()
     effective_and_potential = recommend_tactic_effective_and_potential(
         selection_players,
@@ -515,6 +539,7 @@ def build_recommendation_bundle(
         role_matrix=role_matrix,
         briefs=briefs,
         policy=policy,
+        form=form,
     )
 
 
@@ -530,9 +555,7 @@ def build_tactic_matchday_report(
         evaluation = bundle.recommendation.by_tactic_key(tactic_key)
     except StopIteration as exc:
         raise ValueError(f"unknown evaluated tactic {tactic_key!r}") from exc
-    selection_players = tuple(
-        PlayerSelectionInput.from_player(player) for player in bundle.squad.players
-    )
+    selection_players = bundle.selection_players
     resolved_bench_size = bundle.policy.bench_size if bench_size is None else bench_size
     bench = select_bench(
         evaluation,
@@ -599,12 +622,57 @@ def build_appearance_coverage(
     have a trustworthy player, tactic, position and role with its duty, and
     why the rest do not. See `analytics.appearance_context`.
     """
-    codes = RoleCodes.build(catalogue, history.role_codes)
-    contexts = appearance_contexts(history.matches, history.club.id, notes=history.notes, codes=codes)
-    dates = [match.date for match in history.matches]
-    until = history.last_game_date or (max(dates) if dates else None)
+    contexts = _appearance_contexts(history, catalogue)
+    until = _history_date(history)
     since = until - timedelta(days=days) if until is not None and days is not None else None
     return summarise_coverage(contexts, since=since, until=until)
+
+
+def build_player_form(
+    history: MatchHistory,
+    *,
+    policy: FormPolicy = FormPolicy(),
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+) -> FormLookup:
+    """The one recent-form computation, behind `fm-matches form`.
+
+    Each player's form in each exact job (tactic, position, role with its
+    duty) as of the latest capture. See `analytics.player_form`.
+    """
+    return build_form(_appearance_contexts(history, catalogue), as_of=_history_date(history), policy=policy)
+
+
+def squad_form(
+    history: MatchHistory | None,
+    game: GameState,
+    squad: Squad,
+    *,
+    policy: FormPolicy = FormPolicy(),
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+) -> FormLookup | None:
+    """This squad's recent form from its own match history, as of the squad's game date.
+
+    The one way form reaches `build_recommendation_bundle`, for the CLI and the
+    web alike. None when there is no history, or it is another club's: form
+    from an unrelated save must never touch these scores. Matches after the
+    squad's date are left out, so a newer capture cannot reach an older squad.
+    """
+    if history is None or squad.club is None or history.club.id != squad.club.id:
+        return None
+    return build_form(_appearance_contexts(history, catalogue), as_of=game.game_date, policy=policy)
+
+
+def _appearance_contexts(history: MatchHistory, catalogue: FootballCatalogue):
+    codes = RoleCodes.build(catalogue, history.role_codes)
+    return appearance_contexts(
+        history.matches, history.club.id, notes=history.notes, codes=codes, usual_roles=history.usual_roles
+    )
+
+
+def _history_date(history: MatchHistory):
+    """The game date of the latest capture, else of the latest match."""
+    dates = [match.date for match in history.matches]
+    return history.last_game_date or (max(dates) if dates else None)
 
 
 def build_contract_review(

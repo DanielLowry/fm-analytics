@@ -35,10 +35,13 @@ from fm_analytics.imports import (
     parse_fm_squad_html_export,
     verify_export_completeness,
 )
+from fm_analytics.match_ingest import DEFAULT_DATABASE as DEFAULT_MATCH_DATABASE
 from fm_analytics.persistence import SnapshotStore
+from fm_analytics.persistence.match_history import MatchHistoryError, MatchHistoryStore
 from fm_analytics.reporting import (
     RecommendationPolicy,
     build_recommendation_bundle,
+    squad_form,
     parse_pinned_tactics,
     has_complete_role_attributes,
     required_role_attributes,
@@ -94,8 +97,33 @@ def build_parser() -> argparse.ArgumentParser:
             "squad depth then describe these instead of the top-ranked tactic."
         ),
     )
+    parser.add_argument(
+        "--match-db",
+        type=Path,
+        default=DEFAULT_MATCH_DATABASE,
+        help="match history to take each player's recent form from, when it is this club's "
+        "(default: %(default)s)",
+    )
     _add_opponent_arguments(parser)
     return parser
+
+
+def _form_points(change: float) -> str:
+    """+0.4, -0.2, or 0.0 for a change that rounds to nothing, as the Tactics page shows it."""
+    return "0.0" if abs(change) < 0.05 else f"{change:+.1f}"
+
+
+def recent_form(match_db: Path, game: GameState, squad: Squad):
+    """Recent form from the latest save in `match_db`, as the web's Tactics page uses it."""
+    if not match_db.exists():
+        return None
+    store = MatchHistoryStore(match_db)
+    try:
+        key = store.latest_save_key()
+        return squad_form(store.load_history(key) if key else None, game, squad)
+    except MatchHistoryError as exc:
+        print(f"Recent form left out: {exc}")
+        return None
 
 
 def _add_opponent_arguments(parser: argparse.ArgumentParser) -> None:
@@ -396,7 +424,8 @@ def render_recommendation(
             f"role {_band(assignment.intrinsic_role_score.score)}, "
             f"readiness -{assignment.readiness_penalty:.1f}, "
             f"familiarity x{assignment.familiarity_multiplier:.2f}, "
-            f"selection {assignment.selection_score.central:.1f}{warnings}"
+            + (f"form {_form_points(assignment.form_change)}, " if assignment.form_multiplier != 1.0 else "")
+            + f"selection {assignment.selection_score.central:.1f}{warnings}"
         )
     if selected.unfilled_slots:
         lines.append(
@@ -573,6 +602,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                         opponent=opponent_from_args(args),
                         pinned_tactics=pinned_tactics,
                     ),
+                    form=recent_form(args.match_db, game, squad),
                 )
                 recommendation = bundle.recommendation
                 training_targets = bundle.training_targets

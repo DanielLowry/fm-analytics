@@ -191,6 +191,16 @@ _STYLE = """
   .selection-flow span, .selection-flow small { color: #667; font-size: 0.74rem; }
   .selection-flow b { font-size: 1.05rem; }
   .selection-flow .selection-result { background: #eef3f7; border-color: #9fb6cf; }
+  .form-chip { display: inline-block; min-width: 3.4rem; padding: 0.08rem 0.5rem; border-radius: 0.75rem; font-size: 0.8rem; font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap; cursor: help; }
+  .form-up { background: #e3f3e1; color: #1e6b1e; }
+  .form-down { background: #fde2e2; color: #8a1f1f; }
+  .form-flat, .form-none { background: #f0f2f5; color: #667; }
+  .form-note { margin: 0.2rem 0 0.4rem; font-size: 0.82rem; }
+  .form-ratings { margin: 0.2rem 0 0.7rem; }
+  .form-ratings summary { cursor: pointer; font-size: 0.86rem; }
+  .form-ratings p { font-size: 0.8rem; margin: 0.35rem 0; }
+  .form-ratings table { width: auto; min-width: 22rem; margin: 0.3rem 0 0.4rem; font-size: 0.82rem; }
+  .form-ratings .num { text-align: right; font-variant-numeric: tabular-nums; }
   .coverage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 0.5rem; margin-top: 0.7rem; }
   .coverage-card { display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 0.5rem; padding: 0.65rem; border: 1px solid #dfe3e7; border-radius: 0.3rem; background: white; }
   .coverage-card > span { color: #667; font-size: 0.82rem; align-self: center; }

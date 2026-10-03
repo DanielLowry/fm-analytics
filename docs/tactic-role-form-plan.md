@@ -121,13 +121,26 @@ Against the checklist above:
   position, and one who came on in a changed shape is not used.
 
 `uv run fm-matches coverage` (`reporting.build_appearance_coverage`, over
-`analytics/appearance_context.py`) is this section's completion check. On 3
-October 2026, for the last 90 game days (16 matches, 221 appearances): none
-usable yet, 166 usable once each match's inferred tactic is confirmed, and 55
-not usable. The largest group, 40, is the centre-backs: Vertical 4-4-2 lets
-either play Defend or Cover, so their duty stays unsettled until the manager
-says which he plays. The rest are substitutes in a changed shape, players no
-longer in the squad, and cameos FM did not rate.
+`analytics/appearance_context.py`) is this section's completion check.
+
+**Decision, 3 October 2026: the tactic the line-up fits counts.** FM does not
+record which tactic a match used, so a match's tactic is the manager's note
+if he added one, else the one catalogue tactic the starting eleven fits (as
+the match review and export already show it). The manager plays one tactic
+almost always and chose not to confirm each match; this replaces the rule
+above that kept role-multiset inference as a suggestion for confirmation.
+For the last 90 game days (16 matches, 221 appearances) that leaves 202
+usable ratings and 19 not usable (substitutes in a changed shape, players no
+longer in the squad, cameos FM did not rate, and two substitute records that
+contradict themselves).
+
+Where a slot allows two duties of one role (either Vertical 4-4-2
+centre-back may play Defend or Cover), the code and the slot cannot settle
+the duty, so the manager records what he usually plays there, once per save:
+`fm-matches usual-roles vertical_442 DCL=cd_defend DCR=cd_defend` (stored
+append-only in the match history, schema v3). Such a duty is labelled as
+coming from "your usual set-up", not from FM. Before that was recorded, the
+centre-backs' 36 appearances were unusable.
 
 Add optional observed context and provenance to the match appearance contract
 only when its semantics are verified. Preserve raw role codes. Existing
@@ -202,6 +215,17 @@ appearances averaging 6.0 give -0.875%: a score of 60 becomes 59.475. Actual
 spaced-out matches have lower confidence through age decay. Good form gives
 a similarly small bonus, with final score bands bounded to 0–100.
 
+**As built, 3 October 2026** (`analytics/player_form.py`, `reporting.build_player_form`,
+`uv run fm-matches form`). The manager changed two defaults: the last **10**
+ratings count, not 5, and recency is by **appearance**, not by days: each
+older rating counts 0.87 of the one after it, so the 10th most recent counts
+about 30% as much as the latest. That replaces the 30-game-day half-life; the
+90-day window, the 30-minute minimum, minutes weighting, the 6.7 neutral
+rating, `confidence = E / (E + 3)` and the ±2% cap are as proposed. Ten
+recent full matches give a confidence of about 0.66, so the largest change in
+practice is about ±1.3%. On the save's history to 30 March 2020 the changes
+range from -0.4% (Mason at DL, Cain at ML) to +0.9% (Rodriguez at ML).
+
 These defaults reward repeated evidence, reduce the influence of short
 substitute appearances, and let old poor performances fade away even when the
 player does not retry that role. They do not infer causation or adjust for
@@ -256,6 +280,24 @@ mislabel form as fitness after this feature is added.
 **Completion check:** BBM(S) evidence can change the selected BBM(S) player or
 make CM(S) win a close role choice, while CM(S)'s own score remains neutral
 without CM(S) evidence. Ranking, alternatives and bench use identical inputs.
+
+**As built, 3 October 2026 (sections 3 and 5's page).** Each player's form
+rides on `PlayerSelectionInput.form` (tactic, position, role -> multiplier), so
+every scoring path that already receives players gets it with no new
+parameter threading: the ranking (sequential and worker processes), forced
+assignments, alternatives, bench, substitution board and tactic scouting's
+owned baseline. `score_player_for_slot` applies it last, per candidate role,
+only when given a `tactic_key`; weaknesses, depth and cover read the
+attribute-only `tapered_attribute_score`, and tactic-free views pass no tactic,
+so neither sees form. `SlotAssignment.form_change` holds the points it moved,
+and the explanation's readiness cost takes it back out first. Form reaches the
+bundle only through `reporting.squad_form` (same club, as of the squad's game
+date), for the web, `fm-analytics --recommend` (new `--match-db`) and the
+export's squad section. The web drops its cached recommendations after a
+match capture, note or role-code change. The Tactics page shows a Form column
+in the XI and alternatives tables, a form step in each "Why him?" breakdown and
+the ratings behind it; the CLI XI line shows `form +0.2`. Section 4's
+background refresh is not built: matches are still read from the Matches page.
 
 ## 4. Refresh matches automatically without blocking pages
 

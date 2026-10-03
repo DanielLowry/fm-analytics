@@ -11,6 +11,7 @@ game) and prints the same review the Matches page shows, through the one
     uv run fm-matches note 2019-11-02:8325133:5103652 --tactic vertical_442 --rating 1
     uv run fm-matches export --detail basic          # the season as JSON, for another tool
     uv run fm-matches coverage                       # which appearances could count towards form
+    uv run fm-matches form                           # each player's recent form in each job
 """
 
 from __future__ import annotations
@@ -25,7 +26,8 @@ from pathlib import Path
 from typing import Sequence
 
 from fm_analytics.analytics import MVP_CATALOGUE
-from fm_analytics.analytics.appearance_context import RECENT_GAME_DAYS, AppearanceCoverage
+from fm_analytics.analytics.appearance_context import RECENT_GAME_DAYS, AppearanceCoverage, duty_choices
+from fm_analytics.analytics.player_form import FormLookup
 from fm_analytics.analytics.match_analysis import (
     COMPETITION_SCOPES,
     METRICS,
@@ -51,6 +53,7 @@ from fm_analytics.reporting import (
     RecommendationBundle,
     RecommendationPolicy,
     build_appearance_coverage,
+    build_player_form,
     build_match_diagnostics,
     build_match_intervention_evaluation,
     build_match_report,
@@ -58,6 +61,7 @@ from fm_analytics.reporting import (
     build_recommendation_bundle,
     build_season_export,
     has_complete_role_attributes,
+    squad_form,
     parse_pinned_tactics,
     validate_recommendation_snapshot,
 )
@@ -113,8 +117,11 @@ def capture_and_record(
     return f"{message} Recorded: {result.summary()}."
 
 
-def read_live_bundle(pinned_tactics: tuple[str, ...] = ()) -> RecommendationBundle:
-    """The current squad's recommendation, read-only from the running game, as `fm-analytics --direct-live`."""
+def read_live_bundle(pinned_tactics: tuple[str, ...] = (), history=None) -> RecommendationBundle:
+    """The current squad's recommendation, read-only from the running game, as `fm-analytics --direct-live`.
+
+    With this save's match `history`, recent form is included, as on the Tactics page.
+    """
     try:
         game, squad = LinuxProtonDataSource().read_snapshot()
         validate_recommendation_snapshot(game, squad)
@@ -122,7 +129,10 @@ def read_live_bundle(pinned_tactics: tuple[str, ...] = ()) -> RecommendationBund
         raise RuntimeError(f"the squad could not be read from FM ({exc}); use --squad none to export without it") from exc
     if not has_complete_role_attributes(squad):
         raise RuntimeError("FM has not supplied every role-scoring attribute; use --squad none to export without the squad")
-    return build_recommendation_bundle(game, squad, policy=RecommendationPolicy(pinned_tactics=pinned_tactics))
+    return build_recommendation_bundle(
+        game, squad, policy=RecommendationPolicy(pinned_tactics=pinned_tactics),
+        form=squad_form(history, game, squad),
+    )
 
 
 def export_path(club_name: str, game_date: str | None, detail: str) -> Path:
@@ -253,44 +263,64 @@ def format_intervention(evaluation: InterventionEvaluation | None) -> str:
     return "\n".join(lines)
 
 
-def format_coverage(coverage: AppearanceCoverage, club_id: str) -> str:
+def format_usual_roles(tactic_key: str, choices, usual) -> str:
+    roles = MVP_CATALOGUE.roles
+    name = MVP_CATALOGUE.tactics[tactic_key].name
+    if not choices:
+        return f"{name}: every slot's role code settles its duty; there is nothing to choose."
+    lines = [f"{name}: slots where FM's role code cannot tell the duty apart, and what you usually play:"]
+    for slot, keys in choices.items():
+        options = " or ".join(f"{roles[key].name} ({key})" for key in keys)
+        picked = usual.get((tactic_key, slot))
+        lines.append(f"  {slot:<5} {options}")
+        lines.append(f"        usual: {roles[picked].name if picked in keys else 'not set'}")
+    return "\n".join(lines)
+
+
+def format_coverage(coverage: AppearanceCoverage) -> str:
     tactics, roles = MVP_CATALOGUE.tactics, MVP_CATALOGUE.roles
     tactic_name = lambda key: tactics[key].name if key in tactics else key  # noqa: E731
-    window = (
-        f"{coverage.since} to {coverage.until}" if coverage.since else f"the whole history to {coverage.until}"
-    )
+    window = f"from {coverage.since} to {coverage.until}" if coverage.since else f"up to {coverage.until}"
     lines = [
-        f"Form evidence, {window}: {coverage.matches} matches with full stats, "
-        f"{len(coverage.appearances)} appearances.",
-        "Form may only use an appearance whose player, tactic, position and role with its duty are all known.",
+        f"Ratings {window}: {coverage.matches} matches, {len(coverage.appearances)} appearances.",
+        "A rating counts towards form only if we know the tactic, position and role (with duty) it was earned in.",
         "",
-        f"  Usable now:                                   {len(coverage.usable):>4}",
-        f"  Usable once each match's tactic is confirmed: {len(coverage.awaiting_tactic):>4}",
-        f"  Not usable:                                   {len(coverage.excluded):>4}",
-        *(f"    {reason:<43}{count:>5}" for reason, count in coverage.reasons()),
+        f"  Can be used:   {len(coverage.usable):>4}",
+        f"  Can't be used: {len(coverage.excluded):>4}",
+        *(f"    {reason:<46}{count:>4}" for reason, count in coverage.reasons()),
     ]
     jobs = coverage.jobs()
     if jobs:
-        lines += ["", "Jobs with evidence (usable / waiting for the tactic to be confirmed):"]
+        lines += ["", "Usable ratings by job:"]
         for job in jobs:
             lines.append(f"  {tactic_name(job.tactic_key)[:24]:<24} {job.position:<4} "
-                         f"{roles[job.role_key].name[:34]:<34} {job.usable:>3} / {job.awaiting}")
+                         f"{roles[job.role_key].name[:34]:<34} {job.appearances:>3}")
     unsettled = coverage.unsettled_duties()
     if unsettled:
-        lines += ["", "Duty not settled (the tactic allows more than one there, and FM's role code has no duty):"]
+        lines += ["", "Duty unknown, because the tactic allows two there (set yours with fm-matches usual-roles):"]
         for tactic_key, position, family, count in unsettled:
-            lines.append(f"  {tactic_name(tactic_key)[:24]:<24} {position:<4} {family[:34]:<34} {count:>3} appearances")
-    to_confirm = coverage.matches_to_confirm()
-    if to_confirm:
-        lines += ["", "Matches whose tactic was inferred from the line-up; confirming it makes these usable:"]
-        for item in to_confirm:
-            match = item.match
-            side = match.side_of(club_id)
-            opponent = match.team("away" if side == "home" else "home").name
-            venue = "H" if side == "home" else "A"
-            lines.append(f"  {match.key:<28} {opponent[:22]:<22} ({venue})  {tactic_name(item.tactic_key)[:24]:<24} "
-                         f"{item.appearances:>2} appearances")
-        lines.append("Confirm one with: fm-matches note <match> --tactic <key>")
+            lines.append(f"  {tactic_name(tactic_key)[:24]:<24} {position:<4} {family[:34]:<34} {count:>3}")
+    return "\n".join(lines)
+
+
+def format_form(form: FormLookup) -> str:
+    tactics, roles, policy = MVP_CATALOGUE.tactics, MVP_CATALOGUE.roles, form.policy
+    lines = [
+        f"Recent form up to {form.as_of}: each player's last {policy.max_ratings} ratings in a job, from the last "
+        f"{policy.window_days} days ({policy.min_minutes}+ minutes), newer ones counting more.",
+        f"Compared with a rating of {policy.neutral_rating}, it moves his score for that job by at most "
+        f"{100 * policy.max_change:.0f}%, less when he has few ratings. Other jobs are not affected.",
+        "",
+        f"  {'Player':<22} {'Job':<52} {'Ratings':>7} {'Average':>8} {'Change':>7}",
+    ]
+    jobs = sorted(form.jobs.values(), key=lambda job: (job.player, -len(job.ratings)))
+    for job in jobs:
+        tactic = tactics[job.tactic_key].name if job.tactic_key in tactics else job.tactic_key
+        where = f"{tactic} {job.position} {roles[job.role_key].name}"
+        lines.append(f"  {job.player[:22]:<22} {where[:52]:<52} {len(job.ratings):>7} {job.average:>8.2f} "
+                     f"{100 * job.change:>+6.1f}%")
+    if not jobs:
+        lines.append("  No player has a rated game in a known job in that time.")
     return "\n".join(lines)
 
 
@@ -341,10 +371,22 @@ def build_parser() -> argparse.ArgumentParser:
     window.add_argument("--days", type=int, default=RECENT_GAME_DAYS,
                         help="game days back from the latest capture (default: %(default)s)")
     window.add_argument("--all", action="store_true", help="the whole history")
+    commands.add_parser("form", help="each player's recent form in each job, and how much it moves his score")
+    usual = commands.add_parser(
+        "usual-roles", help="which duty you usually play where a tactic allows two (FM's role code has no duty)"
+    )
+    usual.add_argument("tactic", help="catalogue tactic key, e.g. vertical_442")
+    usual.add_argument("choices", nargs="*", metavar="SLOT=ROLE", help="e.g. DCL=cd_defend; none to list")
     role = commands.add_parser("role-code", help="confirm which catalogue role an FM role code is")
     role.add_argument("code", help="the FM code, e.g. 0x800")
     role.add_argument("role", help="catalogue role key, e.g. af_attack")
     return parser
+
+
+def _tactic_key(key: str) -> str:
+    if key not in MVP_CATALOGUE.tactics:
+        raise ValueError(f"unknown tactic key {key!r}")
+    return key
 
 
 def _save_key(store: MatchHistoryStore, explicit: str | None) -> str:
@@ -394,9 +436,22 @@ def main(argv: Sequence[str] | None = None) -> int:
                         build_match_intervention_evaluation(history, lifecycle_review)
                     )
                 )
+            elif args.command == "usual-roles":
+                choices = dict(duty_choices(MVP_CATALOGUE, _tactic_key(args.tactic)))
+                for choice in args.choices:
+                    slot, _, role = choice.partition("=")
+                    if role not in choices.get(slot, ()):
+                        raise ValueError(f"{choice!r}: name a slot and role from the list below\n"
+                                         + format_usual_roles(args.tactic, choices, history.usual_roles))
+                    store.set_usual_role(history.save_key, args.tactic, slot, role)
+                if args.choices:
+                    history = store.load_history(history.save_key)
+                print(format_usual_roles(args.tactic, choices, history.usual_roles))
+            elif args.command == "form":
+                print(format_form(build_player_form(history)))
             elif args.command == "coverage":
                 coverage = build_appearance_coverage(history, days=None if args.all else args.days)
-                print(format_coverage(coverage, history.club.id))
+                print(format_coverage(coverage))
             elif args.command == "list":
                 review = build_match_review(history, filters=ReviewFilters(competitions="all"))
                 for summary in review.matches:
@@ -415,7 +470,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 document = build_season_export(
                     history,
                     detail=args.detail,
-                    bundle=read_live_bundle(pinned) if wants_squad else None,
+                    bundle=read_live_bundle(pinned, history) if wants_squad else None,
                     squad_note="left out (--squad none)",
                 )
                 text = json.dumps(document, indent=2, ensure_ascii=False) + "\n"

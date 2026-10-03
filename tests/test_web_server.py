@@ -372,7 +372,7 @@ class CachingTests(unittest.TestCase):
             neutral_result, aerial_result = object(), object()
             profiles = []
 
-            def build(_game, _squad, *, policy, ranking_executor):
+            def build(_game, _squad, *, policy, ranking_executor, form=None):
                 profiles.append(policy.opponent)
                 return neutral_result if policy.opponent.is_neutral else aerial_result
 

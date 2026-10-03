@@ -23,7 +23,7 @@ import hashlib
 import json
 import sqlite3
 from contextlib import closing, contextmanager
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterator, Mapping, Sequence
@@ -165,8 +165,24 @@ CREATE TABLE intervention_events (
 CREATE INDEX intervention_events_by_intervention ON intervention_events (intervention_id, id);
 """
 
+_V3 = """
+-- How the manager usually plays a tactic in this save: the role he picks where
+-- a slot allows more than one (both Vertical 4-4-2 centre-backs on Defend, say).
+-- FM's role code has no duty, so this is what settles one the tactic leaves
+-- open. Append only; the latest per slot wins.
+CREATE TABLE usual_roles (
+    id INTEGER PRIMARY KEY,
+    save_id INTEGER NOT NULL REFERENCES saves(id),
+    tactic_key TEXT NOT NULL,
+    slot_key TEXT NOT NULL,
+    role_key TEXT NOT NULL,
+    recorded_at TEXT NOT NULL
+);
+CREATE INDEX usual_roles_by_save ON usual_roles (save_id, tactic_key, slot_key, id);
+"""
+
 # Append only. Version N of the file is the result of applying MIGRATIONS[:N].
-MIGRATIONS: tuple[str, ...] = (_V1, _V2)
+MIGRATIONS: tuple[str, ...] = (_V1, _V2, _V3)
 
 
 @dataclass(frozen=True)
@@ -216,6 +232,8 @@ class MatchHistory:
     role_codes: Mapping[int, str]
     last_game_date: date | None
     interventions: tuple[StoredIntervention, ...] = ()
+    # (tactic key, slot key) -> the role the manager usually picks there.
+    usual_roles: Mapping[tuple[str, str], str] = field(default_factory=dict)
 
 
 def _now() -> str:
@@ -340,6 +358,23 @@ class MatchHistoryStore:
             connection.execute(
                 "INSERT INTO role_codes (code, role_key, recorded_at) VALUES (?, ?, ?)",
                 (code, role_key.strip(), _now()),
+            )
+
+    def set_usual_role(self, save_key: str, tactic_key: str, slot_key: str, role_key: str) -> None:
+        """Record the role the manager usually plays in one slot of a tactic, in this save.
+
+        Whether the role is allowed in that slot is the catalogue's to say, so
+        the caller checks it.
+        """
+        values = (tactic_key, slot_key, role_key)
+        if not all(isinstance(value, str) and value.strip() for value in values):
+            raise ValueError("a usual role needs a tactic, a slot and a role")
+        self.initialize()
+        with closing(self._connect()) as connection, _transaction(connection):
+            connection.execute(
+                "INSERT INTO usual_roles (save_id, tactic_key, slot_key, role_key, recorded_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (self._existing_save_id(connection, save_key), *(value.strip() for value in values), _now()),
             )
 
     def start_intervention(self, save_key: str, proposal: InterventionProposal) -> StoredIntervention:
@@ -509,6 +544,13 @@ class MatchHistoryStore:
                 row["code"]: row["role_key"]
                 for row in connection.execute("SELECT code, role_key FROM role_codes ORDER BY id")
             }
+            usual_roles = {
+                (row["tactic_key"], row["slot_key"]): row["role_key"]
+                for row in connection.execute(
+                    "SELECT tactic_key, slot_key, role_key FROM usual_roles WHERE save_id = ? ORDER BY id",
+                    (save["id"],),
+                )
+            }
             interventions = tuple(
                 _intervention_from_row(row)
                 for row in connection.execute(
@@ -534,6 +576,7 @@ class MatchHistoryStore:
             league_results=tuple((competition, tuple(rows)) for competition, rows in leagues.values()),
             notes=notes,
             role_codes=role_codes,
+            usual_roles=usual_roles,
             last_game_date=date.fromisoformat(last) if last else None,
             interventions=interventions,
         )

@@ -10,6 +10,7 @@ from fm_analytics.web.ui import position_key, cell_details
 from fm_analytics.analytics import MVP_CATALOGUE, OpponentProfile
 from fm_analytics.reporting import RecommendationBundle
 from fm_analytics.web.bench_render import bench_priority_section
+from fm_analytics.web.form_render import form_card, form_chip, form_note, form_ratings, job_form
 from fm_analytics.web.opponent_controls import (
     opponent_controls as _opponent_controls,
     opponent_from_query as _opponent_from_query,
@@ -246,10 +247,13 @@ class TacticPagesMixin:
         for assignment in sorted(evaluation.assignments, key=lambda item: (position_key(item.slot.position), position_key(item.slot.key))):
             player = players_by_id[assignment.player_id]
             explanation = explanation_by_slot[assignment.slot.key]
+            job = job_form(bundle.form, assignment, tactic_key)
             alternatives = "".join(
-                self._selection_alternative_row(option, players_by_id, assignment)
+                self._selection_alternative_row(
+                    option, players_by_id, assignment, job_form(bundle.form, option.assignment, tactic_key)
+                )
                 for option in explanation.alternatives
-            ) or "<tr><td colspan='6' class='muted'>No other eligible player for this exact role.</td></tr>"
+            ) or "<tr><td colspan='7' class='muted'>No other eligible player for this exact role.</td></tr>"
             warning_text = ", ".join(
                 assignment.readiness_warnings + assignment.familiarity_warnings
             )
@@ -277,7 +281,8 @@ class TacticPagesMixin:
                 + taper_card
                 + "<div><span>readiness</span>"
                 f"<b>−{explanation.readiness_score_cost:.1f}</b><small>condition + fitness</small></div>"
-                "<div class='selection-result'><span>Today</span>"
+                + form_card(assignment, job)
+                + "<div class='selection-result'><span>Today</span>"
                 f"<b>{_band(assignment.selection_score)}</b><small>selection score</small></div>"
                 "</div>"
             )
@@ -289,9 +294,10 @@ class TacticPagesMixin:
                 f"<td>{squad_player_link(player)}</td>"
                 f"<td>{player.condition_percent if player.condition_percent is not None else '?'}% / "
                 f"{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
+                f"<td>{form_chip(assignment, job)}</td>"
                 f"<td><b>{_band(assignment.selection_score)}</b></td>"
                 "</tr>"
-                "<tr class='explanation-row fm-xi-explanation'><td colspan='6'>"
+                "<tr class='explanation-row fm-xi-explanation'><td colspan='7'>"
                 "<details class='fm-slot-rationale fm-disclosure'><summary>Slot responsibilities</summary>"
                 + _slot_reasoning(
                     assignment.slot,
@@ -301,16 +307,17 @@ class TacticPagesMixin:
                 + "</details>"
                 + f"<details class='fm-selection-details'><summary>Why {html.escape(assignment.player_name)}?</summary>"
                 f"{selection_path}{warnings}"
-                "<p class='muted'>Alternatives use this exact role; the other ten slots are "
+                + form_ratings(job, bundle.form)
+                + "<p class='muted'>Alternatives use this exact role; the other ten slots are "
                 "re-optimised for each comparison.</p>"
                 "<div class='fm-alternative-table'><table><tr><th>Alternative</th><th>Role fit</th><th>In-position</th>"
-                "<th>Condition / sharpness</th><th>Today</th><th>Why not selected</th></tr>"
+                "<th>Condition / sharpness</th><th>Form</th><th>Today</th><th>Why not selected</th></tr>"
                 + alternatives
                 + "</table></div></details></td></tr>"
             )
         if evaluation.unfilled_slots:
             xi_rows.append(
-                "<tr><td colspan='6' class='warn'>Unfilled: "
+                "<tr><td colspan='7' class='warn'>Unfilled: "
                 + html.escape(", ".join(slot.key for slot in evaluation.unfilled_slots))
                 + "</td></tr>"
             )
@@ -486,11 +493,12 @@ class TacticPagesMixin:
             + opponent_profile
             + "<section class='fm-workspace-panel fm-starting-xi' id='starting-xi'>"
             "<div class='fm-panel-heading'><div><h2>Starting XI</h2>"
-            "<p>Best available XI today. Expand a player to inspect role fit, readiness, and exact-role alternatives.</p>"
+            "<p>Best available XI today. Expand a player to inspect role fit, readiness, form, and exact-role alternatives.</p>"
             "</div><span class='fm-panel-count'>"
             + f"{selected_count} selected</span></div>"
-            "<div class='fm-table-card'><table><tr><th>Slot</th><th>Position</th><th>Role</th><th>Player</th>"
-            "<th>Condition / fitness</th><th>Today</th></tr>"
+            + form_note(bundle.form)
+            + "<div class='fm-table-card'><table><tr><th>Slot</th><th>Position</th><th>Role</th><th>Player</th>"
+            "<th>Condition / fitness</th><th>Form</th><th>Today</th></tr>"
             + "".join(xi_rows)
             + "</table></div></section>"
             + bench_section
@@ -563,7 +571,7 @@ class TacticPagesMixin:
         )
 
     @staticmethod
-    def _selection_alternative_row(option, players_by_id, starter) -> str:
+    def _selection_alternative_row(option, players_by_id, starter, job=None) -> str:
         player = players_by_id[option.player_id]
         if not option.counterfactual_has_legal_xi:
             reason = "Cannot form a complete XI with this player here"
@@ -594,6 +602,7 @@ class TacticPagesMixin:
             f"<td>{_band(option.assignment.intrinsic_role_score.score)}</td>"
             f"<td>{_band(option.assignment.in_position_score)}</td>"
             f"<td>{condition}% / {sharpness}%</td>"
+            f"<td>{form_chip(option.assignment, job)}</td>"
             f"<td>{_band(option.assignment.selection_score)}</td>"
             f"<td>{html.escape(reason)}</td>"
             "</tr>"

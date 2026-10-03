@@ -44,8 +44,11 @@ the one behind `fm-matches export` and the web's `/api/export`.
 `reporting.build_contract_review` is the one computation behind `/contracts`
 and the squad player report's Contract plan panel.
 `reporting.build_appearance_coverage` is the one behind `fm-matches coverage`:
-which appearances have a known tactic, position and role with its duty, the
-input recent form will be built on.
+which appearances have a known tactic, position and role with its duty, and
+`reporting.build_player_form` the one behind `fm-matches form`: each player's
+recent form in each of those exact jobs. `reporting.squad_form` is the one way
+that form reaches `build_recommendation_bundle` (web, `fm-analytics
+--recommend` and the export alike), and only from the same club's history.
 
 ## Running things
 
@@ -56,6 +59,7 @@ uv run fm-web --fixture src/fm_analytics/fixtures/sample-game.json        # http
 uv run fm-matches capture && uv run fm-matches review   # needs FM running; read-only
 uv run fm-matches export --detail basic|standard|verbose  # season JSON -> data/exports/
 uv run fm-matches coverage [--days N | --all]   # which appearances could count towards form
+uv run fm-matches form                          # each player's recent form in each job
 ```
 
 No third-party packages are required for the core path (`frida` is an

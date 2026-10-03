@@ -96,6 +96,7 @@ def build_substitution_board(
                 readiness_policy=readiness_policy,
                 familiarity_policy=familiarity_policy,
                 role_score_cache=role_score_cache,
+                tactic_key=evaluation.tactic.key,
             )
             if assignment is None:
                 continue

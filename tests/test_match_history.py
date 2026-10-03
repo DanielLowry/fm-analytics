@@ -142,6 +142,18 @@ class NotesAndRoleCodeTests(StoreCase):
         with self.assertRaises(ValueError):
             self.store.confirm_role_code(0, "af_attack")
 
+    def test_usual_roles_are_per_save_and_the_latest_per_slot_wins(self) -> None:
+        self.store.set_usual_role(KEY, "vertical_442", "DCL", "cd_cover")
+        self.store.set_usual_role(KEY, "vertical_442", "DCL", "cd_defend")
+        self.store.set_usual_role(KEY, "vertical_442", "DCR", "cd_defend")
+        self.assertEqual(self.store.load_history(KEY).usual_roles, {
+            ("vertical_442", "DCL"): "cd_defend", ("vertical_442", "DCR"): "cd_defend",
+        })
+        with self.assertRaises(ValueError):
+            self.store.set_usual_role("club:999", "vertical_442", "DCL", "cd_defend")  # no such save
+        with self.assertRaises(ValueError):
+            self.store.set_usual_role(KEY, "vertical_442", " ", "cd_defend")
+
     def test_one_intervention_is_active_until_an_append_only_outcome_closes_it(self) -> None:
         started = self.store.start_intervention(KEY, intervention())
         self.assertTrue(started.active)
@@ -191,13 +203,13 @@ class MigrationTests(StoreCase):
         backup = self.path.with_name(self.path.name + f".bak-v{len(MIGRATIONS)}")
         self.assertEqual(self.user_version(backup), len(MIGRATIONS))
 
-    def test_a_real_v1_history_is_upgraded_to_the_intervention_schema(self) -> None:
+    def test_a_real_v1_history_is_upgraded_to_the_latest_schema(self) -> None:
         legacy = MatchHistoryStore(self.path, migrations=MIGRATIONS[:1])
         legacy.record(capture(), save_key=KEY)
         self.assertEqual(self.user_version(), 1)
         history = self.store.load_history(KEY)
-        self.assertEqual((len(history.matches), history.interventions), (6, ()))
-        self.assertEqual(self.user_version(), 2)
+        self.assertEqual((len(history.matches), history.interventions, history.usual_roles), (6, (), {}))
+        self.assertEqual(self.user_version(), len(MIGRATIONS))
         self.assertEqual(self.user_version(self.path.with_name(self.path.name + ".bak-v1")), 1)
 
     def test_a_file_from_a_newer_program_is_refused_not_touched(self) -> None:

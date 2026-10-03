@@ -212,6 +212,7 @@ def rank_candidates_for_tactic(
                 familiarity_policy=familiarity_policy,
                 role_key=candidate_role,
                 role_score_cache=role_score_cache,
+                tactic_key=tactic.key,
             )
             if assignment is None:
                 continue

@@ -24,7 +24,6 @@ from fm_analytics.analytics import (
     RANKING_SORTS,
     SORTS_BY_MODE,
     ScoutingFilters,
-    PlayerSelectionInput,
     rank_candidates_for_tactic,
     sort_tactic_assessments,
     assess_scouting_candidates,
@@ -253,10 +252,7 @@ class ScoutingPagesMixin:
                     baseline = bundle.recommendation.by_tactic_key(tactic_key)
                     assessments = rank_candidates_for_tactic(
                         (candidate,),
-                        tuple(
-                            PlayerSelectionInput.from_player(player)
-                            for player in bundle.squad.players
-                        ),
+                        bundle.selection_players,
                         tactic,
                         MVP_CATALOGUE,
                         baseline,
@@ -410,7 +406,7 @@ class ScoutingPagesMixin:
         assessments = filter_tactic_assessments(
             rank_candidates_for_tactic(
                 pool,
-                tuple(PlayerSelectionInput.from_player(player) for player in bundle.squad.players),
+                bundle.selection_players,
                 tactic,
                 MVP_CATALOGUE,
                 baseline,
