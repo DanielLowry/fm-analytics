@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from fm_analytics.analytics.match_analysis import (
     MatchReport,
@@ -70,7 +70,8 @@ from fm_analytics.analytics import (
     select_bench,
 )
 from fm_analytics.analytics.team_comparison import TeamXIComparison, compare_team_xi
-from fm_analytics.analytics.league_comparison import LeagueReport, build_league_report
+from fm_analytics.analytics.league_comparison import LeagueReport, build_league_report, model_fingerprint
+from fm_analytics.analytics.league_insights import TeamSummary
 from fm_analytics.domain.leagues import LeagueCapture
 from fm_analytics.domain import GameState, Player, Squad
 from fm_analytics.season_export import export_document
@@ -336,15 +337,34 @@ def build_league_comparison(
     catalogue: FootballCatalogue = MVP_CATALOGUE,
     policy: RecommendationPolicy = RecommendationPolicy(),
     tactic_keys: tuple[str, ...] | None = None,
+    team_cache: MutableMapping | None = None,
+    previous: Mapping[str, TeamSummary] | None = None,
 ) -> LeagueReport:
     """The one league comparison, behind `/league` and its team pages.
 
     Recent form (`squad_form`) is deliberately not applied: it exists only for
     our own players, and a comparison must score every club on the same inputs.
+    `team_cache` and `previous` are described on `build_league_report`.
     """
     return build_league_report(capture, catalogue, tactic_keys=tactic_keys,
                               readiness_policy=policy.readiness, familiarity_policy=policy.familiarity,
-                              fit_policy=policy.tactic_fit)
+                              fit_policy=policy.tactic_fit, team_cache=team_cache, previous=previous)
+
+
+def league_scope(
+    tactic_key: str | None,
+    *,
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+    policy: RecommendationPolicy = RecommendationPolicy(),
+) -> str:
+    """Which league comparisons may be compared with each other.
+
+    Two reads explain each other only when the same model scored them: the
+    whole catalogue's content (a tactic edit need not change its version), the
+    selection policies and the tactic choice must all match.
+    """
+    fingerprint = model_fingerprint(catalogue, (policy.readiness, policy.familiarity, policy.tactic_fit))
+    return f"{tactic_key or 'best'}|{fingerprint[:16]}"
 
 
 def build_team_xi_comparison(

@@ -83,7 +83,15 @@ The web computes a whole comparison revision in a single background job,
 with at most one pending request and two cached reports. Previous completed
 reports stay visible only within the same save/tactic scope, with an update
 notice and their original date. A failed calculation exposes a retry.
-This initial implementation recomputes all clubs when the capture changes.
+A new revision recomputes only the clubs whose inputs changed: club results
+are cached in memory, keyed without the game date.
+
+Migration 2 adds `league_team_summaries`: each comparison's per-club result
+(range, status, conservative system and XI), keyed by save, capture content
+hash, scope and club. The scope is the tactic choice plus a fingerprint of the
+catalogue's content and the selection policies, so reads are compared only
+when the same model scored them. These are derived results kept to explain
+the next read. They are never used as observations.
 
 ## Capture the live league
 

@@ -7,8 +7,25 @@ from http import HTTPStatus
 from urllib.parse import quote, unquote, urlencode
 
 from fm_analytics.analytics import MVP_CATALOGUE
-from fm_analytics.analytics.league_comparison import order_teams, rank_team_players, team_information_gaps
+from fm_analytics.analytics.league_comparison import (
+    order_teams,
+    player_information_gaps,
+    rank_team_players,
+    team_information_gaps,
+)
+from fm_analytics.analytics.league_insights import league_priorities, xi_difference
 from fm_analytics.bridge.errors import BridgeSourceError
+from fm_analytics.web.attribute_export import attribute_label
+from fm_analytics.web.league_render import (
+    change_cell,
+    change_text,
+    coverage_cell,
+    gap_list,
+    priority_items,
+    score_range,
+    starters_knowledge,
+    xi_difference_text,
+)
 from fm_analytics.web.league_state import LeagueOutOfDate
 from fm_analytics.web.rendering import _error_page, _layout, _options as _base_options, _query_first
 
@@ -32,8 +49,7 @@ def _player_link(team, player_id, name, tactic="") -> str:
     return f"<a href='{_href(path, tactic)}'>{escape(name)}</a>"
 
 
-def _range(score) -> str:
-    return f"{score.lower:.1f}–{score.upper:.1f}" if score else "—"
+_range = score_range
 
 
 def _range_bar(score) -> str:
@@ -73,13 +89,26 @@ def _status(team):
             "no_legal_xi": "Cannot verify XI"}[team.comparison.status]
 
 
-def _knowledge(team):
-    known, ranged, unknown, missing = team.knowledge_counts
-    return f"{known} exact · {ranged} ranged · {unknown} unknown · {missing} uncaptured"
+def _evidence(report):
+    """How complete this read is, and which clubs it cannot score yet."""
+    unscored = [team for team in report.teams if team.score is None]
+    listed = "; ".join(f"{escape(team.roster.squad.club.name)} ({escape(_status(team))})" for team in unscored)
+    return (f"<p class='fm-metric-note'>{report.complete_roster_count}/{len(report.teams)} squads read completely"
+            + (f" · not scored yet: {listed}" if unscored else "") + "</p>")
+
+
+_SCOUTING_INTRO = (
+    "<p class='muted'>Each figure moves one player to the other end of his range. <b>Best case</b>: if he is as "
+    "poor as he could be, and the club uses its best other option in his place, how much of their best-case "
+    "score goes. <b>Floor</b>: if he is as good as he could be, how far their worst case rises at least. "
+    "<b>Could show</b> marks a player who alone might settle where that club stands against you. Learning him "
+    "tells you; it does not promise the answer.</p>")
 
 
 def _xi(team, scenario, tactic):
     evaluation = getattr(team.comparison, scenario).selected
+    compared = ("" if scenario == "central" or team.score is None else
+                xi_difference_text(xi_difference(team.comparison.central.selected, evaluation)))
     bands = [{"ST"}, {"AML", "AMC", "AMR"}, {"ML", "MC", "MR"}, {"DM"},
              {"WBL", "WBR"}, {"DL", "DC", "DR", "SW"}, {"GK"}]
     lines = []
@@ -95,7 +124,7 @@ def _xi(team, scenario, tactic):
             lines.append("<div>" + "".join(cells) + "</div>")
     missing = ", ".join(slot.position for slot in evaluation.unfilled_slots)
     return (f"<h3>{escape(evaluation.tactic.name)}</h3><p>Selected lineup range: {_range(evaluation.score)}"
-            + (f" · unfilled: {escape(missing)}" if missing else "") + "</p>"
+            + (f" · unfilled: {escape(missing)}" if missing else "") + "</p>" + compared
             + "<div class='fm-league-pitch'>" + "".join(lines) + "</div>")
 
 
@@ -191,13 +220,17 @@ class LeaguePagesMixin:
             rows.append(f"<tr{' class=our-club' if own else ''}><td>{position}</td><td><a href='{_href(_team_path(team), tactic)}'>{escape(club.name)}</a>"
                         + (" · your club" if own else "") + f"</td><td>{_range(score)}{_range_bar(score)}</td>"
                         + f"<td>{f'{score.central:.1f}' if score else '—'}</td><td>{escape(team.comparison.central.selected.tactic.name) if score else escape(_status(team))}</td>"
-                        + f"<td>{_knowledge(team)}</td><td>{escape(team.relative_to_us)}</td></tr>")
-        body = ("<section class='fm-decision-hero'><h2>Compare your league</h2>" + _context(report)
+                        + f"<td>{starters_knowledge(team)}</td><td>{escape(team.relative_to_us)}</td>"
+                        + f"<td>{change_cell(team)}</td></tr>")
+        priorities = league_priorities(report)
+        scouting = ("<section class='fm-workspace-panel'><h2>What to scout next</h2>" + _SCOUTING_INTRO
+                    + f"<ol>{priority_items(priorities, tactic, show_club=True)}</ol></section>" if priorities else "")
+        body = ("<section class='fm-decision-hero'><h2>Compare your league</h2>" + _context(report) + _evidence(report)
                 + _read_panel(self.server) + "</section>"
                 + "<section class='fm-workspace-panel'>" + _controls(tactic, sort)
                 + f"<p>Possible strength positions among {report.comparable_count} scored clubs. Ordered by {escape(sort)}; positions describe the model under its selection assumptions.</p>"
-                + "<div class='fm-table-scroll'><table><thead><tr><th>Position</th><th>Club</th><th>Best XI range</th><th>Conservative</th><th>Central system / status</th><th>Role inputs</th><th>Compared with us</th></tr></thead><tbody>"
-                + "".join(rows) + "</tbody></table></div></section>")
+                + "<div class='fm-table-scroll'><table><thead><tr><th>Position</th><th>Club</th><th>Best XI range</th><th>Conservative</th><th>Central system / status</th><th>Knowledge</th><th>Compared with us</th><th>Since last read</th></tr></thead><tbody>"
+                + "".join(rows) + "</tbody></table></div></section>" + scouting)
         self._send(_layout("League", "/league", self._league_notice + body, wide=True))
 
     def _league_team_page(self, path, query):
@@ -222,23 +255,29 @@ class LeaguePagesMixin:
             return
         rows = "".join(f"<tr><td>{_player_link(team,row.player.id,row.player.name,tactic)}</td><td>{escape(', '.join(row.player.positions) or 'Position needed')}</td>"
                        f"<td>{escape(row.best_role.role_name) if row.best_role else '—'}</td><td>{_range(row.score)}</td><td>{f'{row.score.central:.1f}' if row.score else '—'}</td>"
-                       f"<td>{escape(row.player.availability)}</td></tr>" for row in players)
-        gaps = "".join("<li>" + _player_link(team, assignment.player_id, assignment.player_name, tactic)
-                       + f": {escape(gap.attribute)} · {'Scout more' if gap.supplied else 'Capture needed'} "
-                       + f"({gap.uncertainty_span:.1f} uncertain role-fit points)</li>"
-                       for assignment, gap in team_information_gaps(team))
+                       f"<td>{coverage_cell(row.coverage)}</td><td>{escape(row.player.availability)}</td></tr>" for row in players)
+        if team.score is not None:
+            learn = (_SCOUTING_INTRO + f"<ol>{priority_items(team.priorities, tactic)}</ol>" if team.priorities else
+                     "<p class='muted'>Nothing you don't know about this squad moves its range.</p>")
+        else:
+            learn = "<ul>" + "".join(
+                "<li>" + _player_link(team, assignment.player_id, assignment.player_name, tactic)
+                + f": {escape(attribute_label(gap.attribute))} · {'Scout more' if gap.supplied else 'Capture needed'} "
+                + f"({gap.uncertainty_span:.1f} uncertain role-fit points)</li>"
+                for assignment, gap in team_information_gaps(team)) + "</ul>"
         warnings = "".join(f"<li>{escape(item)}</li>" for item in (*team.assumptions, *team.roster.errors))
         body = (f"<p><a href='{_href('/league', tactic)}'>← League comparison</a></p>"
                 f"<section class='fm-decision-hero'><h2>{escape(team.roster.squad.club.name)}</h2>" + _context(report)
-                + f"<p>Best XI range: <b>{_range(team.score)}</b> · {escape(_status(team))}</p>"
+                + f"<p>Best XI range: <b>{_range(team.score)}</b> · {escape(_status(team))} · "
+                + f"{starters_knowledge(team)}</p>" + change_text(team)
                 + (f"<ul>{warnings}</ul>" if warnings else "") + "</section>"
                 + "<section class='fm-workspace-panel'><h2>Conservative best XI</h2>" + _xi(team, "central", tactic)
                 + "<details class='fm-disclosure'><summary>Floor XI</summary>" + _xi(team, "lower", tactic) + "</details>"
                 + "<details class='fm-disclosure'><summary>Ceiling XI</summary>" + _xi(team, "upper", tactic) + "</details></section>"
-                + f"<section class='fm-workspace-panel'><h2>What to learn next</h2><ul>{gaps}</ul></section>"
+                + f"<section class='fm-workspace-panel'><h2>What to learn next</h2>{learn}</section>"
                 + "<section class='fm-workspace-panel'><h2>Rank the squad</h2><p>Best role fit uses base-role weights. XI slot scores additionally apply tactic and selection adjustments.</p>"
                 + _controls(tactic, sort, player=True, position=position, role=role)
-                + "<div class='fm-table-scroll'><table><thead><tr><th>Player</th><th>Position</th><th>Best role fit</th><th>Range</th><th>Conservative</th><th>Availability</th></tr></thead><tbody>"
+                + "<div class='fm-table-scroll'><table><thead><tr><th>Player</th><th>Position</th><th>Best role fit</th><th>Range</th><th>Conservative</th><th>Role attributes</th><th>Availability</th></tr></thead><tbody>"
                 + rows + "</tbody></table></div></section>")
         self._send(_layout(team.roster.squad.club.name, "/league", self._league_notice + body, wide=True))
 
@@ -248,13 +287,17 @@ class LeaguePagesMixin:
             self._send(_error_page("League", "Player not found", "/league"), HTTPStatus.NOT_FOUND)
             return
         inputs = sorted({a.name for role in MVP_CATALOGUE.roles.values() for a in role.attributes} | set(player.attributes))
-        attributes = "".join(f"<tr><td>{escape(name)}</td><td>{escape(player.attributes[name].display()) if name in player.attributes else 'Uncaptured'}</td></tr>" for name in inputs)
+        attributes = "".join(f"<tr><td>{escape(attribute_label(name))}</td><td>{escape(player.attributes[name].display()) if name in player.attributes else 'Uncaptured'}</td></tr>" for name in inputs)
         fits = team.roles.player_profiles[player.id].fits
         roles = "".join(f"<tr><td>{escape(fit.role_name)}</td><td>{_range(fit.role_score.score)}</td><td>{fit.role_score.score.central:.1f}</td></tr>" for fit in fits)
+        gaps = player_information_gaps(team, player.id)
+        sharpen = ("<section class='fm-workspace-panel'><h2>What would sharpen his score</h2>"
+                   f"<p class='muted'>For his best role, {escape(fits[0].role_name)}, largest first.</p><ul>{gap_list(gaps)}</ul></section>"
+                   if gaps else "")
         body = (f"<p><a href='{_href(_team_path(team), tactic)}'>← {escape(team.roster.squad.club.name)}</a></p>"
                 f"<section class='fm-decision-hero'><h2>{escape(player.name)}</h2><p>{escape(', '.join(player.positions) or 'Position needed')} · {escape(player.availability)}</p>" + _context(report) + "</section>"
                 + "<section class='fm-workspace-panel'><h2>Visible attributes</h2><p>Unknown (?) was captured; Uncaptured has no current observation. Historical values are not substituted.</p>"
                 + "<div class='fm-table-scroll'><table><thead><tr><th>Attribute</th><th>Current observation</th></tr></thead><tbody>" + attributes + "</tbody></table></div></section>"
                 + "<section class='fm-workspace-panel'><h2>Eligible role rankings</h2><div class='fm-table-scroll'><table><thead><tr><th>Role</th><th>Range</th><th>Conservative</th></tr></thead><tbody>"
-                + roles + "</tbody></table></div></section>")
+                + roles + "</tbody></table></div></section>" + sharpen)
         self._send(_layout(player.name, "/league", self._league_notice + body, wide=True))

@@ -129,6 +129,14 @@ carries: the goalkeeping attributes exist only for goalkeepers and the outfield
 ones only for everyone else, so that picks the family without needing a
 position. A position label is applied after, only to narrow further.
 
+The same rule overrides a raw external position: an outfielder's sheet is never
+listed at GK, and a keeper's never at an outfield position, whatever the raw
+read says. A raw read whose position ratings are all zero is treated as no
+position at all. FM rates every position at least 1, so all zeros means the read
+failed. Until 3 October 2026 the capture turned these failed reads into GK,
+which put 403 non-keepers in the 28 April 2020 GK list. The same rule keeps a
+goalkeeper role's target list free of outfielders who have no position yet.
+
 Each row has an **Attributes** dropdown listing every attribute in FM's own
 order, with `-` for anything the manager cannot see.
 

@@ -477,6 +477,11 @@ def decode_positions(ratings: bytes) -> tuple[str, ...]:
     )
     if positions:
         return positions
+    if not any(ratings):
+        # FM rates every position at least 1, so all zeros is an unread record.
+        # Picking the "highest" here used to name the first code, GK, for every
+        # one of them -- hundreds of outfielders in a scouting capture.
+        return ()
     highest = max(range(len(ratings)), key=ratings.__getitem__)
     return (POSITION_CODES[highest],)
 

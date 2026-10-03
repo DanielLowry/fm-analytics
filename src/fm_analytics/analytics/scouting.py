@@ -14,7 +14,7 @@ from typing import Mapping, MutableMapping, Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.role_scoring import RoleScore, score_role
-from fm_analytics.analytics.scouting_candidate import ScoutingCandidate
+from fm_analytics.analytics.scouting_candidate import ScoutingCandidate, plays_in_goal
 from fm_analytics.analytics.xi_models import FamiliarityPolicy
 from fm_analytics.domain import Visibility
 
@@ -196,6 +196,12 @@ def assess_scouting_candidates(
             continue
         if positions and not set(role.eligible_positions).intersection(positions):
             continue
+        # A player with no position yet stays in the queue, but not for a job
+        # his attribute sheet rules out: an outfielder's unknown goalkeeping
+        # attributes would otherwise score him as a mid-table keeper.
+        keeper = plays_in_goal(candidate.attributes)
+        if keeper is not None and keeper != ("GK" in role.eligible_positions):
+            continue
         if not _matches_visible_filters(candidate, filters):
             continue
         score = score_role(role, candidate.attributes)
@@ -328,43 +334,6 @@ class PositionRanking:
     @property
     def upside(self) -> float:
         return self.maximum - self.median
-
-
-# The attributes FM only shows for goalkeepers, and the ones it only shows for
-# outfield players (FM20's goalkeeper visibility profile has none of these).
-_GOALKEEPING_ATTRIBUTES = frozenset({
-    "aerialReach", "commandOfArea", "communication", "handling", "kicking",
-    "oneOnOnes", "reflexes", "rushingOut", "throwing",
-})
-_OUTFIELD_ONLY_ATTRIBUTES = frozenset({
-    "corners", "crossing", "dribbling", "finishing", "heading", "longShots",
-    "marking", "tackling",
-})
-
-
-def _plays_in_goal(attributes: Mapping[str, object]) -> bool | None:
-    """Whether his attribute sheet is a goalkeeper's; None when it cannot say.
-
-    A set speaks for him when FM shows a value from it, and against him when
-    its attributes are missing altogether (the formula-based capture omitted
-    the other family's set). A set that is present but entirely unknown says
-    nothing: FM's own sandboxed answer returns the other family's attributes
-    as unknown, exactly like an unscouted one, so an outfielder's sheet
-    carries every goalkeeping name. A well-scouted player can show both sets
-    (an outfielder's Handling of 3); then neither wins and the scores decide.
-    """
-    def shown(names: frozenset[str]) -> bool:
-        return any(
-            name in attributes and attributes[name].visibility is not Visibility.UNKNOWN
-            for name in names
-        )
-
-    def missing(names: frozenset[str]) -> bool:
-        return not any(name in attributes for name in names)
-
-    keeper = shown(_GOALKEEPING_ATTRIBUTES) or missing(_OUTFIELD_ONLY_ATTRIBUTES)
-    outfield = shown(_OUTFIELD_ONLY_ATTRIBUTES) or missing(_GOALKEEPING_ATTRIBUTES)
-    return keeper if keeper != outfield else None
 
 
 def _role_rating(role, position: str | None, ratings: Mapping[str, int] | None) -> int | None:
@@ -510,7 +479,7 @@ def _rank_one(
             # because it comes from FM's visibility, not from a position
             # label. Scoring the other set as "unknown, so mid-scale"
             # otherwise let a goalkeeper role win for a defender on paper.
-            keeper = _plays_in_goal(candidate.attributes)
+            keeper = plays_in_goal(candidate.attributes)
             if keeper is not None:
                 roles = [role for role in roles if ("GK" in role.eligible_positions) == keeper] or roles
         own = set(candidate.positions_for(

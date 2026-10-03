@@ -8,6 +8,7 @@ from fm_analytics.analytics import (
     ScoutingFilters,
     assess_scouting_candidates,
     filter_position_rankings,
+    filter_scouting_candidates,
     rank_for_position,
     scouting_mode,
     sort_for_mode,
@@ -222,6 +223,71 @@ class RankForPositionTests(unittest.TestCase):
 
     def test_a_position_no_role_covers_ranks_nobody(self) -> None:
         self.assertEqual(rank_for_position(self.candidates, MVP_CATALOGUE, "XX"), ())
+
+
+class FalseGoalkeeperTests(unittest.TestCase):
+    """The GK list once held hundreds of outfielders (Phil Bardsley, Jon Stead...).
+
+    Their raw position ratings had read as all zeros, the capture turned that
+    into GK, and with GK chosen their unknown goalkeeping attributes scored
+    them above genuine keepers.
+    """
+
+    _EVERY_ATTRIBUTE = {a.name for role in MVP_CATALOGUE.roles.values() for a in role.attributes}
+    _RAW = {"include_raw_external_positions": True}
+
+    def _sheet(self, **shown: AttributeObservation) -> dict[str, AttributeObservation]:
+        sheet = {name: AttributeObservation(Visibility.UNKNOWN) for name in self._EVERY_ATTRIBUTE}
+        sheet.update(shown)
+        return sheet
+
+    def _player(self, identifier, sheet, raw_positions=("GK",), familiarity=None) -> ScoutingCandidate:
+        return ScoutingCandidate(
+            id=identifier, name=identifier, positions=(), raw_positions=raw_positions,
+            raw_position_familiarity=familiarity, attributes=sheet,
+        )
+
+    def test_an_unread_all_zero_position_record_gives_no_position(self) -> None:
+        unread = ScoutingCandidate.from_dict({
+            "id": "z", "name": "Unread", "positions": [], "rawPositions": ["GK"],
+            "rawPositionFamiliarity": {"GK": 0, "DC": 0, "ST": 0}, "attributes": {},
+        })
+
+        self.assertEqual(unread.positions_for(**self._RAW), ())
+        # Not "unfamiliar everywhere" either: an unread record is no rating.
+        self.assertIsNone(unread.raw_position_familiarity)
+        self.assertEqual(filter_scouting_candidates([unread], ScoutingFilters(position="GK", **self._RAW)), ())
+
+    def test_an_outfield_sheet_is_not_a_goalkeeper_whatever_the_raw_read_says(self) -> None:
+        outfielder = self._player("o", self._sheet(tackling=ranged(10, 14)))
+        keeper = self._player("k", self._sheet(handling=ranged(10, 14)))
+
+        listed = filter_scouting_candidates([outfielder, keeper], ScoutingFilters(position="GK", **self._RAW))
+
+        self.assertEqual([item.id for item in listed], ["k"])
+
+    def test_a_keeper_sheet_is_not_an_outfielder_whatever_the_raw_read_says(self) -> None:
+        keeper = self._player("k", self._sheet(reflexes=known(14)), raw_positions=("GK", "DC"))
+
+        self.assertEqual(keeper.positions_for(**self._RAW), ("GK",))
+
+    def test_a_sheet_that_cannot_say_keeps_its_raw_positions(self) -> None:
+        nothing_shown = self._player("n", self._sheet())
+        both_shown = self._player("b", self._sheet(handling=known(3), tackling=known(12)), ("DC",))
+
+        self.assertEqual(nothing_shown.positions_for(**self._RAW), ("GK",))
+        self.assertEqual(both_shown.positions_for(**self._RAW), ("DC",))
+
+    def test_a_goalkeeper_role_lists_no_outfielder_without_a_position(self) -> None:
+        outfielder = self._player("o", self._sheet(heading=ranged(12, 16)), raw_positions=())
+        keeper = self._player("k", self._sheet(handling=ranged(12, 16)), raw_positions=())
+        unscouted = self._player("u", self._sheet(), raw_positions=())
+
+        listed = assess_scouting_candidates(
+            [outfielder, keeper, unscouted], MVP_CATALOGUE, ScoutingFilters(role_key="gk_defend"),
+        )
+
+        self.assertEqual(sorted(item.candidate.id for item in listed), ["k", "u"])
 
 
 class RenderingTests(unittest.TestCase):

@@ -7,6 +7,7 @@ from contextlib import closing, contextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+from fm_analytics.analytics.league_insights import TeamSummary
 from fm_analytics.domain.leagues import LeagueCapture
 from fm_analytics.persistence.migrations import bring_up_to_date
 
@@ -25,7 +26,20 @@ CREATE TABLE league_captures (
     UNIQUE (save_key, content_hash)
 );
 CREATE INDEX league_captures_by_date ON league_captures (save_key, competition_id, game_date, id);
-""",)
+""", """
+-- What one comparison concluded about each club, to explain the next read.
+-- A derived result, keyed by the scope (catalogue, policies, tactic choice)
+-- it was computed under, so a model change is never mistaken for new knowledge.
+CREATE TABLE league_team_summaries (
+    save_key TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    scope TEXT NOT NULL,
+    club_id TEXT NOT NULL,
+    document TEXT NOT NULL,
+    PRIMARY KEY (save_key, content_hash, scope, club_id),
+    FOREIGN KEY (save_key, content_hash) REFERENCES league_captures (save_key, content_hash)
+);
+""")
 
 
 class LeagueHistoryError(RuntimeError):
@@ -64,6 +78,34 @@ class LeagueHistoryStore:
                                 capture.season, capture.content_hash(), json.dumps(capture.to_document()),
                                 datetime.now(timezone.utc).isoformat()))
             return True
+
+    def record_summaries(self, capture: LeagueCapture, scope: str, summaries: dict[str, TeamSummary]) -> None:
+        """Keep one recorded capture's per-club conclusions under `scope`."""
+        with self._connection() as connection, connection:
+            if not connection.execute("SELECT 1 FROM league_captures WHERE save_key=? AND content_hash=?",
+                                      (capture.save_key, capture.content_hash())).fetchone():
+                raise LeagueHistoryError("record the league capture before its summaries")
+            connection.executemany(
+                "INSERT OR REPLACE INTO league_team_summaries (save_key,content_hash,scope,club_id,document) VALUES (?,?,?,?,?)",
+                [(capture.save_key, capture.content_hash(), scope, club_id, json.dumps(summary.to_document()))
+                 for club_id, summary in summaries.items()])
+
+    def previous_summaries(self, capture: LeagueCapture, scope: str) -> dict[str, TeamSummary]:
+        """The latest other read of this league, same save and scope, never a later date."""
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT c.content_hash FROM league_captures c WHERE c.save_key=? AND c.competition_id=? "
+                "AND c.content_hash<>? AND c.game_date<=? AND EXISTS (SELECT 1 FROM league_team_summaries s "
+                "WHERE s.save_key=c.save_key AND s.content_hash=c.content_hash AND s.scope=?) "
+                "ORDER BY c.game_date DESC, c.id DESC LIMIT 1",
+                (capture.save_key, capture.competition.id, capture.content_hash(),
+                 capture.game.game_date.isoformat(), scope)).fetchone()
+            if row is None:
+                return {}
+            rows = connection.execute(
+                "SELECT club_id, document FROM league_team_summaries WHERE save_key=? AND content_hash=? AND scope=?",
+                (capture.save_key, row[0], scope)).fetchall()
+        return {club_id: TeamSummary.from_document(json.loads(document)) for club_id, document in rows}
 
     def latest(self, save_key: str, competition_id: str, *, as_of: date) -> LeagueCapture | None:
         with self._connection() as connection:

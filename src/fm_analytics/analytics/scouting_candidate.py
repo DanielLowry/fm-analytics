@@ -14,7 +14,44 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Mapping
 
-from fm_analytics.domain import AttributeObservation
+from fm_analytics.domain import AttributeObservation, Visibility
+
+
+# The attributes FM only shows for goalkeepers, and the ones it only shows for
+# outfield players (FM20's goalkeeper visibility profile has none of these).
+GOALKEEPING_ATTRIBUTES = frozenset({
+    "aerialReach", "commandOfArea", "communication", "handling", "kicking",
+    "oneOnOnes", "reflexes", "rushingOut", "throwing",
+})
+OUTFIELD_ONLY_ATTRIBUTES = frozenset({
+    "corners", "crossing", "dribbling", "finishing", "heading", "longShots",
+    "marking", "tackling",
+})
+
+
+def plays_in_goal(attributes: Mapping[str, object]) -> bool | None:
+    """Whether his attribute sheet is a goalkeeper's; None when it cannot say.
+
+    A set speaks for him when FM shows a value from it, and against him when
+    its attributes are missing altogether (the formula-based capture omitted
+    the other family's set). A set that is present but entirely unknown says
+    nothing: FM's own sandboxed answer returns the other family's attributes
+    as unknown, exactly like an unscouted one, so an outfielder's sheet
+    carries every goalkeeping name. A well-scouted player can show both sets
+    (an outfielder's Handling of 3); then neither wins and the scores decide.
+    """
+    def shown(names: frozenset[str]) -> bool:
+        return any(
+            name in attributes and attributes[name].visibility is not Visibility.UNKNOWN
+            for name in names
+        )
+
+    def missing(names: frozenset[str]) -> bool:
+        return not any(name in attributes for name in names)
+
+    keeper = shown(GOALKEEPING_ATTRIBUTES) or missing(OUTFIELD_ONLY_ATTRIBUTES)
+    outfield = shown(OUTFIELD_ONLY_ATTRIBUTES) or missing(GOALKEEPING_ATTRIBUTES)
+    return keeper if keeper != outfield else None
 
 
 @dataclass(frozen=True)
@@ -153,6 +190,14 @@ class ScoutingCandidate:
             for position, rating in self.raw_position_familiarity.items()
         ):
             raise ValueError("position familiarity must map position codes to ratings from 0 to 20")
+        if self.raw_position_familiarity and not any(self.raw_position_familiarity.values()):
+            # FM rates every position at least 1, so all zeros is a record the
+            # capture could not read, not a player who can play nowhere. Its
+            # eligibility list was derived from those zeros and, before the
+            # capture was fixed, always came out as GK: 403 of the 510 "raw
+            # goalkeepers" in the 28 April 2020 capture were these.
+            object.__setattr__(self, "raw_position_familiarity", None)
+            object.__setattr__(self, "raw_positions", ())
 
     @property
     def in_current_feed(self) -> bool:
@@ -193,10 +238,21 @@ class ScoutingCandidate:
         )
 
     def positions_for(self, *, include_raw_external_positions: bool) -> tuple[str, ...]:
-        """Return verified positions, plus accepted-gap raw positions if opted in."""
+        """Return verified positions, plus accepted-gap raw positions if opted in.
+
+        A raw position his attribute sheet contradicts is left out: FM shows the
+        goalkeeping attributes only for a keeper and the outfield-only ones
+        only for everyone else, so a keeper's sheet is not a DC and an
+        outfielder's is not a GK, whatever the raw read says. Verified
+        positions are FM's own and are never second-guessed.
+        """
         if not include_raw_external_positions:
             return self.positions
-        return tuple(dict.fromkeys(self.positions + self.raw_positions))
+        raw = self.raw_positions
+        keeper = plays_in_goal(self.attributes) if raw else None
+        if keeper is not None:
+            raw = tuple(position for position in raw if (position == "GK") == keeper)
+        return tuple(dict.fromkeys(self.positions + raw))
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> "ScoutingCandidate":

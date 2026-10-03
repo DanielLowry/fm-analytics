@@ -158,6 +158,11 @@ class LinuxFm20ProbeTests(unittest.TestCase):
 
         self.assertEqual(decode_positions(ratings), ("DL",))
 
+    def test_an_all_zero_record_has_no_positions_rather_than_goalkeeper(self) -> None:
+        # FM rates every position at least 1; zeros are an unread record, and
+        # falling back to the "strongest" picked the first code, GK.
+        self.assertEqual(decode_positions(bytes(15)), ())
+
     def test_position_familiarity_map_keeps_every_raw_rating(self) -> None:
         ratings = bytes([1, 1, 14, 20, 16, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
 

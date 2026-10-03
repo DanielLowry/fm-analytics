@@ -460,6 +460,12 @@ silently treating it as independent.
   depth, which read `tapered_attribute_score`) never see form. Build player
   inputs with `reporting.selection_inputs` / `RecommendationBundle.selection_players`,
   never bare `from_player`, wherever the result is compared with the bundle.
+- `team_comparison.py` / `league_comparison.py` / `league_insights.py` — the
+  League pages: floor/central/ceiling best XIs per club, league ordering, and
+  what to scout next. The scouting figures are bounds from the team formula
+  with one player moved to the other end of his range (for the best case, his
+  slot's best alternative may take over), never a full re-selection; keep
+  their "up to" / "at least" wording if you change them.
 - `squad_depth.py` / `bench_selection.py` / `weaknesses.py` — all consume
   the XI evaluations `xi_selection.py` already produced. They shouldn't
   re-run tactic evaluation themselves.

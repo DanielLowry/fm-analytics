@@ -44,6 +44,16 @@ class LeagueCaptureCommandTests(unittest.TestCase):
                 league_json_provider(path)()
 
 
+class FakeReport:
+    """Stands in for a computed LeagueReport where only caching is under test."""
+
+    def __init__(self, capture):
+        self.capture = capture
+
+    def summaries(self):
+        return {}
+
+
 class LeagueStateTests(unittest.TestCase):
     def setUp(self):
         self.capture = league_capture()
@@ -52,7 +62,8 @@ class LeagueStateTests(unittest.TestCase):
         self.state.setup_league(lambda: self.capture)
 
     def test_cache_reuses_reports_and_recomputes_changed_knowledge_and_scope(self):
-        with patch("fm_analytics.web.league_state.build_league_comparison", return_value=object()) as build:
+        with patch("fm_analytics.web.league_state.build_league_comparison",
+                   side_effect=lambda capture, **_: FakeReport(capture)) as build:
             first = self.state.league_report("balanced_442")
             self.assertIs(self.state.league_report("balanced_442"), first)
             self.assertEqual(build.call_count, 1)
@@ -89,7 +100,7 @@ class LeagueStateTests(unittest.TestCase):
 
     def test_background_view_returns_loading_and_joins_a_single_job(self):
         started, finish = threading.Event(), threading.Event()
-        report = type("Report", (), {"capture": self.capture})()
+        report = FakeReport(self.capture)
         def compute(*args, **kwargs):
             started.set()
             finish.wait(5)
@@ -105,7 +116,7 @@ class LeagueStateTests(unittest.TestCase):
             self.assertEqual(build.call_count, 1)
 
     def test_failed_refresh_retains_only_same_save_and_scope_and_can_retry(self):
-        report = type("Report", (), {"capture": self.capture})()
+        report = FakeReport(self.capture)
         with patch("fm_analytics.web.league_state.build_league_comparison", return_value=report):
             self.state.league_report("balanced_442")
         self.capture = replace(self.capture, membership_evidence="New observation")
@@ -210,6 +221,42 @@ class LeagueWebTests(WebServerHelpers, unittest.TestCase):
         status, body = self._get(port, "/league")
         self.assertEqual(status, 200)
         self.assertIn("League data needed", body)
+
+    def test_overview_names_what_to_scout_and_how_well_starters_are_known(self):
+        status, body = self._get(self.port, "/league?tactic=balanced_442")
+        self.assertEqual(status, 200)
+        for text in ("What to scout next", "Unscouted club player", "points of their best case rest on him",
+                     "Starters: 11 known · 0 partly known · 0 unknown", "squads read completely",
+                     "not scored yet: Partial club (Roster incomplete)", "Since last read"):
+            self.assertIn(text, body)
+
+    def test_a_second_read_explains_what_changed(self):
+        from fm_analytics.domain import AttributeObservation, Visibility
+        self._get(self.port, "/league?tactic=balanced_442")
+        rival = self.capture.teams[2]
+        scouted = tuple(replace(player, attributes={key: AttributeObservation(Visibility.KNOWN, value=14)
+                                                    for key in player.attributes}) for player in rival.squad.players)
+        self.capture = replace(self.capture, membership_evidence="Scouted the unscouted club",
+                               teams=self.capture.teams[:2] + (replace(rival, squad=replace(rival.squad, players=scouted)),)
+                               + self.capture.teams[3:])
+        status, body = self._get(self.port, "/league?tactic=balanced_442")
+        self.assertEqual(status, 200)
+        self.assertIn("range narrower", body)
+        status, body = self._get(self.port, "/league/teams/rival-2?tactic=balanced_442")
+        self.assertIn("Since the read at game date", body)
+        self.assertIn("best XI range 0.0–", body)
+
+    def test_team_and_player_pages_explain_xi_differences_and_gaps(self):
+        status, body = self._get(self.port, "/league/teams/rival-2?tactic=balanced_442")
+        self.assertEqual(status, 200)
+        self.assertIn("conservative XI", body)
+        self.assertIn("Role attributes", body)
+        self.assertIn("What to learn next", body)
+        player = self.capture.teams[2].squad.players[0].id
+        status, body = self._get(self.port, f"/league/teams/rival-2/players/{player}?tactic=balanced_442")
+        self.assertEqual(status, 200)
+        self.assertIn("What would sharpen his score", body)
+        self.assertIn("Scout more", body)
 
     def test_reading_the_league_from_fm_is_offered_and_reported(self):
         reads = []

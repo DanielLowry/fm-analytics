@@ -436,6 +436,12 @@ synthetic case above was not measured. The likely reason is that FM shows
 fewer positions for most rivals than the generator's two to four, and eligible
 slots drive the cost.
 
+With the per-club cache and scouting guidance added the same day, a cold
+comparison of that league took 16.3 seconds, about one second more, spent
+scoring reserves in each XI's slots. Re-reading it unchanged three game days
+later took 0.02 seconds, because a club's result is keyed by its inputs and not
+by the date.
+
 The HTTP path consequently uses a single background computing job with one
 replaceable pending request. It publishes whole revisions and retains a
 previous completed view within the same save/tactic scope. The calculation is

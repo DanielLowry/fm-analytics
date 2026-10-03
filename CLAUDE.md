@@ -43,6 +43,9 @@ analytics inside a handler. The match review follows the same rule:
 the one behind `fm-matches export` and the web's `/api/export`.
 `reporting.build_contract_review` is the one computation behind `/contracts`
 and the squad player report's Contract plan panel.
+`reporting.build_league_comparison` is the one behind `/league` and its team
+pages, deliberately without recent form (it exists only for our players), and
+`reporting.league_scope` decides which earlier read a new one is compared with.
 `reporting.build_appearance_coverage` is the one behind `fm-matches coverage`:
 which appearances have a known tactic, position and role with its duty, and
 `reporting.build_player_form` the one behind `fm-matches form`: each player's

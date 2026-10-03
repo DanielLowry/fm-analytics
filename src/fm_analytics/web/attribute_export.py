@@ -4,7 +4,7 @@ from __future__ import annotations
 import html
 import json
 
-from fm_analytics.analytics.scouting import _plays_in_goal
+from fm_analytics.analytics.scouting_candidate import plays_in_goal
 from fm_analytics.web.ui import ordered_positions
 
 
@@ -62,7 +62,7 @@ def player_export_record(name, age, attributes, positions, familiarity, *, club=
             ["outfield"] if any(p != "GK" for p in positions) else []
         )
     else:
-        keeper = _plays_in_goal(attributes)
+        keeper = plays_in_goal(attributes)
         families = ["goalkeeper"] if keeper is True else ["outfield"] if keeper is False else ["outfield", "goalkeeper"]
     return {
         "name": name, "age": age, "club": club, "positions": list(positions), "families": families,

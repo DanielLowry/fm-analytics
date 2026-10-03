@@ -3,8 +3,11 @@
 **Status:** in progress, 3 October 2026. Scenario scoring, dated capture history,
 and comparison screens are built. A live read-only capture of the whole league
 (`tools/fm20_league_capture.py`) now supplies them, with FM's own attribute and
-position visibility. It awaits a check of a few players and squads against FM's
-screens before slice 1 counts as done; see "Live league capture" below.
+position visibility. Re-reads recompute only the clubs that changed, explain
+what moved, and rank what to scout next by whether it could settle a club's
+standing against us (slices 3–5; see "Refresh and scouting guidance" below).
+Slice 1 still awaits a check of a few players and squads against FM's screens;
+see "Live league capture" below.
 **Request:** rank the players at every club in our league, select each club's
 best XI, score it with our existing team model, and compare clubs while showing
 the uncertainty caused by incomplete scouting.
@@ -71,10 +74,9 @@ by the live capture below, pending the checks against FM listed there.)
   for the generator and limits. This justified moving HTTP requests off the
   computing path; it does not establish the cost of a live full league.
 
-Still open: reuse of unchanged team computations across capture revisions, and
-scouting priorities measured by their effect on comparisons with us. The
-initial gap list ranks intrinsic role uncertainty rather than claiming that
-league impact.
+Still open at this point: reuse of unchanged team computations across capture
+revisions, and scouting priorities measured by their effect on comparisons
+with us. Both were done the same day; see "Refresh and scouting guidance" below.
 
 ## Live league capture (3 October 2026)
 
@@ -136,6 +138,51 @@ from the Tactics page, which does apply it.
    Also one other club's first-team list against the capture's count.
 3. Once a new season starts, rerun the capture before the first league match,
    to confirm that the league link already names the new season's clubs.
+
+## Refresh and scouting guidance (3 October 2026)
+
+- **Only changed clubs are recomputed.** Each club's result is cached under
+  everything it depends on: its players' observations and positions, its
+  roster and position completeness, whether it is ours, the tactic scope, and
+  a content fingerprint of the whole catalogue and selection policies. The
+  game date is not part of the key, so a new read where a club's squad and
+  knowledge are unchanged reuses its result. A transfer changes both clubs'
+  keys. On the real league, a cold comparison took 16.3 s and an unchanged
+  re-read 0.02 s. The web keeps up to 120 club results in memory.
+- **What changed since the last read.** Each comparison stores one small
+  summary per club (range, status, conservative system and XI) in the league
+  history database (migration v2), under a scope that fingerprints the model.
+  The next read in the same save and scope compares against the latest other
+  read. The overview's **Since last read** column and the team page say what
+  moved: the range, the system, players into and out of the conservative XI.
+  A tactic or policy edit starts a new scope, so a model change is never
+  presented as new knowledge about a club.
+- **What to scout next, measured against us**
+  (`analytics/league_insights.py`). For each rival, every player in its
+  best-case or floor XI, and every reserve who could fill one of their slots,
+  gets two bounds from the team formula:
+  - **Best case:** up to how much of the club's best case is lost if he is as
+    poor as he could be and the club uses its best other option in that slot.
+  - **Floor:** at least how far the club's floor rises if he is as good as he
+    could be.
+
+  A player whose bound alone could take the club's best case below our score,
+  or its floor above it, is marked **could show**, and these come first. The
+  overview lists the league's top ten, and each team page lists its own, with
+  the attributes most worth learning: **Scout more** for FM's unknowns and
+  ranges, **Capture needed** for values not read. On the real league, 34 of
+  359 such players could settle a comparison. Unscored clubs keep the plain
+  gap list. Cost: about 1 s on the cold comparison.
+- **Smaller gaps closed.** Overview: starting-XI knowledge (known / partly
+  known / unknown starters), complete-squad count, and which clubs are not
+  scored and why. Team page: what each floor and ceiling XI changes from the
+  conservative one, and per-player role-attribute coverage. Player page: the
+  attributes that would most sharpen his best-role score.
+
+Not done: links from a rival player to his Scouting report, while that area is
+being edited separately. Results across a server restart: the comparison is
+recomputed (club results are cached in memory only); only the summaries
+persist.
 
 ## Product decisions
 

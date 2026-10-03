@@ -11,7 +11,7 @@ from pathlib import Path
 
 from fm_analytics.analytics.league_comparison import LeagueReport
 from fm_analytics.domain.leagues import LeagueCapture
-from fm_analytics.reporting import RecommendationPolicy, build_league_comparison
+from fm_analytics.reporting import RecommendationPolicy, build_league_comparison, league_scope
 
 
 class LeagueOutOfDate(ValueError):
@@ -79,6 +79,25 @@ def league_capture_command(output: str | Path):
     return capture
 
 
+TEAM_CACHE_LIMIT = 120  # a few reads of a 24-club league, in two tactic scopes
+
+
+class _TeamCache(OrderedDict):
+    """Per-club results across reads, least recently used dropped first."""
+
+    def get(self, key, default=None):
+        if key not in self:
+            return default
+        self.move_to_end(key)
+        return self[key]
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self.move_to_end(key)
+        while len(self) > TEAM_CACHE_LIMIT:
+            self.popitem(last=False)
+
+
 class LeagueState:
     def setup_league(self, provider=None, store=None, capture=None):
         self.league_provider = provider
@@ -91,6 +110,7 @@ class LeagueState:
         self._league_lock = threading.Lock()
         self._league_compute_lock = threading.Lock()
         self._league_reports = OrderedDict()
+        self._league_team_cache = _TeamCache()
         self._league_errors = OrderedDict()
         self._league_pending = None
         self._league_active = None
@@ -149,15 +169,31 @@ class LeagueState:
             with self._league_lock:
                 if key in self._league_reports:
                     return self._league_reports[key]
+            scope = league_scope(key[1])
             if self.league_store is not None:
                 self.league_store.record(capture)
+                previous = self.league_store.previous_summaries(capture, scope)
+            else:
+                previous = self._previous_in_memory(capture, key)
             report = build_league_comparison(capture, policy=RecommendationPolicy(),
-                                            tactic_keys=(key[1],) if key[1] else None)
+                                            tactic_keys=(key[1],) if key[1] else None,
+                                            team_cache=self._league_team_cache, previous=previous)
+            if self.league_store is not None:
+                self.league_store.record_summaries(capture, scope, report.summaries())
             with self._league_lock:
                 self._league_reports[key] = report
                 while len(self._league_reports) > 2:
                     self._league_reports.popitem(last=False)
             return report
+
+    def _previous_in_memory(self, capture, key):
+        """Without a history database, the latest other report this session computed."""
+        with self._league_lock:
+            earlier = [report for old_key, report in self._league_reports.items()
+                       if old_key[1] == key[1] and old_key[0] != key[0]
+                       and report.capture.save_key == capture.save_key
+                       and report.capture.game.game_date <= capture.game.game_date]
+        return earlier[-1].summaries() if earlier else {}
 
     def league_view(self, tactic_key=None, *, retry=False):
         """Queue a coherent revision without blocking an HTTP request.
