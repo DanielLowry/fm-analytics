@@ -8,11 +8,21 @@
   ],
   "inTransition": {
     "whenPossessionLost": "Regroup",
-    "whenPossessionWon": "Counter"
+    "whenPossessionWon": "Counter",
+    "goalkeeperPace": "Distribute Quickly",
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
   },
   "outOfPossession": {
     "lineOfEngagement": "Standard",
-    "defensiveLine": "Standard"
+    "defensiveLine": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "Standard",
+    "preventShortGKDistribution": false
   },
   "inPossession": {
     "fixed": {
@@ -37,7 +47,8 @@
       "runAtDefence": true,
       "beMoreExpressive": false,
       "beMoreDisciplined": true
-    }
+    },
+    "timeWasting": "Never"
   },
   "slots": [
     {
@@ -92,7 +103,10 @@
       "key": "MCR",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Adds a runner from midfield so attacks are not limited to the front two and wide players."
+      "why": "Uses either a Box-to-Box Midfielder to add a third central runner or a Central Midfielder (Support) to provide a more reliable link between the holding midfielder, wingers and front two. The optimiser can choose according to the available player.",
+      "roles": [
+        "cm_support"
+      ]
     },
     {
       "key": "MR",
@@ -103,12 +117,12 @@
     {
       "key": "STL",
       "position": "ST",
-      "role": "dlf_support",
+      "role": "pf_support",
       "roles": [
-        "pf_support",
+        "dlf_support",
         "cf_support"
       ],
-      "why": "Drops off to connect direct passes and combine with the midfield before releasing the runner beyond."
+      "why": "Presses and links the attack while offering a target for vertical passes. DLF(S) or CF(S) remain alternatives when a more technical linking forward suits the player."
     },
     {
       "key": "STR",
@@ -125,7 +139,7 @@
       "width": 3.0,
       "defensiveCover": 6.0,
       "ballProgression": 4.5,
-      "runners": 3.0,
+      "runners": 2.5,
       "penetration": 1.5,
       "boxPresence": 1.5,
       "restDefence": 6.0
@@ -134,13 +148,13 @@
     "maximumCreators": 3
   },
   "style": "Vertical 4-4-2",
-  "description": "A simple lower-league 4-4-2 that keeps two banks of four but attacks more vertically, using a midfield runner, early wide service and a forward running beyond.",
-  "whyGood": "It preserves the defensive clarity of a basic 4-4-2 while creating more forward movement and shot volume without requiring sophisticated possession play.",
-  "whyThisShape": "Natural width stretches the opponent and gives simple passing options, two strikers occupy the centre-backs, and the box-to-box midfielder adds a third central runner. Slightly more direct passing and a higher tempo get the ball to the front two before the defence resets, and passing into space asks the advanced forward and wide players to attack space themselves rather than requiring intricate combination play. The structure remains familiar and easy to recruit for.",
-  "whenToUse": "As a proactive lower-league default when the balanced 4-4-2 is too passive, especially when you have pace up front, energetic midfielders and wide players who can deliver early.",
-  "whenNotToUse": "Against a side that dominates central midfield with three strong midfielders, or when your forwards lack pace and movement to exploit earlier, more vertical service.",
+  "description": "A simple lower-league 4-4-2 that keeps two banks of four but attacks vertically, using early wide service, two complementary forwards and either a midfield runner or a conventional supporting connector alongside the holding midfielder.",
+  "whyGood": "It preserves the defensive clarity of a basic 4-4-2 while creating direct forward threat without demanding sophisticated possession play. The second central-midfield role is flexible, so the tactic is not dependent on finding a specialist Box-to-Box Midfielder.",
+  "whyThisShape": "Natural width stretches the opponent and gives simple passing options, while two strikers occupy the centre-backs. Slightly more direct passing progresses vertically without making every pass a long ball. Higher tempo, pass into space and early crosses use the movement of the forwards and wingers before the defence resets. The MCR can either add a vertical runner as BBM(S) or act as a steadier connector as CM(S); the wingers and advanced forward already provide substantial penetration, so the tactic does not require the midfielder to break forward in every version. Regroup restores the two banks of four, and standard pressing keeps defensive effort sustainable. Run at defence, low crosses and greater discipline are starting fallbacks to review against the selected players: they encourage dribbling and deliveries into the movement of the front two while preserving the simple structure. Quick goalkeeper distribution with long kicks toward the flanks starts vertical attacks without requiring elaborate build-up.",
+  "whenToUse": "As the primary lower-league default when you want a compact 4-4-2 with quick vertical progression. Prefer BBM(S) when a genuinely strong runner is available; prefer CM(S) when the squad is better at passing, decisions and support play than repeated end-to-end running.",
+  "whenNotToUse": "Against a side that heavily overloads central midfield with three high-quality midfielders, or when the front players lack the pace and movement to exploit early, vertical service.",
   "instructionRationale": {
-    "Hit Early Crosses": "Gets service into the forwards before the defence is fully set and reduces reliance on elaborate overlapping play.",
+    "Hit Early Crosses": "Uses the productive wide players before the opposition defence is fully set and reduces dependence on overlapping full-backs.",
     "Counter": "Uses the front two and wide players immediately after regains.",
     "Regroup": "Restores the two banks of four after possession is lost rather than demanding an intensive counter-press.",
     "Standard Line of Engagement": "Avoids asking a lower-league squad to sustain a high press.",
@@ -218,6 +232,21 @@
     },
     {
       "attributes": {
+        "decisions": 2,
+        "passing": 2,
+        "teamwork": 2,
+        "firstTouch": 1,
+        "workRate": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attributes": {
         "firstTouch": 2,
         "decisions": 1,
         "teamwork": 1,
@@ -261,9 +290,9 @@
     }
   ],
   "keyRequirements": [
-    "A disciplined holding midfielder paired with a genuinely energetic Box-to-Box runner",
+    "A disciplined holding midfielder paired with either a genuinely energetic Box-to-Box runner or a reliable supporting central midfielder",
     "Wide players with enough pace and crossing to make early service worthwhile",
-    "A support striker who can receive and connect vertical passes without needing elite technique",
+    "A support striker who can work, receive and connect vertical passes",
     "A second striker with enough pace or movement to threaten the space beyond",
     "A conventional back four capable of defending a standard line without specialist demands"
   ],
@@ -426,6 +455,36 @@
       ],
       "roles": [
         "p_attack"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attribute": "teamwork",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
       ]
     }
   ]

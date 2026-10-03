@@ -166,12 +166,11 @@ class TacticsAndDepthPageTests(unittest.TestCase):
                 self.assertNotIn("Not yet set:", body)
                 self.assertIn("Every fixed in-possession setting is specified.", body)
                 self.assertIn(html.escape(tactic.in_possession.attacking_width), body)
-                if key in ("balanced_442", "attacking_424"):
-                    self.assertEqual(tactic.in_transition_missing_fields, ())
-                    self.assertEqual(tactic.out_of_possession_missing_fields, ())
-                    self.assertIn("Every in-transition setting is specified.", body)
-                    self.assertIn("Every out-of-possession setting is specified.", body)
-                    self.assertNotIn("Not set</b>", body)
+                self.assertEqual(tactic.in_transition_missing_fields, ())
+                self.assertEqual(tactic.out_of_possession_missing_fields, ())
+                self.assertIn("Every in-transition setting is specified.", body)
+                self.assertIn("Every out-of-possession setting is specified.", body)
+                self.assertNotIn("Not set</b>", body)
 
     def test_tactic_detail_says_which_attributes_the_tactic_leans_on(self) -> None:
         status, body = self._get("/tactics/balanced_442")
@@ -182,25 +181,27 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertIn("off the ball +2", body)
         self.assertNotIn("offTheBall", body)
 
-    def test_tactic_detail_shows_transition_choices_and_missing_distribution(self) -> None:
+    def test_tactic_detail_shows_transition_choices_and_distribution(self) -> None:
         status, body = self._get("/tactics/vertical_442")
         self.assertEqual(status, 200)
         section = body.split("<section class='in-transition-section'>", 1)[1].split("</section>", 1)[0]
         self.assertIn("When possession has been lost</span><b>Regroup", section)
         self.assertIn("When possession has been won</span><b>Counter", section)
-        self.assertIn("Goalkeeper in possession</span><b>Not set", section)
-        self.assertIn("Distribution type", section)
-        self.assertIn("Transition settings not yet specified:", section)
+        self.assertIn("Goalkeeper in possession</span><b>Distribute Quickly", section)
+        self.assertIn("Distribute To Flanks", section)
+        self.assertIn("Take Long Kicks", section)
+        self.assertIn("Every in-transition setting is specified.", section)
 
-    def test_tactic_detail_shows_defensive_lines_and_missing_settings(self) -> None:
+    def test_tactic_detail_shows_complete_defensive_settings(self) -> None:
         status, body = self._get("/tactics/vertical_442")
         self.assertEqual(status, 200)
         section = body.split("<section class='out-of-possession-section'>", 1)[1].split("</section>", 1)[0]
         self.assertIn("Line of engagement</span><b>Standard", section)
         self.assertIn("Defensive line</span><b>Standard", section)
-        self.assertIn("Use tighter marking</span><b>Not set", section)
-        self.assertIn("Pressing intensity</span><b>Not set", section)
-        self.assertIn("Prevent short GK distribution</span><b>Not set", section)
+        self.assertIn("Use tighter marking</span><b>Neutral", section)
+        self.assertIn("Pressing intensity</span><b>Standard", section)
+        self.assertIn("Prevent short GK distribution</span><b>No", section)
+        self.assertIn("Every out-of-possession setting is specified.", section)
 
     def test_tactic_detail_labels_an_introduced_role_requirement(self) -> None:
         status, body = self._get("/tactics/pressing_442")

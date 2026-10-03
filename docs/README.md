@@ -19,6 +19,9 @@
 - [Match analysis plan](match-analysis-plan.md) documents the match history:
   what is read live from FM, how matches are grouped by opposition strength,
   the Matches page and `fm-matches`, and the remaining research.
+- [Tactic and role-specific form plan](tactic-role-form-plan.md) proposes a
+  small recent-form adjustment, exact appearance attribution, and automatic
+  background match refresh with measured capture costs.
 - [League team comparison plan](league-comparison-plan.md) covers complete
   league rosters, player rankings, best-XI score ranges, and a league overview
   using the same scoring model as our own team. Capture-driven scoring,

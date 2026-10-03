@@ -118,9 +118,11 @@ class ReviewTests(unittest.TestCase):
         unknown = review(ReviewFilters(tactic=NO_TACTIC))
         self.assertEqual(len(unknown.matches), 4)
 
-    def test_a_permitted_alternate_role_still_names_the_tactic_but_two_fits_name_none(self) -> None:
-        # Vertical 4-4-2 lists Pressing Forward as an alternative to its default Deep-Lying Forward.
-        self.assertEqual(MVP_CATALOGUE.tactics["vertical_442"].slots[-2].role_key, "dlf_support")
+    def test_a_unique_role_version_names_the_tactic_but_two_fits_name_none(self) -> None:
+        # The Pressing Forward version uniquely fits Vertical 4-4-2.
+        slot = MVP_CATALOGUE.tactics["vertical_442"].slots[-2]
+        self.assertIn("pf_support", slot.role_keys)
+        self.assertIn("dlf_support", slot.role_keys)
         detailed = {s.match.key: s for s in review().matches}["2019-09-01:100:201"]
         self.assertEqual(detailed.tactic_key, "vertical_442")
         # With a Deep-Lying Forward the same eleven also fit Direct Counter 4-4-2.

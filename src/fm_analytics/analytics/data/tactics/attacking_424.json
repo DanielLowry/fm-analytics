@@ -2,12 +2,12 @@
   "key": "attacking_424",
   "name": "Attacking 4-2-4",
   "formation": "4-2-4",
-  "mentality": "Attacking",
+  "mentality": "Positive",
   "instructions": [],
   "inPossession": {
     "fixed": {
       "attackingWidth": "Fairly Wide",
-      "passingDirectness": "More Direct Passing",
+      "passingDirectness": "Slightly More Direct Passing",
       "tempo": "Higher Tempo",
       "passIntoSpace": true,
       "playOutOfDefence": false,
@@ -34,12 +34,16 @@
     "whenPossessionLost": "Counter-Press",
     "whenPossessionWon": "Counter",
     "goalkeeperPace": "Distribute Quickly",
-    "distributionTargets": ["Distribute To Flanks"],
-    "distributionTypes": ["Take Long Kicks"]
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
   },
   "outOfPossession": {
-    "lineOfEngagement": "Higher",
-    "defensiveLine": "Higher",
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "More Urgent",
     "preventShortGKDistribution": false
@@ -48,14 +52,14 @@
     {
       "key": "GK",
       "position": "GK",
-      "role": "sk_defend",
-      "why": "Sweeper keeper covers the space behind a high line and distributes quickly with long kicks toward the flanks to release the wide attackers."
+      "role": "gk_defend",
+      "why": "Keeps goalkeeping simple while distributing quickly and directly toward the flanks; a sweeper keeper is unnecessary with the standard defensive line."
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back stays reasonably safe, because the wide attackers already supply the width."
+      "why": "Provides conservative support behind the advanced left-sided attacker without being instructed to overlap aggressively."
     },
     {
       "key": "DCL",
@@ -64,34 +68,34 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender marks the striker; with a high line there is little room for error, so pace matters. Cover is the alternate."
+      "why": "Defends simply in a standard line. Cover is available when the selected defender's pace and anticipation justify it."
     },
     {
       "key": "DCR",
       "position": "DC",
-      "role": "cd_cover",
+      "role": "cd_defend",
       "roles": [
-        "cd_defend"
+        "cd_cover"
       ],
-      "why": "Cover centre-back sweeps up behind his partner, since runners in behind are the main danger against a line this high."
+      "why": "Defends simply in a standard line. At most one centre-back should use Cover."
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right, holding a safer position while the wide attackers work the flank."
+      "why": "Provides conservative support behind the advanced right-sided attacker without being instructed to overlap aggressively."
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "bwm_mc_defend",
-      "why": "Ball-Winning Midfielder (Defend) attacks loose balls and supports the counter-press, but retains more defensive discipline in a two-man midfield than the Support duty."
+      "why": "Ball-Winning Midfielder (Defend) contests central possession and supports the counter-press. He can leave his position to chase the ball, so the midfield pair must recover together when the first press is beaten."
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "dlp_mc_support",
-      "why": "Deep-lying playmaker is the only creative player in the middle and gets the ball to the four forwards quickly."
+      "why": "Deep-Lying Playmaker (Support) provides the secure distributor who can release the four attackers without needing an extra midfield runner."
     },
     {
       "key": "AML",
@@ -108,11 +112,12 @@
     {
       "key": "STL",
       "position": "ST",
-      "role": "dlf_support",
+      "role": "pf_support",
       "roles": [
+        "dlf_support",
         "cf_support"
       ],
-      "why": "Deep-lying forward links the two wide players with the other striker, and is the one forward who drops to receive the ball."
+      "why": "Pressing Forward (Support) links the front four and leads the counter-press. DLF(S) or CF(S) remain alternatives for a more technical support striker."
     },
     {
       "key": "STR",
@@ -128,7 +133,7 @@
     "minimums": {
       "width": 3.0,
       "defensiveCover": 6.0,
-      "ballProgression": 3.5,
+      "ballProgression": 3.3,
       "runners": 3.0,
       "penetration": 3.5,
       "boxPresence": 2.5,
@@ -138,39 +143,38 @@
     "maximumCreators": 3
   },
   "style": "Attacking 4-2-4",
-  "description": "A deliberately high-risk 4-2-4 that commits four players to the front line, presses aggressively after losses and moves the ball forward quickly. It is a forcing tactic rather than a default shape.",
-  "whyGood": "The DLF supplies the connection the shape would otherwise lack, the DLP provides central distribution, and the other three attackers provide width, box threat and runs beyond. The BWM gives the exposed two-man midfield a dedicated ball-winner.",
-  "whyThisShape": "Four forwards and only two central midfielders: the most one-sided shape in the catalogue. Four attackers pin the opposition back line, and the two midfielders win the ball and feed it forward at once. Fairly wide attacking width stretches the back line; more direct passing and higher tempo bypass the crowded middle and reach the forwards before the defence resets. Pass into space gives the mobile attackers deliveries to run onto, without requiring a patient build-up from defence or working every chance into the box. Low crosses and running at defence are starting fallbacks to review against the selected attackers. Quick goalkeeper distribution with long kicks toward the flanks keeps the wide attackers involved immediately after a save. More urgent pressing supports the counter-press, while neutral tighter marking and no forced prevention of short goalkeeper distribution avoid adding a man-marking or goalkeeper-press assignment to an already exposed two-man midfield.",
-  "whenToUse": "When you need to force the game, particularly when chasing a result or when you can sustain pressure against an opponent whose defensive structure is being overwhelmed.",
-  "whenNotToUse": "Against opponents who can play through pressure or exploit space around the two central midfielders and behind the high defensive line. It is too structurally aggressive to serve as a routine season-long default.",
+  "description": "A proactive 4-2-4: four advanced attackers stretch the opposition, a BWM contests central possession, and a DLP supplies them quickly. Positive mentality and a standard defensive line reduce the risk, while the two-man midfield still depends on a coordinated press and recovery work.",
+  "whyGood": "Two wide threats, a linking support striker and an Advanced Forward provide complementary attacking options without needing an extra midfield runner. The BWM contests possession and the DLP distributes, but winning the first press matters because the ball-winner is not a stationary midfield screen.",
+  "whyThisShape": "The front four pin and stretch the opposition back line while the two midfielders perform distinct jobs: one contests possession, the other distributes. Fairly wide attacking width spreads the attacking options. Slightly more direct passing reaches the forwards quickly without making every pass a long ball; higher tempo and pass into space exploit their movement before the defence resets. Run at defence and low crosses are starting fallbacks to review against the selected players: they favour dribbling and movement across the box without requiring dominant aerial forwards. Quick goalkeeper distribution with long kicks toward the flanks releases the wide outlets without demanding elaborate build-up. Counter-pressing uses the four advanced players to contest losses immediately, and countering takes advantage of their advanced positions after regains. Positive mentality reduces the default risk so the tactic can be used from kick-off. The standard defensive line reduces space behind the back four, while a standard line of engagement sets the settled press in a middle block. These lines do not remove the gaps a pressing ball-winner can leave around the two-man midfield.",
+  "whenToUse": "As a genuine alternative to the 4-4-2 when you want more players on the opposition back line, particularly against sides whose defence can be stretched or whose wide areas can be attacked. It can also become the natural chasing-the-game shape without requiring a wholesale tactical rewrite.",
+  "whenNotToUse": "Against strong three-man central midfields or technically secure opponents who can consistently play through the first counter-press. Avoid it when the midfield pair or wide attackers are too tired to sustain recovery work.",
   "instructionRationale": {
-    "Counter-Press": "Wins the ball back at once so you can attack again while the opponent is still out of shape.",
-    "Counter": "Attacks quickly on winning the ball, before the opposition can recover their shape.",
-    "Higher Line of Engagement": "Keeps the press high, so the attackers are supported by pressure on the ball.",
-    "Higher Defensive Line": "Keeps the team compact so two midfielders have less ground to cover, at the cost of exposing slower defenders.",
-    "More Urgent Pressing": "Closes the ball carrier sooner to support immediate regains without choosing the most extreme pressing setting."
+    "Counter-Press": "Uses the four advanced players to contest the ball immediately after it is lost.",
+    "Counter": "Attacks quickly after regains while the front four are already positioned high.",
+    "More Urgent Pressing": "Supports the counter-press without using the most extreme pressing level.",
+    "Standard Line of Engagement": "Sets the settled press in a middle block; recovery after a failed counter-press still needs to be coordinated.",
+    "Standard Defensive Line": "Reduces space behind the back four and allows a conventional goalkeeper, while positioning and awareness remain important."
   },
   "attributeEmphasis": [
     {
       "attributes": {
-        "rushingOut": 2,
-        "anticipation": 2,
+        "kicking": 2,
         "decisions": 1,
-        "acceleration": 1
+        "anticipation": 1
       },
       "positions": [
         "GK"
       ],
       "roles": [
-        "sk_defend"
+        "gk_defend"
       ]
     },
     {
       "attributes": {
-        "pace": 2,
-        "acceleration": 2,
-        "anticipation": 2,
-        "concentration": 1
+        "positioning": 2,
+        "concentration": 2,
+        "anticipation": 1,
+        "pace": 1
       },
       "positions": [
         "DC"
@@ -181,8 +185,9 @@
     },
     {
       "attributes": {
-        "pace": 1,
-        "anticipation": 1,
+        "pace": 2,
+        "anticipation": 2,
+        "acceleration": 1,
         "concentration": 1
       },
       "positions": [
@@ -272,20 +277,17 @@
     },
     {
       "attributes": {
-        "firstTouch": 2,
-        "decisions": 2,
-        "passing": 1,
-        "teamwork": 1,
-        "stamina": 2
+        "workRate": 2,
+        "stamina": 2,
+        "anticipation": 1,
+        "firstTouch": 1,
+        "teamwork": 1
       },
       "positions": [
         "ST"
       ],
       "roles": [
-        "dlf_support"
-      ],
-      "introduceAttributes": [
-        "stamina"
+        "pf_support"
       ]
     },
     {
@@ -300,6 +302,7 @@
         "ST"
       ],
       "roles": [
+        "dlf_support",
         "cf_support"
       ]
     },
@@ -337,11 +340,12 @@
     }
   ],
   "keyRequirements": [
-    "A sweeper keeper and quick centre-backs capable of defending the space behind a high line",
-    "A two-man midfield with one disciplined ball-winner and one technically secure distributor",
-    "Four attackers with enough movement and athleticism to sustain an aggressive front line",
-    "A support striker capable of connecting direct progression to the other three attackers",
-    "Enough stamina across midfield and attack to make the counter-press viable"
+    "A disciplined ball-winner and a technically secure distributor who can survive as a two-man midfield",
+    "Four attackers with enough movement and athleticism to stretch the opposition and participate in transitions",
+    "A support striker with enough work rate to connect the attack and lead the first press",
+    "An Advanced Forward or Poacher who consistently threatens space behind",
+    "Centre-backs reliable enough for a standard line; elite high-line recovery pace is no longer mandatory",
+    "Full-backs capable of supporting possession without being relied upon as the main source of width"
   ],
   "tags": [
     "attacking",
@@ -350,23 +354,23 @@
   ],
   "attributeTaper": [
     {
-      "attribute": "rushingOut",
-      "taperBelow": 8,
+      "attribute": "positioning",
+      "taperBelow": 7,
       "positions": [
-        "GK"
+        "DC"
       ],
       "roles": [
-        "sk_defend"
+        "cd_defend"
       ]
     },
     {
-      "attribute": "anticipation",
-      "taperBelow": 8,
+      "attribute": "concentration",
+      "taperBelow": 7,
       "positions": [
-        "GK"
+        "DC"
       ],
       "roles": [
-        "sk_defend"
+        "cd_defend"
       ]
     },
     {
@@ -376,7 +380,7 @@
         "DC"
       ],
       "roles": [
-        "cd_defend"
+        "cd_cover"
       ]
     },
     {
@@ -386,24 +390,12 @@
         "DC"
       ],
       "roles": [
-        "cd_defend",
         "cd_cover"
       ]
     },
     {
       "attribute": "anticipation",
       "taperBelow": 8,
-      "positions": [
-        "DC"
-      ],
-      "roles": [
-        "cd_defend",
-        "cd_cover"
-      ]
-    },
-    {
-      "attribute": "pace",
-      "taperBelow": 9,
       "positions": [
         "DC"
       ],
@@ -572,6 +564,36 @@
       ]
     },
     {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_support"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_support"
+      ]
+    },
+    {
       "attribute": "firstTouch",
       "taperBelow": 8,
       "positions": [
@@ -585,17 +607,6 @@
     {
       "attribute": "decisions",
       "taperBelow": 8,
-      "positions": [
-        "ST"
-      ],
-      "roles": [
-        "dlf_support",
-        "cf_support"
-      ]
-    },
-    {
-      "attribute": "stamina",
-      "taperBelow": 7,
       "positions": [
         "ST"
       ],
