@@ -17,6 +17,8 @@ import sys
 from pathlib import Path
 
 from fm_analytics.analytics.catalogue import MVP_CATALOGUE, TacticDefinition
+from fm_analytics.analytics.in_transition import in_transition_selected_instructions
+from fm_analytics.analytics.out_of_possession import out_of_possession_selected_instructions
 
 OUTPUT = Path(__file__).resolve().parents[1] / "docs" / "tactic-catalogue.md"
 
@@ -137,7 +139,12 @@ def render() -> str:
             f"- **Leans on:** " + leans_detail(tactic),
             *([f"- **Expects at least (tapers below):** " + taper_detail(tactic)] if tactic.attribute_taper else []),
             f"- **Needs:** " + ("; ".join(tactic.key_requirements) or "—"),
-            f"- **Instructions:** " + ("; ".join(tactic.instructions) or "—"),
+            f"- **Instructions:** " + (
+                "; ".join(
+                    tactic.instructions + in_transition_selected_instructions(tactic.in_transition)
+                    + out_of_possession_selected_instructions(tactic.out_of_possession)
+                ) or "—"
+            ),
             f"- **Avoid when:** {first_sentence(tactic.when_not_to_use)}",
             "",
         ]

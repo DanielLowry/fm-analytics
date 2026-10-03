@@ -12,7 +12,7 @@ def small_catalogue():
     positions = tuple(sorted({slot.position for slot in tactic.slots}))
     role = RoleDefinition("generic", "Generic role", positions, (RoleAttribute("passing", 1),),
                           MVP_CATALOGUE.version)
-    tactic = replace(tactic, instructions=(), instruction_rationale={}, in_possession=None, attribute_taper=(),
+    tactic = replace(tactic, instructions=(), instruction_rationale={}, in_possession=None, in_transition=None, out_of_possession=None, attribute_taper=(),
                      attribute_emphasis=(), slots=tuple(replace(slot, role_key=role.key,
                      alternate_role_keys=(), attribute_emphasis={}) for slot in tactic.slots))
     return FootballCatalogue(MVP_CATALOGUE.version, {role.key: role}, {tactic.key: tactic})

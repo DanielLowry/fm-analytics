@@ -17,6 +17,8 @@ from fm_analytics.web.opponent_controls import (
     opponent_summary_items as _opponent_summary_items,
 )
 from fm_analytics.web.in_possession_render import in_possession_section
+from fm_analytics.web.in_transition_render import in_transition_section
+from fm_analytics.web.out_of_possession_render import out_of_possession_section
 from fm_analytics.web.rendering import (
     _band,
     _error_page,
@@ -505,6 +507,8 @@ class TacticPagesMixin:
             "<p>Use this after the matchday choices are clear: it explains the score, shape, and FM settings.</p>"
             "</div></div>"
             + in_possession_section(evaluation.tactic)
+            + in_transition_section(evaluation.tactic)
+            + out_of_possession_section(evaluation.tactic)
             + rationale
             + (f"<div class='fm-tactic-training'>{training}</div>" if training else "")
             + score_breakdown

@@ -24,6 +24,19 @@ from fm_analytics.analytics.in_possession import (
     in_possession_from_json,
     in_possession_instruction_strings,
 )
+from fm_analytics.analytics.in_transition import (
+    ALL_FIELD_LABELS as ALL_TRANSITION_FIELD_LABELS,
+    InTransitionSettings,
+    in_transition_from_json,
+    in_transition_instruction_strings,
+)
+from fm_analytics.analytics.out_of_possession import (
+    ALL_FIELD_LABELS as ALL_DEFENSIVE_FIELD_LABELS,
+    OutOfPossessionSettings,
+    out_of_possession_from_json,
+    out_of_possession_selected_instructions,
+    validate_legacy_instructions as validate_legacy_defensive_instructions,
+)
 from fm_analytics.analytics.role_scoring import (
     RoleAttribute,
     RoleDefinition,
@@ -215,6 +228,20 @@ class TacticDefinition:
     # any yet, which is why `in_possession_missing_fields` below is a
     # property of the tactic rather than of `InPossessionSettings` alone.
     in_possession: InPossessionSettings | None = None
+    in_transition: InTransitionSettings | None = None
+    out_of_possession: OutOfPossessionSettings | None = None
+
+    @property
+    def out_of_possession_missing_fields(self) -> tuple[str, ...]:
+        if self.out_of_possession is None:
+            return ALL_DEFENSIVE_FIELD_LABELS
+        return self.out_of_possession.missing_fields
+
+    @property
+    def in_transition_missing_fields(self) -> tuple[str, ...]:
+        if self.in_transition is None:
+            return ALL_TRANSITION_FIELD_LABELS
+        return self.in_transition.missing_fields
 
     @property
     def emphasised_attributes(self) -> tuple[str, ...]:
@@ -263,11 +290,32 @@ class TacticDefinition:
                         f"{self.key}/{slot.key}: attribute emphasis {attribute!r} must be "
                         f"between -{MAX_EFFECTIVE_WEIGHT} and {MAX_EFFECTIVE_WEIGHT}"
                     )
-        stray = sorted(set(self.instruction_rationale) - set(self.instructions))
+        transition_instructions = in_transition_instruction_strings(self.in_transition)
+        defensive_instructions = out_of_possession_selected_instructions(self.out_of_possession)
+        stray = sorted(
+            set(self.instruction_rationale)
+            - set(self.instructions + transition_instructions + defensive_instructions)
+        )
         if stray:
             raise ValueError(
                 f"tactic {self.key!r} explains instructions it does not use: {stray!r}"
             )
+        duplicated_transition = sorted(set(transition_instructions) & set(self.instructions))
+        if duplicated_transition:
+            raise ValueError(
+                f"tactic {self.key!r}: {duplicated_transition!r} are set both in inTransition "
+                "and instructions; remove the legacy strings to avoid double-counting"
+            )
+        if self.in_transition is not None:
+            for value, alternatives in (
+                (self.in_transition.when_possession_lost, {"Counter-Press", "Regroup"}),
+                (self.in_transition.when_possession_won, {"Counter", "Hold Shape"}),
+            ):
+                if value is not None and set(self.instructions) & alternatives:
+                    raise ValueError(
+                        f"tactic {self.key!r}: inTransition conflicts with legacy instructions"
+                    )
+        validate_legacy_defensive_instructions(self.out_of_possession, self.instructions, self.key)
         duplicated = sorted(
             set(in_possession_instruction_strings(self.in_possession)) & set(self.instructions)
         )
@@ -627,6 +675,12 @@ def _tactic_from_json(raw: Mapping[str, Any], *, version: str) -> TacticDefiniti
         in_possession=in_possession_from_json(
             raw.get("inPossession"), _str(raw, "key"), only_known_keys=_only_known_keys
         ),
+        in_transition=in_transition_from_json(
+            raw.get("inTransition"), _str(raw, "key"), only_known_keys=_only_known_keys
+        ),
+        out_of_possession=out_of_possession_from_json(
+            raw.get("outOfPossession"), _str(raw, "key"), only_known_keys=_only_known_keys
+        ),
     )
 
 
@@ -740,7 +794,7 @@ _TACTIC_KEYS = frozenset({
     "key", "name", "formation", "mentality", "instructions", "slots", "system",
     "style", "description", "whyGood", "whyThisShape", "whenToUse", "whenNotToUse",
     "instructionRationale", "keyRequirements", "tags", "attributeEmphasis",
-    "attributeTaper", "inPossession",
+    "attributeTaper", "inPossession", "inTransition", "outOfPossession",
 })
 _TAPER_KEYS = frozenset({"attribute", "taperBelow", "positions", "roles"})
 _SLOT_KEYS = frozenset({"key", "position", "role", "roles", "why", "attributeEmphasis"})

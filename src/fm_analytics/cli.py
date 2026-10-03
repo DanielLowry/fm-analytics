@@ -25,6 +25,8 @@ from fm_analytics.analytics import (
     opponent_system_floors,
 )
 from fm_analytics.analytics.opponent import AXIS_MAXIMUM, AXIS_MINIMUM
+from fm_analytics.analytics.in_transition import in_transition_selected_instructions
+from fm_analytics.analytics.out_of_possession import out_of_possession_selected_instructions
 from fm_analytics.domain import GameState, Player, Squad
 from fm_analytics.imports import (
     FmHtmlExport,
@@ -373,7 +375,11 @@ def render_recommendation(
     lines.extend(
         (
             f"Mentality: {selected.tactic.mentality}",
-            "Instructions: " + "; ".join(selected.tactic.instructions),
+            "Instructions: " + "; ".join(
+                selected.tactic.instructions
+                + in_transition_selected_instructions(selected.tactic.in_transition)
+                + out_of_possession_selected_instructions(selected.tactic.out_of_possession)
+            ),
             "",
             "Starting XI" if selected.has_legal_xi else "Best feasible partial XI",
             "-----------" if selected.has_legal_xi else "------------------------",

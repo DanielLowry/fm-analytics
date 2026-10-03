@@ -73,6 +73,19 @@ class RecommendationCliTests(unittest.TestCase):
         self.assertIn("Squad depth across evaluated tactics", output.getvalue())
         source.read_snapshot.assert_called_once_with()
 
+    def test_structured_transition_instructions_remain_in_cli_output(self) -> None:
+        game, squad = self._complete_owned_snapshot()
+        output = io.StringIO()
+        with patch("fm_analytics.cli.LinuxProtonDataSource") as source_class, redirect_stdout(output):
+            source_class.return_value.read_snapshot.return_value = game, squad
+            status = main(["--direct-live", "--recommend", "--my-tactics", "vertical_442"])
+        self.assertEqual(status, 0)
+        instructions = next(line for line in output.getvalue().splitlines() if line.startswith("Instructions:"))
+        self.assertIn("Counter", instructions)
+        self.assertIn("Regroup", instructions)
+        self.assertIn("Standard Line of Engagement", instructions)
+        self.assertIn("Standard Defensive Line", instructions)
+
     def test_direct_live_refuses_mismatched_game_and_squad_dates(self) -> None:
         game, squad = self._complete_owned_snapshot()
         output = io.StringIO()

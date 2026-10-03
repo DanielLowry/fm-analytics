@@ -238,6 +238,11 @@ class ExportCliTests(HistoryCase):
         self.assertEqual(code, 0, text)
         live.assert_called_once_with(("vertical_442",))
         self.assertEqual(len(json.loads(text)["squad"]), 11)
+        instructions = json.loads(text)["recommendation"]["primary"]["instructions"]
+        self.assertIn("Counter", instructions)
+        self.assertIn("Regroup", instructions)
+        self.assertIn("Standard Line of Engagement", instructions)
+        self.assertIn("Standard Defensive Line", instructions)
 
     def test_squad_none_skips_fm_and_a_failed_read_says_how_to_skip_it(self) -> None:
         with mock.patch.object(match_ingest, "read_live_bundle") as live:

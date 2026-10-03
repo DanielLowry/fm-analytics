@@ -24,6 +24,8 @@ from datetime import date, datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Iterable, Mapping
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
+from fm_analytics.analytics.in_transition import in_transition_selected_instructions
+from fm_analytics.analytics.out_of_possession import out_of_possession_selected_instructions
 from fm_analytics.analytics.match_analysis import METRICS, MIN_GROUP_MATCHES, GroupSummary, MatchReview, MatchSummary
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
 from fm_analytics.analytics.match_interventions import InterventionEvaluation
@@ -342,7 +344,11 @@ def _recommendation(bundle: RecommendationBundle, detail: str) -> dict[str, Any]
         "tactic_ranking": [{"rank": rank, **_evaluation(evaluation)} for rank, evaluation in ranked],
         "primary": _evaluation(primary) | {
             "mentality": primary.tactic.mentality,
-            "instructions": list(primary.tactic.instructions),
+            "instructions": list(
+                primary.tactic.instructions
+                + in_transition_selected_instructions(primary.tactic.in_transition)
+                + out_of_possession_selected_instructions(primary.tactic.out_of_possession)
+            ),
             "xi": [
                 {
                     "slot": assignment.slot.key, "player": assignment.player_name,

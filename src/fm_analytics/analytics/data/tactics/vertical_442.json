@@ -4,12 +4,16 @@
   "formation": "4-4-2",
   "mentality": "Balanced",
   "instructions": [
-    "Hit Early Crosses",
-    "Counter",
-    "Regroup",
-    "Standard Line of Engagement",
-    "Standard Defensive Line"
+    "Hit Early Crosses"
   ],
+  "inTransition": {
+    "whenPossessionLost": "Regroup",
+    "whenPossessionWon": "Counter"
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard"
+  },
   "inPossession": {
     "fixed": {
       "attackingWidth": "Fairly Wide",

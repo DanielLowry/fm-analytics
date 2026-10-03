@@ -6,6 +6,8 @@ import unittest
 from pathlib import Path
 
 from fm_analytics.analytics.catalogue import MVP_CATALOGUE, load_catalogue
+from fm_analytics.analytics.in_transition import in_transition_instruction_strings
+from fm_analytics.analytics.out_of_possession import out_of_possession_selected_instructions
 
 DATA = Path(__file__).resolve().parents[1] / "src" / "fm_analytics" / "analytics" / "data"
 
@@ -25,7 +27,12 @@ class ShippedJustificationTests(unittest.TestCase):
     def test_every_instruction_is_explained(self) -> None:
         for tactic in MVP_CATALOGUE.tactics.values():
             self.assertEqual(
-                sorted(tactic.instruction_rationale), sorted(tactic.instructions), tactic.key
+                sorted(tactic.instruction_rationale),
+                sorted(
+                    tactic.instructions + in_transition_instruction_strings(tactic.in_transition)
+                    + out_of_possession_selected_instructions(tactic.out_of_possession)
+                ),
+                tactic.key,
             )
             for instruction, reason in tactic.instruction_rationale.items():
                 self.assertTrue(reason.strip(), f"{tactic.key}: {instruction}")

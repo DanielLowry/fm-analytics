@@ -175,6 +175,26 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertIn("off the ball +2", body)
         self.assertNotIn("offTheBall", body)
 
+    def test_tactic_detail_shows_transition_choices_and_missing_distribution(self) -> None:
+        status, body = self._get("/tactics/vertical_442")
+        self.assertEqual(status, 200)
+        section = body.split("<section class='in-transition-section'>", 1)[1].split("</section>", 1)[0]
+        self.assertIn("When possession has been lost</span><b>Regroup", section)
+        self.assertIn("When possession has been won</span><b>Counter", section)
+        self.assertIn("Goalkeeper in possession</span><b>Not set", section)
+        self.assertIn("Distribution type", section)
+        self.assertIn("Transition settings not yet specified:", section)
+
+    def test_tactic_detail_shows_defensive_lines_and_missing_settings(self) -> None:
+        status, body = self._get("/tactics/vertical_442")
+        self.assertEqual(status, 200)
+        section = body.split("<section class='out-of-possession-section'>", 1)[1].split("</section>", 1)[0]
+        self.assertIn("Line of engagement</span><b>Standard", section)
+        self.assertIn("Defensive line</span><b>Standard", section)
+        self.assertIn("Use tighter marking</span><b>Not set", section)
+        self.assertIn("Pressing intensity</span><b>Not set", section)
+        self.assertIn("Prevent short GK distribution</span><b>Not set", section)
+
     def test_tactic_detail_labels_an_introduced_role_requirement(self) -> None:
         status, body = self._get("/tactics/pressing_442")
 

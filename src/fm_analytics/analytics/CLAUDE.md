@@ -250,6 +250,89 @@ player-dependent value's legacy string, where one exists (e.g. `"Overlap
 Left"`), stays in `instructions` — deleting it would drop that scoring
 contribution with nothing yet computed to replace it.
 
+## In-transition settings
+
+A tactic may declare `inTransition` (`in_transition.py`): hand-authored
+instructions for possession changes and goalkeeper distribution. The tactic
+detail page always shows this phase, including fields not yet authored.
+
+```json
+"inTransition": {
+  "whenPossessionLost": "Regroup",
+  "whenPossessionWon": "Counter",
+  "goalkeeperPace": "Neither",
+  "distributionTargets": ["Distribute To Flanks", "Distribute To Target Man"],
+  "distributionTypes": ["Throw It Long", "Take Long Kicks"]
+}
+```
+
+- `whenPossessionLost`: Counter-Press, Regroup, or Neither.
+- `whenPossessionWon`: Counter, Hold Shape, or Neither.
+- `goalkeeperPace`: Distribute Quickly, Slow Pace Down, or Neither.
+- `distributionTargets`: any combination of Distribute Over Opposition Defence,
+  Distribute To Flanks, Distribute To Target Man, Distribute To Playmaker,
+  Distribute To Full Backs, and Distribute To Centre Backs.
+- `distributionTypes`: any combination of Roll It Out, Throw It Long,
+  Take Short Kicks, and Take Long Kicks.
+
+An omitted field is not yet authored; `Neither` or an empty list deliberately
+leaves the corresponding controls unselected. Explicit nulls, unknown keys,
+unknown choices, duplicate list entries, and multiple selections for an
+exclusive choice are refused.
+
+The possession-loss/win choices feed the existing instruction-fit scoring
+through `in_transition_instruction_strings`; goalkeeper distribution choices
+are presentation only, with no invented scoring demands.
+`in_transition_selected_instructions` includes distribution for CLI/export
+presentation. Moving an instruction into `inTransition` requires removing its
+legacy `instructions` string, but its `instructionRationale` stays: the loader
+accepts explanations of structured transition instructions. Duplicates and
+conflicts between structured and legacy transition choices are rejected.
+
+`vertical_442` and `wing_play_442` carry their existing transition choices in
+this block. Goalkeeper distribution is unauthored; other tactics retain their
+legacy instruction lists, which are shown alongside the phase's missing fields.
+
+## Out-of-possession settings
+
+A tactic may declare `outOfPossession` (`out_of_possession.py`). The tactic
+detail page always renders its defensive settings, flagging unauthored fields.
+
+```json
+"outOfPossession": {
+  "lineOfEngagement": "Standard",
+  "defensiveLine": "Standard",
+  "useTighterMarking": "Neutral",
+  "pressingIntensity": "Standard",
+  "preventShortGKDistribution": false
+}
+```
+
+Both line fields allow Standard, Lower, Much Lower, Higher, or Much Higher.
+Pressing intensity allows Standard, More Urgent, Extremely Urgent, Less Urgent,
+or Much Less Urgent. Marking and preventing short goalkeeper distribution
+each accept JSON `true`, `false`, or `"Neutral"`. Neutral leaves the control
+unselected; it is distinct from an omitted, unauthored field. Null values,
+unknown choices/keys, incorrect types and multiple selections are rejected.
+
+Existing line, pressing and goalkeeper-distribution scoring is preserved through
+explicit legacy mappings in `out_of_possession_instruction_strings`. Lower
+defensive line maps to the existing `Drop Off More Defensive Line`, Much Lower
+to `Much Deeper Defensive Line`, and Extremely Urgent pressing to
+`Much More Urgent Pressing`. Tighter marking, Much Higher defensive line and
+the other nonstandard pressing intensities have no existing scoring rule:
+they are displayed without inventing new scoring demands. Standard pressing,
+false and neutral flags add no scoring demand either.
+
+`out_of_possession_selected_instructions` includes every selected choice for
+CLI, export and catalogue-index presentation. Explanations may refer to
+structured defensive instructions. Once a field is authored, a legacy string
+for that same setting is refused, including contradictory and duplicate
+choices. Migrating a tactic removes those legacy strings and retains their
+`instructionRationale` text. `vertical_442` carries its existing standard
+lines structurally; its remaining fields are unauthored. Other tactics' legacy
+defensive instructions remain visible alongside the new section.
+
 ## The opponent
 
 `opponent.py` holds an `OpponentProfile`: a likely-formation choice plus nine

@@ -13,6 +13,8 @@ from typing import Mapping, Sequence
 
 from fm_analytics.analytics.catalogue import TacticDefinition
 from fm_analytics.analytics.in_possession import in_possession_instruction_strings
+from fm_analytics.analytics.in_transition import in_transition_instruction_strings
+from fm_analytics.analytics.out_of_possession import out_of_possession_instruction_strings
 from fm_analytics.analytics.role_scoring import RoleDefinition
 
 
@@ -128,14 +130,19 @@ def assess_coherence(
 def effective_instructions(tactic: TacticDefinition) -> tuple[str, ...]:
     """Every instruction string that feeds instruction-fit scoring.
 
-    The tactic's own free-text `instructions` plus any fixed in-possession
-    setting that has a scored legacy-string equivalent (see
-    `in_possession.in_possession_instruction_strings`). A fixed field is
+    The tactic's own free-text `instructions` plus fixed in-possession and
+    transition and defensive settings with scored legacy-string equivalents.
+    Choices without an existing scoring rule are presentation only. A structured choice is
     never also present literally in `instructions` --
     `TacticDefinition.__post_init__` refuses that combination -- so nothing
     here is ever double-counted.
     """
-    return tactic.instructions + in_possession_instruction_strings(tactic.in_possession)
+    return (
+        tactic.instructions
+        + in_possession_instruction_strings(tactic.in_possession)
+        + in_transition_instruction_strings(tactic.in_transition)
+        + out_of_possession_instruction_strings(tactic.out_of_possession)
+    )
 
 
 def assess_instruction_suitability(

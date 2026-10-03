@@ -5,9 +5,11 @@
   "mentality": "Positive",
   "instructions": [
     "Overlap Left",
-    "Overlap Right",
-    "Counter"
+    "Overlap Right"
   ],
+  "inTransition": {
+    "whenPossessionWon": "Counter"
+  },
   "inPossession": {
     "fixed": {
       "attackingWidth": "Fairly Wide",
