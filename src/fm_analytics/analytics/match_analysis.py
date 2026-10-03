@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from typing import Iterable, Mapping, Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
+from fm_analytics.analytics.appearance_context import appearance_roles
 from fm_analytics.analytics.match_players import PlayerSeason, summarise_players
 from fm_analytics.analytics.match_roles import RoleCodes, RoleSummary, summarise_roles
 from fm_analytics.analytics.match_strength import (
@@ -247,6 +248,8 @@ class MatchReview:
     unconfirmed_roles: tuple[UnconfirmedRoleCode, ...]
     leagues: tuple[Competition, ...]
     excluded: int
+    # (match key, side, short ID) -> the role each player played; see `appearance_roles`.
+    appearance_roles: Mapping[tuple[str, str, int], str] = field(default_factory=dict)
 
     @property
     def overall(self) -> GroupSummary:
@@ -310,7 +313,9 @@ def _period(minute: int, added_time: int = 0) -> str:
     return next(label for label, low, high in PERIODS if low <= minute <= high)
 
 
-def _goal_breakdown(summaries: Sequence[MatchSummary], codes: RoleCodes) -> GoalBreakdown:
+def _goal_breakdown(
+    summaries: Sequence[MatchSummary], codes: RoleCodes, roles: Mapping[tuple[str, str, int], str]
+) -> GoalBreakdown:
     scored, conceded = Counter(), Counter()
     scorers, assisters, conceded_to = Counter(), Counter(), Counter()
     incidents = Counter()
@@ -343,13 +348,14 @@ def _goal_breakdown(summaries: Sequence[MatchSummary], codes: RoleCodes) -> Goal
         covered_for += summary.goals_for
         covered_against += summary.goals_against
         for player in detail.players:
+            role = roles.get((match.key, player.side, player.short_id)) or codes.label(player.role_code)
             if player.side == summary.side:
                 if player.stat("goals"):
-                    scorers[codes.label(player.role_code)] += player.stat("goals")
+                    scorers[role] += player.stat("goals")
                 if player.stat("assists"):
-                    assisters[codes.label(player.role_code)] += player.stat("assists")
+                    assisters[role] += player.stat("assists")
             elif player.stat("goals"):
-                conceded_to[codes.label(player.role_code)] += player.stat("goals")
+                conceded_to[role] += player.stat("goals")
     labels = tuple(label for label, _low, _high in PERIODS)
     return GoalBreakdown(
         periods=labels,
@@ -395,7 +401,7 @@ class MatchReport:
     """One match as the match page shows it: its summary and its role names."""
 
     summary: MatchSummary
-    role_labels: Mapping[int, str]
+    role_labels: Mapping[tuple[str, int], str]  # (side, short ID) -> the role he played
 
 
 def report_match(
@@ -407,14 +413,15 @@ def report_match(
     catalogue: FootballCatalogue,
     notes: Mapping[str, object] = {},
     confirmed_role_codes: Mapping[int, str] = {},
+    usual_roles: Mapping[tuple[str, str], str] = {},
 ) -> MatchReport | None:
     codes = RoleCodes.build(catalogue, confirmed_role_codes)
     match = next((match for match in matches if match.key == match_key), None)
     if match is None:
         return None
     (summary,) = summarise_matches([match], leagues, club, notes=notes, codes=codes, grouping="table")
-    players = match.detail.players if match.detail else ()
-    return MatchReport(summary, {player.role_code: codes.label(player.role_code) for player in players})
+    roles = appearance_roles([match], club.id, notes=notes, codes=codes, usual_roles=usual_roles)
+    return MatchReport(summary, {(side, short_id): role for (_key, side, short_id), role in roles.items()})
 
 
 def review_matches(
@@ -426,8 +433,11 @@ def review_matches(
     notes: Mapping[str, object] = {},
     confirmed_role_codes: Mapping[int, str] = {},
     filters: ReviewFilters = ReviewFilters(),
+    usual_roles: Mapping[tuple[str, str], str] = {},
 ) -> MatchReview:
     codes = RoleCodes.build(catalogue, confirmed_role_codes)
+    # The role each player had in each match, with the duty his slot settles.
+    roles = appearance_roles(matches, club.id, notes=notes, codes=codes, usual_roles=usual_roles)
     league_ids = {competition.id for competition, _results in leagues}
     everything = summarise_matches(
         matches, leagues, club, notes=notes, codes=codes, grouping=filters.grouping
@@ -467,7 +477,10 @@ def review_matches(
         for key in tactic_keys
     )
     appearances = [
-        (player, summary.match.key, int(summary.ours["shots"] or 0) if summary.ours else 0)
+        (
+            player, summary.match.key, int(summary.ours["shots"] or 0) if summary.ours else 0,
+            roles.get((summary.match.key, player.side, player.short_id)) or codes.label(player.role_code),
+        )
         for summary in selected
         if summary.match.detail is not None
         for player in summary.match.detail.players_for(summary.side)
@@ -481,18 +494,21 @@ def review_matches(
         groups=groups,
         venues=venues,
         tactics=tactics,
-        goals=_goal_breakdown(selected, codes),
+        goals=_goal_breakdown(selected, codes, roles),
         roles=summarise_roles(appearances, codes),
         players=summarise_players(
             (
-                (player, summary.match.date, summary.opponent.name)
+                (
+                    player, summary.match.date, summary.opponent.name,
+                    roles.get((summary.match.key, player.side, player.short_id)) or codes.label(player.role_code),
+                )
                 for summary in selected
                 if summary.match.detail is not None
                 for player in summary.match.detail.players_for(summary.side)
             ),
-            codes,
         ),
         unconfirmed_roles=_unconfirmed(selected, codes),
         leagues=tuple(competition for competition, _results in leagues),
         excluded=len(everything) - len(selected),
+        appearance_roles=roles,
     )

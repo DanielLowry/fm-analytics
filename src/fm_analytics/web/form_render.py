@@ -93,7 +93,7 @@ def form_ratings(job: JobForm | None, form: FormLookup | None) -> str:
         f"<p class='muted'>His last {policy.max_ratings} ratings in this exact job from the last "
         f"{policy.window_days} days ({policy.min_minutes}+ minutes), newer ones counting more. "
         f"An average above {policy.neutral_rating} raises his score here and below it lowers it, by at "
-        f"most {100 * policy.max_change:.0f}%, less with few games. His other jobs are not affected.</p>"
+        f"most {100 * policy.max_change:g}%, less with few games. His other jobs are not affected.</p>"
         "<table><tr><th>Date</th><th>Opponent</th><th class='num'>Rating</th><th class='num'>Minutes</th>"
         "<th class='num'>Counts</th></tr>"
         + rows

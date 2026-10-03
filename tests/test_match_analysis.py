@@ -148,8 +148,10 @@ class ReviewTests(unittest.TestCase):
         goals = review().goals
         self.assertEqual(dict(zip(goals.periods, goals.scored)), {"1-15": 1, "16-30": 0, "31-45": 0, "46-60": 0, "61-75": 0, "76-90": 0, "90+": 1})
         self.assertEqual(sum(goals.conceded), 1)
-        self.assertEqual(dict(goals.scorers), {"Pressing Forward (Support)": 1, "Advanced Forward (Attack)": 1})
-        self.assertEqual(dict(goals.assisters), {"Winger (Support) [ML/MR]": 2})
+        # No positions in this capture, so no slot settles a duty: a Pressing Forward
+        # may be Defend, Support or Attack, and the code says none of them.
+        self.assertEqual(dict(goals.scorers), {"Pressing Forward": 1, "Advanced Forward (Attack)": 1})
+        self.assertEqual(dict(goals.assisters), {"Winger [ML/MR]": 2})
         self.assertEqual(dict(goals.conceded_to), {"Advanced Forward (Attack)": 1})
         self.assertEqual((goals.goals_for_covered, goals.goals_for_total), (2, 4))
         # The timeline times the 2-1; the 0-0 has no goals to time.
@@ -194,7 +196,7 @@ class RoleSummaryTests(unittest.TestCase):
             PlayerMatchStats.from_document({**player, "stats": {"shots": 2}})
             for player in lineup("home") if player["roleCode"] == 0x80
         ]
-        (winger,) = summarise_roles([(player, "m1", 10) for player in wingers], codes)
+        (winger,) = summarise_roles([(player, "m1", 10, "Winger (Support) [ML/MR]") for player in wingers], codes)
         self.assertEqual((winger.appearances, winger.shots, winger.team_shots), (2, 4, 10))
         self.assertAlmostEqual(winger.shot_share, 0.4)
         self.assertEqual(winger.minutes, 180)
@@ -205,7 +207,7 @@ class RoleSummaryTests(unittest.TestCase):
         sub = PlayerMatchStats.from_document(
             {**lineup("home")[10], "cameOn": 60, "stats": {"shots": 2, "key_passes": 1, "chances_created": 1}}
         )
-        (role,) = summarise_roles([(sub, "m1", 10)], codes)
+        (role,) = summarise_roles([(sub, "m1", 10, "Advanced Forward (Attack)")], codes)
         self.assertEqual(role.minutes, 30)
         self.assertAlmostEqual(role.per_90(role.shots), 6.0)
         self.assertEqual((role.key_passes, role.chances_created), (1, 1))
@@ -214,7 +216,24 @@ class RoleSummaryTests(unittest.TestCase):
     def test_unused_substitutes_are_not_appearances(self) -> None:
         codes = RoleCodes.build(MVP_CATALOGUE)
         unused = PlayerMatchStats.from_document({**lineup("home")[0], "played": False, "roleCode": 0, "rating": None})
-        self.assertEqual(summarise_roles([(unused, "m1", 10)], codes), ())
+        self.assertEqual(summarise_roles([(unused, "m1", 10, "Goalkeeper (Defend)")], codes), ())
+
+    def test_roles_are_grouped_by_the_role_played_not_the_fm_code(self) -> None:
+        codes = RoleCodes.build(MVP_CATALOGUE, {0x80000: "af_attack"})
+        line = lineup("home")
+        left, right = (PlayerMatchStats.from_document({**line[order], "roleCode": 0x20}) for order in (7, 6))
+        forward = PlayerMatchStats.from_document(line[10])
+        later = PlayerMatchStats.from_document({**line[10], "roleCode": 0x80000})
+        roles = {role.label: role for role in summarise_roles([
+            (left, "m1", 10, "Central Midfielder (Defend)"), (right, "m1", 10, "Central Midfielder (Support)"),
+            (forward, "m1", 10, "Advanced Forward (Attack)"), (later, "m2", 8, "Advanced Forward (Attack)"),
+        ], codes)}
+        # One code, two duties: two rows. Two codes, one role: one row.
+        self.assertEqual(roles["Central Midfielder (Support)"].role_key, "cm_support")
+        self.assertEqual(roles["Central Midfielder (Defend)"].codes, (0x20,))
+        forward_role = roles["Advanced Forward (Attack)"]
+        self.assertEqual((forward_role.codes, forward_role.appearances, forward_role.team_shots), ((0x800, 0x80000), 2, 18))
+        self.assertTrue(forward_role.confirmed)
 
 
 if __name__ == "__main__":

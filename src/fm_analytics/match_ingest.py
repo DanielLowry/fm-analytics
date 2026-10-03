@@ -309,7 +309,7 @@ def format_form(form: FormLookup) -> str:
         f"Recent form up to {form.as_of}: each player's last {policy.max_ratings} ratings in a job, from the last "
         f"{policy.window_days} days ({policy.min_minutes}+ minutes), newer ones counting more.",
         f"Compared with a rating of {policy.neutral_rating}, it moves his score for that job by at most "
-        f"{100 * policy.max_change:.0f}%, less when he has few ratings. Other jobs are not affected.",
+        f"{100 * policy.max_change:g}%, less when he has few ratings. Other jobs are not affected.",
         "",
         f"  {'Player':<22} {'Job':<52} {'Ratings':>7} {'Average':>8} {'Change':>7}",
     ]
@@ -516,7 +516,7 @@ def _format_match(report) -> str:
     for player in match.detail.players_for(summary.side):
         if player.played:
             lines.append(
-                f"  {player.shirt:>2} {player.label:<24} {report.role_labels[player.role_code]:<36} "
+                f"  {player.shirt:>2} {player.label:<24} {report.role_labels[(player.side, player.short_id)]:<36} "
                 f"{player.minutes:>2} min  rating {_number(player.rating)}  shots {player.stat('shots')}  "
                 f"goals {player.stat('goals')}  assists {player.stat('assists')}"
             )

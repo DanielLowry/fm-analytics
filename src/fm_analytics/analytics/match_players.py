@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Iterable, Mapping
 
-from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.domain.matches import PLAYER_STAT_KEYS, PlayerMatchStats
 
 
@@ -54,11 +53,11 @@ class PlayerSeason:
 
 
 def summarise_players(
-    appearances: Iterable[tuple[PlayerMatchStats, date, str]], codes: RoleCodes
+    appearances: Iterable[tuple[PlayerMatchStats, date, str, str]],
 ) -> tuple[PlayerSeason, ...]:
-    """Group (player line, match date, opponent name) by player, most minutes first."""
+    """Group (player line, match date, opponent name, his role) by player, most minutes first."""
     rows: dict[str, dict] = {}
-    for player, day, opponent in appearances:
+    for player, day, opponent, role in appearances:
         if not player.played:
             continue
         row = rows.setdefault(player.player_id or player.label, {
@@ -72,7 +71,7 @@ def summarise_players(
         counts["distance_m"] += player.distance_m
         for key in PLAYER_STAT_KEYS:
             counts[key] += player.stat(key)
-        row["roles"][codes.label(player.role_code)] += 1
+        row["roles"][role] += 1
         if player.rating is not None:
             row["ratings"].append(PlayerRating(day, opponent, player.rating))
     seasons = [

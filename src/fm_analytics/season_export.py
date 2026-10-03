@@ -23,6 +23,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Iterable, Mapping
 
+from fm_analytics.analytics.appearance_context import appearance_roles
 from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.in_transition import in_transition_selected_instructions
 from fm_analytics.analytics.in_possession import in_possession_instruction_strings
@@ -195,9 +196,9 @@ def _team_panel(team: Mapping[str, int], players: Iterable[PlayerMatchStats]) ->
     }
 
 
-def _line(player: PlayerMatchStats, codes: RoleCodes, *, full: bool) -> dict[str, Any]:
+def _line(player: PlayerMatchStats, role: str, *, full: bool) -> dict[str, Any]:
     line: dict[str, Any] = {
-        "name": player.label, "role": codes.label(player.role_code), "position": player.position,
+        "name": player.label, "role": role, "position": player.position,
         "started": player.started, "minutes": player.minutes, "rating": player.rating,
     }
     if full:
@@ -215,9 +216,13 @@ def _line(player: PlayerMatchStats, codes: RoleCodes, *, full: bool) -> dict[str
 
 
 def _match(summary: MatchSummary, kind: str, codes: RoleCodes, catalogue: FootballCatalogue,
-           detail: str) -> dict[str, Any]:
+           detail: str, roles: Mapping[tuple[str, str, int], str]) -> dict[str, Any]:
     match = summary.match
     strength = summary.strength
+
+    def role(player: PlayerMatchStats) -> str:
+        return roles.get((match.key, player.side, player.short_id)) or codes.label(player.role_code)
+
     row: dict[str, Any] = {
         "key": match.key, "date": match.date.isoformat(), "competition": match.competition.label,
         "type": kind, "venue": summary.venue, "opponent": summary.opponent.name,
@@ -265,14 +270,14 @@ def _match(summary: MatchSummary, kind: str, codes: RoleCodes, catalogue: Footba
         "attendance": match.attendance,
         "summary_for": _metrics(summary.ours),
         "summary_against": _metrics(summary.theirs),
-        "our_players": [_line(player, codes, full=detail == "verbose") for player in ours],
+        "our_players": [_line(player, role(player), full=detail == "verbose") for player in ours],
     })
     if detail == "verbose":
         theirs = [player for player in match.detail.players_for(other) if player.played]
         row.update({
             "team_stats_for": _team_panel(match.detail.team(side), match.detail.players_for(side)),
             "team_stats_against": _team_panel(match.detail.team(other), match.detail.players_for(other)),
-            "their_players": [_line(player, codes, full=False) for player in theirs],
+            "their_players": [_line(player, role(player), full=False) for player in theirs],
         })
         if match.detail.events:
             row["timeline"] = [
@@ -457,6 +462,10 @@ def export_document(
         raise ValueError(f"detail must be one of {', '.join(DETAIL_LEVELS)}")
     as_of = history.last_game_date
     codes = RoleCodes.build(catalogue, history.role_codes)
+    # Each player's role in each match, with the duty his slot settles (FM's code has none).
+    roles = appearance_roles(
+        history.matches, history.club.id, notes=history.notes, codes=codes, usual_roles=history.usual_roles
+    )
     competitive_keys = {summary.match.key for summary in competitive.matches}
     league_keys = {summary.match.key for summary in league.matches}
     goals = competitive.goals
@@ -532,7 +541,7 @@ def export_document(
                 summary,
                 "league" if summary.match.key in league_keys
                 else "cup" if summary.match.key in competitive_keys else "friendly",
-                codes, catalogue, detail,
+                codes, catalogue, detail, roles,
             )
             for summary in everything.matches
         ],

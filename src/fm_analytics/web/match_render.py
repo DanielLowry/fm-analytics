@@ -601,7 +601,7 @@ def _player_rows(report: MatchReport, side: str) -> str:
         stat = player.stat
         rows.append(
             f"<tr><td>{player.shirt}</td><td>{_e(player.label)}</td>"
-            f"<td>{_e(report.role_labels.get(player.role_code, ''))}</td>"
+            f"<td>{_e(report.role_labels.get((player.side, player.short_id), ''))}</td>"
             f"<td data-sort='{player.minutes}'>{player.minutes}{_stint(player)}</td>"
             f"<td>{f'{player.rating:.2f}' if player.rating is not None else '–'}</td>"
             f"<td>{stat('shots')} <span class='muted'>({stat('shots_on_target')}, {stat('shots_blocked')})</span></td>"

@@ -357,7 +357,8 @@ def _role_stats_complete(review: MatchReview, role: RoleSummary) -> bool:
         for summary in review.matches
         if summary.match.detail is not None
         for player in summary.match.detail.players_for(summary.side)
-        if player.played and player.role_code == role.code
+        if player.played
+        and review.appearance_roles.get((summary.match.key, player.side, player.short_id)) == role.label
     ]
     return bool(appearances) and all(required.issubset(player.stats) for player in appearances)
 
@@ -379,7 +380,7 @@ def _role_opportunity(review: MatchReview) -> DiagnosticFinding | None:
     chance_rate = role.per_90(role.chances_created) or 0
     contribution_rate = role.per_90(role.goals + role.assists) or 0
     return DiagnosticFinding(
-        key=f"role_output:{role.role_key}",
+        key=f"role_output:{role.role_key or role.label}",
         problem_class="individual-role output",
         title=f"{role.label} output merits a controlled player test",
         hypothesis=(

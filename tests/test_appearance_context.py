@@ -19,6 +19,7 @@ from fm_analytics.analytics.appearance_context import (
     NOTE,
     UNCONFIRMED_ROLE,
     appearance_contexts,
+    appearance_roles,
     duty_choices,
     summarise_coverage,
 )
@@ -190,6 +191,35 @@ class ContextTests(unittest.TestCase):
         by_order = detailed(contexts(matches))
         self.assertEqual(by_order[0].exclusions, (FRIENDLY, NO_TACTIC))
         self.assertIsNone(by_order[0].tactic_source)
+
+
+class RoleLabelTests(unittest.TestCase):
+    def test_a_code_alone_names_no_duty_unless_the_role_has_only_one(self) -> None:
+        codes = RoleCodes.build(MVP_CATALOGUE)
+        self.assertEqual(codes.label(0x20), "Central Midfielder")  # Defend, Support or Attack
+        self.assertEqual(codes.label(0x800), "Advanced Forward (Attack)")  # Attack is its only duty
+        self.assertEqual(codes.label(0x10000), "Box-to-Box Midfielder (Support)")
+        self.assertEqual(codes.label(0x12345), "Unconfirmed role (FM code 0x12345)")
+
+    def test_each_players_role_carries_the_duty_his_slot_settles(self) -> None:
+        # 28 March 2020: Central Midfielder (Support) right of (Defend), both 0x20.
+        matches = placed(season())
+        matches[-1]["detail"]["players"][6]["roleCode"] = 0x20
+        records = MatchCapture.from_document(capture_document(matches)).matches
+        roles = appearance_roles(records, US["id"], notes={}, codes=RoleCodes.build(MVP_CATALOGUE))
+        home = {p.order: p.short_id for p in records[-1].detail.players_for("home")}
+        away = {p.order: p.short_id for p in records[-1].detail.players_for("away")}
+        self.assertEqual(roles[(DETAILED, "home", home[6])], "Central Midfielder (Support)")
+        self.assertEqual(roles[(DETAILED, "home", home[7])], "Central Midfielder (Defend)")
+        self.assertEqual(roles[(DETAILED, "home", home[2])], "Central Defender")  # Defend or Cover: not settled
+        self.assertEqual(roles[(DETAILED, "away", away[7])], "Central Midfielder")  # their tactic is unknown
+
+    def test_a_usual_pick_settles_the_label_too(self) -> None:
+        records = MatchCapture.from_document(capture_document(placed(season()))).matches
+        usual = {("vertical_442", "DCR"): "cd_defend"}
+        roles = appearance_roles(records, US["id"], notes={}, codes=RoleCodes.build(MVP_CATALOGUE), usual_roles=usual)
+        home = {p.order: p.short_id for p in records[-1].detail.players_for("home")}
+        self.assertEqual(roles[(DETAILED, "home", home[2])], "Central Defender (Defend)")
 
 
 class CoverageTests(unittest.TestCase):

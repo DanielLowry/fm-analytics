@@ -452,7 +452,7 @@ silently treating it as independent.
   slot the player filled. It changes no score.
 - `player_form.py` — each player's recent form in each of those exact jobs: his
   last 10 ratings there, newer ones counting more, as a multiplier of at most
-  ±2% (`FormLookup.multiplier`, exactly 1.0 with no ratings). It reaches scoring
+  ±3% (`FormLookup.multiplier`, exactly 1.0 with no ratings). It reaches scoring
   only through `PlayerSelectionInput.form`, keyed (tactic, position, role):
   `score_player_for_slot` applies it last, per candidate role, when given a
   `tactic_key`, so it can change who plays and which alternate role is chosen.

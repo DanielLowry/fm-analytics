@@ -24,9 +24,9 @@ def appearance(days_ago, rating, *, minutes=90, player_id="28106293", tactic="ve
 
 class FormTests(unittest.TestCase):
     def test_one_full_match_moves_the_score_a_little(self) -> None:
-        # Confidence 1 / (1 + 3) = 0.25; 0.02 x (6.0 - 6.7) = -1.4%; so -0.35%.
+        # Confidence 1 / (1 + 3) = 0.25; 0.03 x (6.0 - 6.7) = -2.1%; so -0.525%.
         form = build_form([appearance(3, 6.0)], as_of=AS_OF)
-        self.assertAlmostEqual(form.multiplier("28106293", "vertical_442", "ST", "af_attack"), 0.9965)
+        self.assertAlmostEqual(form.multiplier("28106293", "vertical_442", "ST", "af_attack"), 0.99475)
 
     def test_no_ratings_or_a_disabled_policy_is_exactly_no_change(self) -> None:
         self.assertEqual(build_form([], as_of=AS_OF).multiplier("28106293", "vertical_442", "ST", "af_attack"), 1.0)
@@ -67,8 +67,8 @@ class FormTests(unittest.TestCase):
     def test_an_appearance_whose_job_is_not_known_is_left_out(self) -> None:
         self.assertEqual(build_form([appearance(3, 5.0, usable=False)], as_of=AS_OF).jobs, {})
 
-    def test_the_change_is_at_most_two_percent_either_way(self) -> None:
-        for rating, bound in ((10.0, 1.02), (1.0, 0.98)):
+    def test_the_change_is_at_most_3_percent_either_way(self) -> None:
+        for rating, bound in ((10.0, 1.03), (1.0, 0.97)):
             form = build_form([appearance(3 * age, rating) for age in range(10)], as_of=AS_OF)
             multiplier = form.multiplier("28106293", "vertical_442", "ST", "af_attack")
             self.assertLessEqual(abs(multiplier - 1), abs(bound - 1))

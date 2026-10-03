@@ -55,6 +55,19 @@ CONFIRMED_ROLE_CODES: Mapping[int, str] = {
 _ROLE_NAME = re.compile(r"^(?P<role>.+?) \((?P<duty>[^)]+)\)(?P<where> \[[^\]]+\])?$")
 
 
+_SINGLE_DUTY: dict[int, tuple[FootballCatalogue, frozenset[str]]] = {}
+
+
+def _single_duty_roles(catalogue: FootballCatalogue) -> frozenset[str]:
+    """Roles that are the only duty of their family, which a code therefore names exactly."""
+    cached = _SINGLE_DUTY.get(id(catalogue))
+    if cached is None or cached[0] is not catalogue:
+        sizes = Counter(role_family(catalogue, key) for key in catalogue.roles)
+        cached = (catalogue, frozenset(key for key in catalogue.roles if sizes[role_family(catalogue, key)] == 1))
+        _SINGLE_DUTY[id(catalogue)] = cached
+    return cached[1]
+
+
 def role_family(catalogue: FootballCatalogue, role_key: str) -> str:
     """The role without its duty: "Central Midfielder", "Winger [ML/MR]"."""
     name = catalogue.roles[role_key].name
@@ -86,10 +99,16 @@ class RoleCodes:
         return role_family(self.catalogue, key) if key is not None else None
 
     def label(self, code: int) -> str:
+        """The role a code names: "Central Midfielder", with no duty, since the code
+        records none; "Advanced Forward (Attack)" for a role that has only one duty.
+        For one player in one match, `appearance_context.appearance_roles` gives
+        the duty the slot he filled settles."""
         key = self.codes.get(code)
         if key is None:
             return f"Unconfirmed role (FM code {code:#x})"
-        return self.catalogue.roles[key].name
+        if key in _single_duty_roles(self.catalogue):
+            return self.catalogue.roles[key].name
+        return role_family(self.catalogue, key)
 
     def infer_tactic(self, starters: Iterable[PlayerMatchStats]) -> str | None:
         """The one catalogue tactic these eleven roles fill, if any.
@@ -139,11 +158,17 @@ def _fills(catalogue: FootballCatalogue, tactic, roles: list[str]) -> bool:
 
 @dataclass(frozen=True)
 class RoleSummary:
-    """What one role did across the matches reviewed (full-stats matches only)."""
+    """What one role did across the matches reviewed (full-stats matches only).
 
-    code: int
-    role_key: str | None
+    Grouped by the role each player played (`appearance_context.appearance_roles`),
+    not by FM code: one code covers every duty of a role, and one role can have
+    two codes.
+    """
+
+    codes: tuple[int, ...]  # the FM codes its appearances carried
+    role_key: str | None  # the exact role with its duty; None when only the role is known
     label: str
+    confirmed: bool  # every code was confirmed (none is "Unconfirmed role")
     appearances: int
     starts: int
     minutes: int
@@ -159,10 +184,6 @@ class RoleSummary:
     average_rating: float | None
 
     @property
-    def confirmed(self) -> bool:
-        return self.role_key is not None
-
-    @property
     def shot_share(self) -> float | None:
         return self.shots / self.team_shots if self.team_shots else None
 
@@ -172,24 +193,26 @@ class RoleSummary:
 
 
 def summarise_roles(
-    appearances: Iterable[tuple[PlayerMatchStats, str, int]], codes: RoleCodes
+    appearances: Iterable[tuple[PlayerMatchStats, str, int, str]], codes: RoleCodes
 ) -> tuple[RoleSummary, ...]:
-    """Group (player line, match key, team shots) by role, most shots first.
+    """Group (player line, match key, team shots, his role) by role, most shots first.
 
     A role's share of shots is out of the team's shots in the matches it was
     played, counted once per match even when two players shared the role.
     """
-    totals: dict[int, dict] = {}
-    seen_matches: set[tuple[int, str]] = set()
-    for player, match_key, team_shots in appearances:
+    totals: dict[str, Counter] = {}
+    role_codes: dict[str, set[int]] = {}
+    seen_matches: set[tuple[str, str]] = set()
+    for player, match_key, team_shots, label in appearances:
         if not player.played or player.role_code == 0:
             continue
-        row = totals.setdefault(player.role_code, Counter())
+        row = totals.setdefault(label, Counter())
+        role_codes.setdefault(label, set()).add(player.role_code)
         row["appearances"] += 1
         row["starts"] += int(player.started)
         row["minutes"] += player.minutes
-        if (player.role_code, match_key) not in seen_matches:
-            seen_matches.add((player.role_code, match_key))
+        if (label, match_key) not in seen_matches:
+            seen_matches.add((label, match_key))
             row["team_shots"] += team_shots
         for key in ("goals", "assists", "shots", "shots_on_target", "clear_cut_chances",
                     "key_passes", "chances_created", "dribbles"):
@@ -197,11 +220,13 @@ def summarise_roles(
         if player.rating is not None:
             row["rated"] += 1
             row["rating_total"] += player.rating
+    by_name = {role.name: key for key, role in codes.catalogue.roles.items()}
     summaries = [
         RoleSummary(
-            code=code,
-            role_key=codes.role_key(code),
-            label=codes.label(code),
+            codes=tuple(sorted(role_codes[label])),
+            role_key=by_name.get(label),
+            label=label,
+            confirmed=all(codes.role_key(code) is not None for code in role_codes[label]),
             appearances=row["appearances"],
             starts=row["starts"],
             minutes=row["minutes"],
@@ -216,7 +241,7 @@ def summarise_roles(
             team_shots=row["team_shots"],
             average_rating=round(row["rating_total"] / row["rated"], 2) if row["rated"] else None,
         )
-        for code, row in totals.items()
+        for label, row in totals.items()
     ]
     summaries.sort(key=lambda summary: (-summary.shots, -summary.goals, summary.label))
     return tuple(summaries)

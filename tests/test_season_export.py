@@ -10,8 +10,6 @@ from unittest import mock
 from fm_analytics import match_ingest
 from fm_analytics.analytics.match_analysis import ReviewFilters
 from fm_analytics.analytics.match_players import summarise_players
-from fm_analytics.analytics.match_roles import RoleCodes
-from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.cli import load_fixture
 from fm_analytics.domain.matches import MatchCapture
 from fm_analytics.match_ingest import main, record_capture_file
@@ -218,10 +216,10 @@ class SquadSectionTests(HistoryCase):
 class PlayerSeasonTests(unittest.TestCase):
     def test_players_are_summed_across_matches_with_starts_subs_and_ratings_in_order(self) -> None:
         first = MatchCapture.from_document(capture_document(season())).matches[-1]
-        codes = RoleCodes.build(MVP_CATALOGUE)
         striker = first.detail.players_for("home")[10]
-        appearances = [(striker, date(2019, 9, 8), "Bravo"), (striker, date(2019, 9, 1), "Alpha")]
-        (row,) = summarise_players(appearances, codes)
+        role = "Advanced Forward (Attack)"
+        appearances = [(striker, date(2019, 9, 8), "Bravo", role), (striker, date(2019, 9, 1), "Alpha", role)]
+        (row,) = summarise_players(appearances)
         self.assertEqual((row.appearances, row.starts, row.minutes, row.stat("goals")), (2, 2, 180, 2))
         self.assertEqual([item.opponent for item in row.ratings], ["Alpha", "Bravo"])
         self.assertEqual(row.roles, (("Advanced Forward (Attack)", 2),))

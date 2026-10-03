@@ -265,6 +265,40 @@ def _family_roles(catalogue: FootballCatalogue, slot, family: str | None) -> tup
     return tuple(key for key in catalogue.role_keys_for_slot(slot) if role_family(catalogue, key) == family)
 
 
+def role_label(context: AppearanceContext, codes: RoleCodes) -> str:
+    """The role he played, as precisely as is known: with its duty when the slot
+    he filled settles it, else as his role code names it."""
+    if context.role_key is not None:
+        return codes.catalogue.roles[context.role_key].name
+    return codes.label(context.player.role_code)
+
+
+def appearance_roles(
+    matches: Iterable[MatchRecord],
+    club_id: str,
+    *,
+    notes: Mapping[str, object],
+    codes: RoleCodes,
+    usual_roles: Mapping[tuple[str, str], str] = {},
+) -> dict[tuple[str, str, int], str]:
+    """(match key, side, short ID) -> the role each player who played had.
+
+    Ours carry the duty their slot in the match's tactic settles (Bellamy as
+    Central Midfielder (Support) beside Hargreaves at (Defend), both FM code
+    `0x20`); the opposition's, whose tactic is unknown, are as the code names them.
+    """
+    matches = tuple(matches)
+    labels = {
+        (context.match.key, context.player.side, context.player.short_id): role_label(context, codes)
+        for context in appearance_contexts(matches, club_id, notes=notes, codes=codes, usual_roles=usual_roles)
+    }
+    for match in matches:
+        for player in match.detail.players if match.detail else ():
+            if player.played:
+                labels.setdefault((match.key, player.side, player.short_id), codes.label(player.role_code))
+    return labels
+
+
 # -- the coverage report ------------------------------------------------------
 
 

@@ -607,6 +607,7 @@ def build_match_review(
         notes=history.notes,
         confirmed_role_codes=history.role_codes,
         filters=filters,
+        usual_roles=history.usual_roles,
     )
 
 
@@ -750,6 +751,7 @@ def build_match_report(
         catalogue=catalogue,
         notes=history.notes,
         confirmed_role_codes=history.role_codes,
+        usual_roles=history.usual_roles,
     )
 
 

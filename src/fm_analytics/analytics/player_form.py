@@ -28,7 +28,7 @@ from fm_analytics.domain.matches import MATCH_MINUTES
 
 @dataclass(frozen=True)
 class FormPolicy:
-    version: int = 1
+    version: int = 3
     enabled: bool = True
     max_ratings: int = 10
     window_days: int = 90
@@ -40,8 +40,10 @@ class FormPolicy:
     neutral_rating: float = 6.7
     # How many full, recent matches it takes for form to have half its full effect.
     confidence_matches: float = 3.0
-    change_per_rating_point: float = 0.02
-    max_change: float = 0.02
+    # 50% stronger than the plan's first 0.02 / 0.02, at the manager's request
+    # (3 October 2026): every form effect is 1.5 times the first release's.
+    change_per_rating_point: float = 0.03
+    max_change: float = 0.03
 
     def __post_init__(self) -> None:
         if not 0 < self.recency <= 1:

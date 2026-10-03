@@ -281,6 +281,11 @@ mislabel form as fitness after this feature is added.
 make CM(S) win a close role choice, while CM(S)'s own score remains neutral
 without CM(S) evidence. Ranking, alternatives and bench use identical inputs.
 
+**Strength raised, 3 October 2026 (policy version 3).** At the manager's
+request form counts 50% more than first built: `0.03` per rating point and a
+cap of ±3% (both were 0.02), so every form effect is 1.5 times the first
+release's. Ten recent full matches now reach at most about ±2% in practice.
+
 **As built, 3 October 2026 (sections 3 and 5's page).** Each player's form
 rides on `PlayerSelectionInput.form` (tactic, position, role -> multiplier), so
 every scoring path that already receives players gets it with no new

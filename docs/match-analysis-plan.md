@@ -119,9 +119,13 @@ both the page and `fm-matches review` use.
   been located.
 - A role code does not tell duties apart: Central Midfielder (Support) and
   (Defend) both carry `0x20` (28 March 2020, confirmed by the manager). Codes
-  are still labelled with the role and duty they were confirmed as, but a
-  tactic is matched by role family, and a duty is only settled by the slot a
-  player filled (`analytics/appearance_context.py`).
+  name only the role ("Central Midfielder"; a role with one duty keeps it,
+  "Advanced Forward (Attack)"). A tactic is matched by role family, and a duty
+  is only settled by the slot a player filled (`analytics/appearance_context.py`).
+  Since 3 October every per-player role the review, the match page, `fm-matches
+  show` and the export show is that settled role (`appearance_roles`), and the
+  roles table, goals by role, diagnostics and controlled tests group by it, not
+  by code: one code covers every duty, and one role can have two codes.
 - One role can have more than one code, and why is not known: the left
   striker's Advanced Forward (Attack) changed from `0x800` to `0x80000` on 28
   December 2019 with nothing else in the record changing, after two late

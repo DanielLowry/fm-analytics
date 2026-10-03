@@ -200,6 +200,16 @@ def _role_key(finding_key: str) -> str | None:
     return finding_key.split(":", 1)[1] if finding_key.startswith("role_output:") else None
 
 
+def _role_players(review: MatchReview, row: MatchSummary, role_key: str):
+    """Our players in this match who played the finding's role (by role, not FM code:
+    one code covers every duty of a role)."""
+    labels = {role.label for role in review.roles if (role.role_key or role.label) == role_key}
+    return [
+        player for player in row.match.detail.players_for(row.side)
+        if player.played and review.appearance_roles.get((row.match.key, player.side, player.short_id)) in labels
+    ]
+
+
 def _relevant_rows(
     review: MatchReview,
     finding_key: str,
@@ -216,14 +226,10 @@ def _relevant_rows(
         rows = [row for row in rows if row.strength.band("table").key == band]
     role_key = _role_key(finding_key)
     if role_key is not None:
-        codes = {role.code for role in review.roles if role.role_key == role_key}
         rows = [
             row for row in rows
             if row.match.detail is not None
-            and any(
-                player.started and player.played and player.role_code in codes
-                for player in row.match.detail.players_for(row.side)
-            )
+            and any(player.started for player in _role_players(review, row, role_key))
         ]
     if finding_key == "game_state_protection":
         rows = [row for row in rows if _goal_sequence(row) is not None and not any(
@@ -275,12 +281,10 @@ def _snapshot(
     role_rating = role_chances = role_contributions = None
     role_key = _role_key(finding_key)
     if role_key is not None:
-        codes = {role.code for role in review.roles if role.role_key == role_key}
         players = [
             player
             for row in rows if row.match.detail is not None
-            for player in row.match.detail.players_for(row.side)
-            if player.played and player.role_code in codes
+            for player in _role_players(review, row, role_key)
         ]
         ratings = [player.rating for player in players if player.rating is not None]
         minutes = sum(player.minutes for player in players)
