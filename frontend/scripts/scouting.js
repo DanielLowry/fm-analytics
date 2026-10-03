@@ -2,11 +2,14 @@ import { positionValue } from "./tables.js";
 import { initTableCopies } from "./table-copy.js";
 import { orderedSnapshotRows } from "./scouting-data.js";
 import { roleOptionsUpdater } from "./position-roles.js";
+import { initAttributeExports } from "./attribute-export.js";
 // Display cached, server-scored candidates. No scoring runs in the browser.
 export function initScouting() {
   const form = document.querySelector('form.scouting-filters');
   const results = document.getElementById('scouting-results');
   if (!form || !results) return;
+  let exportRows = null;
+  const refreshExports = initAttributeExports(document.querySelector('[data-attribute-export]'), () => exportRows);
   function field(name) { return form.elements[name] || null; }
   var positionSelect = field('position');
   var roleSelect = field('role');
@@ -15,6 +18,7 @@ export function initScouting() {
   var dirInput = field('dir');
   var limitInput = field('limit');
   var rawBox = field('includeRawPositions');
+  var scoutMoreBox = field('scoutMore');
 
   const refreshRoleOptions = roleOptionsUpdater(form);
 
@@ -41,7 +45,7 @@ export function initScouting() {
       var defaults = {};
       try { defaults = JSON.parse(sortSelect.getAttribute('data-defaults') || '{}'); }
       catch (error) { defaults = {}; }
-      sortSelect.value = defaults[mode] || '';
+      sortSelect.value = scoutMoreBox?.checked ? (mode === 'tactic' ? 'player_median' : 'median') : defaults[mode] || '';
       if (dirInput) dirInput.value = '';
     }
   }
@@ -63,15 +67,21 @@ export function initScouting() {
   const contextKey = (params) => JSON.stringify(['tactic', 'position', 'role', 'includeRawPositions'].map((key) => params.get(key) || ''));
   const number = (params, key) => params.has(key) ? Number(params.get(key)) : null;
   const render = (snapshot, params) => {
+    exportRows = null; refreshExports();
     const sort = params.get('sort') || sortSelect.value;
     const option = sortSelect.selectedOptions[0];
     const direction = params.get('dir') || option?.dataset.default || (['name', 'age', 'value', 'role'].includes(sort) ? 'asc' : 'desc');
     const minAge = number(params, 'minAge'), maxAge = number(params, 'maxAge');
     const floor = number(params, 'minFloor'), ceiling = number(params, 'minCeiling');
+    const minKnown = number(params, 'minKnown');
+    if (minKnown !== null && (!Number.isInteger(minKnown) || minKnown < 0)) {
+      status.textContent = 'Minimum known or ranged attributes must be a non-negative whole number.'; return;
+    }
     if (minAge !== null && maxAge !== null && minAge > maxAge || floor !== null && ceiling !== null && floor > ceiling) {
       status.textContent = 'The minimum must not exceed the maximum.'; return;
     }
     const rows = orderedSnapshotRows(snapshot.data, params, snapshot.byId);
+    exportRows = rows.map(row => row.export); refreshExports();
     const trial = sort === 'trial_priority';
     const scoutFirst = trial ? rows.filter((row) => !row.known && !row.ranged) : [];
     const scored = trial ? rows.filter((row) => row.known || row.ranged) : rows;
@@ -122,6 +132,7 @@ export function initScouting() {
     const params = paramsForForm(), key = contextKey(params);
     if (snapshots.has(key)) { activeKey = key; render(snapshots.get(key), params); return; }
     if (requestKey === key && controller) return;
+    exportRows = null; refreshExports();
     requestKey = key;
     const mine = ++sequence;
     controller?.abort(); controller = new AbortController();
@@ -167,6 +178,12 @@ export function initScouting() {
   positionSelect?.addEventListener('change', () => { refreshRoleOptions(); syncSortOptions(); });
   [tacticSelect, roleSelect, rawBox].forEach((control) => control?.addEventListener('change', syncSortOptions));
   sortSelect?.addEventListener('change', () => { if (dirInput) dirInput.value = ''; });
+  scoutMoreBox?.addEventListener('change', () => {
+    if (scoutMoreBox.checked && sortSelect) {
+      sortSelect.value = tableMode() === 'tactic' ? 'player_median' : 'median';
+      if (dirInput) dirInput.value = '';
+    }
+  });
   refreshRoleOptions(); syncSortOptions();
   form.addEventListener('input', (event) => { if (event.target.tagName !== 'SELECT' && event.target.type !== 'checkbox') changed(); });
   form.addEventListener('change', changed);

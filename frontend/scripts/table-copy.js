@@ -43,6 +43,13 @@ function legacyCopy(value) {
   }
 }
 
+export async function copyText(value) {
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+    await navigator.clipboard.writeText(value);
+  } catch { legacyCopy(value); }
+}
+
 export function initTableCopies(scope = document) {
   scope.querySelectorAll('table').forEach((table) => {
     if (initialized.has(table)) return;
@@ -60,10 +67,7 @@ export function initTableCopies(scope = document) {
       button.disabled = true; status.textContent = '';
       try {
         const value = tableText(table);
-        try {
-          if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
-          await navigator.clipboard.writeText(value);
-        } catch { legacyCopy(value); }
+        await copyText(value);
         status.textContent = 'Copied!';
       } catch { status.textContent = 'Could not copy. Select the table and copy manually.'; }
       finally { button.disabled = false; }

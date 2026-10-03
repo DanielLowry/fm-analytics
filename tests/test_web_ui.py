@@ -39,8 +39,10 @@ class ScoutingSnapshotTests(WebServerHelpers, unittest.TestCase):
         return json.loads(source.group(1))
 
     @unittest.skipUnless(shutil.which('node'), 'Node is required to verify browser filter parity')
-    def test_browser_filters_match_server_in_both_list_modes(self):
-        port = self._serve(FIXTURE, lambda: ALL_STATE_PLAYERS)
+    def test_browser_filters_match_server_in_all_list_modes(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        port = self._serve(write_complete_fixture(Path(directory.name)), lambda: ALL_STATE_PLAYERS)
         source = (ROOT / 'frontend/scripts/scouting-data.js').read_bytes()
         module = 'data:text/javascript;base64,' + base64.b64encode(source).decode()
         script = f"""
@@ -59,20 +61,24 @@ class ScoutingSnapshotTests(WebServerHelpers, unittest.TestCase):
             {'minAge': '21'}, {'maxAge': '21'}, {'maxValue': '100000'},
             {'visibility': 'known'}, {'visibility': 'partial'}, {'visibility': 'unknown'},
             {'minFloor': '40'}, {'minCeiling': '90'},
+            {'minKnown': '0'}, {'minKnown': '1'}, {'minKnown': '10'}, {'minKnown': '100'},
+            {'scoutMore': '1'}, {'scoutMore': '1', 'minKnown': '2'},
             {'minCeiling': '90', 'includeUnlikely': '1'},
             {'market': 'gettable'}, {'market': 'free'}, {'market': 'listed'}, {'market': 'expiring', 'expiringMonths': '0'},
             {'transferInterest': 'interested'}, {'transferInterest': 'not_interested'},
             {'loanInterest': 'interested'}, {'loanInterest': 'not_interested'},
             {'club': 'old', 'everScouted': '1'}, {'fact.example': 'nonexistent'},
         ]
-        for context in ({}, {'role': 'af_attack', 'position': 'ST'}):
+        for context in ({}, {'role': 'af_attack', 'position': 'ST'},
+                        {'tactic': 'balanced_442', 'role': 'af_attack', 'position': 'ST'}):
             snapshot = self.snapshot(port, context | {'name': 'nonexistent'})
             self.assertEqual({row['id'] for row in snapshot['rows']}, {player.id for player in ALL_STATE_PLAYERS})
-            queries = [context | query | {'sort': 'median', 'dir': 'desc'} for query in filters]
+            median_sort = 'player_median' if context.get('tactic') else 'median'
+            queries = [context | query | {'sort': median_sort, 'dir': 'desc'} for query in filters]
             queries += [context | {'sort': sort, 'dir': direction, 'everScouted': '1'}
                         for sort in snapshot['orders']
                         for direction in ('asc', 'desc')]
-            if context:
+            if context.get('role') and not context.get('tactic'):
                 queries += [context | {'sort': 'priority', 'dir': direction, 'everScouted': '1', 'minCeiling': '90', 'includeUnlikely': '1'} for direction in ('asc', 'desc')]
             completed = subprocess.run(['node', '--input-type=module', '-e', script], input=json.dumps({'snapshot': snapshot, 'queries': queries}), capture_output=True, text=True, check=True)
             browser = json.loads(completed.stdout)

@@ -22,24 +22,10 @@ from fm_analytics.web.rendering import (
     role_score_cells,
 )
 
-_ATTRIBUTE_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("Technical", ("corners", "crossing", "dribbling", "finishing", "firstTouch", "heading", "longShots", "marking", "passing", "tackling", "technique")),
-    ("Mental", ("aggression", "anticipation", "bravery", "composure", "concentration", "decisions", "determination", "flair", "offTheBall", "positioning", "teamwork", "vision", "workRate")),
-    ("Physical", ("acceleration", "agility", "balance", "jumpingReach", "naturalFitness", "pace", "stamina", "strength")),
-    ("Goalkeeping", ("aerialReach", "commandOfArea", "communication", "handling", "kicking", "oneOnOnes", "reflexes", "rushingOut", "throwing")),
+from fm_analytics.web.attribute_export import (
+    ATTRIBUTE_GROUPS as _ATTRIBUTE_GROUPS,
+    attribute_label as _attribute_label,
 )
-_LABELS = {
-    "firstTouch": "First Touch", "longShots": "Long Shots", "offTheBall": "Off The Ball",
-    "workRate": "Work Rate", "jumpingReach": "Jumping Reach", "naturalFitness": "Natural Fitness",
-    "aerialReach": "Aerial Reach", "commandOfArea": "Command Of Area", "oneOnOnes": "One On Ones",
-    "rushingOut": "Rushing Out",
-}
-
-def _attribute_label(key: str) -> str:
-    return _LABELS.get(key) or _label(key)
-
-def _attribute_label(key: str) -> str:
-    return _LABELS.get(key) or _label(key)
 
 
 def attribute_sheet(candidate: ScoutingCandidate) -> str:

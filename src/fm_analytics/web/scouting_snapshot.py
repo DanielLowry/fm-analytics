@@ -13,6 +13,7 @@ from fm_analytics.analytics.scouting import (
     is_realistic_trial_candidate, sort_position_rankings, sort_scouting_assessments,
 )
 from fm_analytics.analytics.tactic_scouting import sort_tactic_assessments
+from fm_analytics.web.attribute_export import candidate_export_record
 
 SNAPSHOT = ContextVar("scouting_snapshot", default=None)
 
@@ -47,6 +48,7 @@ def snapshot_data(items, row_html):
             "floor": lower, "ceiling": upper,
             "slot": item.best_slot_key if mode == "tactic" else None,
             "position": item.best_position if mode == "tactic" else None,
+            "export": candidate_export_record(c, include_raw_positions=config.get("raw_positions", False)),
         })
     payload = json.dumps({"mode": mode, "orders": orders, "rows": rows}, separators=(",", ":"), ensure_ascii=True).replace("<", "\\u003c")
     return "<script type='application/json' id='scouting-snapshot'>" + payload + "</script>"

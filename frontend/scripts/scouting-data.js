@@ -21,6 +21,9 @@ export function matchesSnapshotRow(row, params) {
   const market = params.get('market') || 'any';
   if (market === 'free' && !row.free || market === 'listed' && !row.listed || market === 'expiring' && !expiring || market === 'gettable' && !row.free && !row.listed && !expiring) return false;
   const visibility = params.get('visibility') || 'any';
+  const minKnown = number(params, 'minKnown');
+  if (minKnown !== null && row.known + row.ranged < minKnown) return false;
+  if (params.get('scoutMore') === '1' && (!row.captured || !row.known && !row.ranged || !row.ranged && !row.unknown)) return false;
   if (visibility !== 'any' && !row.captured) return false;
   if (visibility === 'known' && (row.ranged || row.unknown) || visibility === 'partial' && !row.ranged || visibility === 'unknown' && (row.known || row.ranged)) return false;
   const floor = number(params, 'minFloor'), ceiling = number(params, 'minCeiling');

@@ -41,6 +41,7 @@ from fm_analytics.analytics import (
 from fm_analytics.persistence import Verdict
 from fm_analytics.reporting import weakest_slots
 from fm_analytics.web.scouting_snapshot import SNAPSHOT, snapshot_data
+from fm_analytics.web.attribute_export import export_controls
 from fm_analytics.web.scouting_render import (
     ranking_results,
     role_results,
@@ -180,7 +181,8 @@ class ScoutingPagesMixin:
                 include_former_scouted=True, ranking_sort=DEFAULT_SORT_BY_MODE[mode],
             )
             rejected = {pid for pid, record in self.server.current_verdicts().items() if record.verdict == Verdict.REJECT}
-            token = SNAPSHOT.set({"mode": mode, "rejected": rejected})
+            token = SNAPSHOT.set({"mode": mode, "rejected": rejected,
+                                  "raw_positions": filters.include_raw_external_positions})
             try:
                 body = self._scouting_results_block(candidates, context, max(1, len(candidates)))
                 if "id='scouting-snapshot'" not in body and "<p class='muted'>" in body:
@@ -545,6 +547,13 @@ class ScoutingPagesMixin:
             + (" checked" if filters.include_unlikely else "")
             + "> Keep players below the ceiling</label>"
         )
+        scout_more = (
+            "<label class='check'><input name='scoutMore' type='checkbox' value='1'"
+            + (" checked" if filters.scout_more_only else "")
+            + "> Only players with more to learn</label>"
+            + number("Minimum known or ranged role attributes", "minKnown",
+                     filters.minimum_known_attributes, min=0, step=1)
+        )
         fact_controls = "".join(
             select(html.escape(_label(key)), "fact." + html.escape(key, quote=True),
                    _options(((value, value) for value in choices), (filters.facts or {}).get(key), "Any"))
@@ -566,6 +575,11 @@ class ScoutingPagesMixin:
             f"<input type='hidden' name='limit' value='{'' if limit == _MAX_SCOUTING_ROWS else limit}'>"
             "<fieldset class='filter-primary'><legend>Find a target</legend>"
             f"<div class='filter-grid'>{primary}</div></fieldset>"
+            "<fieldset class='filter-primary'><legend>Who to scout more</legend>"
+            "<p class='muted'>Select a position and role above. The minimum counts exact values and ranges "
+            "for the scored role. Only players with more to learn shows partly known profiles and sorts "
+            "by highest median to help choose your next scout or trial. Median uses midpoints for ranges and unknowns.</p>"
+            f"<div class='filter-grid'>{scout_more}</div></fieldset>"
             + group("Player", _count(
                 filters.club_contains, filters.nationality, filters.footedness,
                 filters.minimum_age, filters.maximum_age), player)
@@ -593,7 +607,8 @@ class ScoutingPagesMixin:
             f"<a class='reset' href='/scouting?view={view}'>Reset filters</a>"
             "<button type='submit'>Apply filters</button></div>"
             "</form>"
-            "<script id='position-roles-data' type='application/json'>"
+            + export_controls()
+            + "<script id='position-roles-data' type='application/json'>"
             + json.dumps(roles_by_position).replace("</", "<\\/")
             + "</script>"
         )

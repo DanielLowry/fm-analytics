@@ -102,6 +102,8 @@ class ScoutingFilters:
     visibility: str = "any"
     minimum_floor: float | None = None
     minimum_ceiling: float | None = None
+    minimum_known_attributes: int | None = None
+    scout_more_only: bool = False
     include_unlikely: bool = False
     include_raw_external_positions: bool = False
     scouted_only: bool = False
@@ -126,6 +128,10 @@ class ScoutingFilters:
     facts: Mapping[str, str] | None = None
 
     def __post_init__(self) -> None:
+        if self.minimum_known_attributes is not None and (
+            type(self.minimum_known_attributes) is not int or self.minimum_known_attributes < 0
+        ):
+            raise ValueError("minimum known attributes must be a non-negative whole number")
         for name, value in (("transfer interest", self.transfer_interest), ("loan interest", self.loan_interest)):
             if value not in {"any", "interested", "not_interested"}:
                 raise ValueError(f"{name} filter is invalid")
@@ -240,6 +246,7 @@ TACTIC_RANKING_SORTS = {
     "tactic_score": "Projected tactic score",
     "tactic_fit": "Player fit in tactic",
     "trial_priority": "Trial priority",
+    "player_median": "Median scenario (player fit)",
 }
 # With a role chosen the table is one role's targets, so "best role" and the
 # position-familiarity columns do not exist; "priority" is the scouting order
@@ -565,12 +572,16 @@ def matches_information_filters(
     floor: float,
     ceiling: float,
 ) -> bool:
-    """The visibility / floor / ceiling filters, for one already-scored player.
+    """The knowledge / visibility / score filters, for one already-scored player.
 
     The one definition shared by every table that scores players, so a filter
     means the same thing whichever of them is showing. ``floor``/``ceiling``
     are that table's own lower and upper bound on the score.
     """
+    if filters.minimum_known_attributes is not None and known + ranged < filters.minimum_known_attributes:
+        return False
+    if filters.scout_more_only and (not captured or known + ranged == 0 or ranged + unknown == 0):
+        return False
     if filters.visibility != "any":
         # "Nothing known" is a statement about FM's captured answer, not
         # a bucket for players whose attribute visibility was never read.

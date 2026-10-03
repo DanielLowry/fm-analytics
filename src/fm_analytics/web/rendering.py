@@ -18,6 +18,7 @@ from markupsafe import Markup
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
     ScoutingFilters,
+    SORTS_BY_MODE,
     scouting_mode,
     sort_for_mode,
     TacticDefinition,
@@ -240,12 +241,15 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
     }
     tactic_key = _query_first(query, "tactic")
     role_key = _query_first(query, "role")
+    scout_more_only = _query_first(query, "scoutMore") == "1"
     # Which columns exist depends on which table is showing, so a sort that
     # belongs to another table (an XI-gain sort with no tactic chosen, say)
     # falls back to this table's default instead of silently doing nothing.
-    ranking_sort = sort_for_mode(
-        _query_first(query, "sort"), scouting_mode(tactic_key, role_key)
-    )
+    mode = scouting_mode(tactic_key, role_key)
+    requested_sort = _query_first(query, "sort")
+    if scout_more_only and requested_sort not in SORTS_BY_MODE[mode]:
+        requested_sort = "player_median" if tactic_key else "median"
+    ranking_sort = sort_for_mode(requested_sort, mode)
     expiring_months = _query_number(query, "expiringMonths", integer=True)
     return ScoutingFilters(
         tactic_key=tactic_key,
@@ -258,6 +262,8 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         transfer_status=_query_first(query, "transferStatus"), availability=_query_first(query, "availability"),
         visibility=visibility, minimum_floor=_query_number(query, "minFloor"),
         minimum_ceiling=_query_number(query, "minCeiling"),
+        minimum_known_attributes=_query_number(query, "minKnown", integer=True),
+        scout_more_only=scout_more_only,
         include_unlikely=_query_first(query, "includeUnlikely") == "1",
         include_raw_external_positions=_query_first(query, "includeRawPositions") == "1",
         scouted_only=_scouting_view(query) == "scouted",

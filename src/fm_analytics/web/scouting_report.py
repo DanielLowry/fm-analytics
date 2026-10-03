@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import html
 
+from fm_analytics.web.attribute_export import candidate_export_record, export_controls, player_export_record
 from fm_analytics.web.ui import ordered_positions, position_key
 from fm_analytics.analytics import (
     FamiliarityPolicy,
@@ -80,6 +81,7 @@ def player_scouting_report(
         historical_observed_at=candidate.last_known_attributes_observed_at,
         readings=candidate.history.attributes if candidate.history else None,
         out_of_date_before=candidate.history.out_of_date_before if candidate.history else None,
+        export_record=candidate_export_record(candidate, include_raw_positions=True),
     )
 
 
@@ -219,6 +221,10 @@ def squad_player_report(
         facts, catalogue, back_href=back_href, back_label="Back to squad",
         familiarity_source="the captured 0–20 position familiarity rating",
         headline=contract_panel + headline,
+        export_record=player_export_record(
+            player.name, player.age, player.attributes, player.positions, player.position_familiarity,
+            familiarity_source="Squad familiarity (0–20)",
+        ),
     )
 
 
@@ -228,6 +234,7 @@ def _player_detail_report(
     attributes_captured: bool = True,
     historical_attributes=None, historical_observed_at: str | None = None,
     readings=None, out_of_date_before: str | None = None,
+    export_record=None,
 ) -> str:
     """Render every attribute and catalogue role for a scouted or owned player."""
     policy = FamiliarityPolicy()
@@ -271,7 +278,7 @@ def _player_detail_report(
         "<a href='#player-overview'>Overview</a><a href='#player-attributes'>Attributes</a>"
         "<a href='#player-roles'>Role fit</a>"
         + ("<a href='#player-history'>History</a>" if historical_html else "") + "</nav>"
-        + headline +
+        + headline + (export_controls(records=[export_record]) if export_record else "") +
         "<details class='fm-workspace-panel fm-disclosure fm-player-attributes' id='player-attributes'><summary>Current attributes</summary><div><div class='fm-panel-heading'><div>"
         "<h2>Current attributes</h2>"
         + (

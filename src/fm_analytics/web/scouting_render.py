@@ -61,35 +61,7 @@ from fm_analytics.web.scouting_tables import (
     weakest_slots_panel,
 )
 
-# The order FM's own attribute screens use, so a sheet can be read against the
-# game side by side. Goalkeeping attributes only appear when a player has them.
-_ATTRIBUTE_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("Technical", (
-        "corners", "crossing", "dribbling", "finishing", "firstTouch", "heading",
-        "longShots", "marking", "passing", "tackling", "technique",
-    )),
-    ("Mental", (
-        "aggression", "anticipation", "bravery", "composure", "concentration",
-        "decisions", "determination", "flair", "offTheBall", "positioning",
-        "teamwork", "vision", "workRate",
-    )),
-    ("Physical", (
-        "acceleration", "agility", "balance", "jumpingReach", "naturalFitness",
-        "pace", "stamina", "strength",
-    )),
-    ("Goalkeeping", (
-        "aerialReach", "commandOfArea", "communication", "handling", "kicking",
-        "oneOnOnes", "reflexes", "rushingOut", "throwing",
-    )),
-)
-
-
-_LABELS = {
-    "firstTouch": "First Touch", "longShots": "Long Shots", "offTheBall": "Off The Ball",
-    "workRate": "Work Rate", "jumpingReach": "Jumping Reach", "naturalFitness": "Natural Fitness",
-    "aerialReach": "Aerial Reach", "commandOfArea": "Command Of Area", "oneOnOnes": "One On Ones",
-    "rushingOut": "Rushing Out",
-}
+from fm_analytics.web.attribute_export import ATTRIBUTE_GROUPS as _ATTRIBUTE_GROUPS
 
 
 def scouting_alerts_panel(alerts: ScoutingAlerts) -> str:

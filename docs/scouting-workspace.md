@@ -132,6 +132,51 @@ position. A position label is applied after, only to narrow further.
 Each row has an **Attributes** dropdown listing every attribute in FM's own
 order, with `-` for anything the manager cannot see.
 
+## Choosing who to scout more
+
+The **Who to scout more** section uses the selected position and role. Set
+**Minimum known or ranged role attributes** to require a count of exact values
+and ranges among the attributes used to score that role. For example, a minimum
+of 8 excludes players with only 7 role attributes known or ranged; attributes
+outside the scored role do not count. This filter works in every scouting table
+and combines with the existing market, visibility and score filters.
+
+**Only players with more to learn** keeps captured profiles with at least one
+known or ranged role attribute and at least one range or unknown remaining.
+It excludes fully known profiles and profiles with no attribute evidence. Turning
+it on selects descending median sorting, which can then be changed. With a tactic
+selected, it uses **Median scenario (player fit)**. This identifies whom to scout
+or trial next using midpoint estimates; it does not establish signing quality or
+trial availability. Use the interest and market filters to narrow attainable targets.
+
+Both controls apply instantly and are preserved in the URL, tab switches and
+return links from player reports.
+
+## Exporting full player attributes
+
+**Export full player attributes** offers separate **Copy** and **Download CSV**
+buttons for outfield players and goalkeepers. On the Scouting screen this exports
+every matching player in the current sort order, including matches beyond the
+visible row limit. The same controls on scouting and squad player reports export
+that individual player. Copy produces tab-separated columns ready for a spreadsheet;
+CSV downloads include headers and UTF-8 encoding.
+
+The outfield schema contains all 36 technical, mental and physical attributes.
+The goalkeeper schema contains goalkeeping skills, shared technical attributes,
+and all mental and physical attributes. Both include name, age, club, positions,
+separate 0–20 familiarity columns, the attribute observation date and dated
+provenance for remembered attributes. Missing values, including fields the capture
+does not yet supply, remain `?`; ranges remain text ranges rather than estimates
+or spreadsheet dates. Separately stored past-knowledge snapshots are not substituted
+for today's values.
+
+The scouting list exports raw positions and familiarity only when **Use raw
+external positions** is enabled. Single-player exports match the familiarity
+already shown on the report and label its source. Known positions determine
+outfield/goalkeeper membership; when positions are missing, the attribute family
+is used where it can establish membership, and otherwise the player is included
+in both formats with his position left unknown.
+
 ## One table, one sort (26 September 2026)
 
 Every Scouting view is now the same sortable table, whichever filters produced
