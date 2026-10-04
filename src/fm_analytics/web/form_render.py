@@ -36,8 +36,10 @@ def _games(count: int) -> str:
     return f"{count} game{'s' if count != 1 else ''}"
 
 
-def form_chip(assignment, job: JobForm | None) -> str:
+def form_chip(assignment, job: JobForm | None, *, ignored: bool = False) -> str:
     """Points form adds to or takes from today's score, with the average behind it on hover."""
+    if ignored:
+        return "<span class='form-chip form-none' title='Recent form is ignored for this selection'>Ignored</span>"
     if job is None:
         return (
             "<span class='form-chip form-none' title='No rated games of 30+ minutes in this exact job "
@@ -57,8 +59,10 @@ def form_chip(assignment, job: JobForm | None) -> str:
     return f"<span class='form-chip {kind}' title='{html.escape(title, quote=True)}'>{label}</span>"
 
 
-def form_card(assignment, job: JobForm | None) -> str:
+def form_card(assignment, job: JobForm | None, *, ignored: bool = False) -> str:
     """The form step in a starter's "Why him?" breakdown; it is applied last."""
+    if ignored:
+        return "<div><span>Recent form</span><b>Ignored</b><small>excluded from selection</small></div>"
     if job is None:
         return (
             "<div><span>Recent form</span><b>0.0</b>"
@@ -101,8 +105,10 @@ def form_ratings(job: JobForm | None, form: FormLookup | None) -> str:
     )
 
 
-def form_note(form: FormLookup | None) -> str:
+def form_note(form: FormLookup | None, *, ignored: bool = False) -> str:
     """One line under the Starting XI heading saying whether form is in the scores."""
+    if ignored:
+        return "<p class='muted form-note'>Recent form is ignored for this XI.</p>"
     if form is None:
         return (
             "<p class='muted form-note'>Recent form is not included: there is no match history "

@@ -30,6 +30,7 @@ from typing import Callable, Sequence
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
     OpponentProfile,
+    ReadinessPolicy,
     TacticRankingExecutor,
     rank_for_position,
     ScoutingAlerts,
@@ -164,7 +165,7 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
         self._pool_lock = threading.Lock()
         self._knowledge_generation = 0
         # Fixed for the life of the server, so the bundle cache is still keyed
-        # on the opponent alone. If pins ever become editable from a page they
+        # on the opponent and selection options. If pins ever become editable from a page they
         # must join that key, or one page would serve another's analysis.
         self.pinned_tactics = pinned_tactics
         self.provider = provider
@@ -190,7 +191,7 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
         # controls can ask for several different analyses of that same
         # snapshot. Keep a small LRU so moving a slider back and forth is
         # cheap without allowing arbitrary query strings to grow memory.
-        self._bundle_results: OrderedDict[OpponentProfile, RecommendationBundle] = (
+        self._bundle_results: OrderedDict[tuple[OpponentProfile, bool, bool], RecommendationBundle] = (
             OrderedDict()
         )
         self._tactic_report_cache: dict[tuple[int, str, int | None], TacticMatchdayReport] = {}
@@ -424,12 +425,14 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
         return result
 
     def bundle(
-        self, opponent: OpponentProfile = OpponentProfile.neutral()
+        self, opponent: OpponentProfile = OpponentProfile.neutral(), *,
+        ignore_form: bool = False, ignore_condition: bool = False,
     ) -> RecommendationBundle:
+        cache_key = (opponent, ignore_form, ignore_condition)
         with self._lock:
-            cached = self._bundle_results.get(opponent)
+            cached = self._bundle_results.get(cache_key)
             if cached is not None:
-                self._bundle_results.move_to_end(opponent)
+                self._bundle_results.move_to_end(cache_key)
                 return cached
         game, squad = self.read()
         try:
@@ -443,16 +446,17 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
                 game,
                 squad,
                 policy=RecommendationPolicy(
-                    opponent=opponent, pinned_tactics=self.pinned_tactics
+                    opponent=opponent, pinned_tactics=self.pinned_tactics,
+                    ignore_form=ignore_form, readiness=ReadinessPolicy(ignore_condition=ignore_condition),
                 ),
                 ranking_executor=self.ranking_executor,
-                form=self.recent_form(game, squad),
+                form=None if ignore_form else self.recent_form(game, squad),
             )
         except (BridgeSourceError, OSError, ValueError, KeyError):
             raise
         with self._lock:
-            self._bundle_results[opponent] = built
-            self._bundle_results.move_to_end(opponent)
+            self._bundle_results[cache_key] = built
+            self._bundle_results.move_to_end(cache_key)
             while len(self._bundle_results) > self._MAX_BUNDLE_PROFILES:
                 _evicted_profile, evicted_bundle = self._bundle_results.popitem(last=False)
                 evicted_id = id(evicted_bundle)
@@ -503,7 +507,7 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
             return
         with self._lock:
             self._read_result, self._read_error, self._read_at = (game, squad), None, time.monotonic()
-            self._bundle_results = OrderedDict(((OpponentProfile.neutral(), built),))
+            self._bundle_results = OrderedDict((((OpponentProfile.neutral(), False, False), built),))
             self._snapshot_at = datetime.now(timezone.utc)
             self._tactic_report_cache.clear()
             self._refreshing = False
@@ -594,9 +598,11 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
         *,
         bench_size: int | None = None,
         opponent: OpponentProfile = OpponentProfile.neutral(),
+        ignore_form: bool = False,
+        ignore_condition: bool = False,
     ) -> TacticMatchdayReport:
         """Return a cached drill-down without bloating the overview bundle."""
-        bundle = self.bundle(opponent)
+        bundle = self.bundle(opponent, ignore_form=ignore_form, ignore_condition=ignore_condition)
         cache_key = (id(bundle), tactic_key, bench_size)
         with self._lock:
             cached = self._tactic_report_cache.get(cache_key)

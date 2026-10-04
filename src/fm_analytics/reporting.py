@@ -276,6 +276,7 @@ class RecommendationPolicy:
     # opinion": every default falls back to the top-ranked tactic, exactly as
     # before pins existed.
     pinned_tactics: tuple[str, ...] = ()
+    ignore_form: bool = False
 
     def __post_init__(self) -> None:
         if self.bench_size < 0:
@@ -501,6 +502,8 @@ def build_recommendation_bundle(
     unknown_pins = [key for key in policy.pinned_tactics if key not in catalogue.tactics]
     if unknown_pins:
         raise ValueError("unknown pinned tactic(s): " + ", ".join(unknown_pins))
+    if policy.ignore_form:
+        form = None
     selection_players = selection_inputs(squad, form)
     role_score_cache = RoleScoreCache()
     effective_and_potential = recommend_tactic_effective_and_potential(
@@ -542,11 +545,11 @@ def build_recommendation_bundle(
     )
     weakness_report = assess_weaknesses(
         primary, selection_players, catalogue,
-        opponent=policy.opponent, role_score_cache=role_score_cache,
+        readiness_policy=policy.readiness, opponent=policy.opponent, role_score_cache=role_score_cache,
     )
     squad_depth = assess_squad_depth(
         recommendation.evaluations, selection_players, catalogue,
-        opponent=policy.opponent, role_score_cache=role_score_cache,
+        readiness_policy=policy.readiness, opponent=policy.opponent, role_score_cache=role_score_cache,
     )
     role_matrix = build_squad_role_matrix(
         squad, catalogue=catalogue, role_score_cache=role_score_cache

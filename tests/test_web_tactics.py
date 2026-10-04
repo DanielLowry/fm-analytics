@@ -4,10 +4,15 @@ import re
 import tempfile
 import threading
 import unittest
+from dataclasses import replace
 from http.client import HTTPConnection
 from pathlib import Path
+from unittest.mock import patch
 
 from fm_analytics.analytics import AXIS_DEFINITIONS, MVP_CATALOGUE
+from fm_analytics.analytics.player_form import FormLookup, FormPolicy, FormRating, JobForm
+from fm_analytics.cli import load_fixture
+from fm_analytics.domain import AttributeObservation, Visibility
 from fm_analytics.web.providers import fixture_provider
 from fm_analytics.web.rendering import (
     _slot_reasoning,
@@ -133,6 +138,84 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertEqual(text.count("\nMental\n"), 11)
         self.assertIn("\nGoalkeeping\n", text)
         self.assertIn("Long Throws: ?", text)
+
+    def test_all_four_selection_modes_reoptimize_the_xi_and_clipboard(self) -> None:
+        game, squad = load_fixture(self.fixture_path)
+        original = squad.players[0]
+        keepers = tuple(replace(
+            original, id=key, name="Keeper " + key, positions=("GK",), availability="available",
+            condition_percent=100 if key in ("A", "B") else 60, match_fitness_percent=100,
+            injured=False, suspended=False, position_familiarity={"GK": 20},
+            attributes={key_name: AttributeObservation(Visibility.KNOWN,
+                value=(12 if key in ("A", "B") else 13) + int(key_name == "handling" and key in ("B", "D")))
+                for key_name in original.attributes},
+        ) for key in ("A", "B", "C", "D"))
+        squad = replace(squad, players=keepers + squad.players[1:])
+        self.fixture_path.write_text(json.dumps({"game": game.to_dict(), "squad": squad.to_dict()}))
+        before = self.fixture_path.read_bytes()
+        rating = FormRating("test-match", game.game_date, "Opponent", 7.0, 90, 1.0)
+        jobs = {(player.id, "balanced_442", "GK", role): JobForm(
+            player.id, player.name, "balanced_442", "GK", role, (rating,), 7.0, 1.0,
+            1.03 if player.id in ("A", "C") else .97,
+        ) for player in keepers for role, definition in MVP_CATALOGUE.roles.items() if "GK" in definition.eligible_positions}
+        form = FormLookup(FormPolicy(), game.game_date, jobs)
+        self.enterContext(patch.object(self.server, "recent_form", return_value=form))
+        reports = []
+        for ignore_form, ignore_condition, expected in ((False, False, "A"), (True, False, "B"),
+                                                       (False, True, "C"), (True, True, "D")):
+            with self.subTest(ignore_form=ignore_form, ignore_condition=ignore_condition):
+                query = f"?ignoreForm={int(ignore_form)}&ignoreCondition={int(ignore_condition)}"
+                status, body = self._get("/tactics/balanced_442" + query)
+                self.assertEqual(status, 200)
+                options = {"ignore_form": ignore_form, "ignore_condition": ignore_condition}
+                report = self.server.tactic_report("balanced_442", **options)
+                reports.append(report)
+                keeper = next(item for item in report.evaluation.assignments if item.slot.position == "GK")
+                self.assertEqual(keeper.player_id, expected)
+                row = re.findall(r"<tr class='fm-xi-row'>(.*?)</tr>", body, re.S)[0]
+                self.assertIn("Keeper " + expected, row)
+                text = json.loads(re.search(r"data-player-copy-text>(.*?)</script>", body, re.S).group(1))
+                self.assertIn("Name: Keeper " + expected, text)
+                self.assertEqual(text.count("\nName: "), 11)
+                for other in {"A", "B", "C", "D"} - {expected}:
+                    self.assertNotIn("Name: Keeper " + other, text)
+                controls = re.search(r"data-xi-options>(.*?)</form>", body, re.S).group(1)
+                for name, active in (("ignoreForm", ignore_form), ("ignoreCondition", ignore_condition)):
+                    self.assertIn(f"name='{name}' value='1'" + (" checked" if active else "") + ">", controls)
+                ignored = [label for label, active in (("form", ignore_form), ("condition", ignore_condition)) if active]
+                if ignored:
+                    self.assertIn("Ignored during selection: " + ", ".join(ignored), text)
+                if ignore_form:
+                    self.assertEqual(keeper.form_multiplier, 1.0)
+                    self.assertIn("Recent form is ignored for this XI", body)
+                    self.assertIsNone(self.server.bundle(**options).form)
+                if ignore_condition:
+                    self.assertEqual(keeper.readiness_penalty, 0)
+                    self.assertIn("match fitness only", body)
+        self.assertEqual(len({id(report) for report in reports}), 4)
+        self.assertIs(self.server.tactic_report("balanced_442"), reports[0])
+        self.assertEqual(self.fixture_path.read_bytes(), before)
+        self.assertEqual(self.server.read()[1].players[2].condition_percent, 60)
+
+    def test_selection_switches_survive_opponent_forms_and_tactic_navigation(self) -> None:
+        query = "opp_aerial_threat=2&ignoreForm=1&ignoreCondition=1"
+        for path in ("/tactics", "/tactics/balanced_442"):
+            status, body = self._get(path + "?" + query)
+            self.assertEqual(status, 200)
+            self.assertIn("opp_aerial_threat=2&amp;ignoreForm=1&amp;ignoreCondition=1", body)
+            controls = re.search(r"data-xi-options>(.*?)</form>", body, re.S).group(1)
+            self.assertIn("type='hidden' name='opp_aerial_threat' value='2'", controls)
+            opponent_form = re.search(r"<form class='opponent-form'.*?</form>", body, re.S).group(0)
+            self.assertIn("type='hidden' name='ignoreForm' value='1'", opponent_form)
+            self.assertIn("type='hidden' name='ignoreCondition' value='1'", opponent_form)
+            self.assertIn(f"href='{path}?ignoreForm=1&amp;ignoreCondition=1'>Reset to neutral", body)
+
+    def test_invalid_selection_switches_are_rejected(self) -> None:
+        for path in ("/tactics", "/tactics/balanced_442"):
+            for parameter in ("ignoreForm", "ignoreCondition"):
+                status, body = self._get(path + "?" + parameter + "=unexpected")
+                self.assertEqual(status, 400)
+                self.assertIn("must be 0 or 1", body)
 
     def test_tactic_checks_page_lists_player_independent_failures(self) -> None:
         status, body = self._get("/tactic-checks")

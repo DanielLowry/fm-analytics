@@ -115,13 +115,16 @@ def player_copy_control(record):
     return profile_copy_control(player_copy_text(record), label="Copy player to clipboard", success="Player copied!")
 
 
-def starting_xi_copy_text(game, squad, evaluation):
+def starting_xi_copy_text(game, squad, evaluation, *, ignore_form=False, ignore_condition=False):
     """Export the displayed assignments, without reading or recording history."""
     sections = [
         f"Tactic: {evaluation.tactic.name}\nFormation: {evaluation.tactic.formation}\n"
         f"Game date: {game.game_date.isoformat()}\n"
         f"Starting XI: {len(evaluation.assignments)} / {len(evaluation.tactic.slots)}"
     ]
+    ignored = [label for label, active in (("form", ignore_form), ("condition", ignore_condition)) if active]
+    if ignored:
+        sections[0] += "\nIgnored during selection: " + ", ".join(ignored)
     if evaluation.unfilled_slots:
         sections[0] += "\nUnfilled slots: " + ", ".join(slot.key for slot in evaluation.unfilled_slots)
     players = {player.id: player for player in squad.players}

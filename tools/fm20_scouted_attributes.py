@@ -71,14 +71,14 @@ from tools.fm20_linux_probe import (
     read_u64,
 )
 from tools.fm20_owned_visible_source import normalize_attribute_byte
+from tools.fm20_scouting_identity import PLAYER_POSITION_RATINGS_OFFSET, person_player_record
 from tools.fm20_visibility_trace import ATTRIBUTE_OFFSETS, DISPLAY_ATTRIBUTE_IDS, PLAYER_ATTRIBUTE_BLOCK_OFFSET
 
 # Verified against `fm20_owned_visible_source.py`'s own reader (the same
 # offsets that module's docstring calls proven for the owned squad):
-# person_address = player_address + 0x1C0, actual_person = person + 0x28.
-PERSON_FROM_PLAYER_ADDRESS = 0x1C0
+# actual_person = person + 0x28. The player record itself comes from
+# `person_player_record`, which knows both layouts a shown player can have.
 ACTUAL_PERSON_FROM_PERSON = 0x28
-POSITION_RATINGS_FROM_PERSON = 0x5C  # person - 0x5C == player_address + 0x164
 DATE_OF_BIRTH_OFFSET = 0x1C
 KNOWLEDGE_CONTEXT_VECTOR_OFFSET = 0x0
 KNOWLEDGE_RECORD_ROW_ID_OFFSET = 0x0
@@ -257,6 +257,7 @@ def resolve_persons_by_row_id(
 
 def _read_visible_attributes_for_person(
     memory_fd: int,
+    module_base: int,
     person: int,
     row_id: int,
     knowledge: int,
@@ -265,13 +266,16 @@ def _read_visible_attributes_for_person(
 ) -> tuple[int, dict[str, AttributeObservation]]:
     """One player's full visible attribute sheet, from raw memory to observations.
 
-    Raises ``ProbeError``/``ScoutedAttributesError`` on malformed data (e.g.
-    all-zero position ratings, seen for at least one player with an unusual
-    person record); the caller decides whether to skip that one player.
+    Raises ``ProbeError``/``ScoutedAttributesError`` on malformed data; the
+    caller decides whether to skip that one player. The "all-zero position
+    ratings" once seen here were player-coaches read at the ordinary player's
+    offsets (see ``person_player_record``), fixed 4 October 2026.
     """
     actual_person = person + ACTUAL_PERSON_FROM_PERSON
-    player_address = person - PERSON_FROM_PLAYER_ADDRESS
-    ratings = list(read_exact(memory_fd, person - POSITION_RATINGS_FROM_PERSON, 15))
+    player_address = person_player_record(memory_fd, module_base, person)
+    if player_address is None:
+        raise ProbeError("this person is not a kind of player FM shows")
+    ratings = list(read_exact(memory_fd, player_address + PLAYER_POSITION_RATINGS_OFFSET, 15))
     family = select_position_family(ratings)  # raises if ratings are not all 1-20
     dob = decode_fm_date(
         read_exact(memory_fd, actual_person + DATE_OF_BIRTH_OFFSET, 4),
@@ -360,7 +364,7 @@ def capture_scouted_attributes(
             quality = read_scout_quality_sum(fd, report.staff_person) if report else None
             try:
                 age, observations = _read_visible_attributes_for_person(
-                    fd, person, row_id, effective, as_of, quality,
+                    fd, module_base, person, row_id, effective, as_of, quality,
                 )
             except (OSError, ProbeError, ValueError) as error:
                 # Until 27 September 2026 this dropped the player from the

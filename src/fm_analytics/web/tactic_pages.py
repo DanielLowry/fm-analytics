@@ -15,7 +15,6 @@ from fm_analytics.web.form_render import form_card, form_chip, form_note, form_r
 from fm_analytics.web.opponent_controls import (
     opponent_controls as _opponent_controls,
     opponent_from_query as _opponent_from_query,
-    opponent_query as _opponent_query,
     opponent_summary_items as _opponent_summary_items,
 )
 from fm_analytics.web.in_possession_render import in_possession_section
@@ -32,22 +31,26 @@ from fm_analytics.web.rendering import (
 )
 from fm_analytics.web.scouting_render import squad_player_link
 from fm_analytics.web.tactic_checks_page import tactic_checks_body
+from fm_analytics.web.xi_options import (
+    selection_controls, selection_options_from_query, selection_options_query, tactic_query,
+)
 
 
 class TacticPagesMixin:
     def _tactics_page(self, path: str, _query: dict[str, list[str]]) -> None:
         try:
             opponent = _opponent_from_query(_query)
+            selection_options = selection_options_from_query(_query)
         except ValueError as exc:
             self._send(_error_page("Tactics", str(exc), path), HTTPStatus.BAD_REQUEST)
             return
-        bundle = self._bundle_or_error(path, "Tactics", opponent)
+        bundle = self._bundle_or_error(path, "Tactics", opponent, **selection_options)
         if bundle is None:
             return
         neutral_bundle = (
             bundle
             if opponent.is_neutral
-            else self._bundle_or_error(path, "Tactics", OpponentProfile.neutral())
+            else self._bundle_or_error(path, "Tactics", OpponentProfile.neutral(), **selection_options)
         )
         if neutral_bundle is None:
             return
@@ -58,7 +61,7 @@ class TacticPagesMixin:
                 neutral_bundle.recommendation.evaluations, start=1
             )
         }
-        opponent_query = _opponent_query(opponent)
+        opponent_query = tactic_query(opponent, **selection_options)
         query_suffix = f"?{opponent_query}" if opponent_query else ""
         link_query_suffix = html.escape(query_suffix, quote=True)
         active_axes = _opponent_summary_items(opponent)
@@ -164,12 +167,13 @@ class TacticPagesMixin:
                 + "</table></div></section>"
             )
         body = (
-            "<details class='fm-disclosure fm-tactic-opponent'><summary>Opponent profile · "
+            selection_controls(path, opponent, **selection_options)
+            + "<details class='fm-disclosure fm-tactic-opponent'><summary>Opponent profile · "
             + html.escape(" · ".join(active_axes) or "Neutral") + "</summary>"
-            + _opponent_controls(opponent) + "</details>"
+            + _opponent_controls(opponent, extra_query=selection_options_query(**selection_options)) + "</details>"
             + profile_summary
             + "<section class='fm-decision-hero'>"
-            f"<span class='eyebrow'>Recommended {'for this opponent' if active_axes else 'for today'}</span>"
+            f"<span class='eyebrow'>Recommended {'for this comparison' if any(selection_options.values()) else 'for this opponent' if active_axes else 'for today'}</span>"
             f"<h2>{html.escape(selected.tactic.name)}</h2>"
             f"<p>{html.escape(selected.tactic.formation)} · Play-now tactic score "
             f"<b>{_band(selected.score)}</b></p>"
@@ -223,18 +227,19 @@ class TacticPagesMixin:
             return
         try:
             opponent = _opponent_from_query(_query)
+            selection_options = selection_options_from_query(_query)
         except ValueError as exc:
             self._send(_error_page("Tactic", str(exc), "/tactics"), HTTPStatus.BAD_REQUEST)
             return
-        opponent_query = _opponent_query(opponent)
+        opponent_query = tactic_query(opponent, **selection_options)
         query_suffix = f"?{opponent_query}" if opponent_query else ""
         tactics_href = "/tactics" + query_suffix
-        bundle = self._bundle_or_error(tactics_href, "Tactic", opponent)
+        bundle = self._bundle_or_error(tactics_href, "Tactic", opponent, **selection_options)
         if bundle is None:
             return
         try:
             report = self.server.tactic_report(  # type: ignore[attr-defined]
-                tactic_key, opponent=opponent
+                tactic_key, opponent=opponent, **selection_options,
             )
         except (OSError, RuntimeError, ValueError, KeyError) as exc:
             self._send(_error_page("Tactic", str(exc), tactics_href), HTTPStatus.SERVICE_UNAVAILABLE)
@@ -251,7 +256,8 @@ class TacticPagesMixin:
             job = job_form(bundle.form, assignment, tactic_key)
             alternatives = "".join(
                 self._selection_alternative_row(
-                    option, players_by_id, assignment, job_form(bundle.form, option.assignment, tactic_key)
+                    option, players_by_id, assignment, job_form(bundle.form, option.assignment, tactic_key),
+                    form_ignored=selection_options["ignore_form"],
                 )
                 for option in explanation.alternatives
             ) or "<tr><td colspan='7' class='muted'>No other eligible player for this exact role.</td></tr>"
@@ -281,8 +287,10 @@ class TacticPagesMixin:
                 f"<b>×{assignment.familiarity_multiplier:.2f}</b><small>in-position familiarity</small></div>"
                 + taper_card
                 + "<div><span>readiness</span>"
-                f"<b>−{explanation.readiness_score_cost:.1f}</b><small>condition + fitness</small></div>"
-                + form_card(assignment, job)
+                f"<b>−{explanation.readiness_score_cost:.1f}</b><small>"
+                + ("match fitness only" if selection_options["ignore_condition"] else "condition + fitness")
+                + "</small></div>"
+                + form_card(assignment, job, ignored=selection_options["ignore_form"])
                 + "<div class='selection-result'><span>Today</span>"
                 f"<b>{_band(assignment.selection_score)}</b><small>selection score</small></div>"
                 "</div>"
@@ -295,7 +303,7 @@ class TacticPagesMixin:
                 f"<td>{squad_player_link(player)}</td>"
                 f"<td>{player.condition_percent if player.condition_percent is not None else '?'}% / "
                 f"{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
-                f"<td>{form_chip(assignment, job)}</td>"
+                f"<td>{form_chip(assignment, job, ignored=selection_options['ignore_form'])}</td>"
                 f"<td><b>{_band(assignment.selection_score)}</b></td>"
                 "</tr>"
                 "<tr class='explanation-row fm-xi-explanation'><td colspan='7'>"
@@ -447,7 +455,7 @@ class TacticPagesMixin:
             if not structural_problems
             else "structural check needs review"
         )
-        recommendation_label = (
+        recommendation_label = "Selection comparison" if any(selection_options.values()) else (
             "Recommended today"
             if bundle.recommendation.selected.tactic.key == tactic_key
             else "Tactic review"
@@ -456,7 +464,7 @@ class TacticPagesMixin:
             f"<details class='fm-tactic-opponent'{' open' if active_axes else ''}>"
             "<summary>Adjust opponent profile</summary>"
             "<p class='muted'>Use a scout report to tune the match-up; the URL keeps these assumptions.</p>"
-            + _opponent_controls(opponent, action=path)
+            + _opponent_controls(opponent, action=path, extra_query=selection_options_query(**selection_options))
             + "</details>"
         )
         history_panel = self._tactic_history_block(tactic_key)  # type: ignore[attr-defined]
@@ -497,9 +505,10 @@ class TacticPagesMixin:
             "<p>Best available XI today. Expand a player to inspect role fit, readiness, form, and exact-role alternatives.</p>"
             "</div><span class='fm-panel-count'>"
             + f"{selected_count} selected</span></div>"
-            + form_note(bundle.form)
+            + selection_controls(path + "#starting-xi", opponent, **selection_options)
+            + form_note(bundle.form, ignored=selection_options["ignore_form"])
             + (profile_copy_control(
-                starting_xi_copy_text(bundle.game, bundle.squad, evaluation),
+                starting_xi_copy_text(bundle.game, bundle.squad, evaluation, **selection_options),
                 label="Copy starting XI attributes to clipboard", success="Starting XI copied!",
             ) if evaluation.assignments else "")
             + "<div class='fm-table-card'><table><tr><th>Slot</th><th>Position</th><th>Role</th><th>Player</th>"
@@ -576,7 +585,7 @@ class TacticPagesMixin:
         )
 
     @staticmethod
-    def _selection_alternative_row(option, players_by_id, starter, job=None) -> str:
+    def _selection_alternative_row(option, players_by_id, starter, job=None, *, form_ignored=False) -> str:
         player = players_by_id[option.player_id]
         if not option.counterfactual_has_legal_xi:
             reason = "Cannot form a complete XI with this player here"
@@ -607,7 +616,7 @@ class TacticPagesMixin:
             f"<td>{_band(option.assignment.intrinsic_role_score.score)}</td>"
             f"<td>{_band(option.assignment.in_position_score)}</td>"
             f"<td>{condition}% / {sharpness}%</td>"
-            f"<td>{form_chip(option.assignment, job)}</td>"
+            f"<td>{form_chip(option.assignment, job, ignored=form_ignored)}</td>"
             f"<td>{_band(option.assignment.selection_score)}</td>"
             f"<td>{html.escape(reason)}</td>"
             "</tr>"

@@ -110,8 +110,8 @@ class ReadOnlyPageTests(WebServerHelpers, unittest.TestCase):
             capture = Mock(side_effect=AssertionError("Captures must not run"))
             port = self._serve(path, read_only=True, knowledge_store=store, knowledge_recorder=capture,
                                match_store=store, match_capture=capture, league_store=store, league_capture=capture)
-            for attempt in range(2):
-                status, body = self._get(port, "/tactics/balanced_442?opp_aerial_threat=2")
+            for switches in ("", "&ignoreForm=1&ignoreCondition=1"):
+                status, body = self._get(port, "/tactics/balanced_442?opp_aerial_threat=2" + switches)
                 self.assertEqual(status, 200)
                 self.assertIn("Read-only comparison", body)
                 text = json.loads(re.search(r"data-player-copy-text>(.*?)</script>", body, re.S).group(1))

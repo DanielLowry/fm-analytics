@@ -186,7 +186,7 @@ def _detailed_controls(profile: OpponentProfile) -> str:
 
 
 def opponent_controls(
-    profile: OpponentProfile, *, action: str = "/tactics"
+    profile: OpponentProfile, *, action: str = "/tactics", extra_query: dict[str, str] | None = None,
 ) -> str:
     """Render all axes as a GET form that remains on the supplied page."""
     sliders = []
@@ -211,8 +211,14 @@ def opponent_controls(
         + f">{html.escape(item.label)}</option>"
         for item in FORMATION_DEFINITIONS
     )
+    extra_query = extra_query or {}
+    reset_href = action + ("?" + urlencode(extra_query) if extra_query else "")
+    hidden = "".join(
+        f"<input type='hidden' name='{html.escape(key, quote=True)}' value='{html.escape(value, quote=True)}'>"
+        for key, value in extra_query.items()
+    )
     reset = (
-        f"<a class='button-link secondary' href='{html.escape(action, quote=True)}'>"
+        f"<a class='button-link secondary' href='{html.escape(reset_href, quote=True)}'>"
         "Reset to neutral</a>"
         if not profile.is_neutral
         else ""
@@ -223,6 +229,7 @@ def opponent_controls(
         "emphasis and opponent-fit checks; they are not inferred from hidden game data. "
         "The URL can be bookmarked or shared.</p>"
         f"<form class='opponent-form' method='get' action='{html.escape(action, quote=True)}'>"
+        + hidden +
         "<label class='opponent-choice' for='opponent-formation'><span>"
         "<b>Likely formation</b></span><select id='opponent-formation' "
         f"name='{_QUERY_PREFIX}formation'>{formation_options}</select></label>"

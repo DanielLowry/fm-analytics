@@ -76,7 +76,7 @@ class ScoutedPlayerSetTests(unittest.TestCase):
         self.assertEqual((players[101].knowledge, players[101].effective_knowledge, players[101].has_report), (20, 30, True))
         self.assertEqual((players[102].knowledge, players[102].effective_knowledge, players[102].has_report), (10, 10, True))
         self.assertEqual((players[103].knowledge, players[103].has_report), (40, False))
-        levels = {call.args[1]: call.args[3] for call in visible.call_args_list}
+        levels = {call.args[2]: call.args[4] for call in visible.call_args_list}
         self.assertEqual(levels, {0x100: 30, 0x200: 10, 0x300: 40})
 
     def test_a_player_this_calculation_cannot_read_stays_listed_without_attributes(self) -> None:

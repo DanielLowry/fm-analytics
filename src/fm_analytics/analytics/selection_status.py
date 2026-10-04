@@ -16,7 +16,7 @@ def selection_unavailability_reasons(
         reasons.append("injured")
     if player.suspended is True:
         reasons.append("suspended")
-    if player.condition_percent is not None and player.condition_percent < policy.minimum_condition:
+    if not policy.ignore_condition and player.condition_percent is not None and player.condition_percent < policy.minimum_condition:
         reasons.append(f"condition {player.condition_percent}% is below {policy.minimum_condition}%")
     if (
         player.match_fitness_percent is not None

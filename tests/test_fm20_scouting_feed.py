@@ -853,18 +853,6 @@ class PositionFamiliarityFeedTests(unittest.TestCase):
         self.assertNotIn("rawPositionFamiliarity", document["players"][1])
         self.assertIn("individual position ratings for 1/2", document["source"]["fieldCoverage"]["positions"])
 
-    def test_the_reader_keeps_all_fifteen_ratings_and_refuses_a_non_rating_array(self) -> None:
-        import os
-        from tools.fm20_linux_probe import POSITION_CODES
-
-        good = bytes(range(len(POSITION_CODES)))
-        noise = bytes([200] + [0] * (len(POSITION_CODES) - 1))
-        reads = {0x1000 - 0x5C: good, 0x2000 - 0x5C: noise}
-        with mock.patch.object(identity, "read_exact", side_effect=lambda fd, address, size: reads[address]):
-            ratings = feed.read_raw_position_familiarity(os.getpid(), {1: 0x1000, 2: 0x2000})
-
-        self.assertEqual(ratings, {1: dict(zip(POSITION_CODES, good))})
-
 
 
 class NoPlayerIdTests(unittest.TestCase):

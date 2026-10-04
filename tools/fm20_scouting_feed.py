@@ -463,7 +463,7 @@ def capture_pool(
                 pid, {player_id: records[player_id] for player_id in external_ids}
             )
             raw_positions_by_id = read_raw_external_positions(
-                pid,
+                pid, module_base,
                 {player_id: records[player_id] for player_id in external_ids},
             )
             identity_facts_by_id = dict(resolve_source_identity_facts(
@@ -488,7 +488,7 @@ def capture_pool(
                 continue
             single = {player_id: player.person}
             try:
-                raw_positions_by_id.update(read_raw_external_positions(pid, single))
+                raw_positions_by_id.update(read_raw_external_positions(pid, module_base, single))
             except ScoutingFeedError:
                 pass
             for key, value in resolve_source_identity_facts(pid, single, after.game_date).get(player_id, {}).items():
@@ -503,7 +503,7 @@ def capture_pool(
             player_id: player.person for player_id, player in scouted_players.items()
             if player_id not in candidate_persons
         })
-        position_familiarity_by_id = read_raw_position_familiarity(pid, candidate_persons)
+        position_familiarity_by_id = read_raw_position_familiarity(pid, module_base, candidate_persons)
 
         prior_attributes_by_id, prior_attributes_observed_at = _drop_future_dated(
             dict(prior_attributes_by_id or {}), dict(prior_attributes_observed_at or {}), after.game_date,

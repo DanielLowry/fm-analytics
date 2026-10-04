@@ -50,6 +50,12 @@ comparisons, start `fm-web --direct-live --read-only` to disable database writes
 and historical form inputs; refreshing squad data only changes the in-memory
 snapshot.
 
+`xi-options.js` submits the Tactics selection switches immediately and disables
+the full-XI copy button while the updated page loads. The server re-optimizes
+using the same shared scoring path and carries switches through opponent forms
+and tactic links. Restoring a page through browser history restores the
+switches that produced that page's XI.
+
 Squad and Scouting share `position-roles.js` and the catalogue choices from
 `web/ui.py`. Position changes replace role choices immediately, preserve a
 compatible selection and clear an incompatible one. Squad requires a position

@@ -165,6 +165,14 @@ relevant attribute groups. It uses the XI on that page, including any opponent
 assumptions. Missing values remain `?` and ranges remain ranges. Unfilled slots
 are listed explicitly; substitutes are excluded.
 
+The Tactics pages also offer **Ignore form** and **Ignore condition** switches.
+Both are off by default. Changing either switch re-optimizes the XI, selected
+roles, bench and explanations; selecting both ignores both inputs. Ignore
+condition removes the condition cutoff and score penalty, while match fitness,
+injuries and suspensions still apply. Opponent settings and selection switches
+remain in the URL. The clipboard dump always uses the displayed XI and records
+which inputs were ignored.
+
 Read-only comparison mode disables scouting, match and league recording,
 history edits, automatic capture ingestion, and database creation or migration.
 It also leaves stored match form out of selection, so newer history cannot

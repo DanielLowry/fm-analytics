@@ -534,16 +534,19 @@ def _readiness(
     player: PlayerSelectionInput, policy: ReadinessPolicy
 ) -> tuple[float, tuple[str, ...]]:
     warnings: list[str] = []
-    condition = player.condition_percent
-    if condition is None:
-        condition = policy.unknown_percent
-        warnings.append("condition unknown")
+    condition_penalty = 0.0
+    if not policy.ignore_condition:
+        condition = player.condition_percent
+        if condition is None:
+            condition = policy.unknown_percent
+            warnings.append("condition unknown")
+        condition_penalty = (100 - condition) * policy.condition_penalty_weight
     match_fitness = player.match_fitness_percent
     if match_fitness is None:
         match_fitness = policy.unknown_percent
         warnings.append("match fitness unknown")
     penalty = (
-        (100 - condition) * policy.condition_penalty_weight
+        condition_penalty
         + (100 - match_fitness) * policy.match_fitness_penalty_weight
     )
     return round(penalty, 6), tuple(warnings)

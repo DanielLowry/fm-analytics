@@ -233,9 +233,10 @@ class SquadWebHandler(
         path: str,
         title: str,
         opponent: OpponentProfile = OpponentProfile.neutral(),
+        *, ignore_form: bool = False, ignore_condition: bool = False,
     ) -> RecommendationBundle | None:
         try:
-            return self.server.bundle(opponent)  # type: ignore[attr-defined]
+            return self.server.bundle(opponent, ignore_form=ignore_form, ignore_condition=ignore_condition)  # type: ignore[attr-defined]
         except (BridgeSourceError, OSError, RuntimeError, ValueError, KeyError) as exc:
             self._send(_error_page(title, str(exc), path), HTTPStatus.SERVICE_UNAVAILABLE)
             return None

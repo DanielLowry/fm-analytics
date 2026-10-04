@@ -64,6 +64,7 @@ class ReadinessPolicy:
     unknown_percent: int = 70
     condition_penalty_weight: float = 0.25
     match_fitness_penalty_weight: float = 0.10
+    ignore_condition: bool = False
 
     def __post_init__(self) -> None:
         if not self.version:

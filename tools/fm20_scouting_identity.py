@@ -19,6 +19,7 @@ from typing import Any, Mapping
 
 from tools.fm20_linux_probe import (
     POSITION_CODES,
+    SHOWN_PLAYER_LAYOUTS,
     ProbeError,
     calculate_age,
     decode_fm_date,
@@ -26,6 +27,7 @@ from tools.fm20_linux_probe import (
     read_exact,
     read_fm_string,
     read_player_contract,
+    read_u64,
 )
 from tools.fm20_scouting_feed_contract import ScoutingFeedError
 
@@ -174,7 +176,46 @@ def resolve_source_identity_facts(
         os.close(fd)
 
 
-def read_raw_external_positions(pid: int, records: Mapping[int, int]) -> dict[int, tuple[str, ...]]:
+PLAYER_POSITION_RATINGS_OFFSET = 0x164
+
+
+def person_player_record(memory_fd: int, module_base: int, person: int) -> int | None:
+    """The player record (interface + 8) behind a person FM shows as a player.
+
+    ``fm20_linux_probe.squad_entry_person`` the other way round, for readers that start from a
+    person, as the scouting capture does: the person's own type pointer says
+    which layout it sits in. Assuming the ordinary one put a player-coach's
+    ratings at the wrong address -- 625 of a 4,967-player scouting capture on
+    4 October 2026, nearly all aged over 30. None for any other kind of
+    person, so an unknown layout is never read as a player.
+    """
+    try:
+        type_pointer = read_u64(memory_fd, person)
+    except (OSError, ProbeError):
+        return None
+    for person_offset, type_rva in SHOWN_PLAYER_LAYOUTS:
+        if type_pointer == module_base + type_rva:
+            return person - person_offset + 0x8
+    return None
+
+
+def _position_ratings(fd: int, module_base: int, person: int) -> bytes | None:
+    """A player's 15 raw position ratings, or None where there is no such array.
+
+    Read from his player record, whichever layout his person sits in (see
+    ``person_player_record``). Bytes outside 0-20 are not a rating array, and
+    are refused rather than published as noise. A failed read raises.
+    """
+    record = person_player_record(fd, module_base, person)
+    if record is None:
+        return None
+    raw = read_exact(fd, record + PLAYER_POSITION_RATINGS_OFFSET, len(POSITION_CODES))
+    return None if max(raw) > 20 else raw
+
+
+def read_raw_external_positions(
+    pid: int, module_base: int, records: Mapping[int, int]
+) -> dict[int, tuple[str, ...]]:
     """Read raw non-owned position labels for the explicitly accepted gap.
 
     Corrected 18 September 2026 -- was off by exactly one pointer width
@@ -201,6 +242,13 @@ def read_raw_external_positions(pid: int, records: Mapping[int, int]) -> dict[in
     exactly: Ashley Wells read DR=0 at the old offset and DR=20 at the
     corrected one.
 
+    ``person - 0x5C`` holds only for an ordinary player. A player who also
+    holds a staff role (``db::ACTUAL_PLAYER_AND_NON_PLAYER``) has his person
+    0xD8 further into the object, so until 4 October 2026 his positions were
+    decoded from whatever sat there: all zeros (no positions) or noise (a
+    random spread of positions). Both layouts are now read from the player
+    record, and a player with no rating array gets no positions at all.
+
     This function keeps only the eligibility projection; the individual
     ratings are read separately by ``read_raw_position_familiarity``, under the
     same opt-in. Call it only for
@@ -212,23 +260,25 @@ def read_raw_external_positions(pid: int, records: Mapping[int, int]) -> dict[in
         positions: dict[int, tuple[str, ...]] = {}
         for player_id, person in records.items():
             try:
-                positions[player_id] = decode_positions(read_exact(fd, person - 0x5C, 15))
+                raw = _position_ratings(fd, module_base, person)
             except (OSError, ProbeError) as error:
                 raise ScoutingFeedError(
                     f"could not read raw positions for discovered player {player_id}: {error}"
                 ) from error
+            if raw is not None:
+                positions[player_id] = decode_positions(raw)
         return positions
     finally:
         os.close(fd)
 
 
 def read_raw_position_familiarity(
-    pid: int, records: Mapping[int, int]
+    pid: int, module_base: int, records: Mapping[int, int]
 ) -> dict[int, dict[str, int]]:
     """Read each player's 15 raw position ratings, keyed by position code.
 
-    Same bytes, same offset (``person - 0x5C``) as ``read_raw_external_positions``
-    -- that function keeps only the eligibility cut; this keeps the ratings.
+    The same bytes as ``read_raw_external_positions`` -- that function keeps
+    only the eligibility cut; this keeps the ratings.
     For a player outside the manager's own club this is finer-grained than
     FM's own screens necessarily show, so it sits behind the same opt-in as
     the raw positions: the product owner confirmed on 19 September 2026 that
@@ -242,12 +292,11 @@ def read_raw_position_familiarity(
         ratings: dict[int, dict[str, int]] = {}
         for player_id, person in records.items():
             try:
-                raw = read_exact(fd, person - 0x5C, len(POSITION_CODES))
+                raw = _position_ratings(fd, module_base, person)
             except (OSError, ProbeError):
                 continue
-            if max(raw) > 20:  # not a rating array -- refuse rather than publish noise
-                continue
-            ratings[player_id] = dict(zip(POSITION_CODES, raw))
+            if raw is not None:
+                ratings[player_id] = dict(zip(POSITION_CODES, raw))
         return ratings
     finally:
         os.close(fd)
