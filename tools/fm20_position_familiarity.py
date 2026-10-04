@@ -50,9 +50,9 @@ class PositionFamiliarity(StrEnum):
 class UnconfirmedPositionRating(ValueError):
     """A raw position-familiarity byte has no confirmed category mapping.
 
-    Known gaps, as of 14 September 2026: raw 2-8 (below the confirmed
-    Unconvincing band) and raw 17-18 (between confirmed Accomplished and
-    Natural). Resolve by checking this exact player's position diagram in
+    Known gap, as of 3 October 2026: raw 2-8 (below the confirmed
+    Unconvincing band). The other gap, raw 17-18, was confirmed that day
+    (see _CONFIRMED_BANDS). Resolve by checking this exact player's position diagram in
     FM, then add the confirmed value to _CONFIRMED_BANDS -- do not widen
     an existing band to cover it without checking.
     """
@@ -60,7 +60,7 @@ class UnconfirmedPositionRating(ValueError):
     def __init__(self, raw_value: int):
         super().__init__(
             f"raw position-familiarity value {raw_value} has no confirmed "
-            "category (known gaps: 2-8, 17-18); check this player's "
+            "category (known gap: 2-8); check this player's "
             "position diagram in FM and extend the confirmed bands"
         )
         self.raw_value = raw_value
@@ -70,8 +70,12 @@ class UnconfirmedPositionRating(ValueError):
 # only as wide as what has actually been checked against the UI; the gaps
 # above are deliberately absent rather than folded into a neighbouring band.
 _CONFIRMED_BANDS: tuple[tuple[range, PositionFamiliarity], ...] = (
-    (range(19, 21), PositionFamiliarity.NATURAL),        # 19-20
-    (range(15, 17), PositionFamiliarity.ACCOMPLISHED),   # 15-16
+    # 18 Natural and 17 Accomplished: Alfie Potter (Billericay Town), checked in
+    # FM's position diagram on 30 May 2020 (research corpus entry
+    # position-knowledge-threshold-ui-check). Agrees with the boundaries in
+    # PLAYER_POSITION_LEVEL_LABEL's own value handler (18 and 15).
+    (range(18, 21), PositionFamiliarity.NATURAL),        # 18-20
+    (range(15, 18), PositionFamiliarity.ACCOMPLISHED),   # 15-17
     (range(12, 15), PositionFamiliarity.COMPETENT),      # 12-14
     (range(9, 12), PositionFamiliarity.UNCONVINCING),    # 9-11
     (range(1, 2), PositionFamiliarity.INEFFECTUAL),      # 1

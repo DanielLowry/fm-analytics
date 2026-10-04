@@ -36,6 +36,13 @@ which function contains an address, which vtable slot and class own a function,
 and where a four-character property key appears. It reads only the executable
 file, so it is safe to run at any time and needs no FM process.
 
+The `match-duty-archive-survey` recipe reads explicit 64-bit role/duty words
+from existing archives for the managed first team's historical fixtures.
+`fm20_match_tactics.py` decodes bounded tactic prefixes and
+`fm20_match_duty_survey.py` records every candidate without selecting one.
+This is research only: tactic ownership, snapshot time and appearance linkage
+remain unverified. See [the extraction evidence](../docs/match-duty-extraction.md).
+
 `fm20_frida_attribute_sweep.py` calls FM's proven, UI-verified visible-attribute
 builder in-process for many players and every display attribute in one Frida
 session, instead of one guarded ptrace call per attribute. Its recipe is

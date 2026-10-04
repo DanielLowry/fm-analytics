@@ -45,6 +45,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(project_root))
     sys.path.insert(0, str(project_root / "src"))
 
+from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.bridge.linux_proton import LinuxProtonDataSource
 from fm_analytics.domain import AttributeObservation, Club, Player, Squad
 from fm_analytics.domain.leagues import LeagueCapture, LeagueRoster
@@ -278,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         capture = capture_league(running_pid(), save_key=args.save_key)
-    except (OSError, probe.ProbeError, SandboxError, LeagueCaptureError, ValueError) as exc:
+    except (OSError, probe.ProbeError, SandboxError, LeagueCaptureError, BridgeSourceError, ValueError) as exc:
         print(f"League capture failed: {exc}", file=sys.stderr)
         return 1
     write_capture(capture, args.output)

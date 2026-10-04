@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "id": "match-duty-archive-survey",
+  "purpose": "historical-match-duty-source-reconnaissance",
+  "question": "Do archived matches contain explicit role/duty words, independently of catalogue inference?",
+  "adapter": "fm20-match-duty-survey",
+  "build": "fm20-20.4.4-1442341",
+  "safety": "passive-live",
+  "operator_interaction": "none",
+  "requires_live_process": true,
+  "timeout_seconds": 90,
+  "required_registry_facts": ["active-object", "main-database-collections"],
+  "reusable_corpus_states": [],
+  "decision": {
+    "adapter_exit_codes": [0],
+    "adapter_statuses": ["complete"],
+    "minimum_matches": 1,
+    "minimum_arrays": 1
+  },
+  "limitations": [
+    "A decoded tactic array is not a proven historical appearance source.",
+    "Team, time, player overrides and in-match changes need validation before promotion.",
+    "Only known duty labels are reported; other masks remain unlabelled.",
+    "No native FM code is called and no production data is modified."
+  ]
+}

@@ -512,6 +512,84 @@
         "Whether primary/Natural positions can themselves ever be gated is untested; both observed here were fully known."
       ],
       "known_contrasts": ["owned-foot-position-trace"]
+    },
+    {
+      "id": "position-knowledge-threshold-ui-check",
+      "state": "external-players-mixed-knowledge",
+      "game_date": "2020-05-30",
+      "manager_id": "1915435143",
+      "entity": {"kind": "player-set", "names": ["Alfie Potter", "Jake Howells", "Sanchez Watt"]},
+      "screens": ["player-position-diagram"],
+      "captures": [
+        {
+          "id": "position-knowledge-threshold-ui-check-20261003",
+          "kind": "operator-declared-ui-comparison-report",
+          "path": "data/research/visibility/position-knowledge-threshold-ui-check-20261003.json",
+          "sha256": "0a6bc98f345f85afdd1f6179c820a03dae4b4dda0e7ba426eb8e9acbd56e1f8a",
+          "outcome": "3-of-3-players-matched"
+        }
+      ],
+      "verified_facts": [
+        "FM+0x1fb1910, run in the sandbox for the active manager, gives the lowest position rating FM shows another club's player: 18 when his positions are unknown, 16 when partly known, everything when fully known.",
+        "Positions at or above that answer are exactly those FM's position diagram shows; the rest show as Ineffectual. Checked position by position for two partly known players and one fully known player.",
+        "Raw 17 shows as Accomplished and raw 18 as Natural (Alfie Potter's ML, AML, AMR).",
+        "Adam Mann's 2019 observation (Natural 20s shown, Accomplished 16s shown as Ineffectual) is the unknown case of the same rule."
+      ],
+      "reusable_for": ["league capture visible positions", "closing the scouting feed's rawPositions gap", "position-familiarity band mapping"],
+      "limitations": [
+        "The UI observation is operator-declared, not independently captured.",
+        "The Natural-only case was predicted for two players but only Adam Mann's earlier observation supports it so far.",
+        "One save and manager; the knowledge classification itself is FM's own and was not varied deliberately."
+      ],
+      "known_contrasts": ["position-knowledge-gate-check"]
+    },
+    {
+      "id": "historical-match-duty-candidates",
+      "state": "managed-first-team-historical-match-archive",
+      "game_date": "2020-05-30",
+      "manager_id": "1915435143",
+      "entity": {"kind": "club", "id": "5103652", "name": "Hungerford Town"},
+      "screens": [],
+      "captures": [
+        {
+          "id": "match-duty-serializer-static",
+          "kind": "offline-serializer-and-ui-property-disassembly",
+          "path": "data/research/static/match-duty-serializer-20261003-v2.json",
+          "sha256": "983639651ae2b141771297d27dd4d276e1f57aa0cdf34666fd4f8acddc6149e8",
+          "outcome": "full-word-duty-mask-and-array-serialization-mapped"
+        },
+        {
+          "id": "match-duty-archive-controller-20261003",
+          "kind": "research-controller-session",
+          "path": "data/research/sessions/match-duty-archive-survey-20261003T201501600549Z.json",
+          "sha256": "cedde9a93e75df680b7f193661c88929e72e6b620995841a30c4ecc452354aab",
+          "outcome": "passed-build-and-state-invariants"
+        },
+        {
+          "id": "match-duty-archive-survey-20261003",
+          "kind": "passive-historical-tactic-prefix-survey",
+          "path": "data/research/sessions/match-duty-archive-survey-20261003T201501600549Z.adapter.json",
+          "sha256": "c940f2933b68169acf2583df3b581f7ec40d720a572ad8f039abc0286d95047f",
+          "outcome": "53-unambiguous-fixture-candidates-566-tactic-prefixes-unlinked"
+        }
+      ],
+      "verified_facts": [
+        "FM's TACTICAL_ROLE_LABEL and DUTY_POPUP_BUTTON consume separate tdPT and lrPT properties. The tactic-slot getter masks a full 64-bit word with 0x406e00000 for duty and 0x7fffbf91fdeff for role.",
+        "The tactic-slot serializer writes position as u32 and role/duty as u64. Existing match archives contain structurally valid tactic-array prefixes with these words, independently of the app's configured tactics.",
+        "MATCH_MANAGER serializes two tactic arrays per manager, at native +0xa20 and +0x17e0. They must not be treated as a home/away pair.",
+        "The stable survey retained 53 unambiguous first-team fixture candidates containing 566 valid tactic prefixes and rejected three ambiguous fixture/chunk candidates. State invariants and all four archive hashes remained unchanged.",
+        "For Hungerford versus Braintree on 28 March 2020, the named Vertical 4-4-2 prefix has CM Support at position 0x200400 and CM Defend at 0x100400; another default prefix reverses them. Both players have role-only code 0x20."
+      ],
+      "reusable_for": ["full-width role/duty decoding", "historical tactic record attribution", "opposite duties within one role", "ambiguous archive fixture rejection"],
+      "limitations": [
+        "No tactic prefix is bound to a historical appearance. Team, snapshot time, override meaning, substitutions and in-match changes remain unverified.",
+        "The named 28 March prefix reverses the duties in the earlier operator confirmation. Choosing its name or role compatibility would not resolve this contradiction.",
+        "Prefix boundaries stop after player overrides, before variable set pieces and trailing settings. They are not full-array ends.",
+        "Only Defend, Support and Attack are labeled; Stopper, Cover and Automatic remain unlabelled masks. Historical UI comparison is pending.",
+        "This is research-only evidence and does not replace application inference or modify captures/history.",
+        "The earlier exploratory session ending 201017207456Z predates ambiguous fixture rejection and its counts are superseded."
+      ],
+      "known_contrasts": []
     }
   ]
 }

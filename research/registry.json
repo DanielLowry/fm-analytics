@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-09-15",
+  "updated_at": "2026-10-03",
   "confidence_order": [
     "lead",
     "observed",
@@ -352,6 +352,17 @@
       "confidence": "cold-query-proven",
       "implementation": "tools/fm20_frida_property.py",
       "evidence": ["cold-footedness-labels"]
+    },
+    {
+      "id": "tactic-slot-role-duty-property-getter",
+      "build": "fm20-20.4.4-1442341",
+      "rva": "0x28bf980",
+      "safety": "offline",
+      "confidence": "signature-mapped",
+      "known_keys": {"tdPT": "full word & 0x406e00000", "lrPT": "full word & 0x7fffbf91fdeff"},
+      "ui_consumers": {"TACTICAL_ROLE_LABEL": "0x3f11b30", "DUTY_POPUP_BUTTON": "0x3e06a70"},
+      "note": "Both properties read the same 64-bit tactic-slot word at +0. No native getter call was attempted. A duty property contract does not prove historical team/time/player attribution. See docs/match-duty-extraction.md.",
+      "evidence": ["match-duty-serializer-static"]
     }
   ],
   "properties": [
@@ -453,6 +464,21 @@
       "confidence": "lead",
       "status": "thin-slice-candidate",
       "note": "Must discover visibility/knowledge semantics; the raw owned-player offset is not sufficient."
+    },
+    {
+      "id": "historical-match.tactic-duty-word",
+      "build": "fm20-20.4.4-1442341",
+      "scope": "archived tactic-array candidates for the managed first team's matches",
+      "confidence": "observed",
+      "status": "decoded-candidates-historical-attribution-unverified",
+      "role_mask": "0x7fffbf91fdeff",
+      "duty_mask": "0x406e00000",
+      "known_duty_labels": {"0x200000": "Defend", "0x400000": "Support", "0x800000": "Attack"},
+      "unlabelled_masks": ["0x2000000", "0x4000000", "0x400000000"],
+      "serializers": {"array": "0x46712d0", "team_settings": "0x46803b0", "slot": "0x46b9350", "instructions": "0x46b8d60", "manager_tactics": "0x48d0470"},
+      "implementation": "tools/fm20_match_tactics.py",
+      "note": "53 unambiguous archive fixture candidates contain 566 valid tactic prefixes. Do not select by name, catalogue compatibility or proximity. The 28 March named array conflicts with the prior operator confirmation; owning team/snapshot/player and changes during the match remain unverified. No production appearance field is approved.",
+      "evidence": ["match-duty-serializer-static", "match-duty-archive-survey-20261003"]
     }
   ],
   "visibility_rules": [
@@ -503,6 +529,15 @@
       "property_candidates": ["external-player.contract-expiry", "player.footedness"],
       "acceptance": "Discover one bridge-absent property with no interactive GDB and at most one short FM interaction.",
       "status": "footedness-cold-query-proven-ui-check-pending"
+    },
+    {
+      "id": "match-duty-archive-survey",
+      "adapter": "fm20-match-duty-survey",
+      "safety": "passive-live",
+      "confidence": "observed",
+      "implementation": "tools/fm20_match_duty_survey.py",
+      "note": "Read-only /proc identity lookup and existing .obs archive reads. Bounded serializer decoder, ambiguous fixture/chunk rejection, stable archive hashes and state invariants. Reports every candidate, with appearancesLinked=false and labelsUiVerified=false; no native calls or production writes.",
+      "evidence": ["match-duty-archive-survey-20261003", "match-duty-archive-controller-20261003"]
     }
   ]
 }

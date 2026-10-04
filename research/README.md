@@ -19,6 +19,14 @@ Validate both files with:
 python3 tools/validate_research_catalog.py
 ```
 
+The `match-duty-archive-survey` recipe reads explicit duty words from archived
+tactics for the managed first team's matches. The 3 October 2026 stable run
+found 566 valid tactic prefixes in 53 unambiguous fixture candidates. It keeps
+all candidates unlinked: the owning team/snapshot/player and a historical duty
+contradiction still need validation. See
+[the extraction record](../docs/match-duty-extraction.md) before using this
+evidence to change production appearance attribution.
+
 The `league-roster-inventory` recipe performs read-only roster identity
 reconnaissance through the same controller:
 

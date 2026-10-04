@@ -56,6 +56,9 @@
   visible FM facts become screen-independent, validated sources.
 - [Property-discovery playbook](property-discovery-playbook.md) documents the
   reusable property-discovery method.
+- [Historical match duty extraction](match-duty-extraction.md) records the
+  direct 64-bit duty source, bounded archive decoder, and unresolved historical
+  team/player/snapshot attribution.
 - [Frida and player discoverability](frida-discoverability.md) records current
   Player Search evidence and remaining validation gates.
 - [Scouting workspace](scouting-workspace.md) documents the visibility-aware

@@ -120,6 +120,15 @@ Against the checklist above:
   in; a substitute takes the slot of the player he replaced in the same
   position, and one who came on in a changed shape is not used.
 
+  **Direct-source research, 3 October 2026:** the statement above concerns
+  the player-statistics code. Archived tactic arrays do preserve separate
+  duty bits in full 64-bit words. A bounded research decoder reads them, but
+  the owning team/snapshot/player link remains unverified. In particular,
+  one named array for 28 March reverses the duties in the earlier manager
+  confirmation; defaults contain the expected midfield duties but different
+  striker roles. Neither is approved for appearance attribution. See
+  [historical match duty extraction](match-duty-extraction.md).
+
 `uv run fm-matches coverage` (`reporting.build_appearance_coverage`, over
 `analytics/appearance_context.py`) is this section's completion check.
 

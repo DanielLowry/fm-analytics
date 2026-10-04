@@ -131,11 +131,15 @@ from the Tactics page, which does apply it.
 
 **Before slice 1 is accepted**, check in FM, on the same game date:
 
-1. A few rivals' position diagrams against the predicted shown/hidden
-   positions in `data/research/visibility/position-knowledge-threshold-*.json`
-   (one Natural-only, one partly known, one fully known player).
-2. Maidstone United's first-team squad: no goalkeeper, as the capture found?
-   Also one other club's first-team list against the capture's count.
+1. ~~A few rivals' position diagrams against the predicted shown/hidden
+   positions.~~ **Done 30 May 2020:** Alfie Potter and Jake Howells (partly
+   known) and Sanchez Watt (fully known) matched FM's diagram position by
+   position (research corpus `position-knowledge-threshold-ui-check`). The
+   Natural-only case rests on Adam Mann's 2019 observation; one current
+   check (Devonte Aransibia or Mason Barrett) would confirm it.
+2. Squads, re-read at 30 May 2020: Maidstone United 16 players with one
+   goalkeeper (Ethan Dawe, new since 28 May, when the read found none);
+   Havant & Waterlooville 14 players. Check both against FM's first-team list.
 3. Once a new season starts, rerun the capture before the first league match,
    to confirm that the league link already names the new season's clubs.
 

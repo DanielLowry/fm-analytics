@@ -12,6 +12,8 @@ class PositionFamiliarityTests(unittest.TestCase):
         cases = {
             20: PositionFamiliarity.NATURAL,
             19: PositionFamiliarity.NATURAL,
+            18: PositionFamiliarity.NATURAL,  # Alfie Potter's AML/AMR, 30 May 2020
+            17: PositionFamiliarity.ACCOMPLISHED,  # Alfie Potter's ML, 30 May 2020
             16: PositionFamiliarity.ACCOMPLISHED,
             15: PositionFamiliarity.ACCOMPLISHED,
             14: PositionFamiliarity.COMPETENT,
@@ -31,16 +33,10 @@ class PositionFamiliarityTests(unittest.TestCase):
                 with self.assertRaises(UnconfirmedPositionRating):
                     position_familiarity(raw_value)
 
-    def test_unconfirmed_gap_below_natural_fails_closed(self) -> None:
-        for raw_value in (17, 18):
-            with self.subTest(raw_value=raw_value):
-                with self.assertRaises(UnconfirmedPositionRating):
-                    position_familiarity(raw_value)
-
     def test_unconfirmed_error_names_the_raw_value(self) -> None:
         with self.assertRaises(UnconfirmedPositionRating) as ctx:
-            position_familiarity(17)
-        self.assertEqual(ctx.exception.raw_value, 17)
+            position_familiarity(5)
+        self.assertEqual(ctx.exception.raw_value, 5)
 
     def test_rejects_values_outside_the_storage_range(self) -> None:
         for raw_value in (0, -1, 21, 100):

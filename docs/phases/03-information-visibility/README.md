@@ -303,11 +303,13 @@ case: his 16s were hidden. Run in the sandbox for 409 league rivals and our 33
 players, the two calls agreed for every player, and FM's per-position rating
 getter returned the raw bytes for all 72 players checked.
 `tools/fm20_visible_positions.py` publishes only positions at or above FM's
-answer, and the live league capture uses it. Status: `cold-query-proven`, with
-a predicted shown/hidden list per rival in
-`data/research/visibility/position-knowledge-threshold-*.json`. It becomes
-`ui-verified` once a few of those players' position diagrams are checked in
-FM. The scouting feed's `rawPositions` gap can then be closed the same way.
+answer, and the live league capture uses it. Status: **`ui-verified`** on 30
+May 2020 for partly and fully known players. Alfie Potter, Jake Howells and
+Sanchez Watt each matched FM's diagram position by position (research corpus
+`position-knowledge-threshold-ui-check`). The unknown case is Adam Mann's
+above. Potter also confirmed raw 17 as Accomplished and 18 as Natural, closing
+that band gap in `tools/fm20_position_familiarity.py`. The scouting feed's
+`rawPositions` gap can now be closed the same way.
 
 ## Prerequisites
 

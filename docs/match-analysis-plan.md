@@ -126,6 +126,11 @@ both the page and `fm-matches review` use.
   show` and the export show is that settled role (`appearance_roles`), and the
   roles table, goals by role, diagnostics and controlled tests group by it, not
   by code: one code covers every duty, and one role can have two codes.
+  Research on 3 October found explicit 64-bit role/duty words in archived
+  tactic arrays. The bounded decoder is working, but team/time/player
+  attribution and a conflicting historical observation still need validation;
+  it does not yet replace this inference. See
+  [historical match duty extraction](match-duty-extraction.md).
 - One role can have more than one code, and why is not known: the left
   striker's Advanced Forward (Attack) changed from `0x800` to `0x80000` on 28
   December 2019 with nothing else in the record changing, after two late
@@ -523,7 +528,10 @@ the per-player figures were confirmed against FM's screens (see above).
    needs ground truth, which FM's own goal descriptions in its archive may
    provide.
 3. Label the remaining team counters, and locate yellow cards on a match with some.
-4. Find out whether role codes tell duties apart.
+4. Bind the archived tactic duty words to historical appearances. The player
+   role code does not distinguish duty; the full tactic word does. See
+   [historical match duty extraction](match-duty-extraction.md) for the decoder,
+   evidence and remaining gates.
 
 ## Delivery steps
 
