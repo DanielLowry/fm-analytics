@@ -80,6 +80,10 @@ export function initScouting() {
     if (minAge !== null && maxAge !== null && minAge > maxAge || floor !== null && ceiling !== null && floor > ceiling) {
       status.textContent = 'The minimum must not exceed the maximum.'; return;
     }
+    const maxRange = number(params, 'maxRange');
+    if (maxRange !== null && !(maxRange >= 0)) {
+      status.textContent = 'Maximum range must be zero or more.'; return;
+    }
     const rows = orderedSnapshotRows(snapshot.data, params, snapshot.byId);
     exportRows = rows.map(row => row.export); refreshExports();
     const trial = sort === 'trial_priority';

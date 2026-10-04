@@ -194,8 +194,8 @@ the column headings offer exactly those (`analytics.SORTS_BY_MODE`):
 | Chosen | Table | Extra sorts |
 |---|---|---|
 | a tactic | XI-gain table | XI gain (est/floor/ceiling), projected score, player fit |
-| else a role | that role's targets | **Scouting priority** (the old Proven fit → Scout first → Scout to decide order), median, min, ceiling, upside |
-| else | best-role ranking | best role, min/median/max, upside, familiarity and in-position score (raw positions only) |
+| else a role | that role's targets | **Scouting priority** (the old Proven fit → Scout first → Scout to decide order), median, min, ceiling, range |
+| else | best-role ranking | best role, min/median/max, range, familiarity and in-position score (raw positions only) |
 
 Age, value, scouted %, attributes known and name sort in all three. A `sort`
 that belongs to another table falls back to this table's default
@@ -206,6 +206,14 @@ The visibility, minimum-floor and minimum-ceiling filters now also apply to the
 best-role ranking (`filter_position_rankings`); they used to be ignored until a
 role was chosen. All three tables share one definition of them
 (`matches_information_filters`). A role may be chosen without a position.
+
+**Range (4 October 2026).** The Range column shows Max − Min as a number beside
+its bar, and **Maximum range** filters on it, so "players scouting has already
+pinned down, best median first" is one filter and one sort. In the tactic table,
+which has no Range column, it is the gap between the player-fit floor and
+ceiling that the minimum filters read. The sort keeps its `upside` key: it
+sorted by Max − Median, which is always exactly half of Max − Min because the
+median puts every range and unknown at its midpoint, so the order is unchanged.
 
 **Cost.** Scoring a player against every role is the slow part (about 8 ms per
 player measured on 500 players before the shortcut below) and it does
@@ -219,6 +227,18 @@ after every refresh, and re-sorting or filtering it is then instant instead of
 re-scoring on each keystroke. Measured on that save with one request at a time:
 first cold ranking of the whole pool ~7 s (was ~11 s for just the 1,364 scouted
 players, on every request); any re-sort or filter afterwards ~0 s.
+
+**A new scoring context reuses the role scores (4 October 2026).** That cache
+was keyed on the whole context, so ticking **Use raw external positions** or
+choosing a position re-scored every player in every role, though a role score
+depends on the player's attributes alone. On the 8,644-player pool of 4 October
+the raw-positions snapshot took 31 s after the startup warm-up. The same cache
+now also keeps each player's score in every role tried so far (a compact
+`_RoleFit`: min, median, max and the known/ranged/unknown counts), so a new
+context scores only roles not yet tried for him: the raw-positions snapshot now
+takes 0.9 s, and a position 0.1-0.2 s. The cost is memory: 651,000 role scores,
+at most ~75 MB on top of the ~340 MB pool. The startup warm-up itself (every
+player in every role, ~55 s on that pool) is unchanged.
 
 The row limit is 100 with a **Show more** button (`limit`, capped at 1,000
 because each row carries an attribute sheet). Rows show positions, value and

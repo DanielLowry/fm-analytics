@@ -262,6 +262,7 @@ def _scouting_filters(query: dict[str, list[str]]) -> ScoutingFilters:
         transfer_status=_query_first(query, "transferStatus"), availability=_query_first(query, "availability"),
         visibility=visibility, minimum_floor=_query_number(query, "minFloor"),
         minimum_ceiling=_query_number(query, "minCeiling"),
+        maximum_range=_query_number(query, "maxRange"),
         minimum_known_attributes=_query_number(query, "minKnown", integer=True),
         scout_more_only=scout_more_only,
         include_unlikely=_query_first(query, "includeUnlikely") == "1",

@@ -1,5 +1,6 @@
 import unittest
 
+from dataclasses import replace
 from unittest.mock import patch
 
 from fm_analytics.analytics import (
@@ -535,6 +536,24 @@ class InformationFilterTests(unittest.TestCase):
         self.assertEqual(self.kept(minimum_ceiling=101, include_unlikely=True),
                          {"full", "partial", "blank", "uncaptured"})
 
+    def test_the_range_filter_keeps_players_scouting_has_pinned_down(self) -> None:
+        ranges = {r.candidate.id: r.maximum - r.minimum for r in self.rankings}
+
+        self.assertEqual(self.kept(maximum_range=0), {"full"})
+        # One ranged attribute narrows the spread a little; everyone else could be anything.
+        self.assertEqual(self.kept(maximum_range=ranges["partial"]), {"full", "partial"})
+        self.assertEqual(self.kept(maximum_range=100), {"full", "partial", "blank", "uncaptured"})
+        with self.assertRaises(ValueError):
+            ScoutingFilters(maximum_range=-1)
+
+    def test_the_range_sort_is_max_minus_min(self) -> None:
+        by_range = rank_for_position(
+            [r.candidate for r in self.rankings], MVP_CATALOGUE, "DC", sort="upside", descending=False
+        )
+
+        self.assertEqual(by_range[0].candidate.id, "full")
+        self.assertEqual(by_range[1].candidate.id, "partial")
+
 
 class RankingCacheTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -543,9 +562,9 @@ class RankingCacheTests(unittest.TestCase):
             candidate("b", {ROLE.attributes[0].name: known(8)}, name="B", age=30),
         ]
 
-    def calls_for(self, **kwargs) -> int:
+    def calls_for(self, position: str | None = "DC", **kwargs) -> int:
         with patch.object(scouting_module, "score_role", wraps=scouting_module.score_role) as spy:
-            rank_for_position(self.pool, MVP_CATALOGUE, "DC", **kwargs)
+            rank_for_position(self.pool, MVP_CATALOGUE, position, **kwargs)
             return spy.call_count
 
     def test_a_cache_scores_each_player_once_however_the_list_is_re_sorted(self) -> None:
@@ -579,11 +598,36 @@ class RankingCacheTests(unittest.TestCase):
             ranked["a"].median, rank_for_position(recaptured[:1], MVP_CATALOGUE, "DC")[0].median
         )
 
-    def test_arguments_that_change_the_score_do_not_share_an_entry(self) -> None:
+    def test_arguments_that_change_the_ranking_do_not_share_an_entry(self) -> None:
+        pool = [replace(player, raw_position_familiarity=with_ratings(DC=8)) for player in self.pool]
+        raw = dict(include_raw_external_positions=True, familiarity_policy=FamiliarityPolicy())
+        cache: dict = {}
+        rank_for_position(pool, MVP_CATALOGUE, "DC", cache=cache)
+
+        for position, options in (("DC", raw), ("MC", {}), (None, raw)):
+            with self.subTest(position=position, options=options):
+                self.assertEqual(
+                    rank_for_position(pool, MVP_CATALOGUE, position, cache=cache, **options),
+                    rank_for_position(pool, MVP_CATALOGUE, position, **options),
+                )
+        self.assertIsNotNone(rank_for_position(pool, MVP_CATALOGUE, "DC", cache=cache, **raw)[0].multiplier)
+
+    def test_a_new_raw_positions_choice_reuses_the_role_scores(self) -> None:
+        # Ticking "raw positions" re-ranked the whole pool from scratch: half a
+        # minute for a Player Search pool, though no attribute score changes.
         cache: dict = {}
         rank_for_position(self.pool, MVP_CATALOGUE, "DC", cache=cache)
 
-        self.assertGreater(self.calls_for(cache=cache, include_raw_external_positions=True), 0)
+        self.assertEqual(self.calls_for(
+            cache=cache, include_raw_external_positions=True, familiarity_policy=FamiliarityPolicy(),
+        ), 0)
+        # Roles never tried for these players still have to be scored.
+        self.assertGreater(self.calls_for(cache=cache, position="MC"), 0)
+
+    def test_players_with_nothing_visible_share_one_set_of_role_scores(self) -> None:
+        blanks = [candidate(name, {}) for name in ("x", "y", "z")]
+
         with patch.object(scouting_module, "score_role", wraps=scouting_module.score_role) as spy:
-            rank_for_position(self.pool, MVP_CATALOGUE, "MC", cache=cache)
-        self.assertGreater(spy.call_count, 0)
+            rank_for_position(blanks, MVP_CATALOGUE, "DC", cache={})
+
+        self.assertEqual(spy.call_count, sum("DC" in role.eligible_positions for role in MVP_CATALOGUE.roles.values()))

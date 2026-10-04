@@ -540,6 +540,7 @@ class ScoutingPagesMixin:
                  ("unknown", "Nothing known")), filters.visibility, ""))
             + number("Minimum floor", "minFloor", filters.minimum_floor, min=0, max=100, step=0.1)
             + number("Minimum ceiling", "minCeiling", filters.minimum_ceiling, min=0, max=100, step=0.1)
+            + number("Maximum range (Max − Min)", "maxRange", filters.maximum_range, min=0, max=100, step=0.1)
             + "<label class='check'><input name='includeUnlikely' type='checkbox' value='1'"
             + (" checked" if filters.include_unlikely else "")
             + "> Keep players below the ceiling</label>"
@@ -586,7 +587,7 @@ class ScoutingPagesMixin:
                 filters.loan_interest != "any" or None), market)
             + group("What scouting shows", _count(
                 filters.visibility != "any" or None, filters.minimum_floor, filters.minimum_ceiling,
-                filters.include_unlikely or None), knowledge)
+                filters.maximum_range, filters.include_unlikely or None), knowledge)
             + (group("Captured Player Search facts", _count(*(filters.facts or {}).values()), fact_controls)
                if fact_controls else "")
             + "<div class='filter-actions'>"

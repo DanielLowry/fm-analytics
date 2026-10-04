@@ -133,8 +133,10 @@ def _score_columns() -> list[_Column]:
         _Column("Min", "minimum", lambda _r, i: f"<td class='nw'>{i.minimum:.1f}</td>", _MIN_HINT),
         _Column("Median", "median", lambda _r, i: f"<td class='nw'><b>{i.median:.1f}</b></td>", _MEDIAN_HINT),
         _Column("Max", "ceiling", lambda _r, i: f"<td class='nw'>{i.maximum:.1f}</td>", _MAX_HINT),
-        _Column("Range", "upside", lambda _r, i: f"<td>{score_bar(i.minimum, i.median, i.maximum)}</td>",
-                "The bar spans Min to Max; the tick is the Median. Sorts by how far Max is above Median."),
+        _Column("Range", "upside", lambda _r, i: (
+            f"<td class='nw'>{i.maximum - i.minimum:.1f} {score_bar(i.minimum, i.median, i.maximum)}</td>"
+        ), "Max − Min: how far scouting could still move his score. The bar spans Min to Max; "
+           "the tick is the Median."),
     ]
 
 

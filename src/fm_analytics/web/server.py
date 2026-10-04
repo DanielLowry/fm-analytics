@@ -174,9 +174,10 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
         self._scouting_refresh_lock = threading.Lock()
         self._scouting_refresh_job = ScoutingRefreshJob()
         self._scouting_refresh_thread: threading.Thread | None = None
-        # Scores of scouting candidates per (player, position, options); see
-        # ``rank_for_position``. Lets sorting and filtering re-rank a
-        # thousand-player pool without scoring it again.
+        # Scores of scouting candidates per (player, position, options), and
+        # each player's score per role beneath them; see ``rank_for_position``.
+        # Lets sorting, filtering and a new position or raw-positions choice
+        # re-rank a thousand-player pool without scoring it again.
         self.scouting_rank_cache: dict = {}
         self.cache_ttl_seconds = cache_ttl_seconds
         self.health_interval_seconds = health_interval_seconds

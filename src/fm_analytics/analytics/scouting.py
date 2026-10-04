@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
-from typing import Mapping, MutableMapping, Sequence
+from typing import Mapping, MutableMapping, NamedTuple, Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.role_scoring import RoleScore, score_role
@@ -102,6 +102,8 @@ class ScoutingFilters:
     visibility: str = "any"
     minimum_floor: float | None = None
     minimum_ceiling: float | None = None
+    # Largest Max - Min to keep: how far scouting could still move his score.
+    maximum_range: float | None = None
     minimum_known_attributes: int | None = None
     scout_more_only: bool = False
     include_unlikely: bool = False
@@ -145,6 +147,8 @@ class ScoutingFilters:
             raise ValueError("minimum age cannot exceed maximum age")
         if self.minimum_floor is not None and self.minimum_ceiling is not None and self.minimum_floor > self.minimum_ceiling:
             raise ValueError("minimum floor cannot exceed minimum ceiling")
+        if self.maximum_range is not None and self.maximum_range < 0:
+            raise ValueError("maximum range cannot be negative")
 
 
 @dataclass(frozen=True)
@@ -235,7 +239,9 @@ POSITION_RANKING_SORTS = {
     "median": "Median (best guess)",
     "minimum": "Min (floor)",
     "ceiling": "Ceiling (best case)",
-    "upside": "Upside (ceiling above median)",
+    # Keyed "upside" since it sorted by Max - Median, which is always half of
+    # Max - Min (Median is the midpoint), so the order is unchanged.
+    "upside": "Range (Max − Min)",
     "age": "Age",
     "scouted": "Scouted %",
     "known": "Attributes known",
@@ -331,10 +337,6 @@ class PositionRanking:
     adjusted_median: float | None = None
     adjusted_maximum: float | None = None
 
-    @property
-    def upside(self) -> float:
-        return self.maximum - self.median
-
 
 def _role_rating(role, position: str | None, ratings: Mapping[str, int] | None) -> int | None:
     """His familiarity for the position this role would be played at."""
@@ -385,9 +387,12 @@ def rank_for_position(
     on the player and the arguments above, never on the sort or on who else is
     in the list. A caller that re-ranks the same pool as filters and sorts
     change can pass one ``cache`` mapping (used with a single catalogue) and
-    each player is then scored once per argument set. An entry is reused only
-    for the very same candidate object, so a fresh capture is never served a
-    stale score.
+    each player is then ranked once per argument set. Beneath that, his score
+    in each role depends on his attributes alone, so the cache also keeps every
+    role score worked out for him: a new position or raw-positions choice only
+    scores the roles not yet tried for him. An entry is reused only for the
+    very same candidate object, so a fresh capture is never served a stale
+    score.
     """
     if sort not in POSITION_RANKING_SORTS:
         raise ValueError(f"sort must be one of {sorted(POSITION_RANKING_SORTS)}")
@@ -396,7 +401,7 @@ def rank_for_position(
     all_roles = list(catalogue.roles.values())
     # A player with no visible attributes scores identically in a role whoever
     # he is, and most of a Player Search pool is exactly that.
-    empty_scores: dict[str, RoleScore] = {}
+    empty_fits = _role_fits(None, cache)
     rankings: list[PositionRanking] = []
     for candidate in candidates:
         key = (candidate.id, position, include_raw_external_positions, familiarity_policy)
@@ -405,7 +410,8 @@ def rank_for_position(
             ranking = cached[1]
         else:
             ranking = _rank_one(
-                candidate, all_roles, position, empty_scores,
+                candidate, all_roles, position,
+                _role_fits(candidate, cache) if candidate.attributes else empty_fits,
                 include_raw_external_positions=include_raw_external_positions,
                 familiarity_policy=familiarity_policy,
             )
@@ -426,7 +432,7 @@ def sort_position_rankings(
         "median": lambda r: r.median,
         "minimum": lambda r: r.minimum,
         "ceiling": lambda r: r.maximum,
-        "upside": lambda r: r.upside,
+        "upside": lambda r: r.maximum - r.minimum,
         "age": lambda r: r.candidate.age,
         "scouted": lambda r: r.candidate.scouting_knowledge,
         "known": lambda r: r.known_attributes + r.ranged_attributes,
@@ -458,11 +464,51 @@ def _order(items, value, descending: bool):
     return tuple(present + missing)
 
 
+class _RoleFit(NamedTuple):
+    """What a position ranking keeps of one ``RoleScore``: small enough to hold
+    for every role of a whole Player Search pool, which the full evidence is not."""
+
+    lower: float
+    median: float
+    upper: float
+    known: int
+    ranged: int
+    unknown: int
+
+
+def _role_fit(score: RoleScore) -> _RoleFit:
+    visibilities = [item.observation.visibility for item in score.contributions]
+    known = sum(v is Visibility.KNOWN for v in visibilities)
+    ranged = sum(v is Visibility.RANGE for v in visibilities)
+    return _RoleFit(
+        score.score.lower, score.median, score.score.upper,
+        known, ranged, len(visibilities) - known - ranged,
+    )
+
+
+def _role_fits(
+    candidate: ScoutingCandidate | None, cache: MutableMapping | None
+) -> dict[str, _RoleFit]:
+    """The role scores already worked out for ``candidate``, by role key.
+
+    Kept in the ranking cache under a one-item key, beside the rankings'
+    four-item ones, so they live and are cleared together. ``None`` stands for
+    every player with no visible attributes, who all score alike.
+    """
+    if cache is None:
+        return {}
+    key = (candidate.id if candidate is not None else None,)
+    entry = cache.get(key)
+    if entry is None or entry[0] is not candidate:
+        entry = cache[key] = (candidate, {})
+    return entry[1]
+
+
 def _rank_one(
     candidate: ScoutingCandidate,
     all_roles: list,
     position: str | None,
-    empty_scores: dict[str, RoleScore],
+    fits: dict[str, _RoleFit],
     *,
     include_raw_external_positions: bool,
     familiarity_policy: FamiliarityPolicy | None,
@@ -491,43 +537,37 @@ def _rank_one(
     ratings = candidate.raw_position_familiarity if familiarity_policy else None
     scored = []
     for role in roles:
-        if candidate.attributes:
-            score = score_role(role, candidate.attributes)
-        else:
-            score = empty_scores.get(role.key) or empty_scores.setdefault(
-                role.key, score_role(role, candidate.attributes)
-            )
+        fit = fits.get(role.key)
+        if fit is None:
+            fit = fits[role.key] = _role_fit(score_role(role, candidate.attributes))
         rating = _role_rating(role, position, ratings)
         multiplier = (
             familiarity_policy.multiplier(max(rating, familiarity_policy.scale_minimum))
             if familiarity_policy is not None and rating is not None else None
         )
-        scored.append((score, rating, multiplier))
-    best, best_rating, best_multiplier = max(
+        scored.append((role, fit, rating, multiplier))
+    best_role, best, best_rating, best_multiplier = max(
         scored,
         key=lambda item: (
-            item[0].median * (item[2] if item[2] is not None else 1.0),
-            item[0].score.upper, item[0].role_key,
+            item[1].median * (item[3] if item[3] is not None else 1.0),
+            item[1].upper, item[0].key,
         ),
     )
-    visibilities = [item.observation.visibility for item in best.contributions]
-    known = sum(v is Visibility.KNOWN for v in visibilities)
-    ranged = sum(v is Visibility.RANGE for v in visibilities)
     return PositionRanking(
         candidate=candidate,
-        role_key=best.role_key,
-        role_name=best.role_name,
-        minimum=best.score.lower,
+        role_key=best_role.key,
+        role_name=best_role.name,
+        minimum=best.lower,
         median=best.median,
-        maximum=best.score.upper,
-        known_attributes=known,
-        ranged_attributes=ranged,
-        unknown_attributes=len(visibilities) - known - ranged,
+        maximum=best.upper,
+        known_attributes=best.known,
+        ranged_attributes=best.ranged,
+        unknown_attributes=best.unknown,
         familiarity=best_rating if best_multiplier is not None else None,
         multiplier=best_multiplier,
-        adjusted_minimum=None if best_multiplier is None else round(best.score.lower * best_multiplier, 6),
+        adjusted_minimum=None if best_multiplier is None else round(best.lower * best_multiplier, 6),
         adjusted_median=None if best_multiplier is None else round(best.median * best_multiplier, 6),
-        adjusted_maximum=None if best_multiplier is None else round(best.score.upper * best_multiplier, 6),
+        adjusted_maximum=None if best_multiplier is None else round(best.upper * best_multiplier, 6),
     )
 
 
@@ -545,7 +585,8 @@ def matches_information_filters(
 
     The one definition shared by every table that scores players, so a filter
     means the same thing whichever of them is showing. ``floor``/``ceiling``
-    are that table's own lower and upper bound on the score.
+    are that table's own lower and upper bound on the score, and the range is
+    the gap between them.
     """
     if filters.minimum_known_attributes is not None and known + ranged < filters.minimum_known_attributes:
         return False
@@ -563,6 +604,8 @@ def matches_information_filters(
         if filters.visibility == "unknown" and known + ranged:
             return False
     if filters.minimum_floor is not None and floor < filters.minimum_floor:
+        return False
+    if filters.maximum_range is not None and ceiling - floor > filters.maximum_range:
         return False
     if (
         filters.minimum_ceiling is not None
@@ -612,7 +655,7 @@ def sort_scouting_assessments(
         "median": lambda a: a.median,
         "minimum": lambda a: a.role_score.score.lower,
         "ceiling": lambda a: a.role_score.score.upper,
-        "upside": lambda a: a.role_score.score.upper - a.role_score.median,
+        "upside": lambda a: a.role_score.score.upper - a.role_score.score.lower,
         "age": lambda a: a.candidate.age,
         "scouted": lambda a: a.candidate.scouting_knowledge,
         "known": lambda a: a.known_attributes + a.ranged_attributes,

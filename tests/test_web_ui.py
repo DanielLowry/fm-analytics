@@ -61,6 +61,7 @@ class ScoutingSnapshotTests(WebServerHelpers, unittest.TestCase):
             {'minAge': '21'}, {'maxAge': '21'}, {'maxValue': '100000'},
             {'visibility': 'known'}, {'visibility': 'partial'}, {'visibility': 'unknown'},
             {'minFloor': '40'}, {'minCeiling': '90'},
+            {'maxRange': '0'}, {'maxRange': '60'}, {'maxRange': '100'},
             {'minKnown': '0'}, {'minKnown': '1'}, {'minKnown': '10'}, {'minKnown': '100'},
             {'scoutMore': '1'}, {'scoutMore': '1', 'minKnown': '2'},
             {'minCeiling': '90', 'includeUnlikely': '1'},

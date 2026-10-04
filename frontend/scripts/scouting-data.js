@@ -28,6 +28,8 @@ export function matchesSnapshotRow(row, params) {
   if (visibility === 'known' && (row.ranged || row.unknown) || visibility === 'partial' && !row.ranged || visibility === 'unknown' && (row.known || row.ranged)) return false;
   const floor = number(params, 'minFloor'), ceiling = number(params, 'minCeiling');
   if (floor !== null && row.floor < floor) return false;
+  const maxRange = number(params, 'maxRange');
+  if (maxRange !== null && row.ceiling - row.floor > maxRange) return false;
   if (ceiling !== null && row.ceiling < ceiling && params.get('includeUnlikely') !== '1') return false;
   if (params.get('sort') === 'trial_priority' && !row.trial) return false;
   return true;
