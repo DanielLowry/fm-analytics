@@ -23,6 +23,12 @@ class WebActionsMixin:
             self.send_header("Location", "/?refresh=" + ("started" if started else "running"))
             self.end_headers()
             return
+        if self.server.read_only:  # type: ignore[attr-defined]
+            self._send(
+                _error_page("Read-only comparison", "Recording and editing are disabled in read-only comparison mode.", "/tactics"),
+                HTTPStatus.FORBIDDEN,
+            )
+            return
         if parsed.path == "/scouting/verdict":
             self._post_scouting_verdict()
             return

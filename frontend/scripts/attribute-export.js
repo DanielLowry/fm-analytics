@@ -58,7 +58,7 @@ export function initPlayerCopies() {
       button.disabled = true; status.textContent = '';
       try {
         await copyText(value);
-        status.textContent = 'Player copied!';
+        status.textContent = panel.dataset.copySuccess || 'Player copied!';
       } catch { status.textContent = 'Could not copy. Try again.'; }
       finally { button.disabled = false; }
     });

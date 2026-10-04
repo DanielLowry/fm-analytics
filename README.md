@@ -151,6 +151,28 @@ uv run fm-web --direct-live --fm-html squad-general.html squad-physical.html \
   --fm-html-player-count 17
 ```
 
+To compare teams from older FM saves without changing any databases, load the
+save in FM and start a read-only comparison session:
+
+```bash
+uv run fm-web --direct-live --read-only
+```
+
+Open the desired tactic and click **Copy starting XI attributes to clipboard**.
+The dump includes the tactic, game date, and each selected player's slot,
+position, role, duty, name, age, club, familiarity (excluding 1/20), and full
+relevant attribute groups. It uses the XI on that page, including any opponent
+assumptions. Missing values remain `?` and ranges remain ranges. Unfilled slots
+are listed explicitly; substitutes are excluded.
+
+Read-only comparison mode disables scouting, match and league recording,
+history edits, automatic capture ingestion, and database creation or migration.
+It also leaves stored match form out of selection, so newer history cannot
+affect an old-save comparison. **Refresh squad data** loads another save into
+memory after you switch saves in FM. The same mode supports fixtures and existing
+compatible snapshot databases, including `--snapshot-db PATH --capture-id ID`.
+Copying uses data already on the page and makes no server request.
+
 The **League** page compares every club in your league using the shared
 best-XI scorer, with independently selected floor/conservative/ceiling XIs,
 player rankings, and scouting gaps. With `fm-web --direct-live`, press **Read

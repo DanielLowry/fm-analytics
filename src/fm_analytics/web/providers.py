@@ -90,10 +90,10 @@ def fixture_provider(path: str | Path) -> GameSquadProvider:
 
 
 def snapshot_provider(
-    db_path: str | Path, *, capture_id: int | None = None
+    db_path: str | Path, *, capture_id: int | None = None, read_only: bool = False
 ) -> GameSquadProvider:
     """Read a previously captured, immutable observation back out of SQLite."""
-    store = SnapshotStore(db_path)
+    store = SnapshotStore(db_path, read_only=read_only)
 
     def provide() -> tuple[GameState, Squad]:
         resolved_id = capture_id if capture_id is not None else store.latest_capture_id()

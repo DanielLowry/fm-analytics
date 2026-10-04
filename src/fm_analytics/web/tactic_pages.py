@@ -10,6 +10,7 @@ from fm_analytics.web.ui import position_key, cell_details
 from fm_analytics.analytics import MVP_CATALOGUE, OpponentProfile
 from fm_analytics.reporting import RecommendationBundle
 from fm_analytics.web.bench_render import bench_priority_section
+from fm_analytics.web.attribute_export import profile_copy_control, starting_xi_copy_text
 from fm_analytics.web.form_render import form_card, form_chip, form_note, form_ratings, job_form
 from fm_analytics.web.opponent_controls import (
     opponent_controls as _opponent_controls,
@@ -497,6 +498,10 @@ class TacticPagesMixin:
             "</div><span class='fm-panel-count'>"
             + f"{selected_count} selected</span></div>"
             + form_note(bundle.form)
+            + (profile_copy_control(
+                starting_xi_copy_text(bundle.game, bundle.squad, evaluation),
+                label="Copy starting XI attributes to clipboard", success="Starting XI copied!",
+            ) if evaluation.assignments else "")
             + "<div class='fm-table-card'><table><tr><th>Slot</th><th>Position</th><th>Role</th><th>Player</th>"
             "<th>Condition / fitness</th><th>Form</th><th>Today</th></tr>"
             + "".join(xi_rows)

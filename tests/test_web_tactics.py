@@ -1,4 +1,6 @@
 import html
+import json
+import re
 import tempfile
 import threading
 import unittest
@@ -108,6 +110,29 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertIn("Score details", body)
         self.assertIn("if every player score rises by 2%", body)
         self.assertIn("tactic-balance factor", body)
+
+    def test_starting_xi_copy_contains_every_displayed_starter_and_selected_job(self) -> None:
+        status, body = self._get("/tactics/balanced_442")
+        self.assertEqual(status, 200)
+        self.assertIn("Copy starting XI attributes to clipboard", body)
+        text = json.loads(re.search(r"data-player-copy-text>(.*?)</script>", body, re.S).group(1))
+        report = self.server.tactic_report("balanced_442")
+        game, squad = self.server.read()
+        self.assertIn(f"Game date: {game.game_date.isoformat()}", text)
+        self.assertIn(f"Tactic: {report.evaluation.tactic.name}", text)
+        self.assertIn("Starting XI: 11 / 11", text)
+        self.assertEqual(text.count("\nName: "), 11)
+        for assignment in report.evaluation.assignments:
+            role, duty = assignment.intrinsic_role_score.role_name.rsplit(" (", 1)
+            self.assertIn(
+                f"Slot: {assignment.slot.key}\nPosition: {assignment.slot.position}\n"
+                f"Role: {role}\nDuty: {duty.removesuffix(')')}\nName: {assignment.player_name}", text,
+            )
+        self.assertEqual(text.count(f"Club: {squad.club.name}"), 11)
+        self.assertEqual(text.count("\nPhysical\n"), 11)
+        self.assertEqual(text.count("\nMental\n"), 11)
+        self.assertIn("\nGoalkeeping\n", text)
+        self.assertIn("Long Throws: ?", text)
 
     def test_tactic_checks_page_lists_player_independent_failures(self) -> None:
         status, body = self._get("/tactic-checks")

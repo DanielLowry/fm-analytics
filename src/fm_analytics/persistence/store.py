@@ -98,12 +98,23 @@ def _bring_up_to_date(
 class SnapshotStore:
     """Persist and reconstruct the narrow, immutable MVP squad capture."""
 
-    def __init__(self, path: str | Path, *, migrations: Sequence[str] = MIGRATIONS):
+    def __init__(self, path: str | Path, *, migrations: Sequence[str] = MIGRATIONS, read_only: bool = False):
         self.path = Path(path)
         self._migrations = tuple(migrations)
+        self.read_only = read_only
 
     def initialize(self) -> None:
         """Create the file, upgrade an older one from the baseline, or refuse it."""
+        if self.read_only:
+            with closing(self._connect()) as connection:
+                version = connection.execute("PRAGMA user_version").fetchone()[0]
+            latest = BASELINE_VERSION + len(self._migrations)
+            if version != latest:
+                raise SnapshotStoreError(
+                    f"{self.path} is squad-capture schema v{version}; expected v{latest}. "
+                    "Read-only mode cannot create or upgrade databases. Use a compatible capture or read the loaded FM save with --direct-live."
+                )
+            return
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with closing(self._connect()) as connection, connection:
             _bring_up_to_date(connection, self.path, self._migrations)
@@ -116,6 +127,8 @@ class SnapshotStore:
         source: str,
         captured_at: datetime | None = None,
     ) -> CaptureRecord:
+        if self.read_only:
+            raise SnapshotStoreError(f"{self.path} is open read-only; captures cannot be recorded.")
         self._validate_capture(game, squad, source)
         observed_at = captured_at or datetime.now(timezone.utc)
         if observed_at.tzinfo is None or observed_at.utcoffset() is None:
@@ -247,7 +260,13 @@ class SnapshotStore:
         return int(row[0]) if row is not None else None
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.path)
+        if self.read_only:
+            try:
+                connection = sqlite3.connect(self.path.resolve().as_uri() + "?mode=ro", uri=True)
+            except sqlite3.Error as exc:
+                raise SnapshotStoreError(f"Cannot open {self.path} read-only: {exc}") from exc
+        else:
+            connection = sqlite3.connect(self.path)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
         return connection

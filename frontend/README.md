@@ -43,6 +43,13 @@ the full relevant attribute groups as readable text. Goalkeepers use the
 goalkeeping attribute set; scouting ranges, unknowns and historical dates
 remain intact.
 
+Tactic detail pages use the same clipboard control to copy every selected
+starter's profile, with slot, position, selected role and duty labels. The
+dump includes tactic and game date and excludes the bench. For old-save
+comparisons, start `fm-web --direct-live --read-only` to disable database writes
+and historical form inputs; refreshing squad data only changes the in-memory
+snapshot.
+
 Squad and Scouting share `position-roles.js` and the catalogue choices from
 `web/ui.py`. Position changes replace role choices immediately, preserve a
 compatible selection and clear an incompatible one. Squad requires a position

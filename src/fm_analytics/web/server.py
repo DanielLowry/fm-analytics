@@ -137,7 +137,14 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
         league_provider=None,
         league_store: LeagueHistoryStore | None = None,
         league_capture: Callable[[], str] | None = None,
+        read_only: bool = False,
     ):
+        self.read_only = read_only
+        if read_only:
+            knowledge_store = knowledge_recorder = None
+            match_store = match_capture = None
+            league_store = league_capture = None
+            scouting_refresh = None
         self.setup_league(league_provider, league_store, league_capture)
         self.setup_match_history(match_store, match_capture)
         # Appends each fresh scouting capture to the player-knowledge database
@@ -552,10 +559,12 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
             + f"<span class='fm-status-dot' data-state='{html.escape(state)}' aria-hidden='true'></span>"
             + "<div class='fm-status-copy'><b>FM "
             + html.escape(status)
+            + (" · read-only" if self.read_only else "")
             + "</b><span>Snapshot: "
             + html.escape(game_date)
             + "</span></div>"
             + "<details><summary>Data controls</summary><div class='fm-status-actions'>"
+            + ("<span class='fm-metric-note'>Read-only comparison · recording disabled</span>" if self.read_only else "")
             + f"<span class='fm-metric-note'>Health checked: {html.escape(checked)}</span>"
             + f"<span class='fm-metric-note'>Loaded: {html.escape(snapshot)}</span>"
             + (f"<span class='warn'>{html.escape(detail)}</span>" if detail else "")
@@ -692,6 +701,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="do not record scouting captures into the player-knowledge database",
     )
     parser.add_argument(
+        "--read-only",
+        action="store_true",
+        help="compare saves without creating, updating or migrating databases; disables history recording and editing",
+    )
+    parser.add_argument(
         "--match-db",
         type=Path,
         default=DEFAULT_MATCH_DATABASE,
@@ -711,10 +725,10 @@ def _build_provider(args: argparse.Namespace) -> GameSquadProvider:
         # Fail at startup, in plain text, rather than the first page load
         # hitting an unreadable capture mid-request.
         try:
-            SnapshotStore(args.snapshot_db).initialize()
+            SnapshotStore(args.snapshot_db, read_only=args.read_only).initialize()
         except SnapshotStoreError as exc:
             raise SystemExit(str(exc)) from exc
-        provider = snapshot_provider(args.snapshot_db, capture_id=args.capture_id)
+        provider = snapshot_provider(args.snapshot_db, capture_id=args.capture_id, read_only=args.read_only)
     elif args.base_url:
         provider = live_provider(base_url=args.base_url)
     elif args.direct_live:
@@ -777,42 +791,43 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Could not start tactic-ranking workers; using sequential ranking: {exc}")
         ranking_executor.shutdown(wait=False)
         ranking_executor = None
-    # The store is always configured: recording captures can be switched off,
-    # but the manager's verdicts are his own and need somewhere to live.
-    knowledge_store = PlayerKnowledgeStore(args.knowledge_db)
+    # Comparison sessions do not open the history stores, even at startup.
+    knowledge_store = PlayerKnowledgeStore(args.knowledge_db) if not args.read_only else None
     knowledge_recorder = None
-    if not args.no_record_knowledge:
+    if not args.no_record_knowledge and not args.read_only:
 
         def knowledge_recorder() -> RecordResult:
             return record_capture_file(knowledge_store, refresh_path)
 
-    match_store = MatchHistoryStore(args.match_db)
-    league_path = args.league_json or (DEFAULT_LEAGUE_CAPTURE if args.direct_live else None)
+    match_store = MatchHistoryStore(args.match_db) if not args.read_only else None
+    league_path = args.league_json or (DEFAULT_LEAGUE_CAPTURE if args.direct_live and not args.read_only else None)
     server = SquadWebServer(
         (args.host, args.port), provider,
-        scouting_provider=scouting_json_provider(refresh_path, allow_missing=True),
-        scouting_refresh=_scouting_refresh_command(refresh_path),
-        scouting_capture_path=refresh_path,
+        scouting_provider=(scouting_json_provider(refresh_path, allow_missing=True)
+                           if not args.read_only or args.scouting_json else empty_scouting_provider()),
+        scouting_refresh=_scouting_refresh_command(refresh_path) if not args.read_only else None,
+        scouting_capture_path=refresh_path if not args.read_only else None,
         cache_ttl_seconds=args.cache_ttl_seconds,
         ranking_executor=ranking_executor,
         pinned_tactics=pinned_tactics,
         knowledge_recorder=knowledge_recorder,
         knowledge_store=knowledge_store,
-        knowledge_save_key=_capture_save_key(refresh_path),
+        knowledge_save_key=_capture_save_key(refresh_path) if not args.read_only else None,
         out_of_date_months=args.out_of_date_months,
         match_store=match_store,
-        match_capture=lambda: capture_and_record(match_store),
+        match_capture=(lambda: capture_and_record(match_store)) if not args.read_only else None,
         league_provider=league_json_provider(league_path, allow_missing=args.direct_live) if league_path else None,
-        league_store=LeagueHistoryStore(args.league_db) if league_path else None,
+        league_store=LeagueHistoryStore(args.league_db) if league_path and not args.read_only else None,
         # Reading FM needs FM: only a live server offers the League page's read button.
-        league_capture=league_capture_command(league_path) if args.direct_live else None,
+        league_capture=league_capture_command(league_path) if args.direct_live and not args.read_only else None,
+        read_only=args.read_only,
     )
     if knowledge_recorder is not None and refresh_path.exists():
         # Catches captures made by running the tool directly since last time.
         server.record_knowledge()
         if server.knowledge_note is not None:
             print(server.knowledge_note[0])
-    if DEFAULT_MATCH_CAPTURE.exists():
+    if not args.read_only and DEFAULT_MATCH_CAPTURE.exists():
         # Catches a capture made with `fm-matches capture` or the tool directly.
         try:
             print(f"Match history: {record_match_capture(match_store, DEFAULT_MATCH_CAPTURE).summary()}")

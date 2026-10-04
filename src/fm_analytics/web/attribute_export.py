@@ -5,7 +5,7 @@ import html
 import json
 
 from fm_analytics.analytics.scouting_candidate import plays_in_goal
-from fm_analytics.web.ui import ordered_positions
+from fm_analytics.web.ui import ordered_positions, position_key
 
 
 ATTRIBUTE_GROUPS = (
@@ -112,13 +112,43 @@ def player_copy_text(record):
 
 
 def player_copy_control(record):
-    source = json.dumps(player_copy_text(record), ensure_ascii=True).replace("<", "\\u003c")
+    return profile_copy_control(player_copy_text(record), label="Copy player to clipboard", success="Player copied!")
+
+
+def starting_xi_copy_text(game, squad, evaluation):
+    """Export the displayed assignments, without reading or recording history."""
+    sections = [
+        f"Tactic: {evaluation.tactic.name}\nFormation: {evaluation.tactic.formation}\n"
+        f"Game date: {game.game_date.isoformat()}\n"
+        f"Starting XI: {len(evaluation.assignments)} / {len(evaluation.tactic.slots)}"
+    ]
+    if evaluation.unfilled_slots:
+        sections[0] += "\nUnfilled slots: " + ", ".join(slot.key for slot in evaluation.unfilled_slots)
+    players = {player.id: player for player in squad.players}
+    for assignment in sorted(evaluation.assignments, key=lambda item: (position_key(item.slot.position), position_key(item.slot.key))):
+        player = players[assignment.player_id]
+        role_name = assignment.intrinsic_role_score.role_name
+        role, separator, duty = role_name.rpartition(" (")
+        job = (
+            f"Slot: {assignment.slot.key}\nPosition: {assignment.slot.position}\n"
+            f"Role: {role if separator else role_name}\nDuty: {duty.removesuffix(')') if separator else '?'}"
+        )
+        record = player_export_record(
+            player.name, player.age, player.attributes, player.positions, player.position_familiarity,
+            club=squad.club.name if squad.club else None,
+        )
+        sections.append(job + "\n" + player_copy_text(record))
+    return "\n\n---\n\n".join(sections)
+
+
+def profile_copy_control(value, *, label, success):
+    source = json.dumps(value, ensure_ascii=True).replace("<", "\\u003c")
     return (
-        "<div class='fm-table-toolbar' data-player-copy>"
-        "<button type='button' class='fm-table-copy' disabled>Copy player to clipboard</button>"
+        f"<div class='fm-table-toolbar' data-player-copy data-copy-success='{html.escape(success, quote=True)}'>"
+        f"<button type='button' class='fm-table-copy' disabled>{html.escape(label)}</button>"
         "<span class='fm-table-copy-status' role='status' aria-live='polite'></span>"
         "<script type='application/json' data-player-copy-text>" + source + "</script>"
-        "<noscript>Enable JavaScript to copy the player.</noscript></div>"
+        "<noscript>Enable JavaScript to copy.</noscript></div>"
     )
 
 

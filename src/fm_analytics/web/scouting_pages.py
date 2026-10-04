@@ -104,8 +104,9 @@ class ScoutingPagesMixin:
             + _refresh_job_notice(refresh_job, self.server.scouting_capture_age)
             + _knowledge_notice(self.server.knowledge_note)
             + ( _pool_not_built_body() if refresh_job.needs_player_search else "")
-            + "<details class='fm-disclosure fm-workspace-panel fm-scouting-capture-panel'>"
-            "<summary>Capture and refresh</summary>" + _scouting_refresh_panel(filters.scouted_only) + "</details>"
+            + ("<details class='fm-disclosure fm-workspace-panel fm-scouting-capture-panel'>"
+               "<summary>Capture and refresh</summary>" + _scouting_refresh_panel(filters.scouted_only) + "</details>"
+               if not self.server.read_only else "")
             + self._scouting_filters_form(
                 filters, candidates, self.server.pinned_tactics, limit,
                 show_rejected=_show_rejected(query),
