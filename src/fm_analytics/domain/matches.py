@@ -32,6 +32,10 @@ PITCH_POSITIONS = frozenset(
     {"GK", "SW", "DR", "DL", "DC", "WBR", "WBL", "DM", "MR", "ML", "MC", "AMR", "AML", "AMC", "ST"}
 )
 CENTRE_SIDES = ("left", "right")
+# The duties FM's saved tactic words are known to mean (see
+# docs/match-duty-extraction.md). FM has three more duty values, which are
+# leads for Stopper, Cover and Automatic; until checked they read as unknown.
+DUTY_CODES = {0x200000: "defend", 0x400000: "support", 0x800000: "attack"}
 
 # FM's match stats panel, in the order FM lists it.
 TEAM_STAT_KEYS = (
@@ -296,6 +300,62 @@ class MatchEvent:
 
 
 @dataclass(frozen=True)
+class SavedTacticSlot:
+    """One slot of the tactic FM saved with a match: where, which role code, which duty."""
+
+    position: str  # a PITCH_POSITIONS name
+    centre_side: str | None  # "left"/"right" in a central pair
+    role_code: int  # the same code FM's player records carry
+    duty_code: int  # FM's raw duty value; `duty` names it when known
+
+    @property
+    def duty(self) -> str | None:
+        return DUTY_CODES.get(self.duty_code)
+
+    @classmethod
+    def from_document(cls, raw: Any) -> SavedTacticSlot:
+        where = "a saved tactic slot"
+        if not isinstance(raw, Mapping):
+            raise ValueError(f"{where} must be an object")
+        position = _optional_choice(raw.get("position"), PITCH_POSITIONS, f"{where} position")
+        if position is None:
+            raise ValueError(f"{where} needs a position")
+        return cls(
+            position=position,
+            centre_side=_optional_choice(raw.get("centreSide"), CENTRE_SIDES, f"{where} centreSide"),
+            role_code=_count(raw.get("roleCode"), f"{where} roleCode"),
+            duty_code=_count(raw.get("dutyCode"), f"{where} dutyCode"),
+        )
+
+    def to_document(self) -> dict[str, Any]:
+        return {"position": self.position, "centreSide": self.centre_side,
+                "roleCode": self.role_code, "dutyCode": self.duty_code}
+
+
+@dataclass(frozen=True)
+class SavedTactic:
+    """The tactic FM saved with a match for one side, chosen because it places
+    every one of that side's starters exactly as FM's player records do."""
+
+    name: str
+    slots: tuple[SavedTacticSlot, ...]
+
+    def slot_at(self, position: str | None, centre_side: str | None) -> SavedTacticSlot | None:
+        return next(
+            (slot for slot in self.slots if slot.position == position and slot.centre_side == centre_side), None
+        )
+
+    @classmethod
+    def from_document(cls, raw: Any) -> SavedTactic:
+        if not isinstance(raw, Mapping) or not isinstance(raw.get("slots"), list):
+            raise ValueError("a saved tactic needs a list of slots")
+        return cls(str(raw.get("name") or ""), tuple(SavedTacticSlot.from_document(slot) for slot in raw["slots"]))
+
+    def to_document(self) -> dict[str, Any]:
+        return {"name": self.name, "slots": [slot.to_document() for slot in self.slots]}
+
+
+@dataclass(frozen=True)
 class MatchDetail:
     """FM's match stats panel for both sides, the player stats and the timeline."""
 
@@ -303,6 +363,8 @@ class MatchDetail:
     away: Mapping[str, int]
     players: tuple[PlayerMatchStats, ...] = ()
     events: tuple[MatchEvent, ...] = ()
+    # Each side's tactic as FM saved it with the match, where one fits its line-up.
+    saved_tactics: Mapping[str, SavedTactic] = field(default_factory=dict)
 
     def team(self, side: str) -> Mapping[str, int]:
         return self.home if _side(side, "a side") == "home" else self.away
@@ -328,14 +390,22 @@ class MatchDetail:
             away=_team_counts(raw.get("away"), "away stats"),
             players=tuple(PlayerMatchStats.from_document(item) for item in raw.get("players") or ()),
             events=tuple(MatchEvent.from_document(item) for item in raw.get("events") or ()),
+            saved_tactics={
+                _side(side, "a saved tactic side"): SavedTactic.from_document(tactic)
+                for side, tactic in (raw.get("savedTactics") or {}).items()
+            },
         )
 
     def to_document(self) -> dict[str, Any]:
-        return {
+        document = {
             "home": dict(self.home), "away": dict(self.away),
             "players": [player.to_document() for player in self.players],
             "events": [event.to_document() for event in self.events],
         }
+        # Left out when none was read, so older matches keep their content hash.
+        if self.saved_tactics:
+            document["savedTactics"] = {side: tactic.to_document() for side, tactic in self.saved_tactics.items()}
+        return document
 
 
 @dataclass(frozen=True)

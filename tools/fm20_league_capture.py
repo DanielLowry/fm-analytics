@@ -12,7 +12,11 @@ Writes a version 1 league capture (docs/contracts/league-capture.md) for
   22 clubs in its 352 played results. When league results exist, every club in
   them must be among the participants, or membership is marked incomplete.
 - **Which players.** Each club's first-team squad vector, the same one our own
-  squad is read from, so a rival's roster has the same scope as ours.
+  squad is read from, so a rival's roster has the same scope as ours. It holds
+  ordinary players, players who also hold a staff role (player-coaches), and
+  "virtual" placeholder players. FM's squad screen shows the first two only
+  (checked 30 May 2020: Maidstone United 16 + 2 = 18 and Havant &
+  Waterlooville 12 + 6 = 18, as FM showed), so placeholders are left out.
 - **What FM shows.** Visible attributes from FM's own visibility builder and
   visible positions from FM's own position-knowledge check, both run in the
   sandbox over a read-only copy of FM's memory (``tools.fm20_sandbox_queries``,
@@ -52,7 +56,7 @@ from fm_analytics.domain.leagues import LeagueCapture, LeagueRoster
 from fm_analytics.domain.matches import Competition
 from tools import fm20_linux_probe as probe
 from tools import fm20_match_layout as layout
-from tools.fm20_cold_query_cache import resolve_player_interfaces
+from tools.fm20_cold_query_cache import _valid_player_interface
 from tools.fm20_linux_probe_runtime import decode_fm_date, snapshot_marker
 from tools.fm20_match_probe import Memory, first_team_address, played_results
 from tools.fm20_sandbox import FmSandbox, SandboxError
@@ -60,10 +64,9 @@ from tools.fm20_sandbox_queries import SandboxSearchContext, read_visible_attrib
 from tools.fm20_status import running_pid
 from tools.fm20_visible_positions import (
     KNOWLEDGE_BY_THRESHOLD,
-    PLAYER_PERSON_OFFSET,
     PositionReadError,
-    read_position_ratings,
     read_position_threshold,
+    read_ratings_in_sandbox,
     visible_positions,
 )
 
@@ -132,6 +135,31 @@ def _person(fd: int, interface: int) -> int:
     return interface + 8 + struct.unpack("<i", os.pread(fd, 4, table + 4))[0]
 
 
+def read_squad(memory: Memory, team: int) -> tuple[dict[int, int], int]:
+    """A club's first team as FM's squad screen shows it: player ID -> interface.
+
+    The vector's entries are the players' interfaces. An entry that is not an
+    ordinary or staff-role player (FM's virtual placeholders) is counted, not
+    read. Returns the players and that count.
+    """
+    start, end = memory.u64(team + 0x38), memory.u64(team + 0x40)
+    if not start or end < start or (end - start) % 8 or (end - start) // 8 > 200:
+        raise LeagueCaptureError(f"a first-team squad at {team:#x} has implausible bounds")
+    players, skipped = {}, 0
+    for index in range((end - start) // 8):
+        interface = memory.u64(start + index * 8)
+        try:
+            player_id = struct.unpack("<i", memory.read(_person(memory.fd, interface) + 0xC, 4))[0]
+            valid = _valid_player_interface(memory.fd, memory.module_base, interface, player_id)
+        except (OSError, struct.error):
+            valid = False
+        if not valid:
+            skipped += 1
+        elif players.setdefault(player_id, interface) != interface:
+            raise LeagueCaptureError(f"player {player_id} appears twice in one squad")
+    return players, skipped
+
+
 def read_identity(fd: int, person: int, as_of: date) -> tuple[str, date | None, int | None]:
     actual = person + 0x28
     name = " ".join(part for part in (probe.read_fm_string(fd, actual + 0x30), probe.read_fm_string(fd, actual + 0x38)) if part)
@@ -145,8 +173,8 @@ def read_identity(fd: int, person: int, as_of: date) -> tuple[str, date | None, 
 
 
 def _sandbox_pass(pid: int, context: SandboxSearchContext, interfaces: Mapping[int, int],
-                  scouts: Mapping[int, int], player_ids: list[int], workers: int):
-    """Visible attributes and FM's position threshold, each shard in a fresh sandbox."""
+                  persons: Mapping[int, int], scouts: Mapping[int, int], player_ids: list[int], workers: int):
+    """Visible attributes, FM's position threshold and ratings, each shard in a fresh sandbox."""
     count = max(1, min(workers, len(player_ids)))
     size = -(-len(player_ids) // count)
     shards = [player_ids[start:start + size] for start in range(0, len(player_ids), size)]
@@ -158,9 +186,10 @@ def _sandbox_pass(pid: int, context: SandboxSearchContext, interfaces: Mapping[i
                 try:
                     attributes = read_visible_attributes(box, context, interfaces[player_id], scouts.get(player_id, 0))
                     threshold = read_position_threshold(box, context.manager_interface, interfaces[player_id])
+                    ratings = read_ratings_in_sandbox(box, persons[player_id])
                 except (SandboxError, PositionReadError):
                     continue
-                found[player_id] = (attributes, threshold)
+                found[player_id] = (attributes, threshold, ratings)
         return found
 
     combined = {}
@@ -170,27 +199,25 @@ def _sandbox_pass(pid: int, context: SandboxSearchContext, interfaces: Mapping[i
     return combined
 
 
-def read_visible(pid: int, context: SandboxSearchContext, interfaces: Mapping[int, int], scouts: Mapping[int, int]):
+def read_visible(pid: int, context: SandboxSearchContext, interfaces: Mapping[int, int],
+                 persons: Mapping[int, int], scouts: Mapping[int, int]):
     """Retry only the players a pass missed, in new sandboxes (see capture_players)."""
     remaining, found = sorted(interfaces), {}
     for attempt in range(SANDBOX_PASSES):
         if not remaining:
             break
-        found.update(_sandbox_pass(pid, context, interfaces, scouts, remaining,
+        found.update(_sandbox_pass(pid, context, interfaces, persons, scouts, remaining,
                                    SANDBOX_WORKERS if attempt == 0 else 4))
         remaining = [player_id for player_id in remaining if player_id not in found]
     return found
 
 
-def rival_roster(fd: int, team: int, club: Club, ids: Sequence[int], as_of: date, interfaces: Mapping[int, int],
-                 visible: Mapping[int, tuple[dict[str, AttributeObservation], int]]) -> LeagueRoster:
+def rival_roster(fd: int, club: Club, interfaces: Mapping[int, int], placeholders: int, as_of: date,
+                 visible: Mapping[int, tuple[dict[str, AttributeObservation], int, bytes]]) -> LeagueRoster:
     players, errors, knowledge = [], [], {}
     unreadable = uncaptured = 0
-    for player_id in sorted(ids):
-        interface = interfaces.get(player_id)
+    for player_id, interface in sorted(interfaces.items()):
         try:
-            if interface is None:
-                raise LeagueCaptureError("not found among FM's people")
             person = _person(fd, interface)
             name, born, age = read_identity(fd, person, as_of)
         except (OSError, probe.ProbeError, LeagueCaptureError):
@@ -198,12 +225,11 @@ def rival_roster(fd: int, team: int, club: Club, ids: Sequence[int], as_of: date
             continue
         attributes, positions = {}, ()
         if player_id in visible:
-            attributes, threshold = visible[player_id]
-            if person - interface == PLAYER_PERSON_OFFSET:
-                try:
-                    positions = visible_positions(read_position_ratings(fd, person), threshold)
-                except (OSError, probe.ProbeError, PositionReadError):
-                    positions = ()
+            attributes, threshold, ratings = visible[player_id]
+            try:
+                positions = visible_positions(ratings, threshold)
+            except PositionReadError:
+                positions = ()
             label = KNOWLEDGE_BY_THRESHOLD[threshold]
             knowledge[label] = knowledge.get(label, 0) + 1
         else:
@@ -218,7 +244,8 @@ def rival_roster(fd: int, team: int, club: Club, ids: Sequence[int], as_of: date
     if uncaptured:
         errors.append(f"{uncaptured} player(s)' visible attributes and positions could not be read this time")
     evidence = ("First-team squad from FM; visible attributes and positions decided by FM's own knowledge "
-                "checks (" + ", ".join(f"{count} {label}" for label, count in sorted(knowledge.items())) + ")")
+                "checks (" + ", ".join(f"{count} {label}" for label, count in sorted(knowledge.items())) + ")"
+                + (f"; {placeholders} virtual placeholder(s) FM does not show left out" if placeholders else ""))
     return LeagueRoster(Squad(club, as_of, tuple(players)), unreadable == 0,
                         all(player.positions for player in players), evidence, tuple(errors))
 
@@ -245,18 +272,17 @@ def capture_league(pid: int, *, save_key: str | None = None) -> LeagueCapture:
             if club is None:
                 raise LeagueCaptureError(f"a league team at {team:#x} has no readable club")
             clubs[team] = Club(club.id, club.name)
-            rosters[team] = tuple(sorted(int(i) for i in probe.read_first_team_ids(memory.fd, memory.module_base, team)))
+            rosters[team] = read_squad(memory, team)
         context = resolve_sandbox_context(pid)
-        wanted = {player_id for ids in rosters.values() for player_id in ids}
-        interfaces = resolve_player_interfaces(pid, memory.fd, memory.module_base, wanted)
-        scouts = resolve_scout_persons(memory.fd, memory.module_base, context.knowledge_context, sorted(wanted))
-        visible = read_visible(pid, context, interfaces, scouts)
+        interfaces = {player_id: interface for squad, _ in rosters.values() for player_id, interface in squad.items()}
+        persons = {player_id: _person(memory.fd, interface) for player_id, interface in interfaces.items()}
+        scouts = resolve_scout_persons(memory.fd, memory.module_base, context.knowledge_context, sorted(interfaces))
+        visible = read_visible(pid, context, interfaces, persons, scouts)
         teams = [LeagueRoster(replace(owned, other_teams=()), True, all(p.positions for p in owned.players),
                               "Our first team, read exactly as the Squad page reads it")]
-        teams += [rival_roster(memory.fd, team, clubs[team], rosters[team], as_of, interfaces, visible)
+        teams += [rival_roster(memory.fd, clubs[team], *rosters[team], as_of, visible)
                   for team in sorted(rosters, key=lambda t: clubs[t].name.casefold())]
-        moved = [clubs[team].name for team in rosters
-                 if tuple(sorted(int(i) for i in probe.read_first_team_ids(memory.fd, memory.module_base, team))) != rosters[team]]
+        moved = [clubs[team].name for team in rosters if read_squad(memory, team) != rosters[team]]
     if snapshot_marker(pid) != before or moved:
         raise LeagueCaptureError("FM changed during the capture" + (f" ({', '.join(moved)})" if moved else "") + "; try again")
     capture = LeagueCapture(save_key or f"club:{game.controlled_club.id}", game, season_label(as_of), comp, complete,

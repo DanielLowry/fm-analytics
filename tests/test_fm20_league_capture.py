@@ -114,21 +114,59 @@ class MembershipTests(unittest.TestCase):
         self.assertEqual(capture.season_label(date(2020, 8, 1)), "2020/21")
 
 
+ALPHA, BETA = ratings(DC=20, DR=16, DM=13), ratings(ST=20, AMC=17)
+
+
+class SquadReadTests(unittest.TestCase):
+    def test_ordinary_and_staff_role_players_count_and_placeholders_do_not(self):
+        vector = {0x500 + 8 * index: interface for index, interface in enumerate((0x2001, 0x3001, 0x4001))}
+        memory = FakeMemory({0x700 + 0x38: 0x500, 0x700 + 0x40: 0x518, **vector})
+        people = {0x2001: 0x2001 + 0x1C8, 0x3001: 0x3001 + 0x2A0}  # 0x4001: a virtual placeholder
+
+        def person(fd, interface):
+            if interface not in people:
+                raise OSError("not a person")
+            return people[interface]
+
+        with (
+            patch.object(capture, "_person", side_effect=person),
+            patch.object(FakeMemory, "read", lambda self, address, size: (address - 0xC).to_bytes(4, "little")),
+            patch.object(capture, "_valid_player_interface", return_value=True),
+        ):
+            players, placeholders = capture.read_squad(memory, 0x700)
+        # The fake read gives each person's own address as his ID.
+        self.assertEqual(players, {people[0x2001]: 0x2001, people[0x3001]: 0x3001})
+        self.assertEqual(placeholders, 1)
+
+    def test_a_player_listed_twice_is_refused(self):
+        memory = FakeMemory({0x700 + 0x38: 0x500, 0x700 + 0x40: 0x510, 0x500: 0x2001, 0x508: 0x2009})
+        with (
+            patch.object(capture, "_person", return_value=0x9000),
+            patch.object(FakeMemory, "read", lambda self, address, size: (5).to_bytes(4, "little")),
+            patch.object(capture, "_valid_player_interface", return_value=True),
+            self.assertRaises(capture.LeagueCaptureError),
+        ):
+            capture.read_squad(memory, 0x700)
+
+
 class RivalRosterTests(unittest.TestCase):
-    def roster(self, interfaces, visible, ids=(2, 1)):
+    def roster(self, interfaces, visible, placeholders=0):
         identities = {0x2001: ("Alpha One", date(1995, 1, 1), 25), 0x2002: ("Beta Two", None, None)}
-        rows = {0x2001: ratings(DC=20, DR=16, DM=13), 0x2002: ratings(ST=20, AMC=17)}
+
+        def identity(fd, person, as_of):
+            if person - 0x1C8 not in identities:
+                raise OSError("unreadable person")
+            return identities[person - 0x1C8]
+
         with (
             patch.object(capture, "_person", side_effect=lambda fd, interface: interface + 0x1C8),
-            patch.object(capture, "read_identity", side_effect=lambda fd, person, as_of: identities[person - 0x1C8]),
-            patch.object(capture, "read_position_ratings", side_effect=lambda fd, person: rows[person - 0x1C8]),
+            patch.object(capture, "read_identity", side_effect=identity),
         ):
-            return capture.rival_roster(7, 0xABC, Club("77", "Rivals FC"), ids, date(2020, 5, 28),
-                                        interfaces, visible)
+            return capture.rival_roster(7, Club("77", "Rivals FC"), interfaces, placeholders, date(2020, 5, 28), visible)
 
     def test_players_carry_only_what_fm_shows_and_unknown_readiness(self):
         known = {"pace": AttributeObservation(Visibility.RANGE, minimum=8, maximum=12)}
-        roster = self.roster({1: 0x2001, 2: 0x2002}, {1: (known, 16), 2: ({}, 18)})
+        roster = self.roster({1: 0x2001, 2: 0x2002}, {1: (known, 16, ALPHA), 2: ({}, 18, BETA)}, placeholders=2)
         alpha, beta = roster.squad.players
         self.assertEqual((alpha.id, alpha.positions, alpha.age), ("1", ("DC", "DR"), 25))  # DM 13 hidden
         self.assertEqual(beta.positions, ("ST",))
@@ -139,9 +177,10 @@ class RivalRosterTests(unittest.TestCase):
         self.assertEqual(alpha.attributes, known)
         self.assertTrue(roster.roster_complete and roster.positions_complete)
         self.assertIn("1 natural-only, 1 partial", roster.evidence)
+        self.assertIn("2 virtual placeholder(s) FM does not show left out", roster.evidence)
 
     def test_unreadable_member_or_missed_sandbox_read_is_explicit(self):
-        roster = self.roster({1: 0x2001}, {}, ids=(1, 3))
+        roster = self.roster({1: 0x2001, 3: 0x2003}, {})
         self.assertFalse(roster.roster_complete)
         self.assertFalse(roster.positions_complete)
         (only,) = roster.squad.players
@@ -151,7 +190,7 @@ class RivalRosterTests(unittest.TestCase):
     def test_rival_rosters_pass_the_league_contract(self):
         game = GameState(date(2020, 5, 28), Manager("m", "Manager"), Club("1", "Ours"))
         ours = LeagueRoster(Squad(Club("1", "Ours"), game.game_date, ()), True, True, "Our first team")
-        rival = self.roster({1: 0x2001, 2: 0x2002}, {1: ({}, 1), 2: ({}, 18)})
+        rival = self.roster({1: 0x2001, 2: 0x2002}, {1: ({}, 1, ALPHA), 2: ({}, 18, BETA)})
         document = LeagueCapture("club:1", game, "2019/20", Competition("5", "League"), True, "link",
                                  "manager-visible", (ours, rival)).to_document()
         self.assertEqual(LeagueCapture.from_document(document).teams[1], rival)

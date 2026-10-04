@@ -289,6 +289,9 @@ def format_coverage(coverage: AppearanceCoverage) -> str:
         f"  Can't be used: {len(coverage.excluded):>4}",
         *(f"    {reason:<46}{count:>4}" for reason, count in coverage.reasons()),
     ]
+    sources = coverage.duty_sources()
+    if sources:
+        lines.append("  Duties of the usable ones from: " + ", ".join(f"{source} {count}" for source, count in sources))
     jobs = coverage.jobs()
     if jobs:
         lines += ["", "Usable ratings by job:"]

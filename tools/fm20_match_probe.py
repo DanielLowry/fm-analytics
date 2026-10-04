@@ -46,6 +46,7 @@ from tools import fm20_linux_probe as probe
 import tools.fm20_linux_probe_runtime  # noqa: F401  (installs decode_fm_date)
 from tools import fm20_match_archive as archive
 from tools import fm20_match_layout as layout
+from tools.fm20_match_tactics import candidate_prefixes, team_tactic
 from tools.fm20_field_workbench import PeImage, find_rtti_vtables
 from tools.fm20_status import running_pid
 
@@ -182,16 +183,15 @@ def managed_squad(memory: Memory) -> list[dict]:
     """
     start = memory.u64(first_team_address(memory) + 0x38)
     end = memory.u64(first_team_address(memory) + 0x40)
-    expected_type = memory.module_base + probe.FM20_4_4_STEAM.player_type_offset
     players = []
     for index in range((end - start) // 8):
         try:
-            player = memory.u64(start + index * 8) + 0x8
-            person = player + 0x1C0
-            if memory.u64(person) != expected_type:
+            # Player-coaches too: see probe.SHOWN_PLAYER_LAYOUTS.
+            person = probe.squad_entry_person(memory.fd, memory.module_base, memory.u64(start + index * 8))
+            if person is None:
                 continue
             short_id, unique_id = struct.unpack("<Ii", memory.read(person + 0x8, 8))
-            actual = player + 0x1E8
+            actual = person + 0x28
             name = " ".join(
                 part for part in (
                     probe.read_fm_string(memory.fd, actual + 0x30),
@@ -213,8 +213,9 @@ def player_names(memory: Memory, short_ids: set[int]) -> dict[int, str]:
     """
     if not short_ids:
         return {}
-    marker = struct.pack("<Q", memory.module_base + probe.FM20_4_4_STEAM.player_type_offset)
-    patterns = {marker + struct.pack("<I", short_id): str(short_id) for short_id in short_ids}
+    # Ordinary players and players with a staff role (player-coaches) alike.
+    markers = [struct.pack("<Q", memory.module_base + type_rva) for _, type_rva in probe.SHOWN_PLAYER_LAYOUTS]
+    patterns = {marker + struct.pack("<I", short_id): str(short_id) for marker in markers for short_id in short_ids}
     names: dict[int, str] = {}
     for short_id, addresses in memory.scan(patterns, align=8, limit=4).items():
         for person in addresses:
@@ -299,6 +300,33 @@ def match_detail(memory: Memory, stats_address: int, squad: dict[int, dict]) -> 
     return {"home": teams["home"], "away": teams["away"], "players": players, "events": events}
 
 
+def saved_tactics(chunk: bytes, detail: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Each side's saved tactic, where one places all its starters as FM's player records do."""
+    prefixes = candidate_prefixes(chunk)
+    found = {}
+    for side in ("home", "away"):
+        starters = [
+            (layout.position_code(player["start_position"], player["start_centre_side"]), player["role_code"])
+            for player in detail["players"]
+            if player["side"] == side and player.get("started") and player.get("start_position")
+        ]
+        tactic = team_tactic(prefixes, starters)
+        if tactic is not None:
+            found[side] = {
+                "name": tactic.name,
+                "slots": [
+                    {
+                        "position": layout.position_name(slot.position & 0xFFFF),
+                        "centreSide": layout.CENTRE_SIDES.get((slot.position >> 16) & 0xFF),
+                        "roleCode": slot.role,
+                        "dutyCode": slot.duty,
+                    }
+                    for slot in tactic.slots
+                ],
+            }
+    return found
+
+
 def _team_json(club: dict[str, str] | None, team: int) -> dict[str, str]:
     return club or {"id": f"team:{team:#x}", "name": "Unknown team"}
 
@@ -345,22 +373,24 @@ def build_capture(memory: Memory) -> dict[str, Any]:
             "changed; nothing was saved. " + "; ".join(rejected[0]["problems"])
         )
 
-    # Every other match's full stats, from the archive FM keeps on disk.
+    # Every other match's full stats, and every match's saved tactics, from the
+    # archive FM keeps on disk (the latest match is there too).
     folder = temporary_folder(memory.pid) or default_temporary_folder(memory.executable)
-    missing = [key for key in ours if key not in details]
     fixtures = []
-    for key in missing:
+    for key in ours:
         home, away = clubs(ours[key]["home_team"]), clubs(ours[key]["away_team"])
         if home and away and home["id"].isdigit() and away["id"].isdigit() and home["id"] != away["id"]:
             fixtures.append((key, int(home["id"]), int(away["id"]), ours[key]["home_goals"], ours[key]["away_goals"]))
     if folder is not None and fixtures:
-        our_side = {key: "home" if ours[key]["home_team"] == team else "away" for key in missing}
-        for key, detail in archive.find_matches(folder, fixtures).items():
-            for player in detail["players"]:
-                known = squad.get(player["short_id"]) if player["side"] == our_side[key] else None
-                player["player_id"] = known["id"] if known else None
-                player["name"] = known["name"] if known else None
-            details[key] = detail
+        for key, (chunk, detail) in archive.find_chunks(folder, fixtures).items():
+            if key not in details:
+                our_side = "home" if ours[key]["home_team"] == team else "away"
+                for player in detail["players"]:
+                    known = squad.get(player["short_id"]) if player["side"] == our_side else None
+                    player["player_id"] = known["id"] if known else None
+                    player["name"] = known["name"] if known else None
+                details[key] = detail
+            details[key]["saved_tactics"] = saved_tactics(chunk, details[key])
 
     # Every result's goals and sendings-off, kept only when the goals add up to the score.
     incidents: dict[tuple, list[dict[str, Any]]] = {}
@@ -491,6 +521,7 @@ def _detail_json(detail: dict[str, Any] | None) -> dict[str, Any] | None:
             for player in detail["players"]
         ],
         "events": detail["events"],
+        **({"savedTactics": detail["saved_tactics"]} if detail.get("saved_tactics") else {}),
     }
 
 

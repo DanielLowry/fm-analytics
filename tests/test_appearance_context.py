@@ -7,6 +7,7 @@ from fm_analytics.analytics.appearance_context import (
     DOES_NOT_FIT,
     DUTY_UNSETTLED,
     FRIENDLY,
+    FROM_FM,
     FROM_TACTIC,
     FROM_USUAL,
     LINE_UP,
@@ -191,6 +192,57 @@ class ContextTests(unittest.TestCase):
         by_order = detailed(contexts(matches))
         self.assertEqual(by_order[0].exclusions, (FRIENDLY, NO_TACTIC))
         self.assertIsNone(by_order[0].tactic_source)
+
+
+DUTY = {"defend": 0x200000, "support": 0x400000, "attack": 0x800000, "cover": 0x4000000}
+
+
+def saved(matches, duties, roles=None):
+    """FM's saved tactic for our side, one slot per starter, duties by order."""
+    lines = [p for p in matches[-1]["detail"]["players"] if p["side"] == "home"][:11]
+    matches[-1]["detail"]["savedTactics"] = {"home": {"name": "Vertical 4-4-2", "slots": [
+        {"position": line["startPosition"], "centreSide": line["startCentreSide"],
+         "roleCode": (roles or {}).get(order, line["roleCode"]), "dutyCode": DUTY[duties[order]]}
+        for order, line in enumerate(lines)
+    ]}}
+    return matches
+
+
+AS_PLAYED = ["defend", "support", "defend", "defend", "support", "support",
+             "support", "defend", "support", "support", "attack"]
+
+
+class SavedTacticTests(unittest.TestCase):
+    def test_fms_saved_duty_comes_first(self) -> None:
+        # 24 August 2019: FM saved the left-back on Defend; the slot alone says Support.
+        duties = list(AS_PLAYED)
+        duties[4] = "defend"
+        by_order = detailed(contexts(saved(placed(season()), duties)))
+        self.assertEqual((by_order[4].role_key, by_order[4].duty_source), ("fb_defend", FROM_FM))
+        self.assertEqual((by_order[1].role_key, by_order[1].duty_source), ("fb_support", FROM_FM))
+        # It also settles what the slot could not: both centre-backs on Defend.
+        self.assertEqual((by_order[2].role_key, by_order[2].exclusions), ("cd_defend", ()))
+
+    def test_a_substitute_takes_fms_duty_for_the_slot_he_took_over(self) -> None:
+        matches = saved(substitute(11, 0x20, "MC", 63, 7, matches=placed(season())), AS_PLAYED)
+        sub = detailed(contexts(matches))[11]
+        self.assertEqual((sub.role_key, sub.duty_source), ("cm_defend", FROM_FM))
+
+    def test_anything_fm_does_not_settle_falls_back_to_the_slot(self) -> None:
+        duties = list(AS_PLAYED)
+        duties[2] = "cover"  # not yet a known duty value
+        matches = saved(placed(season()), duties, roles={6: 0x20})  # his code is Box-to-Box (0x10000)
+        by_order = detailed(contexts(matches, notes={DETAILED: Note("vertical_442")}))
+        self.assertEqual(by_order[2].exclusions, (DUTY_UNSETTLED,))
+        self.assertEqual((by_order[6].role_key, by_order[6].duty_source), ("b2b_support", FROM_TACTIC))
+
+    def test_the_label_shows_fms_duty(self) -> None:
+        duties = list(AS_PLAYED)
+        duties[4] = "defend"
+        records = MatchCapture.from_document(capture_document(saved(placed(season()), duties))).matches
+        roles = appearance_roles(records, US["id"], notes={}, codes=RoleCodes.build(MVP_CATALOGUE))
+        home = {p.order: p.short_id for p in records[-1].detail.players_for("home")}
+        self.assertEqual(roles[(DETAILED, "home", home[4])], "Full-Back (Defend)")
 
 
 class RoleLabelTests(unittest.TestCase):

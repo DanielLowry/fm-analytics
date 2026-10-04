@@ -123,11 +123,19 @@ Against the checklist above:
   **Direct-source research, 3 October 2026:** the statement above concerns
   the player-statistics code. Archived tactic arrays do preserve separate
   duty bits in full 64-bit words. A bounded research decoder reads them, but
-  the owning team/snapshot/player link remains unverified. In particular,
-  one named array for 28 March reverses the duties in the earlier manager
-  confirmation; defaults contain the expected midfield duties but different
-  striker roles. Neither is approved for appearance attribution. See
-  [historical match duty extraction](match-duty-extraction.md).
+  the owning team/snapshot/player link remains unverified. For 28 March the
+  array named after the manager's tactic agrees with his confirmation (Bellamy
+  CM Support, Hargreaves CM Defend; an apparent conflict was a swap of the two
+  short IDs in the research note). It is not yet approved for appearance
+  attribution. See [historical match duty extraction](match-duty-extraction.md).
+
+**Duty from FM, 4 October 2026.** The capture now keeps the tactic FM saved
+with each match for our side, when it places every starter exactly as FM's
+player records do, and each appearance's duty comes from its slot there first
+("FM's saved tactic"); the slot and usual-pick inference below is the
+fallback. 696 of the history's appearances now have FM's duty. Whether FM saves
+the kick-off or the final-whistle set-up is still being checked
+([historical match duty extraction](match-duty-extraction.md)).
 
 `uv run fm-matches coverage` (`reporting.build_appearance_coverage`, over
 `analytics/appearance_context.py`) is this section's completion check.

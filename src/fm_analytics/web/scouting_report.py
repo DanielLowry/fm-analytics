@@ -257,9 +257,30 @@ def _player_detail_report(
     historical_html = _historical_attribute_section(
         historical_attributes or {}, historical_observed_at
     )
-    score_sections = "".join(
-        _position_role_scores(attributes, position, catalogue, familiarity, policy)
-        for position in sorted(positions, key=lambda p: (p not in known_positions, position_key(p)))
+    familiar_score_sections: list[str] = []
+    unfamiliar_score_sections: list[str] = []
+    for position in sorted(positions, key=lambda p: (p not in known_positions, position_key(p))):
+        sections = unfamiliar_score_sections if familiarity.get(position) == 1 else familiar_score_sections
+        sections.append(_position_role_scores(attributes, position, catalogue, familiarity, policy))
+    other_familiarity_ratings = any(
+        familiarity.get(position) is None or familiarity.get(position) == 0
+        for position in positions
+    )
+    score_sections = (
+        "<details class='fm-disclosure fm-player-familiar-role-scores' open>"
+        "<summary>Positions with familiarity above 1/20</summary>"
+        + (
+            "<p class='muted'>Positions with an uncaptured or zero familiarity rating also remain here.</p>"
+            if other_familiarity_ratings else ""
+        )
+        + "<div class='fm-player-role-groups'>"
+        + ("".join(familiar_score_sections) or "<p class='muted'>No positions with familiarity above 1/20.</p>")
+        + "</div></details>"
+        + "<details class='fm-disclosure fm-player-unfamiliar-role-scores'>"
+        "<summary>Positions with familiarity 1/20</summary>"
+        "<div class='fm-player-role-groups'>"
+        + ("".join(unfamiliar_score_sections) or "<p class='muted'>No positions with familiarity 1/20.</p>")
+        + "</div></details>"
     )
     main_labels = {"Club", "Squad", "Age", "Nationality", "Footedness", "Scouting knowledge", "Availability", "Condition", "Match fitness", "Preferred foot"}
     def render_facts(items):
@@ -313,7 +334,7 @@ def _player_detail_report(
         "<p>Floor and ceiling are the bounds supported by scouting. The cautious estimate is deliberately "
         "conservative when an attribute is unknown; estimate treats unknown attributes as mid-scale. "
         "In-position estimate applies the listed familiarity multiplier where one was captured.</p>"
-        + "</div></div><div class='fm-player-role-groups'>" + score_sections + "</div></section>"
+        + "</div></div>" + score_sections + "</section>"
         "</div>"
     )
 

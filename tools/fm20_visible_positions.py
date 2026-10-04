@@ -14,9 +14,13 @@ Ineffectual). Found 3 October 2026 by offline disassembly of fm.exe 20.4.4:
 - Player Search's position filter (PERSON_POSITION_FILTER_RULE, evaluator
   FM+0x547c390), GAME_PLAYER slot 0x98 and GAME_SCOUTED_PERSON_TAG's property
   getter all call it, and compare the plain rating against its answer.
-- The rating those callers compare is FM's own getter, which returned exactly
-  the bytes at ``person - 0x5C`` for all 72 players checked live (the owned
-  squad and two rivals), with either flag value.
+- The rating those callers compare is FM's own getter (the person's virtual
+  slot 0x728 gives the player record, whose slot 0x40 takes a position
+  index), which returned exactly the bytes at ``person - 0x5C`` for all 72
+  ordinary players checked live (the owned squad and two rivals), with either
+  flag value. It also answers for players who hold a staff role too
+  (``ACTUAL_PLAYER_AND_NON_PLAYER``), whose record has a different layout, so
+  the league capture reads ratings through it rather than through the offset.
 
 This module runs that function in the sandbox (``tools.fm20_sandbox``: FM's own
 code over a read-only copy of its memory; nothing runs inside the game) and
@@ -35,8 +39,11 @@ POSITION_THRESHOLD_RVA = 0x1FB1910
 # player is fully known. Our eligibility cut (10) then applies, as for our squad.
 FULL_KNOWLEDGE_DEFAULT = 1
 # Ratings sit at the owned-squad reader's proven ``player_address + 0x164``,
-# i.e. ``person - 0x5C`` (see fm20_scouting_identity.read_raw_external_positions).
+# i.e. ``person - 0x5C`` (see fm20_scouting_identity.read_raw_external_positions),
+# for an ordinary player only.
 RATINGS_FROM_PERSON = -0x5C
+PERSON_PLAYER_RECORD_SLOT = 0x728
+PLAYER_POSITION_RATING_SLOT = 0x40
 PLAYER_PERSON_OFFSET = 0x1C8  # person - interface for an ordinary player
 # What FM's function can answer, for labelling only; FM decides, not this table.
 KNOWLEDGE_BY_THRESHOLD = {18: "natural-only", 16: "partial", FULL_KNOWLEDGE_DEFAULT: "full"}
@@ -48,6 +55,19 @@ class PositionReadError(RuntimeError):
 
 def read_position_ratings(fd: int, person: int) -> bytes:
     return read_exact(fd, person + RATINGS_FROM_PERSON, len(POSITION_CODES))
+
+
+def _slot(box: FmSandbox, obj: int, offset: int) -> int:
+    return int.from_bytes(box.read(int.from_bytes(box.read(obj, 8), "little") + offset, 8), "little")
+
+
+def read_ratings_in_sandbox(box: FmSandbox, person: int) -> bytes:
+    """The 15 position ratings through FM's own getter, for any kind of player."""
+    record = box.call(_slot(box, person, PERSON_PLAYER_RECORD_SLOT), person)
+    if not record:
+        raise PositionReadError("FM has no player record for this person")
+    getter = _slot(box, record, PLAYER_POSITION_RATING_SLOT)
+    return bytes(box.call(getter, record, index, 1, 0) & 0xFF for index in range(len(POSITION_CODES)))
 
 
 def read_position_threshold(box: FmSandbox, manager_interface: int, player_interface: int) -> int:

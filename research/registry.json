@@ -477,7 +477,7 @@
       "unlabelled_masks": ["0x2000000", "0x4000000", "0x400000000"],
       "serializers": {"array": "0x46712d0", "team_settings": "0x46803b0", "slot": "0x46b9350", "instructions": "0x46b8d60", "manager_tactics": "0x48d0470"},
       "implementation": "tools/fm20_match_tactics.py",
-      "note": "53 unambiguous archive fixture candidates contain 566 valid tactic prefixes. Do not select by name, catalogue compatibility or proximity. The 28 March named array conflicts with the prior operator confirmation; owning team/snapshot/player and changes during the match remain unverified. No production appearance field is approved.",
+      "note": "53 unambiguous archive fixture candidates contain 566 valid tactic prefixes. Do not select by name, catalogue compatibility or proximity. The 28 March named array agrees with the prior operator confirmation (an earlier conflict was a short-ID swap); owning team/snapshot/player and changes during the match remain unverified. No production appearance field is approved.",
       "evidence": ["match-duty-serializer-static", "match-duty-archive-survey-20261003"]
     }
   ],

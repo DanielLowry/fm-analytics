@@ -1,8 +1,14 @@
 # Historical match duties: extraction research
 
-Status, 3 October 2026: **explicit duty words found and decoded; historical
-appearance attribution remains unverified**. This is research evidence, not
-approval to replace `analytics/appearance_context.py`'s current inference.
+Status, 4 October 2026: **in use.** The capture stores, per side, the saved
+tactic that places every starter exactly as FM's player records do
+(`MatchDetail.saved_tactics`), and `analytics/appearance_context.py` takes each
+player's duty from it first, labelled "FM's saved tactic", with the slot and
+usual-pick inference as the fallback. On the save's history that gives 696
+appearances a duty from FM, 15 from the slot and 5 from the usual pick; 52 of 55
+detailed matches have a saved tactic. **Still open:** whether the saved tactic
+is the kick-off or final-whistle set-up (gate 3 below; a half-time duty change
+in a real match will settle it).
 
 ## What changed in our understanding
 
@@ -128,7 +134,7 @@ writes match-person identity through `0x48ca980` after the tactic state; a full
 enclosing-record decoder should recover identity and side rather than choose
 the first named array.
 
-## Live/archive evidence and the unresolved contrast
+## Live/archive evidence and the 28 March check
 
 The canonical read-only survey completed against the open session at game
 date **30 May 2020**, manager **1915435143**, Hungerford club **5103652**.
@@ -140,7 +146,7 @@ uses the existing archive identity/stat validation; it does not prove tactic
 ownership. The first exploratory survey (56 candidates) predates that
 ambiguity rejection and must not be used for the final counts.
 
-The decisive contrast is Hungerford 2–3 Braintree, **28 March 2020**, in
+The decisive check is Hungerford 2–3 Braintree, **28 March 2020**, in
 `pks_0.obs`, decompressed chunk 124. Chunk SHA-256:
 `d437316164db0fe4a3fbe4171e4563585486a43314fee300e7ebd93642c3a17a`.
 It contains twelve valid tactic prefixes, including:
@@ -150,21 +156,24 @@ It contains twelve valid tactic prefixes, including:
 | 19624 | Vertical 4-4-2 | `0x400020`: CM Support | `0x200020`: CM Defend |
 | 23311 | 4-4-2 | `0x200020`: CM Defend | `0x400020`: CM Support |
 
-The player-statistics record associates Hargreaves (short ID 92314) with start
-position `0x200400`, and Bellamy (100628) with `0x100400`. Both have role-only
-code `0x20`. The named array agrees with all eleven starting position/role
-families, including Pressing Forward Support `0x80400000` and Advanced Forward
-Attack `0x880000`. But its midfielder duties are reversed relative to the
-manager's earlier confirmation in the [form plan](tactic-role-form-plan.md):
-**Hargreaves Defend, Bellamy Support**. The other array has the expected
-midfield duties but different striker roles. The named array's overrides
-include an empty Hargreaves entry and no Bellamy entry; that does not settle
-the conflict.
+The player-statistics record associates **Bellamy (short ID 92314)** with start
+position `0x200400` (MC, right) and **Hargreaves (100628)** with `0x100400`
+(MC, left); both have role-only code `0x20`. (An earlier version of this
+document had the two IDs the other way round, and so reported a conflict;
+the IDs were checked against the match history's named player lines on 4
+October 2026.) The named array therefore gives **Bellamy Support, Hargreaves
+Defend**, exactly the manager's confirmation in the
+[form plan](tactic-role-form-plan.md), and it agrees with all eleven starting
+position/role families, including Pressing Forward Support `0x80400000` and
+Advanced Forward Attack `0x880000` (the newer `0x80000` code). Its player
+overrides hold 27 entries, all empty but one (short ID 17592, not in the
+starting eleven), so none touches the starters.
 
-Do not promote either candidate because its name, some of its duties, or its
-eleven role families happen to fit. An in-match change, a different snapshot,
-or a mismatch in the earlier observation remains possible. Independent FM
-ground truth is needed for the two players and whether their duties changed.
+The eleven other prefixes in the chunk are all named "4-4-2", with the midfield
+duties the other way round and a different right striker (`0x400` Support).
+They are probably the opposition's tactic or default copies; which array belongs
+to which team is still unproven (gate 1 below). One agreeing match is not a
+season: the survey across every match is the next check.
 
 ## Repeating the experiment
 
@@ -186,23 +195,64 @@ Implementation: `tools/fm20_match_tactics.py` (pure prefix decoder),
 variable instructions and overrides, conflicting candidates, truncation,
 malformed/bounded data, ambiguous fixtures and controller rejection gates.
 
+## Season check against FM's player records (4 October 2026)
+
+For every match in the save's history (game date to 25 April 2020), each
+archived tactic prefix was compared with FM's own player records: a tactic
+"places" a starter when it has a slot at his recorded starting position (with
+centre side) whose role bits equal his recorded role code. Read-only: archive
+files and the match-history database only.
+
+| Result | Count |
+|---|---|
+| Matches with positions recorded and a single archive chunk | 55 |
+| Matches where every tactic placing all eleven of our starters agrees on their duties | 52 |
+| ... the tactic was "Vertical 4-4-2" | 51 |
+| ... the tactic was "4-4-2 - Custom Wing Play" (14 September 2019 v Tonbridge) | 1 |
+| Matches where no tactic places all eleven (30 November, 3 August) | 2 |
+| Starter duties where FM's tactic agrees with `appearance_context`'s inference | 527 |
+| Starter duties FM settles that the inference left open | 43 |
+| Starter duties where they disagree | 2 |
+
+- **Ownership by content, not name:** no prefix placed all eleven of the
+  opponent's starters in any match, and none placed both sides. The many
+  "4-4-2" prefixes in each chunk are not the opposition's line-up.
+- **The two disagreements** are the left-back on 24 and 31 August 2019 (Lee,
+  then Mason): FM's tactic says Full-Back **Defend**, the inference Support.
+  Both were matches Hungerford led; a late defensive change is possible.
+- **Snapshot time is the open question.** On 30 November the tactic has a
+  Box-to-Box Midfielder at MC right, but the starter there (Klukowski) carried
+  the Central Midfielder code; at half-time a Box-to-Box Midfielder came on.
+  On 3 August the tactic has Central Midfielder Defend at MC left, but both
+  the starter and his replacement carried `0x10000000`. The saved tactic
+  therefore may be the final-whistle set-up, or the stored tactic, rather
+  than kick-off. Requiring all eleven starters to match exactly rejected both.
+- **14 September** settles two previously unconfirmed codes' duties: MC right
+  `0x8000` Support and ST right `0x40000` Attack (the manager's occasional
+  Target Man); its DC left carries `0x4000000`, the mask already listed as a
+  lead for Cover (a Central Defender Cover beside one on Defend).
+
 ## Gates before replacing application inference
 
 1. Decode the enclosing record to bind a tactic to its manager/team and the
    correct historical snapshot. Complete the array tail and record boundaries;
    never select by signature order, name or catalogue similarity.
-2. Resolve the 28 March contradiction against FM. Verify a second match,
+2. ~~Resolve the 28 March contradiction against FM.~~ Resolved 4 October 2026:
+   it was a swap of the two players' short IDs in this document; the named
+   array agrees with the manager. Still to do: verify further matches,
    opposite duties within one role, and the unlabeled duty masks through FM's
    display path.
 3. Prove the meaning of player overrides, starting versus final context,
    substitutions, and changes during the match. A single team tactic cannot
    establish the duty for every appearance.
-4. Add optional captured duty/context fields and explicit FM provenance to
-   `PlayerMatchStats` and capture/history schemas. Preserve old captures as
-   unknown; never relabel existing inference as direct FM evidence.
-5. Make the capture path read validated archive duties even when live player
-   statistics are available (`fm20_match_probe.build_capture` currently reads
-   archive detail primarily for missing live matches). Prefer validated direct
-   evidence in `appearance_context`, with transparent fallback provenance.
+4. ~~Add optional captured duty fields with explicit FM provenance.~~ Done 4
+   October 2026: `MatchDetail.saved_tactics` (capture key `savedTactics`, left
+   out when none, so older matches keep their content hash) and
+   `AppearanceContext.duty_source == FROM_FM`.
+5. ~~Read archive duties for every match, live ones included.~~ Done:
+   `build_capture` looks every match up in the archive once
+   (`fm20_match_archive.find_chunks`) and keeps a side's tactic only through
+   `fm20_match_tactics.team_tactic`. Only Defend, Support and Attack are used;
+   the three unlabelled values leave the duty to the fallback.
 
 The remaining problem is historical attribution, not locating the duty bits.

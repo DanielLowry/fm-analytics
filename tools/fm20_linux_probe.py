@@ -587,6 +587,32 @@ def read_availability(
     return ("injured" if injured else "available"), injured, None
 
 
+# A squad vector's entries are player interfaces. FM's squad screen shows two
+# kinds: ordinary players (db::ACTUAL_PLAYER) and players who also hold a staff
+# role, such as player-coaches (db::ACTUAL_PLAYER_AND_NON_PLAYER). It does not
+# show the third, "virtual" placeholder players (db::VIRTUAL_PLAYER). Both
+# shown kinds keep the player record at interface + 8 with the same layout
+# (ratings and attributes at +0x164 matched FM's own getters for 79 players,
+# 4 October 2026, research corpus league-squad-scope-ui-check); only the person
+# part moves, from interface + 0x1C8 to + 0x2A0, past the staff-role data.
+STAFF_ROLE_PLAYER_TYPE_RVA = 0x6DA94A0
+SHOWN_PLAYER_LAYOUTS = (
+    (0x1C8, FM20_4_4_STEAM.player_type_offset),
+    (0x2A0, STAFF_ROLE_PLAYER_TYPE_RVA),
+)
+
+
+def squad_entry_person(memory_fd: int, module_base: int, interface: int) -> int | None:
+    """The person address of a squad entry FM shows as a player, else None."""
+    for person_offset, type_rva in SHOWN_PLAYER_LAYOUTS:
+        try:
+            if read_u64(memory_fd, interface + person_offset) == module_base + type_rva:
+                return interface + person_offset
+        except (OSError, ProbeError):
+            continue
+    return None
+
+
 def _read_team_squad_players(
     memory_fd: int,
     module_base: int,
@@ -608,17 +634,16 @@ def _read_team_squad_players(
     if count > 200:
         raise ProbeError(f"implausible {squad_label} size {count}")
 
-    expected_type = module_base + FM20_4_4_STEAM.player_type_offset
     players: list[SquadPlayerResult] = []
     player_ids: set[str] = set()
     for index in range(count):
         try:
             slot_address = read_u64(memory_fd, start + index * 8)
             player_address = slot_address + 0x8
-            person_address = player_address + 0x1C0
-            if read_u64(memory_fd, person_address) != expected_type:
+            person_address = squad_entry_person(memory_fd, module_base, slot_address)
+            if person_address is None:
                 continue
-            actual_person = player_address + 0x1E8
+            actual_person = person_address + 0x28
             player_id = str(read_i32(memory_fd, person_address + 0xC))
             first_name = read_fm_string(memory_fd, actual_person + 0x30)
             last_name = read_fm_string(memory_fd, actual_person + 0x38)
@@ -711,13 +736,11 @@ def read_team_player_ids(
     count = (end - start) // 8
     if count > 200:
         raise ProbeError(f"implausible {squad_label} size {count}")
-    expected_type = module_base + FM20_4_4_STEAM.player_type_offset
     ids: set[str] = set()
     for index in range(count):
         slot_address = read_u64(memory_fd, start + index * 8)
-        player_address = slot_address + 0x8
-        person_address = player_address + 0x1C0
-        if read_u64(memory_fd, person_address) != expected_type:
+        person_address = squad_entry_person(memory_fd, module_base, slot_address)
+        if person_address is None:
             continue
         player_id = str(read_i32(memory_fd, person_address + 0xC))
         if player_id in ids:

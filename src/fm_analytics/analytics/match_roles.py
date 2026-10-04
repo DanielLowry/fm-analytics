@@ -77,6 +77,14 @@ def role_family(catalogue: FootballCatalogue, role_key: str) -> str:
     return parts["role"] + (parts["where"] or "")
 
 
+def role_duty(catalogue: FootballCatalogue, role_key: str) -> str:
+    """The role's duty, lower case: "support" for "Central Midfielder (Support)"."""
+    parts = _ROLE_NAME.match(catalogue.roles[role_key].name)
+    if parts is None:
+        raise ValueError(f"role {role_key!r} is not named 'Role (Duty)'")
+    return parts["duty"].lower()
+
+
 @dataclass(frozen=True)
 class RoleCodes:
     """FM role code -> catalogue role, confirmed codes merged with the manager's."""

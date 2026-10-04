@@ -203,21 +203,28 @@ def decode_match(chunk: bytes, home_goals: int, away_goals: int) -> tuple[dict[s
     return (None, problems) if problems else (detail, [])
 
 
-def find_matches(
+def find_chunks(
     temporary: Path, fixtures: Iterable[tuple[Any, int, int, int, int]]
-) -> dict[Any, dict[str, Any]]:
-    """Full stats for each fixture (key, home club, away club, home goals, away goals) found.
+) -> dict[Any, tuple[bytes, dict[str, Any]]]:
+    """(chunk, decoded detail) for each fixture (key, home club, away club, home goals, away goals) found.
 
     A fixture is kept only when exactly one chunk names both clubs, home
     first, and decodes to a detail that adds up to that score.
     """
     wanted = list(fixtures)
-    candidates: dict[Any, list[dict[str, Any]]] = {fixture[0]: [] for fixture in wanted}
+    candidates: dict[Any, list[tuple[bytes, dict[str, Any]]]] = {fixture[0]: [] for fixture in wanted}
     for path in archive_files(temporary):
         for chunk in chunks(path):
             for key, home, away, home_goals, away_goals in wanted:
                 if involves(chunk, home, away):
                     detail, _problems = decode_match(chunk, home_goals, away_goals)
                     if detail is not None:
-                        candidates[key].append(detail)
+                        candidates[key].append((chunk, detail))
     return {key: found[0] for key, found in candidates.items() if len(found) == 1}
+
+
+def find_matches(
+    temporary: Path, fixtures: Iterable[tuple[Any, int, int, int, int]]
+) -> dict[Any, dict[str, Any]]:
+    """Full stats for each fixture found, as `find_chunks` finds it."""
+    return {key: detail for key, (_chunk, detail) in find_chunks(temporary, fixtures).items()}

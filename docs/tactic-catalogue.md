@@ -271,7 +271,7 @@ A compact 4-1-4-1 that counters through short combinations and supporting runs r
 A cautious 4-2-3-1 that defends in a compact shape and counters through a raumdeuter who finds space on the flank, an attacking midfielder and a quick striker.
 
 - **Goal:** Goalkeeper (Defend)
-- **Defence:** Full Back (Defend) ×2, Central Defender (Defend) *, Central Defender (Cover) *
+- **Defence:** Full-Back (Defend) ×2, Central Defender (Defend) *, Central Defender (Cover) *
 - **Midfield:** Defensive Midfielder (Defend), Defensive Midfielder (Support)
 - **Attack:** Raumdeuter (Attack), Attacking Midfielder (Attack), Winger (Support) [AML/AMR], Complete Forward (Attack)
 
@@ -319,7 +319,7 @@ A back-three counter system using wing-backs for width and two forwards as immed
 A defensive 5-4-1 with three centre-backs and two defensive wing-backs, a flat midfield four with two attacking wide players, and a target man who holds the ball for them.
 
 - **Goal:** Goalkeeper (Defend)
-- **Defence:** Wing Back (Defend) ×2, Central Defender (Defend) * ×2, Ball-Playing Defender (Defend)
+- **Defence:** Wing-Back (Defend) [DL/DR] ×2, Central Defender (Defend) * ×2, Ball-Playing Defender (Defend)
 - **Midfield:** Winger (Attack) [ML/MR] ×2, Central Midfielder (Defend), Central Midfielder (Support)
 - **Attack:** Target Man (Support)
 
@@ -516,7 +516,7 @@ A patient 4-2-3-1 that controls territory and circulates until space opens betwe
 A 4-3-3 where attacking full-backs overlap two wide target men, and the ball is crossed early to a central target man.
 
 - **Goal:** Goalkeeper (Defend)
-- **Defence:** Full Back (Attack) ×2, Central Defender (Defend) * ×2
+- **Defence:** Full-Back (Attack) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Central Midfielder (Defend), Central Midfielder (Support), Box-to-Box Midfielder (Support)
 - **Attack:** Wide Target Man (Support) [AML/AMR] ×2, Target Man (Support)
 
@@ -597,7 +597,7 @@ An aggressive 4-3-3 designed to regain possession high and sustain pressure in t
 A 4-4-2 with a defensive winger securing one side and an inverted winger plus attacking wing-back creating a counter-attacking overload on the other.
 
 - **Goal:** Goalkeeper (Defend)
-- **Defence:** Full Back (Defend), Central Defender (Defend) *, Ball-Playing Defender (Defend), Wing-Back (Attack) [DL/DR]
+- **Defence:** Full-Back (Defend), Central Defender (Defend) *, Ball-Playing Defender (Defend), Wing-Back (Attack) [DL/DR]
 - **Midfield:** Defensive Winger (Defend) [ML/MR], Central Midfielder (Defend), Box-to-Box Midfielder (Support), Inverted Winger (Attack) [ML/MR]
 - **Attack:** Deep-Lying Forward (Support), Advanced Forward (Attack)
 

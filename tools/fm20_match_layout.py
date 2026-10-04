@@ -252,6 +252,12 @@ def position_name(bits: int) -> str | None:
     return POSITIONS[bits.bit_length() - 1]
 
 
+def position_code(position: str, centre_side: str | None) -> int:
+    """A position and centre side back as FM's code (`0x200400` is MC, right), as tactic slots hold it."""
+    flags = {side: flag for flag, side in CENTRE_SIDES.items()}
+    return (1 << POSITIONS.index(position)) | (flags.get(centre_side, 0) << 16)
+
+
 def decode_positions(start_bits: int, centre_flag: int, played_bits: int, played: bool) -> dict[str, str | None]:
     """Where a player started (and on which side of a central pair) and where he played.
 

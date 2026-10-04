@@ -115,7 +115,7 @@
     },
     {
       "key": "fb_defend",
-      "name": "Full Back (Defend)",
+      "name": "Full-Back (Defend)",
       "description": "Primarily defensive wide player who can add width in possession; on Defend duty he stays conservative, protects the flank and uses simple possession.",
       "positions": [
         "DL",
@@ -150,7 +150,7 @@
     },
     {
       "key": "fb_attack",
-      "name": "Full Back (Attack)",
+      "name": "Full-Back (Attack)",
       "description": "Primarily defensive wide player who can add width in possession; on Attack duty he overlaps aggressively and prioritises forward running and delivery while accepting more defensive risk.",
       "positions": [
         "DL",
@@ -191,7 +191,7 @@
     },
     {
       "key": "wb_dl_dr_defend",
-      "name": "Wing Back (Defend)",
+      "name": "Wing-Back (Defend) [DL/DR]",
       "description": "Full-back-line wing-back combining wide defending with the running and delivery of a winger; on Defend duty he remains relatively cautious but still carries and supports from wide areas.",
       "positions": [
         "DL",

@@ -101,6 +101,23 @@ class MatchRecordTests(unittest.TestCase):
             line.update({"position": None, "startPosition": None, "startCentreSide": None})
         self.assertEqual(MatchRecord.from_document(document).content_hash(), self.match.content_hash())
 
+    def test_a_saved_tactic_round_trips_and_its_absence_keeps_the_old_content_hash(self) -> None:
+        document = self.match.to_document()
+        self.assertNotIn("savedTactics", document["detail"])
+        document["detail"]["savedTactics"] = {"home": {"name": "Vertical 4-4-2", "slots": [
+            {"position": "MC", "centreSide": "right", "roleCode": 0x20, "dutyCode": 0x400000},
+            {"position": "DC", "centreSide": "left", "roleCode": 0x2, "dutyCode": 0x4000000},
+        ]}}
+        record = MatchRecord.from_document(document)
+        tactic = record.detail.saved_tactics["home"]
+        self.assertEqual(tactic.slot_at("MC", "right").duty, "support")
+        self.assertIsNone(tactic.slot_at("DC", "left").duty)  # Cover is only a lead so far
+        self.assertIsNone(tactic.slot_at("MC", "left"))
+        self.assertEqual(MatchRecord.from_document(record.to_document()), record)
+        self.assertNotEqual(record.content_hash(), self.match.content_hash())
+        del document["detail"]["savedTactics"]
+        self.assertEqual(MatchRecord.from_document(document).content_hash(), self.match.content_hash())
+
     def test_a_position_or_centre_side_fm_does_not_have_is_refused(self) -> None:
         for key, value in (("position", "STC"), ("startPosition", "CB"), ("startCentreSide", "middle")):
             document = self.match.to_document()

@@ -36,6 +36,7 @@ from typing import Iterable
 from tools.fm20_cold_visibility_call import CONTEXT_ROOT_RVA, EXPECTED_SHA256
 from tools.fm20_linux_probe import (
     FM20_4_4_STEAM,
+    SHOWN_PLAYER_LAYOUTS,
     ProbeError,
     parse_module_mapping,
     read_human_managers,
@@ -56,10 +57,7 @@ _PLAYER_INTERFACE_CACHE: dict[int, dict[int, int]] = {}
 # use 0x2a0 instead. Both layouts were established by the passive Player
 # Search caller trace in ``fm20_search_caller_trace.gdb`` and are also
 # accepted by the read-only search/scout readers.
-_PLAYER_INTERFACE_LAYOUTS = (
-    (0x1C8, FM20_4_4_STEAM.player_type_offset),
-    (0x2A0, 0x6DA94A0),
-)
+_PLAYER_INTERFACE_LAYOUTS = SHOWN_PLAYER_LAYOUTS
 
 
 def verified_module_base(pid: int, proc_root: Path = Path("/proc")) -> int:

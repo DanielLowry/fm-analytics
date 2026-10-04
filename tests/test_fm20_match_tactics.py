@@ -137,3 +137,44 @@ class MatchDutySurveyTests(unittest.TestCase):
                              ("labelsUiVerified", True), ("researchOnly", False)]:
             with self.subTest(field=field):
                 self.assertFalse(_adapter_passed(recipe, completed, {**report, field: value})[0])
+
+
+class TeamTacticTests(unittest.TestCase):
+    """Choosing a side's tactic by FM's own line-up (`team_tactic`)."""
+
+    # Our Vertical 4-4-2 as position codes (right before left) and role codes.
+    LINE_UP = [(0x1, 0x1), (0x4, 0x4), (0x200010, 0x2), (0x100010, 0x2), (0x8, 0x4), (0x100, 0x80),
+               (0x200400, 0x20), (0x100400, 0x20), (0x200, 0x80), (0x204000, 0x80000000), (0x104000, 0x80000)]
+    DUTIES = [0x200000, 0x400000, 0x200000, 0x200000, 0x400000, 0x400000,
+              0x400000, 0x200000, 0x400000, 0x400000, 0x800000]
+
+    def prefix(self, name, duties=None, roles=None):
+        from tools.fm20_match_tactics import TacticPrefix
+        roles = roles or [role for _code, role in self.LINE_UP]
+        slots = tuple(Slot(code, role | duty) for (code, _), role, duty in zip(self.LINE_UP, roles, duties or self.DUTIES))
+        return TacticPrefix(0, name, slots, (), 0)
+
+    def test_the_tactic_placing_every_starter_is_chosen_whatever_its_name(self):
+        from tools.fm20_match_tactics import team_tactic
+        ours = self.prefix("Vertical 4-4-2")
+        default = self.prefix("4-4-2", roles=[role for _c, role in self.LINE_UP[:9]] + [0x400, 0x800])
+        self.assertIs(team_tactic((default, ours), self.LINE_UP), ours)
+
+    def test_copies_must_agree_on_every_duty(self):
+        from tools.fm20_match_tactics import team_tactic
+        swapped = self.DUTIES[:6] + [0x200000, 0x400000] + self.DUTIES[8:]
+        self.assertIsNone(team_tactic((self.prefix("A"), self.prefix("B", swapped)), self.LINE_UP))
+        self.assertIsNotNone(team_tactic((self.prefix("A"), self.prefix("A copy")), self.LINE_UP))
+
+    def test_nothing_is_chosen_without_a_full_line_up(self):
+        from tools.fm20_match_tactics import team_tactic
+        self.assertIsNone(team_tactic((self.prefix("A"),), self.LINE_UP[:10]))
+        other = list(self.LINE_UP)
+        other[6] = (0x200400, 0x10000)  # a Box-to-Box Midfielder started there instead
+        self.assertIsNone(team_tactic((self.prefix("A"),), other))
+
+    def test_a_position_and_centre_side_become_fms_code(self):
+        from tools.fm20_match_layout import position_code
+        self.assertEqual(position_code("MC", "right"), 0x200400)
+        self.assertEqual(position_code("ST", "left"), 0x104000)
+        self.assertEqual(position_code("DR", None), 0x4)

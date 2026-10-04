@@ -23,6 +23,7 @@ if __package__ in {None, ""}:
 
 from tools.fm20_linux_probe import (
     FM20_4_4_STEAM,
+    SHOWN_PLAYER_LAYOUTS,
     ProbeError,
     parse_module_mapping,
     read_exact,
@@ -38,7 +39,6 @@ from tools.fm20_visibility_trace import (
     ATTRIBUTE_OFFSETS,
     DISPLAY_ATTRIBUTE_IDS,
     PLAYER_ATTRIBUTE_BLOCK_OFFSET,
-    PLAYER_FROM_PERSON_OFFSET,
 )
 
 
@@ -85,7 +85,8 @@ def _resolve_player_addresses(
     memory_fd: int,
     module_base: int,
     player_ids: set[int],
-) -> dict[int, int]:
+) -> dict[int, tuple[int, int]]:
+    """Player ID -> (player record address, person address)."""
     people = read_pointer_collection(
         memory_fd,
         module_base,
@@ -93,19 +94,24 @@ def _resolve_player_addresses(
         FM20_4_4_STEAM.person_collection_offset,
         FM20_4_4_STEAM.collection_indirection_offset,
     )
-    expected_type = module_base + FM20_4_4_STEAM.player_type_offset
+    # Ordinary and staff-role players (player-coaches) alike; see
+    # fm20_linux_probe.SHOWN_PLAYER_LAYOUTS. The player record is at interface + 8.
+    player_from_person = {
+        module_base + type_rva: person_offset - 8 for person_offset, type_rva in SHOWN_PLAYER_LAYOUTS
+    }
     resolved: dict[int, int] = {}
     for person_address in people:
         if not person_address:
             continue
         try:
-            if read_u64(memory_fd, person_address) != expected_type:
+            offset = player_from_person.get(read_u64(memory_fd, person_address))
+            if offset is None:
                 continue
             player_id = read_i32(memory_fd, person_address + 0xC)
         except (OSError, ProbeError):
             continue
         if player_id in player_ids:
-            resolved[player_id] = person_address - PLAYER_FROM_PERSON_OFFSET
+            resolved[player_id] = (person_address - offset, person_address)
     missing = player_ids.difference(resolved)
     if missing:
         joined = ", ".join(str(item) for item in sorted(missing))
@@ -327,7 +333,7 @@ def source_owned_visible_data(
                 **asdict(player),
                 "attributes": _read_attributes(
                     memory_fd,
-                    addresses[int(player.id)],
+                    addresses[int(player.id)][0],
                     selected_attributes,
                 ),
             }
@@ -348,7 +354,7 @@ def source_owned_visible_data(
             minimum_year=2018,
         ).isoformat()
         after_ids = {
-            str(read_i32(memory_fd, addresses[int(player.id)] + PLAYER_FROM_PERSON_OFFSET + 0xC))
+            str(read_i32(memory_fd, addresses[int(player.id)][1] + 0xC))
             for player in selected
         }
     finally:
@@ -416,7 +422,7 @@ def source_full_visibility_data(
                 **asdict(player),
                 "attributes": _read_attributes(
                     memory_fd,
-                    addresses[int(player.id)],
+                    addresses[int(player.id)][0],
                     selected_attributes,
                 ),
             }

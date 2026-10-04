@@ -134,12 +134,19 @@ from the Tactics page, which does apply it.
 1. ~~A few rivals' position diagrams against the predicted shown/hidden
    positions.~~ **Done 30 May 2020:** Alfie Potter and Jake Howells (partly
    known) and Sanchez Watt (fully known) matched FM's diagram position by
-   position (research corpus `position-knowledge-threshold-ui-check`). The
-   Natural-only case rests on Adam Mann's 2019 observation; one current
-   check (Devonte Aransibia or Mason Barrett) would confirm it.
-2. Squads, re-read at 30 May 2020: Maidstone United 16 players with one
-   goalkeeper (Ethan Dawe, new since 28 May, when the read found none);
-   Havant & Waterlooville 14 players. Check both against FM's first-team list.
+   position (research corpus `position-knowledge-threshold-ui-check`). Devonte
+   Aransibia (Natural-only) showed only AMC, as predicted.
+2. ~~Squads.~~ **Done 30 May 2020, and it found a bug.** FM showed 18 senior
+   players for both Maidstone United and Havant & Waterlooville; the read had
+   16 and 14. A first-team list also holds players with a staff role
+   (player-coaches) and "virtual" placeholders. FM shows the first, and the
+   reader had skipped both. It now keeps staff-role players: 34 across the
+   league's rivals, giving both clubs 18. Placeholders are still left out
+   (research corpus `league-squad-scope-ui-check`). Our own squad reader
+   skipped them the same way, so Graeme Montgomery was missing from Hungerford
+   Town's squad on every page. Fixed on 4 October: the squad, attribute and
+   match-history readers now accept both kinds (`fm20_linux_probe.
+   SHOWN_PLAYER_LAYOUTS`), and he appears with all 41 attributes exact.
 3. Once a new season starts, rerun the capture before the first league match,
    to confirm that the league link already names the new season's clubs.
 

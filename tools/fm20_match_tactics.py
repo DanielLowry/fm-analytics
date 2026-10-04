@@ -1,9 +1,11 @@
 """Research decoder for FM20's archived tactic arrays.
 
 The full role/duty word is preserved here, unlike GAME_MATCH_PLAYER_STATS.
-This is NOT yet an appearance duty reader: a chunk can contain many arrays,
-and their team, time and player associations still require proof. It must not
-be used to choose a tactic by name, proximity, or catalogue similarity.
+A chunk can contain many arrays. The only way a side's tactic is chosen is
+`team_tactic`: the array must place every one of that side's starters exactly
+as FM's own player records do. Never choose one by name, proximity, or
+catalogue similarity. Whether an array is the kick-off or the final-whistle
+set-up is still being checked (docs/match-duty-extraction.md).
 
 Layout derived from the pinned executable's serializers at RVAs 0x46712d0
 (array), 0x46803b0 (team settings), and 0x46b9350 (slot). Reads existing bytes
@@ -148,3 +150,29 @@ def candidate_prefixes(data: bytes) -> tuple[TacticPrefix, ...]:
             pass
         at = data.find(ARRAY_HEADER, at + 1)
     return tuple(found)
+
+
+def team_tactic(
+    prefixes: tuple[TacticPrefix, ...], starters: list[tuple[int, int]]
+) -> TacticPrefix | None:
+    """The saved tactic that places every one of a side's starters exactly, or None.
+
+    ``starters`` is (starting position code, role code) for each of the side's
+    eleven starters, from FM's own player records. A tactic places a starter
+    when it has a slot at his position (centre side included) holding his role
+    code. A chunk often holds several copies of one tactic; all those that place
+    every starter must agree on every starter's duty, or none is chosen. This
+    binds a tactic to a side by FM's own line-up, never by name or proximity:
+    on 4 October 2026 it chose the manager's tactic in 52 of 55 matches and the
+    opposition's in none (docs/match-duty-extraction.md).
+    """
+    if len(starters) != 11 or len({code for code, _role in starters}) != 11:
+        return None
+    fits = []
+    for prefix in prefixes:
+        slots = {slot.position: slot for slot in prefix.slots}
+        if all(code in slots and slots[code].role == role for code, role in starters):
+            fits.append((prefix, tuple(slots[code].duty for code, _role in starters)))
+    if not fits or len({duties for _prefix, duties in fits}) != 1:
+        return None
+    return fits[0][0]

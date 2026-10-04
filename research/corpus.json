@@ -583,13 +583,41 @@
       "reusable_for": ["full-width role/duty decoding", "historical tactic record attribution", "opposite duties within one role", "ambiguous archive fixture rejection"],
       "limitations": [
         "No tactic prefix is bound to a historical appearance. Team, snapshot time, override meaning, substitutions and in-match changes remain unverified.",
-        "The named 28 March prefix reverses the duties in the earlier operator confirmation. Choosing its name or role compatibility would not resolve this contradiction.",
+        "The named 28 March prefix agrees with the earlier operator confirmation (Bellamy 92314 at 0x200400 Support, Hargreaves 100628 at 0x100400 Defend); a reported conflict was a swap of the two short IDs, corrected 4 October 2026. One match does not establish team ownership.",
         "Prefix boundaries stop after player overrides, before variable set pieces and trailing settings. They are not full-array ends.",
         "Only Defend, Support and Attack are labeled; Stopper, Cover and Automatic remain unlabelled masks. Historical UI comparison is pending.",
         "This is research-only evidence and does not replace application inference or modify captures/history.",
         "The earlier exploratory session ending 201017207456Z predates ambiguous fixture rejection and its counts are superseded."
       ],
       "known_contrasts": []
+    },
+    {
+      "id": "league-squad-scope-ui-check",
+      "state": "external-players-mixed-knowledge",
+      "game_date": "2020-05-30",
+      "manager_id": "1915435143",
+      "entity": {"kind": "club-set", "names": ["Maidstone United", "Havant & Waterlooville"], "players": ["Devonte Aransibia"]},
+      "screens": ["club-squad", "player-position-diagram"],
+      "captures": [
+        {
+          "id": "league-squad-scope-ui-check-20261004",
+          "kind": "operator-declared-ui-comparison-report",
+          "path": "data/research/visibility/league-squad-scope-ui-check-20261004.json",
+          "sha256": "f7e8f692fc3f2c1147702c1de36a0e454e60f0eb5296b5f7dd33aae0c73cd37d",
+          "outcome": "positions-matched-squads-exposed-missing-staff-role-players"
+        }
+      ],
+      "verified_facts": [
+        "A first-team vector holds ACTUAL_PLAYER, ACTUAL_PLAYER_AND_NON_PLAYER (players with a staff role too) and VIRTUAL_PLAYER entries; FM's senior squad screen shows the first two only (18 = 16 + 2 and 18 = 12 + 6).",
+        "Staff-role players' person record sits 0x2A0 from the interface (type RVA 0x6DA94A0), not 0x1C8; FM's visibility builder, position threshold and rating getter all answer for them in the sandbox.",
+        "For a player whose positions FM treats as unknown (threshold 18), only his Natural position is shown (Devonte Aransibia: AMC only), as Adam Mann's 2019 case."
+      ],
+      "reusable_for": ["league capture squad scope", "the owned squad, attribute and match-history readers (fixed 4 October 2026)"],
+      "limitations": [
+        "The UI observation is operator-declared, not independently captured.",
+        "Whether VIRTUAL_PLAYER entries ever appear anywhere in FM's UI was not checked beyond these two squad screens."
+      ],
+      "known_contrasts": ["position-knowledge-threshold-ui-check"]
     }
   ]
 }

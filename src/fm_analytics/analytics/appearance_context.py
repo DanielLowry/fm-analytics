@@ -17,6 +17,11 @@ appearance cannot be used. It changes no score.
   tactic's slots position by position, using which of a central pair each
   started in (ignored if the catalogue's sides cannot be reconciled with FM's);
   a substitute takes the slot of the player he replaced in the same position.
+* **Duty, directly:** where FM saved a tactic with the match that places every
+  starter exactly as its player records do (`MatchDetail.saved_tactics`), each
+  starter's duty is read from his slot in it, and a substitute's from the slot
+  of the player he replaced in the same position. That comes first; the slot
+  and usual-pick inference above is the fallback.
 * **Tactic:** FM does not record it. It is the manager's note on the match if
   he added one, else the one catalogue tactic the starting eleven fits, as the
   match review and export show it (the manager's decision, 3 October 2026).
@@ -31,13 +36,14 @@ from itertools import permutations
 from typing import Iterable, Mapping, Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
-from fm_analytics.analytics.match_roles import RoleCodes, role_family
-from fm_analytics.domain.matches import MatchRecord, PlayerMatchStats
+from fm_analytics.analytics.match_roles import RoleCodes, role_duty, role_family
+from fm_analytics.domain.matches import MatchRecord, PlayerMatchStats, SavedTactic
 
 # Where the tactic came from.
 NOTE = "your note"
 LINE_UP = "the line-up"  # the one catalogue tactic the starting eleven fits
-# Where a settled duty came from.
+# Where a settled duty came from, most direct first.
+FROM_FM = "FM's saved tactic"  # the tactic FM saved with the match, which fits its line-up
 FROM_TACTIC = "the tactic"  # the slot allows one duty of his role
 FROM_USUAL = "your usual set-up"  # the manager's usual pick for that slot
 RECENT_GAME_DAYS = 90  # the form plan's window
@@ -116,6 +122,9 @@ def appearance_contexts(
         tactic = codes.catalogue.tactics.get(tactic_key) if tactic_key else None
         usual = {slot: role for (key, slot), role in usual_roles.items() if key == tactic_key}
         placements = _place(tactic, codes, ours, usual) if tactic is not None else {}
+        saved = match.detail.saved_tactics.get(match.side_of(club_id))
+        if saved is not None:
+            placements = _with_saved_duties(placements, saved, codes, ours)
         for player in ours:
             family = codes.family(player.role_code)
             placement = placements.get(player.short_id, _Placement(problem=DOES_NOT_FIT))
@@ -125,9 +134,9 @@ def appearance_contexts(
                 tactic_key=tactic_key,
                 tactic_source=source,
                 role_family=family,
-                slot_key=placement.slot_key if tactic else None,
-                role_key=placement.role_key if tactic else None,
-                duty_source=placement.duty_source if tactic else None,
+                slot_key=placement.slot_key,
+                role_key=placement.role_key,
+                duty_source=placement.duty_source,
                 exclusions=_exclusions(match, player, family, source, placement),
             ))
     return tuple(contexts)
@@ -189,6 +198,43 @@ def _place(
         family = codes.family(sub.role_code)
         placements[sub.short_id] = _settled({slot.key: _family_roles(catalogue, slot, family) for slot in slots}, usual)
     return placements
+
+
+def _with_saved_duties(
+    placements: dict[int, _Placement], saved: SavedTactic, codes: RoleCodes, ours: Sequence[PlayerMatchStats]
+) -> dict[int, _Placement]:
+    """Each player's role with the duty FM saved for his slot, where it names one.
+
+    A starter holds the slot at his starting position; a substitute the slot of
+    the player he replaced in the same position. The slot's role code must be
+    his own, and its duty one of the three FM's code is known to mean.
+    """
+    catalogue = codes.catalogue
+    holds = {p.short_id: (p.start_position, p.start_centre_side) for p in ours if p.started and p.start_position}
+    for sub in sorted((p for p in ours if not p.started and p.position), key=lambda p: p.came_on or 0):
+        replaced = [
+            other for other in ours
+            if other is not sub and other.went_off is not None and other.went_off == sub.came_on
+            and other.position == sub.position and other.short_id in holds
+        ]
+        if len(replaced) == 1:
+            holds[sub.short_id] = holds[replaced[0].short_id]
+    settled = dict(placements)
+    for player in ours:
+        if player.short_id not in holds or (player.started and player.start_position != player.position):
+            continue  # a starter who moved did two jobs
+        slot = saved.slot_at(*holds[player.short_id])
+        family = codes.family(player.role_code)
+        if slot is None or slot.role_code != player.role_code or slot.duty is None or family is None:
+            continue
+        keys = [
+            key for key in catalogue.roles
+            if role_family(catalogue, key) == family and role_duty(catalogue, key) == slot.duty
+        ]
+        if len(keys) == 1:
+            before = placements.get(player.short_id)
+            settled[player.short_id] = _Placement(before.slot_key if before else None, keys[0], FROM_FM)
+    return settled
 
 
 def _place_group(catalogue: FootballCatalogue, codes: RoleCodes, slots, players, usual) -> dict[int, _Placement]:
@@ -334,6 +380,11 @@ class AppearanceCoverage:
         """Each reason and how many excluded appearances it applies to, in EXCLUSIONS order."""
         counts = Counter(reason for context in self.excluded for reason in context.exclusions)
         return [(reason, counts[reason]) for reason in EXCLUSIONS if counts[reason]]
+
+    def duty_sources(self) -> list[tuple[str, int]]:
+        """Where the usable appearances' duties came from, most direct first."""
+        counts = Counter(context.duty_source for context in self.usable)
+        return [(source, counts[source]) for source in (FROM_FM, FROM_TACTIC, FROM_USUAL) if counts[source]]
 
     def unsettled_duties(self) -> list[tuple[str, str, str, int]]:
         """(tactic, position, role family, appearances) where the tactic allows several duties."""
