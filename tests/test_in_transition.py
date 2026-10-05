@@ -108,6 +108,14 @@ class TransitionTests(unittest.TestCase):
             with self.subTest(block=block, legacy=legacy), self.assertRaises(ValueError):
                 self.load(block, instructions=[legacy])
 
+    def test_goalkeeper_distribution_may_be_explained(self):
+        rationale = {"Distribute Quickly": "Release the wingers.", "Take Long Kicks": "Skip the press."}
+        block = {"goalkeeperPace": "Distribute Quickly", "distributionTypes": ["Take Long Kicks"]}
+        tactic = self.load(block, instructionRationale=rationale)
+        self.assertEqual(dict(tactic.instruction_rationale), rationale)
+        with self.assertRaisesRegex(ValueError, "does not use.*Roll It Out"):
+            self.load(block, instructionRationale={"Roll It Out": "Short."})
+
     def test_structured_instruction_rationale_is_preserved(self):
         tactic = self.load({"whenPossessionWon": "Counter"}, instructionRationale={"Counter": "Use runners."})
         self.assertEqual(tactic.instruction_rationale["Counter"], "Use runners.")

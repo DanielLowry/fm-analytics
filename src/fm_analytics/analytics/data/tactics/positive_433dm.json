@@ -89,10 +89,7 @@
       "key": "DM",
       "position": "DM",
       "role": "dm_defend",
-      "why": "Defensive Midfielder (Defend) holds position in front of the centre-backs, protects the space left by the two eights and gives the counter-press a stable rest-defence anchor. Ball-Winning Midfielder (Support) is the alternative when the counter-press needs a midfielder who steps out to win the ball back.",
-      "roles": [
-        "bwm_dm_support"
-      ]
+      "why": "Defensive Midfielder (Defend) holds position in front of the centre-backs, protects the space left by the two eights and gives the counter-press a stable rest-defence anchor."
     },
     {
       "key": "MCL",
@@ -104,7 +101,10 @@
       "key": "MCR",
       "position": "MC",
       "role": "cm_support",
-      "why": "Central Midfielder (Support) connects the holder and playmaker to the front three without adding an unnecessary extra attack duty."
+      "why": "Central Midfielder (Support) connects the holder and playmaker to the front three without adding an unnecessary extra attack duty. Ball-Winning Midfielder (Support) is the alternative when the counter-press needs a midfielder who steps out to win the ball back; the DM sitting behind him is what makes that safe.",
+      "roles": [
+        "bwm_mc_support"
+      ]
     },
     {
       "key": "AML",
@@ -123,9 +123,10 @@
       "position": "ST",
       "role": "af_attack",
       "roles": [
-        "p_attack"
+        "p_attack",
+        "pf_attack"
       ],
-      "why": "Lone striker: Advanced Forward runs in behind. Poacher is the alternate."
+      "why": "Lone striker: Advanced Forward runs in behind. Poacher is the alternate. Pressing Forward (Attack) is the alternative for a striker who leads the counter-press from the front."
     }
   ],
   "system": {
@@ -150,10 +151,10 @@
   "whenNotToUse": "When the DM lacks positional discipline, the defenders are too uncomfortable to support short build-up, or the wide forwards lack the movement and pace to turn possession into penetration.",
   "instructionRationale": {
     "Shorter Passing": "Uses the DM-and-two-eights triangle to retain and progress possession.",
-    "Play Out Of Defence": "The DM and two central midfielders provide multiple short exits from the back line.",
+    "Play Out Of Defence": "The DM and two central midfielders provide multiple short exits from the back line. Treat it as something to test rather than fixed: if the defenders keep giving the ball away in build-up, it is the first instruction to remove.",
     "Higher Tempo": "Prevents the shorter passing game from becoming sterile and helps the front three receive before the defence is fully set.",
     "Work Ball Into Box": "Favors combinations and well-created chances over hopeful shooting.",
-    "Counter-Press": "Uses the front five to contest losses while the holding midfielder protects the space behind them.",
+    "Counter-Press": "Uses the front five to contest losses while the holding midfielder protects the space behind them. A Ball-Winning Midfielder at MCR or a Pressing Forward up front adds the pressing it needs.",
     "Counter": "Releases the wide forwards and striker immediately when a clean regain creates space.",
     "Higher Line of Engagement": "Keeps pressure away from the defensive third and supports the counter-press.",
     "More Urgent Pressing": "Closes the ball down quickly behind the higher line of engagement, so the counter-press and the front five win it back before the opposition can settle.",
@@ -263,18 +264,39 @@
     },
     {
       "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "aggression": 2,
+        "anticipation": 2,
+        "passing": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attributes": {
         "acceleration": 2,
         "pace": 2,
         "offTheBall": 2,
         "dribbling": 1,
         "finishing": 1,
-        "firstTouch": 1
+        "firstTouch": 1,
+        "workRate": 1,
+        "stamina": 1
       },
       "positions": [
         "AML"
       ],
       "roles": [
         "if_attack"
+      ],
+      "introduceAttributes": [
+        "workRate",
+        "stamina"
       ]
     },
     {
@@ -283,7 +305,9 @@
         "pace": 2,
         "dribbling": 2,
         "crossing": 2,
-        "offTheBall": 1
+        "offTheBall": 1,
+        "workRate": 1,
+        "stamina": 1
       },
       "positions": [
         "AMR"
@@ -298,7 +322,8 @@
         "pace": 2,
         "offTheBall": 2,
         "anticipation": 2,
-        "finishing": 1
+        "finishing": 1,
+        "stamina": 1
       },
       "positions": [
         "ST"
@@ -320,14 +345,30 @@
       "roles": [
         "p_attack"
       ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "offTheBall": 2,
+        "acceleration": 2,
+        "anticipation": 1,
+        "finishing": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
     }
   ],
   "keyRequirements": [
     "A positionally disciplined holding midfielder who protects the centre-backs rather than chasing the ball",
     "A DLP with enough passing, touch, vision and decisions to progress shorter build-up",
-    "A supporting central midfielder who connects play reliably rather than simply adding another runner",
-    "An inside forward and winger with enough acceleration and movement to turn possession into penetration",
-    "A mobile striker who consistently threatens the space behind",
+    "A supporting central midfielder who connects play reliably rather than simply adding another runner, or a ball-winner with the work rate to press ahead of the holder",
+    "An inside forward and winger with enough acceleration and movement to turn possession into penetration, and enough work rate and stamina to sustain the counter-press",
+    "A mobile striker who consistently threatens the space behind, or a pressing forward who leads the counter-press",
     "Defenders and full-backs comfortable enough on the ball to make Play Out Of Defence worthwhile"
   ],
   "tags": [
@@ -477,6 +518,36 @@
       ]
     },
     {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attribute": "aggression",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
       "attribute": "acceleration",
       "taperBelow": 8,
       "positions": [
@@ -489,6 +560,26 @@
     {
       "attribute": "offTheBall",
       "taperBelow": 8,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_attack"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_attack"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 7,
       "positions": [
         "AML"
       ],
@@ -518,6 +609,26 @@
     },
     {
       "attribute": "crossing",
+      "taperBelow": 7,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "stamina",
       "taperBelow": 7,
       "positions": [
         "AMR"
@@ -574,6 +685,46 @@
       ],
       "roles": [
         "p_attack"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
       ]
     }
   ]

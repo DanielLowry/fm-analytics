@@ -188,12 +188,13 @@ _PLAYER_DEPENDENT_INSTRUCTIONS = (
 
 
 def in_possession_selected_instructions(settings: InPossessionSettings | None) -> tuple[str, ...]:
-    """Selected instructions for presentation, including unscored player-dependent ones.
+    """Selected instructions for presentation, including unscored ones.
 
     What an `instructionRationale` key may explain. Only the fixed half
     (`in_possession_instruction_strings`) ever reaches scoring; a
-    player-dependent choice appears here under its FM instruction name, and a
-    non-Mixed crossing type as e.g. "Floated Crosses".
+    player-dependent choice appears here under its FM instruction name, a
+    non-Mixed crossing type as e.g. "Floated Crosses", and time wasting, which
+    always has a value, as e.g. "Sometimes Time Wasting".
     """
     if settings is None:
         return ()
@@ -201,6 +202,7 @@ def in_possession_selected_instructions(settings: InPossessionSettings | None) -
     if settings.crossing_type != "Mixed":
         strings.append(f"{settings.crossing_type} Crosses")
     strings.extend(label for attribute, label in _PLAYER_DEPENDENT_INSTRUCTIONS if getattr(settings, attribute))
+    strings.append(f"{settings.time_wasting} Time Wasting")
     return tuple(strings)
 
 

@@ -30,6 +30,7 @@ from fm_analytics.analytics.in_transition import (
     InTransitionSettings,
     in_transition_from_json,
     in_transition_instruction_strings,
+    in_transition_selected_instructions,
 )
 from fm_analytics.analytics.out_of_possession import (
     ALL_FIELD_LABELS as ALL_DEFENSIVE_FIELD_LABELS,
@@ -297,8 +298,8 @@ class TacticDefinition:
         stray = sorted(
             set(self.instruction_rationale)
             - set(
-                self.instructions + possession_instructions + transition_instructions
-                + defensive_instructions
+                self.instructions + possession_instructions
+                + in_transition_selected_instructions(self.in_transition) + defensive_instructions
             )
         )
         if stray:

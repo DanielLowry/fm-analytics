@@ -179,14 +179,16 @@ class InPossessionSelectedInstructionsTests(unittest.TestCase):
     def test_none_settings_yield_nothing(self) -> None:
         self.assertEqual(in_possession_selected_instructions(None), ())
 
-    def test_defaults_yield_nothing(self) -> None:
-        # Mixed crossing is FM's default, not a choice.
-        self.assertEqual(in_possession_selected_instructions(InPossessionSettings()), ())
+    def test_defaults_yield_only_time_wasting(self) -> None:
+        # Mixed crossing is FM's default, not a choice; time wasting always has a value.
+        self.assertEqual(
+            in_possession_selected_instructions(InPossessionSettings()), ("Sometimes Time Wasting",)
+        )
 
     def test_fixed_settings_appear_as_their_scored_strings(self) -> None:
         settings = InPossessionSettings(attacking_width="Fairly Wide", work_ball_into_box=True)
         self.assertEqual(
-            in_possession_selected_instructions(settings),
+            in_possession_selected_instructions(settings)[:-1],
             in_possession_instruction_strings(settings),
         )
 
@@ -197,7 +199,10 @@ class InPossessionSelectedInstructionsTests(unittest.TestCase):
         )
         self.assertEqual(
             in_possession_selected_instructions(settings),
-            ("Floated Crosses", "Overlap Left", "Play For Set Pieces", "Be More Disciplined"),
+            (
+                "Floated Crosses", "Overlap Left", "Play For Set Pieces", "Be More Disciplined",
+                "Sometimes Time Wasting",
+            ),
         )
 
 

@@ -146,12 +146,12 @@
   "description": "A proactive 4-2-4: four advanced attackers stretch the opposition, a BWM contests central possession, and a DLP supplies them quickly. Positive mentality and a standard defensive line reduce the risk, while the two-man midfield still depends on a coordinated press and recovery work.",
   "whyGood": "Two wide threats, a linking support striker and an Advanced Forward provide complementary attacking options without needing an extra midfield runner. The BWM contests possession and the DLP distributes, while the wide attackers are explicitly selected for enough work rate to make the counter-press viable.",
   "whyThisShape": "The front four pin and stretch the opposition back line while the two midfielders perform distinct jobs: one contests possession, the other distributes. Fairly wide attacking width spreads the attacking options. Slightly more direct passing reaches the forwards quickly without making every pass a long ball; higher tempo and pass into space exploit their movement before the defence resets. Run at defence and low crosses are starting fallbacks to review against the selected players: they favour dribbling and movement across the box without requiring dominant aerial forwards. Quick goalkeeper distribution with long kicks toward the flanks releases the wide outlets without demanding elaborate build-up. Counter-pressing uses the four advanced players to contest losses immediately, and countering takes advantage of their advanced positions after regains. Positive mentality reduces the default risk so the tactic can be used from kick-off. The standard defensive line reduces space behind the back four, while a standard line of engagement sets the settled press in a middle block. These lines do not remove the gaps a pressing ball-winner can leave around the two-man midfield.",
-  "whenToUse": "As a genuine alternative to the 4-4-2 when you want more players on the opposition back line, particularly against sides whose defence can be stretched or whose wide areas can be attacked. It can also become the natural chasing-the-game shape without requiring a wholesale tactical rewrite.",
-  "whenNotToUse": "Against strong three-man central midfields or technically secure opponents who can consistently play through the first counter-press. Avoid it when the midfield pair or wide attackers are too tired to sustain recovery work.",
+  "whenToUse": "Situationally rather than as a default: when you want to attack an opponent aggressively, particularly a back line that can be stretched or wide areas that can be attacked, or when you are chasing a game and need more players on the opposition back line without a wholesale tactical rewrite.",
+  "whenNotToUse": "When you expect to be the better side and want to control the match: with only two central midfielders it is outnumbered by any three-man centre, even more so than the 4-4-2. Against strong three-man central midfields or technically secure opponents who can consistently play through the first counter-press. Avoid it for long runs of matches: Counter-Press with More Urgent pressing is physically demanding and the ball-winner is another player who leaves his position, so rotate it with a less demanding system and do not use it when the midfield pair or wide attackers are tired.",
   "instructionRationale": {
     "Counter-Press": "Uses the four advanced players to contest the ball immediately after it is lost.",
     "Counter": "Attacks quickly after regains while the front four are already positioned high.",
-    "More Urgent Pressing": "Supports the counter-press without using the most extreme pressing level.",
+    "More Urgent Pressing": "Supports the counter-press without using the most extreme pressing level. It is still physically demanding over a run of matches.",
     "Standard Line of Engagement": "Sets the settled press in a middle block; recovery after a failed counter-press still needs to be coordinated.",
     "Standard Defensive Line": "Reduces space behind the back four and allows a conventional goalkeeper, while positioning and awareness remain important."
   },
@@ -349,7 +349,9 @@
   "tags": [
     "attacking",
     "424",
-    "overload"
+    "overload",
+    "chase-game",
+    "high-intensity"
   ],
   "attributeTaper": [
     {

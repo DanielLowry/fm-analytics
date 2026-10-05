@@ -3,14 +3,51 @@
   "name": "Balanced 4-3-3 DM Wide",
   "formation": "4-3-3 DM Wide",
   "mentality": "Balanced",
-  "instructions": [
-    "Fairly Wide",
-    "Slightly More Direct Passing",
-    "Counter",
-    "Regroup",
-    "Standard Line of Engagement",
-    "Standard Defensive Line"
-  ],
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Slightly More Direct Passing",
+      "tempo": "Standard",
+      "passIntoSpace": false,
+      "playOutOfDefence": false,
+      "focusPlay": "Balanced",
+      "workBallIntoBox": false
+    },
+    "dependsOnPlayers": {
+      "overlapLeft": false,
+      "overlapRight": false,
+      "underlapLeft": false,
+      "underlapRight": false,
+      "crossingType": "Low",
+      "shootOnSight": false,
+      "hitEarlyCrosses": false,
+      "playForSetPieces": false,
+      "dribbleLess": false,
+      "runAtDefence": false,
+      "beMoreExpressive": false,
+      "beMoreDisciplined": true
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": "Regroup",
+    "whenPossessionWon": "Counter",
+    "goalkeeperPace": "Distribute Quickly",
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "Standard",
+    "preventShortGKDistribution": false
+  },
   "slots": [
     {
       "key": "GK",
@@ -107,7 +144,7 @@
   "style": "Balanced 4-3-3 DM",
   "description": "A simple lower-league 4-3-3 with a dedicated holding midfielder, natural width on one side and two additional runners supporting a mobile striker.",
   "whyGood": "It gives strong defensive structure and three central midfielders without requiring sophisticated build-up play. The asymmetrical front three creates both width and additional goal threat.",
-  "whyThisShape": "The defensive midfielder protects the centre-backs, the two central midfielders provide one link player and one forward runner, and the front three give an immediate outlet on regains. Unlike more technical 4-3-3s, progression does not depend on a playmaker or playing short through pressure.",
+  "whyThisShape": "The defensive midfielder protects the centre-backs, the two central midfielders provide one link player and one forward runner, and the front three give an immediate outlet on regains. Fairly wide spacing preserves room for the inside forward and attacking central midfielder, while slightly more direct passing and quick distribution toward the flanks move the ball forward without requiring sophisticated short build-up. Regroup restores the 4-1-4-1 defensive shape and standard pressing keeps the workload sustainable. Low crosses and greater discipline are starting fallbacks to review against the selected players: they suit the movement of the advanced forward, inside forward and attacking midfielder while keeping the overall structure simple.",
   "whenToUse": "As a stable lower-league default when you have one good striker, a dependable holding midfielder and usable wide attackers. It is especially useful when a 4-4-2 is being outnumbered in central midfield.",
   "whenNotToUse": "When you lack a credible lone striker or wide attackers who can threaten the defence. It can also become blunt against a very deep opponent if the inside forward and attacking central midfielder do not provide enough secondary goal threat.",
   "instructionRationale": {
@@ -116,7 +153,9 @@
     "Counter": "Makes use of the wide players and advanced forward immediately after possession is won.",
     "Regroup": "Restores the 4-1-4-1 defensive shape instead of demanding an intensive counter-press.",
     "Standard Line of Engagement": "Keeps the defensive block compact and avoids requiring a coordinated high press.",
-    "Standard Defensive Line": "Protects ordinary centre-backs from large spaces behind them while keeping the midfield close enough to support."
+    "Standard Defensive Line": "Protects ordinary centre-backs from large spaces behind them while keeping the midfield close enough to support.",
+    "Distribute Quickly": "Starts counters before the opposition can recover its defensive shape.",
+    "Distribute To Flanks": "Uses the natural wide outlets rather than asking the goalkeeper to force play through central pressure."
   },
   "attributeEmphasis": [
     {
@@ -127,14 +166,27 @@
     {
       "attributes": {
         "positioning": 2,
-        "concentration": 1,
-        "anticipation": 1
+        "concentration": 2,
+        "jumpingReach": 1
       },
       "positions": [
         "DC"
       ],
       "roles": [
-        "cd_defend",
+        "cd_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "anticipation": 2,
+        "acceleration": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
         "cd_cover"
       ]
     },
@@ -142,7 +194,8 @@
       "attributes": {
         "stamina": 1,
         "workRate": 1,
-        "positioning": 1
+        "positioning": 1,
+        "crossing": 1
       },
       "positions": [
         "DL",
@@ -155,6 +208,7 @@
     {
       "attributes": {
         "positioning": 2,
+        "concentration": 1,
         "anticipation": 1,
         "decisions": 1,
         "teamwork": 1
@@ -211,6 +265,7 @@
     {
       "attributes": {
         "acceleration": 2,
+        "pace": 2,
         "offTheBall": 2,
         "dribbling": 1,
         "finishing": 1
@@ -226,8 +281,9 @@
       "attributes": {
         "crossing": 2,
         "pace": 2,
-        "acceleration": 1,
-        "dribbling": 1
+        "acceleration": 2,
+        "dribbling": 1,
+        "workRate": 1
       },
       "positions": [
         "AMR"
@@ -286,7 +342,46 @@
         "DC"
       ],
       "roles": [
-        "cd_defend",
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
         "cd_cover"
       ]
     },
@@ -304,6 +399,16 @@
     {
       "attribute": "positioning",
       "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 7,
       "positions": [
         "DM"
       ],
@@ -392,6 +497,16 @@
       ]
     },
     {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_attack"
+      ]
+    },
+    {
       "attribute": "offTheBall",
       "taperBelow": 8,
       "positions": [
@@ -423,6 +538,16 @@
     },
     {
       "attribute": "pace",
+      "taperBelow": 7,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_support"
+      ]
+    },
+    {
+      "attribute": "acceleration",
       "taperBelow": 7,
       "positions": [
         "AMR"

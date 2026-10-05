@@ -3,27 +3,63 @@
   "name": "Positive 4-2-3-1 Wide",
   "formation": "4-2-3-1 DM AM Wide",
   "mentality": "Positive",
-  "instructions": [
-    "Shorter Passing",
-    "Play Out Of Defence",
-    "Higher Tempo",
-    "Counter-Press",
-    "Counter",
-    "Higher Line of Engagement",
-    "Standard Defensive Line"
-  ],
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Standard",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Higher Tempo",
+      "passIntoSpace": false,
+      "playOutOfDefence": true,
+      "focusPlay": "Balanced",
+      "workBallIntoBox": false
+    },
+    "dependsOnPlayers": {
+      "overlapLeft": false,
+      "overlapRight": false,
+      "underlapLeft": false,
+      "underlapRight": false,
+      "crossingType": "Low",
+      "shootOnSight": false,
+      "hitEarlyCrosses": false,
+      "playForSetPieces": false,
+      "dribbleLess": false,
+      "runAtDefence": false,
+      "beMoreExpressive": false,
+      "beMoreDisciplined": false
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": "Counter-Press",
+    "whenPossessionWon": "Counter",
+    "goalkeeperPace": "Distribute Quickly",
+    "distributionTargets": [
+      "Distribute To Centre Backs"
+    ],
+    "distributionTypes": [
+      "Take Short Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Higher",
+    "defensiveLine": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "More Urgent",
+    "preventShortGKDistribution": false
+  },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes short or long depending on the press."
+      "why": "Keeps the goalkeeping role simple but must be comfortable starting the short build-up toward the centre-backs."
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back gives width and safe passing options."
+      "why": "Support full-back supplies a safe passing option and selective width without vacating the defensive structure too aggressively."
     },
     {
       "key": "DCL",
@@ -32,7 +68,7 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender. Cover is the alternate."
+      "why": "Defends simply in a standard line. Cover is an alternative for a quicker, anticipatory defender, but only one centre-back should use Cover."
     },
     {
       "key": "DCR",
@@ -41,102 +77,578 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+      "why": "Defends simply in a standard line. Cover is an alternative for a quicker, anticipatory defender, but only one centre-back should use Cover."
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right."
+      "why": "Support full-back supplies a safe passing option and selective width without vacating the defensive structure too aggressively."
     },
     {
       "key": "DMCL",
       "position": "DM",
-      "role": "bwm_dm_support",
-      "why": "Ball-winning midfielder wins the ball back and starts the counter-press."
+      "role": "dm_defend",
+      "why": "Defensive Midfielder (Defend) holds position in front of the centre-backs and gives the aggressive front four and supporting playmaker a stable platform."
     },
     {
       "key": "DMCR",
       "position": "DM",
       "role": "dlp_dm_support",
-      "why": "Deep-lying playmaker passes the ball forward from behind the ball-winner."
+      "why": "Deep-Lying Playmaker (Support) receives during build-up and progresses possession from the double pivot while the other midfielder holds."
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "if_attack",
-      "why": "Inside forward cuts in from the left to attack the box."
+      "why": "Inside Forward (Attack) cuts inside from the left to become a secondary scorer and attack the space around the striker."
     },
     {
       "key": "AMC",
       "position": "AMC",
       "role": "am_support",
-      "why": "Attacking midfielder plays between the lines and supplies the striker."
+      "why": "Attacking Midfielder (Support) operates between the lines, links the pivot to the front three and supplies runners without becoming another permanently advanced attacker."
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "winger_aml_amr_attack",
-      "why": "Winger stays wide and delivers, stretching the opposition."
+      "why": "Winger (Attack) preserves width on the right, carries forward and delivers for the striker and inside forward."
     },
     {
       "key": "ST",
       "position": "ST",
       "role": "af_attack",
       "roles": [
-        "p_attack"
+        "p_attack",
+        "pf_attack"
       ],
-      "why": "Lone striker: Advanced Forward runs in behind. Poacher is the alternate."
+      "why": "Advanced Forward stretches the defence and provides the main depth threat. Poacher is the alternative for a striker whose movement and anticipation are stronger than his all-round running game. Pressing Forward (Attack) is the alternative for a striker who leads the counter-press from the front."
     }
   ],
   "system": {
     "minimums": {
       "width": 3.0,
-      "defensiveCover": 6.0,
+      "defensiveCover": 6.5,
       "ballProgression": 3.5,
       "creativity": 2.0,
       "runners": 3.5,
       "penetration": 3.0,
       "boxPresence": 2.0,
-      "restDefence": 6.5
+      "restDefence": 7.0
     },
     "maximumAttackDuties": 5,
     "maximumCreators": 3
   },
   "style": "Positive 4-2-3-1",
-  "description": "A proactive 4-2-3-1 using a double pivot behind three attacking midfielders and one striker.",
-  "whyGood": "The pivot stabilises build-up while the front four occupy several attacking lines.",
-  "whyThisShape": "A 4-2-3-1 with a double pivot behind three attacking midfielders and one striker. One of the pivot wins the ball and the other passes it, and the front four occupy several lines of attack.",
-  "whenToUse": "As a proactive default when you have a good attacking midfielder and two quality wide attackers, or against opponents who defend with two banks of four.",
-  "whenNotToUse": "When you have no ball-winner to pair with a playmaker, or against a team with three central midfielders who outnumber your pivot.",
+  "description": "A proactive 4-2-3-1 with a holding midfielder and deep playmaker supporting four advanced attackers, using short build-up, a higher press and complementary wide threats.",
+  "whyGood": "The DM(D) anchors the centre while the DLP(S) progresses possession, giving the front four freedom without leaving both pivot players chasing or advancing at once. The inside forward supplies a second scoring threat while the winger preserves width.",
+  "whyThisShape": "The double pivot deliberately separates security from progression: the DM(D) holds in front of the centre-backs and the DLP(S) receives and distributes. Ahead of them, the AM(S) links play while an IF(A), W(A) and AF(A) create penetration in different lanes. Shorter passing and Play Out Of Defence make the pivot relevant in build-up; higher tempo speeds the ball into the front four once space appears. Counter-pressing and a higher line of engagement make the shape proactive, while the standard defensive line avoids demanding high-line recovery pace from ordinary centre-backs.",
+  "whenToUse": "As a proactive default when you have a good attacking midfielder, two complementary wide attackers and enough quality in the double pivot to build through pressure.",
+  "whenNotToUse": "Against opponents who dominate the central three-versus-two around your pivot, or when the squad lacks the technical security for shorter build-up and counter-pressing.",
   "instructionRationale": {
-    "Shorter Passing": "Keeps possession through the pivot and attacking midfielders.",
-    "Play Out Of Defence": "The pivot offers short passing options from the defenders.",
-    "Higher Tempo": "Moves the ball forward quickly to the front four.",
-    "Counter-Press": "Presses at once after losing the ball, led by the ball-winning midfielder.",
-    "Counter": "Attacks quickly when the ball is won, using the runners.",
-    "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
-    "Standard Defensive Line": "A balanced line keeps the defence compact."
+    "Shorter Passing": "Uses the double pivot and attacking midfielder as repeatable progression options rather than bypassing them.",
+    "Play Out Of Defence": "The DM and DLP provide short outlets so possession can reach the attacking quartet in controlled fashion.",
+    "Higher Tempo": "Moves the ball quickly once the first line is beaten and prevents the front four becoming static.",
+    "Counter-Press": "Uses the advanced front four to contest the ball immediately after losses, with the two holding midfielders staying behind it. A Pressing Forward up front adds the pressing it needs.",
+    "Counter": "Exploits the IF, winger and advanced forward before the opposition can reset.",
+    "Higher Line of Engagement": "Keeps the press closer to the front four and increases the chance of regaining possession in useful areas.",
+    "Standard Defensive Line": "Avoids exposing ordinary centre-backs to the large recovery spaces of a true high line.",
+    "More Urgent Pressing": "Supports the counter-press without pushing the defensive line itself higher."
   },
   "attributeEmphasis": [
     {
       "attributes": {
+        "decisions": 1,
+        "kicking": 1,
+        "firstTouch": 1
+      },
+      "positions": [
+        "GK"
+      ],
+      "roles": [
+        "gk_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "anticipation": 1,
+        "passing": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "anticipation": 2,
+        "acceleration": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attributes": {
+        "stamina": 1,
+        "workRate": 1,
+        "passing": 1,
+        "firstTouch": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "fb_support"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "decisions": 2,
+        "teamwork": 1,
+        "passing": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
         "firstTouch": 2,
-        "technique": 2,
+        "vision": 2,
+        "decisions": 2,
+        "technique": 1,
+        "positioning": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dlp_dm_support"
+      ]
+    },
+    {
+      "attributes": {
+        "firstTouch": 2,
+        "passing": 2,
+        "vision": 2,
+        "decisions": 2,
+        "technique": 1,
+        "offTheBall": 1
+      },
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "am_support"
+      ]
+    },
+    {
+      "attributes": {
+        "acceleration": 2,
+        "pace": 2,
+        "offTheBall": 2,
+        "dribbling": 1,
+        "finishing": 1,
+        "firstTouch": 1
+      },
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "acceleration": 2,
+        "pace": 2,
+        "dribbling": 2,
+        "crossing": 2,
+        "offTheBall": 1
+      },
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "acceleration": 2,
+        "pace": 2,
+        "offTheBall": 2,
+        "anticipation": 2,
+        "finishing": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 3,
+        "anticipation": 3,
+        "acceleration": 1,
+        "finishing": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
         "stamina": 2,
-        "passing": 2
-      }
+        "offTheBall": 2,
+        "acceleration": 2,
+        "anticipation": 1,
+        "finishing": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
     }
   ],
   "keyRequirements": [
-    "Secure double pivot",
-    "Quality AMC",
-    "Complementary wide attackers",
-    "Mobile striker"
+    "A disciplined holding midfielder who protects the centre while the rest of the attacking structure advances",
+    "A technically secure deep playmaker capable of receiving and progressing the ball under pressure",
+    "An attacking midfielder with the first touch, decisions and passing to connect the front four",
+    "Complementary wide attackers: one inside scoring threat and one genuine source of width",
+    "A mobile striker who consistently threatens space behind, or a pressing forward who leads the counter-press"
   ],
   "tags": [
     "positive",
     "4231",
     "front-four"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "positioning",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 7,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 7,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dlp_dm_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dlp_dm_support"
+      ]
+    },
+    {
+      "attribute": "vision",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dlp_dm_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dlp_dm_support"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 7,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dlp_dm_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "am_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "am_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "am_support"
+      ]
+    },
+    {
+      "attribute": "vision",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "am_support"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_attack"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 7,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    }
   ]
 }

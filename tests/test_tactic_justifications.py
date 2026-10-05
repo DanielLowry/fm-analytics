@@ -7,7 +7,10 @@ from pathlib import Path
 
 from fm_analytics.analytics.catalogue import MVP_CATALOGUE, load_catalogue
 from fm_analytics.analytics.in_possession import in_possession_selected_instructions
-from fm_analytics.analytics.in_transition import in_transition_instruction_strings
+from fm_analytics.analytics.in_transition import (
+    in_transition_instruction_strings,
+    in_transition_selected_instructions,
+)
 from fm_analytics.analytics.out_of_possession import out_of_possession_selected_instructions
 
 DATA = Path(__file__).resolve().parents[1] / "src" / "fm_analytics" / "analytics" / "data"
@@ -26,15 +29,18 @@ class ShippedJustificationTests(unittest.TestCase):
                 self.assertTrue(slot.why.strip(), f"{tactic.key}/{slot.key}: why")
 
     def test_every_instruction_is_explained(self) -> None:
-        # In-possession settings may be explained but need not be: the tactics
-        # converted to the structured block before it could carry rationale
-        # moved that prose into whyThisShape instead.
+        # In-possession settings and goalkeeper distribution may be explained
+        # but need not be: the tactics converted before those could carry
+        # rationale moved that prose into whyThisShape instead.
         for tactic in MVP_CATALOGUE.tactics.values():
             required = set(
                 tactic.instructions + in_transition_instruction_strings(tactic.in_transition)
                 + out_of_possession_selected_instructions(tactic.out_of_possession)
             )
-            optional = set(in_possession_selected_instructions(tactic.in_possession))
+            optional = set(
+                in_possession_selected_instructions(tactic.in_possession)
+                + in_transition_selected_instructions(tactic.in_transition)
+            )
             explained = set(tactic.instruction_rationale)
             self.assertEqual(sorted(required - explained), [], f"{tactic.key}: unexplained")
             self.assertEqual(

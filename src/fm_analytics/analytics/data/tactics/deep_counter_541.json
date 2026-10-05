@@ -3,26 +3,64 @@
   "name": "Deep Counter 5-4-1",
   "formation": "5-4-1",
   "mentality": "Defensive",
-  "instructions": [
-    "Drop Deeper Line of Engagement",
-    "Drop Off More Defensive Line",
-    "Counter",
-    "Pass Into Space",
-    "Regroup",
-    "Slower Tempo"
-  ],
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Standard",
+      "passingDirectness": "More Direct Passing",
+      "tempo": "Lower Tempo",
+      "passIntoSpace": true,
+      "playOutOfDefence": false,
+      "focusPlay": "Balanced",
+      "workBallIntoBox": false
+    },
+    "dependsOnPlayers": {
+      "overlapLeft": false,
+      "overlapRight": false,
+      "underlapLeft": false,
+      "underlapRight": false,
+      "crossingType": "Mixed",
+      "shootOnSight": false,
+      "hitEarlyCrosses": false,
+      "playForSetPieces": true,
+      "dribbleLess": false,
+      "runAtDefence": true,
+      "beMoreExpressive": false,
+      "beMoreDisciplined": true
+    },
+    "timeWasting": "Sometimes"
+  },
+  "inTransition": {
+    "whenPossessionLost": "Regroup",
+    "whenPossessionWon": "Counter",
+    "goalkeeperPace": "Distribute Quickly",
+    "distributionTargets": [
+      "Distribute To Target Man",
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Lower",
+    "defensiveLine": "Lower",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "Less Urgent",
+    "preventShortGKDistribution": false
+  },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes safely and quickly to the target man or the wide outlets after a save or claim."
+      "why": "Keeps goalkeeping simple, then distributes quickly and directly toward the target man or wide outlets when a counter is available."
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "wb_dl_dr_defend",
-      "why": "Defensive wing-back stays back as the fifth defender and covers the flank."
+      "why": "Defensive wing-back stays as part of the back five, protects the flank and only advances cautiously."
     },
     {
       "key": "DCL",
@@ -31,13 +69,16 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender on the left of the three. Cover is the alternate."
+      "why": "Defends the box simply as part of the back three. Cover is an alternative for a quicker, anticipatory defender, but only one centre-back should use Cover."
     },
     {
       "key": "DCC",
       "position": "DC",
-      "role": "bpd_defend",
-      "why": "Ball-playing defender in the centre can start a counter with a pass when the ball is won."
+      "role": "cd_defend",
+      "why": "The central defender protects the middle of the box first. Ball-Playing Defender (Defend) is an alternative when one centre-back has enough passing, decisions and composure to launch counters reliably.",
+      "roles": [
+        "bpd_defend"
+      ]
     },
     {
       "key": "DCR",
@@ -46,91 +87,428 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender on the right of the three. Cover is the alternate, but only one Cover can be used."
+      "why": "Defends the box simply as part of the back three. Cover is an alternative for a quicker, anticipatory defender, but only one centre-back should use Cover."
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "wb_dl_dr_defend",
-      "why": "Defensive wing-back on the right, doing the same job as on the left."
+      "why": "Defensive wing-back stays as part of the back five, protects the flank and only advances cautiously."
     },
     {
       "key": "ML",
       "position": "ML",
       "role": "winger_ml_mr_attack",
-      "why": "Winger (Attack) stays high as the outlet on the left and gives the team a way out of pressure."
+      "why": "Winger (Attack) is the primary left-side counter-attacking outlet, using pace to carry the team upfield after deep regains."
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Defensive central midfielder protects the space in front of the defence."
+      "why": "Central Midfielder (Defend) holds the middle, protects the back five and keeps his positioning while the counter-attacking outlets break."
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "cm_support",
-      "why": "Supporting central midfielder links the defence with the outlets and joins the counter."
+      "why": "Central Midfielder (Support) connects deep regains to the target man and wide outlets and can join the second wave of the counter."
     },
     {
       "key": "MR",
       "position": "MR",
       "role": "winger_ml_mr_attack",
-      "why": "Winger (Attack) on the right, the outlet on that side."
+      "why": "Winger (Attack) is the primary right-side counter-attacking outlet, using pace to carry the team upfield after deep regains."
     },
     {
       "key": "ST",
       "position": "ST",
       "role": "tm_support",
-      "why": "Target man (Support) holds the ball up and wins aerial duels so the wide players and midfield can join the counter."
+      "why": "Target Man (Support) provides the essential long outlet, competes for direct balls and holds possession long enough for the wingers and supporting midfielder to join."
     }
   ],
   "system": {
     "minimums": {
       "width": 5.0,
-      "defensiveCover": 7.0,
+      "defensiveCover": 8.5,
       "ballProgression": 3.0,
       "runners": 3.0,
       "penetration": 1.5,
       "aerialOutlet": 3.5,
-      "restDefence": 7.0
+      "boxPresence": 1.5,
+      "restDefence": 8.5
     },
     "maximumAttackDuties": 3,
-    "maximumCreators": 3
+    "maximumCreators": 2
   },
-  "style": "Deep block with wide outlets",
-  "description": "A defensive 5-4-1 with three centre-backs and two defensive wing-backs, a flat midfield four with two attacking wide players, and a target man who holds the ball for them.",
-  "whyGood": "Five defenders give the box very little room, and the attacking wide midfielders and the target man give the team an outlet to break out of the pressure.",
-  "whyThisShape": "Five defenders and a bank of four give the opponent almost no room in front of or inside the box. The attacking wide midfielders stay high as outlets, and the target man holds the ball so the rest of the team can move up, so the team can absorb pressure and still threaten.",
-  "whenToUse": "Protecting a lead, or away against a much stronger side, when you have two quick wide players and a strong striker.",
-  "whenNotToUse": "When you need to win rather than draw, or when you cannot get the ball to the striker, since the team will be under pressure for long periods.",
+  "style": "Deep Counter 5-4-1",
+  "description": "A deep defensive 5-4-1 that protects the box with a back five and compact midfield, then escapes pressure through a strong target man and two fast wide counter-attacking outlets.",
+  "whyGood": "It maximises defensive numbers without removing every attacking outlet. The target man gives direct clearances somewhere useful to go, while the two attacking wide midfielders provide enough pace and penetration to punish opponents who commit numbers forward.",
+  "whyThisShape": "The back five and holding central midfielder prioritise the space around the box. The second central midfielder links rather than charging forward, while the two wide midfielders are deliberately more aggressive because they are the main counter-attacking runners. More direct passing, Pass Into Space and quick long goalkeeper distribution reduce the need to play through pressure. Regroup and a lower block preserve shape after losses. The central centre-back is a simple defender by default; BPD(D) is only worthwhile when a player has the distribution to turn deep regains into accurate counters.",
+  "whenToUse": "When protecting a lead or playing away against a substantially stronger side, especially when you have a strong aerial striker and quick wide players who can turn clearances into genuine counters.",
+  "whenNotToUse": "When you need sustained possession or must create a high volume of chances. Avoid it if the striker cannot secure direct balls or the wide players lack the pace to turn deep regains into territory.",
   "instructionRationale": {
-    "Drop Deeper Line of Engagement": "The team waits deep and defends near its own box instead of pressing.",
-    "Drop Off More Defensive Line": "Keeps the defence deep to remove space in behind.",
-    "Counter": "The two wide players and target man are outlets: the team attacks quickly when it wins the ball.",
-    "Pass Into Space": "Plays the ball into the space behind the opposition's full-backs for the wide players.",
-    "Regroup": "Drops back into shape after losing the ball.",
-    "Slower Tempo": "Slows the game down and wastes time when leading."
+    "Lower Line of Engagement": "Concedes harmless possession higher up the pitch and keeps the midfield close to the back five.",
+    "Drop Off More Defensive Line": "Removes space behind the defence and concentrates bodies around the box.",
+    "Counter": "Releases the wide outlets immediately after a regain rather than asking the whole team to build up.",
+    "Pass Into Space": "Targets the space left behind advancing opposition full-backs for the attacking wide midfielders.",
+    "More Direct Passing": "Uses the target man and wide outlets instead of asking a defensive side to play through pressure.",
+    "Regroup": "Restores the deep 5-4-1 structure immediately after possession is lost.",
+    "Lower Tempo": "Reduces unnecessary turnovers once the immediate counter is not available.",
+    "Sometimes Time Wasting": "Fits the tactic's main use cases without making every possession excessively passive.",
+    "Less Urgent Pressing": "Keeps players in the compact block rather than pulling them out to chase the ball."
   },
   "attributeEmphasis": [
     {
       "attributes": {
+        "kicking": 2,
+        "decisions": 1
+      },
+      "positions": [
+        "GK"
+      ],
+      "roles": [
+        "gk_defend"
+      ]
+    },
+    {
+      "attributes": {
         "positioning": 2,
         "concentration": 2,
+        "anticipation": 1,
+        "jumpingReach": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "anticipation": 2,
+        "acceleration": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "decisions": 2,
+        "firstTouch": 1,
+        "technique": 1,
+        "composure": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "tackling": 1,
+        "workRate": 1,
+        "stamina": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "wb_dl_dr_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "acceleration": 2,
         "offTheBall": 2,
-        "composure": 2
-      }
+        "dribbling": 1,
+        "crossing": 1,
+        "workRate": 1
+      },
+      "positions": [
+        "ML",
+        "MR"
+      ],
+      "roles": [
+        "winger_ml_mr_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "decisions": 1,
+        "teamwork": 1,
+        "tackling": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "decisions": 2,
+        "teamwork": 2,
+        "firstTouch": 1,
+        "offTheBall": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attributes": {
+        "strength": 3,
+        "jumpingReach": 3,
+        "heading": 2,
+        "firstTouch": 2,
+        "teamwork": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
     }
   ],
   "keyRequirements": [
-    "Three dependable centre-backs",
-    "Two wide midfielders with pace",
-    "A target man who holds the ball up",
-    "Disciplined wing-backs"
+    "Three dependable centre-backs and defensive wing-backs capable of holding a compact deep block",
+    "Two genuinely quick wide midfielders who can turn deep regains into counter-attacks",
+    "A strong target man who can win or secure direct balls under pressure",
+    "A disciplined holding central midfielder and a reliable supporting connector",
+    "Enough concentration and positioning across the defensive unit to tolerate long periods without the ball"
   ],
   "tags": [
     "defensive",
     "541",
     "deep-block"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "wb_dl_dr_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 7,
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "wb_dl_dr_defend"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ],
+      "roles": [
+        "winger_ml_mr_attack"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "ML",
+        "MR"
+      ],
+      "roles": [
+        "winger_ml_mr_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 7,
+      "positions": [
+        "ML",
+        "MR"
+      ],
+      "roles": [
+        "winger_ml_mr_attack"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_defend"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attribute": "teamwork",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attribute": "strength",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
+    },
+    {
+      "attribute": "jumpingReach",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
+    },
+    {
+      "attribute": "heading",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
+    }
   ]
 }

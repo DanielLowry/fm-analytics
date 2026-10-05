@@ -57,10 +57,18 @@ The catalogue declares alternatives for six distinct role sets:
 the last are chosen because their `tactical_system.py` trait contributions are nearly
 identical (see each role's `system` traits in `data/roles/`): swapping one for the other changes
 which specific player profile fits the slot, not what the team's system
-does. `pf_attack`/`af_attack` (only in the two gegenpress tactics) is the
+does. `pf_attack`/`af_attack` (in `gegenpress_4231` and `highpress_433`) is the
 exception: pressing differs by about 1.2, so choosing Advanced Forward costs
 that tactic instruction fit. It is a deliberate fallback for a squad with no
-pressing forward, not an interchangeable pair. Contrast `dm_defend`/`dm_support`, which looks like a similar swap
+pressing forward, not an interchangeable pair. `positive_433dm` and
+`positive_4231` use the same gap the other way round: Advanced Forward is the
+default and Pressing Forward the alternate. Their holding midfielders stay
+pinned, so a Pressing Forward is what lets the default midfield meet
+Counter-Press. `cm_support`/`bwm_mc_support`
+in `positive_433dm` is a second deliberate exception: the ball-winner at MCR
+trades ball progression and creativity for pressing, so the side can choose to
+press harder from midfield while the DM(D) holds behind him; the holder
+himself stays pinned. Contrast `dm_defend`/`dm_support`, which looks like a similar swap
 but trades off primary `defensiveCover`/`ballProgression` contribution by a
 large margin — a genuine screen-vs-distributor identity choice, correctly
 left pinned. Before adding a new alternate pair anywhere in the catalogue,
@@ -198,10 +206,10 @@ the dataclass:
 - **Fixed** (`attackingWidth`, `passingDirectness`, `tempo`, `passIntoSpace`,
   `playOutOfDefence`, `focusPlay`, `workBallIntoBox`): part of what makes
   this tactic *this* tactic, always hand-authored. Only a handful of
-  tactics have been given these so far (`attacking_424`, `balanced_442`,
-  `enganche_4231`, `positive_433dm`, `solid_4231`, `vertical_442`,
-  `wide_playmakers_433`, `wing_play_442`); the rest report every fixed field
-  as missing. `TacticDefinition.in_possession_missing_fields`
+  tactics have been given these so far (`attacking_424`, `balanced_433dm`,
+  `balanced_442`, `deep_counter_541`, `enganche_4231`, `positive_4231`,
+  `positive_433dm`, `solid_4231`, `vertical_442`, `wide_playmakers_433` and
+  `wing_play_442`); the rest report every fixed field as missing. `TacticDefinition.in_possession_missing_fields`
   is what `web/in_possession_render.py` reads to flag the gap on the tactic
   page rather than silently showing nothing — filling in the rest is
   ongoing, tactic by tactic. **This half does reach scoring**: see below.
@@ -247,11 +255,12 @@ Once a fixed field is set, the equivalent legacy string must not also sit in
 since scoring would double-count it. This is *why* converting a tactic is a
 two-step edit: add the `inPossession.fixed` value, and delete its old string
 from `instructions`; its `instructionRationale` stays. The loader accepts an
-explanation of any selected in-possession setting, fixed or player-dependent,
-under the name `in_possession_selected_instructions` gives it (`"Fairly
-Wide"`, `"Floated Crosses"`, `"Be More Disciplined"`). Unlike the other
-phases, in-possession rationale is optional: the tactics converted before it
-was accepted carry that prose in `whyThisShape` instead. A
+explanation of any selected in-possession setting, fixed, player-dependent
+or situational, under the name `in_possession_selected_instructions` gives it
+(`"Fairly Wide"`, `"Floated Crosses"`, `"Be More Disciplined"`, `"Sometimes
+Time Wasting"`). Unlike the scored instructions of the other phases,
+in-possession rationale is optional: the tactics converted before it was
+accepted carry that prose in `whyThisShape` instead. A
 player-dependent value's legacy string, where one exists (e.g. `"Overlap
 Left"`), stays in `instructions` — deleting it would drop that scoring
 contribution with nothing yet computed to replace it.
@@ -290,13 +299,15 @@ The possession-loss/win choices feed the existing instruction-fit scoring
 through `in_transition_instruction_strings`; goalkeeper distribution choices
 are presentation only, with no invented scoring demands.
 `in_transition_selected_instructions` includes distribution for CLI/export
-presentation. Moving an instruction into `inTransition` requires removing its
-legacy `instructions` string, but its `instructionRationale` stays: the loader
-accepts explanations of structured transition instructions. Duplicates and
+presentation, and is also what an `instructionRationale` key may explain;
+explaining a distribution choice is optional, explaining a possession-loss/win
+choice is not. Moving an instruction into `inTransition` requires removing its
+legacy `instructions` string, but its `instructionRationale` stays. Duplicates and
 conflicts between structured and legacy transition choices are rejected.
 
-`attacking_424`, `balanced_442`, `enganche_4231`, `positive_433dm`,
-`solid_4231`, `vertical_442` and `wide_playmakers_433` have complete transition
+`attacking_424`, `balanced_433dm`, `balanced_442`, `deep_counter_541`,
+`enganche_4231`, `positive_4231`, `positive_433dm`, `solid_4231`, `vertical_442`
+and `wide_playmakers_433` have complete transition
 blocks, including goalkeeper distribution. `wing_play_442` carries only its
 possession-won choice in this block; other tactics retain their legacy
 instruction lists, which are shown alongside the phase's missing fields.
@@ -337,8 +348,9 @@ CLI, export and catalogue-index presentation. Explanations may refer to
 structured defensive instructions. Once a field is authored, a legacy string
 for that same setting is refused, including contradictory and duplicate
 choices. Migrating a tactic removes those legacy strings and retains their
-`instructionRationale` text. `attacking_424`, `balanced_442`, `enganche_4231`,
-`positive_433dm`, `solid_4231`, `vertical_442` and `wide_playmakers_433` have
+`instructionRationale` text. `attacking_424`, `balanced_433dm`, `balanced_442`, `deep_counter_541`,
+`enganche_4231`, `positive_4231`, `positive_433dm`, `solid_4231`, `vertical_442`
+and `wide_playmakers_433` have
 complete defensive blocks. Other tactics' legacy defensive instructions remain
 visible alongside the new section.
 
