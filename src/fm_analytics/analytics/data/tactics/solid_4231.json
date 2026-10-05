@@ -3,25 +3,63 @@
   "name": "Solid 4-2-3-1",
   "formation": "4-2-3-1 DM AM Wide",
   "mentality": "Cautious",
-  "instructions": [
-    "Lower Line of Engagement",
-    "Standard Defensive Line",
-    "Regroup",
-    "Hold Shape",
-    "Slightly More Direct Passing"
-  ],
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Standard",
+      "passingDirectness": "Slightly More Direct Passing",
+      "tempo": "Standard",
+      "passIntoSpace": false,
+      "playOutOfDefence": false,
+      "focusPlay": "Balanced",
+      "workBallIntoBox": false
+    },
+    "dependsOnPlayers": {
+      "overlapLeft": false,
+      "overlapRight": false,
+      "underlapLeft": false,
+      "underlapRight": false,
+      "crossingType": "Mixed",
+      "shootOnSight": false,
+      "hitEarlyCrosses": false,
+      "playForSetPieces": true,
+      "dribbleLess": false,
+      "runAtDefence": false,
+      "beMoreExpressive": false,
+      "beMoreDisciplined": true
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": "Regroup",
+    "whenPossessionWon": "Hold Shape",
+    "goalkeeperPace": "Slow Pace Down",
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Lower",
+    "defensiveLine": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "Less Urgent",
+    "preventShortGKDistribution": false
+  },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes safely and simply, avoiding risks in the build-up."
+      "why": "Keeps distribution and decision-making simple; the priority is security rather than acting as an extra playmaker."
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "nnfb_defend",
-      "why": "No-nonsense full-back defends first and clears his lines, staying out of the attack."
+      "why": "No-Nonsense Full-Back (Defend) protects the flank, stays behind the ball and clears danger rather than becoming an attacking outlet."
     },
     {
       "key": "DCL",
@@ -45,43 +83,47 @@
       "key": "DR",
       "position": "DR",
       "role": "nnfb_defend",
-      "why": "No-nonsense full-back on the right, doing the same job as on the left."
+      "why": "No-Nonsense Full-Back (Defend) protects the flank, stays behind the ball and clears danger rather than becoming an attacking outlet."
     },
     {
       "key": "DMCL",
       "position": "DM",
       "role": "dm_defend",
-      "why": "Holding midfielder screens the defence and does the simple defensive work."
+      "why": "Defensive Midfielder (Defend) is the fixed screen in front of the centre-backs and protects the central zone."
     },
     {
       "key": "DMCR",
       "position": "DM",
       "role": "dm_support",
-      "why": "Supporting midfielder wins the ball and passes it to the attacking players."
+      "why": "Defensive Midfielder (Support) remains positionally responsible but provides the safer passing connection into the front four."
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "if_support",
-      "why": "Inside forward (Support) cuts in to support the striker and works back when the ball is lost."
+      "why": "Inside Forward (Support) comes inside to offer a second outlet around the striker while retaining enough defensive contribution for the compact block."
     },
     {
       "key": "AMC",
       "position": "AMC",
       "role": "am_support",
-      "why": "Attacking midfielder (Support) links midfield and attack and drops back to help."
+      "why": "Attacking Midfielder (Support) is the main connector: he receives direct or second balls and links the two DMs to the attacking outlets."
     },
     {
       "key": "AMR",
       "position": "AMR",
-      "role": "winger_aml_amr_support",
-      "why": "Winger (Support) provides the width on the right and tracks back."
+      "role": "winger_aml_amr_attack",
+      "why": "Winger (Attack) is the one deliberate high runner. He gives the otherwise cautious shape a genuine counter-attacking threat while still providing natural width."
     },
     {
       "key": "ST",
       "position": "ST",
-      "role": "cf_support",
-      "why": "Complete forward (Support) holds the ball up and links with the attacking midfielders."
+      "role": "dlf_support",
+      "why": "Deep-Lying Forward (Support) is the default outlet, receiving direct passes and bringing the three attacking midfielders into play. Complete Forward (Support) or Target Man (Support) are alternatives when the player genuinely suits those more demanding profiles.",
+      "roles": [
+        "cf_support",
+        "tm_support"
+      ]
     }
   ],
   "system": {
@@ -89,43 +131,466 @@
       "width": 2.0,
       "defensiveCover": 8.5,
       "ballProgression": 3.0,
-      "restDefence": 8.5
+      "restDefence": 8.5,
+      "runners": 1.5,
+      "penetration": 1.5,
+      "boxPresence": 1.0
     },
     "maximumAttackDuties": 4,
     "maximumCreators": 3
   },
   "style": "Compact and disciplined",
-  "description": "A cautious 4-2-3-1 with no-nonsense full-backs, a double pivot, and attacking players who work back.",
-  "whyGood": "The team has ten players behind the ball, the full-backs simply defend, and the front four still give the team a quick way out.",
-  "whyThisShape": "The no-nonsense full-backs and double pivot give two layers of protection in front of the goalkeeper, and the attacking midfielders work back to form a compact block. Up front, the striker holds the ball and the inside forward and winger break to support him, so the team can get out of pressure without being stretched.",
-  "whenToUse": "Away against a stronger team or when you are protecting a lead, when you want a low-risk shape that can still hit on the break.",
-  "whenNotToUse": "When you need to control the ball or create chances, since the full-backs and pivot offer little going forward.",
+  "description": "A cautious 4-2-3-1 built to defend in a compact block, preserve a strong rest defence and still retain one genuine runner plus a reliable central outlet when possession is recovered.",
+  "whyGood": "The back four and double pivot give two strong defensive layers, while the front four are no longer entirely passive: the striker can secure direct possession, the AMC links play and one attacking winger provides a credible route up the pitch.",
+  "whyThisShape": "Two no-nonsense full-backs and a double pivot keep six players structurally responsible. Regroup, a lower engagement line and less urgent pressing prioritise compactness over chasing the ball. Slightly more direct passing and long goalkeeper distribution provide a simple escape from pressure; the support striker receives and connects, while the right winger is the single designated runner who can turn an escape into territory or a chance. Hold Shape preserves the defensive logic rather than sending several players forward at once.",
+  "whenToUse": "Away to a stronger side, when protecting a result, or whenever the priority is reducing transition risk while retaining enough of an outlet to stop the team becoming permanently pinned back.",
+  "whenNotToUse": "When you need sustained possession or several players attacking the box. It is deliberately conservative and should not be your default against passive or substantially weaker opponents.",
   "instructionRationale": {
-    "Lower Line of Engagement": "Lets the opponent have the ball in their own half and closes the space deeper.",
-    "Standard Defensive Line": "A balanced line keeps the block compact without dropping too deep.",
-    "Regroup": "Falls back into shape after losing the ball.",
-    "Hold Shape": "Keeps positions rather than pushing players forward, so the team stays compact.",
-    "Slightly More Direct Passing": "Gets the ball forward to the front four quickly when it is won."
+    "Lower Line of Engagement": "Concedes harmless possession higher up the pitch and protects the space around the double pivot.",
+    "Standard Defensive Line": "Avoids sinking the entire block onto the goalkeeper while remaining safer than a high line.",
+    "Less Urgent Pressing": "Preserves shape and prevents defenders and midfielders being dragged out by an aggressive press.",
+    "Regroup": "Restores the compact block immediately after possession is lost.",
+    "Hold Shape": "Keeps enough players behind the ball after regains rather than turning every recovery into a risky counter.",
+    "Slightly More Direct Passing": "Provides a practical route into the support striker and wide outlets without demanding elaborate build-up.",
+    "Play For Set Pieces": "Makes territorial gains more valuable for a side that is not designed to create a high volume of open-play chances.",
+    "Be More Disciplined": "Reinforces the tactic's low-risk positional structure."
   },
   "attributeEmphasis": [
     {
       "attributes": {
+        "decisions": 1,
+        "kicking": 1
+      },
+      "positions": [
+        "GK"
+      ],
+      "roles": [
+        "gk_defend"
+      ]
+    },
+    {
+      "attributes": {
         "positioning": 2,
         "concentration": 2,
+        "marking": 1,
+        "tackling": 1,
+        "strength": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "nnfb_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "anticipation": 1,
+        "jumpingReach": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "anticipation": 2,
+        "acceleration": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "decisions": 1,
+        "teamwork": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 1,
+        "decisions": 2,
+        "passing": 1,
         "teamwork": 2,
-        "anticipation": 2
-      }
+        "firstTouch": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_support"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "stamina": 1,
+        "firstTouch": 1,
+        "offTheBall": 1,
+        "dribbling": 1
+      },
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_support"
+      ],
+      "introduceAttributes": [
+        "workRate"
+      ]
+    },
+    {
+      "attributes": {
+        "decisions": 2,
+        "passing": 2,
+        "firstTouch": 2,
+        "teamwork": 2,
+        "workRate": 1
+      },
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "am_support"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "acceleration": 2,
+        "crossing": 2,
+        "offTheBall": 1,
+        "workRate": 1
+      },
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ],
+      "introduceAttributes": [
+        "workRate"
+      ]
+    },
+    {
+      "attributes": {
+        "firstTouch": 2,
+        "decisions": 2,
+        "teamwork": 1,
+        "strength": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "cf_support"
+      ]
+    },
+    {
+      "attributes": {
+        "strength": 3,
+        "jumpingReach": 3,
+        "heading": 2,
+        "firstTouch": 1,
+        "teamwork": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
     }
   ],
   "keyRequirements": [
-    "Two defensive full-backs who clear their lines",
-    "A dependable double pivot",
-    "An inside forward who works back",
-    "A striker who holds up the ball"
+    "A back four and holding midfielder with strong positioning and concentration",
+    "A second DM who can make safe decisions and connect the defensive block to the front four",
+    "An AMC with enough touch and passing to make direct possession stick",
+    "At least one genuinely quick wide runner so the shape retains a counter-attacking threat",
+    "A support striker who can receive under pressure and link play, with a true target man as an alternative when available",
+    "Wide attackers willing to contribute enough work rate for the compact defensive block"
   ],
   "tags": [
     "cautious",
     "4231",
     "compact"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "nnfb_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 8,
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "nnfb_defend"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 7,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 7,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_support"
+      ]
+    },
+    {
+      "attribute": "teamwork",
+      "taperBelow": 7,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_support"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 7,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "am_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "am_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "am_support"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 7,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "cf_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "cf_support"
+      ]
+    },
+    {
+      "attribute": "strength",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "cf_support"
+      ]
+    },
+    {
+      "attribute": "strength",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
+    },
+    {
+      "attribute": "jumpingReach",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
+    },
+    {
+      "attribute": "heading",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
+    }
   ]
 }

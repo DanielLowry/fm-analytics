@@ -144,7 +144,7 @@
   },
   "style": "Attacking 4-2-4",
   "description": "A proactive 4-2-4: four advanced attackers stretch the opposition, a BWM contests central possession, and a DLP supplies them quickly. Positive mentality and a standard defensive line reduce the risk, while the two-man midfield still depends on a coordinated press and recovery work.",
-  "whyGood": "Two wide threats, a linking support striker and an Advanced Forward provide complementary attacking options without needing an extra midfield runner. The BWM contests possession and the DLP distributes, but winning the first press matters because the ball-winner is not a stationary midfield screen.",
+  "whyGood": "Two wide threats, a linking support striker and an Advanced Forward provide complementary attacking options without needing an extra midfield runner. The BWM contests possession and the DLP distributes, while the wide attackers are explicitly selected for enough work rate to make the counter-press viable.",
   "whyThisShape": "The front four pin and stretch the opposition back line while the two midfielders perform distinct jobs: one contests possession, the other distributes. Fairly wide attacking width spreads the attacking options. Slightly more direct passing reaches the forwards quickly without making every pass a long ball; higher tempo and pass into space exploit their movement before the defence resets. Run at defence and low crosses are starting fallbacks to review against the selected players: they favour dribbling and movement across the box without requiring dominant aerial forwards. Quick goalkeeper distribution with long kicks toward the flanks releases the wide outlets without demanding elaborate build-up. Counter-pressing uses the four advanced players to contest losses immediately, and countering takes advantage of their advanced positions after regains. Positive mentality reduces the default risk so the tactic can be used from kick-off. The standard defensive line reduces space behind the back four, while a standard line of engagement sets the settled press in a middle block. These lines do not remove the gaps a pressing ball-winner can leave around the two-man midfield.",
   "whenToUse": "As a genuine alternative to the 4-4-2 when you want more players on the opposition back line, particularly against sides whose defence can be stretched or whose wide areas can be attacked. It can also become the natural chasing-the-game shape without requiring a wholesale tactical rewrite.",
   "whenNotToUse": "Against strong three-man central midfields or technically secure opponents who can consistently play through the first counter-press. Avoid it when the midfield pair or wide attackers are too tired to sustain recovery work.",
@@ -248,7 +248,8 @@
         "offTheBall": 2,
         "dribbling": 1,
         "finishing": 1,
-        "stamina": 2
+        "stamina": 2,
+        "workRate": 1
       },
       "positions": [
         "AML"
@@ -257,7 +258,8 @@
         "if_attack"
       ],
       "introduceAttributes": [
-        "stamina"
+        "stamina",
+        "workRate"
       ]
     },
     {
@@ -266,13 +268,17 @@
         "pace": 2,
         "dribbling": 2,
         "crossing": 2,
-        "stamina": 1
+        "stamina": 1,
+        "workRate": 1
       },
       "positions": [
         "AMR"
       ],
       "roles": [
         "winger_aml_amr_attack"
+      ],
+      "introduceAttributes": [
+        "workRate"
       ]
     },
     {
@@ -325,25 +331,21 @@
       "attributes": {
         "offTheBall": 3,
         "anticipation": 3,
-        "acceleration": 1,
-        "stamina": 2
+        "acceleration": 1
       },
       "positions": [
         "ST"
       ],
       "roles": [
         "p_attack"
-      ],
-      "introduceAttributes": [
-        "stamina"
       ]
     }
   ],
   "keyRequirements": [
     "A disciplined ball-winner and a technically secure distributor who can survive as a two-man midfield",
-    "Four attackers with enough movement and athleticism to stretch the opposition and participate in transitions",
+    "Four attackers with enough movement, athleticism and work rate to stretch the opposition and sustain the first counter-press",
     "A support striker with enough work rate to connect the attack and lead the first press",
-    "An Advanced Forward or Poacher who consistently threatens space behind",
+    "An Advanced Forward who threatens space behind, with Poacher available as a less mobile movement-and-finishing alternative",
     "Centre-backs reliable enough for a standard line; elite high-line recovery pace is no longer mandatory",
     "Full-backs capable of supporting possession without being relied upon as the main source of width"
   ],
@@ -676,13 +678,23 @@
       ]
     },
     {
-      "attribute": "stamina",
+      "attribute": "workRate",
       "taperBelow": 7,
       "positions": [
-        "ST"
+        "AML"
       ],
       "roles": [
-        "p_attack"
+        "if_attack"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
       ]
     }
   ]

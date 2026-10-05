@@ -3,26 +3,63 @@
   "name": "Enganche 4-2-3-1",
   "formation": "4-2-3-1 DM AM Wide",
   "mentality": "Balanced",
-  "instructions": [
-    "Fairly Wide",
-    "Slightly More Direct Passing",
-    "Work Ball Into Box",
-    "Regroup",
-    "Standard Line of Engagement",
-    "Standard Defensive Line"
-  ],
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Slightly More Direct Passing",
+      "tempo": "Standard",
+      "passIntoSpace": false,
+      "playOutOfDefence": false,
+      "focusPlay": "Balanced",
+      "workBallIntoBox": true
+    },
+    "dependsOnPlayers": {
+      "overlapLeft": false,
+      "overlapRight": false,
+      "underlapLeft": false,
+      "underlapRight": false,
+      "crossingType": "Floated",
+      "shootOnSight": false,
+      "hitEarlyCrosses": false,
+      "playForSetPieces": false,
+      "dribbleLess": false,
+      "runAtDefence": false,
+      "beMoreExpressive": false,
+      "beMoreDisciplined": false
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": "Regroup",
+    "whenPossessionWon": "Hold Shape",
+    "goalkeeperPace": "Distribute Quickly",
+    "distributionTargets": [
+      "Distribute To Target Man"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "Standard",
+    "preventShortGKDistribution": false
+  },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes to the target man or the full-backs; kicking ability helps."
+      "why": "Keeps the goalkeeping role simple but must be able to kick accurately toward the striker when the direct outlet is available."
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back gives width and cover behind the winger."
+      "why": "Support full-back provides secondary width and cover behind the attacking winger without being asked to dominate the flank."
     },
     {
       "key": "DCL",
@@ -46,93 +83,498 @@
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right."
+      "why": "Support full-back provides secondary width and cover behind the attacking winger without being asked to dominate the flank."
     },
     {
       "key": "DMCL",
       "position": "DM",
       "role": "bwm_dm_support",
-      "why": "Ball-winning midfielder wins the ball back and covers for the enganche, who does not defend."
+      "why": "Ball-Winning Midfielder (Support) steps out to contest possession and supplies the running that the Enganche does not provide, while the other DM remains in position."
     },
     {
       "key": "DMCR",
       "position": "DM",
       "role": "dm_defend",
-      "why": "Holding midfielder stays in front of the defence and gives the ball to the enganche."
+      "why": "Defensive Midfielder (Defend) is the fixed screen: he holds position, protects the centre-backs and gives the Enganche a secure platform."
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "winger_aml_amr_attack",
-      "why": "Winger (Attack) stays wide and gets crosses in for the target man; he must also track back, since the enganche does not."
+      "why": "Winger (Attack) stays wide, attacks the outside channel and supplies aerial service, but still needs enough work rate to recover because the Enganche contributes little defensively."
     },
     {
       "key": "AMC",
       "position": "AMC",
       "role": "eng_support",
-      "why": "Enganche is the team's only creative player: he stays high, receives between the lines and does not defend."
+      "why": "Enganche is the focal creator: he stays high between the lines, receives to feet and is trusted to dictate the final pass rather than contribute defensive running."
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "winger_aml_amr_attack",
-      "why": "Winger (Attack) on the right, doing the same job as on the left."
+      "why": "Winger (Attack) stays wide, attacks the outside channel and supplies aerial service, but still needs enough work rate to recover because the Enganche contributes little defensively."
     },
     {
       "key": "ST",
       "position": "ST",
       "role": "tm_support",
-      "why": "Target man wins the aerial balls and holds it up; he is also the finisher for the wingers' crosses and the enganche's passes."
+      "why": "Target Man (Support) is the default outlet, winning direct balls and bringing the Enganche and wingers into play. Target Man (Attack) is the alternative when the striker is a stronger penalty-box threat and the side needs more central presence.",
+      "roles": [
+        "tm_attack"
+      ]
     }
   ],
   "system": {
     "minimums": {
       "width": 4.5,
       "defensiveCover": 7.0,
-      "ballProgression": 2.5,
+      "ballProgression": 3.0,
       "creativity": 1.5,
-      "runners": 1.5,
-      "penetration": 1.5,
+      "runners": 2.5,
+      "penetration": 2.5,
       "aerialOutlet": 3.0,
-      "boxPresence": 1.5,
+      "boxPresence": 2.0,
       "restDefence": 7.0
     },
     "maximumAttackDuties": 4,
-    "maximumCreators": 3
+    "maximumCreators": 2
   },
   "style": "Classic number ten",
-  "description": "A 4-2-3-1 built around one free playmaker who does no defensive work, protected by a hard-working double pivot and two attacking wingers, with a target man to finish his passes.",
-  "whyGood": "One creative player can decide the game if the rest of the team covers for him, and the target man and wingers turn his passes into chances.",
-  "whyThisShape": "The enganche stays high and central and does not defend, so the team defends with ten outfield players and has one creative outlet in attack. The double pivot behind him covers the space he leaves, and the wingers and target man give him three clear passing options, so the whole system is built to get the ball to one player and let him decide.",
-  "whenToUse": "When you have one clearly superior creative player who is not suited to a running role, and a target man for him to pass to.",
-  "whenNotToUse": "Against sides that press hard or man-mark the playmaker, since the team has no other creative source; and when your wingers will not defend.",
+  "description": "A 4-2-3-1 built around one specialist number ten who is protected from defensive work by a hard-working double pivot, with genuine width and an aerial outlet ahead of him.",
+  "whyGood": "It creates a clear hierarchy: the double pivot wins and secures the ball, the wingers stretch the pitch, the target man provides a direct reference point, and the Enganche is selected almost entirely for his ability to turn those possessions into chances.",
+  "whyThisShape": "The Enganche remains high and central, so the two DMs have deliberately different jobs: one contests possession and one holds. Fairly wide attacking width and two attacking wingers create room for the Enganche between the lines. Slightly more direct passing and long goalkeeper distribution can bypass pressure through the target man, while Work Ball Into Box stops the side from wasting the possession once the Enganche is involved. Floated crosses deliberately exploit the striker's aerial advantage. Regroup protects the structure after losses, and Hold Shape avoids turning a system built around one static creator into a transition race.",
+  "whenToUse": "When one attacking midfielder is clearly your best creator, a striker can provide a genuine aerial/hold-up outlet, and the rest of the side is willing to carry the defensive and running load around them.",
+  "whenNotToUse": "Against teams able to suffocate or man-mark the Enganche, when the striker cannot dominate direct service, or when the wingers and double pivot lack the work rate to compensate for the free number ten.",
   "instructionRationale": {
-    "Fairly Wide": "The wingers and full-backs stretch the opponent so the enganche has room between the lines.",
-    "Slightly More Direct Passing": "The target man gives the team a quicker route than passing through midfield.",
-    "Work Ball Into Box": "Feeds the ball to the enganche, who decides how the chance is created.",
-    "Regroup": "Drops back into shape after losing the ball, which is essential when one player does not defend.",
-    "Standard Line of Engagement": "A balanced press, so the two banks stay compact.",
-    "Standard Defensive Line": "A balanced line keeps the block compact."
+    "Fairly Wide": "The wingers stretch the back line and create central space for the Enganche.",
+    "Slightly More Direct Passing": "Allows the side to find the target man or Enganche before the opposition can lock onto the creator.",
+    "Work Ball Into Box": "Once the creator is involved, the team values his final pass rather than low-quality shooting.",
+    "Floated Crosses": "Uses the target man as a genuine aerial target for the two attacking wingers.",
+    "Regroup": "Restores the double-pivot protection because the Enganche contributes little defensive work.",
+    "Hold Shape": "Keeps the attack connected to the Enganche rather than bypassing him in an uncontrolled counter.",
+    "Standard Line of Engagement": "Keeps the block compact without asking a team containing a non-defending number ten to press relentlessly.",
+    "Standard Defensive Line": "Avoids creating excessive space behind an otherwise conventional back four."
   },
   "attributeEmphasis": [
     {
       "attributes": {
-        "crossing": 2,
-        "anticipation": 2,
+        "kicking": 2,
+        "decisions": 1
+      },
+      "positions": [
+        "GK"
+      ],
+      "roles": [
+        "gk_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "jumpingReach": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attributes": {
         "pace": 2,
-        "offTheBall": 2
-      }
+        "anticipation": 2,
+        "acceleration": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attributes": {
+        "stamina": 1,
+        "workRate": 1,
+        "crossing": 1,
+        "positioning": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "fb_support"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "aggression": 2,
+        "anticipation": 2,
+        "positioning": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "bwm_dm_support"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "decisions": 1,
+        "teamwork": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "acceleration": 2,
+        "crossing": 2,
+        "offTheBall": 1,
+        "workRate": 2,
+        "stamina": 1
+      },
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ],
+      "introduceAttributes": [
+        "workRate"
+      ]
+    },
+    {
+      "attributes": {
+        "firstTouch": 3,
+        "passing": 3,
+        "vision": 3,
+        "technique": 2,
+        "decisions": 2,
+        "flair": 2,
+        "composure": 1
+      },
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "eng_support"
+      ]
+    },
+    {
+      "attributes": {
+        "strength": 3,
+        "jumpingReach": 3,
+        "heading": 2,
+        "firstTouch": 2,
+        "teamwork": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
+    },
+    {
+      "attributes": {
+        "strength": 2,
+        "jumpingReach": 3,
+        "heading": 2,
+        "offTheBall": 2,
+        "anticipation": 1,
+        "finishing": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_attack"
+      ]
     }
   ],
   "keyRequirements": [
-    "An exceptional creative playmaker",
-    "A ball-winning midfielder and a holder in front of the defence",
-    "Two wingers who track back",
-    "A strong target man"
+    "An exceptional Enganche with strong first touch, passing, vision, technique and decisions",
+    "A genuine holding midfielder plus a high-work-rate ball-winner to absorb the defensive load around the number ten",
+    "Two quick attacking wingers who can cross and still recover reliably",
+    "A strong aerial target man who can turn direct service into controlled possession or box threat",
+    "A conventional back four that can remain secure without requiring aggressive overlaps"
   ],
   "tags": [
     "balanced",
     "4231",
     "playmaker"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "positioning",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "bwm_dm_support"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "bwm_dm_support"
+      ]
+    },
+    {
+      "attribute": "aggression",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "bwm_dm_support"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 7,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 8,
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "eng_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 9,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "eng_support"
+      ]
+    },
+    {
+      "attribute": "vision",
+      "taperBelow": 9,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "eng_support"
+      ]
+    },
+    {
+      "attribute": "technique",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "eng_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 8,
+      "positions": [
+        "AMC"
+      ],
+      "roles": [
+        "eng_support"
+      ]
+    },
+    {
+      "attribute": "strength",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
+    },
+    {
+      "attribute": "jumpingReach",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
+    },
+    {
+      "attribute": "heading",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support"
+      ]
+    },
+    {
+      "attribute": "strength",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "jumpingReach",
+      "taperBelow": 9,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "heading",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_attack"
+      ]
+    }
   ]
 }

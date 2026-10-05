@@ -3,31 +3,69 @@
   "name": "Wide Playmakers 4-3-3",
   "formation": "4-3-3 DM Wide",
   "mentality": "Positive",
-  "instructions": [
-    "Shorter Passing",
-    "Work Ball Into Box",
-    "Counter-Press",
-    "Higher Line of Engagement",
-    "Standard Defensive Line"
-  ],
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Higher Tempo",
+      "passIntoSpace": false,
+      "playOutOfDefence": true,
+      "focusPlay": "Balanced",
+      "workBallIntoBox": true
+    },
+    "dependsOnPlayers": {
+      "overlapLeft": false,
+      "overlapRight": false,
+      "underlapLeft": false,
+      "underlapRight": false,
+      "crossingType": "Low",
+      "shootOnSight": false,
+      "hitEarlyCrosses": false,
+      "playForSetPieces": false,
+      "dribbleLess": false,
+      "runAtDefence": false,
+      "beMoreExpressive": true,
+      "beMoreDisciplined": false
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": "Counter-Press",
+    "whenPossessionWon": "Hold Shape",
+    "goalkeeperPace": "Distribute Quickly",
+    "distributionTargets": [
+      "Distribute To Centre-Backs"
+    ],
+    "distributionTypes": [
+      "Take Short Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Higher",
+    "defensiveLine": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "More Urgent",
+    "preventShortGKDistribution": false
+  },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "sk_defend",
-      "why": "Sweeper keeper is an extra passer in build-up and covers the space behind a higher line."
+      "why": "Sweeper Keeper (Defend) gives the back line an extra short passing option and can deal with balls beyond the defence without requiring an aggressive sweeper role."
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back gives the width the creators no longer give."
+      "why": "Support full-back is essential for width because the wide creator ahead of him moves inside; stamina, work rate and crossing matter more here than in a conventional 4-3-3."
     },
     {
       "key": "DCL",
       "position": "DC",
       "role": "bpd_defend",
-      "why": "Ball-playing defender starts moves with passes into midfield."
+      "why": "Ball-Playing Defender (Defend) starts possession cleanly and can find midfield before the opposition closes the creative players."
     },
     {
       "key": "DCR",
@@ -36,98 +74,543 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender who defends while his partner plays. Cover is the alternate."
+      "why": "Central Defender (Defend) supplies the simpler defensive partner. Cover remains an alternative when pace and anticipation justify it."
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right, providing width there too."
+      "why": "Support full-back is essential for width because the wide creator ahead of him moves inside; stamina, work rate and crossing matter more here than in a conventional 4-3-3."
     },
     {
       "key": "DM",
       "position": "DM",
-      "role": "bwm_dm_support",
-      "why": "Ball-winning midfielder wins the ball back and covers for the creators, who do little defending."
+      "role": "dm_defend",
+      "why": "Defensive Midfielder (Defend) is the fixed anchor. With both wide creators drifting inside and the BBM moving, this role must hold rather than chase possession."
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Box-to-box midfielder supports the press and runs beyond the forward."
+      "why": "Box-to-Box Midfielder (Support) supplies the running and defensive work the two creators do not, while also arriving beyond them when space opens."
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "cm_support",
-      "why": "Supporting central midfielder links the defence with the creators."
+      "why": "Central Midfielder (Support) is the reliable connector who keeps possession moving between the defensive unit, full-backs and two creators."
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "treq_aml_amr_attack",
-      "why": "Trequartista starts on the left and roams freely to find space between the lines; he does not defend."
+      "why": "Trequartista (Attack) starts wide then roams into pockets to create. He is deliberately protected from defensive work, so his technical and creative quality must justify that freedom."
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "ap_aml_amr_attack",
-      "why": "Advanced playmaker starts on the right and moves inside to create from the half-space."
+      "why": "Advanced Playmaker (Attack) moves inside from the right half-space to create and combine, giving a second creative source without duplicating the Trequartista exactly."
     },
     {
       "key": "ST",
       "position": "ST",
       "role": "pf_attack",
-      "why": "Pressing forward (Attack) starts the press and runs in behind, doing the work the creators do not."
+      "why": "Pressing Forward (Attack) supplies vertical running and leads the press, compensating for the limited defensive contribution of the two wide creators."
     }
   ],
   "system": {
     "minimums": {
-      "width": 2.0,
+      "width": 3.0,
       "defensiveCover": 6.5,
       "ballProgression": 5.0,
-      "creativity": 3.0,
+      "creativity": 3.5,
       "runners": 2.5,
-      "penetration": 2.0,
+      "penetration": 2.5,
       "boxPresence": 1.5,
-      "restDefence": 5.5,
+      "restDefence": 6.5,
       "pressing": 4.0
     },
     "maximumAttackDuties": 5,
     "maximumCreators": 3
   },
   "style": "Roaming creators from wide",
-  "description": "A 4-3-3 with two creative players starting wide, one a trequartista who roams and one an advanced playmaker, supported by a pressing forward and a strong midfield.",
-  "whyGood": "Two creators starting from wide positions are hard to mark, and the pressing forward, ball-winner and box-to-box midfielder cover the work they do not do.",
-  "whyThisShape": "Starting the creators wide rather than in the middle means opposing central midfielders cannot easily mark them, and each drifts inside to receive between the lines. The pressing forward, ball-winner and box-to-box midfielder do the defensive work for them, and the full-backs supply the width they leave.",
-  "whenToUse": "When your best creative players are wingers or attacking midfielders rather than central playmakers, against sides that defend in a mid-block.",
-  "whenNotToUse": "Against teams that press hard on the full-backs, since the full-backs supply all the width; and when the creators cannot be protected by a strong midfield.",
+  "description": "A possession-oriented 4-3-3 with two different creators starting wide and moving inside, full-backs supplying the width, and a true holding midfielder protecting the structure behind them.",
+  "whyGood": "The Trequartista and wide Advanced Playmaker receive from unusual starting positions and can combine between the lines, while the full-backs stretch the pitch and the BBM/PF provide the running. A fixed DM prevents all of that movement from leaving the centre-backs exposed.",
+  "whyThisShape": "Both nominal wide attackers want to move inside, so the support full-backs become essential width providers. Shorter passing, Play Out Of Defence and Work Ball Into Box create the controlled possession those creators need; Higher Tempo stops the circulation becoming static once an opening appears. The Trequartista is granted freedom while the AP offers a more structured second creator. Behind them, the BBM supplies running, the CM connects play and DM(D) holds. Counter-Press tries to win losses back around the creators, but Hold Shape after clean regains keeps the tactic centred on controlled creation rather than bypassing its strongest players.",
+  "whenToUse": "When your best attacking players are creators rather than conventional touchline wingers and you have full-backs with enough engine to supply width for them.",
+  "whenNotToUse": "When the full-backs lack stamina or crossing, the holding midfielder cannot defend space reliably, or the opposition can press the first build-up line so effectively that the two creators rarely receive facing goal.",
   "instructionRationale": {
-    "Shorter Passing": "Keeps the ball in short passes, which is how the creators link with the midfield.",
-    "Work Ball Into Box": "Patient movement of the ball until one of the creators finds the pass that opens the defence.",
-    "Counter-Press": "Presses at once after losing the ball, led by the pressing forward and ball-winner.",
-    "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
-    "Standard Defensive Line": "A balanced line keeps the defence compact."
+    "Fairly Wide": "Creates room for the full-backs to stretch the pitch while the two nominal wide attackers move inside.",
+    "Shorter Passing": "Connects the build-up players to the two creators through repeatable short combinations.",
+    "Play Out Of Defence": "Uses the Sweeper Keeper, BPD, DM and supporting midfielders to establish controlled possession.",
+    "Higher Tempo": "Moves the ball quickly once the creators have pulled the defensive shape out of position.",
+    "Work Ball Into Box": "Lets the Trequartista and Advanced Playmaker create the final action rather than settling for low-quality shots.",
+    "Be More Expressive": "Gives the two specialist creators freedom to exploit the spaces they find.",
+    "Counter-Press": "Uses the PF, BBM and nearby midfielders to contest losses before the wide creators have to recover fully.",
+    "Hold Shape": "Keeps clean regains connected to the creative structure instead of immediately launching low-percentage counters.",
+    "Higher Line of Engagement": "Keeps the team close enough to its creators to sustain possession and counter-pressure.",
+    "Standard Defensive Line": "Avoids adding high-line recovery demands to a shape already committing both full-backs to provide width."
   },
   "attributeEmphasis": [
     {
       "attributes": {
+        "decisions": 1,
+        "firstTouch": 1,
+        "passing": 1
+      },
+      "positions": [
+        "GK"
+      ],
+      "roles": [
+        "sk_defend"
+      ]
+    },
+    {
+      "attributes": {
         "stamina": 2,
         "workRate": 2,
+        "crossing": 2,
+        "pace": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "fb_support"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "technique": 1,
+        "decisions": 1,
+        "composure": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "anticipation": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "anticipation": 2,
+        "acceleration": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "decisions": 1,
+        "teamwork": 1,
+        "workRate": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "offTheBall": 2,
+        "anticipation": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "decisions": 2,
+        "teamwork": 2,
+        "firstTouch": 1,
+        "workRate": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attributes": {
         "technique": 2,
-        "composure": 2
-      }
+        "vision": 2,
+        "passing": 2,
+        "firstTouch": 2,
+        "flair": 2,
+        "offTheBall": 1
+      },
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "treq_aml_amr_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "vision": 2,
+        "technique": 2,
+        "firstTouch": 2,
+        "decisions": 2,
+        "offTheBall": 1
+      },
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "ap_aml_amr_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "offTheBall": 2,
+        "acceleration": 2,
+        "anticipation": 1,
+        "finishing": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
     }
   ],
   "keyRequirements": [
-    "Two creative players who can play wide",
-    "A pressing forward with high work rate",
-    "A ball-winning midfielder",
-    "Full-backs who provide the width"
+    "Two genuinely high-level creators suited to receiving from wide starting positions and operating between the lines",
+    "Full-backs with enough stamina, work rate and crossing to provide nearly all of the natural width",
+    "A disciplined holding midfielder who protects the centre-backs rather than chasing the ball",
+    "A high-engine Box-to-Box midfielder and reliable supporting midfielder to carry the defensive and connective workload",
+    "A Pressing Forward with the work rate and movement to stretch the defence and lead pressure",
+    "Enough passing quality in the first build-up line to get the ball to the creators consistently"
   ],
   "tags": [
     "positive",
     "433",
     "playmakers"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "fb_support"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "fb_support"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 7,
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "fb_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attribute": "teamwork",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attribute": "technique",
+      "taperBelow": 8,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "treq_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "vision",
+      "taperBelow": 8,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "treq_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "treq_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "treq_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "ap_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "vision",
+      "taperBelow": 8,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "ap_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "technique",
+      "taperBelow": 8,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "ap_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "ap_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 8,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "ap_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    }
   ]
 }
