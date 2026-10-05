@@ -198,8 +198,10 @@ the dataclass:
 - **Fixed** (`attackingWidth`, `passingDirectness`, `tempo`, `passIntoSpace`,
   `playOutOfDefence`, `focusPlay`, `workBallIntoBox`): part of what makes
   this tactic *this* tactic, always hand-authored. Only a handful of
-  tactics have been given these so far (`balanced_442`, `attacking_424`, `vertical_442`, `wing_play_442`);
-  the rest report every fixed field as missing. `TacticDefinition.in_possession_missing_fields`
+  tactics have been given these so far (`attacking_424`, `balanced_442`,
+  `enganche_4231`, `positive_433dm`, `solid_4231`, `vertical_442`,
+  `wide_playmakers_433`, `wing_play_442`); the rest report every fixed field
+  as missing. `TacticDefinition.in_possession_missing_fields`
   is what `web/in_possession_render.py` reads to flag the gap on the tactic
   page rather than silently showing nothing — filling in the rest is
   ongoing, tactic by tactic. **This half does reach scoring**: see below.
@@ -244,8 +246,12 @@ Once a fixed field is set, the equivalent legacy string must not also sit in
 `instructions` — `TacticDefinition.__post_init__` refuses that combination,
 since scoring would double-count it. This is *why* converting a tactic is a
 two-step edit: add the `inPossession.fixed` value, and delete its old string
-from `instructions` (moving any of its `instructionRationale` prose into
-`whyThisShape` first, since a stray rationale key is also refused). A
+from `instructions`; its `instructionRationale` stays. The loader accepts an
+explanation of any selected in-possession setting, fixed or player-dependent,
+under the name `in_possession_selected_instructions` gives it (`"Fairly
+Wide"`, `"Floated Crosses"`, `"Be More Disciplined"`). Unlike the other
+phases, in-possession rationale is optional: the tactics converted before it
+was accepted carry that prose in `whyThisShape` instead. A
 player-dependent value's legacy string, where one exists (e.g. `"Overlap
 Left"`), stays in `instructions` — deleting it would drop that scoring
 contribution with nothing yet computed to replace it.
@@ -289,11 +295,11 @@ legacy `instructions` string, but its `instructionRationale` stays: the loader
 accepts explanations of structured transition instructions. Duplicates and
 conflicts between structured and legacy transition choices are rejected.
 
-`balanced_442` and `attacking_424` have complete transition blocks, including
-goalkeeper distribution.
-`vertical_442` and `wing_play_442` carry their existing transition choices in
-this block, with goalkeeper distribution unauthored; other tactics retain their
-legacy instruction lists, which are shown alongside the phase's missing fields.
+`attacking_424`, `balanced_442`, `enganche_4231`, `positive_433dm`,
+`solid_4231`, `vertical_442` and `wide_playmakers_433` have complete transition
+blocks, including goalkeeper distribution. `wing_play_442` carries only its
+possession-won choice in this block; other tactics retain their legacy
+instruction lists, which are shown alongside the phase's missing fields.
 
 ## Out-of-possession settings
 
@@ -331,10 +337,10 @@ CLI, export and catalogue-index presentation. Explanations may refer to
 structured defensive instructions. Once a field is authored, a legacy string
 for that same setting is refused, including contradictory and duplicate
 choices. Migrating a tactic removes those legacy strings and retains their
-`instructionRationale` text. `balanced_442` and `attacking_424` have complete defensive blocks.
-`vertical_442` carries its existing standard lines structurally; its remaining
-fields are unauthored. Other tactics' legacy
-defensive instructions remain visible alongside the new section.
+`instructionRationale` text. `attacking_424`, `balanced_442`, `enganche_4231`,
+`positive_433dm`, `solid_4231`, `vertical_442` and `wide_playmakers_433` have
+complete defensive blocks. Other tactics' legacy defensive instructions remain
+visible alongside the new section.
 
 ## The opponent
 

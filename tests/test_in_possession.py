@@ -12,6 +12,7 @@ from fm_analytics.analytics.catalogue import load_catalogue
 from fm_analytics.analytics.in_possession import (
     InPossessionSettings,
     in_possession_instruction_strings,
+    in_possession_selected_instructions,
 )
 
 ROLE = {
@@ -172,6 +173,34 @@ class InPossessionInstructionStringsTests(unittest.TestCase):
         self.assertEqual(in_possession_instruction_strings(settings), ())
 
 
+class InPossessionSelectedInstructionsTests(unittest.TestCase):
+    """Every selected setting under its FM name, for presentation and rationale keys."""
+
+    def test_none_settings_yield_nothing(self) -> None:
+        self.assertEqual(in_possession_selected_instructions(None), ())
+
+    def test_defaults_yield_nothing(self) -> None:
+        # Mixed crossing is FM's default, not a choice.
+        self.assertEqual(in_possession_selected_instructions(InPossessionSettings()), ())
+
+    def test_fixed_settings_appear_as_their_scored_strings(self) -> None:
+        settings = InPossessionSettings(attacking_width="Fairly Wide", work_ball_into_box=True)
+        self.assertEqual(
+            in_possession_selected_instructions(settings),
+            in_possession_instruction_strings(settings),
+        )
+
+    def test_player_dependent_choices_appear_by_name(self) -> None:
+        settings = InPossessionSettings(
+            crossing_type="Floated", overlap_left=True, play_for_set_pieces=True,
+            be_more_disciplined=True,
+        )
+        self.assertEqual(
+            in_possession_selected_instructions(settings),
+            ("Floated Crosses", "Overlap Left", "Play For Set Pieces", "Be More Disciplined"),
+        )
+
+
 class CatalogueLoadingTests(unittest.TestCase):
     """Parsing `inPossession` blocks out of tactic JSON via `load_catalogue`."""
 
@@ -305,6 +334,30 @@ class CatalogueLoadingTests(unittest.TestCase):
             }
             catalogue = load_catalogue(self.build(Path(tmp), tactic))
         self.assertEqual(catalogue.tactics["shape"].in_possession.attacking_width, "Very Wide")
+
+    def test_rationale_may_explain_any_selected_setting(self) -> None:
+        rationale = {"Fairly Wide": "Stretch them.", "Floated Crosses": "Use the target man."}
+        with tempfile.TemporaryDirectory() as tmp:
+            tactic = {
+                **TACTIC,
+                "inPossession": {
+                    "fixed": {"attackingWidth": "Fairly Wide"},
+                    "dependsOnPlayers": {"crossingType": "Floated"},
+                },
+                "instructionRationale": rationale,
+            }
+            catalogue = load_catalogue(self.build(Path(tmp), tactic))
+        self.assertEqual(dict(catalogue.tactics["shape"].instruction_rationale), rationale)
+
+    def test_rationale_for_a_setting_left_unselected_is_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tactic = {
+                **TACTIC,
+                "inPossession": {"dependsOnPlayers": {"crossingType": "Mixed"}},
+                "instructionRationale": {"Floated Crosses": "Use the target man."},
+            }
+            with self.assertRaisesRegex(ValueError, "does not use.*Floated Crosses"):
+                load_catalogue(self.build(Path(tmp), tactic))
 
 
 if __name__ == "__main__":

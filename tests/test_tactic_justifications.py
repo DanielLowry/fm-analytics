@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from fm_analytics.analytics.catalogue import MVP_CATALOGUE, load_catalogue
+from fm_analytics.analytics.in_possession import in_possession_selected_instructions
 from fm_analytics.analytics.in_transition import in_transition_instruction_strings
 from fm_analytics.analytics.out_of_possession import out_of_possession_selected_instructions
 
@@ -25,14 +26,19 @@ class ShippedJustificationTests(unittest.TestCase):
                 self.assertTrue(slot.why.strip(), f"{tactic.key}/{slot.key}: why")
 
     def test_every_instruction_is_explained(self) -> None:
+        # In-possession settings may be explained but need not be: the tactics
+        # converted to the structured block before it could carry rationale
+        # moved that prose into whyThisShape instead.
         for tactic in MVP_CATALOGUE.tactics.values():
+            required = set(
+                tactic.instructions + in_transition_instruction_strings(tactic.in_transition)
+                + out_of_possession_selected_instructions(tactic.out_of_possession)
+            )
+            optional = set(in_possession_selected_instructions(tactic.in_possession))
+            explained = set(tactic.instruction_rationale)
+            self.assertEqual(sorted(required - explained), [], f"{tactic.key}: unexplained")
             self.assertEqual(
-                sorted(tactic.instruction_rationale),
-                sorted(
-                    tactic.instructions + in_transition_instruction_strings(tactic.in_transition)
-                    + out_of_possession_selected_instructions(tactic.out_of_possession)
-                ),
-                tactic.key,
+                sorted(explained - required - optional), [], f"{tactic.key}: explains unused"
             )
             for instruction, reason in tactic.instruction_rationale.items():
                 self.assertTrue(reason.strip(), f"{tactic.key}: {instruction}")

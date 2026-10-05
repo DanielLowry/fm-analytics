@@ -172,6 +172,38 @@ def in_possession_instruction_strings(settings: InPossessionSettings | None) -> 
     return tuple(strings)
 
 
+_PLAYER_DEPENDENT_INSTRUCTIONS = (
+    ("overlap_left", "Overlap Left"),
+    ("overlap_right", "Overlap Right"),
+    ("underlap_left", "Underlap Left"),
+    ("underlap_right", "Underlap Right"),
+    ("shoot_on_sight", "Shoot On Sight"),
+    ("hit_early_crosses", "Hit Early Crosses"),
+    ("play_for_set_pieces", "Play For Set Pieces"),
+    ("dribble_less", "Dribble Less"),
+    ("run_at_defence", "Run At Defence"),
+    ("be_more_expressive", "Be More Expressive"),
+    ("be_more_disciplined", "Be More Disciplined"),
+)
+
+
+def in_possession_selected_instructions(settings: InPossessionSettings | None) -> tuple[str, ...]:
+    """Selected instructions for presentation, including unscored player-dependent ones.
+
+    What an `instructionRationale` key may explain. Only the fixed half
+    (`in_possession_instruction_strings`) ever reaches scoring; a
+    player-dependent choice appears here under its FM instruction name, and a
+    non-Mixed crossing type as e.g. "Floated Crosses".
+    """
+    if settings is None:
+        return ()
+    strings = list(in_possession_instruction_strings(settings))
+    if settings.crossing_type != "Mixed":
+        strings.append(f"{settings.crossing_type} Crosses")
+    strings.extend(label for attribute, label in _PLAYER_DEPENDENT_INSTRUCTIONS if getattr(settings, attribute))
+    return tuple(strings)
+
+
 def in_possession_from_json(value: Any, tactic_key: str, *, only_known_keys) -> InPossessionSettings | None:
     """Parse a tactic's `inPossession` block.
 

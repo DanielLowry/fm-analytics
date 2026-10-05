@@ -131,8 +131,8 @@
       "defensiveCover": 7.0,
       "ballProgression": 3.0,
       "creativity": 1.5,
-      "runners": 2.5,
-      "penetration": 2.5,
+      "runners": 2.0,
+      "penetration": 2.0,
       "aerialOutlet": 3.0,
       "boxPresence": 2.0,
       "restDefence": 7.0
@@ -255,9 +255,6 @@
       ],
       "roles": [
         "winger_aml_amr_attack"
-      ],
-      "introduceAttributes": [
-        "workRate"
       ]
     },
     {

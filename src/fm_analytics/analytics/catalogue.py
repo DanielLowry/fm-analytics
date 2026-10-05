@@ -23,6 +23,7 @@ from fm_analytics.analytics.in_possession import (
     InPossessionSettings,
     in_possession_from_json,
     in_possession_instruction_strings,
+    in_possession_selected_instructions,
 )
 from fm_analytics.analytics.in_transition import (
     ALL_FIELD_LABELS as ALL_TRANSITION_FIELD_LABELS,
@@ -290,11 +291,15 @@ class TacticDefinition:
                         f"{self.key}/{slot.key}: attribute emphasis {attribute!r} must be "
                         f"between -{MAX_EFFECTIVE_WEIGHT} and {MAX_EFFECTIVE_WEIGHT}"
                     )
+        possession_instructions = in_possession_selected_instructions(self.in_possession)
         transition_instructions = in_transition_instruction_strings(self.in_transition)
         defensive_instructions = out_of_possession_selected_instructions(self.out_of_possession)
         stray = sorted(
             set(self.instruction_rationale)
-            - set(self.instructions + transition_instructions + defensive_instructions)
+            - set(
+                self.instructions + possession_instructions + transition_instructions
+                + defensive_instructions
+            )
         )
         if stray:
             raise ValueError(

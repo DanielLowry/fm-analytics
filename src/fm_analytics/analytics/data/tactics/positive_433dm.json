@@ -35,7 +35,7 @@
     "whenPossessionWon": "Counter",
     "goalkeeperPace": "Distribute Quickly",
     "distributionTargets": [
-      "Distribute To Centre-Backs"
+      "Distribute To Centre Backs"
     ],
     "distributionTypes": [
       "Take Short Kicks"
@@ -89,7 +89,10 @@
       "key": "DM",
       "position": "DM",
       "role": "dm_defend",
-      "why": "Defensive Midfielder (Defend) holds position in front of the centre-backs, protects the space left by the two eights and gives the counter-press a stable rest-defence anchor."
+      "why": "Defensive Midfielder (Defend) holds position in front of the centre-backs, protects the space left by the two eights and gives the counter-press a stable rest-defence anchor. Ball-Winning Midfielder (Support) is the alternative when the counter-press needs a midfielder who steps out to win the ball back.",
+      "roles": [
+        "bwm_dm_support"
+      ]
     },
     {
       "key": "MCL",
@@ -153,6 +156,7 @@
     "Counter-Press": "Uses the front five to contest losses while the holding midfielder protects the space behind them.",
     "Counter": "Releases the wide forwards and striker immediately when a clean regain creates space.",
     "Higher Line of Engagement": "Keeps pressure away from the defensive third and supports the counter-press.",
+    "More Urgent Pressing": "Closes the ball down quickly behind the higher line of engagement, so the counter-press and the front five win it back before the opposition can settle.",
     "Standard Defensive Line": "Compresses the block without demanding high-line recovery pace from ordinary centre-backs."
   },
   "attributeEmphasis": [

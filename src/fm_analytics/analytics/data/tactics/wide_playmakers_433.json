@@ -35,7 +35,7 @@
     "whenPossessionWon": "Hold Shape",
     "goalkeeperPace": "Distribute Quickly",
     "distributionTargets": [
-      "Distribute To Centre-Backs"
+      "Distribute To Centre Backs"
     ],
     "distributionTypes": [
       "Take Short Kicks"
@@ -110,7 +110,10 @@
       "key": "AMR",
       "position": "AMR",
       "role": "ap_aml_amr_attack",
-      "why": "Advanced Playmaker (Attack) moves inside from the right half-space to create and combine, giving a second creative source without duplicating the Trequartista exactly."
+      "why": "Advanced Playmaker (Attack) moves inside from the right half-space to create and combine, giving a second creative source without duplicating the Trequartista exactly. Advanced Playmaker (Support) is the alternative when the side needs him to start wider and offer a safer passing option.",
+      "roles": [
+        "ap_aml_amr_support"
+      ]
     },
     {
       "key": "ST",
@@ -150,6 +153,7 @@
     "Counter-Press": "Uses the PF, BBM and nearby midfielders to contest losses before the wide creators have to recover fully.",
     "Hold Shape": "Keeps clean regains connected to the creative structure instead of immediately launching low-percentage counters.",
     "Higher Line of Engagement": "Keeps the team close enough to its creators to sustain possession and counter-pressure.",
+    "More Urgent Pressing": "Closes the ball down quickly near the creators, so the counter-press can win possession back high rather than letting the opposition settle.",
     "Standard Defensive Line": "Avoids adding high-line recovery demands to a shape already committing both full-backs to provide width."
   },
   "attributeEmphasis": [

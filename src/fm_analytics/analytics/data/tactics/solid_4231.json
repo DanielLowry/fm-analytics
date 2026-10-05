@@ -130,7 +130,7 @@
     "minimums": {
       "width": 2.0,
       "defensiveCover": 8.5,
-      "ballProgression": 3.0,
+      "ballProgression": 2.5,
       "restDefence": 8.5,
       "runners": 1.5,
       "penetration": 1.5,
@@ -254,9 +254,6 @@
       ],
       "roles": [
         "if_support"
-      ],
-      "introduceAttributes": [
-        "workRate"
       ]
     },
     {
@@ -287,9 +284,6 @@
       ],
       "roles": [
         "winger_aml_amr_attack"
-      ],
-      "introduceAttributes": [
-        "workRate"
       ]
     },
     {
