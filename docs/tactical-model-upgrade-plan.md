@@ -426,7 +426,22 @@ Implemented: A1–A4 and the B1 fixes needed to make demands reachable.
 - `tests/test_tactical_calibration.py` guards it: no instruction demand or
   balance minimum may exceed what some legal role version can supply, every
   instruction used must be modelled, and a passive shape must not clear the
-  urgent-pressing demand.
+  urgent-pressing demand. The guard also requires one legal role version to
+  meet all balance and instruction demands together, including attack-duty
+  and creator caps. Separate per-dimension maxima may come from incompatible
+  role choices, so they cannot establish joint feasibility. Compromised
+  alternates are still allowed.
+
+The joint check added on 5 October 2026 exposed two further conflicts after
+the positive 4-3-3 and 4-2-3-1 gained PF(A) alternatives. In `deep_counter_541`,
+the simple central defender supplied enough cover but only 2.8 progression
+against 3.0 required; the BPD(D) alternate supplied progression but only 8.4
+cover against 8.5 required. Its cover minimum is now 8.0, preserving a strong
+defensive demand alongside rest defence 8.5. In `wide_playmakers_433`, AP(S) supplied width but
+lost penetration, while AP(A) supplied penetration but only 2.9 width against
+3.0 required. A WB(S) alternate at DR now supplies the width and pressing
+alongside AP(A); the left full-back and holding DM stay pinned. These are
+tactic-specific football judgements; shared role traits are unchanged.
 
 **Football judgement calls to review** (each changes a score; none is a bugfix)
 

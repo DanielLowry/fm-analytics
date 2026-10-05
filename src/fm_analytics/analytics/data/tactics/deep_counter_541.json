@@ -129,7 +129,7 @@
   "system": {
     "minimums": {
       "width": 5.0,
-      "defensiveCover": 8.5,
+      "defensiveCover": 8.0,
       "ballProgression": 3.0,
       "runners": 3.0,
       "penetration": 1.5,

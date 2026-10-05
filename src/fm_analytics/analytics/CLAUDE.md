@@ -74,7 +74,12 @@ large margin — a genuine screen-vs-distributor identity choice, correctly
 left pinned. Before adding a new alternate pair anywhere in the catalogue,
 check the trait distance the same way rather than by eye; it's an easy
 mistake to make a system-identity role "flexible" because two roles sound
-similar in name.
+similar in name. `wide_playmakers_433` deliberately allows `wb_dl_dr_support`
+as an alternate to `fb_support` at DR: it supplies +0.5 width, +0.4 progression,
++0.8 runners and +0.6 pressing, at the cost of 0.4 defensive cover and 0.8
+rest defence. It lets the attacking wide playmaker stay inside without losing
+width; the left full-back and DM(D) remain pinned for security. This is another
+explicit tactical trade-off, not an interchangeable role pair.
 
 ## Illegal role combinations
 
@@ -446,7 +451,11 @@ silently treating it as independent.
   checks, off explicit per-role `system` traits (in the role files) and
   per-instruction requirements (`_INSTRUCTION_REQUIREMENTS`). Traits supply
   and instruction demands share one scale; `tests/test_tactical_calibration.py`
-  fails a tactic whose demands no legal XI can meet. These are
+  requires at least one legal role version to meet all balance minimums,
+  instruction demands and attack-duty/creator caps simultaneously. Checking
+  each dimension's maximum alone can hide incompatible role choices; those
+  checks remain useful diagnostics, but are not sufficient. Compromised
+  alternates remain legal and keep their existing scoring penalties. These are
   declared, reviewable football hypotheses, not tuned/learned weights. They do
   contribute through the single tactic-balance multiplier —
   changing one is a football judgment call, worth calling out as such in

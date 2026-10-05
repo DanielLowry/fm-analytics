@@ -80,7 +80,10 @@
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back is essential for width because the wide creator ahead of him moves inside; stamina, work rate and crossing matter more here than in a conventional 4-3-3."
+      "roles": [
+        "wb_dl_dr_support"
+      ],
+      "why": "Support full-back gives a safer wide outlet behind the advanced playmaker. Wing-Back (Support) is the alternative when the right-side creator moves inside on Attack: he supplies the extra width and pressing the side needs, while the left full-back and fixed DM protect the structure. Stamina, work rate and crossing matter for both roles."
     },
     {
       "key": "DM",
@@ -140,17 +143,17 @@
   "style": "Roaming creators from wide",
   "description": "A possession-oriented 4-3-3 with two different creators starting wide and moving inside, full-backs supplying the width, and a true holding midfielder protecting the structure behind them.",
   "whyGood": "The Trequartista and wide Advanced Playmaker receive from unusual starting positions and can combine between the lines, while the full-backs stretch the pitch and the BBM/PF provide the running. A fixed DM prevents all of that movement from leaving the centre-backs exposed.",
-  "whyThisShape": "Both nominal wide attackers want to move inside, so the support full-backs become essential width providers. Shorter passing, Play Out Of Defence and Work Ball Into Box create the controlled possession those creators need; Higher Tempo stops the circulation becoming static once an opening appears. The Trequartista is granted freedom while the AP offers a more structured second creator. Behind them, the BBM supplies running, the CM connects play and DM(D) holds. Counter-Press tries to win losses back around the creators, but Hold Shape after clean regains keeps the tactic centred on controlled creation rather than bypassing its strongest players.",
+  "whyThisShape": "Both nominal wide attackers want to move inside, so the wide defenders become essential width providers. A supporting wing-back on the right supplies enough width for the AP on Attack without losing his penetration; the supporting full-back on the left and fixed DM retain defensive security. Keeping a full-back on the right is a safer fallback, but trades away width and pressing. Shorter passing, Play Out Of Defence and Work Ball Into Box create the controlled possession those creators need; Higher Tempo stops the circulation becoming static once an opening appears. The Trequartista is granted freedom while the AP offers a more structured second creator. Behind them, the BBM supplies running, the CM connects play and DM(D) holds. Counter-Press tries to win losses back around the creators, but Hold Shape after clean regains keeps the tactic centred on controlled creation rather than bypassing its strongest players.",
   "whenToUse": "When your best attacking players are creators rather than conventional touchline wingers and you have full-backs with enough engine to supply width for them.",
   "whenNotToUse": "When the full-backs lack stamina or crossing, the holding midfielder cannot defend space reliably, or the opposition can press the first build-up line so effectively that the two creators rarely receive facing goal.",
   "instructionRationale": {
-    "Fairly Wide": "Creates room for the full-backs to stretch the pitch while the two nominal wide attackers move inside.",
+    "Fairly Wide": "Creates room for the wide defenders to stretch the pitch while the two nominal wide attackers move inside; a supporting right wing-back supplies the extra width when the advanced playmaker attacks inside.",
     "Shorter Passing": "Connects the build-up players to the two creators through repeatable short combinations.",
     "Play Out Of Defence": "Uses the Sweeper Keeper, BPD, DM and supporting midfielders to establish controlled possession.",
     "Higher Tempo": "Moves the ball quickly once the creators have pulled the defensive shape out of position.",
     "Work Ball Into Box": "Lets the Trequartista and Advanced Playmaker create the final action rather than settling for low-quality shots.",
     "Be More Expressive": "Gives the two specialist creators freedom to exploit the spaces they find.",
-    "Counter-Press": "Uses the PF, BBM and nearby midfielders to contest losses before the wide creators have to recover fully.",
+    "Counter-Press": "Uses the PF, BBM and nearby midfielders to contest losses before the wide creators have to recover fully; the supporting right wing-back adds pressure on that flank.",
     "Hold Shape": "Keeps clean regains connected to the creative structure instead of immediately launching low-percentage counters.",
     "Higher Line of Engagement": "Keeps the team close enough to its creators to sustain possession and counter-pressure.",
     "More Urgent Pressing": "Closes the ball down quickly near the creators, so the counter-press can win possession back high rather than letting the opposition settle.",
@@ -182,7 +185,8 @@
         "DR"
       ],
       "roles": [
-        "fb_support"
+        "fb_support",
+        "wb_dl_dr_support"
       ]
     },
     {
@@ -341,7 +345,8 @@
         "DR"
       ],
       "roles": [
-        "fb_support"
+        "fb_support",
+        "wb_dl_dr_support"
       ]
     },
     {
@@ -352,7 +357,8 @@
         "DR"
       ],
       "roles": [
-        "fb_support"
+        "fb_support",
+        "wb_dl_dr_support"
       ]
     },
     {
@@ -363,7 +369,8 @@
         "DR"
       ],
       "roles": [
-        "fb_support"
+        "fb_support",
+        "wb_dl_dr_support"
       ]
     },
     {
