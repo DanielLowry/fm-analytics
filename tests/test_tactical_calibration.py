@@ -66,6 +66,15 @@ def satisfying_role_versions(tactic, catalogue=MVP_CATALOGUE):
     )
 
 
+def primary_roles_without_satisfying_version(tactic, catalogue=MVP_CATALOGUE):
+    satisfying = satisfying_role_versions(tactic, catalogue)
+    return tuple(
+        (slot.key, slot.role_key)
+        for index, slot in enumerate(tactic.slots)
+        if not any(combo[index] == slot.role_key for combo in satisfying)
+    )
+
+
 class CalibrationTests(unittest.TestCase):
     def test_every_instruction_a_tactic_uses_is_modelled(self) -> None:
         # Includes fixed in-possession settings that stand in for a legacy
@@ -145,6 +154,18 @@ class CalibrationTests(unittest.TestCase):
                     f"{tactic.key}: no legal role version meets all requirements together; "
                     f"closest version: {roles}; balance shortfalls: {coherence.shortfalls}; "
                     f"instruction shortfalls: {instruction.shortfalls}"
+                )
+
+    def test_every_primary_role_has_a_penalty_free_legal_role_version(self) -> None:
+        # Each slot's `role` needs a witness XI that clears both assessments,
+        # including duty/creator caps and role exclusions. Other slots may use
+        # alternates in that XI; secondary `roles` may remain penalized options.
+        for tactic in MVP_CATALOGUE.tactics.values():
+            with self.subTest(tactic=tactic.key):
+                self.assertEqual(
+                    primary_roles_without_satisfying_version(tactic),
+                    (),
+                    f"{tactic.key}: primary roles cannot appear in any penalty-free legal XI",
                 )
 
     def test_every_shipped_tactic_declares_its_own_system_requirements(self) -> None:
@@ -230,6 +251,50 @@ class JointFeasibilityTests(unittest.TestCase):
         satisfying = satisfying_role_versions(self.tactic, catalogue)
         self.assertEqual(len(satisfying), 1)
         self.assertEqual(satisfying[0][-1], "presser")
+
+    def test_a_satisfying_alternate_does_not_satisfy_the_primary_role_requirement(self) -> None:
+        roles = {
+            **self.roles,
+            "presser": replace(
+                self.roles["presser"], system_traits={"pressing": 2.5, "creativity": 2.0}
+            ),
+        }
+        catalogue = self.catalogue(roles=roles)
+        self.assertTrue(satisfying_role_versions(self.tactic, catalogue))
+        self.assertEqual(
+            primary_roles_without_satisfying_version(self.tactic, catalogue),
+            (("ST", "creator"),),
+        )
+
+    def test_a_penalized_secondary_role_is_allowed(self) -> None:
+        roles = {
+            **self.roles,
+            "presser": replace(
+                self.roles["presser"], system_traits={"pressing": 2.5, "creativity": 2.0}
+            ),
+        }
+        tactic = replace(
+            self.tactic,
+            slots=self.tactic.slots[:10] + (TacticSlot("ST", "ST", "presser", ("creator",)),),
+        )
+        catalogue = self.catalogue(tactic, roles)
+        self.assertEqual(len(list(role_version_assessments(tactic, catalogue))), 2)
+        self.assertEqual(len(satisfying_role_versions(tactic, catalogue)), 1)
+        self.assertEqual(primary_roles_without_satisfying_version(tactic, catalogue), ())
+
+    def test_primary_roles_can_use_different_penalty_free_versions(self) -> None:
+        tactic = replace(
+            self.tactic,
+            slots=self.tactic.slots[:9] + (
+                TacticSlot("STL", "ST", "creator", ("presser",)),
+                TacticSlot("STR", "ST", "creator", ("presser",)),
+            ),
+        )
+        catalogue = self.catalogue(tactic)
+        satisfying = satisfying_role_versions(tactic, catalogue)
+        self.assertEqual(len(satisfying), 2)
+        self.assertNotIn(tuple(slot.role_key for slot in tactic.slots), satisfying)
+        self.assertEqual(primary_roles_without_satisfying_version(tactic, catalogue), ())
 
     def test_duty_and_creator_caps_are_part_of_feasibility(self) -> None:
         for trait, requirements in (
