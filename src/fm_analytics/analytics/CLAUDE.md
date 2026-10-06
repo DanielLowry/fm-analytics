@@ -54,7 +54,7 @@ Common alternatives include
 `cd_defend`/`cd_cover`, `af_attack`/`p_attack`, `dlf_support`/`cf_support`,
 `cm_support`/`b2b_support`, the one three-role set
 `dlf_support`/`pf_support`/`cf_support`, and `pf_attack`/`af_attack` (with
-`p_attack` also permitted in the two positive tactics). Several pairs are
+`p_attack` also permitted in the two original positive templates). Several pairs are
 chosen because their `tactical_system.py` trait contributions are nearly
 identical (see each role's `system` traits in `data/roles/`): swapping one for the other changes
 which specific player profile fits the slot, not what the team's system
@@ -63,10 +63,22 @@ does. `pf_attack`/`af_attack` (in `gegenpress_4231`, `highpress_433`,
 differs by about 1.2, so choosing Advanced Forward costs
 that tactic instruction fit. It is a deliberate fallback for a squad with no
 pressing forward, not an interchangeable pair. Pressing Forward is primary
-in both positive tactics; Advanced Forward and Poacher remain penalized
+in `positive_4231` and `positive_433dm`; Advanced Forward and Poacher remain penalized
 alternates. Their holding midfielders stay pinned. `positive_433dm` also pins
 CM(S) at MCR: the former BWM(S) alternate supplied pressing but lost the
 progression and creativity demanded by its possession game.
+Two dedicated variants instead make BWM(S) primary at MCR alongside DLP(S)
+at MCL and a pinned DM(D). `ball_winning_counter_433dm` uses Regroup,
+slightly more direct passing and two FB(S), with its own progression/creativity
+minimums of 3.5/1.0. `positive_ball_winning_433dm` retains the original
+positive 4-3-3's requirements and instructions: W(S) on the right restores
+passing and creativity, while WB(A) on the opposite flank restores forward
+runs and penetration. Both use AF(A) as primary, with PF(A) and Poacher as
+alternates; all three striker profiles have penalty-free legal versions in
+these configurations. Their player emphasis and tapers reflect the different
+jobs, including the possession variant's wing-back and technical outlets.
+The flank-cover explanations remain football hypotheses: the structural
+scorer sums contributions across the team and does not model spatial cover.
 Contrast `dm_defend`/`dm_support`, which looks like a similar swap
 but trades off primary `defensiveCover`/`ballProgression` contribution by a
 large margin — a genuine screen-vs-distributor identity choice, correctly
@@ -215,7 +227,8 @@ the dataclass:
   this tactic *this* tactic, always hand-authored. Only a handful of
   tactics have been given these so far (`attacking_424`, `balanced_433dm`,
   `balanced_442`, `deep_counter_541`, `enganche_4231`, `positive_4231`,
-  `positive_433dm`, `solid_4231`, `vertical_442`, `wide_playmakers_433` and
+  `positive_433dm`, `ball_winning_counter_433dm`, `positive_ball_winning_433dm`,
+  `solid_4231`, `vertical_442`, `wide_playmakers_433` and
   `wing_play_442`); the rest report every fixed field as missing. `TacticDefinition.in_possession_missing_fields`
   is what `web/in_possession_render.py` reads to flag the gap on the tactic
   page rather than silently showing nothing — filling in the rest is
@@ -313,7 +326,8 @@ legacy `instructions` string, but its `instructionRationale` stays. Duplicates a
 conflicts between structured and legacy transition choices are rejected.
 
 `attacking_424`, `balanced_433dm`, `balanced_442`, `deep_counter_541`,
-`enganche_4231`, `positive_4231`, `positive_433dm`, `solid_4231`, `vertical_442`
+`enganche_4231`, `positive_4231`, `positive_433dm`, `ball_winning_counter_433dm`,
+`positive_ball_winning_433dm`, `solid_4231`, `vertical_442`
 and `wide_playmakers_433` have complete transition
 blocks, including goalkeeper distribution. `wing_play_442` carries only its
 possession-won choice in this block; other tactics retain their legacy
@@ -356,7 +370,8 @@ structured defensive instructions. Once a field is authored, a legacy string
 for that same setting is refused, including contradictory and duplicate
 choices. Migrating a tactic removes those legacy strings and retains their
 `instructionRationale` text. `attacking_424`, `balanced_433dm`, `balanced_442`, `deep_counter_541`,
-`enganche_4231`, `positive_4231`, `positive_433dm`, `solid_4231`, `vertical_442`
+`enganche_4231`, `positive_4231`, `positive_433dm`, `ball_winning_counter_433dm`,
+`positive_ball_winning_433dm`, `solid_4231`, `vertical_442`
 and `wide_playmakers_433` have
 complete defensive blocks. Other tactics' legacy defensive instructions remain
 visible alongside the new section.

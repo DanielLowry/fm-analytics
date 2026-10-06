@@ -1,0 +1,805 @@
+{
+  "key": "positive_ball_winning_433dm",
+  "name": "Positive Ball-Winning 4-3-3 DM",
+  "formation": "4-3-3 DM Wide",
+  "mentality": "Positive",
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Standard",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Higher Tempo",
+      "passIntoSpace": false,
+      "playOutOfDefence": true,
+      "focusPlay": "Balanced",
+      "workBallIntoBox": true
+    },
+    "dependsOnPlayers": {
+      "overlapLeft": false,
+      "overlapRight": false,
+      "underlapLeft": false,
+      "underlapRight": false,
+      "crossingType": "Low",
+      "shootOnSight": false,
+      "hitEarlyCrosses": false,
+      "playForSetPieces": false,
+      "dribbleLess": false,
+      "runAtDefence": false,
+      "beMoreExpressive": false,
+      "beMoreDisciplined": false
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": "Counter-Press",
+    "whenPossessionWon": "Counter",
+    "goalkeeperPace": "Distribute Quickly",
+    "distributionTargets": [
+      "Distribute To Centre Backs"
+    ],
+    "distributionTypes": [
+      "Take Short Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Higher",
+    "defensiveLine": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "More Urgent",
+    "preventShortGKDistribution": false
+  },
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Keeps the role simple but must distribute securely into the short build-up when the press allows it."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "wb_dl_dr_attack",
+      "why": "The attacking left wing-back provides width and forward runs outside the inside forward. His penetration compensates for the supporting right winger; he needs enough stamina and recovery ability for this exposed flank."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender. Cover is the alternate."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "Support full-back offers a safe outlet behind the supporting winger on the ball-winner's flank. Keeping this flank restrained limits extra exposure when the BWM challenges ahead of the holding DM."
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dm_defend",
+      "why": "The dedicated holding midfielder protects the centre in front of the centre-backs while the ball-winner challenges ahead of him. Positional discipline matters more here than adding another chaser."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "dlp_mc_support",
+      "why": "The deep-lying playmaker is the midfield passing outlet, receiving from the holder and ball-winner and supplying the front three. He complements the ball-winner rather than sharing his pursuit of the ball."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "bwm_mc_support",
+      "why": "Ball-Winning Midfielder (Support) challenges for possession ahead of a dedicated DM(D). He must also receive and return simple passes; the holder covers the centre when he leaves his starting position."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "if_attack",
+      "why": "The inside forward attacks the box from the left, with the attacking wing-back supplying outside width. Together they preserve penetration while the opposite winger supports possession."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "winger_aml_amr_support",
+      "why": "The supporting right winger provides width, passing and creative service on the ball-winner's flank. He replaces some of the connective play lost by changing CM(S) to BWM(S)."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "pf_attack",
+        "p_attack"
+      ],
+      "why": "Advanced Forward attacks space behind and supplies the main box threat. The BWM and advancing wing-back add pressing elsewhere in this configuration. Pressing Forward is an alternative for more pressure; Poacher is an alternative for movement and finishing with less pressing contribution."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 6.0,
+      "ballProgression": 4.0,
+      "creativity": 1.5,
+      "runners": 3.5,
+      "penetration": 3.0,
+      "boxPresence": 2.0,
+      "restDefence": 6.5
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Positive ball-winning 4-3-3 DM",
+  "description": "A positive possession 4-3-3 with a holding DM behind a ball-winner and playmaker, a supporting right winger and an attacking left wing-back.",
+  "whyGood": "Provides a covered MC ball-winner while retaining enough passing and creativity for shorter build-up. The supporting winger shares the creative work with the DLP, and the opposite wing-back supplies runs and penetration alongside the inside forward and striker.",
+  "whyThisShape": "DM(D) protects the centre behind DLP(S) and BWM(S). Replacing the original CM(S) with a ball-winner reduces midfield progression and creativity, so W(S) on the right becomes a passing outlet rather than a second attacking winger. FB(S) behind him limits additional movement on the ball-winner's flank. On the left, WB(A) runs outside IF(A), restoring the forward threat lost by supporting the right winger. Shorter passing, Play Out Of Defence and Work Ball Into Box remain genuine requirements; this configuration changes who supplies them rather than lowering the possession template's demands. The BWM adds pressure alongside the front three, allowing AF(A) to lead the attack while the DM protects the centre. The left flank still depends on coordinated recovery when the wing-back advances.",
+  "whenToUse": "When you want a positive possession 4-3-3 with an MC ball-winner and also have a secure holder, a capable playmaker, a supporting winger and a left wing-back who can sustain attacking runs.",
+  "whenNotToUse": "When the left wing-back cannot contribute and recover, the BWM cannot receive and pass under pressure, or the back line cannot support short build-up. If opponents repeatedly evade the press and drag the DM into wide gaps, the holding midfielder alone cannot make the shape secure.",
+  "instructionRationale": {
+    "Shorter Passing": "Uses the holder, DLP and supporting right winger as passing outlets; the BWM must still receive and return the ball securely.",
+    "Play Out Of Defence": "The DM and DLP offer short exits, supported by the right winger and full-back. The defenders and BWM need enough technical security for this to work.",
+    "Higher Tempo": "Prevents the shorter passing game from becoming sterile and helps the front three receive before the defence is fully set.",
+    "Work Ball Into Box": "Relies on the DLP and supporting winger to create chances for the striker, inside forward and attacking wing-back.",
+    "Counter-Press": "The BWM joins pressure with the front three and nearby wing-back after losses, while the DM protects the centre and the right full-back limits additional exposure.",
+    "Counter": "Releases the wide forwards and striker immediately when a clean regain creates space.",
+    "Higher Line of Engagement": "Starts pressure higher up the pitch. With a standard defensive line, coordinated pressure matters because opponents who escape it can find space between the lines.",
+    "More Urgent Pressing": "Asks the midfield and forwards to support the ball-winner's pressure rather than leaving him to chase alone.",
+    "Standard Defensive Line": "Limits recovery-pace demands on the centre-backs; it still requires the holder and supporting right full-back to cover transitions behind the advanced left wing-back."
+  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "decisions": 1,
+        "kicking": 1,
+        "firstTouch": 1
+      },
+      "positions": [
+        "GK"
+      ],
+      "roles": [
+        "gk_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "anticipation": 1,
+        "passing": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "anticipation": 2,
+        "acceleration": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attributes": {
+        "stamina": 1,
+        "workRate": 1,
+        "passing": 1,
+        "firstTouch": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "fb_support"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "decisions": 2,
+        "teamwork": 1,
+        "passing": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "firstTouch": 2,
+        "vision": 2,
+        "decisions": 2,
+        "technique": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attributes": {
+        "acceleration": 2,
+        "pace": 2,
+        "offTheBall": 2,
+        "dribbling": 1,
+        "finishing": 1,
+        "firstTouch": 1,
+        "workRate": 1,
+        "stamina": 1
+      },
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_attack"
+      ],
+      "introduceAttributes": [
+        "workRate",
+        "stamina"
+      ]
+    },
+    {
+      "attributes": {
+        "acceleration": 2,
+        "pace": 2,
+        "offTheBall": 2,
+        "anticipation": 2,
+        "finishing": 1,
+        "stamina": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 3,
+        "anticipation": 3,
+        "acceleration": 1,
+        "finishing": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "offTheBall": 2,
+        "acceleration": 2,
+        "anticipation": 1,
+        "finishing": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "workRate": 2,
+        "stamina": 2,
+        "tackling": 1,
+        "anticipation": 1,
+        "passing": 1,
+        "firstTouch": 1,
+        "decisions": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "firstTouch": 2,
+        "decisions": 2,
+        "crossing": 2,
+        "teamwork": 1,
+        "stamina": 1,
+        "workRate": 1
+      },
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_support"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "acceleration": 1,
+        "offTheBall": 2,
+        "crossing": 2,
+        "stamina": 2,
+        "workRate": 1,
+        "firstTouch": 1
+      },
+      "positions": [
+        "DL"
+      ],
+      "roles": [
+        "wb_dl_dr_attack"
+      ]
+    }
+  ],
+  "keyRequirements": [
+    "A disciplined DM who protects the centre behind the chasing BWM and advancing left wing-back",
+    "A BWM with tackling, anticipation, work rate and stamina, plus passing, first touch and decisions suitable for shorter build-up",
+    "A DLP and supporting right winger capable of sharing progression and chance creation",
+    "A left wing-back with stamina, pace, movement and crossing to provide width and forward runs outside the inside forward",
+    "An inside forward and lone striker who provide box threat while the right winger supports; AF, PF and Poacher offer different attacking profiles",
+    "Defenders comfortable enough on the ball for Play Out Of Defence and players able to sustain the counter-press"
+  ],
+  "tags": [
+    "positive",
+    "433",
+    "dm",
+    "ball-winning",
+    "possession",
+    "attacking-wing-back"
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "positioning",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "concentration",
+      "taperBelow": 7,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 7,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "vision",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_attack"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_attack"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 7,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_attack"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attribute": "tackling",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 8,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_support"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 8,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_support"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 7,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_support"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 7,
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_support"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 9,
+      "positions": [
+        "DL"
+      ],
+      "roles": [
+        "wb_dl_dr_attack"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "DL"
+      ],
+      "roles": [
+        "wb_dl_dr_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 8,
+      "positions": [
+        "DL"
+      ],
+      "roles": [
+        "wb_dl_dr_attack"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 8,
+      "positions": [
+        "DL"
+      ],
+      "roles": [
+        "wb_dl_dr_attack"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 7,
+      "positions": [
+        "DL"
+      ],
+      "roles": [
+        "wb_dl_dr_attack"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "DL"
+      ],
+      "roles": [
+        "wb_dl_dr_attack"
+      ]
+    }
+  ]
+}

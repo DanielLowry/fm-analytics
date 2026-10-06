@@ -470,6 +470,35 @@ The per-dimension diagnostic helper now rounds role totals to the scorer's
 six-decimal precision, avoiding a false failure at creativity 3.0. Shared
 role traits and instruction requirements are unchanged.
 
+Two dedicated MC ball-winning variants were then added on 6 October 2026,
+bringing the catalogue to 52 tactics. Both pin DM(D) behind DLP(S) and BWM(S),
+with AF(A) primary and PF(A)/Poacher as striker alternatives:
+
+- `ball_winning_counter_433dm` uses Balanced mentality, slightly more direct
+  passing, Regroup + Counter, standard lines and two FB(S). It omits Play Out
+  Of Defence and Work Ball Into Box. Its own progression/creativity minimums
+  are 3.5/1.0 rather than the possession template's 4.0/1.5, reflecting one
+  passing outlet and three forward threats. The default supplies 3.7
+  progression and 1.4 creativity; defensive-cover and rest-defence requirements
+  remain unchanged. Player demands retain a technically competent DLP and
+  enough touch/passing for the BWM's simple connections.
+- `positive_ball_winning_433dm` retains the original positive template's
+  requirements and possession/pressing instructions. W(S) on the BWM's right
+  flank restores passing and creativity, with FB(S) behind him; WB(A) on the
+  opposite flank restores forward runs and penetration outside IF(A). The
+  default supplies progression 5.2, creativity 2.1, runners 4.4 and box presence
+  2.2. Its emphasis and tapers explicitly ask for an attacking wing-back and
+  technically reliable BWM/winger rather than making the original template's
+  BWM alternate look interchangeable with CM(S).
+
+All nine legal role versions of each new tactic clear balance and instruction
+checks together, including the three striker profiles and permitted single
+Cover centre-back. These checks establish structural feasibility, not match
+effectiveness or flank coverage: the scorer sums team-wide traits and cannot
+prove that the holder covers the particular gap left by a chasing BWM. The
+usage guidance calls out the direct version's difficulty against settled deep
+blocks and the possession version's exposed attacking flank.
+
 **Football judgement calls to review** (each changes a score; none is a bugfix)
 
 | Change | Reason |
