@@ -118,12 +118,12 @@
     {
       "key": "ST",
       "position": "ST",
-      "role": "af_attack",
+      "role": "pf_attack",
       "roles": [
-        "p_attack",
-        "pf_attack"
+        "af_attack",
+        "p_attack"
       ],
-      "why": "Advanced Forward stretches the defence and provides the main depth threat. Poacher is the alternative for a striker whose movement and anticipation are stronger than his all-round running game. Pressing Forward (Attack) is the alternative for a striker who leads the counter-press from the front."
+      "why": "Pressing Forward (Attack) leads the counter-press while supplying runs beyond the defence. Advanced Forward is an alternative when pace and movement offer a stronger depth threat, at the cost of pressing support. Poacher is an alternative for movement and finishing, with a further reduction in counter-pressing support."
     }
   ],
   "system": {
@@ -143,15 +143,15 @@
   "style": "Positive 4-2-3-1",
   "description": "A proactive 4-2-3-1 with a holding midfielder and deep playmaker supporting four advanced attackers, using short build-up, a higher press and complementary wide threats.",
   "whyGood": "The DM(D) anchors the centre while the DLP(S) progresses possession, giving the front four freedom without leaving both pivot players chasing or advancing at once. The inside forward supplies a second scoring threat while the winger preserves width.",
-  "whyThisShape": "The double pivot deliberately separates security from progression: the DM(D) holds in front of the centre-backs and the DLP(S) receives and distributes. Ahead of them, the AM(S) links play while an IF(A), W(A) and AF(A) create penetration in different lanes. Shorter passing and Play Out Of Defence make the pivot relevant in build-up; higher tempo speeds the ball into the front four once space appears. Counter-pressing and a higher line of engagement make the shape proactive, while the standard defensive line avoids demanding high-line recovery pace from ordinary centre-backs.",
-  "whenToUse": "As a proactive default when you have a good attacking midfielder, two complementary wide attackers and enough quality in the double pivot to build through pressure.",
+  "whyThisShape": "The double pivot deliberately separates security from progression: the DM(D) holds in front of the centre-backs and the DLP(S) receives and distributes. Ahead of them, the AM(S) links play while an IF(A), W(A) and PF(A) create penetration in different lanes. The pressing forward leads pressure after losses, allowing both pivot players to retain their defensive responsibilities. Shorter passing and Play Out Of Defence make the pivot relevant in build-up; higher tempo speeds the ball into the front four once space appears. Counter-pressing and a higher line of engagement make the shape proactive, while the standard defensive line avoids demanding high-line recovery pace from ordinary centre-backs.",
+  "whenToUse": "As a proactive default when you have a good attacking midfielder, two complementary wide attackers, a striker who can lead pressure and enough quality in the double pivot to build through pressure.",
   "whenNotToUse": "Against opponents who dominate the central three-versus-two around your pivot, or when the squad lacks the technical security for shorter build-up and counter-pressing.",
   "instructionRationale": {
     "Shorter Passing": "Uses the double pivot and attacking midfielder as repeatable progression options rather than bypassing them.",
     "Play Out Of Defence": "The DM and DLP provide short outlets so possession can reach the attacking quartet in controlled fashion.",
     "Higher Tempo": "Moves the ball quickly once the first line is beaten and prevents the front four becoming static.",
-    "Counter-Press": "Uses the advanced front four to contest the ball immediately after losses, with the two holding midfielders staying behind it. A Pressing Forward up front adds the pressing it needs.",
-    "Counter": "Exploits the IF, winger and advanced forward before the opposition can reset.",
+    "Counter-Press": "The pressing forward leads the advanced front four in contesting the ball immediately after losses, with the two holding midfielders staying behind it. The advanced-forward and poacher fallbacks trade away some of that pressing support.",
+    "Counter": "Exploits the inside forward, winger and striker before the opposition can reset.",
     "Higher Line of Engagement": "Keeps the press closer to the front four and increases the chance of regaining possession in useful areas.",
     "Standard Defensive Line": "Avoids exposing ordinary centre-backs to the large recovery spaces of a true high line.",
     "More Urgent Pressing": "Supports the counter-press without pushing the defensive line itself higher."
@@ -342,7 +342,7 @@
     "A technically secure deep playmaker capable of receiving and progressing the ball under pressure",
     "An attacking midfielder with the first touch, decisions and passing to connect the front four",
     "Complementary wide attackers: one inside scoring threat and one genuine source of width",
-    "A mobile striker who consistently threatens space behind, or a pressing forward who leads the counter-press"
+    "A pressing forward with the work rate, stamina and movement to lead the counter-press and threaten space behind"
   ],
   "tags": [
     "positive",

@@ -115,7 +115,7 @@ def player_copy_control(record):
     return profile_copy_control(player_copy_text(record), label="Copy player to clipboard", success="Player copied!")
 
 
-def starting_xi_copy_text(game, squad, evaluation, *, ignore_form=False, ignore_condition=False):
+def starting_xi_copy_text(game, squad, evaluation, *, ignore_form=False, ignore_condition=False, excluded=()):
     """Export the displayed assignments, without reading or recording history."""
     sections = [
         f"Tactic: {evaluation.tactic.name}\nFormation: {evaluation.tactic.formation}\n"
@@ -125,9 +125,11 @@ def starting_xi_copy_text(game, squad, evaluation, *, ignore_form=False, ignore_
     ignored = [label for label, active in (("form", ignore_form), ("condition", ignore_condition)) if active]
     if ignored:
         sections[0] += "\nIgnored during selection: " + ", ".join(ignored)
+    players = {player.id: player for player in squad.players}
+    if excluded:
+        sections[0] += "\nExcluded players: " + ", ".join(players[player_id].name for player_id in excluded)
     if evaluation.unfilled_slots:
         sections[0] += "\nUnfilled slots: " + ", ".join(slot.key for slot in evaluation.unfilled_slots)
-    players = {player.id: player for player in squad.players}
     for assignment in sorted(evaluation.assignments, key=lambda item: (position_key(item.slot.position), position_key(item.slot.key))):
         player = players[assignment.player_id]
         role_name = assignment.intrinsic_role_score.role_name

@@ -273,6 +273,41 @@ class ReportingTests(unittest.TestCase):
         self.assertIs(bundle.policy, policy)
         self.assertEqual(report.bench.entries, ())
 
+    def test_matchday_detail_resolves_one_tactic_without_excluded_players(self) -> None:
+        game, squad = _complete_owned_snapshot()
+        starter = squad.players[0]
+        backup = replace(starter, id="backup", name="Backup", attributes={
+            key: AttributeObservation(Visibility.KNOWN, value=9) for key in starter.attributes
+        })
+        bundle = build_recommendation_bundle(game, replace(squad, players=squad.players + (backup,)))
+        key = "balanced_442"
+
+        full = build_tactic_matchday_report(bundle, key)
+        self.assertIs(full.evaluation, bundle.recommendation.by_tactic_key(key))
+        self.assertIs(full.weaknesses, bundle.squad_depth.per_tactic[key])
+        slot = next(item.slot.key for item in full.evaluation.assignments if item.player_id == starter.id)
+
+        report = build_tactic_matchday_report(bundle, key, excluded_player_ids=[starter.id])
+        remaining = tuple(item for item in bundle.selection_players if item.id != starter.id)
+        expected = evaluate_tactic(MVP_CATALOGUE.tactics[key], remaining, MVP_CATALOGUE)
+        self.assertEqual(report.evaluation, expected)
+        self.assertEqual(report.weaknesses, assess_weaknesses(expected, remaining, MVP_CATALOGUE))
+        self.assertEqual(report.excluded_player_ids, frozenset({starter.id}))
+        self.assertEqual(
+            next(item.player_id for item in report.evaluation.assignments if item.slot.key == slot), backup.id
+        )
+        mentioned = (
+            {item.player_id for item in report.evaluation.assignments}
+            | {entry.player_id for entry in report.bench.entries}
+            | {option.player_id for target in report.substitution_board.targets for option in target.options}
+            | {option.player_id for item in report.selection_explanation.slots for option in item.alternatives}
+        )
+        self.assertNotIn(starter.id, mentioned)
+        # The ranking is untouched: only this drill-down was solved again.
+        self.assertIs(bundle.recommendation.by_tactic_key(key), full.evaluation)
+        with self.assertRaisesRegex(ValueError, "not in the squad: nobody"):
+            build_tactic_matchday_report(bundle, key, excluded_player_ids=["nobody"])
+
     def test_squad_role_matrix_does_not_evaluate_tactics(self) -> None:
         from unittest.mock import patch
 

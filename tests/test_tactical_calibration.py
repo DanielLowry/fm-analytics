@@ -39,7 +39,8 @@ def best_achievable(tactic, catalogue=MVP_CATALOGUE) -> dict[str, float]:
         totals: dict[str, float] = {}
         for role_key in combo:
             for dimension, value in role_traits(catalogue.roles[role_key]).items():
-                totals[dimension] = totals.get(dimension, 0.0) + value
+                # Match the scorer's precision at exact minimum boundaries.
+                totals[dimension] = round(totals.get(dimension, 0.0) + value, 6)
         for dimension, value in totals.items():
             best[dimension] = max(best.get(dimension, 0.0), value)
     return best
@@ -154,6 +155,26 @@ class CalibrationTests(unittest.TestCase):
                     f"{tactic.key}: no legal role version meets all requirements together; "
                     f"closest version: {roles}; balance shortfalls: {coherence.shortfalls}; "
                     f"instruction shortfalls: {instruction.shortfalls}"
+                )
+
+    def test_every_default_role_version_is_legal_and_penalty_free(self) -> None:
+        # The all-primary XI is the manager's starting template. Alternates
+        # may still incur penalties when they trade away part of its design.
+        for tactic in MVP_CATALOGUE.tactics.values():
+            with self.subTest(tactic=tactic.key):
+                role_keys = tuple(slot.role_key for slot in tactic.slots)
+                self.assertTrue(
+                    MVP_CATALOGUE.role_version_is_legal(tactic, role_keys),
+                    f"{tactic.key}: default roles break a role exclusion group",
+                )
+                roles = tuple(MVP_CATALOGUE.roles[key] for key in role_keys)
+                coherence = assess_coherence(tactic, roles)
+                instruction = assess_instruction_suitability(roles, tactic)
+                self.assertEqual(
+                    (coherence.shortfalls, instruction.shortfalls),
+                    ((), ()),
+                    f"{tactic.key}: default XI balance shortfalls: {coherence.shortfalls}; "
+                    f"instruction shortfalls: {instruction.shortfalls}",
                 )
 
     def test_every_primary_role_has_a_penalty_free_legal_role_version(self) -> None:

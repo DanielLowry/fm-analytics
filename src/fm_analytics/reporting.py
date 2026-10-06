@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Collection, Mapping, MutableMapping, Sequence
 
 from fm_analytics.analytics.match_analysis import (
     MatchReport,
@@ -62,6 +62,7 @@ from fm_analytics.analytics import (
     build_recruitment_briefs,
     build_role_matrix,
     compare_players_at_position,
+    evaluate_tactic,
     best_position_adjusted_role,
     best_selection_adjusted_role,
     build_substitution_board,
@@ -315,6 +316,9 @@ class TacticMatchdayReport:
     bench: BenchSelection
     substitution_board: SubstitutionBoard
     selection_explanation: TacticSelectionExplanation
+    # Cover for this XI: the ranking's own depth report when nobody is excluded.
+    weaknesses: WeaknessReport
+    excluded_player_ids: frozenset[str] = frozenset()
 
 
 def required_role_attributes(catalogue: FootballCatalogue = MVP_CATALOGUE) -> frozenset[str]:
@@ -577,13 +581,46 @@ def build_tactic_matchday_report(
     *,
     catalogue: FootballCatalogue = MVP_CATALOGUE,
     bench_size: int | None = None,
+    excluded_player_ids: Collection[str] = (),
 ) -> TacticMatchdayReport:
-    """Build the XI explanation and tactic-specific matchday bench."""
+    """Build the XI explanation and tactic-specific matchday bench.
+
+    `excluded_player_ids` are players the manager has ruled out of this match.
+    This one tactic's XI is then solved again without them, through the same
+    `evaluate_tactic` the ranking uses, and the bench, cover and explanations
+    follow that XI. The ranking itself is never re-run, so the other tactics
+    keep their full-squad scores.
+    """
     try:
         evaluation = bundle.recommendation.by_tactic_key(tactic_key)
     except StopIteration as exc:
         raise ValueError(f"unknown evaluated tactic {tactic_key!r}") from exc
-    selection_players = bundle.selection_players
+    excluded = frozenset(excluded_player_ids)
+    unknown = excluded - {player.id for player in bundle.squad.players}
+    if unknown:
+        raise ValueError("excluded player(s) not in the squad: " + ", ".join(sorted(unknown)))
+    selection_players = tuple(
+        player for player in bundle.selection_players if player.id not in excluded
+    )
+    if excluded:
+        role_score_cache = RoleScoreCache()
+        evaluation = evaluate_tactic(
+            evaluation.tactic,
+            selection_players,
+            catalogue,
+            readiness_policy=bundle.policy.readiness,
+            familiarity_policy=bundle.policy.familiarity,
+            fit_policy=bundle.policy.tactic_fit,
+            opponent=bundle.policy.opponent,
+            role_score_cache=role_score_cache,
+        )
+        weaknesses = assess_weaknesses(
+            evaluation, selection_players, catalogue,
+            readiness_policy=bundle.policy.readiness, opponent=bundle.policy.opponent,
+            role_score_cache=role_score_cache,
+        )
+    else:
+        weaknesses = bundle.squad_depth.per_tactic[tactic_key]
     resolved_bench_size = bundle.policy.bench_size if bench_size is None else bench_size
     bench = select_bench(
         evaluation,
@@ -617,6 +654,8 @@ def build_tactic_matchday_report(
         bench=bench,
         substitution_board=substitution_board,
         selection_explanation=selection_explanation,
+        weaknesses=weaknesses,
+        excluded_player_ids=excluded,
     )
 
 

@@ -79,11 +79,11 @@
     {
       "key": "DR",
       "position": "DR",
-      "role": "fb_support",
+      "role": "wb_dl_dr_support",
       "roles": [
-        "wb_dl_dr_support"
+        "fb_support"
       ],
-      "why": "Support full-back gives a safer wide outlet behind the advanced playmaker. Wing-Back (Support) is the alternative when the right-side creator moves inside on Attack: he supplies the extra width and pressing the side needs, while the left full-back and fixed DM protect the structure. Stamina, work rate and crossing matter for both roles."
+      "why": "Wing-Back (Support) provides the width and pressing behind the attacking advanced playmaker, while the left full-back and fixed DM protect the structure. Full-Back (Support) is a safer fallback that trades away width and pressure on this flank. Stamina, work rate and crossing matter for both roles."
     },
     {
       "key": "DM",
@@ -113,10 +113,7 @@
       "key": "AMR",
       "position": "AMR",
       "role": "ap_aml_amr_attack",
-      "why": "Advanced Playmaker (Attack) moves inside from the right half-space to create and combine, giving a second creative source without duplicating the Trequartista exactly. Advanced Playmaker (Support) is the alternative when the side needs him to start wider and offer a safer passing option.",
-      "roles": [
-        "ap_aml_amr_support"
-      ]
+      "why": "Advanced Playmaker (Attack) moves inside from the right half-space to create and combine, giving a second creative source without duplicating the Trequartista exactly. His attacking duty preserves penetration alongside the pressing forward, with the right wing-back supplying width outside him."
     },
     {
       "key": "ST",
@@ -141,10 +138,10 @@
     "maximumCreators": 3
   },
   "style": "Roaming creators from wide",
-  "description": "A possession-oriented 4-3-3 with two different creators starting wide and moving inside, full-backs supplying the width, and a true holding midfielder protecting the structure behind them.",
-  "whyGood": "The Trequartista and wide Advanced Playmaker receive from unusual starting positions and can combine between the lines, while the full-backs stretch the pitch and the BBM/PF provide the running. A fixed DM prevents all of that movement from leaving the centre-backs exposed.",
+  "description": "A possession-oriented 4-3-3 with two different creators starting wide and moving inside, a left full-back and supporting right wing-back supplying width, and a true holding midfielder protecting the structure behind them.",
+  "whyGood": "The Trequartista and wide Advanced Playmaker receive from unusual starting positions and can combine between the lines, while the wide defenders stretch the pitch and the BBM/PF provide the running. A fixed DM prevents all of that movement from leaving the centre-backs exposed.",
   "whyThisShape": "Both nominal wide attackers want to move inside, so the wide defenders become essential width providers. A supporting wing-back on the right supplies enough width for the AP on Attack without losing his penetration; the supporting full-back on the left and fixed DM retain defensive security. Keeping a full-back on the right is a safer fallback, but trades away width and pressing. Shorter passing, Play Out Of Defence and Work Ball Into Box create the controlled possession those creators need; Higher Tempo stops the circulation becoming static once an opening appears. The Trequartista is granted freedom while the AP offers a more structured second creator. Behind them, the BBM supplies running, the CM connects play and DM(D) holds. Counter-Press tries to win losses back around the creators, but Hold Shape after clean regains keeps the tactic centred on controlled creation rather than bypassing its strongest players.",
-  "whenToUse": "When your best attacking players are creators rather than conventional touchline wingers and you have full-backs with enough engine to supply width for them.",
+  "whenToUse": "When your best attacking players are creators rather than conventional touchline wingers and your left full-back and right wing-back have enough engine to supply width for them.",
   "whenNotToUse": "When the full-backs lack stamina or crossing, the holding midfielder cannot defend space reliably, or the opposition can press the first build-up line so effectively that the two creators rarely receive facing goal.",
   "instructionRationale": {
     "Fairly Wide": "Creates room for the wide defenders to stretch the pitch while the two nominal wide attackers move inside; a supporting right wing-back supplies the extra width when the advanced playmaker attacks inside.",
@@ -325,7 +322,7 @@
   ],
   "keyRequirements": [
     "Two genuinely high-level creators suited to receiving from wide starting positions and operating between the lines",
-    "Full-backs with enough stamina, work rate and crossing to provide nearly all of the natural width",
+    "A left full-back and supporting right wing-back with the stamina, work rate and crossing to provide nearly all of the natural width",
     "A disciplined holding midfielder who protects the centre-backs rather than chasing the ball",
     "A high-engine Box-to-Box midfielder and reliable supporting midfielder to carry the defensive and connective workload",
     "A Pressing Forward with the work rate and movement to stretch the defence and lead pressure",

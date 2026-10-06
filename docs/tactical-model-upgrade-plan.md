@@ -443,6 +443,33 @@ lost penetration, while AP(A) supplied penetration but only 2.9 width against
 alongside AP(A); the left full-back and holding DM stay pinned. These are
 tactic-specific football judgements; shared role traits are unchanged.
 
+The primary-role audit on 6 October 2026 found that five templates could only
+clear their requirements by replacing a primary role. The guard now also
+requires each all-primary default XI to be legal and penalty-free. Secondary
+roles remain selectable compromises; they do not each need a penalty-free XI.
+The resulting changes are deliberate football judgements:
+
+- `deep_counter_541` keeps its simple central CD(D) and lowers its own
+  progression minimum from 3.0 to 2.5. Its direct target-man outlets do not
+  require the same technical build-up as Play Out Of Defence; cover and rest
+  defence minimums stay at 8.0 and 8.5.
+- `positive_4231` and `positive_433dm` make PF(A) primary, retaining AF(A)
+  and Poacher as penalized alternatives. The 4-3-3 removes its BWM(S)
+  alternate because the loss of progression and creativity works against
+  the passing eights and Work Ball Into Box.
+- `possession_4141` keeps DLF(S) and makes the right winger W(A), adding a
+  forward outlet rather than changing the striker solely to cross a box
+  presence threshold. The left WM(S) remains the safer flank. Box presence
+  rises from 1.4 to 1.9; its usage guidance now emphasizes patient chance
+  creation rather than conservative lead protection.
+- `wide_playmakers_433` makes the right WB(S) primary, with FB(S) a safer
+  but penalized fallback. AP(A) remains pinned; AP(S) lost too much
+  penetration for this template.
+
+The per-dimension diagnostic helper now rounds role totals to the scorer's
+six-decimal precision, avoiding a false failure at creativity 3.0. Shared
+role traits and instruction requirements are unchanged.
+
 **Football judgement calls to review** (each changes a score; none is a bugfix)
 
 | Change | Reason |

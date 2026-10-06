@@ -130,7 +130,7 @@
     "minimums": {
       "width": 5.0,
       "defensiveCover": 8.0,
-      "ballProgression": 3.0,
+      "ballProgression": 2.5,
       "runners": 3.0,
       "penetration": 1.5,
       "aerialOutlet": 3.5,

@@ -7,8 +7,7 @@ from http import HTTPStatus
 from urllib.parse import quote, unquote
 
 from fm_analytics.web.ui import position_key, cell_details
-from fm_analytics.analytics import MVP_CATALOGUE, OpponentProfile
-from fm_analytics.reporting import RecommendationBundle
+from fm_analytics.analytics import MVP_CATALOGUE, OpponentProfile, WeaknessReport
 from fm_analytics.web.bench_render import bench_priority_section
 from fm_analytics.web.attribute_export import profile_copy_control, starting_xi_copy_text
 from fm_analytics.web.form_render import form_card, form_chip, form_note, form_ratings, job_form
@@ -32,7 +31,8 @@ from fm_analytics.web.rendering import (
 from fm_analytics.web.scouting_render import squad_player_link
 from fm_analytics.web.tactic_checks_page import tactic_checks_body
 from fm_analytics.web.xi_options import (
-    selection_controls, selection_options_from_query, selection_options_query, tactic_query,
+    exclude_link, excluded_from_query, exclusion_panel, exclusion_query, selection_controls,
+    selection_options_from_query, selection_options_query, tactic_query, xi_href,
 )
 
 
@@ -69,7 +69,7 @@ class TacticPagesMixin:
         rows = []
         for rank, evaluation in enumerate(bundle.recommendation.evaluations, start=1):
             tactic_key = evaluation.tactic.key
-            issue = self._tactic_headline(bundle, evaluation)
+            issue = self._tactic_headline(evaluation, bundle.squad_depth.per_tactic[tactic_key])
             neutral_rank, neutral_evaluation = neutral_by_key[tactic_key]
             recommendation = (
                 " <span class='badge badge-ok'>Recommended</span>"
@@ -206,11 +206,11 @@ class TacticPagesMixin:
         self._send(_layout("Tactic checks", path, tactic_checks_body()))
 
     @staticmethod
-    def _tactic_headline(bundle: RecommendationBundle, evaluation) -> str:
+    def _tactic_headline(evaluation, weaknesses: WeaknessReport) -> str:
         if evaluation.unfilled_slots:
             slots = ", ".join(slot.key for slot in evaluation.unfilled_slots)
             return f"Cannot fill {slots}"
-        risk = _injury_risk_count(bundle.squad_depth.per_tactic[evaluation.tactic.key])
+        risk = _injury_risk_count(weaknesses)
         if risk:
             return f"{risk} starting slot{'s' if risk != 1 else ''} lack reliable cover"
         if evaluation.weakest_slot_keys:
@@ -237,15 +237,38 @@ class TacticPagesMixin:
         bundle = self._bundle_or_error(tactics_href, "Tactic", opponent, **selection_options)
         if bundle is None:
             return
+        players_by_id = {player.id: player for player in bundle.squad.players}
+        # A bookmark can outlive a player's time at the club; drop who has left.
+        excluded = tuple(player_id for player_id in excluded_from_query(_query) if player_id in players_by_id)
         try:
             report = self.server.tactic_report(  # type: ignore[attr-defined]
-                tactic_key, opponent=opponent, **selection_options,
+                tactic_key, opponent=opponent, excluded_player_ids=frozenset(excluded), **selection_options,
             )
         except (OSError, RuntimeError, ValueError, KeyError) as exc:
             self._send(_error_page("Tactic", str(exc), tactics_href), HTTPStatus.SERVICE_UNAVAILABLE)
             return
         evaluation = report.evaluation
-        players_by_id = {player.id: player for player in bundle.squad.players}
+        full_squad = bundle.recommendation.by_tactic_key(tactic_key)
+        full_by_slot = {item.slot.key: item.player_id for item in full_squad.assignments}
+        full_slot_of = {item.player_id: item.slot.key for item in full_squad.assignments}
+        selected_ids = {item.player_id for item in evaluation.assignments}
+
+        def exclude(player, anchor="#starting-xi"):
+            return exclude_link(
+                xi_href(path, opponent, excluded + (player.id,), anchor=anchor, **selection_options), player.name,
+            )
+
+        def change_from_full_squad(assignment):
+            was_at = full_slot_of.get(assignment.player_id)
+            if not excluded or was_at == assignment.slot.key:
+                return ""
+            previous = full_by_slot.get(assignment.slot.key)
+            note = (
+                f"moved from {was_at}" if was_at is not None
+                else f"in for {players_by_id[previous].name}" if previous and previous not in selected_ids
+                else "new to the XI"
+            )
+            return f"<small class='fm-xi-in-for'>{html.escape(note)}</small>"
         explanation_by_slot = {
             item.starter.slot.key: item for item in report.selection_explanation.slots
         }
@@ -300,13 +323,14 @@ class TacticPagesMixin:
                 f"<td>{html.escape(assignment.slot.key)}</td>"
                 f"<td>{html.escape(assignment.slot.position)}</td>"
                 f"<td>{html.escape(assignment.intrinsic_role_score.role_name)}</td>"
-                f"<td>{squad_player_link(player)}</td>"
+                f"<td>{squad_player_link(player)}{change_from_full_squad(assignment)}</td>"
                 f"<td>{player.condition_percent if player.condition_percent is not None else '?'}% / "
                 f"{player.match_fitness_percent if player.match_fitness_percent is not None else '?'}%</td>"
                 f"<td>{form_chip(assignment, job, ignored=selection_options['ignore_form'])}</td>"
                 f"<td><b>{_band(assignment.selection_score)}</b></td>"
+                f"<td>{exclude(player)}</td>"
                 "</tr>"
-                "<tr class='explanation-row fm-xi-explanation'><td colspan='7'>"
+                "<tr class='explanation-row fm-xi-explanation'><td colspan='8'>"
                 "<details class='fm-slot-rationale fm-disclosure'><summary>Slot responsibilities</summary>"
                 + _slot_reasoning(
                     assignment.slot,
@@ -326,13 +350,14 @@ class TacticPagesMixin:
             )
         if evaluation.unfilled_slots:
             xi_rows.append(
-                "<tr><td colspan='7' class='warn'>Unfilled: "
+                "<tr><td colspan='8' class='warn'>Unfilled: "
                 + html.escape(", ".join(slot.key for slot in evaluation.unfilled_slots))
                 + "</td></tr>"
             )
 
         bench_section = bench_priority_section(
-            evaluation, report.bench, players_by_id, bundle.policy.bench_size
+            evaluation, report.bench, players_by_id, bundle.policy.bench_size,
+            exclude_link=lambda player: exclude(player, "#matchday-bench"),
         )
 
         targets = {target.starter.slot.key: target for target in report.substitution_board.targets}
@@ -363,8 +388,9 @@ class TacticPagesMixin:
                 f"<div><small>Cover</small>{cover}</div></article>"
             )
 
-        issue = self._tactic_headline(bundle, evaluation)
-        target = next(
+        issue = self._tactic_headline(evaluation, report.weaknesses)
+        # Training upside is measured on the full squad, so it says nothing about this XI.
+        target = None if excluded else next(
             (item for item in bundle.training_targets if item.tactic_key == tactic_key), None
         )
         training = (
@@ -419,7 +445,7 @@ class TacticPagesMixin:
                 + html.escape(opponent_shortfalls)
                 + ".</div>"
             )
-        risk_count = _injury_risk_count(bundle.squad_depth.per_tactic[tactic_key])
+        risk_count = _injury_risk_count(report.weaknesses)
         risk_items = []
         if evaluation.unfilled_slots:
             risk_items.append(
@@ -455,7 +481,7 @@ class TacticPagesMixin:
             if not structural_problems
             else "structural check needs review"
         )
-        recommendation_label = "Selection comparison" if any(selection_options.values()) else (
+        recommendation_label = "Selection comparison" if any(selection_options.values()) or excluded else (
             "Recommended today"
             if bundle.recommendation.selected.tactic.key == tactic_key
             else "Tactic review"
@@ -464,7 +490,10 @@ class TacticPagesMixin:
             f"<details class='fm-tactic-opponent'{' open' if active_axes else ''}>"
             "<summary>Adjust opponent profile</summary>"
             "<p class='muted'>Use a scout report to tune the match-up; the URL keeps these assumptions.</p>"
-            + _opponent_controls(opponent, action=path, extra_query=selection_options_query(**selection_options))
+            + _opponent_controls(
+                opponent, action=path,
+                extra_query=selection_options_query(**selection_options) | exclusion_query(excluded),
+            )
             + "</details>"
         )
         history_panel = self._tactic_history_block(tactic_key)  # type: ignore[attr-defined]
@@ -505,14 +534,18 @@ class TacticPagesMixin:
             "<p>Best available XI today. Expand a player to inspect role fit, readiness, form, and exact-role alternatives.</p>"
             "</div><span class='fm-panel-count'>"
             + f"{selected_count} selected</span></div>"
-            + selection_controls(path + "#starting-xi", opponent, **selection_options)
+            + selection_controls(path + "#starting-xi", opponent, excluded=excluded, **selection_options)
+            + exclusion_panel(
+                path, opponent, [players_by_id[player_id] for player_id in excluded],
+                evaluation.score.central, full_squad.score.central, **selection_options,
+            )
             + form_note(bundle.form, ignored=selection_options["ignore_form"])
             + (profile_copy_control(
-                starting_xi_copy_text(bundle.game, bundle.squad, evaluation, **selection_options),
+                starting_xi_copy_text(bundle.game, bundle.squad, evaluation, excluded=excluded, **selection_options),
                 label="Copy starting XI attributes to clipboard", success="Starting XI copied!",
             ) if evaluation.assignments else "")
             + "<div class='fm-table-card'><table><tr><th>Slot</th><th>Position</th><th>Role</th><th>Player</th>"
-            "<th>Condition / fitness</th><th>Form</th><th>Today</th></tr>"
+            "<th>Condition / fitness</th><th>Form</th><th>Today</th><th></th></tr>"
             + "".join(xi_rows)
             + "</table></div></section>"
             + bench_section

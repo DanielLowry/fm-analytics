@@ -101,10 +101,7 @@
       "key": "MCR",
       "position": "MC",
       "role": "cm_support",
-      "why": "Central Midfielder (Support) connects the holder and playmaker to the front three without adding an unnecessary extra attack duty. Ball-Winning Midfielder (Support) is the alternative when the counter-press needs a midfielder who steps out to win the ball back; the DM sitting behind him is what makes that safe.",
-      "roles": [
-        "bwm_mc_support"
-      ]
+      "why": "Central Midfielder (Support) connects the holder and playmaker to the front three, preserving the passing and creativity needed for patient chance creation without adding another attack duty."
     },
     {
       "key": "AML",
@@ -121,12 +118,12 @@
     {
       "key": "ST",
       "position": "ST",
-      "role": "af_attack",
+      "role": "pf_attack",
       "roles": [
-        "p_attack",
-        "pf_attack"
+        "af_attack",
+        "p_attack"
       ],
-      "why": "Lone striker: Advanced Forward runs in behind. Poacher is the alternate. Pressing Forward (Attack) is the alternative for a striker who leads the counter-press from the front."
+      "why": "Pressing Forward (Attack) leads the counter-press while supplying runs beyond the defence. Advanced Forward is an alternative when pace and movement offer a stronger depth threat, at the cost of pressing support. Poacher is an alternative for movement and finishing, with a further reduction in counter-pressing support."
     }
   ],
   "system": {
@@ -146,15 +143,15 @@
   "style": "Positive 4-3-3 DM",
   "description": "A positive 4-3-3 built around a genuine holding midfielder, two complementary eights and three forwards who provide both width and penetration.",
   "whyGood": "It gives strong pitch coverage and multiple progression routes while preserving a real defensive anchor behind the two central midfielders. The front three can counter aggressively without requiring the DM to abandon the space in front of the centre-backs.",
-  "whyThisShape": "The DM holds position while the DLP and CM provide two different connections through midfield. Shorter passing and playing out of defence use that triangle to progress securely; once possession is regained, Counter lets the inside forward, winger and striker attack before the opposition resets. Work Ball Into Box prevents a possession-oriented shape from wasting attacks, while the higher engagement line and counter-press compress the pitch without exposing the centre-backs with a high defensive line.",
-  "whenToUse": "As an all-round positive system when you have a reliable holding midfielder, two competent passers ahead of him and a front three with enough movement to threaten both centrally and wide.",
+  "whyThisShape": "The DM holds position while the DLP and CM provide two different connections through midfield. Shorter passing and playing out of defence use that triangle to progress securely; once possession is regained, Counter lets the inside forward, winger and striker attack before the opposition resets. The pressing forward leads pressure after losses while the holder protects the centre and both eights retain their connective roles. Work Ball Into Box favours patient chance creation, while the higher engagement line and counter-press keep the side proactive without requiring a high defensive line. An advanced forward or poacher can offer a different scoring profile, but contributes less to that counter-press.",
+  "whenToUse": "As an all-round positive system when you have a reliable holding midfielder, two competent passers ahead of him, complementary wide threats and a hard-working striker who can lead the counter-press.",
   "whenNotToUse": "When the DM lacks positional discipline, the defenders are too uncomfortable to support short build-up, or the wide forwards lack the movement and pace to turn possession into penetration.",
   "instructionRationale": {
     "Shorter Passing": "Uses the DM-and-two-eights triangle to retain and progress possession.",
     "Play Out Of Defence": "The DM and two central midfielders provide multiple short exits from the back line. Treat it as something to test rather than fixed: if the defenders keep giving the ball away in build-up, it is the first instruction to remove.",
     "Higher Tempo": "Prevents the shorter passing game from becoming sterile and helps the front three receive before the defence is fully set.",
     "Work Ball Into Box": "Favors combinations and well-created chances over hopeful shooting.",
-    "Counter-Press": "Uses the front five to contest losses while the holding midfielder protects the space behind them. A Ball-Winning Midfielder at MCR or a Pressing Forward up front adds the pressing it needs.",
+    "Counter-Press": "The pressing forward leads pressure after losses alongside the wide forwards and nearby eights, while the holding midfielder protects the space behind them. The CM remains a passing connector; advanced-forward and poacher fallbacks reduce pressing support.",
     "Counter": "Releases the wide forwards and striker immediately when a clean regain creates space.",
     "Higher Line of Engagement": "Keeps pressure away from the defensive third and supports the counter-press.",
     "More Urgent Pressing": "Closes the ball down quickly behind the higher line of engagement, so the counter-press and the front five win it back before the opposition can settle.",
@@ -264,21 +261,6 @@
     },
     {
       "attributes": {
-        "workRate": 2,
-        "stamina": 2,
-        "aggression": 2,
-        "anticipation": 2,
-        "passing": 1
-      },
-      "positions": [
-        "MC"
-      ],
-      "roles": [
-        "bwm_mc_support"
-      ]
-    },
-    {
-      "attributes": {
         "acceleration": 2,
         "pace": 2,
         "offTheBall": 2,
@@ -366,9 +348,9 @@
   "keyRequirements": [
     "A positionally disciplined holding midfielder who protects the centre-backs rather than chasing the ball",
     "A DLP with enough passing, touch, vision and decisions to progress shorter build-up",
-    "A supporting central midfielder who connects play reliably rather than simply adding another runner, or a ball-winner with the work rate to press ahead of the holder",
+    "A supporting central midfielder who connects play reliably and complements the deep playmaker",
     "An inside forward and winger with enough acceleration and movement to turn possession into penetration, and enough work rate and stamina to sustain the counter-press",
-    "A mobile striker who consistently threatens the space behind, or a pressing forward who leads the counter-press",
+    "A pressing forward with the work rate, stamina and movement to lead the counter-press and threaten space behind",
     "Defenders and full-backs comfortable enough on the ball to make Play Out Of Defence worthwhile"
   ],
   "tags": [
@@ -515,36 +497,6 @@
       ],
       "roles": [
         "cm_support"
-      ]
-    },
-    {
-      "attribute": "workRate",
-      "taperBelow": 8,
-      "positions": [
-        "MC"
-      ],
-      "roles": [
-        "bwm_mc_support"
-      ]
-    },
-    {
-      "attribute": "stamina",
-      "taperBelow": 8,
-      "positions": [
-        "MC"
-      ],
-      "roles": [
-        "bwm_mc_support"
-      ]
-    },
-    {
-      "attribute": "aggression",
-      "taperBelow": 7,
-      "positions": [
-        "MC"
-      ],
-      "roles": [
-        "bwm_mc_support"
       ]
     },
     {

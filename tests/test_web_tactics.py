@@ -210,6 +210,60 @@ class TacticsAndDepthPageTests(unittest.TestCase):
             self.assertIn("type='hidden' name='ignoreCondition' value='1'", opponent_form)
             self.assertIn(f"href='{path}?ignoreForm=1&amp;ignoreCondition=1'>Reset to neutral", body)
 
+    def test_excluding_a_player_repicks_this_xi_and_each_can_be_restored(self) -> None:
+        game, squad = load_fixture(self.fixture_path)
+        starter = squad.players[0]
+        backup = replace(starter, id="backup", name="Backup Keeper", attributes={
+            key: AttributeObservation(Visibility.KNOWN, value=9) for key in starter.attributes
+        })
+        squad = replace(squad, players=squad.players + (backup,))
+        self.fixture_path.write_text(json.dumps({"game": game.to_dict(), "squad": squad.to_dict()}))
+
+        status, full = self._get("/tactics/balanced_442?ignoreForm=1")
+        self.assertEqual(status, 200)
+        self.assertNotIn("fm-xi-excluded", full)
+        self.assertIn(
+            "href='/tactics/balanced_442?ignoreForm=1&amp;exclude=player-1#starting-xi' data-xi-exclusion", full
+        )
+        self.assertIn("href='/tactics/balanced_442?ignoreForm=1&amp;exclude=backup#matchday-bench'", full)
+
+        # A player no longer in the squad is dropped rather than failing the page.
+        status, body = self._get("/tactics/balanced_442?ignoreForm=1&exclude=player-1,nobody")
+        self.assertEqual(status, 200)
+        xi = "".join(re.findall(r"<tr class='fm-xi-row'>(.*?)</tr>", body, re.S))
+        self.assertNotIn("/squad/player/player-1'", xi)
+        self.assertIn("Backup Keeper</a><small class='fm-xi-in-for'>in for Player 1</small>", xi)
+        self.assertIn("Selection comparison", body)
+        self.assertIn("Excluded (1)", body)
+        restore = "href='/tactics/balanced_442?ignoreForm=1#starting-xi' data-xi-exclusion"
+        self.assertIn(restore + " aria-label='Restore Player 1'>Restore</a>", body)
+        self.assertIn(restore + ">Restore all</a>", body)
+        self.assertIn(
+            "href='/tactics/balanced_442?ignoreForm=1&amp;exclude=player-1,player-2#starting-xi'", body
+        )
+        report = self.server.tactic_report("balanced_442", ignore_form=True, excluded_player_ids=frozenset({"player-1"}))
+        full_score = self.server.tactic_report("balanced_442", ignore_form=True).evaluation.score.central
+        self.assertIn(
+            f"Tactic score <b>{report.evaluation.score.central:.1f}</b> without them "
+            f"({report.evaluation.score.central - full_score:+.1f} against the full-squad XI)", body,
+        )
+        text = json.loads(re.search(r"data-player-copy-text>(.*?)</script>", body, re.S).group(1))
+        self.assertIn("Excluded players: Player 1\n", text)
+        self.assertNotIn("Name: Player 1\n", text)
+        # Toggling form/condition or the opponent keeps the exclusion; leaving the tactic drops it.
+        hidden = "type='hidden' name='exclude' value='player-1'"
+        self.assertIn(hidden, re.search(r"data-xi-options>(.*?)</form>", body, re.S).group(1))
+        self.assertIn(hidden, re.search(r"<form class='opponent-form'.*?</form>", body, re.S).group(0))
+        self.assertIn("href='/tactics?ignoreForm=1'>← All tactics", body)
+
+        status, both = self._get("/tactics/balanced_442?exclude=player-1,backup")
+        self.assertEqual(status, 200)
+        self.assertIn("Excluded (2)", both)
+        self.assertIn("href='/tactics/balanced_442?exclude=backup#starting-xi' data-xi-exclusion aria-label='Restore Player 1'", both)
+        self.assertIn("href='/tactics/balanced_442?exclude=player-1#starting-xi' data-xi-exclusion aria-label='Restore Backup Keeper'", both)
+        self.assertIn("href='/tactics/balanced_442#starting-xi' data-xi-exclusion>Restore all", both)
+        self.assertIn("Unfilled: GK", both)
+
     def test_invalid_selection_switches_are_rejected(self) -> None:
         for path in ("/tactics", "/tactics/balanced_442"):
             for parameter in ("ignoreForm", "ignoreCondition"):

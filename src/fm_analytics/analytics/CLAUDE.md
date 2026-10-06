@@ -50,36 +50,38 @@ slot plays is usually what makes a tactic *that* tactic (a deep playmaker
 vs. a ball-winner as the DM defines two different systems), so a slot stays
 single-role unless a human decided otherwise for it specifically.
 
-The catalogue declares alternatives for six distinct role sets:
+Common alternatives include
 `cd_defend`/`cd_cover`, `af_attack`/`p_attack`, `dlf_support`/`cf_support`,
 `cm_support`/`b2b_support`, the one three-role set
-`dlf_support`/`pf_support`/`cf_support`, and `pf_attack`/`af_attack`. All but
-the last are chosen because their `tactical_system.py` trait contributions are nearly
+`dlf_support`/`pf_support`/`cf_support`, and `pf_attack`/`af_attack` (with
+`p_attack` also permitted in the two positive tactics). Several pairs are
+chosen because their `tactical_system.py` trait contributions are nearly
 identical (see each role's `system` traits in `data/roles/`): swapping one for the other changes
 which specific player profile fits the slot, not what the team's system
-does. `pf_attack`/`af_attack` (in `gegenpress_4231` and `highpress_433`) is the
-exception: pressing differs by about 1.2, so choosing Advanced Forward costs
+does. `pf_attack`/`af_attack` (in `gegenpress_4231`, `highpress_433`,
+`positive_433dm` and `positive_4231`) is a deliberate trade-off: pressing
+differs by about 1.2, so choosing Advanced Forward costs
 that tactic instruction fit. It is a deliberate fallback for a squad with no
-pressing forward, not an interchangeable pair. `positive_433dm` and
-`positive_4231` use the same gap the other way round: Advanced Forward is the
-default and Pressing Forward the alternate. Their holding midfielders stay
-pinned, so a Pressing Forward is what lets the default midfield meet
-Counter-Press. `cm_support`/`bwm_mc_support`
-in `positive_433dm` is a second deliberate exception: the ball-winner at MCR
-trades ball progression and creativity for pressing, so the side can choose to
-press harder from midfield while the DM(D) holds behind him; the holder
-himself stays pinned. Contrast `dm_defend`/`dm_support`, which looks like a similar swap
+pressing forward, not an interchangeable pair. Pressing Forward is primary
+in both positive tactics; Advanced Forward and Poacher remain penalized
+alternates. Their holding midfielders stay pinned. `positive_433dm` also pins
+CM(S) at MCR: the former BWM(S) alternate supplied pressing but lost the
+progression and creativity demanded by its possession game.
+Contrast `dm_defend`/`dm_support`, which looks like a similar swap
 but trades off primary `defensiveCover`/`ballProgression` contribution by a
 large margin — a genuine screen-vs-distributor identity choice, correctly
 left pinned. Before adding a new alternate pair anywhere in the catalogue,
 check the trait distance the same way rather than by eye; it's an easy
 mistake to make a system-identity role "flexible" because two roles sound
-similar in name. `wide_playmakers_433` deliberately allows `wb_dl_dr_support`
-as an alternate to `fb_support` at DR: it supplies +0.5 width, +0.4 progression,
+similar in name. `wide_playmakers_433` uses `wb_dl_dr_support` as primary
+at DR, with `fb_support` as a safer, penalized alternate. The wing-back
+supplies +0.5 width, +0.4 progression,
 +0.8 runners and +0.6 pressing, at the cost of 0.4 defensive cover and 0.8
 rest defence. It lets the attacking wide playmaker stay inside without losing
 width; the left full-back and DM(D) remain pinned for security. This is another
 explicit tactical trade-off, not an interchangeable role pair.
+The wide AP stays on Attack: the former Support alternate lost too much
+penetration for this template.
 
 ## Illegal role combinations
 
@@ -451,8 +453,9 @@ silently treating it as independent.
   checks, off explicit per-role `system` traits (in the role files) and
   per-instruction requirements (`_INSTRUCTION_REQUIREMENTS`). Traits supply
   and instruction demands share one scale; `tests/test_tactical_calibration.py`
-  requires at least one legal role version to meet all balance minimums,
-  instruction demands and attack-duty/creator caps simultaneously. Checking
+  requires the all-primary default XI to be legal and meet all balance
+  minimums, instruction demands and attack-duty/creator caps simultaneously.
+  It also retains the individual primary-role witness check. Checking
   each dimension's maximum alone can hide incompatible role choices; those
   checks remain useful diagnostics, but are not sufficient. Compromised
   alternates remain legal and keep their existing scoring penalties. These are

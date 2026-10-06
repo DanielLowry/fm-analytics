@@ -173,6 +173,16 @@ injuries and suspensions still apply. Opponent settings and selection switches
 remain in the URL. The clipboard dump always uses the displayed XI and records
 which inputs were ignored.
 
+On a tactic page, **Exclude** beside a starter or substitute picks that
+tactic's best XI, bench and cover again without that player. Each changed
+starter shows who they came in for. The **Excluded** panel lists everyone left
+out, the tactic score without them against the full-squad XI, and a **Restore**
+link for each player, plus **Restore all**. Exclusions stay in the URL, so the
+page can be bookmarked, and they are kept when you change the ignore switches or
+opponent settings. They apply to that one tactic page only: the tactic ranking
+still uses the full squad, and **← All tactics** drops them. The clipboard dump
+names the excluded players.
+
 Read-only comparison mode disables scouting, match and league recording,
 history edits, automatic capture ingestion, and database creation or migration.
 It also leaves stored match form out of selection, so newer history cannot

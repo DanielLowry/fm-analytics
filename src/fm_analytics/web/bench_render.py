@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import html
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
 from fm_analytics.analytics import BenchSelection, TacticEvaluation
 from fm_analytics.domain.models import Player
@@ -15,6 +15,7 @@ def bench_priority_section(
     bench: BenchSelection,
     players_by_id: Mapping[str, Player],
     bench_size: int,
+    exclude_link: Callable[[Player], str] | None = None,
 ) -> str:
     """Render the ordered substitute unit for this configured bench size."""
     slots_by_key = {slot.key: slot for slot in evaluation.tactic.slots}
@@ -58,10 +59,11 @@ def bench_priority_section(
             f"{html.escape(entry.primary_assignment.intrinsic_role_score.role_name)}</td>"
             f"<td>{html.escape(labels(entry.credible_slots) or '—')}</td>"
             f"<td>{html.escape(labels(entry.covered_slots))}</td>"
-            "</tr>"
+            + (f"<td>{exclude_link(players_by_id[entry.player_id])}</td>" if exclude_link else "")
+            + "</tr>"
         )
     rows_html = "".join(rows) or (
-        "<tr><td colspan='6' class='warn'>No eligible substitutes.</td></tr>"
+        f"<tr><td colspan='{7 if exclude_link else 6}' class='warn'>No eligible substitutes.</td></tr>"
     )
     has_reserve_keeper = any(
         goalkeeper_slots.intersection(entry.covered_slots) for entry in bench.entries
@@ -95,7 +97,8 @@ def bench_priority_section(
         f"{len(bench.entries)} selected</span></div>"
         + warning
         + "<div class='fm-table-card'><table><tr><th>Priority</th><th>Substitute</th><th>Why this priority</th>"
-        "<th>Best use</th><th>Credible cover</th><th>Can fill</th></tr>"
+        "<th>Best use</th><th>Credible cover</th><th>Can fill</th>"
+        + ("<th></th>" if exclude_link else "") + "</tr>"
         + rows_html
         + "</table></div></section>"
     )

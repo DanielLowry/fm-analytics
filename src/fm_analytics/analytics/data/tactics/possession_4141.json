@@ -73,8 +73,8 @@
     {
       "key": "MR",
       "position": "MR",
-      "role": "winger_ml_mr_support",
-      "why": "Winger (Support) is the more creative flank, so one side keeps the shape and the other provides width."
+      "role": "winger_ml_mr_attack",
+      "why": "Winger (Attack) supplies width and forward runs on the right, giving the dropping striker an outlet and joining the BBM as an attacking runner. The left wide midfielder remains on Support to preserve a safer passing flank."
     },
     {
       "key": "ST",
@@ -83,7 +83,7 @@
       "roles": [
         "cf_support"
       ],
-      "why": "Lone striker who drops to link play (Deep-lying Forward) or Complete Forward."
+      "why": "Deep-Lying Forward (Support) drops to link possession and release the attacking right winger or arriving BBM. Complete Forward (Support) is an alternative for a striker with the broader technical and physical profile to link and finish."
     }
   ],
   "system": {
@@ -99,17 +99,17 @@
     "maximumCreators": 3
   },
   "style": "Possession",
-  "description": "A lower-risk possession structure with a playmaker at the base and four midfielders offering short passing options ahead.",
-  "whyGood": "The DM acts as a circulation hub and the compact midfield keeps support distances short.",
-  "whyThisShape": "A 4-1-4-1 built around keeping the ball: a deep-lying playmaker sits in front of the defence, four midfielders form a passing line, and a sweeper keeper joins the build-up. It aims to control the game rather than to attack quickly.",
-  "whenToUse": "When your squad is technically better than the opponent's and you want to control the game, or when protecting a lead.",
-  "whenNotToUse": "When you need goals quickly, or when your defenders and midfield are uncomfortable on the ball. A lone striker gets little support.",
+  "description": "A patient possession structure with a playmaker at the base, a linking striker and an attacking right winger who turns controlled build-up into a goal threat.",
+  "whyGood": "The deep playmaker and supporting midfielders keep passing distances short, while the DLF can release the right winger and arriving BBM. The safer left flank balances that forward movement.",
+  "whyThisShape": "A 4-1-4-1 built around patient possession: a deep-lying playmaker sits in front of the defence and a sweeper keeper joins the build-up. The CM(S) and left WM(S) provide short passing options, while the BBM and right W(A) make forward runs for the DLF(S) to find. Lower Tempo and Hold Shape keep clean regains connected to that structure before an opening is exploited. The team aims to control the game while retaining an attacking outlet.",
+  "whenToUse": "When your squad is technically better than the opponent's and you want patient control with a linking striker and a right winger capable of turning possession into chances.",
+  "whenNotToUse": "When you need immediate, high-tempo attacks, your defenders and midfield are uncomfortable on the ball, or the right winger lacks the movement to support the dropping striker. The attacking winger also makes this a less conservative choice for protecting a narrow lead.",
   "instructionRationale": {
     "Shorter Passing": "Keeps possession in short passes rather than risking it with long balls.",
     "Lower Tempo": "Slows the game down so the team can control it.",
     "Play Out Of Defence": "The sweeper keeper and ball-playing defender make building from the back safe.",
-    "Work Ball Into Box": "Patient movement of the ball until a clear chance opens up.",
-    "Hold Shape": "Keeps positions rather than pushing players forward, so the team stays balanced while it has the ball.",
+    "Work Ball Into Box": "Moves the ball patiently until the linking striker can find the attacking winger or the BBM arriving from deep.",
+    "Hold Shape": "Keeps clean regains connected to the passing structure before the winger and BBM make forward runs, rather than launching an immediate counter.",
     "Standard Line of Engagement": "A balanced press: does not chase the ball and lose the shape.",
     "Standard Defensive Line": "A balanced line keeps the team compact."
   },
@@ -127,7 +127,8 @@
     "Technically reliable midfield",
     "Linking striker",
     "Ball-playing defender",
-    "Good first touch/decisions"
+    "Good first touch/decisions",
+    "An attacking right winger with the movement and pace to give the linking striker a forward outlet"
   ],
   "tags": [
     "possession",

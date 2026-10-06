@@ -113,6 +113,9 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
 
     allow_reuse_address = True
     _MAX_BUNDLE_PROFILES = 8
+    # Each set of excluded players is its own drill-down; keep only the most
+    # recent few rather than one per query string ever asked for.
+    _MAX_EXCLUSION_REPORTS = 32
 
     def __init__(
         self,
@@ -194,7 +197,9 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
         self._bundle_results: OrderedDict[tuple[OpponentProfile, bool, bool], RecommendationBundle] = (
             OrderedDict()
         )
-        self._tactic_report_cache: dict[tuple[int, str, int | None], TacticMatchdayReport] = {}
+        self._tactic_report_cache: OrderedDict[
+            tuple[int, str, int | None, frozenset[str]], TacticMatchdayReport
+        ] = OrderedDict()
         self._snapshot_at: datetime | None = None
         self._refreshing = False
         self._refresh_error: Exception | None = None
@@ -460,11 +465,11 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
             while len(self._bundle_results) > self._MAX_BUNDLE_PROFILES:
                 _evicted_profile, evicted_bundle = self._bundle_results.popitem(last=False)
                 evicted_id = id(evicted_bundle)
-                self._tactic_report_cache = {
-                    key: report
+                self._tactic_report_cache = OrderedDict(
+                    (key, report)
                     for key, report in self._tactic_report_cache.items()
                     if key[0] != evicted_id
-                }
+                )
             if self._snapshot_at is None:
                 self._snapshot_at = datetime.now(timezone.utc)
         return built
@@ -600,21 +605,27 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
         opponent: OpponentProfile = OpponentProfile.neutral(),
         ignore_form: bool = False,
         ignore_condition: bool = False,
+        excluded_player_ids: frozenset[str] = frozenset(),
     ) -> TacticMatchdayReport:
         """Return a cached drill-down without bloating the overview bundle."""
         bundle = self.bundle(opponent, ignore_form=ignore_form, ignore_condition=ignore_condition)
-        cache_key = (id(bundle), tactic_key, bench_size)
+        cache_key = (id(bundle), tactic_key, bench_size, frozenset(excluded_player_ids))
         with self._lock:
             cached = self._tactic_report_cache.get(cache_key)
-        if cached is not None:
-            return cached
+            if cached is not None:
+                self._tactic_report_cache.move_to_end(cache_key)
+                return cached
         built = build_tactic_matchday_report(
             bundle,
             tactic_key,
             bench_size=bench_size,
+            excluded_player_ids=excluded_player_ids,
         )
         with self._lock:
             self._tactic_report_cache[cache_key] = built
+            with_exclusions = [key for key in self._tactic_report_cache if key[3]]
+            for key in with_exclusions[:-self._MAX_EXCLUSION_REPORTS]:
+                del self._tactic_report_cache[key]
         return built
 
 
