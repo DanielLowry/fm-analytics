@@ -475,8 +475,8 @@ bringing the catalogue to 52 tactics. Both pin DM(D) behind DLP(S) and BWM(S),
 with AF(A) primary and PF(A)/Poacher as striker alternatives:
 
 - `ball_winning_counter_433dm` uses Balanced mentality, slightly more direct
-  passing, Regroup + Counter, standard lines and two FB(S). It omits Play Out
-  Of Defence and Work Ball Into Box. Its own progression/creativity minimums
+  passing, Pass Into Space, Regroup + Counter, standard lines and two FB(S).
+  It omits Play Out Of Defence and Work Ball Into Box. Its own progression/creativity minimums
   are 3.5/1.0 rather than the possession template's 4.0/1.5, reflecting one
   passing outlet and three forward threats. The default supplies 3.7
   progression and 1.4 creativity; defensive-cover and rest-defence requirements
@@ -498,6 +498,18 @@ effectiveness or flank coverage: the scorer sums team-wide traits and cannot
 prove that the holder covers the particular gap left by a chasing BWM. The
 usage guidance calls out the direct version's difficulty against settled deep
 blocks and the possession version's exposed attacking flank.
+
+The subsequent speed review enabled Pass Into Space for the counter variant
+and strengthened its pace/acceleration tapers to 10/10 for IF(A), W(A) and
+all three striker profiles, including PF(A) and Poacher. This reflects the
+reliance on reaching passes ahead of the forwards; the instruction also
+influences established possession, so available space and passing quality
+still matter. Both variants now taper pace/acceleration below 7/7 for CD(D)
+and 8/8 for CD(Cover) and FB(S). The positive variant's WB(A) also has 8/8,
+adding acceleration protection alongside pace for its forward runs and
+recovery. These are initial, tactic-specific football judgements and remain
+soft fit penalties. The role-feasibility checks still clear all nine versions
+of each tactic; player speed is assessed separately through the tapers.
 
 **Football judgement calls to review** (each changes a score; none is a bugfix)
 

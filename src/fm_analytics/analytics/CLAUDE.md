@@ -69,14 +69,20 @@ CM(S) at MCR: the former BWM(S) alternate supplied pressing but lost the
 progression and creativity demanded by its possession game.
 Two dedicated variants instead make BWM(S) primary at MCR alongside DLP(S)
 at MCL and a pinned DM(D). `ball_winning_counter_433dm` uses Regroup,
-slightly more direct passing and two FB(S), with its own progression/creativity
-minimums of 3.5/1.0. `positive_ball_winning_433dm` retains the original
+slightly more direct passing, Pass Into Space and two FB(S), with its own
+progression/creativity minimums of 3.5/1.0. `positive_ball_winning_433dm` retains the original
 positive 4-3-3's requirements and instructions: W(S) on the right restores
 passing and creativity, while WB(A) on the opposite flank restores forward
 runs and penetration. Both use AF(A) as primary, with PF(A) and Poacher as
 alternates; all three striker profiles have penalty-free legal versions in
 these configurations. Their player emphasis and tapers reflect the different
 jobs, including the possession variant's wing-back and technical outlets.
+The counter variant tapers both pace and acceleration below 10 for its
+inside forward, attacking winger and every permitted striker profile.
+Both variants taper those attributes below 7 for CD(D) and below 8 for
+CD(Cover) and FB(S); the positive variant also uses 8 for its attacking
+wing-back. These soft player-fit penalties complement the structural role
+checks, which cannot establish whether the selected players are quick enough.
 The flank-cover explanations remain football hypotheses: the structural
 scorer sums contributions across the team and does not model spatial cover.
 Contrast `dm_defend`/`dm_support`, which looks like a similar swap

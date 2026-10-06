@@ -9,7 +9,7 @@
       "attackingWidth": "Standard",
       "passingDirectness": "Slightly More Direct Passing",
       "tempo": "Higher Tempo",
-      "passIntoSpace": false,
+      "passIntoSpace": true,
       "playOutOfDefence": false,
       "focusPlay": "Balanced",
       "workBallIntoBox": false
@@ -123,7 +123,7 @@
         "pf_attack",
         "p_attack"
       ],
-      "why": "Advanced Forward attacks space behind and leads the box threat. Pressing Forward is an alternative for a harder-working attacking profile; Poacher is an alternative for movement and finishing with less pressing contribution. Regroup does not depend on the striker leading a counter-press."
+      "why": "Advanced Forward attacks space behind and leads the box threat. Pressing Forward is an alternative for a harder-working attacking profile; Poacher is an alternative for movement and finishing with less pressing contribution. Regroup does not depend on the striker leading a counter-press. All three striker profiles need enough pace and acceleration to exploit passes into space."
     }
   ],
   "system": {
@@ -143,9 +143,9 @@
   "style": "Ball-winning counter 4-3-3 DM",
   "description": "A balanced, more direct 4-3-3 with a dedicated holding midfielder behind a ball-winner and one passing outlet, releasing three forward threats after regains.",
   "whyGood": "Adds a third central midfielder and a dedicated screen when a two-man midfield is being outnumbered, while keeping the build-up straightforward. The BWM can challenge ahead of the holder and the DLP can supply the front three without asking both eights or the defenders to run a patient possession game.",
-  "whyThisShape": "The DM(D) screens the centre while BWM(S) challenges ahead of him and DLP(S) provides the main creative outlet. Regroup asks the team to recover its defensive shape after losses; the BWM still challenges in settled defending, so he is not the holder. Both full-backs support behind the attacking wide forwards, limiting the number of additional players committed beyond the ball. Slightly more direct passing and Counter release the inside forward, attacking winger and striker before opponents reset. With no advancing central midfielder, those three forwards must provide the penetration and box threat. This is an alternative to a vertical 4-4-2 when central numbers are the problem, rather than an answer to every deep defence.",
+  "whyThisShape": "The DM(D) screens the centre while BWM(S) challenges ahead of him and DLP(S) provides the main creative outlet. Regroup asks the team to recover its defensive shape after losses; the BWM still challenges in settled defending, so he is not the holder. Both full-backs support behind the attacking wide forwards, limiting the number of additional players committed beyond the ball. Slightly more direct passing, Pass Into Space and Counter release the inside forward, attacking winger and striker before opponents reset. With no advancing central midfielder, those three forwards must provide the penetration and box threat. This is an alternative to a vertical 4-4-2 when central numbers are the problem, rather than an answer to every deep defence. Pass Into Space also influences established possession, so the DLP needs to judge when a run can be served and the forwards need the pace, acceleration and movement to reach the pass.",
   "whenToUse": "When a two-man midfield is being outnumbered and you have a recruitable MC ball-winner, a disciplined holding DM, one dependable passer and three forward threats comfortable in their positions.",
-  "whenNotToUse": "When the holder follows the ball-winner out of the centre, the DLP cannot move regains forward, or the front three lack the movement and pace to exploit space. Against a settled deep block, the lack of an advancing central midfielder can leave the striker isolated.",
+  "whenNotToUse": "When the holder follows the ball-winner out of the centre, the DLP cannot move regains forward, or the front three lack the movement, pace and acceleration to exploit space, or the back four cannot recover when exposed. Against a settled deep block, the lack of an advancing central midfielder can leave the striker isolated.",
   "instructionRationale": {
     "Slightly More Direct Passing": "Moves regains forward through one passing outlet and towards the front three, without requiring the patient combinations of the positive possession variant.",
     "Higher Tempo": "Helps the front three receive before the opposition resets. The DLP and ball-winner still need enough decisions and touch to execute simple passes at this pace.",
@@ -155,7 +155,8 @@
     "Distribute To Flanks": "Targets the wide forward outlets instead of requiring short build-up through the centre-backs.",
     "Take Long Kicks": "Provides a direct distribution option towards the flanks; it is an outlet to test, not a demand that every regain become a long kick.",
     "Standard Line of Engagement": "Keeps the forwards closer to the midfield than a higher engagement line, helping the team recover a compact block.",
-    "Standard Defensive Line": "Avoids requiring specialist recovery pace from ordinary centre-backs."
+    "Standard Defensive Line": "Keeps recovery-speed demands moderate, while still asking the centre-backs and full-backs for enough pace and acceleration to recover when exposed.",
+    "Pass Into Space": "Leads the inside forward, attacking winger and striker into open space so they can exploit regains with their pace, acceleration and movement. It also influences established possession, so passing quality and available space still matter."
   },
   "attributeEmphasis": [
     {
@@ -324,8 +325,8 @@
     "A positionally disciplined DM who protects the centre when the ball-winner chases",
     "A BWM with tackling, anticipation, work rate and stamina, plus enough passing and first touch to return the ball securely",
     "One DLP with reliable passing, touch, decisions and vision to turn regains into attacks",
-    "An inside forward, attacking winger and lone striker with the movement and pace to threaten space and supply the box",
-    "Full-backs who support behind the wide forwards and centre-backs comfortable defending a standard line"
+    "An inside forward, attacking winger and lone striker with the movement, pace and acceleration to reach passes into space and supply the box; every permitted striker profile must provide this threat",
+    "Full-backs who support behind the wide forwards and centre-backs comfortable defending a standard line, with enough pace and acceleration across the back four to recover when exposed"
   ],
   "tags": [
     "balanced",
@@ -378,7 +379,7 @@
     },
     {
       "attribute": "acceleration",
-      "taperBelow": 7,
+      "taperBelow": 8,
       "positions": [
         "DC"
       ],
@@ -429,7 +430,7 @@
     },
     {
       "attribute": "acceleration",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "AML"
       ],
@@ -439,7 +440,7 @@
     },
     {
       "attribute": "pace",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "AML"
       ],
@@ -469,7 +470,7 @@
     },
     {
       "attribute": "acceleration",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "ST"
       ],
@@ -479,7 +480,7 @@
     },
     {
       "attribute": "pace",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "ST"
       ],
@@ -519,7 +520,7 @@
     },
     {
       "attribute": "acceleration",
-      "taperBelow": 7,
+      "taperBelow": 10,
       "positions": [
         "ST"
       ],
@@ -619,7 +620,7 @@
     },
     {
       "attribute": "pace",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "AMR"
       ],
@@ -629,7 +630,7 @@
     },
     {
       "attribute": "acceleration",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "AMR"
       ],
@@ -679,12 +680,74 @@
     },
     {
       "attribute": "acceleration",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "ST"
       ],
       "roles": [
         "pf_attack"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 10,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 10,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "fb_support"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "fb_support"
       ]
     }
   ]

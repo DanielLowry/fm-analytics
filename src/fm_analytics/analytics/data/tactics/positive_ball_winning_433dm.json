@@ -59,7 +59,7 @@
       "key": "DL",
       "position": "DL",
       "role": "wb_dl_dr_attack",
-      "why": "The attacking left wing-back provides width and forward runs outside the inside forward. His penetration compensates for the supporting right winger; he needs enough stamina and recovery ability for this exposed flank."
+      "why": "The attacking left wing-back provides width and forward runs outside the inside forward. His penetration compensates for the supporting right winger; he needs stamina, pace and acceleration to advance and recover on this exposed flank."
     },
     {
       "key": "DCL",
@@ -155,7 +155,7 @@
     "Counter": "Releases the wide forwards and striker immediately when a clean regain creates space.",
     "Higher Line of Engagement": "Starts pressure higher up the pitch. With a standard defensive line, coordinated pressure matters because opponents who escape it can find space between the lines.",
     "More Urgent Pressing": "Asks the midfield and forwards to support the ball-winner's pressure rather than leaving him to chase alone.",
-    "Standard Defensive Line": "Limits recovery-pace demands on the centre-backs; it still requires the holder and supporting right full-back to cover transitions behind the advanced left wing-back."
+    "Standard Defensive Line": "Keeps centre-back recovery-speed demands moderate; the back four still need enough pace and acceleration to recover, with the holder and supporting right full-back covering transitions behind the advanced left wing-back."
   },
   "attributeEmphasis": [
     {
@@ -368,9 +368,9 @@
     "A disciplined DM who protects the centre behind the chasing BWM and advancing left wing-back",
     "A BWM with tackling, anticipation, work rate and stamina, plus passing, first touch and decisions suitable for shorter build-up",
     "A DLP and supporting right winger capable of sharing progression and chance creation",
-    "A left wing-back with stamina, pace, movement and crossing to provide width and forward runs outside the inside forward",
+    "A left wing-back with stamina, pace, acceleration, movement and crossing to provide forward runs outside the inside forward and recover after advancing",
     "An inside forward and lone striker who provide box threat while the right winger supports; AF, PF and Poacher offer different attacking profiles",
-    "Defenders comfortable enough on the ball for Play Out Of Defence and players able to sustain the counter-press"
+    "Defenders comfortable enough on the ball for Play Out Of Defence, enough pace and acceleration across the back four for recovery, and players able to sustain the counter-press"
   ],
   "tags": [
     "positive",
@@ -793,6 +793,66 @@
     },
     {
       "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "DL"
+      ],
+      "roles": [
+        "wb_dl_dr_attack"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "DR"
+      ],
+      "roles": [
+        "fb_support"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 8,
+      "positions": [
+        "DR"
+      ],
+      "roles": [
+        "fb_support"
+      ]
+    },
+    {
+      "attribute": "acceleration",
       "taperBelow": 8,
       "positions": [
         "DL"
