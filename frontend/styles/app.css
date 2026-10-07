@@ -655,6 +655,13 @@ body.fm-app .fm-legacy .button-link.secondary { border: 1px solid var(--fm-borde
 body.fm-app .fm-command-action:hover, body.fm-app .fm-decision-hero .button-link:hover, body.fm-app .fm-tactic-actions .button-link:hover { background: #0b5133; color: white; }
 body.fm-app .fm-legacy input[type='checkbox']:checked { background-color: #0f6a40; color: white; border-color: #0f6a40; }
 :root.dark body.fm-app .fm-legacy .instruction-pill:not(.unset) { background: var(--fm-page); color: var(--color-ink-800); border-color: var(--fm-border); }
+body.fm-app .fm-legacy .instruction-pill.selected { border-left-color: var(--color-brand-600); }
+:root.dark body.fm-app .fm-legacy .instruction-pill.selected { border-left-color: var(--color-brand-300); }
+body.fm-app .fm-legacy .instruction-pill:is(.off, .locked) { border-left-color: var(--fm-border); }
+body.fm-app .fm-legacy .instruction-pill:is(.off, .locked) b { color: var(--color-ink-500); font-weight: 600; }
+body.fm-app .fm-legacy .instruction-pill.locked { border-style: dashed; border-left-style: solid; background: transparent; }
+:root.dark body.fm-app .fm-legacy .instruction-pill.locked { background: transparent; }
+body.fm-app .fm-legacy .instruction-pill small { display: block; margin-top: .15rem; color: var(--color-ink-500); font-size: .72rem; line-height: 1.3; }
 :root.dark body.fm-app .fm-legacy .versus .bars { background: var(--fm-border); }
 :root.dark body.fm-app .fm-legacy .versus .bars .b-us { background: #4fa477; }
 body.fm-app .fm-legacy form.inline { display: flex; flex-wrap: wrap; max-width: 100%; gap: .4rem; }

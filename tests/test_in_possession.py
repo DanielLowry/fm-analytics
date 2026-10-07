@@ -6,10 +6,14 @@ the bridge that feeds fixed settings into instruction-fit scoring.
 import json
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from fm_analytics.analytics.catalogue import load_catalogue
 from fm_analytics.analytics.in_possession import (
+    FIXED_TOGGLES,
+    IN_POSSESSION_CLASHES,
+    PLAYER_DEPENDENT_TOGGLES,
     InPossessionSettings,
     in_possession_instruction_strings,
     in_possession_selected_instructions,
@@ -29,12 +33,17 @@ COMPLETE_FIXED = {
     "attackingWidth": "Fairly Wide",
     "passingDirectness": "Slightly More Direct Passing",
     "tempo": "Higher Tempo",
-    "passIntoSpace": True,
-    "playOutOfDefence": False,
-    "focusPlay": "Down the Left",
-    "workBallIntoBox": False,
+    "selected": ["Pass Into Space", "Focus Play Down The Left"],
 }
 COMPLETE_IN_POSSESSION = {"fixed": COMPLETE_FIXED}
+
+
+def _settings(*selected: str) -> InPossessionSettings:
+    """Settings selecting these toggles, each in the group it belongs to."""
+    return InPossessionSettings(
+        fixed_selected=tuple(name for name in selected if name in FIXED_TOGGLES),
+        player_selected=tuple(name for name in selected if name in PLAYER_DEPENDENT_TOGGLES),
+    )
 
 
 class InPossessionSettingsUnitTests(unittest.TestCase):
@@ -44,22 +53,15 @@ class InPossessionSettingsUnitTests(unittest.TestCase):
         settings = InPossessionSettings()
         self.assertEqual(
             settings.missing_fixed_fields,
-            (
-                "attacking width", "passing directness", "tempo", "pass into space",
-                "play out of defence", "focus play", "work ball into box",
-            ),
+            ("attacking width", "passing directness", "tempo", "which instructions are selected"),
         )
         self.assertFalse(settings.is_complete)
 
-    def test_all_fixed_fields_set_is_complete(self) -> None:
+    def test_all_fixed_fields_set_is_complete_even_selecting_nothing(self) -> None:
+        # Selecting no toggle is FM's default, and a complete answer.
         settings = InPossessionSettings(
-            attacking_width="Standard",
-            passing_directness="Standard",
-            tempo="Standard",
-            pass_into_space=False,
-            play_out_of_defence=False,
-            focus_play="Balanced",
-            work_ball_into_box=False,
+            attacking_width="Standard", passing_directness="Standard", tempo="Standard",
+            fixed_selected=(),
         )
         self.assertEqual(settings.missing_fixed_fields, ())
         self.assertTrue(settings.is_complete)
@@ -67,9 +69,7 @@ class InPossessionSettingsUnitTests(unittest.TestCase):
     def test_partial_settings_report_only_what_is_missing(self) -> None:
         settings = InPossessionSettings(attacking_width="Fairly Wide", tempo="Higher Tempo")
         self.assertEqual(
-            settings.missing_fixed_fields,
-            ("passing directness", "pass into space", "play out of defence", "focus play",
-             "work ball into box"),
+            settings.missing_fixed_fields, ("passing directness", "which instructions are selected")
         )
 
     def test_rejects_an_unknown_attacking_width(self) -> None:
@@ -84,10 +84,6 @@ class InPossessionSettingsUnitTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "tempo must be one of"):
             InPossessionSettings(tempo="Medium Tempo")
 
-    def test_rejects_an_unknown_focus_play(self) -> None:
-        with self.assertRaisesRegex(ValueError, "focusPlay must be one of"):
-            InPossessionSettings(focus_play="Down the Middleish")
-
     def test_rejects_an_unknown_crossing_type(self) -> None:
         with self.assertRaisesRegex(ValueError, "crossingType must be one of"):
             InPossessionSettings(crossing_type="Curled")
@@ -96,24 +92,58 @@ class InPossessionSettingsUnitTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "timeWasting must be one of"):
             InPossessionSettings(time_wasting="Constantly")
 
-    def test_rejects_overlap_and_underlap_on_the_same_left_side(self) -> None:
-        with self.assertRaisesRegex(ValueError, "overlapLeft and underlapLeft"):
-            InPossessionSettings(overlap_left=True, underlap_left=True)
+    def test_rejects_an_unknown_or_repeated_toggle(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unknown instruction.*Focus Play Down The Middleish"):
+            InPossessionSettings(fixed_selected=("Focus Play Down The Middleish",))
+        with self.assertRaisesRegex(ValueError, "more than once"):
+            InPossessionSettings(player_selected=("Overlap Left", "Overlap Left"))
 
-    def test_rejects_overlap_and_underlap_on_the_same_right_side(self) -> None:
-        with self.assertRaisesRegex(ValueError, "overlapRight and underlapRight"):
-            InPossessionSettings(overlap_right=True, underlap_right=True)
+    def test_a_toggle_belongs_to_one_group(self) -> None:
+        with self.assertRaisesRegex(ValueError, "fixed.selected: unknown instruction.*Hit Early Crosses"):
+            InPossessionSettings(fixed_selected=("Hit Early Crosses",))
 
-    def test_allows_overlap_left_and_underlap_right_together(self) -> None:
-        InPossessionSettings(overlap_left=True, underlap_right=True)  # different sides: fine
+    def test_every_fm20_clash_is_refused_whichever_group_each_side_is_in(self) -> None:
+        # Confirmed against FM20's screen, 7 October 2026.
+        self.assertEqual(set(IN_POSSESSION_CLASHES), {
+            ("Focus Play Through The Middle", "Focus Play Down The Left"),
+            ("Focus Play Through The Middle", "Focus Play Down The Right"),
+            ("Overlap Left", "Underlap Left"),
+            ("Overlap Right", "Underlap Right"),
+            ("Work Ball Into Box", "Hit Early Crosses"),
+            ("Work Ball Into Box", "Shoot On Sight"),
+            ("Dribble Less", "Run At Defence"),
+            ("Be More Expressive", "Be More Disciplined"),
+        })
+        for first, second in IN_POSSESSION_CLASHES:
+            with self.subTest(first=first, second=second):
+                with self.assertRaisesRegex(ValueError, f"'{first}' and '{second}' cannot both be selected"):
+                    _settings(first, second)
 
-    def test_rejects_dribble_less_and_run_at_defence_together(self) -> None:
-        with self.assertRaisesRegex(ValueError, "dribbleLess and runAtDefence"):
-            InPossessionSettings(dribble_less=True, run_at_defence=True)
+    def test_combinations_fm20_allows(self) -> None:
+        for selected in (
+            ("Focus Play Down The Left", "Focus Play Down The Right"),
+            ("Shoot On Sight", "Hit Early Crosses"),
+            ("Overlap Left", "Underlap Right"),
+            ("Overlap Left", "Overlap Right"),
+            ("Play Out Of Defence", "Pass Into Space", "Work Ball Into Box", "Play For Set Pieces"),
+        ):
+            with self.subTest(selected=selected):
+                self.assertEqual(set(_settings(*selected).selected), set(selected))
 
-    def test_rejects_expressive_and_disciplined_together(self) -> None:
-        with self.assertRaisesRegex(ValueError, "beMoreExpressive and beMoreDisciplined"):
-            InPossessionSettings(be_more_expressive=True, be_more_disciplined=True)
+    def test_unavailable_names_what_locks_each_instruction(self) -> None:
+        self.assertEqual(
+            _settings("Work Ball Into Box").unavailable,
+            {"Hit Early Crosses": ("Work Ball Into Box",), "Shoot On Sight": ("Work Ball Into Box",)},
+        )
+        # Hit Early Crosses locks Work Ball Into Box, but Shoot On Sight stays available.
+        self.assertEqual(
+            _settings("Hit Early Crosses").unavailable, {"Work Ball Into Box": ("Hit Early Crosses",)}
+        )
+        self.assertEqual(
+            _settings("Focus Play Down The Left", "Focus Play Down The Right").unavailable,
+            {"Focus Play Through The Middle": ("Focus Play Down The Left", "Focus Play Down The Right")},
+        )
+        self.assertEqual(_settings().unavailable, {})
 
 
 class InPossessionInstructionStringsTests(unittest.TestCase):
@@ -142,35 +172,28 @@ class InPossessionInstructionStringsTests(unittest.TestCase):
         self.assertIn("Slightly More Direct Passing", strings)
         self.assertIn("Higher Tempo", strings)
 
-    def test_true_booleans_become_their_instruction_string(self) -> None:
-        settings = InPossessionSettings(
-            pass_into_space=True, play_out_of_defence=True, work_ball_into_box=True,
+    def test_selected_fixed_toggles_become_their_instruction_string(self) -> None:
+        settings = _settings("Pass Into Space", "Play Out Of Defence", "Work Ball Into Box")
+        self.assertEqual(
+            in_possession_instruction_strings(settings),
+            ("Pass Into Space", "Play Out Of Defence", "Work Ball Into Box"),
         )
-        strings = in_possession_instruction_strings(settings)
-        self.assertIn("Pass Into Space", strings)
-        self.assertIn("Play Out Of Defence", strings)
-        self.assertIn("Work Ball Into Box", strings)
 
-    def test_false_booleans_contribute_nothing(self) -> None:
-        settings = InPossessionSettings(
-            pass_into_space=False, play_out_of_defence=False, work_ball_into_box=False,
-        )
-        self.assertEqual(in_possession_instruction_strings(settings), ())
+    def test_unselected_toggles_contribute_nothing(self) -> None:
+        self.assertEqual(in_possession_instruction_strings(_settings()), ())
 
     def test_player_dependent_fields_never_contribute(self) -> None:
-        # overlapLeft/hitEarlyCrosses/etc. are fallbacks only; they must never
-        # reach instruction-fit scoring however they are set.
-        settings = InPossessionSettings(
-            overlap_left=True, overlap_right=True, hit_early_crosses=True,
-            shoot_on_sight=True, play_for_set_pieces=True, run_at_defence=True,
-            be_more_expressive=True, crossing_type="Whipped",
+        # Fallbacks only; they must never reach instruction-fit scoring however they are set.
+        settings = replace(
+            _settings("Overlap Left", "Overlap Right", "Hit Early Crosses", "Shoot On Sight",
+                      "Play For Set Pieces", "Run At Defence", "Be More Expressive"),
+            crossing_type="Whipped",
         )
         self.assertEqual(in_possession_instruction_strings(settings), ())
 
     def test_focus_play_never_contributes(self) -> None:
         # There is no scored "Focus Play" instruction in the legacy vocabulary.
-        settings = InPossessionSettings(focus_play="Down the Left")
-        self.assertEqual(in_possession_instruction_strings(settings), ())
+        self.assertEqual(in_possession_instruction_strings(_settings("Focus Play Down The Left")), ())
 
 
 class InPossessionSelectedInstructionsTests(unittest.TestCase):
@@ -185,17 +208,18 @@ class InPossessionSelectedInstructionsTests(unittest.TestCase):
             in_possession_selected_instructions(InPossessionSettings()), ("Sometimes Time Wasting",)
         )
 
-    def test_fixed_settings_appear_as_their_scored_strings(self) -> None:
-        settings = InPossessionSettings(attacking_width="Fairly Wide", work_ball_into_box=True)
+    def test_fixed_settings_appear_as_their_scored_strings_then_focus(self) -> None:
+        settings = replace(
+            _settings("Focus Play Down The Right", "Work Ball Into Box"), attacking_width="Fairly Wide"
+        )
         self.assertEqual(
-            in_possession_selected_instructions(settings)[:-1],
-            in_possession_instruction_strings(settings),
+            in_possession_selected_instructions(settings),
+            ("Fairly Wide", "Work Ball Into Box", "Focus Play Down The Right", "Sometimes Time Wasting"),
         )
 
     def test_player_dependent_choices_appear_by_name(self) -> None:
-        settings = InPossessionSettings(
-            crossing_type="Floated", overlap_left=True, play_for_set_pieces=True,
-            be_more_disciplined=True,
+        settings = replace(
+            _settings("Overlap Left", "Play For Set Pieces", "Be More Disciplined"), crossing_type="Floated",
         )
         self.assertEqual(
             in_possession_selected_instructions(settings),
@@ -222,7 +246,7 @@ class CatalogueLoadingTests(unittest.TestCase):
             catalogue = load_catalogue(self.build(Path(tmp), TACTIC))
         tactic = catalogue.tactics["shape"]
         self.assertIsNone(tactic.in_possession)
-        self.assertEqual(len(tactic.in_possession_missing_fields), 7)
+        self.assertEqual(len(tactic.in_possession_missing_fields), 4)
 
     def test_a_fully_specified_fixed_block_leaves_nothing_missing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -232,26 +256,26 @@ class CatalogueLoadingTests(unittest.TestCase):
         tactic = catalogue.tactics["shape"]
         self.assertEqual(tactic.in_possession_missing_fields, ())
         self.assertEqual(tactic.in_possession.attacking_width, "Fairly Wide")
-        self.assertTrue(tactic.in_possession.pass_into_space)
+        self.assertEqual(tactic.in_possession.fixed_selected, ("Pass Into Space", "Focus Play Down The Left"))
 
     def test_a_partially_specified_fixed_block_reports_what_it_left_out(self) -> None:
         partial = {"fixed": {"attackingWidth": "Fairly Wide", "tempo": "Higher Tempo"}}
         with tempfile.TemporaryDirectory() as tmp:
             catalogue = load_catalogue(self.build(Path(tmp), {**TACTIC, "inPossession": partial}))
         tactic = catalogue.tactics["shape"]
-        self.assertIn("passing directness", tactic.in_possession_missing_fields)
-        self.assertIn("focus play", tactic.in_possession_missing_fields)
-        self.assertEqual(len(tactic.in_possession_missing_fields), 5)
+        self.assertEqual(
+            tactic.in_possession_missing_fields, ("passing directness", "which instructions are selected")
+        )
 
     def test_an_in_possession_block_with_no_fixed_object_is_all_missing(self) -> None:
         # "dependsOnPlayers" alone, with no "fixed" object at all.
-        depends_only = {"inPossession": {"dependsOnPlayers": {"overlapLeft": True}}}
+        depends_only = {"inPossession": {"dependsOnPlayers": {"selected": ["Overlap Left"]}}}
         with tempfile.TemporaryDirectory() as tmp:
             catalogue = load_catalogue(self.build(Path(tmp), {**TACTIC, **depends_only}))
         tactic = catalogue.tactics["shape"]
         self.assertIsNotNone(tactic.in_possession)
-        self.assertTrue(tactic.in_possession.overlap_left)
-        self.assertEqual(len(tactic.in_possession_missing_fields), 7)
+        self.assertEqual(tactic.in_possession.player_selected, ("Overlap Left",))
+        self.assertEqual(len(tactic.in_possession_missing_fields), 4)
 
     def test_player_dependent_fields_default_without_being_required(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -259,7 +283,7 @@ class CatalogueLoadingTests(unittest.TestCase):
                 self.build(Path(tmp), {**TACTIC, "inPossession": COMPLETE_IN_POSSESSION})
             )
         settings = catalogue.tactics["shape"].in_possession
-        self.assertFalse(settings.overlap_left)
+        self.assertEqual(settings.player_selected, ())
         self.assertEqual(settings.crossing_type, "Mixed")
         self.assertEqual(settings.time_wasting, "Sometimes")
 
@@ -270,13 +294,12 @@ class CatalogueLoadingTests(unittest.TestCase):
                 load_catalogue(self.build(Path(tmp), tactic))
 
     def test_an_unknown_key_inside_fixed_is_refused(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            tactic = {
-                **TACTIC,
-                "inPossession": {"fixed": {**COMPLETE_FIXED, "overlapLeft": True}},
-            }
-            with self.assertRaisesRegex(ValueError, "inPossession.fixed.*unknown key.*overlapLeft"):
-                load_catalogue(self.build(Path(tmp), tactic))
+        # Includes the old one-key-per-toggle format: toggles are listed under "selected".
+        for key in ("overlapLeft", "passIntoSpace", "focusPlay"):
+            with self.subTest(key=key), tempfile.TemporaryDirectory() as tmp:
+                tactic = {**TACTIC, "inPossession": {"fixed": {**COMPLETE_FIXED, key: True}}}
+                with self.assertRaisesRegex(ValueError, f"inPossession.fixed.*unknown key.*{key}"):
+                    load_catalogue(self.build(Path(tmp), tactic))
 
     def test_an_unknown_key_inside_depends_on_players_is_refused(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -289,13 +312,32 @@ class CatalogueLoadingTests(unittest.TestCase):
             ):
                 load_catalogue(self.build(Path(tmp), tactic))
 
-    def test_a_non_boolean_flag_is_refused(self) -> None:
+    def test_selected_must_be_a_list_of_names(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tactic = {
                 **TACTIC,
-                "inPossession": {"fixed": {**COMPLETE_FIXED, "passIntoSpace": "yes"}},
+                "inPossession": {"fixed": {**COMPLETE_FIXED, "selected": "Pass Into Space"}},
             }
-            with self.assertRaisesRegex(ValueError, "fixed.passIntoSpace must be true/false"):
+            with self.assertRaisesRegex(ValueError, "fixed.selected must be an array of instruction names"):
+                load_catalogue(self.build(Path(tmp), tactic))
+
+    def test_a_toggle_listed_in_the_wrong_group_says_where_it_belongs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tactic = {
+                **TACTIC,
+                "inPossession": {"fixed": {**COMPLETE_FIXED, "selected": ["Hit Early Crosses"]}},
+            }
+            with self.assertRaisesRegex(
+                ValueError, r"\['Hit Early Crosses'\] belong in inPossession.dependsOnPlayers.selected"
+            ):
+                load_catalogue(self.build(Path(tmp), tactic))
+
+    def test_an_unknown_toggle_is_refused_naming_the_tactic(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tactic = {**TACTIC, "inPossession": {"dependsOnPlayers": {"selected": ["Overlap Middle"]}}}
+            with self.assertRaisesRegex(
+                ValueError, "tactic 'shape' inPossession: dependsOnPlayers.selected: unknown instruction"
+            ):
                 load_catalogue(self.build(Path(tmp), tactic))
 
     def test_a_non_string_enum_value_is_refused(self) -> None:
@@ -310,10 +352,35 @@ class CatalogueLoadingTests(unittest.TestCase):
                 **TACTIC,
                 "inPossession": {
                     "fixed": COMPLETE_FIXED,
-                    "dependsOnPlayers": {"dribbleLess": True, "runAtDefence": True},
+                    "dependsOnPlayers": {"selected": ["Dribble Less", "Run At Defence"]},
                 },
             }
-            with self.assertRaisesRegex(ValueError, "dribbleLess and runAtDefence"):
+            with self.assertRaisesRegex(ValueError, "'Dribble Less' and 'Run At Defence' cannot both be selected"):
+                load_catalogue(self.build(Path(tmp), tactic))
+
+    def test_a_clash_across_fixed_and_player_dependent_is_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tactic = {
+                **TACTIC,
+                "inPossession": {
+                    "fixed": {**COMPLETE_FIXED, "selected": ["Work Ball Into Box"]},
+                    "dependsOnPlayers": {"selected": ["Shoot On Sight"]},
+                },
+            }
+            with self.assertRaisesRegex(ValueError, "'Work Ball Into Box' and 'Shoot On Sight' cannot both"):
+                load_catalogue(self.build(Path(tmp), tactic))
+
+    def test_a_clash_with_a_legacy_instruction_string_is_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tactic = {
+                **TACTIC,
+                "instructions": ["Hit Early Crosses"],
+                "inPossession": {"fixed": {**COMPLETE_FIXED, "selected": ["Work Ball Into Box"]}},
+                "instructionRationale": {"Hit Early Crosses": "Early balls."},
+            }
+            with self.assertRaisesRegex(
+                ValueError, "tactic 'shape': 'Work Ball Into Box' and 'Hit Early Crosses' cannot both"
+            ):
                 load_catalogue(self.build(Path(tmp), tactic))
 
     def test_a_fixed_value_duplicated_in_instructions_is_refused(self) -> None:

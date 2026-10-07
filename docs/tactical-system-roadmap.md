@@ -158,6 +158,92 @@ versions and player assignment" above). It is advisory output alongside the
 XI, computed once in `reporting.py` so the CLI and every web view show the
 same answer — never recomputed per surface.
 
+**Where the rules live (agreed 7 October 2026): globally, not per tactic.**
+Each setting asks a question about the players on the pitch, not about the
+tactic. "Overlap on the left?" depends on who plays left-back (stamina,
+crossing, work rate) and whether the player ahead of him cuts inside, which is
+mostly his role: an Inside Forward cuts in, a Winger stays wide. "Which crossing
+type?" depends on who is in the box. The same players should get the same
+answer in any tactic, so:
+
+- **One global rule table**, like `_INSTRUCTION_REQUIREMENTS`, with fixed
+  attribute levels. There are no per-tactic attribute thresholds: 52 tactics ×
+  12 settings would be tuned by hand, and the same left-back could get "overlap"
+  in one 4-4-2 and not another for no football reason.
+- **Rules can still depend on the tactic without per-tactic config.** They read
+  the tactic's own slots, roles and fixed settings: they find the left
+  full-back from slot positions, and only consider crossing type when the
+  tactic has wide players who cross. This is unlike `attributeTaper` and
+  `attributeEmphasis`, which are per tactic because they change who is picked.
+  These rules only advise once the XI is picked.
+- **Per tactic: an optional lock or veto, for identity only.** A tactic may
+  lock a setting that defines it (e.g. `wing_play_442` always overlaps) or rule
+  one out (e.g. `solid_4231` is never "Be more expressive"). Nothing else about
+  these settings is set per tactic.
+- **Today's `dependsOnPlayers` values become the fallback**, used only when a
+  rule cannot decide, e.g. when the attributes it needs are hidden or out of
+  date.
+- **Every setting shows its reason in plain terms** on the tactic page, e.g.
+  "Overlap left: Yes. Smith (DL) stamina 15, crossing 13; Jones (ML) is an
+  Inside Forward, so the flank is free." Because they are computed from the
+  picked XI, excluding a player or using the ignore form/condition switches
+  updates them with the XI.
+
+Build this after 4c, so the rules only ever pick choices FM's screen allows.
+
+### 4c. Instructions that mirror FM's tactics screen (new)
+
+Raised 7 October 2026. The three phases currently encode "not selected" three
+different ways, and none matches FM's screen:
+
+- **In possession:** `true`/`false`, with `false` shown as "No", which reads as
+  a deliberate choice.
+- **Out of possession:** `true`/`false`/`"Neutral"`: three states for what is
+  one checkbox in FM.
+- **In transition:** an explicit `"Neither"` option.
+
+**The model to move to.** Most instructions are a focus the manager either
+selects or does not. Not selected is FM's default, "no particular focus", never
+a positive "No". Selecting one can make others **unavailable**. For example,
+selecting Hit Early Crosses makes Work Ball Into Box unavailable but leaves
+Shoot On Sight available. So:
+
+- **Toggles** are selected or not. A tactic file lists the ones it selects, and
+  the page shows the rest as "Not selected".
+- **Scales** (attacking width, tempo, line of engagement and so on) keep a
+  middle "Standard" default.
+- **One of several** (crossing type, the transition choices): none selected is
+  FM's default.
+- **Locks:** a table of "selecting X makes Y unavailable", taken from FM20's
+  screen. The catalogue loader refuses a tactic that selects both, naming the
+  instruction that locks the other. The page shows a locked instruction as
+  "Unavailable: Hit Early Crosses is selected".
+
+**Review, one instruction at a time.** Each instruction is checked against
+FM20's tactics screen before the code changes; nothing here is assumed from
+memory. Status:
+
+| Phase | Instruction | Kind and FM20 behaviour | Confirmed |
+| --- | --- | --- | --- |
+| In possession | Attacking width, passing directness (7 steps), tempo | Scales | 7 October 2026 |
+| In possession | Time wasting | Scale: Never / Sometimes / Frequently | 7 October 2026 |
+| In possession | Crossing type | Dropdown, independent of everything | 7 October 2026 |
+| In possession | Play Out Of Defence, Pass Into Space, Play For Set Pieces | Toggles, independent | 7 October 2026 |
+| In possession | Focus Play Down The Left / Down The Right / Through The Middle | Left and right may both be selected; either makes Through The Middle unavailable | 7 October 2026 |
+| In possession | Overlap / Underlap, each side | Toggles; overlap and underlap on the same side clash | 7 October 2026 |
+| In possession | Work Ball Into Box, Hit Early Crosses, Shoot On Sight | Work Ball Into Box clashes with both others; Hit Early Crosses and Shoot On Sight may both be selected | 7 October 2026 |
+| In possession | Dribble Less / Run At Defence; Be More Expressive / Be More Disciplined | Neither by default; selecting one makes the other unavailable | 7 October 2026 |
+| In transition | All | | To review |
+| Out of possession | All, including whether any FM20 options are missing from the model | | To review |
+
+**In possession is built** (7 October 2026). Tactic files list only the toggles
+they select (`"selected": [...]`), the loader refuses a clashing pair (also
+against legacy `instructions` strings), and the tactic page shows each toggle
+as Selected, Not selected, or Unavailable with what locks it. The 13 tactics
+with an in-possession block were converted without changing any score: the
+strings scoring reads are identical. Transition and out of possession reuse
+`analytics/instruction_toggles.py` once reviewed.
+
 ### 5. Replace the 65% mean / 35% weakest-player XI objective — completed
 
 The fixed weakest-link weight was replaced with a square-root mean:
@@ -304,6 +390,9 @@ These are not separate football hypotheses, but make the model safer to evolve.
 5. Add whole-tactic familiarity.
 6. Add opponent-specific modelling.
 7. Calibrate the transparent model against accumulated outcomes.
+
+Agreed next, ahead of this list (7 October 2026): 4c (instructions mirror
+FM's screen), then 4b (player-dependent settings picked from the XI).
 
 This order deliberately avoids putting opponent models or machine learning on
 top of a player-role model whose assumptions are still unvalidated.

@@ -18,8 +18,10 @@ from fm_analytics.analytics.emphasis import (
     introduced_emphasis as _introduced_emphasis,
     sum_emphasis as _sum_emphasis,
 )
+from fm_analytics.analytics.instruction_toggles import check_clashes
 from fm_analytics.analytics.in_possession import (
     ALL_FIXED_FIELD_LABELS,
+    IN_POSSESSION_CLASHES,
     InPossessionSettings,
     in_possession_from_json,
     in_possession_instruction_strings,
@@ -332,6 +334,11 @@ class TacticDefinition:
                 "in instruction-fit scoring; remove the string from instructions now that "
                 "it is set structurally"
             )
+        # The legacy strings name the same FM instructions, so FM's clashes apply to them too.
+        check_clashes(
+            set(self.instructions) | set(self.in_possession.selected if self.in_possession else ()),
+            IN_POSSESSION_CLASHES, f"tactic {self.key!r}",
+        )
         if len(self.slots) != 11:
             raise ValueError("an MVP tactic must define exactly eleven slots")
         slot_keys = [slot.key for slot in self.slots]

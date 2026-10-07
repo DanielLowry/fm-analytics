@@ -222,15 +222,30 @@ the dataclass:
 
 ```json
 "inPossession": {
-  "fixed": {"attackingWidth": "Fairly Wide", "tempo": "Higher Tempo", ...},
-  "dependsOnPlayers": {"overlapLeft": true, ...},
+  "fixed": {"attackingWidth": "Fairly Wide", "tempo": "Higher Tempo", ...,
+            "selected": ["Play Out Of Defence", "Work Ball Into Box"]},
+  "dependsOnPlayers": {"crossingType": "Low", "selected": ["Overlap Left"]},
   "timeWasting": "Sometimes"
 }
 ```
 
-- **Fixed** (`attackingWidth`, `passingDirectness`, `tempo`, `passIntoSpace`,
-  `playOutOfDefence`, `focusPlay`, `workBallIntoBox`): part of what makes
-  this tactic *this* tactic, always hand-authored. Only a handful of
+Each instruction is one of the kinds on FM20's screen (confirmed 7 October
+2026, roadmap item 4c): a **scale** (width, directness, tempo, time wasting),
+a **dropdown** (crossing type, independent of everything), or a **toggle**,
+listed by its FM name under `selected` only when it is selected. Not selected
+is FM's own default ("no particular focus"), never a deliberate "No", so there
+is no way to write "No". Selecting some toggles makes others unavailable:
+`IN_POSSESSION_CLASHES` holds each pair (the two ends of one setting, like
+Dribble Less / Run At Defence, are simply a clash). The loader refuses a tactic
+selecting both of a pair, across the fixed/player-dependent split and against
+legacy `instructions` strings too, and the tactic page shows a locked toggle as
+"Unavailable" with what locks it. The helpers are in `instruction_toggles.py`,
+for the other two phases to reuse once they are reviewed.
+
+- **Fixed** (`attackingWidth`, `passingDirectness`, `tempo`, and the toggles
+  Pass Into Space, Play Out Of Defence, the three Focus Play options and Work
+  Ball Into Box): part of what makes this tactic *this* tactic, always
+  hand-authored. Only a handful of
   tactics have been given these so far (`attacking_424`, `balanced_433dm`,
   `balanced_442`, `deep_counter_541`, `enganche_4231`, `positive_4231`,
   `positive_433dm`, `ball_winning_counter_433dm`, `positive_ball_winning_433dm`,
@@ -239,41 +254,43 @@ the dataclass:
   is what `web/in_possession_render.py` reads to flag the gap on the tactic
   page rather than silently showing nothing — filling in the rest is
   ongoing, tactic by tactic. **This half does reach scoring**: see below.
-- **Player-dependent** (`overlapLeft`/`overlapRight`, `underlapLeft`/`underlapRight`,
-  `crossingType`, `shootOnSight`, `hitEarlyCrosses`, `playForSetPieces`,
-  `dribbleLess`, `runAtDefence`, `beMoreExpressive`, `beMoreDisciplined`):
+- **Player-dependent** (`crossingType`, and the toggles Overlap/Underlap
+  Left/Right, Shoot On Sight, Hit Early Crosses, Play For Set Pieces, Dribble
+  Less, Run At Defence, Be More Expressive, Be More Disciplined):
   a real manager sets these by looking at which players are out there, not
   at the formation. There is no code yet that picks these from a squad's
   visible attributes (see `docs/tactical-system-roadmap.md`'s in-possession
   item); each field is only ever a fallback used until that lands, so none
   of it is required or flagged as missing, **and none of it ever reaches
-  scoring** (see below). Values authored today (e.g. `wing_play_442`'s
-  `overlapLeft`/`overlapRight: true`) are a reasonable default for the
-  tactic's own identity, not a claim about any particular squad.
+  scoring** (see below). Values authored today (e.g. `wing_play_442`
+  selecting Overlap Left and Overlap Right) are a reasonable default for the
+  tactic's own identity, not a claim about any particular squad. When the
+  rules land they are **global** (one table, fixed attribute levels, reading
+  the picked XI and the tactic's own slots and roles). A tactic may only lock
+  or veto a setting that defines it, and these values become the fallback for
+  when a rule cannot decide. See `docs/tactical-system-roadmap.md` item 4b.
 - **Situational** (`timeWasting`, top-level, not nested under either object):
   depends on the scoreline and the clock, not the squad or the tactic, so it
   carries a default and is likewise never flagged as missing and never reaches
   scoring.
 
-Validation catches the FM-real illegal combinations: overlap and underlap on
-the same side, dribble-less with run-at-defence, and expressive with
-disciplined are each opposite ends of one setting and cannot both be true.
-Every enum field (width, directness, tempo, focus, crossing type, time
-wasting) is checked against a fixed option list in `in_possession.py`.
+Every scale and the crossing type are checked against a fixed option list,
+and every toggle name against the list for its group, in `in_possession.py`.
+A toggle listed in the wrong group is refused with where it belongs.
 
 **The fixed half feeds instruction-fit scoring.** `in_possession_instruction_strings`
 turns each set fixed field into the legacy `instructions` string it is
-equivalent to (`attackingWidth: "Fairly Wide"` → `"Fairly Wide"`,
-`passIntoSpace: true` → `"Pass Into Space"`, and so on), and
+equivalent to (`attackingWidth: "Fairly Wide"` → `"Fairly Wide"`, a
+selected Pass Into Space → `"Pass Into Space"`, and so on), and
 `tactical_system.effective_instructions(tactic)` -- what
 `assess_instruction_suitability` actually reads, everywhere the old
 `tactic.instructions` was read directly -- is `tactic.instructions` plus
 those derived strings. `"Standard"` is treated as no instruction (there is
 no such thing to pick in FM); a fixed value with no requirements-table entry
 yet passes through unfiltered, so `tests/test_tactical_calibration.py`
-catches a real gap rather than this silently hiding it. `focusPlay` and
-every player-dependent field never produce a string: there is no scored
-"Focus Play" instruction, and a player-dependent field is only ever a
+catches a real gap rather than this silently hiding it. The Focus Play
+toggles and every player-dependent field never produce a string: there is no
+scored "Focus Play" instruction, and a player-dependent field is only ever a
 fallback, so it must never affect a score on its own.
 
 Once a fixed field is set, the equivalent legacy string must not also sit in

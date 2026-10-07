@@ -9,24 +9,13 @@
       "attackingWidth": "Fairly Wide",
       "passingDirectness": "Slightly More Direct Passing",
       "tempo": "Standard",
-      "passIntoSpace": false,
-      "playOutOfDefence": false,
-      "focusPlay": "Balanced",
-      "workBallIntoBox": false
+      "selected": []
     },
     "dependsOnPlayers": {
-      "overlapLeft": false,
-      "overlapRight": false,
-      "underlapLeft": false,
-      "underlapRight": false,
       "crossingType": "Low",
-      "shootOnSight": false,
-      "hitEarlyCrosses": false,
-      "playForSetPieces": false,
-      "dribbleLess": false,
-      "runAtDefence": false,
-      "beMoreExpressive": false,
-      "beMoreDisciplined": true
+      "selected": [
+        "Be More Disciplined"
+      ]
     },
     "timeWasting": "Never"
   },

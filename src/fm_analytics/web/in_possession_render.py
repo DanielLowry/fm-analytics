@@ -13,71 +13,65 @@ from __future__ import annotations
 import html
 
 from fm_analytics.analytics import InPossessionSettings, TacticDefinition
+from fm_analytics.analytics.in_possession import FIXED_TOGGLES, PLAYER_DEPENDENT_TOGGLES
 
-_FIXED_ROWS: tuple[tuple[str, str], ...] = (
+_FIXED_SCALES: tuple[tuple[str, str], ...] = (
     ("Attacking width", "attacking_width"),
     ("Passing directness", "passing_directness"),
     ("Tempo", "tempo"),
-    ("Pass into space", "pass_into_space"),
-    ("Play out of defence", "play_out_of_defence"),
-    ("Focus play", "focus_play"),
-    ("Work ball into box", "work_ball_into_box"),
-)
-_PLAYER_DEPENDENT_ROWS: tuple[tuple[str, str], ...] = (
-    ("Overlap left", "overlap_left"),
-    ("Overlap right", "overlap_right"),
-    ("Underlap left", "underlap_left"),
-    ("Underlap right", "underlap_right"),
-    ("Crossing type", "crossing_type"),
-    ("Shoot on sight", "shoot_on_sight"),
-    ("Hit early crosses", "hit_early_crosses"),
-    ("Play for set pieces", "play_for_set_pieces"),
-    ("Dribble less", "dribble_less"),
-    ("Run at defence", "run_at_defence"),
-    ("Be more expressive", "be_more_expressive"),
-    ("Be more disciplined", "be_more_disciplined"),
 )
 
 
-def _display_value(value: object) -> str:
-    if isinstance(value, bool):
-        return "Yes" if value else "No"
-    return str(value)
+def _pill(label: str, value: str | None, *, state: str = "", note: str = "") -> str:
+    classes = " ".join(part for part in ("instruction-pill", state, "unset" if value is None else "") if part)
+    return (
+        f"<div class='{classes}'><span>{html.escape(label)}</span>"
+        f"<b>{html.escape('Not set' if value is None else value)}</b>"
+        + (f"<small>{html.escape(note)}</small>" if note else "")
+        + "</div>"
+    )
+
+
+def _toggle_pill(name: str, settings: InPossessionSettings, selected, *, state: str = "") -> str:
+    """One FM toggle: selected, not selected (FM's default), or locked by another."""
+    label = name.capitalize()
+    if selected is None:
+        return _pill(label, None)
+    if name in selected:
+        return _pill(label, "Selected", state=f"{state} selected".strip())
+    locked_by = settings.unavailable.get(name)
+    if locked_by:
+        return _pill(
+            label, "Unavailable", state=f"{state} locked".strip(),
+            note=" and ".join(locked_by) + (" is" if len(locked_by) == 1 else " are") + " selected",
+        )
+    return _pill(label, "Not selected", state=f"{state} off".strip())
 
 
 def in_possession_section(tactic: TacticDefinition) -> str:
-    settings = tactic.in_possession
+    settings = tactic.in_possession if tactic.in_possession is not None else InPossessionSettings()
     missing = tactic.in_possession_missing_fields
-    fixed_rows = []
-    for label, attribute in _FIXED_ROWS:
-        value = getattr(settings, attribute) if settings is not None else None
-        display = "Not set" if value is None else _display_value(value)
-        fixed_rows.append(
-            f"<div class='instruction-pill{' unset' if value is None else ''}'>"
-            f"<span>{html.escape(label)}</span><b>{html.escape(display)}</b></div>"
-        )
-    fixed_pills = "".join(fixed_rows)
+    fixed_pills = "".join(
+        _pill(label, getattr(settings, attribute)) for label, attribute in _FIXED_SCALES
+    ) + "".join(_toggle_pill(name, settings, settings.fixed_selected) for name in FIXED_TOGGLES)
     missing_note = (
         "<p class='warn'>Not yet set: " + html.escape(", ".join(missing)) + ".</p>"
         if missing else "<p class='muted'>Every fixed in-possession setting is specified.</p>"
     )
-    player_dependent = settings if settings is not None else InPossessionSettings()
-    dependent_pills = "".join(
-        f"<div class='instruction-pill fallback'>"
-        f"<span>{html.escape(label)}</span>"
-        f"<b>{html.escape(_display_value(getattr(player_dependent, attribute)))}</b>"
-        "</div>"
-        for label, attribute in _PLAYER_DEPENDENT_ROWS
+    dependent_pills = _pill("Crossing type", settings.crossing_type, state="fallback") + "".join(
+        _toggle_pill(name, settings, settings.player_selected, state="fallback")
+        for name in PLAYER_DEPENDENT_TOGGLES
     )
     return (
         "<section class='in-possession-section'>"
         "<h3>In possession — fixed</h3>"
-        "<p class='subhead'>What makes this tactic this tactic; set directly on the tactics screen.</p>"
+        "<p class='subhead'>What makes this tactic this tactic; set directly on the tactics screen. "
+        "Not selected is FM's default; an unavailable instruction is locked by one that is selected.</p>"
         f"<div class='instruction-grid'>{fixed_pills}</div>"
         f"{missing_note}"
         "<details><summary>In possession — depends on players</summary>"
         "<p class='subhead'>A real manager sets these by looking at who is on the pitch, not the "
-        "formation. The app does not yet pick these from your squad's attributes, so each shows only "
-        f"a fallback.</p><div class='instruction-grid'>{dependent_pills}</div></details>"
+        "formation. They are not picked from your players' attributes yet, so each shows this "
+        f"tactic's fallback.</p><div class='instruction-grid'>{dependent_pills}</div></details>"
         "</section>"
     )
