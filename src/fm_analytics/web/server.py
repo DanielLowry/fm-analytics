@@ -22,7 +22,7 @@ import threading
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Callable, Sequence
@@ -480,6 +480,13 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
         with self._lock:
             self._bundle_results.clear()
             self._tactic_report_cache.clear()
+
+    def squad_refresh_state(self) -> tuple[date | None, bool, str]:
+        """The game date of the squad on screen (None before the first read), whether
+        it is being read from FM again now, and why the last such read failed."""
+        with self._lock:
+            return (self._read_result[0].game_date if self._read_result else None,
+                    self._refreshing, str(self._refresh_error) if self._refresh_error else "")
 
     def request_refresh(self) -> bool:
         """Start a full snapshot refresh without blocking an HTTP request."""

@@ -1,9 +1,9 @@
 """How strong an opponent was at kickoff, three ways.
 
 * **Table** (the default): the opponent's league position on the morning of
-  the match, rebuilt from the league's own results, in thirds. It needs no
-  input, works for matches already played, and cannot be coloured by how the
-  match went.
+  the match, rebuilt from that season's league results, in thirds. It needs
+  no input, works for matches already played, and cannot be coloured by how
+  the match went.
 * **Relative**: whether they were above or below us in that table.
 * **Your rating**: the manager's own pre-match read on the opponent-quality
   scale the tactic sliders use (-2..+2). Optional, and only as honest as the
@@ -12,6 +12,12 @@
 A team that has played fewer than `EARLY_SEASON_GAMES` league games is "early
 season": a position after one or two games says little. A team outside the
 leagues we play in is "not in our league".
+
+FM keeps every season of a league under one competition, so the table is
+built from one season's results only: the season FM files a competitive
+match under. A friendly has none, so it is rated by the latest season under
+way at kickoff (in pre-season, the one just finished). Results recorded
+before seasons were read count as one season, as they always did.
 """
 
 from __future__ import annotations
@@ -130,6 +136,35 @@ def positions(results: Sequence[LeagueResult], before: date) -> dict[str, TableP
 
 
 @dataclass(frozen=True)
+class LeagueSeason:
+    """One season of one league: its results and every team that played in it."""
+
+    competition: Competition
+    season: int | None  # the year FM's season starts; None for results recorded before it was read
+    results: tuple[LeagueResult, ...]
+    teams: frozenset[str]
+    starts: date  # its first result
+    ends: date  # its last result so far
+
+
+def league_seasons(leagues: Iterable[tuple[Competition, Sequence[LeagueResult]]]) -> tuple[LeagueSeason, ...]:
+    """Each league split into the seasons FM files its results under."""
+    seasons = []
+    for competition, results in leagues:
+        by_season: dict[int | None, list[LeagueResult]] = {}
+        for result in results:
+            by_season.setdefault(result.season, []).append(result)
+        for season, rows in by_season.items():
+            dates = [row.date for row in rows]
+            seasons.append(LeagueSeason(
+                competition, season, tuple(rows),
+                frozenset(team.id for row in rows for team in (row.home, row.away)),
+                min(dates), max(dates),
+            ))
+    return tuple(seasons)
+
+
+@dataclass(frozen=True)
 class Strength:
     """One match's opponent strength under every grouping."""
 
@@ -137,6 +172,7 @@ class Strength:
     opponent: TablePosition | None
     ours: TablePosition | None
     rating: int | None
+    season: int | None = None  # the season of `league` whose table placed them
 
     def band(self, grouping: str) -> Band:
         if grouping not in _BY_KEY:
@@ -165,22 +201,41 @@ class Strength:
 
 
 class StrengthCalculator:
-    """Rebuilds each league's table once per kickoff date and reuses it."""
+    """Rebuilds each league season's table once per kickoff date and reuses it."""
 
     def __init__(self, leagues: Iterable[tuple[Competition, Sequence[LeagueResult]]], club_id: str):
         self.club_id = club_id
-        self._leagues = [
-            (competition, tuple(results), {team.id for result in results for team in (result.home, result.away)})
-            for competition, results in leagues
-        ]
-        self._cache: dict[tuple[str, date], dict[str, TablePosition]] = {}
+        self._ours = tuple(season for season in league_seasons(leagues) if club_id in season.teams)
+        self._cache: dict[tuple[str, int | None, date], dict[str, TablePosition]] = {}
 
     def strength(self, match: MatchRecord, opponent_id: str, rating: int | None) -> Strength:
-        for competition, results, teams in self._leagues:
-            if opponent_id in teams and self.club_id in teams:
-                key = (competition.id, match.date)
-                if key not in self._cache:
-                    self._cache[key] = positions(results, match.date)
-                table = self._cache[key]
-                return Strength(competition, table.get(opponent_id), table.get(self.club_id), rating)
-        return Strength(None, None, None, rating)
+        league = self.season_of(match, opponent_id)
+        if league is None:
+            return Strength(None, None, None, rating)
+        key = (league.competition.id, league.season, match.date)
+        if key not in self._cache:
+            self._cache[key] = positions(league.results, match.date)
+        table = self._cache[key]
+        return Strength(league.competition, table.get(opponent_id), table.get(self.club_id), rating, league.season)
+
+    def season_of(self, match: MatchRecord, opponent_id: str) -> LeagueSeason | None:
+        """The league season, ours and the opponent's, whose table rates this match; None if there is none.
+
+        A competitive match uses the season FM files it under. Otherwise it is
+        the latest season under way at kickoff; or, once that has finished, the
+        next one, so a newly promoted side in pre-season is early season.
+        """
+        if match.season is not None:
+            filed = [league for league in self._ours if league.season == match.season]
+            if filed:
+                return next((league for league in filed if opponent_id in league.teams), None)
+        current = max((league for league in self._ours if league.starts < match.date),
+                      key=lambda league: league.starts, default=None)
+        if current is not None and opponent_id in current.teams:
+            return current
+        if current is None or current.ends < match.date:
+            following = min((league for league in self._ours if league.starts >= match.date),
+                            key=lambda league: league.starts, default=None)
+            if following is not None and opponent_id in following.teams:
+                return following
+        return None

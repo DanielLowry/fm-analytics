@@ -291,6 +291,10 @@ match.** Every Hungerford match from 25 June to 2 November was found, some
 held in several copies. The known fields are:
 
 - home team pointer `+0x08` and away team pointer `+0x10`;
+- the season, as the year it starts, `+0x30` (u16: 2019 for 2019/20, 0 for a
+  friendly). FM keeps every season of a league under one competition, so
+  without it the second season's tables added up both (27 teams for a
+  22-team league). Checked 7 October 2026 on all 76,320 results FM held;
 - date `+0x4c`, in FM's date format;
 - apparently the league round `+0x3a` (17 on 2 November) and a running ID
   `+0x58`;
@@ -443,7 +447,11 @@ The executable also names `MATCH_ANALYSIS_MATCH`, `PITCH_GOALS_AREAS`,
   the others hold other clubs' matches, which Phase 08 could use.
   - A chunk's header names the stadium, then the home and away club IDs,
     each after a `01` byte. A chunk is matched to a fixture by the two clubs
-    (home first) and the score.
+    (home first) and the score. It holds no match date, so repeat meetings
+    at the same ground (two 0-0s at Wealdstone) are told apart by order:
+    `pks_0` keeps the club's matches in the order they were played (all 67
+    archived matches, checked 7 October 2026). Before that, both meetings
+    were dropped as ambiguous; see `fm20_match_archive.find_chunks`.
   - Player records are packed. Each starts `01`, the short ID, four zero
     bytes, shirt, side and `02`. It has a 129-byte fixed part, then one
     entry per shot, usually 15 bytes and sometimes 12. Every live field sits

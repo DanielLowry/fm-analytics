@@ -19,8 +19,9 @@ class WebActionsMixin:
             return
         if parsed.path == "/refresh":
             started = self.server.request_refresh()  # type: ignore[attr-defined]
+            back_to_league = self._read_form().get("return_to", [""])[0] == "/league"
             self.send_response(HTTPStatus.SEE_OTHER)
-            self.send_header("Location", "/?refresh=" + ("started" if started else "running"))
+            self.send_header("Location", "/league" if back_to_league else "/?refresh=" + ("started" if started else "running"))
             self.end_headers()
             return
         if self.server.read_only:  # type: ignore[attr-defined]

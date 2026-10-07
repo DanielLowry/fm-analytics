@@ -75,7 +75,7 @@ from fm_analytics.analytics.league_comparison import LeagueReport, build_league_
 from fm_analytics.analytics.league_insights import TeamSummary
 from fm_analytics.domain.leagues import LeagueCapture
 from fm_analytics.domain import GameState, Player, Squad
-from fm_analytics.season_export import export_document
+from fm_analytics.season_export import export_document, match_document
 
 if TYPE_CHECKING:
     from fm_analytics.persistence.match_history import MatchHistory
@@ -820,6 +820,21 @@ def build_match_report(
         confirmed_role_codes=history.role_codes,
         usual_roles=history.usual_roles,
     )
+
+
+def build_match_export(
+    history: MatchHistory,
+    report: MatchReport,
+    *,
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+    generated_at: datetime | None = None,
+) -> dict[str, Any]:
+    """One match as JSON, from the `build_match_report` its page shows: the match page's copy button.
+
+    See `season_export.match_document` for what it holds beyond the match's
+    verbose season-export entry.
+    """
+    return match_document(history, report, catalogue=catalogue, generated_at=generated_at)
 
 
 def build_season_export(

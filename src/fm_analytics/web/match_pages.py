@@ -8,6 +8,7 @@ Nothing is ever written to FM: reading matches runs the read-only
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from http import HTTPStatus
 from urllib.parse import quote, unquote
@@ -18,6 +19,7 @@ from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.match_ingest import export_path
 from fm_analytics.reporting import (
     build_match_diagnostics,
+    build_match_export,
     build_match_intervention_evaluation,
     build_match_report,
     build_match_review,
@@ -33,6 +35,7 @@ from fm_analytics.web.match_render import (
     tactic_history_panel,
     tactic_record_panel,
 )
+from fm_analytics.web.attribute_export import profile_copy_control
 from fm_analytics.web.rendering import _error_page, _layout, _query_first
 
 
@@ -167,9 +170,14 @@ class MatchPagesMixin:
             return
         summary = report.summary
         title = f"{summary.match.home.name} {summary.match.home_goals}–{summary.match.away_goals} {summary.match.away.name}"
+        document = build_match_export(history, report)
+        copy = profile_copy_control(
+            json.dumps(document, indent=2, ensure_ascii=False),
+            label="Copy match to clipboard", success="Match copied as JSON!",
+        )
         body = "<p><a href='/matches'>← All matches</a></p>" + match_body(
             report, MVP_CATALOGUE, self.server.pinned_tactics,  # type: ignore[attr-defined]
-            history.notes.get(summary.match.key),
+            history.notes.get(summary.match.key), copy_control=copy,
         )
         self._send(_layout(title, "/matches", body, wide=True))  # type: ignore[attr-defined]
 

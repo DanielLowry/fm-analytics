@@ -9,7 +9,8 @@ the player-knowledge rules (see `persistence.migrations`):
 * **Nothing is overwritten.** Each distinct state of a match is a new row. A
   match's current state is its latest version *with full stats* if one exists,
   otherwise its latest version, so a later capture that no longer sees the
-  stats never hides them.
+  stats never hides them. A league result is kept as first seen; only its
+  season, unknown before v4, is filled in by a later capture.
 * **It stays readable.** Ordered migrations from v1, a backup before any
   upgrade, and a refusal to open a newer or unrelated file.
 
@@ -181,8 +182,16 @@ CREATE TABLE usual_roles (
 CREATE INDEX usual_roles_by_save ON usual_roles (save_id, tactic_key, slot_key, id);
 """
 
+_V4 = """
+-- The season FM files each league result under (the year it starts: 2019 for
+-- 2019/20). FM keeps every season of a league under one competition, so this
+-- is what keeps one season's table from adding up two. NULL for a result
+-- recorded before it was read; the next capture that still sees it fills it in.
+ALTER TABLE league_results ADD COLUMN season INTEGER;
+"""
+
 # Append only. Version N of the file is the result of applying MIGRATIONS[:N].
-MIGRATIONS: tuple[str, ...] = (_V1, _V2, _V3)
+MIGRATIONS: tuple[str, ...] = (_V1, _V2, _V3, _V4)
 
 
 @dataclass(frozen=True)
@@ -311,12 +320,21 @@ class MatchHistoryStore:
             for competition, rows in capture.league_results:
                 for row in rows:
                     cursor = connection.execute(
-                        "INSERT OR IGNORE INTO league_results VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "INSERT OR IGNORE INTO league_results (save_id, competition_id, competition_name, "
+                        "competition_short_name, result_date, home_id, home_name, away_id, away_name, "
+                        "home_goals, away_goals, capture_id, season) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (save_id, competition.id, competition.name, competition.short_name,
                          row.date.isoformat(), row.home.id, row.home.name, row.away.id, row.away.name,
-                         row.home_goals, row.away_goals, capture_id),
+                         row.home_goals, row.away_goals, capture_id, row.season),
                     )
                     results += cursor.rowcount
+                    if not cursor.rowcount and row.season is not None:
+                        # A result first recorded before seasons were read: fill in only what was unknown.
+                        connection.execute(
+                            "UPDATE league_results SET season = ? WHERE save_id = ? AND competition_id = ? "
+                            "AND result_date = ? AND home_id = ? AND away_id = ? AND season IS NULL",
+                            (row.season, save_id, competition.id, row.date.isoformat(), row.home.id, row.away.id),
+                        )
             connection.execute(
                 "UPDATE captures SET match_versions_added = ?, league_results_added = ? WHERE id = ?",
                 (versions, results, capture_id),
@@ -529,7 +547,7 @@ class MatchHistoryStore:
                         date.fromisoformat(row["result_date"]),
                         TeamRef(row["home_id"], row["home_name"]),
                         TeamRef(row["away_id"], row["away_name"]),
-                        row["home_goals"], row["away_goals"],
+                        row["home_goals"], row["away_goals"], row["season"],
                     )
                 )
             notes = {

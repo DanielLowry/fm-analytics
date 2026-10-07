@@ -14,9 +14,12 @@ from fm_analytics.cli import load_fixture
 from fm_analytics.domain.matches import MatchCapture
 from fm_analytics.match_ingest import main, record_capture_file
 from fm_analytics.persistence.match_history import MatchHistoryStore
-from fm_analytics.reporting import RecommendationPolicy, build_match_review, build_recommendation_bundle, build_season_export
+from fm_analytics.reporting import (
+    RecommendationPolicy, build_match_export, build_match_report, build_match_review, build_recommendation_bundle,
+    build_season_export,
+)
 
-from tests.match_support import capture_document, lineup, season
+from tests.match_support import capture_document, lineup, player, season, two_seasons
 from tests.test_match_history import intervention
 from tests.web_support import WebServerHelpers, write_complete_fixture
 
@@ -90,6 +93,20 @@ class DetailLevelTests(HistoryCase):
         self.assertEqual(season["league_position_now"], us["pos"])
         self.assertEqual([step["position_after"] for step in season["league_position_trajectory"]][-1], us["pos"])
         self.assertEqual(season["league_form_last6"], "DLDW")
+
+    def test_the_table_now_is_this_seasons_and_the_trajectory_starts_again_each_season(self) -> None:
+        matches, results = two_seasons()
+        self.capture.write_text(json.dumps(capture_document(matches, game_date="2020-08-09", league_results=results)),
+                                encoding="utf-8")
+        record_capture_file(self.store, self.capture)
+        self.history = self.store.load_history("club:100")
+        season = self.export("basic")["season"]
+        self.assertEqual(season["league_season"], 2020)
+        self.assertEqual({row["team"] for row in season["league_table_now"]}, {"Hungerford Town", "Alpha", "Bravo", "Delta"})
+        us = next(row for row in season["league_table_now"] if row["us"])
+        self.assertEqual((us["played"], us["points"]), (2, 3))
+        steps = [(step["season"], step["points_after"]) for step in season["league_position_trajectory"]]
+        self.assertEqual(steps, [(2019, 1), (2019, 1), (2019, 2), (2019, 5), (2020, 0), (2020, 3)])
 
     def test_basic_has_one_line_per_match_and_per_player(self) -> None:
         document = self.export("basic")
@@ -211,6 +228,62 @@ class SquadSectionTests(HistoryCase):
         document = self.export("basic", bundle=self.bundle())
         self.assertNotIn("squad", document)
         self.assertEqual(document["meta"]["squad"], "left out (basic)")
+
+
+class MatchExportTests(HistoryCase):
+    def document(self, key=DETAILED):
+        return build_match_export(self.history, build_match_report(self.history, key), generated_at=GENERATED)
+
+    def test_a_match_is_its_verbose_season_entry_with_their_full_lines_and_more(self) -> None:
+        document = self.document()
+        self.assertEqual((document["format"], document["formatVersion"]), ("fm-analytics/match-export", 1))
+        self.assertEqual(json.loads(json.dumps(document)), document)
+        match, entry = document["match"], self.detailed(self.export("verbose"))
+        self.assertEqual({key: match[key] for key in entry if key != "their_players"},
+                         {key: value for key, value in entry.items() if key != "their_players"})
+        self.assertEqual([line["name"] for line in match["their_players"]],
+                         [line["name"] for line in entry["their_players"]])
+        self.assertNotIn("stats", entry["their_players"][0])  # the season keeps theirs short
+        self.assertIn("stats", match["their_players"][0])
+        self.assertEqual(match["league_at_kickoff"], {
+            "league": "Test League South", "season": None, "teams": 4,
+            "us": {"position": 4, "played": 3, "points": 2}, "them": {"position": 1, "played": 3, "points": 7},
+        })
+        self.assertEqual(match["unused_substitutes"], {"us": [], "them": []})
+        self.assertEqual(match["fm_saved_tactics"], {})
+        self.assertIsNone(match["your_pre_match_rating"])
+
+    def test_a_result_only_match_says_so_and_keeps_its_context(self) -> None:
+        document = self.document("2019-08-10:202:100")
+        match = document["match"]
+        self.assertFalse(match["full_stats"])
+        self.assertEqual((match["score"], match["attendance"]), ("0-2", 500))
+        self.assertNotIn("fm_saved_tactics", match)
+        self.assertTrue(any("Only the result was found" in caveat for caveat in document["meta"]["caveats"]))
+
+    def test_your_rating_the_unused_substitutes_and_the_saved_tactics_are_included(self) -> None:
+        matches = season()
+        detail = matches[-1]["detail"]
+        detail["players"].append(player("home", 11, 0, name="Home 12") | {"played": False, "rating": None})
+        detail["savedTactics"] = {"home": {"name": "My 4-4-2", "slots": [
+            {"position": "GK", "centreSide": None, "roleCode": 1, "dutyCode": 0x200000},
+            {"position": "DC", "centreSide": "left", "roleCode": 2, "dutyCode": 0x4000000},
+        ]}}
+        self.capture.write_text(json.dumps(capture_document(matches)), encoding="utf-8")
+        record_capture_file(self.store, self.capture)
+        self.store.add_note("club:100", DETAILED, tactic_key=None, opponent_rating=1, note="Sat deep")
+        self.history = self.store.load_history("club:100")
+        document = self.document()
+        match = document["match"]
+        self.assertEqual((match["your_pre_match_rating"], match["note"]), (1, "Sat deep"))
+        self.assertEqual(match["unused_substitutes"], {"us": ["Home 12"], "them": []})
+        tactic = match["fm_saved_tactics"]["us"]
+        self.assertEqual(tactic["name"], "My 4-4-2")
+        self.assertEqual([(slot["position"], slot["centre_side"], slot["duty"]) for slot in tactic["slots"]],
+                         [("GK", None, "defend"), ("DC", "left", None)])
+        caveats = " ".join(document["meta"]["caveats"])
+        self.assertIn("your_pre_match_rating is how strong you judged them", caveats)
+        self.assertIn("duty of null", caveats)
 
 
 class PlayerSeasonTests(unittest.TestCase):

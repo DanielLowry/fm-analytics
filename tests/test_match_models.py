@@ -83,6 +83,19 @@ class MatchRecordTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "penalties"):
             MatchRecord.from_document(document)
 
+    def test_a_season_round_trips_its_absence_keeps_the_old_content_hash_and_it_must_be_a_year(self) -> None:
+        self.assertNotIn("season", self.match.to_document())
+        document = self.match.to_document()
+        record = MatchRecord.from_document(dict(document, season=2019))
+        self.assertEqual(record.season, 2019)
+        self.assertEqual(MatchRecord.from_document(record.to_document()), record)
+        self.assertNotEqual(record.content_hash(), self.match.content_hash())
+        with self.assertRaisesRegex(ValueError, "season must be a year"):
+            MatchRecord.from_document(dict(document, season=19))
+        results = [dict(row, season=2020) for row in capture_document([])["competitionResults"][0]["results"]]
+        (_league, parsed), = MatchCapture.from_document(capture_document([], league_results=results)).league_results
+        self.assertEqual({row.season for row in parsed}, {2020})
+
     def test_positions_round_trip_and_their_absence_keeps_the_old_content_hash(self) -> None:
         document = self.match.to_document()
         self.assertNotIn("position", document["detail"]["players"][0])

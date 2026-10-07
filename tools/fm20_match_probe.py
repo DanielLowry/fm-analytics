@@ -380,7 +380,9 @@ def build_capture(memory: Memory) -> dict[str, Any]:
     for key in ours:
         home, away = clubs(ours[key]["home_team"]), clubs(ours[key]["away_team"])
         if home and away and home["id"].isdigit() and away["id"].isdigit() and home["id"] != away["id"]:
-            fixtures.append((key, int(home["id"]), int(away["id"]), ours[key]["home_goals"], ours[key]["away_goals"]))
+            fixtures.append(
+                (key, key[0], int(home["id"]), int(away["id"]), ours[key]["home_goals"], ours[key]["away_goals"])
+            )
     if folder is not None and fixtures:
         for key, (chunk, detail) in archive.find_chunks(folder, fixtures).items():
             if key not in details:
@@ -433,6 +435,8 @@ def build_capture(memory: Memory) -> dict[str, Any]:
             "attendance": result["attendance"],
             "detail": _detail_json(details.get(key)),
         }
+        if result["season"]:
+            document["season"] = result["season"]
         if result["score_at_90"]:
             document["scoreAt90"] = list(result["score_at_90"])
         if result["penalties"]:
@@ -452,6 +456,7 @@ def build_capture(memory: Memory) -> dict[str, Any]:
                 "away": _team_json(clubs(result["away_team"]), result["away_team"]),
                 "homeGoals": result["home_goals"],
                 "awayGoals": result["away_goals"],
+                "season": result["season"],
             }
             for result in results.values()
             if result["fixture_name"] == fixture_name

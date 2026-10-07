@@ -185,8 +185,25 @@ class LeaguePagesMixin:
                     return False
             return view.report
         except LeagueOutOfDate as exc:
-            self._send(_layout("League", "/league", "<section class='fm-decision-hero'><h2>League out of date</h2>"
-                               f"<p>{escape(str(exc))}</p>" + _read_panel(self.server) + "</section>"),
+            if not exc.squad_behind:
+                self._send(_layout("League", "/league", "<section class='fm-decision-hero'><h2>League out of date</h2>"
+                                   f"<p>{escape(str(exc))}</p>" + _read_panel(self.server) + "</section>"),
+                           HTTPStatus.CONFLICT)
+                return False
+            _date, refreshing, error = self.server.squad_refresh_state()
+            if refreshing:
+                self._send(_layout("League", "/league", "<section class='fm-workspace-panel' data-league-pending "
+                                   "role='status'><h2>Reading your squad from FM</h2>"
+                                   f"<p>{escape(str(exc))} It is being read again now, read-only; this page "
+                                   "will update automatically.</p></section>"), HTTPStatus.ACCEPTED)
+                return False
+            self._send(_layout("League", "/league", "<section class='fm-decision-hero'><h2>Your squad needs reading again</h2>"
+                               f"<p>{escape(str(exc))} Read your squad from FM to compare them; nothing is "
+                               "written to FM.</p>"
+                               + (f"<p class='warn'>The last read failed: {escape(error)}</p>" if error else "")
+                               + "<form method='post' action='/refresh'><input type='hidden' name='return_to' "
+                               "value='/league'><button type='submit'>Read your squad from FM</button></form>"
+                               "</section>"),
                        HTTPStatus.CONFLICT)
         except (ValueError, TypeError, KeyError) as exc:
             self._send(_error_page("League", str(exc), "/league"), HTTPStatus.BAD_REQUEST)

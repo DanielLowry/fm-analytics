@@ -33,6 +33,12 @@ STARTERS = 11
 RESULT_HOME_TEAM = 0x08
 RESULT_AWAY_TEAM = 0x10
 RESULT_FIXTURE_NAME = 0x20  # db::FIXTURE_NAME: which competition
+# The year the result's season starts (2019 for 2019/20), u16; 0 for a friendly.
+# One competition keeps every season's results under one FIXTURE_NAME, so this
+# is what tells them apart: checked on 7 October 2026 against all 76,320
+# results FM held (0, 2018, 2019 or 2020), including all 473 of the National
+# League South's (462 tagged 2019, then 11 tagged 2020 from 1 August 2020).
+RESULT_SEASON = 0x30
 RESULT_DATE = 0x4C
 RESULT_ATTENDANCE = 0x5C
 # Each side's score is five bytes, 0xFF for a stage not played: after 90
@@ -189,6 +195,7 @@ def decode_fixture_result(record: bytes) -> dict[str, Any]:
         "away_team": pointer(record, RESULT_AWAY_TEAM),
         "fixture_name": pointer(record, RESULT_FIXTURE_NAME),
         "date": decode_fm_date(record[RESULT_DATE:RESULT_DATE + 4]),
+        "season": struct.unpack_from("<H", record, RESULT_SEASON)[0] or None,
         "attendance": struct.unpack_from("<I", record, RESULT_ATTENDANCE)[0],
         # The score FM shows: after extra time when it was played.
         "home_goals": home_goals,

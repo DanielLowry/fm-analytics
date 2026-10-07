@@ -652,7 +652,9 @@ def note_form(
     )
 
 
-def match_body(report: MatchReport, catalogue: FootballCatalogue, pinned: Sequence[str], note) -> str:
+def match_body(
+    report: MatchReport, catalogue: FootballCatalogue, pinned: Sequence[str], note, *, copy_control: str = ""
+) -> str:
     summary = report.summary
     match = summary.match
     strength = summary.strength
@@ -671,7 +673,8 @@ def match_body(report: MatchReport, catalogue: FootballCatalogue, pinned: Sequen
     header = (
         "<section class='fm-match-detail-hero'><span class='eyebrow'>Match review</span>"
         f"<p class='fm-match-detail-meta'>{match.date:%A %d %B %Y} · {_e(match.competition.name)} · {summary.venue}</p>"
-        f"<div class='fm-match-detail-result'>{chip(summary.result)}<p>{' '.join(context)}</p></div></section>"
+        f"<div class='fm-match-detail-result'>{chip(summary.result)}<p>{' '.join(context)}</p></div>"
+        f"{copy_control}</section>"
     )
 
     def panel(title: str, description: str, content: str, *, panel_class: str = "") -> str:

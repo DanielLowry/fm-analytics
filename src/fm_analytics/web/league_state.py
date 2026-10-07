@@ -15,11 +15,14 @@ from fm_analytics.reporting import RecommendationPolicy, build_league_comparison
 
 
 class LeagueOutOfDate(ValueError):
-    """The league was read on an earlier game date than the squad now shown."""
+    """The league and the squad on screen were read from FM on different game dates."""
 
     def __init__(self, captured, current):
-        super().__init__(f"The league was read at game date {captured.isoformat()}, but FM is now at "
-                         f"{current.isoformat()}. Read it again to compare today's squads.")
+        # FM moved on and the league was read again, but the squad on screen was not.
+        self.squad_behind = captured > current
+        facts = (f"The league was read at game date {captured.isoformat()}, but your squad on screen was "
+                 f"read at {current.isoformat()}.")
+        super().__init__(facts if self.squad_behind else facts + " Read it again to compare today's squads.")
 
 
 @dataclass(frozen=True)
@@ -129,8 +132,21 @@ class LeagueState:
         except Exception as exc:  # noqa: BLE001 - reported on the page, never a crash
             self.league_capture_note = (f"The league could not be read from FM: {exc}", False)
             print(f"League was not read: {exc}", file=sys.stderr)
+            return
         finally:
             self._league_capture_lock.release()
+        self._catch_squad_up()
+
+    def _catch_squad_up(self) -> None:
+        """Once FM has moved past the squad on screen, read the squad again too, so the
+        two can be compared; the League page waits for it."""
+        try:
+            capture = self.league_provider() if self.league_provider is not None else None
+        except (OSError, ValueError, KeyError):
+            return  # the League page reports a capture it cannot read
+        squad_date, _running, _error = self.squad_refresh_state()
+        if capture is not None and squad_date is not None and capture.game.game_date > squad_date:
+            self.request_refresh()
 
     def _league_capture(self):
         if self.league_provider is None:

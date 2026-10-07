@@ -137,3 +137,30 @@ def season() -> list[dict[str, Any]]:
             ),
         ),
     ]
+
+
+DELTA = {"id": "204", "name": "Delta"}
+
+
+def two_seasons() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """`season()` filed as 2019/20, then 2020/21: Charlie relegated, Delta promoted.
+
+    2019/20 ended Bravo 7 pts, Alpha 7, us 5, Charlie 2. By the morning of
+    8 August 2020 we have 0 points this season, having lost at Alpha.
+    """
+    matches = [
+        item if item["competition"] == FRIENDLY else dict(item, season=2019) for item in season()
+    ] + [
+        match("2020-07-25", US, CHARLIE, 1, 1, competition=FRIENDLY),
+        match("2020-07-28", US, DELTA, 2, 0, competition=FRIENDLY),
+        dict(match("2020-08-01", ALPHA, US, 1, 0), season=2020),
+        dict(match("2020-08-04", CHARLIE, US, 0, 1, competition=CUP), season=2020),
+        dict(match("2020-08-08", US, DELTA, 3, 0), season=2020),
+    ]
+    results = [dict(row, season=2019) for row in LEAGUE_RESULTS] + [
+        dict(result("2020-08-01", ALPHA, US, 1, 0), season=2020),
+        dict(result("2020-08-01", BRAVO, DELTA, 2, 2), season=2020),
+        dict(result("2020-08-08", US, DELTA, 3, 0), season=2020),
+        dict(result("2020-08-08", ALPHA, BRAVO, 0, 1), season=2020),
+    ]
+    return matches, results

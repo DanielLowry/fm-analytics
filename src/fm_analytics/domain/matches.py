@@ -137,6 +137,15 @@ def _optional_choice(value: Any, choices, where: str) -> str | None:
     return value
 
 
+def _season(value: Any, where: str) -> int | None:
+    """FM's season, as the year it starts (2019 for 2019/20); None when FM gives none."""
+    if value is None:
+        return None
+    if not isinstance(value, int) or isinstance(value, bool) or not 1900 <= value <= 2300:
+        raise ValueError(f"{where} must be a year")
+    return value
+
+
 def _date(value: Any, where: str) -> date:
     try:
         return date.fromisoformat(value)
@@ -472,6 +481,9 @@ class MatchRecord:
     # was played; these are (home, away) for the stages beyond 90 minutes.
     score_at_90: tuple[int, int] | None = None
     penalties: tuple[int, int] | None = None
+    # The season FM files a competitive match under (the year it starts); None
+    # for a friendly, and in captures made before it was read.
+    season: int | None = None
 
     @property
     def after_extra_time(self) -> bool:
@@ -511,6 +523,7 @@ class MatchRecord:
             incidents=tuple(MatchIncident.from_document(item) for item in raw.get("incidents") or ()),
             score_at_90=_score(raw.get("scoreAt90"), f"{where} scoreAt90"),
             penalties=_score(raw.get("penalties"), f"{where} penalties"),
+            season=_season(raw.get("season"), f"{where} season"),
         )
 
     def to_document(self) -> dict[str, Any]:
@@ -532,6 +545,8 @@ class MatchRecord:
             document["penalties"] = list(self.penalties)
         if self.incidents:
             document["incidents"] = [incident.to_document() for incident in self.incidents]
+        if self.season is not None:
+            document["season"] = self.season
         return document
 
     def content_hash(self) -> str:
@@ -541,13 +556,19 @@ class MatchRecord:
 
 @dataclass(frozen=True)
 class LeagueResult:
-    """One result of a league the managed team plays in, for its table."""
+    """One result of a league the managed team plays in, for its table.
+
+    FM keeps every season of a league under one competition, so `season` (the
+    year it starts) is what keeps one season's table apart from the next. None
+    for a result recorded before it was read.
+    """
 
     date: date
     home: TeamRef
     away: TeamRef
     home_goals: int
     away_goals: int
+    season: int | None = None
 
     @classmethod
     def from_document(cls, raw: Mapping[str, Any]) -> LeagueResult:
@@ -557,6 +578,7 @@ class LeagueResult:
             away=TeamRef.from_document(raw.get("away"), "a league result away team"),
             home_goals=_count(raw.get("homeGoals"), "a league result homeGoals"),
             away_goals=_count(raw.get("awayGoals"), "a league result awayGoals"),
+            season=_season(raw.get("season"), "a league result season"),
         )
 
 

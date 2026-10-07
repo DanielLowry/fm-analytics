@@ -7,7 +7,7 @@ from urllib.parse import quote
 from fm_analytics.analytics.match_analysis import ReviewFilters
 from fm_analytics.match_ingest import record_capture_file
 from fm_analytics.persistence.match_history import MatchHistoryStore
-from fm_analytics.reporting import build_match_review
+from fm_analytics.reporting import build_match_export, build_match_report, build_match_review
 
 from tests.match_support import capture_document, season
 from tests.test_match_diagnostics import diagnostic_season
@@ -84,11 +84,24 @@ class MatchPageTests(MatchPagesCase):
         self.assertIn("Minutes", body)
         self.assertIn("action='/matches/note'", body)
 
+    def test_the_copy_button_holds_the_shared_match_document(self) -> None:
+        self.record()
+        _status, body = self._get(self.serve(), DETAILED_URL)
+        self.assertIn("Copy match to clipboard", body)
+        source = body.split("<script type='application/json' data-player-copy-text>")[1].split("</script>")[0]
+        copied = json.loads(json.loads(source))  # the embedded value is the JSON text itself
+        history = self.store.load_history("club:100")
+        expected = build_match_export(history, build_match_report(history, DETAILED))
+        copied["meta"].pop("generated_at")
+        expected["meta"].pop("generated_at")
+        self.assertEqual(copied, expected)
+
     def test_a_result_only_match_explains_how_to_add_its_stats(self) -> None:
         self.record()
         status, body = self._get(self.serve(), "/matches/" + quote("2019-08-10:202:100", safe=""))
         self.assertEqual(status, 200)
         self.assertIn("Only the result was found", body)
+        self.assertIn("Copy match to clipboard", body)  # the result and its context are still worth copying
 
     def test_an_unknown_match_is_not_found(self) -> None:
         self.record()

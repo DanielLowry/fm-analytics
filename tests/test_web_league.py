@@ -288,6 +288,53 @@ class LeagueWebTests(WebServerHelpers, unittest.TestCase):
         self.assertIn("Read it again", body)
         self.assertIn("action='/league/capture'", body)
 
+    def moved_on(self, capture):
+        """The same league a game day later, as FM shows it after continuing."""
+        return replace(capture, game=replace(capture.game, game_date=capture.game.game_date+timedelta(days=1)),
+                       teams=tuple(replace(r, squad=replace(r.squad, as_of_date=r.squad.as_of_date+timedelta(days=1)))
+                                   for r in capture.teams))
+
+    def test_a_league_read_after_fm_moved_on_reads_your_squad_again_then_compares(self):
+        from fm_analytics.web.providers import fixture_provider
+        league, gate, reads = [self.capture], threading.Event(), []
+        plain = fixture_provider(self.fixture)
+
+        def squad():
+            reads.append(1)
+            if len(reads) > 1:
+                self.assertTrue(gate.wait(30))  # the re-read, held so the page can be seen waiting
+            return plain()
+
+        with patch("tests.web_support.fixture_provider", return_value=squad):
+            port = self._serve(self.fixture, league_provider=lambda: league[0], league_capture=lambda: "read")
+        self._get(port, "/league?tactic=balanced_442")  # the squad on screen is read now, and kept
+        newer = self.moved_on(self.capture)
+        self.fixture.write_text(json.dumps({"game": newer.game.to_dict(), "squad": newer.teams[0].squad.to_dict()}))
+        league[0] = newer
+        self.assertEqual(self._post(port, "/league/capture")[:2], (303, "/league"))
+        raw = lambda: WebServerHelpers._get(self, port, "/league?tactic=balanced_442")  # noqa: E731 - every 202 too
+        status, body = raw()
+        self.assertEqual(status, 202)
+        self.assertIn("Reading your squad from FM", body)
+        self.assertIn("data-league-pending", body)  # the page reloads itself until it is done
+        self.assertIn(f"your squad on screen was read at {self.capture.game.game_date.isoformat()}", body)
+        gate.set()
+        deadline = time.monotonic() + 60
+        while (status := raw()[0]) == 202 and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(reads), 2)
+
+    def test_a_squad_older_than_the_league_offers_to_read_the_squad_not_the_league(self):
+        port = self._serve(self.fixture, league_provider=lambda: self.moved_on(self.capture), league_capture=lambda: "read")
+        status, body = self._get(port, "/league")
+        self.assertEqual(status, 409)
+        self.assertIn("Your squad needs reading again", body)
+        self.assertIn("action='/refresh'", body)
+        self.assertNotIn("Read it again", body)
+        self.assertEqual(self._post(port, "/refresh", "return_to=%2Fleague")[:2], (303, "/league"))
+        self.assertEqual(self._post(port, "/refresh", "return_to=%2Felsewhere")[1][:9], "/?refresh")
+
     def test_without_fm_there_is_no_read_button(self):
         status, body = self._get(self.port, "/league?tactic=balanced_442")
         self.assertNotIn("/league/capture", body)

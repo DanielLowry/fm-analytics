@@ -13,7 +13,7 @@ from fm_analytics.analytics.match_strength import (
 )
 from fm_analytics.domain.matches import MatchCapture, PlayerMatchStats, TeamRef
 
-from tests.match_support import US, capture_document, lineup, season
+from tests.match_support import US, capture_document, lineup, season, two_seasons
 
 
 @dataclass
@@ -80,6 +80,53 @@ class StrengthTests(unittest.TestCase):
         self.assertEqual(by_date["2019-09-01"].band("table").key, "top")
         self.assertEqual((by_date["2019-09-01"].opponent.position, by_date["2019-09-01"].ours.position), (1, 4))
         self.assertEqual(by_date["2019-08-24"].band("table").key, "outside")
+
+
+class SeasonTests(unittest.TestCase):
+    """FM keeps every season of a league under one competition; each table is one season's."""
+
+    def setUp(self) -> None:
+        matches, results = two_seasons()
+        capture = MatchCapture.from_document(capture_document(matches, game_date="2020-08-09", league_results=results))
+        self.calculator = StrengthCalculator(capture.league_results, US["id"])
+        self.records = {record.date.isoformat(): record for record in capture.matches}
+
+    def strength(self, day: str) -> Strength:
+        record = self.records[day]
+        return self.calculator.strength(record, record.team("away" if record.side_of(US["id"]) == "home" else "home").id, None)
+
+    def test_a_league_match_is_placed_in_its_own_seasons_table(self) -> None:
+        opener = self.strength("2020-08-01")
+        self.assertEqual((opener.season, opener.opponent.teams, opener.opponent.played), (2020, 4, 0))
+        self.assertEqual(opener.band("table").key, "early")
+        week_two = self.strength("2020-08-08")
+        self.assertEqual((week_two.ours.played, week_two.ours.points), (1, 0))  # last season's 5 points are gone
+        self.assertEqual(self.strength("2019-09-01").ours.position, 4)  # last season reads as it always did
+        self.assertEqual(self.strength("2019-09-01").season, 2019)
+
+    def test_a_cup_tie_against_a_relegated_side_is_not_in_our_league_that_season(self) -> None:
+        self.assertEqual(self.strength("2020-08-04").band("table").key, "outside")
+
+    def test_a_pre_season_friendly_uses_the_season_just_finished(self) -> None:
+        friendly = self.strength("2020-07-25")
+        self.assertEqual(friendly.season, 2019)
+        self.assertEqual((friendly.opponent.position, friendly.opponent.played, friendly.ours.position), (4, 4, 3))
+
+    def test_a_newly_promoted_side_in_pre_season_is_early_season(self) -> None:
+        friendly = self.strength("2020-07-28")
+        self.assertEqual((friendly.season, friendly.opponent.played), (2020, 0))
+        self.assertEqual(friendly.band("table").key, "early")
+
+    def test_results_recorded_before_seasons_were_read_still_make_one_table(self) -> None:
+        matches, results = two_seasons()
+        untagged = MatchCapture.from_document(capture_document(
+            [{key: value for key, value in item.items() if key != "season"} for item in matches],
+            league_results=[{key: value for key, value in row.items() if key != "season"} for row in results],
+        ))
+        calculator = StrengthCalculator(untagged.league_results, US["id"])
+        week_two = next(record for record in untagged.matches if record.date.isoformat() == "2020-08-08")
+        merged = calculator.strength(week_two, week_two.away.id, None)
+        self.assertEqual((merged.season, merged.ours.played, merged.opponent.teams), (None, 5, 5))
 
 
 class ReviewTests(unittest.TestCase):

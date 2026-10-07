@@ -16,6 +16,9 @@ Every detail level has the same sections; a higher level adds depth to them:
 * ``verbose``: adds every player's stat line in every match, both teams'
   full panels, goal timelines, every visible attribute, and the whole
   tactic ranking with depth and recruitment briefs.
+
+`match_document` is one match on its own, for the match page's copy button
+(`reporting.build_match_export`): its verbose entry, with more besides.
 """
 
 from __future__ import annotations
@@ -28,12 +31,14 @@ from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.in_transition import in_transition_selected_instructions
 from fm_analytics.analytics.in_possession import in_possession_instruction_strings
 from fm_analytics.analytics.out_of_possession import out_of_possession_selected_instructions
-from fm_analytics.analytics.match_analysis import METRICS, MIN_GROUP_MATCHES, GroupSummary, MatchReview, MatchSummary
+from fm_analytics.analytics.match_analysis import (
+    METRICS, MIN_GROUP_MATCHES, GroupSummary, MatchReport, MatchReview, MatchSummary,
+)
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
 from fm_analytics.analytics.match_interventions import InterventionEvaluation
 from fm_analytics.analytics.match_players import PlayerSeason
 from fm_analytics.analytics.match_roles import RoleCodes
-from fm_analytics.analytics.match_strength import league_table
+from fm_analytics.analytics.match_strength import TablePosition, league_seasons, league_table
 from fm_analytics.domain import AttributeObservation, Player
 from fm_analytics.domain.matches import PLAYER_STAT_KEYS, PlayerMatchStats
 
@@ -115,26 +120,32 @@ def _season(history: MatchHistory, everything: MatchReview, competitive: MatchRe
         "friendlies": _record(s for s in everything.matches if s.match.key not in competitive_keys),
         "league_form_last6": "".join(summary.result for summary in league.matches[-6:]),
     }
-    ours = next(
-        ((competition, results) for competition, results in history.league_results
-         if any(history.club.id in (r.home.id, r.away.id) for r in results)),
-        None,
-    )
-    if ours is None or as_of is None:
+    # One season's table at a time: FM files every season of a league under one competition.
+    seasons = {
+        (season.competition.id, season.season): season
+        for season in league_seasons(history.league_results) if history.club.id in season.teams
+    }
+    if not seasons or as_of is None:
         return section
-    competition, results = ours
-    table = _table(results, as_of + timedelta(days=1), history.club.id)
+    current = max(seasons.values(), key=lambda season: season.starts)
+    table = _table(current.results, as_of + timedelta(days=1), history.club.id)
     trajectory = []
     for summary in league.matches:
-        after = _table(results, summary.match.date + timedelta(days=1), history.club.id)
+        strength = summary.strength
+        played_in = seasons.get((strength.league.id, strength.season)) if strength.league else None
+        if played_in is None:
+            continue
+        after = _table(played_in.results, summary.match.date + timedelta(days=1), history.club.id)
         row = next(row for row in after if row["us"])
         trajectory.append({
-            "date": summary.match.date.isoformat(), "opponent": summary.opponent.name, "venue": summary.venue,
+            "date": summary.match.date.isoformat(), "season": played_in.season,
+            "opponent": summary.opponent.name, "venue": summary.venue,
             "result": f"{summary.result} {summary.goals_for}-{summary.goals_against}",
             "position_after": row["pos"], "points_after": row["points"],
         })
     section.update({
-        "league_name": competition.name,
+        "league_name": current.competition.name,
+        "league_season": current.season,
         "league_position_now": next((row["pos"] for row in table if row["us"]), None),
         "league_table_now": table,
         "league_position_trajectory": trajectory,
@@ -270,14 +281,14 @@ def _match(summary: MatchSummary, kind: str, codes: RoleCodes, catalogue: Footba
         "attendance": match.attendance,
         "summary_for": _metrics(summary.ours),
         "summary_against": _metrics(summary.theirs),
-        "our_players": [_line(player, role(player), full=detail == "verbose") for player in ours],
+        "our_players": [_line(player, role(player), full=detail != "standard") for player in ours],
     })
-    if detail == "verbose":
+    if detail in ("verbose", "match"):
         theirs = [player for player in match.detail.players_for(other) if player.played]
         row.update({
             "team_stats_for": _team_panel(match.detail.team(side), match.detail.players_for(side)),
             "team_stats_against": _team_panel(match.detail.team(other), match.detail.players_for(other)),
-            "their_players": [_line(player, role(player), full=False) for player in theirs],
+            "their_players": [_line(player, role(player), full=detail == "match") for player in theirs],
         })
         if match.detail.events:
             row["timeline"] = [
@@ -412,8 +423,8 @@ def _caveats(everything: MatchReview, competitive: MatchReview, bundle, as_of: d
         f"Groups under {MIN_GROUP_MATCHES} matches are marked enough_to_read: false; most splits are small.",
         "Averages are per match over the matches with full stats only (matches_with_full_stats).",
         "A match's tactic is your note if you added one, else inferred from the starting roles.",
-        "Opponent bands use the league table on the morning of each match; 'Early season' means "
-        "the opponent had played fewer than 3 league games.",
+        "Opponent bands use that season's league table on the morning of each match (a friendly uses the "
+        "latest season under way); 'Early season' means the opponent had played fewer than 3 league games.",
         "FM20's match panel has no xG; clear-cut chances are the nearest measure of chance quality.",
     ]
     if len(everything.matches) > detailed:
@@ -553,3 +564,92 @@ def export_document(
         document["squad"] = squad
         document["recommendation"] = _recommendation(bundle, detail)
     return document
+
+
+# -- one match ----------------------------------------------------------------
+
+MATCH_EXPORT_FORMAT = "fm-analytics/match-export"
+MATCH_EXPORT_FORMAT_VERSION = 1
+
+
+def _standing(position: TablePosition | None) -> dict[str, int] | None:
+    return {"position": position.position, "played": position.played, "points": position.points} if position else None
+
+
+def match_document(
+    history: MatchHistory,
+    report: MatchReport,
+    *,
+    catalogue: FootballCatalogue,
+    generated_at: datetime | None = None,
+) -> dict[str, Any]:
+    """One match with everything recorded about it, for the match page's copy button.
+
+    Its `match` is the match's entry in the verbose season export, with full
+    stat lines for their players as well as ours, plus what only one match
+    has room for: the league table at kickoff, the unused substitutes, your
+    pre-match rating of the opponent and the tactic FM saved for each side.
+    """
+    summary = report.summary
+    match = summary.match
+    codes = RoleCodes.build(catalogue, history.role_codes)
+    league_ids = {competition.id for competition, _results in history.league_results}
+    kind = "league" if match.competition.id in league_ids else "friendly" if match.competition.is_friendly else "cup"
+    roles = {(match.key, side, short_id): role for (side, short_id), role in report.role_labels.items()}
+    row = _match(summary, kind, codes, catalogue, "match", roles)
+    row.setdefault("attendance", match.attendance)
+    strength = summary.strength
+    row["league_at_kickoff"] = (
+        {"league": strength.league.name, "season": strength.season, "teams": strength.ours.teams,
+         "us": _standing(strength.ours), "them": _standing(strength.opponent)}
+        if strength.league is not None and strength.ours is not None else None
+    )
+    row["your_pre_match_rating"] = strength.rating
+    if match.detail is not None:
+        sides = (("us", summary.side), ("them", "away" if summary.side == "home" else "home"))
+        row["unused_substitutes"] = {
+            who: [player.label for player in match.detail.players_for(side) if not player.played]
+            for who, side in sides
+        }
+        row["fm_saved_tactics"] = {
+            who: {
+                "name": tactic.name,
+                "slots": [
+                    {"position": slot.position, "centre_side": slot.centre_side,
+                     "role": codes.label(slot.role_code), "duty": slot.duty}
+                    for slot in tactic.slots
+                ],
+            }
+            for who, side in sides
+            if (tactic := match.detail.saved_tactics.get(side)) is not None
+        }
+    caveats = [
+        "summary_for and summary_against are FM's match panel; possession, pass_completion, tackles_won and "
+        "headers_won are percentages. FM20 has no xG: clear-cut chances are the nearest measure of chance quality.",
+        "A player's stats leave out zeros: a missing key is 0.",
+        "Our roles carry the duty our tactic's slot settles; theirs are as FM's role code names them.",
+        "opponent_band uses that season's league table on the morning of the match (a friendly uses the latest "
+        "season under way); 'Early season' means the opponent had played fewer than 3 league games.",
+    ]
+    if summary.tactic_inferred:
+        caveats.append("The tactic is inferred from the starting roles; you did not record one.")
+    if strength.rating is not None:
+        caveats.append(
+            "your_pre_match_rating is how strong you judged them before kickoff: -2 much weaker than us, "
+            "0 about the same, +2 much stronger than us."
+        )
+    if match.detail is None:
+        caveats.append("Only the result was found: FM's archive had no stats for this match that added up.")
+    elif any(slot["duty"] is None for tactic in row["fm_saved_tactics"].values() for slot in tactic["slots"]):
+        caveats.append("A saved-tactic duty of null is one FM's code does not yet name (see docs/match-duty-extraction.md).")
+    return {
+        "format": MATCH_EXPORT_FORMAT,
+        "formatVersion": MATCH_EXPORT_FORMAT_VERSION,
+        "meta": {
+            "club": history.club.name, "club_id": history.club.id, "save_key": history.save_key,
+            "last_captured_game_date": history.last_game_date.isoformat() if history.last_game_date else None,
+            "generated_at": (generated_at or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
+            "caveats": caveats,
+        },
+        "match": row,
+    }

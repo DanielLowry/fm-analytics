@@ -22,11 +22,15 @@ from __future__ import annotations
 import re
 import struct
 import zlib
+from collections import Counter
+from datetime import date
 from pathlib import Path
 from typing import Any, Iterable, Iterator
 
 from tools import fm20_match_layout as layout
 
+# (key, date, home club, away club, home goals, away goals)
+Fixture = tuple[Any, date, int, int, int, int]
 FILE_HEADER = 9
 ARCHIVE_GLOB = "pks_*.obs"
 # Packed player record, relative to the short ID.
@@ -204,27 +208,68 @@ def decode_match(chunk: bytes, home_goals: int, away_goals: int) -> tuple[dict[s
 
 
 def find_chunks(
-    temporary: Path, fixtures: Iterable[tuple[Any, int, int, int, int]]
+    temporary: Path, fixtures: Iterable[Fixture]
 ) -> dict[Any, tuple[bytes, dict[str, Any]]]:
-    """(chunk, decoded detail) for each fixture (key, home club, away club, home goals, away goals) found.
+    """(chunk, decoded detail) for each fixture (key, date, home club, away club, home goals, away goals) found.
 
-    A fixture is kept only when exactly one chunk names both clubs, home
-    first, and decodes to a detail that adds up to that score.
+    A chunk names its two clubs but not its date, and a chunk that adds up to
+    one score can add up to another (goals its players did not score read as
+    own goals). So when the same clubs met more than once with the same club
+    at home, their chunks are told apart by order: one archive file keeps a
+    club's matches in the order they were played (all 67 archived matches of
+    a season and a half, checked 7 October 2026). That is trusted only when
+    one file holds exactly one chunk per meeting and each adds up to its own
+    meeting's score. Otherwise a fixture is kept only when exactly one chunk
+    names both clubs, home first, and adds up to its score, and that chunk
+    fits no other meeting.
     """
-    wanted = list(fixtures)
-    candidates: dict[Any, list[tuple[bytes, dict[str, Any]]]] = {fixture[0]: [] for fixture in wanted}
+    meetings: dict[tuple[int, int], list[Fixture]] = {}
+    for fixture in sorted(fixtures, key=lambda fixture: fixture[1]):
+        meetings.setdefault((fixture[2], fixture[3]), []).append(fixture)
+    named: dict[tuple[int, int], list[tuple[Path, bytes]]] = {pair: [] for pair in meetings}
     for path in archive_files(temporary):
         for chunk in chunks(path):
-            for key, home, away, home_goals, away_goals in wanted:
-                if involves(chunk, home, away):
-                    detail, _problems = decode_match(chunk, home_goals, away_goals)
-                    if detail is not None:
-                        candidates[key].append((chunk, detail))
-    return {key: found[0] for key, found in candidates.items() if len(found) == 1}
+            for pair, found in named.items():
+                if involves(chunk, *pair):
+                    found.append((path, chunk))
+    kept: dict[Any, tuple[bytes, dict[str, Any]]] = {}
+    for pair, games in meetings.items():
+        kept.update(_in_order(games, named[pair]) or _unambiguous(games, named[pair]))
+    return kept
+
+
+def _in_order(games: list[Fixture], found: list[tuple[Path, bytes]]) -> dict[Any, tuple[bytes, dict[str, Any]]]:
+    """Each meeting paired with the chunk at its place in the order played, or nothing unless all of them add up."""
+    if len(games) != len(found) or len({path for path, _chunk in found}) != 1:
+        return {}
+    paired = {}
+    for (key, _date, _home, _away, home_goals, away_goals), (_path, chunk) in zip(games, found):
+        detail, _problems = decode_match(chunk, home_goals, away_goals)
+        if detail is None:
+            return {}
+        paired[key] = (chunk, detail)
+    return paired
+
+
+def _unambiguous(games: list[Fixture], found: list[tuple[Path, bytes]]) -> dict[Any, tuple[bytes, dict[str, Any]]]:
+    """Each meeting that exactly one chunk fits, when that chunk fits no other meeting."""
+    fits: dict[Any, list[tuple[int, dict[str, Any]]]] = {}
+    for key, _date, _home, _away, home_goals, away_goals in games:
+        fits[key] = []
+        for index, (_path, chunk) in enumerate(found):
+            detail, _problems = decode_match(chunk, home_goals, away_goals)
+            if detail is not None:
+                fits[key].append((index, detail))
+    claims = Counter(index for candidates in fits.values() for index, _detail in candidates)
+    return {
+        key: (found[candidates[0][0]][1], candidates[0][1])
+        for key, candidates in fits.items()
+        if len(candidates) == 1 and claims[candidates[0][0]] == 1
+    }
 
 
 def find_matches(
-    temporary: Path, fixtures: Iterable[tuple[Any, int, int, int, int]]
+    temporary: Path, fixtures: Iterable[Fixture]
 ) -> dict[Any, dict[str, Any]]:
     """Full stats for each fixture found, as `find_chunks` finds it."""
     return {key: detail for key, (_chunk, detail) in find_chunks(temporary, fixtures).items()}

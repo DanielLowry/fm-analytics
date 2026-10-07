@@ -1,3 +1,4 @@
+import json
 import sqlite3
 import tempfile
 import unittest
@@ -14,7 +15,7 @@ from fm_analytics.persistence.match_history import (
     MatchTimelineError,
 )
 
-from tests.match_support import capture_document, season
+from tests.match_support import LEAGUE_RESULTS, US, capture_document, season
 
 KEY = "club:100"
 DETAILED = "2019-09-01:100:201"
@@ -203,14 +204,52 @@ class MigrationTests(StoreCase):
         backup = self.path.with_name(self.path.name + f".bak-v{len(MIGRATIONS)}")
         self.assertEqual(self.user_version(backup), len(MIGRATIONS))
 
+    def write_v1_history(self) -> None:
+        """A v1 file as the program of the time wrote it: one capture's matches and league results."""
+        MatchHistoryStore(self.path, migrations=MIGRATIONS[:1]).initialize()
+        recorded = capture()
+        with closing(sqlite3.connect(self.path)) as connection, connection:
+            connection.execute("INSERT INTO saves VALUES (1, ?, ?, ?, '2026-09-29T10:00:00+00:00')",
+                               (KEY, US["id"], US["name"]))
+            connection.execute("INSERT INTO captures VALUES (1, 1, ?, ?, ?, 'v1', ?, ?, ?)",
+                               (recorded.captured_at, recorded.game_date.isoformat(), recorded.captured_at,
+                                len(recorded.matches), len(recorded.matches), len(LEAGUE_RESULTS)))
+            for match in recorded.matches:
+                connection.execute(
+                    "INSERT INTO match_versions (save_id, match_key, match_date, has_detail, content_hash, "
+                    "document, capture_id) VALUES (1, ?, ?, ?, ?, ?, 1)",
+                    (match.key, match.date.isoformat(), int(match.detail is not None), match.content_hash(),
+                     json.dumps(match.to_document(), sort_keys=True)),
+                )
+            for competition, rows in recorded.league_results:
+                for row in rows:
+                    connection.execute(
+                        "INSERT INTO league_results VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
+                        (competition.id, competition.name, competition.short_name, row.date.isoformat(),
+                         row.home.id, row.home.name, row.away.id, row.away.name, row.home_goals, row.away_goals),
+                    )
+
     def test_a_real_v1_history_is_upgraded_to_the_latest_schema(self) -> None:
-        legacy = MatchHistoryStore(self.path, migrations=MIGRATIONS[:1])
-        legacy.record(capture(), save_key=KEY)
+        self.write_v1_history()
         self.assertEqual(self.user_version(), 1)
         history = self.store.load_history(KEY)
         self.assertEqual((len(history.matches), history.interventions, history.usual_roles), (6, (), {}))
+        ((_league, results),) = history.league_results
+        self.assertEqual(len(results), len(LEAGUE_RESULTS))
+        self.assertEqual({result.season for result in results}, {None})  # unknown until a capture says
         self.assertEqual(self.user_version(), len(MIGRATIONS))
         self.assertEqual(self.user_version(self.path.with_name(self.path.name + ".bak-v1")), 1)
+
+    def test_a_later_capture_fills_in_only_the_seasons_that_were_unknown(self) -> None:
+        self.write_v1_history()
+        tagged = [dict(row, season=2019) for row in LEAGUE_RESULTS]
+        self.store.record(capture(league_results=tagged, game_date="2019-09-06"), save_key=KEY)
+        before = self.store.load_history(KEY).league_results[0][1]
+        self.assertEqual({result.season for result in before}, {2019})
+        # A season once known stays as recorded, like the rest of the result.
+        retagged = [dict(row, season=2020, homeGoals=9) for row in LEAGUE_RESULTS]
+        self.store.record(capture(league_results=retagged, game_date="2019-09-07"), save_key=KEY)
+        self.assertEqual(self.store.load_history(KEY).league_results[0][1], before)
 
     def test_a_file_from_a_newer_program_is_refused_not_touched(self) -> None:
         MatchHistoryStore(self.path, migrations=(*MIGRATIONS, self.ADD_COLUMN)).initialize()

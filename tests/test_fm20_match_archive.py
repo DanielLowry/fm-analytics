@@ -2,6 +2,7 @@ import struct
 import tempfile
 import unittest
 import zlib
+from datetime import date
 from pathlib import Path
 
 from tools import fm20_match_archive as archive
@@ -129,10 +130,49 @@ class ArchiveTests(unittest.TestCase):
 
     def test_a_fixture_is_filled_only_from_a_single_matching_chunk(self) -> None:
         archive_file(self.directory, "pks_0.obs", [chunk(home_goals={9: 1}), b"not a match"])
-        found = archive.find_matches(self.directory, [("m1", HOME_CLUB, AWAY_CLUB, 1, 0)])
+        found = archive.find_matches(self.directory, [("m1", date(2019, 8, 3), HOME_CLUB, AWAY_CLUB, 1, 0)])
         self.assertEqual(set(found), {"m1"})
         archive_file(self.directory, "pks_1.obs", [chunk(home_goals={9: 1})])
-        self.assertEqual(archive.find_matches(self.directory, [("m1", HOME_CLUB, AWAY_CLUB, 1, 0)]), {})
+        self.assertEqual(
+            archive.find_matches(self.directory, [("m1", date(2019, 8, 3), HOME_CLUB, AWAY_CLUB, 1, 0)]), {}
+        )
+
+    def test_repeat_meetings_with_the_same_score_are_told_apart_by_the_order_played(self) -> None:
+        # Two 0-0s at the same ground: only the order in the archive tells them apart.
+        archive_file(self.directory, "pks_0.obs", [chunk(headers_attempted=47), b"not a match", chunk(headers_attempted=46)])
+        found = archive.find_matches(self.directory, [
+            ("second", date(2020, 8, 1), HOME_CLUB, AWAY_CLUB, 0, 0),
+            ("first", date(2019, 10, 12), HOME_CLUB, AWAY_CLUB, 0, 0),
+        ])
+        self.assertEqual(found["first"]["away"]["headers_attempted"], 47)
+        self.assertEqual(found["second"]["away"]["headers_attempted"], 46)
+
+    def test_one_chunk_is_never_given_to_two_meetings(self) -> None:
+        # A 1-0 also adds up to 2-0 (as an own goal); with one chunk for two meetings, neither gets it.
+        archive_file(self.directory, "pks_0.obs", [chunk(home_goals={9: 1})])
+        self.assertEqual(archive.find_matches(self.directory, [
+            ("first", date(2019, 10, 12), HOME_CLUB, AWAY_CLUB, 1, 0),
+            ("second", date(2020, 8, 1), HOME_CLUB, AWAY_CLUB, 2, 0),
+        ]), {})
+
+    def test_an_order_the_scores_contradict_is_not_trusted(self) -> None:
+        # Archived 0-0 then 1-0, but played 1-0 then 0-0: the 0-0 also fits the 1-0 meeting, so neither is certain.
+        archive_file(self.directory, "pks_0.obs", [chunk(), chunk(home_goals={9: 1})])
+        self.assertEqual(archive.find_matches(self.directory, [
+            ("first", date(2019, 10, 12), HOME_CLUB, AWAY_CLUB, 1, 0),
+            ("second", date(2020, 8, 1), HOME_CLUB, AWAY_CLUB, 0, 0),
+        ]), {})
+
+    def test_across_files_only_a_chunk_that_fits_one_meeting_is_used(self) -> None:
+        # Order means nothing across files: here the later meeting is in the first file.
+        archive_file(self.directory, "pks_0.obs", [chunk(away_goals={10: 1})])
+        archive_file(self.directory, "pks_1.obs", [chunk(home_goals={9: 1})])
+        found = archive.find_matches(self.directory, [
+            ("first", date(2019, 10, 12), HOME_CLUB, AWAY_CLUB, 1, 0),
+            ("second", date(2020, 8, 1), HOME_CLUB, AWAY_CLUB, 0, 1),
+        ])
+        self.assertEqual((found["first"]["home"]["shots"], found["first"]["away"]["shots"]), (1, 0))
+        self.assertEqual((found["second"]["home"]["shots"], found["second"]["away"]["shots"]), (0, 1))
 
 
 if __name__ == "__main__":

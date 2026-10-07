@@ -11,12 +11,14 @@ def fm_date(day: date) -> bytes:
 
 def fixture_result(
     *, played: bool = True, home_goals: int = 2, away_goals: int = 2,
-    home_score: bytes | None = None, away_score: bytes | None = None,
+    home_score: bytes | None = None, away_score: bytes | None = None, season: int = 2019,
 ) -> bytes:
     """A result record; each side's score is FM's five bytes, 0xff for a stage not played."""
     record = bytearray(layout.FIXTURE_RESULT_SIZE)
     struct.pack_into("<QQ", record, layout.RESULT_HOME_TEAM, 0x1000, 0x2000)
     struct.pack_into("<Q", record, layout.RESULT_FIXTURE_NAME, 0x3000)
+    # As FM holds a 2019/20 league result: e3 07 00 00 fe ff 02 00, the year first.
+    struct.pack_into("<HHHH", record, layout.RESULT_SEASON, season, 0, 0xFFFE, 2)
     record[layout.RESULT_DATE:layout.RESULT_DATE + 4] = fm_date(date(2019, 11, 2))
     struct.pack_into("<I", record, layout.RESULT_ATTENDANCE, 344)
     record[layout.RESULT_HOME_GOALS:layout.RESULT_HOME_GOALS + 5] = home_score or bytes([home_goals]) + b"\xff" * 4
@@ -33,7 +35,11 @@ class FixtureResultTests(unittest.TestCase):
         self.assertEqual((result["home_team"], result["away_team"], result["fixture_name"]), (0x1000, 0x2000, 0x3000))
         self.assertEqual((result["home_goals"], result["away_goals"], result["attendance"]), (2, 2, 344))
         self.assertEqual((result["score_at_90"], result["penalties"]), (None, None))
+        self.assertEqual(result["season"], 2019)
         self.assertTrue(result["played"])
+
+    def test_a_friendly_has_no_season(self) -> None:
+        self.assertIsNone(layout.decode_fixture_result(fixture_result(season=0))["season"])
 
     def test_the_score_is_after_extra_time_when_it_was_played(self) -> None:
         # Hungerford Town v Slough Town, FA Trophy replay, as FM holds it: 1-1 after 90, 2-1 after extra time.
