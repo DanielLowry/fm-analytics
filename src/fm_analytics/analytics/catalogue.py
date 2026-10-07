@@ -29,6 +29,7 @@ from fm_analytics.analytics.in_possession import (
 )
 from fm_analytics.analytics.in_transition import (
     ALL_FIELD_LABELS as ALL_TRANSITION_FIELD_LABELS,
+    IN_TRANSITION_CLASHES,
     InTransitionSettings,
     in_transition_from_json,
     in_transition_instruction_strings,
@@ -338,6 +339,10 @@ class TacticDefinition:
         check_clashes(
             set(self.instructions) | set(self.in_possession.selected if self.in_possession else ()),
             IN_POSSESSION_CLASHES, f"tactic {self.key!r}",
+        )
+        check_clashes(
+            set(self.instructions) | set(self.in_transition.selected if self.in_transition else ()),
+            IN_TRANSITION_CLASHES, f"tactic {self.key!r}",
         )
         if len(self.slots) != 11:
             raise ValueError("an MVP tactic must define exactly eleven slots")

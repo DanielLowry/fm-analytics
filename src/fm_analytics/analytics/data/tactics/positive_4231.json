@@ -20,9 +20,15 @@
     "timeWasting": "Never"
   },
   "inTransition": {
-    "whenPossessionLost": "Counter-Press",
-    "whenPossessionWon": "Counter",
-    "goalkeeperPace": "Distribute Quickly",
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
     "distributionTargets": [
       "Distribute To Centre Backs"
     ],

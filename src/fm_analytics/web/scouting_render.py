@@ -176,15 +176,31 @@ def _ranking_columns(show_familiarity: bool, raw_positions: bool) -> list[_Colum
     ))
     columns += _score_columns()
     if show_familiarity:
-        columns.append(_Column(
+        columns += _familiarity_columns()
+    return columns + _tail_columns(_knowledge_cell)
+
+
+def _familiarity_columns() -> list[_Column]:
+    """Familiarity / in-position score, for any item with ``multiplier`` and the ``adjusted_*`` scores."""
+    return [
+        _Column(
             "Familiarity", "familiarity", lambda _r, item: _familiarity_cells(item)[0],
-            "His rating out of 20 for the position, and the multiplier it implies.",
-        ))
-        columns.append(_Column(
+            "His rating out of 20 for the position (with none chosen, his best among the "
+            "positions the role is played at), and the multiplier it implies.",
+        ),
+        _Column(
             "In-position role score", "adjusted", lambda _r, item: _familiarity_cells(item)[1],
             "Min–Max after the familiarity multiplier; the same discount Squad applies.",
-        ))
-    return columns + _tail_columns(_knowledge_cell)
+        ),
+    ]
+
+
+_FAMILIARITY_EXPLANATION = (
+    "<p class='muted'><b>Familiarity</b> is his rating (out of 20) for the position; "
+    "<b>In-position role score</b> applies the same familiarity multiplier as Squad. "
+    "It does not apply condition or match fitness, which Tactics adds to produce "
+    "today’s selection score.</p>"
+)
 
 
 def ranking_results(
@@ -213,13 +229,7 @@ def ranking_results(
             "<p class='muted'>Position eligibility uses raw external data (the accepted "
             "visibility gap).</p>" if raw_positions else ""
         )
-        + (
-            "<p class='muted'><b>Familiarity</b> is his rating (out of 20) for the position; "
-            "<b>In-position role score</b> applies the same familiarity multiplier as Squad. "
-            "It does not apply condition or match fitness, which Tactics adds to produce "
-            "today’s selection score.</p>"
-            if show_familiarity else ""
-        )
+        + (_FAMILIARITY_EXPLANATION if show_familiarity else "")
     )
     return _results_view(
         scope, total=len(rankings), shown=len(displayed), limit=limit,
@@ -266,7 +276,10 @@ def _assessment_known_cell(item: ScoutingAssessment) -> str:
 class _RoleRow:
     """A ``ScoutingAssessment`` under the names the shared score columns read."""
 
-    __slots__ = ("assessment", "candidate", "minimum", "median", "maximum")
+    __slots__ = (
+        "assessment", "candidate", "minimum", "median", "maximum", "familiarity", "multiplier",
+        "adjusted_minimum", "adjusted_median", "adjusted_maximum",
+    )
 
     def __init__(self, assessment: ScoutingAssessment) -> None:
         self.assessment = assessment
@@ -274,6 +287,11 @@ class _RoleRow:
         self.minimum = assessment.role_score.score.lower
         self.median = assessment.role_score.median
         self.maximum = assessment.role_score.score.upper
+        self.familiarity = assessment.familiarity
+        self.multiplier = assessment.multiplier
+        self.adjusted_minimum = assessment.adjusted_minimum
+        self.adjusted_median = assessment.adjusted_median
+        self.adjusted_maximum = assessment.adjusted_maximum
 
 
 def role_results(
@@ -293,6 +311,7 @@ def role_results(
     if not assessments:
         return no_results(heading, pool_size=pool_size, scouted_only=scouted_only)
     displayed = [_RoleRow(item) for item in assessments[:limit]]
+    show_familiarity = any(row.multiplier is not None for row in displayed)
     known, past, sheet = _tail_columns(lambda row: _assessment_known_cell(row.assessment))
     recommendation = _Column(
         "Recommendation", "priority", lambda _r, row: _recommendation_cell(row.assessment),
@@ -300,6 +319,7 @@ def role_results(
     )
     columns = (
         _identity_columns(raw_positions) + _score_columns()
+        + (_familiarity_columns() if show_familiarity else [])
         + [known, recommendation, past, sheet]
     )
     explanation = (
@@ -309,6 +329,7 @@ def role_results(
         "<li><b>Scout to decide</b>: ranges or unknown values could still change the role fit.</li>"
         "<li><b>Proven fit</b>: every input to the role score is known.</li></ul>"
         + _SCORE_EXPLANATION
+        + (_FAMILIARITY_EXPLANATION if show_familiarity else "")
     )
     return _results_view(
         heading, total=len(assessments), shown=len(displayed), limit=limit,
@@ -459,7 +480,7 @@ def _three_gains(floor: float, estimate: float, ceiling: float) -> str:
     )
 
 
-def _familiarity_cells(item: PositionRanking) -> tuple[str, str]:
+def _familiarity_cells(item: PositionRanking | _RoleRow) -> tuple[str, str]:
     if item.multiplier is None:
         return "<td>—</td>", "<td>—</td>"
     return (

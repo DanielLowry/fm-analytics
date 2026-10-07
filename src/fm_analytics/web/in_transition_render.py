@@ -3,24 +3,17 @@
 import html
 
 from fm_analytics.analytics.catalogue import TacticDefinition
-from fm_analytics.analytics.in_transition import FIELD_LABELS
+from fm_analytics.analytics.in_transition import SECTIONS, InTransitionSettings
+from fm_analytics.web.instruction_pills import toggle_pill
 
 
 def in_transition_section(tactic: TacticDefinition) -> str:
-    settings = tactic.in_transition
-    rows = []
-    for attribute, label in FIELD_LABELS:
-        value = getattr(settings, attribute) if settings is not None else None
-        if value is None:
-            display = "Not set"
-        elif isinstance(value, tuple):
-            display = "; ".join(value) if value else "None selected"
-        else:
-            display = "Neither selected" if value == "Neither" else value
-        rows.append(
-            f"<div class='instruction-pill{' unset' if value is None else ''}'>"
-            f"<span>{html.escape(label.capitalize())}</span><b>{html.escape(display)}</b></div>"
-        )
+    settings = tactic.in_transition if tactic.in_transition is not None else InTransitionSettings()
+    locked = settings.unavailable
+    pills = "".join(
+        toggle_pill(name, getattr(settings, attribute), locked)
+        for attribute, _key, _label, options in SECTIONS for name in options
+    )
     missing = tactic.in_transition_missing_fields
     note = (
         "<p class='warn'>Transition settings not yet specified: "
@@ -34,8 +27,8 @@ def in_transition_section(tactic: TacticDefinition) -> str:
     )
     return (
         "<section class='in-transition-section'><h3>In transition</h3>"
-        "<p class='subhead'>Set these on the tactics screen. The possession-loss and goalkeeper-pace "
-        "choices, and Counter or Hold Shape, each allow one option or neither. "
-        "Distribution targets and types allow multiple choices.</p>"
-        f"<div class='instruction-grid'>{''.join(rows)}</div>{note}{legacy_note}</section>"
+        "<p class='subhead'>Set these on the tactics screen. Not selected is FM's default; an unavailable "
+        "instruction is locked by one that is selected. Each section allows one choice, except that centre-backs "
+        "and full-backs can both be distribution targets.</p>"
+        f"<div class='instruction-grid'>{pills}</div>{note}{legacy_note}</section>"
     )

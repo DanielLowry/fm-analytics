@@ -21,9 +21,15 @@
     "timeWasting": "Never"
   },
   "inTransition": {
-    "whenPossessionLost": "Regroup",
-    "whenPossessionWon": "Hold Shape",
-    "goalkeeperPace": "Slow Pace Down",
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [
+      "Hold Shape"
+    ],
+    "goalkeeperPace": [
+      "Slow Pace Down"
+    ],
     "distributionTargets": [
       "Distribute To Flanks"
     ],

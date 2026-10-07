@@ -194,7 +194,7 @@ the column headings offer exactly those (`analytics.SORTS_BY_MODE`):
 | Chosen | Table | Extra sorts |
 |---|---|---|
 | a tactic | XI-gain table | XI gain (est/floor/ceiling), projected score, player fit |
-| else a role | that role's targets | **Scouting priority** (the old Proven fit → Scout first → Scout to decide order), median, min, ceiling, range |
+| else a role | that role's targets | **Scouting priority** (the old Proven fit → Scout first → Scout to decide order), median, min, ceiling, range, familiarity and in-position score (raw positions only) |
 | else | best-role ranking | best role, min/median/max, range, familiarity and in-position score (raw positions only) |
 
 Age, value, scouted %, attributes known and name sort in all three. A `sort`
@@ -267,6 +267,14 @@ while Min / Median / Max stay comparable with his plain role score. The role is
 then chosen on that adjusted median. A raw rating of 0 is treated as the worst
 rating (the 0.5 floor), and a player with no ratings is left unadjusted rather
 than assumed unfamiliar.
+
+Choosing a role (7 October 2026) keeps both columns. The role table had none,
+so a player shown at 47.6 for Winger (Support) at ML had no sign that he is
+15/20 there and worth 41.3 in position, while his own report showed the 41.3.
+The rating is chosen as above: the chosen position's, or with none chosen his
+best among the positions the role is played at. The scouting-priority order and
+**Unlikely** stay on the attribute-based score; sort by **In position today**
+to rank on the discounted one.
 
 ## Scouted-player attributes: read-only, no Frida, no Player Search
 

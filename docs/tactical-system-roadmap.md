@@ -193,8 +193,9 @@ Build this after 4c, so the rules only ever pick choices FM's screen allows.
 
 ### 4c. Instructions that mirror FM's tactics screen (new)
 
-Raised 7 October 2026. The three phases currently encode "not selected" three
-different ways, and none matches FM's screen:
+Raised 7 October 2026. The three phases encoded "not selected" three
+different ways, and none matched FM's screen (in possession and in transition
+are now fixed; see below):
 
 - **In possession:** `true`/`false`, with `false` shown as "No", which reads as
   a deliberate choice.
@@ -233,7 +234,9 @@ memory. Status:
 | In possession | Overlap / Underlap, each side | Toggles; overlap and underlap on the same side clash | 7 October 2026 |
 | In possession | Work Ball Into Box, Hit Early Crosses, Shoot On Sight | Work Ball Into Box clashes with both others; Hit Early Crosses and Shoot On Sight may both be selected | 7 October 2026 |
 | In possession | Dribble Less / Run At Defence; Be More Expressive / Be More Disciplined | Neither by default; selecting one makes the other unavailable | 7 October 2026 |
-| In transition | All | | To review |
+| In transition | Counter-Press / Regroup; Counter / Hold Shape; Distribute Quickly / Slow Pace Down | Neither by default; selecting one makes the other unavailable | 7 October 2026 |
+| In transition | Distribute to area/player | One target makes all others unavailable, except that Centre Backs and Full Backs may be selected together | 7 October 2026 |
+| In transition | Distribution type | None, or one; selecting one makes the others unavailable | 7 October 2026 |
 | Out of possession | All, including whether any FM20 options are missing from the model | | To review |
 
 **In possession is built** (7 October 2026). Tactic files list only the toggles
@@ -241,8 +244,16 @@ they select (`"selected": [...]`), the loader refuses a clashing pair (also
 against legacy `instructions` strings), and the tactic page shows each toggle
 as Selected, Not selected, or Unavailable with what locks it. The 13 tactics
 with an in-possession block were converted without changing any score: the
-strings scoring reads are identical. Transition and out of possession reuse
-`analytics/instruction_toggles.py` once reviewed.
+strings scoring reads are identical.
+
+**In transition is built** (7 October 2026) the same way: each of FM's five
+sections lists what it selects, `[]` replacing `"Neither"`. Two tactics broke
+the confirmed rules and were corrected by the manager's choice: `balanced_442`
+now distributes to the flanks with long kicks (it had Flanks with Full Backs,
+and Roll It Out with Take Long Kicks), and `deep_counter_541` to its target man
+(it had Target Man with Flanks). Distribution has no scoring weight, so no score
+changed. Out of possession reuses `analytics/instruction_toggles.py` once
+reviewed.
 
 ### 5. Replace the 65% mean / 35% weakest-player XI objective — completed
 

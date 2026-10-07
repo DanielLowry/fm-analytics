@@ -13,8 +13,14 @@ See docs/tactical-system-roadmap.md item 4c.
 from __future__ import annotations
 
 from collections.abc import Collection, Sequence
+from itertools import combinations
 
 Clash = tuple[str, str]
+
+
+def one_at_most(names: Sequence[str], *, combinable: Collection[frozenset[str]] = ()) -> tuple[Clash, ...]:
+    """Every pair of `names` clashes, except pairs FM lets you select together."""
+    return tuple(pair for pair in combinations(names, 2) if frozenset(pair) not in combinable)
 
 
 def check_names(selected: Sequence[str], allowed: Sequence[str], where: str) -> None:

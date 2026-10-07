@@ -251,6 +251,35 @@ class ScoutingPageTests(WebServerHelpers, unittest.TestCase):
         self.assertIn("17/20", ticked)
         self.assertIn("(×0.92)", ticked)
 
+    def test_the_role_table_also_shows_familiarity_when_the_box_is_ticked(self) -> None:
+        def scouting_provider():
+            return (
+                ScoutingCandidate(
+                    id="a", name="Rated Winger", positions=("ML",), attributes={},
+                    age=22, scouting_knowledge=12, raw_position_familiarity={"ML": 15, "MR": 4},
+                ),
+            )
+
+        port = self._serve(FIXTURE, scouting_provider)
+        query = "/scouting?view=scouted&position=ML&role=winger_ml_mr_support"
+        _s, off = self._get(port, query)
+        _s, ticked = self._get(port, query + "&includeRawPositions=1&sort=adjusted")
+        _s, snapshot = self._get(
+            port, "/scouting/results?position=ML&role=winger_ml_mr_support&includeRawPositions=1&snapshot=1"
+        )
+
+        self.assertIn("Rated Winger", off)
+        self.assertNotIn("data-sort='adjusted'", off)
+        self.assertNotIn("15/20", off)
+        self.assertIn("Sorted by <b>In position today (median)</b>", ticked)
+        self.assertIn("In-position role score", ticked)
+        self.assertIn("15/20", ticked)
+        self.assertIn("(×0.87)", ticked)
+        # 50.0 (nothing known) x 0.868 for 15/20.
+        self.assertIn("<b>43.4</b>", ticked)
+        self.assertIn("id='scouting-snapshot'", snapshot)
+        self.assertIn("In-position role score", snapshot)
+
     def _mixed_pool(self):
         def scouting_provider():
             return (

@@ -20,11 +20,19 @@
     "timeWasting": "Sometimes"
   },
   "inTransition": {
-    "whenPossessionLost": "Regroup",
-    "whenPossessionWon": "Counter",
-    "goalkeeperPace": "Neither",
-    "distributionTargets": ["Distribute To Flanks", "Distribute To Full Backs"],
-    "distributionTypes": ["Roll It Out", "Take Long Kicks"]
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
   },
   "outOfPossession": {
     "lineOfEngagement": "Standard",

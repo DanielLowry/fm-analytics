@@ -499,7 +499,75 @@ class RoleTargetSortTests(unittest.TestCase):
 
     def test_unknown_sorts_are_refused(self) -> None:
         with self.assertRaises(ValueError):
-            sort_scouting_assessments(self.assessments, sort="familiarity")
+            sort_scouting_assessments(self.assessments, sort="role")
+
+
+class RoleFamiliarityTests(unittest.TestCase):
+    """With a role chosen, the raw-positions opt-in gives the same in-position score as the ranking."""
+
+    POLICY = FamiliarityPolicy()
+    WINGER = "winger_ml_mr_support"
+
+    def winger(self, identifier: str, ratings) -> ScoutingCandidate:
+        return ScoutingCandidate(
+            id=identifier, name=identifier, positions=("ML", "MR"), attributes={},
+            raw_position_familiarity=ratings,
+        )
+
+    def assess(self, players, position="ML", policy=POLICY):
+        return assess_scouting_candidates(
+            players, MVP_CATALOGUE, ScoutingFilters(role_key=self.WINGER, position=position),
+            familiarity_policy=policy,
+        )
+
+    def test_the_chosen_position_rating_discounts_all_three_scores(self) -> None:
+        item = self.assess([self.winger("w", with_ratings(ML=15, MR=20))])[0]
+        multiplier = self.POLICY.multiplier(15)
+
+        self.assertEqual((item.familiarity, item.multiplier), (15, multiplier))
+        for got, plain in (
+            (item.adjusted_minimum, item.role_score.score.lower),
+            (item.adjusted_median, item.median),
+            (item.adjusted_maximum, item.role_score.score.upper),
+        ):
+            self.assertAlmostEqual(got, plain * multiplier, places=5)
+        # The role score itself stays attribute-based.
+        self.assertEqual(item.median, 50.0)
+
+    def test_with_no_position_chosen_his_best_position_for_the_role_counts(self) -> None:
+        item = self.assess([self.winger("w", with_ratings(ML=5, MR=18))], position=None)[0]
+
+        self.assertEqual(item.familiarity, 18)
+
+    def test_it_is_the_figure_the_position_ranking_shows(self) -> None:
+        player = self.winger("w", with_ratings(ML=12))
+        role_item = self.assess([player])[0]
+        ranking = rank_for_position([player], MVP_CATALOGUE, "ML", familiarity_policy=self.POLICY)[0]
+
+        self.assertEqual(
+            (role_item.familiarity, role_item.multiplier, role_item.adjusted_median),
+            (ranking.familiarity, ranking.multiplier, ranking.adjusted_median),
+        )
+
+    def test_nothing_is_adjusted_without_the_opt_in_or_without_ratings(self) -> None:
+        unticked = self.assess([self.winger("a", with_ratings(ML=15))], policy=None)[0]
+        unrated = self.assess([self.winger("b", None)])[0]
+
+        for item in (unticked, unrated):
+            self.assertIsNone(item.familiarity)
+            self.assertIsNone(item.multiplier)
+            self.assertIsNone(item.adjusted_median)
+
+    def test_the_familiarity_sorts_put_players_without_ratings_last(self) -> None:
+        assessments = self.assess([
+            self.winger("a", with_ratings(ML=5)),
+            self.winger("b", with_ratings(ML=18)),
+            self.winger("c", None),
+        ])
+
+        for sort in ("familiarity", "adjusted"):
+            ordered = sort_scouting_assessments(assessments, sort=sort)
+            self.assertEqual([item.candidate.id for item in ordered], ["b", "a", "c"], sort)
 
 
 class InformationFilterTests(unittest.TestCase):

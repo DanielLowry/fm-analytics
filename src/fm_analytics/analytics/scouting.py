@@ -160,6 +160,14 @@ class ScoutingAssessment:
     ranged_attributes: int
     unknown_attributes: int
     scout_next: tuple[str, ...]
+    # As on ``PositionRanking``: set only with the position-ratings opt-in and a
+    # player who has ratings -- his rating where this role would be played, its
+    # multiplier, and the three scores after it.
+    familiarity: int | None = None
+    multiplier: float | None = None
+    adjusted_minimum: float | None = None
+    adjusted_median: float | None = None
+    adjusted_maximum: float | None = None
 
     @property
     def median(self) -> float:
@@ -177,6 +185,8 @@ def assess_scouting_candidates(
     candidates: Sequence[ScoutingCandidate],
     catalogue: FootballCatalogue,
     filters: ScoutingFilters,
+    *,
+    familiarity_policy: FamiliarityPolicy | None = None,
 ) -> tuple[ScoutingAssessment, ...]:
     """Filter on visible facts and rank the remaining players for one role.
 
@@ -184,6 +194,12 @@ def assess_scouting_candidates(
     increases a player's central score, but an entirely unknown relevant
     profile is explicitly surfaced as a player to scout first rather than
     silently discarded.
+
+    With a ``familiarity_policy`` each player with position ratings also gets
+    his in-position scores, exactly as ``rank_for_position`` gives them: his
+    rating for the chosen position (or, with none chosen, his best rating among
+    the positions this role is played at). The role score itself, the order and
+    the recommendation stay attribute-based.
     """
     if not filters.role_key or filters.role_key not in catalogue.roles:
         return ()
@@ -221,6 +237,8 @@ def assess_scouting_candidates(
         ):
             continue
         recommendation = _recommendation(score, known, ranged, unknown, filters)
+        rating = _role_rating(role, filters.position, candidate.raw_position_familiarity)
+        multiplier = _familiarity_multiplier(rating, familiarity_policy)
         assessments.append(
             ScoutingAssessment(
                 candidate=candidate,
@@ -230,6 +248,11 @@ def assess_scouting_candidates(
                 ranged_attributes=ranged,
                 unknown_attributes=unknown,
                 scout_next=tuple(gap.attribute for gap in score.information_gaps[:4]),
+                familiarity=rating if multiplier is not None else None,
+                multiplier=multiplier,
+                adjusted_minimum=_adjusted(score.score.lower, multiplier),
+                adjusted_median=_adjusted(score.median, multiplier),
+                adjusted_maximum=_adjusted(score.score.upper, multiplier),
             )
         )
     return tuple(sorted(assessments, key=_sort_key))
@@ -260,16 +283,12 @@ TACTIC_RANKING_SORTS = {
     "trial_priority": "Trial priority",
     "player_median": "Median scenario (player fit)",
 }
-# With a role chosen the table is one role's targets, so "best role" and the
-# position-familiarity columns do not exist; "priority" is the scouting order
-# (proven fits, then scout-first, then scout-to-decide, best floor first).
+# With a role chosen the table is one role's targets, so "best role" does not
+# exist; "priority" is the scouting order (proven fits, then scout-first, then
+# scout-to-decide, best floor first).
 ROLE_TARGET_SORTS = {
     "priority": "Scouting priority",
-    **{
-        key: label
-        for key, label in POSITION_RANKING_SORTS.items()
-        if key not in {"role", "adjusted", "familiarity"}
-    },
+    **{key: label for key, label in POSITION_RANKING_SORTS.items() if key != "role"},
 }
 # Only the sorts that have a column in the tactic table: the tactic-specific
 # ones plus the columns every view shares.
@@ -345,6 +364,17 @@ def _role_rating(role, position: str | None, ratings: Mapping[str, int] | None) 
     positions = [position] if position else list(role.eligible_positions)
     found = [ratings[name] for name in positions if name in ratings]
     return max(found) if found else None
+
+
+def _familiarity_multiplier(rating: int | None, policy: FamiliarityPolicy | None) -> float | None:
+    """The multiplier the tactics page applies for ``rating``; None without the opt-in or a rating."""
+    if policy is None or rating is None:
+        return None
+    return policy.multiplier(max(rating, policy.scale_minimum))
+
+
+def _adjusted(score: float, multiplier: float | None) -> float | None:
+    return None if multiplier is None else round(score * multiplier, 6)
 
 
 def rank_for_position(
@@ -541,11 +571,7 @@ def _rank_one(
         if fit is None:
             fit = fits[role.key] = _role_fit(score_role(role, candidate.attributes))
         rating = _role_rating(role, position, ratings)
-        multiplier = (
-            familiarity_policy.multiplier(max(rating, familiarity_policy.scale_minimum))
-            if familiarity_policy is not None and rating is not None else None
-        )
-        scored.append((role, fit, rating, multiplier))
+        scored.append((role, fit, rating, _familiarity_multiplier(rating, familiarity_policy)))
     best_role, best, best_rating, best_multiplier = max(
         scored,
         key=lambda item: (
@@ -565,9 +591,9 @@ def _rank_one(
         unknown_attributes=best.unknown,
         familiarity=best_rating if best_multiplier is not None else None,
         multiplier=best_multiplier,
-        adjusted_minimum=None if best_multiplier is None else round(best.lower * best_multiplier, 6),
-        adjusted_median=None if best_multiplier is None else round(best.median * best_multiplier, 6),
-        adjusted_maximum=None if best_multiplier is None else round(best.upper * best_multiplier, 6),
+        adjusted_minimum=_adjusted(best.lower, best_multiplier),
+        adjusted_median=_adjusted(best.median, best_multiplier),
+        adjusted_maximum=_adjusted(best.upper, best_multiplier),
     )
 
 
@@ -660,6 +686,8 @@ def sort_scouting_assessments(
         "scouted": lambda a: a.candidate.scouting_knowledge,
         "known": lambda a: a.known_attributes + a.ranged_attributes,
         "name": lambda a: a.candidate.name.casefold(),
+        "adjusted": lambda a: a.adjusted_median,
+        "familiarity": lambda a: a.familiarity,
         "value": lambda a: a.candidate.value,
     }[sort]
     return _order(assessments, value, descending)

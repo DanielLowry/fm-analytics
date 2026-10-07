@@ -24,12 +24,17 @@
     "timeWasting": "Sometimes"
   },
   "inTransition": {
-    "whenPossessionLost": "Regroup",
-    "whenPossessionWon": "Counter",
-    "goalkeeperPace": "Distribute Quickly",
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
     "distributionTargets": [
-      "Distribute To Target Man",
-      "Distribute To Flanks"
+      "Distribute To Target Man"
     ],
     "distributionTypes": [
       "Take Long Kicks"

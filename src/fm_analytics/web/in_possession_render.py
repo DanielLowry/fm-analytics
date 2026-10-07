@@ -14,6 +14,7 @@ import html
 
 from fm_analytics.analytics import InPossessionSettings, TacticDefinition
 from fm_analytics.analytics.in_possession import FIXED_TOGGLES, PLAYER_DEPENDENT_TOGGLES
+from fm_analytics.web.instruction_pills import instruction_pill, toggle_pill
 
 _FIXED_SCALES: tuple[tuple[str, str], ...] = (
     ("Attacking width", "attacking_width"),
@@ -22,44 +23,19 @@ _FIXED_SCALES: tuple[tuple[str, str], ...] = (
 )
 
 
-def _pill(label: str, value: str | None, *, state: str = "", note: str = "") -> str:
-    classes = " ".join(part for part in ("instruction-pill", state, "unset" if value is None else "") if part)
-    return (
-        f"<div class='{classes}'><span>{html.escape(label)}</span>"
-        f"<b>{html.escape('Not set' if value is None else value)}</b>"
-        + (f"<small>{html.escape(note)}</small>" if note else "")
-        + "</div>"
-    )
-
-
-def _toggle_pill(name: str, settings: InPossessionSettings, selected, *, state: str = "") -> str:
-    """One FM toggle: selected, not selected (FM's default), or locked by another."""
-    label = name.capitalize()
-    if selected is None:
-        return _pill(label, None)
-    if name in selected:
-        return _pill(label, "Selected", state=f"{state} selected".strip())
-    locked_by = settings.unavailable.get(name)
-    if locked_by:
-        return _pill(
-            label, "Unavailable", state=f"{state} locked".strip(),
-            note=" and ".join(locked_by) + (" is" if len(locked_by) == 1 else " are") + " selected",
-        )
-    return _pill(label, "Not selected", state=f"{state} off".strip())
-
-
 def in_possession_section(tactic: TacticDefinition) -> str:
     settings = tactic.in_possession if tactic.in_possession is not None else InPossessionSettings()
     missing = tactic.in_possession_missing_fields
+    locked = settings.unavailable
     fixed_pills = "".join(
-        _pill(label, getattr(settings, attribute)) for label, attribute in _FIXED_SCALES
-    ) + "".join(_toggle_pill(name, settings, settings.fixed_selected) for name in FIXED_TOGGLES)
+        instruction_pill(label, getattr(settings, attribute)) for label, attribute in _FIXED_SCALES
+    ) + "".join(toggle_pill(name, settings.fixed_selected, locked) for name in FIXED_TOGGLES)
     missing_note = (
         "<p class='warn'>Not yet set: " + html.escape(", ".join(missing)) + ".</p>"
         if missing else "<p class='muted'>Every fixed in-possession setting is specified.</p>"
     )
-    dependent_pills = _pill("Crossing type", settings.crossing_type, state="fallback") + "".join(
-        _toggle_pill(name, settings, settings.player_selected, state="fallback")
+    dependent_pills = instruction_pill("Crossing type", settings.crossing_type, state="fallback") + "".join(
+        toggle_pill(name, settings.player_selected, locked, state="fallback")
         for name in PLAYER_DEPENDENT_TOGGLES
     )
     return (

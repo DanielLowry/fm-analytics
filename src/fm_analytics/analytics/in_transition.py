@@ -1,71 +1,81 @@
-"""Hand-authored transition settings, with explicit neutral choices.
+"""Hand-authored transition settings, as FM's In Transition tab shows them.
 
-None means unauthored; "Neither" and empty tuples mean deliberately
-unselected. Only existing possession-loss/win choices feed
-instruction-fit scoring. Goalkeeper choices have no scoring weights yet.
+Every choice here is a toggle (see `instruction_toggles.py`): each of FM's five
+sections is a list of what the tactic selects, where an empty list is FM's
+default of nothing selected and an absent section is unauthored. Selecting one
+can make others unavailable (`IN_TRANSITION_CLASHES`, confirmed against FM20,
+7 October 2026; roadmap item 4c). Only the possession-lost and possession-won
+choices feed instruction-fit scoring; goalkeeper choices have no scoring
+weights yet.
 """
 
 from dataclasses import dataclass
 from typing import Any
 
-POSSESSION_LOST_OPTIONS = ("Counter-Press", "Regroup", "Neither")
-POSSESSION_WON_OPTIONS = ("Counter", "Hold Shape", "Neither")
-GOALKEEPER_PACE_OPTIONS = ("Distribute Quickly", "Slow Pace Down", "Neither")
+from fm_analytics.analytics.instruction_toggles import check_clashes, check_names, one_at_most, unavailable
+
+POSSESSION_LOST_OPTIONS = ("Counter-Press", "Regroup")
+POSSESSION_WON_OPTIONS = ("Counter", "Hold Shape")
+GOALKEEPER_PACE_OPTIONS = ("Distribute Quickly", "Slow Pace Down")
 DISTRIBUTION_TARGET_OPTIONS = (
-    "Distribute Over Opposition Defence", "Distribute To Flanks",
-    "Distribute To Target Man", "Distribute To Playmaker",
-    "Distribute To Full Backs", "Distribute To Centre Backs",
+    "Distribute To Centre Backs", "Distribute To Full Backs", "Distribute To Playmaker",
+    "Distribute To Target Man", "Distribute To Flanks", "Distribute Over Opposition Defence",
 )
 DISTRIBUTION_TYPE_OPTIONS = (
     "Roll It Out", "Throw It Long", "Take Short Kicks", "Take Long Kicks",
 )
-FIELD_LABELS = (
-    ("when_possession_lost", "when possession has been lost"),
-    ("when_possession_won", "when possession has been won"),
-    ("goalkeeper_pace", "goalkeeper in possession"),
-    ("distribution_targets", "distribute to area/player"),
-    ("distribution_types", "distribution type"),
+# Each section is at most one choice, except that centre-backs and full-backs
+# may be distribution targets together.
+IN_TRANSITION_CLASHES = (
+    one_at_most(POSSESSION_LOST_OPTIONS)
+    + one_at_most(POSSESSION_WON_OPTIONS)
+    + one_at_most(GOALKEEPER_PACE_OPTIONS)
+    + one_at_most(
+        DISTRIBUTION_TARGET_OPTIONS,
+        combinable={frozenset({"Distribute To Centre Backs", "Distribute To Full Backs"})},
+    )
+    + one_at_most(DISTRIBUTION_TYPE_OPTIONS)
 )
-ALL_FIELD_LABELS = tuple(label for _, label in FIELD_LABELS)
-IN_TRANSITION_KEYS = frozenset({
-    "whenPossessionLost", "whenPossessionWon", "goalkeeperPace", "distributionTargets", "distributionTypes",
-})
+# (attribute, JSON key, label, options), in FM's screen order.
+SECTIONS = (
+    ("when_possession_lost", "whenPossessionLost", "when possession has been lost", POSSESSION_LOST_OPTIONS),
+    ("when_possession_won", "whenPossessionWon", "when possession has been won", POSSESSION_WON_OPTIONS),
+    ("goalkeeper_pace", "goalkeeperPace", "goalkeeper in possession", GOALKEEPER_PACE_OPTIONS),
+    ("distribution_targets", "distributionTargets", "distribute to area/player", DISTRIBUTION_TARGET_OPTIONS),
+    ("distribution_types", "distributionTypes", "distribution type", DISTRIBUTION_TYPE_OPTIONS),
+)
+ALL_FIELD_LABELS = tuple(label for _, _, label, _ in SECTIONS)
+IN_TRANSITION_KEYS = frozenset(key for _, key, _, _ in SECTIONS)
 
 
 @dataclass(frozen=True)
 class InTransitionSettings:
-    when_possession_lost: str | None = None
-    when_possession_won: str | None = None
-    goalkeeper_pace: str | None = None
+    # What each section selects; None until authored, () for nothing selected.
+    when_possession_lost: tuple[str, ...] | None = None
+    when_possession_won: tuple[str, ...] | None = None
+    goalkeeper_pace: tuple[str, ...] | None = None
     distribution_targets: tuple[str, ...] | None = None
     distribution_types: tuple[str, ...] | None = None
 
     def __post_init__(self) -> None:
-        for name, options in (
-            ("when_possession_lost", POSSESSION_LOST_OPTIONS),
-            ("when_possession_won", POSSESSION_WON_OPTIONS),
-            ("goalkeeper_pace", GOALKEEPER_PACE_OPTIONS),
-        ):
-            value = getattr(self, name)
-            if value is not None and (not isinstance(value, str) or value not in options):
-                raise ValueError(f"{name} must be one of {options!r}")
-        for name, options in (
-            ("distribution_targets", DISTRIBUTION_TARGET_OPTIONS),
-            ("distribution_types", DISTRIBUTION_TYPE_OPTIONS),
-        ):
-            values = getattr(self, name)
-            if values is None:
-                continue
-            if not isinstance(values, tuple) or any(
-                not isinstance(value, str) or value not in options for value in values
-            ):
-                raise ValueError(f"{name} must be a tuple of choices from {options!r}")
-            if len(set(values)) != len(values):
-                raise ValueError(f"{name} must not repeat a choice")
+        for attribute, key, _label, options in SECTIONS:
+            values = getattr(self, attribute)
+            if values is not None and not isinstance(values, tuple):
+                raise ValueError(f"{key} must be a tuple of instruction names")
+            check_names(values or (), options, key)
+        check_clashes(self.selected, IN_TRANSITION_CLASHES, "inTransition")
+
+    @property
+    def selected(self) -> tuple[str, ...]:
+        return tuple(name for attribute, _, _, _ in SECTIONS for name in getattr(self, attribute) or ())
+
+    @property
+    def unavailable(self) -> dict[str, tuple[str, ...]]:
+        return unavailable(self.selected, IN_TRANSITION_CLASHES)
 
     @property
     def missing_fields(self) -> tuple[str, ...]:
-        return tuple(label for name, label in FIELD_LABELS if getattr(self, name) is None)
+        return tuple(label for attribute, _, label, _ in SECTIONS if getattr(self, attribute) is None)
 
     @property
     def is_complete(self) -> bool:
@@ -76,22 +86,12 @@ def in_transition_instruction_strings(settings: InTransitionSettings | None) -> 
     """Existing scored instructions; distribution settings are display-only."""
     if settings is None:
         return ()
-    instructions = []
-    if settings.when_possession_lost not in (None, "Neither"):
-        instructions.append(settings.when_possession_lost)
-    if settings.when_possession_won not in (None, "Neither"):
-        instructions.append(settings.when_possession_won)
-    return tuple(instructions)
+    return (settings.when_possession_lost or ()) + (settings.when_possession_won or ())
 
 
 def in_transition_selected_instructions(settings: InTransitionSettings | None) -> tuple[str, ...]:
     """All selected choices for CLI/export presentation, including distribution."""
-    instructions = in_transition_instruction_strings(settings)
-    if settings is None:
-        return instructions
-    if settings.goalkeeper_pace not in (None, "Neither"):
-        instructions += (settings.goalkeeper_pace,)
-    return instructions + (settings.distribution_targets or ()) + (settings.distribution_types or ())
+    return () if settings is None else settings.selected
 
 
 def in_transition_from_json(value: Any, tactic_key: str, *, only_known_keys) -> InTransitionSettings | None:
@@ -102,24 +102,18 @@ def in_transition_from_json(value: Any, tactic_key: str, *, only_known_keys) -> 
         raise ValueError(f"{where} must be an object")
     only_known_keys(value, IN_TRANSITION_KEYS, where)
 
-    def choices(name: str) -> tuple[str, ...] | None:
-        if name not in value:
+    def selected(key: str) -> tuple[str, ...] | None:
+        if key not in value:
             return None
-        items = value[name]
+        items = value[key]
         if not isinstance(items, list) or not all(isinstance(item, str) for item in items):
-            raise ValueError(f"{where}.{name} must be an array of strings")
+            raise ValueError(
+                f"{where}.{key} must be an array of instruction names "
+                "(list only what is selected; [] for none)"
+            )
         return tuple(items)
 
-    for name in ("whenPossessionLost", "whenPossessionWon", "goalkeeperPace"):
-        if name in value and not isinstance(value[name], str):
-            raise ValueError(f"{where}.{name} must be a string")
     try:
-        return InTransitionSettings(
-            when_possession_lost=value.get("whenPossessionLost"),
-            when_possession_won=value.get("whenPossessionWon"),
-            goalkeeper_pace=value.get("goalkeeperPace"),
-            distribution_targets=choices("distributionTargets"),
-            distribution_types=choices("distributionTypes"),
-        )
+        return InTransitionSettings(**{attribute: selected(key) for attribute, key, _, _ in SECTIONS})
     except ValueError as error:
         raise ValueError(f"{where}: {error}") from error

@@ -347,11 +347,17 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         status, body = self._get("/tactics/vertical_442")
         self.assertEqual(status, 200)
         section = body.split("<section class='in-transition-section'>", 1)[1].split("</section>", 1)[0]
-        self.assertIn("When possession has been lost</span><b>Regroup", section)
-        self.assertIn("When possession has been won</span><b>Counter", section)
-        self.assertIn("Goalkeeper in possession</span><b>Distribute Quickly", section)
-        self.assertIn("Distribute To Flanks", section)
-        self.assertIn("Take Long Kicks", section)
+        for selected in ("Regroup", "Counter", "Distribute quickly", "Distribute to flanks", "Take long kicks"):
+            self.assertIn(f"<span>{selected}</span><b>Selected</b>", section)
+        self.assertIn(
+            "<span>Counter-press</span><b>Unavailable</b><small>Regroup is selected</small>", section
+        )
+        self.assertIn(
+            "<span>Distribute to full backs</span><b>Unavailable</b>"
+            "<small>Distribute To Flanks is selected</small>", section,
+        )
+        self.assertEqual(section.count("<b>Selected</b>"), 5)
+        self.assertEqual(section.count("<b>Unavailable</b>"), 11)
         self.assertIn("Every in-transition setting is specified.", section)
 
     def test_tactic_detail_shows_complete_defensive_settings(self) -> None:

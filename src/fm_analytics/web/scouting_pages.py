@@ -360,9 +360,16 @@ class ScoutingPagesMixin:
         notice = (
             _raw_position_notice(candidates) if filters.include_raw_external_positions else ""
         )
+        # The same opt-in as the raw positions: ticking it accepts the raw
+        # position data, ratings included.
+        familiarity_policy = (
+            FamiliarityPolicy() if filters.include_raw_external_positions else None
+        )
         if mode == "role":
             assessments = sort_scouting_assessments(
-                assess_scouting_candidates(candidates, MVP_CATALOGUE, filters),
+                assess_scouting_candidates(
+                    candidates, MVP_CATALOGUE, filters, familiarity_policy=familiarity_policy,
+                ),
                 sort=filters.ranking_sort, descending=descending,
             )
             role = MVP_CATALOGUE.roles.get(filters.role_key or "")
@@ -373,11 +380,7 @@ class ScoutingPagesMixin:
             filter_scouting_candidates(candidates, filters), MVP_CATALOGUE, filters.position,
             sort=filters.ranking_sort, descending=descending,
             include_raw_external_positions=filters.include_raw_external_positions,
-            # The same opt-in as the raw positions: ticking it accepts the raw
-            # position data, ratings included.
-            familiarity_policy=(
-                FamiliarityPolicy() if filters.include_raw_external_positions else None
-            ),
+            familiarity_policy=familiarity_policy,
             cache=self.server.scouting_rank_cache,  # type: ignore[attr-defined]
         )
         return notice + ranking_results(

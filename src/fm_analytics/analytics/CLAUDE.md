@@ -316,27 +316,33 @@ detail page always shows this phase, including fields not yet authored.
 
 ```json
 "inTransition": {
-  "whenPossessionLost": "Regroup",
-  "whenPossessionWon": "Counter",
-  "goalkeeperPace": "Neither",
-  "distributionTargets": ["Distribute To Flanks", "Distribute To Target Man"],
-  "distributionTypes": ["Throw It Long", "Take Long Kicks"]
+  "whenPossessionLost": ["Regroup"],
+  "whenPossessionWon": ["Counter"],
+  "goalkeeperPace": [],
+  "distributionTargets": ["Distribute To Centre Backs", "Distribute To Full Backs"],
+  "distributionTypes": ["Take Short Kicks"]
 }
 ```
 
-- `whenPossessionLost`: Counter-Press, Regroup, or Neither.
-- `whenPossessionWon`: Counter, Hold Shape, or Neither.
-- `goalkeeperPace`: Distribute Quickly, Slow Pace Down, or Neither.
-- `distributionTargets`: any combination of Distribute Over Opposition Defence,
-  Distribute To Flanks, Distribute To Target Man, Distribute To Playmaker,
-  Distribute To Full Backs, and Distribute To Centre Backs.
-- `distributionTypes`: any combination of Roll It Out, Throw It Long,
-  Take Short Kicks, and Take Long Kicks.
+Every choice is a toggle, as in-possession's are (roadmap item 4c, confirmed
+against FM20 on 7 October 2026): each of FM's five sections lists what it
+selects, by FM name, and `[]` is FM's default of nothing selected.
 
-An omitted field is not yet authored; `Neither` or an empty list deliberately
-leaves the corresponding controls unselected. Explicit nulls, unknown keys,
-unknown choices, duplicate list entries, and multiple selections for an
-exclusive choice are refused.
+- `whenPossessionLost`: Counter-Press or Regroup, or neither.
+- `whenPossessionWon`: Counter or Hold Shape, or neither.
+- `goalkeeperPace`: Distribute Quickly or Slow Pace Down, or neither.
+- `distributionTargets`: one of Distribute To Centre Backs, Distribute To Full
+  Backs, Distribute To Playmaker, Distribute To Target Man, Distribute To
+  Flanks and Distribute Over Opposition Defence, or none. The one exception:
+  centre-backs and full-backs may be selected together.
+- `distributionTypes`: one of Roll It Out, Throw It Long, Take Short Kicks and
+  Take Long Kicks, or none.
+
+`IN_TRANSITION_CLASHES` holds those rules as pairs that cannot both be
+selected; the tactic page shows a locked choice as "Unavailable" with what
+locks it. An omitted section is not yet authored. Explicit nulls, unknown keys,
+unknown choices, duplicate entries, a clashing pair (also against legacy
+`instructions` strings) and the old single-string form are refused.
 
 The possession-loss/win choices feed the existing instruction-fit scoring
 through `in_transition_instruction_strings`; goalkeeper distribution choices
