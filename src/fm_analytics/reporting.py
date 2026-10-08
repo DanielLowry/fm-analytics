@@ -75,7 +75,7 @@ from fm_analytics.analytics.league_comparison import LeagueReport, build_league_
 from fm_analytics.analytics.league_insights import TeamSummary
 from fm_analytics.domain.leagues import LeagueCapture
 from fm_analytics.domain import GameState, Player, Squad
-from fm_analytics.season_export import export_document, match_document
+from fm_analytics.season_export import export_document, match_document, matches_document
 
 if TYPE_CHECKING:
     from fm_analytics.persistence.match_history import MatchHistory
@@ -835,6 +835,22 @@ def build_match_export(
     verbose season-export entry.
     """
     return match_document(history, report, catalogue=catalogue, generated_at=generated_at)
+
+
+def build_matches_export(
+    history: MatchHistory,
+    *,
+    filters: ReviewFilters = ReviewFilters(),
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+    generated_at: datetime | None = None,
+) -> dict[str, Any]:
+    """The matches the Matches page selects, as JSON: its "Copy all match data" button.
+
+    The page's own `build_match_review` with the same filters; each match is
+    the entry its match page's copy holds. See `season_export.matches_document`.
+    """
+    review = build_match_review(history, filters=filters, catalogue=catalogue)
+    return matches_document(history, review, catalogue=catalogue, generated_at=generated_at)
 
 
 def build_season_export(

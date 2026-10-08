@@ -3,12 +3,14 @@ import { initTables } from "./tables.js";
 import { initSquadFilters } from "./position-roles.js";
 import { initPlayerAttributeExports, initPlayerCopies } from "./attribute-export.js";
 import { initXiOptions } from "./xi-options.js";
+import { initFetchCopies } from "./fetch-copy.js";
 (() => {
   initTables();
   initSquadFilters();
   initScouting();
   initPlayerAttributeExports();
   initPlayerCopies();
+  initFetchCopies();
   initXiOptions();
   if (document.querySelector('[data-league-pending]')) {
     window.setTimeout(() => location.reload(), 3000);

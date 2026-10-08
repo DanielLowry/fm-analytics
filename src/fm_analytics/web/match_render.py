@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import html
 from typing import Iterable, Mapping, Sequence
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.match_analysis import (
@@ -17,6 +17,7 @@ from fm_analytics.analytics.match_analysis import (
     MatchReport,
     MatchReview,
     MatchSummary,
+    season_label,
 )
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, StoredIntervention
@@ -310,13 +311,42 @@ def review_filters(review: MatchReview, catalogue: FootballCatalogue, pinned: Se
     tactics = [("", "Any tactic")] + [
         (key, catalogue.tactics[key].name) for key in tactic_keys if key in catalogue.tactics
     ] + [(NO_TACTIC, "Tactic not known")]
+    seasons = [("", "All seasons")] + [(str(season), season_label(season)) for season in review.seasons]
+    season = str(filters.season) if filters.season is not None else None
     return (
         "<form class='filters fm-match-filters' method='get' action='/matches'>"
+        f"<label>Season{select('season', seasons, season)}</label>"
         f"<label>Group opponents by{select('group', list(GROUPING_LABELS.items()), filters.grouping)}</label>"
         f"<label>Competitions{select('competitions', list(COMPETITION_SCOPE_LABELS.items()), filters.competitions)}</label>"
         f"<label>Venue{select('venue', [('', 'Home and away'), ('home', 'Home'), ('away', 'Away')], filters.venue)}</label>"
         f"<label>Tactic{select('tactic', tactics, filters.tactic)}</label>"
         "<button type='submit'>Show</button></form>"
+    )
+
+
+def matches_copy_control(review: MatchReview) -> str:
+    """Copies every selected match with all its data, fetched from `/api/matches-export` on click.
+
+    Fetched rather than embedded: a season with full stats is a megabyte or two of JSON.
+    """
+    count = len(review.matches)
+    if not count:
+        return ""
+    filters = review.filters
+    query = urlencode([
+        (name, value) for name, value in (
+            ("season", filters.season), ("group", filters.grouping), ("competitions", filters.competitions),
+            ("venue", filters.venue), ("tactic", filters.tactic),
+        ) if value is not None
+    ])
+    url = _e(f"/api/matches-export?{query}")
+    success = f"{count} match{'es' if count != 1 else ''} copied as JSON!"
+    return (
+        f"<div class='fm-table-toolbar fm-match-copy' data-fetch-copy data-copy-url='{url}' "
+        f"data-copy-success='{_e(success)}'>"
+        "<button type='button' class='fm-table-copy' disabled>Copy all match data</button>"
+        "<span class='fm-table-copy-status' role='status' aria-live='polite'></span>"
+        f"<noscript><a href='{url}'>Open all match data as JSON</a></noscript></div>"
     )
 
 
@@ -483,6 +513,7 @@ def review_body(
     *,
     pinned: Sequence[str],
     capture: str,
+    copy_control: str = "",
 ) -> str:
     overall = review.overall
     ppg = f"{overall.points_per_game:.2f}" if overall.points_per_game is not None else "–"
@@ -500,17 +531,21 @@ def review_body(
         *,
         panel_class: str = "",
         panel_id: str = "",
+        actions: str = "",
     ) -> str:
         identifier = f" id='{panel_id}'" if panel_id else ""
         return (
             f"<section class='fm-workspace-panel fm-match-panel {panel_class}'{identifier}>"
             "<div class='fm-panel-heading'><div>"
             f"<h2>{title}</h2><p>{description}</p>"
-            "</div></div>"
+            f"</div>{actions}</div>"
             + content
             + "</section>"
         )
 
+    eyebrow = (
+        f"{season_label(review.filters.season)} season review" if review.filters.season is not None else "Season review"
+    )
     season_intro = (
         "How your matches have played out against different kinds of opponent. "
         f"<strong>{overall.matches}</strong> matches (W{overall.wins} D{overall.draws} L{overall.losses}, "
@@ -519,7 +554,7 @@ def review_body(
     )
     return (
         "<nav class='fm-section-nav' aria-label='Match review sections'><a href='#match-list'>Matches</a><a href='#review-filters'>Review filters</a><a href='#match-analysis'>Analysis</a></nav>"
-        "<section class='fm-match-review-hero'><span class='eyebrow'>Season review</span>"
+        f"<section class='fm-match-review-hero'><span class='eyebrow'>{eyebrow}</span>"
         "<h2>Your results, read in context</h2>"
         f"<p>{season_intro}</p>"
         "<div class='fm-match-review-actions'><a class='button-link' href='#match-list'>Browse matches</a>"
@@ -541,6 +576,7 @@ def review_body(
             matches_table(review.matches, catalogue),
             panel_class="fm-match-list",
             panel_id="match-list",
+            actions=copy_control,
         )
         + "<details class='fm-workspace-panel fm-disclosure' id='match-analysis'><summary>Analysis and diagnostics</summary>"
         + panel(

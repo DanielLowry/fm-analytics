@@ -15,7 +15,13 @@ catalogue role key:
   tactics screen (29 September 2026, Vertical 4-4-2 in the Concord Rangers and
   Hampton & Richmond matches). `0x80000000` was first taken from the
   catalogue's default role for that slot (Deep-Lying Forward); the manager
-  corrected it on 30 September to the Pressing Forward he actually plays;
+  corrected it on 30 September to the Pressing Forward he actually plays.
+  The Ball-Winning Counter 4-3-3 DM's were confirmed on 7 October 2026 for
+  the Havant & Waterlooville match (4 August 2020), each agreeing with the
+  duty FM saved for the slot: `0x10` Collier's Defensive Midfielder (Defend)
+  at DM, `0x8000` Sharpe's Deep-Lying Playmaker (Support) at MCL,
+  `0x10000000` Bellamy's Ball-Winning Midfielder (Support) at MCR and
+  `0x8000000` Holden's Inside Forward (Attack) at AML;
 * codes the manager confirms later are stored in the match history and
   override these; and
 * any other code is shown as an unconfirmed role, never guessed.
@@ -43,10 +49,14 @@ CONFIRMED_ROLE_CODES: Mapping[int, str] = {
     0x1: "gk_defend",
     0x2: "cd_defend",
     0x4: "fb_support",
+    0x10: "dm_defend",
     0x20: "cm_defend",
     0x80: "winger_ml_mr_support",
     0x800: "af_attack",
+    0x8000: "dlp_mc_support",
     0x10000: "b2b_support",
+    0x8000000: "if_attack",
+    0x10000000: "bwm_mc_support",
     0x80000000: "pf_support",
 }
 

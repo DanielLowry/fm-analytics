@@ -70,6 +70,7 @@ class SquadWebHandler(
             "/matches": self._matches_page,
             "/league": self._league_page,
             "/api/export": self._export_api,
+            "/api/matches-export": self._matches_export_api,
             "/data": self._data_page,
         }
         handler = routes.get(path)

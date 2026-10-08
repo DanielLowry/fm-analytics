@@ -65,6 +65,7 @@ class ReviewFilters:
     competitions: str = "competitive"
     venue: str | None = None  # "home" | "away"
     tactic: str | None = None  # a tactic key, or NO_TACTIC for "not known"
+    season: int | None = None  # the year it starts (2019 for 2019/20); see `match_seasons`
 
     def __post_init__(self) -> None:
         if self.grouping not in GROUPINGS:
@@ -73,6 +74,34 @@ class ReviewFilters:
             raise ValueError(f"competitions must be one of {', '.join(COMPETITION_SCOPES)}")
         if self.venue not in (None, "home", "away"):
             raise ValueError("venue must be home or away")
+        if self.season is not None and not isinstance(self.season, int):
+            raise ValueError("season must be the year it starts, e.g. 2019 for 2019/20")
+
+
+def season_label(season: int) -> str:
+    """A season as FM names it, from the year it starts: 2019 is 2019/20."""
+    return f"{season}/{(season + 1) % 100:02d}"
+
+
+def match_seasons(matches: Iterable[MatchRecord]) -> dict[str, int | None]:
+    """The season each match belongs to, by match key.
+
+    FM files every competitive match under a season. A friendly has none, so
+    it takes the season of the next match FM did file: a pre-season friendly
+    belongs to the season it leads into. A friendly after the last filed match
+    takes that match's season, so pre-season friendlies read before the new
+    season's first competitive match count in the old season until it is read.
+    None only when no match has a season.
+    """
+    ordered = sorted(matches, key=lambda match: match.date)
+    latest = next((match.season for match in reversed(ordered) if match.season is not None), None)
+    seasons: dict[str, int | None] = {}
+    following = latest
+    for match in reversed(ordered):
+        if match.season is not None:
+            following = match.season
+        seasons[match.key] = following
+    return seasons
 
 
 def _percent(part: int, whole: int) -> float | None:
@@ -250,6 +279,8 @@ class MatchReview:
     excluded: int
     # (match key, side, short ID) -> the role each player played; see `appearance_roles`.
     appearance_roles: Mapping[tuple[str, str, int], str] = field(default_factory=dict)
+    # Every season in the history, newest first, whatever the filters select.
+    seasons: tuple[int, ...] = ()
 
     @property
     def overall(self) -> GroupSummary:
@@ -439,12 +470,14 @@ def review_matches(
     # The role each player had in each match, with the duty his slot settles.
     roles = appearance_roles(matches, club.id, notes=notes, codes=codes, usual_roles=usual_roles)
     league_ids = {competition.id for competition, _results in leagues}
+    seasons = match_seasons(matches)
     everything = summarise_matches(
         matches, leagues, club, notes=notes, codes=codes, grouping=filters.grouping
     )
     selected = tuple(
         summary for summary in everything
         if _in_scope(summary.match, filters.competitions, league_ids)
+        and (filters.season is None or seasons[summary.match.key] == filters.season)
         and (filters.venue is None or summary.side == filters.venue)
         and (
             filters.tactic is None
@@ -511,4 +544,5 @@ def review_matches(
         leagues=tuple(competition for competition, _results in leagues),
         excluded=len(everything) - len(selected),
         appearance_roles=roles,
+        seasons=tuple(sorted({season for season in seasons.values() if season is not None}, reverse=True)),
     )

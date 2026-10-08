@@ -23,6 +23,7 @@ from fm_analytics.reporting import (
     build_match_intervention_evaluation,
     build_match_report,
     build_match_review,
+    build_matches_export,
     build_season_export,
 )
 from fm_analytics.season_export import DETAIL_LEVELS
@@ -31,12 +32,24 @@ from fm_analytics.web.match_render import (
     export_links,
     match_body,
     match_url,
+    matches_copy_control,
     review_body,
     tactic_history_panel,
     tactic_record_panel,
 )
 from fm_analytics.web.attribute_export import profile_copy_control
-from fm_analytics.web.rendering import _error_page, _layout, _query_first
+from fm_analytics.web.rendering import _error_page, _layout, _query_first, _query_number
+
+
+def _review_filters(query: dict[str, list[str]]) -> ReviewFilters:
+    """The Matches page's filters from its query; raises ValueError for a bad one."""
+    return ReviewFilters(
+        grouping=_query_first(query, "group") or "table",
+        competitions=_query_first(query, "competitions") or "competitive",
+        venue=_query_first(query, "venue") or None,
+        tactic=_query_first(query, "tactic") or None,
+        season=_query_number(query, "season", integer=True),
+    )
 
 
 class MatchPagesMixin:
@@ -75,12 +88,7 @@ class MatchPagesMixin:
 
     def _matches_page(self, path: str, query: dict[str, list[str]]) -> None:
         try:
-            filters = ReviewFilters(
-                grouping=_query_first(query, "group") or "table",
-                competitions=_query_first(query, "competitions") or "competitive",
-                venue=_query_first(query, "venue") or None,
-                tactic=_query_first(query, "tactic") or None,
-            )
+            filters = _review_filters(query)
         except ValueError as exc:
             self._send(_error_page("Matches", str(exc), path), HTTPStatus.BAD_REQUEST)  # type: ignore[attr-defined]
             return
@@ -111,8 +119,30 @@ class MatchPagesMixin:
             MVP_CATALOGUE,
             pinned=self.server.pinned_tactics,  # type: ignore[attr-defined]
             capture=panel + export_links(),
+            copy_control=matches_copy_control(review),
         )
         self._send(_layout("Matches", "/matches", body, wide=True))  # type: ignore[attr-defined]
+
+    def _matches_export_api(self, _path: str, query: dict[str, list[str]]) -> None:
+        """The matches the Matches page selects, as JSON: `reporting.build_matches_export`.
+
+        Takes the page's own filters; the page's "Copy all match data" button fetches it.
+        """
+        try:
+            filters = _review_filters(query)
+        except ValueError as exc:
+            self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)  # type: ignore[attr-defined]
+            return
+        try:
+            history = self.server.match_history()  # type: ignore[attr-defined]
+        except (OSError, RuntimeError, ValueError, sqlite3.Error) as exc:
+            self._send_json({"error": f"The match history could not be read: {exc}"},  # type: ignore[attr-defined]
+                            HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        if history is None:
+            self._send_json({"error": "No matches are recorded yet."}, HTTPStatus.NOT_FOUND)  # type: ignore[attr-defined]
+            return
+        self._send_json(build_matches_export(history, filters=filters))  # type: ignore[attr-defined]
 
     def _export_api(self, _path: str, query: dict[str, list[str]]) -> None:
         """The season as JSON: `reporting.build_season_export`, as `fm-matches export` writes it.

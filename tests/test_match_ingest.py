@@ -23,7 +23,7 @@ from fm_analytics.reporting import (
     build_match_review,
 )
 
-from tests.match_support import capture_document, season
+from tests.match_support import capture_document, season, two_seasons
 
 DETAILED = "2019-09-01:100:201"
 
@@ -76,6 +76,16 @@ class IngestAndReadTests(CliCase):
         self.assertEqual(text.strip(), expected.strip())
         self.assertIn("Above us", text)
         self.assertIn("Top current opportunities", text)
+
+    def test_review_can_be_narrowed_to_one_season(self) -> None:
+        matches, results = two_seasons()
+        self.capture.write_text(json.dumps(
+            capture_document(matches, game_date="2020-08-09", league_results=results)
+        ), encoding="utf-8")
+        self.run_cli("ingest", self.capture)
+        code, text = self.run_cli("review", "--season", "2020")
+        self.assertEqual(code, 0)
+        self.assertIn("Hungerford Town: 3 matches in 2020/21 (0 with full stats)", text)
 
     def test_list_show_and_note(self) -> None:
         self.run_cli("ingest", self.capture)

@@ -36,6 +36,7 @@ from fm_analytics.analytics.match_analysis import (
     GroupSummary,
     MatchReview,
     ReviewFilters,
+    season_label,
 )
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
 from fm_analytics.analytics.match_interventions import InterventionEvaluation
@@ -168,8 +169,9 @@ def _group_line(group: GroupSummary) -> str:
 
 
 def format_review(review: MatchReview) -> str:
+    season = f" in {season_label(review.filters.season)}" if review.filters.season is not None else ""
     lines = [
-        f"{review.club.name}: {len(review.matches)} matches "
+        f"{review.club.name}: {len(review.matches)} matches{season} "
         f"({sum(1 for s in review.matches if s.ours) } with full stats)",
         f"Grouped by: {review.grouping_label}. Figures are ours/theirs per match. "
         f"Groups under {MIN_GROUP_MATCHES} matches are too few to read.",
@@ -347,6 +349,7 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--competitions", choices=COMPETITION_SCOPES, default="competitive")
     review.add_argument("--venue", choices=("home", "away"))
     review.add_argument("--tactic", help=f"a tactic key, or {NO_TACTIC!r} for matches with no known tactic")
+    review.add_argument("--season", type=int, help="the year a season starts, e.g. 2019 for 2019/20")
     commands.add_parser("list", help="every recorded match")
     show = commands.add_parser("show", help="one match")
     show.add_argument("match")
@@ -427,7 +430,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             if history is None:
                 raise ValueError("that save has no recorded matches")
             if args.command == "review":
-                filters = ReviewFilters(args.group, args.competitions, args.venue, args.tactic)
+                filters = ReviewFilters(args.group, args.competitions, args.venue, args.tactic, args.season)
                 review = build_match_review(history, filters=filters)
                 lifecycle_review = build_match_review(
                     history, filters=ReviewFilters(grouping="table", competitions="competitive")

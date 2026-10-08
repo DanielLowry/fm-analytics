@@ -15,8 +15,8 @@ from fm_analytics.domain.matches import MatchCapture
 from fm_analytics.match_ingest import main, record_capture_file
 from fm_analytics.persistence.match_history import MatchHistoryStore
 from fm_analytics.reporting import (
-    RecommendationPolicy, build_match_export, build_match_report, build_match_review, build_recommendation_bundle,
-    build_season_export,
+    RecommendationPolicy, build_match_export, build_match_report, build_match_review, build_matches_export,
+    build_recommendation_bundle, build_season_export,
 )
 
 from tests.match_support import capture_document, lineup, player, season, two_seasons
@@ -286,6 +286,45 @@ class MatchExportTests(HistoryCase):
         self.assertIn("duty of null", caveats)
 
 
+class MatchesExportTests(HistoryCase):
+    """The Matches page's "Copy all match data": every selected match, each as its own page copies it."""
+
+    def use_two_seasons(self) -> None:
+        matches, results = two_seasons()
+        self.capture.write_text(json.dumps(
+            capture_document(matches, game_date="2020-08-09", league_results=results)
+        ), encoding="utf-8")
+        record_capture_file(self.store, self.capture)
+        self.history = self.store.load_history("club:100")
+
+    def test_each_match_is_what_its_own_page_copies(self) -> None:
+        document = build_matches_export(self.history, filters=ReviewFilters(competitions="all"), generated_at=GENERATED)
+        self.assertEqual((document["format"], document["formatVersion"]), ("fm-analytics/matches-export", 1))
+        self.assertEqual(json.loads(json.dumps(document)), document)
+        self.assertEqual(len(document["matches"]), 6)
+        for entry in document["matches"]:
+            self.assertEqual(entry, build_match_export(self.history, build_match_report(self.history, entry["key"]))["match"])
+        self.assertEqual(document["meta"]["generated_at"], "2026-09-29T12:00:00+00:00")
+        self.assertIn("5 match(es) have the result only", " ".join(document["meta"]["caveats"]))
+
+    def test_it_holds_only_the_selection_with_the_pages_own_figures(self) -> None:
+        self.use_two_seasons()
+        filters = ReviewFilters(competitions="league", venue="home", season=2019)
+        document = build_matches_export(self.history, filters=filters, generated_at=GENERATED)
+        review = build_match_review(self.history, filters=filters)
+        self.assertEqual([entry["key"] for entry in document["matches"]], [s.match.key for s in review.matches])
+        self.assertEqual([entry["date"] for entry in document["matches"]], ["2019-08-03", "2019-09-01"])
+        self.assertEqual(document["selection"], {
+            "season": "2019/20", "competitions": "League only", "venue": "Home", "tactic": "Any tactic",
+            "opponents_grouped_by": review.grouping_label, "matches": 2, "with_full_stats": 1,
+        })
+        overall = document["review"]["overall"]
+        self.assertEqual((overall["played"], overall["won"], overall["drawn"]), (2, 1, 1))
+        self.assertEqual(len(document["review"]["by_opponent"]), len(review.groups))
+        self.assertEqual([player["name"] for player in document["players"]], [p.name for p in review.players])
+        self.assertIn("FM files no season for a friendly", " ".join(document["meta"]["caveats"]))
+
+
 class PlayerSeasonTests(unittest.TestCase):
     def test_players_are_summed_across_matches_with_starts_subs_and_ratings_in_order(self) -> None:
         first = MatchCapture.from_document(capture_document(season())).matches[-1]
@@ -367,6 +406,26 @@ class ExportApiTests(WebServerHelpers, HistoryCase):
         self.assertEqual(len(json.loads(body)["squad"]), 11)
         _status, body = self._get(port, "/api/export?squad=none")
         self.assertNotIn("squad", json.loads(body))
+
+    def test_the_matches_export_takes_the_pages_filters(self) -> None:
+        status, body = self._get(self.serve(), "/api/matches-export?competitions=league&venue=away")
+        self.assertEqual(status, 200)
+        document = json.loads(body)
+        expected = build_matches_export(self.history, filters=ReviewFilters(competitions="league", venue="away"))
+        document["meta"].pop("generated_at")
+        expected["meta"].pop("generated_at")
+        self.assertEqual(document, expected)
+        self.assertEqual(len(document["matches"]), 2)
+
+    def test_the_matches_export_refuses_bad_filters_and_an_empty_history(self) -> None:
+        status, body = self._get(self.serve(), "/api/matches-export?season=last")
+        self.assertEqual(status, 400)
+        self.assertIn("season must be a number", json.loads(body)["error"])
+        empty = self._serve(write_complete_fixture(self.directory),
+                            match_store=MatchHistoryStore(self.directory / "empty.sqlite3"))
+        status, body = self._get(empty, "/api/matches-export")
+        self.assertEqual(status, 404)
+        self.assertIn("No matches", json.loads(body)["error"])
 
     def test_bad_parameters_and_an_empty_history_are_json_errors(self) -> None:
         port = self.serve()

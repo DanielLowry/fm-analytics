@@ -19,6 +19,8 @@ Every detail level has the same sections; a higher level adds depth to them:
 
 `match_document` is one match on its own, for the match page's copy button
 (`reporting.build_match_export`): its verbose entry, with more besides.
+`matches_document` is every match the Matches page has selected, each as
+`match_document` has it (`reporting.build_matches_export`).
 """
 
 from __future__ import annotations
@@ -32,7 +34,8 @@ from fm_analytics.analytics.in_transition import in_transition_selected_instruct
 from fm_analytics.analytics.in_possession import in_possession_instruction_strings
 from fm_analytics.analytics.out_of_possession import out_of_possession_selected_instructions
 from fm_analytics.analytics.match_analysis import (
-    METRICS, MIN_GROUP_MATCHES, GroupSummary, MatchReport, MatchReview, MatchSummary,
+    COMPETITION_SCOPE_LABELS, METRICS, MIN_GROUP_MATCHES, NO_TACTIC, GroupSummary, MatchReport, MatchReview,
+    MatchSummary, season_label,
 )
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
 from fm_analytics.analytics.match_interventions import InterventionEvaluation
@@ -453,6 +456,43 @@ def _caveats(everything: MatchReview, competitive: MatchReview, bundle, as_of: d
     return caveats
 
 
+def _goals(review: MatchReview) -> dict[str, Any]:
+    goals = review.goals
+    return {
+        "our_goals_by_scorer_role": dict(goals.scorers),
+        "our_goals_by_assister_role": dict(goals.assisters),
+        "goals_conceded_by_opponent_role": dict(goals.conceded_to),
+        "goals_for_with_player_stats": f"{goals.goals_for_covered} of {goals.goals_for_total}",
+        "goals_against_with_player_stats": f"{goals.goals_against_covered} of {goals.goals_against_total}",
+        "by_period": {
+            "matches_with_goal_minutes": goals.timed_matches,
+            "periods": list(goals.periods), "scored": list(goals.scored), "conceded": list(goals.conceded),
+        },
+        "penalties": {"for": goals.penalties_for, "against": goals.penalties_against},
+        "own_goals": {"for": goals.own_goals_for, "against": goals.own_goals_against},
+        "sent_off": {"ours": goals.sent_off_ours, "theirs": goals.sent_off_theirs},
+    }
+
+
+def _roles(review: MatchReview) -> list[dict[str, Any]]:
+    return [
+        {
+            "role": role.label, "confirmed": role.confirmed, "appearances": role.appearances,
+            "starts": role.starts, "minutes": role.minutes, "avg_rating": role.average_rating,
+            "goals": role.goals, "assists": role.assists, "shots": role.shots,
+            "shots_on_target": role.shots_on_target,
+            "share_of_team_shots_pct": _round(100 * role.shot_share, 1) if role.shot_share is not None else None,
+            "clear_cut_chances": role.clear_cut_chances, "key_passes": role.key_passes,
+            "chances_created": role.chances_created, "dribbles": role.dribbles,
+            "per90": {
+                key: _round(role.per_90(getattr(role, key)))
+                for key in ("goals", "assists", "shots", "key_passes", "chances_created")
+            },
+        }
+        for role in review.roles
+    ]
+
+
 def export_document(
     history: MatchHistory,
     *,
@@ -479,7 +519,6 @@ def export_document(
     )
     competitive_keys = {summary.match.key for summary in competitive.matches}
     league_keys = {summary.match.key for summary in league.matches}
-    goals = competitive.goals
     document: dict[str, Any] = {
         "format": EXPORT_FORMAT,
         "formatVersion": EXPORT_FORMAT_VERSION,
@@ -493,7 +532,7 @@ def export_document(
                 "with_full_stats": sum(1 for summary in everything.matches if summary.match.detail is not None),
                 "competitive": len(competitive.matches),
                 "league": len(league.matches),
-                "with_goal_times": goals.timed_matches,
+                "with_goal_times": competitive.goals.timed_matches,
             },
             "squad": (
                 "left out (basic)" if detail == "basic"
@@ -516,36 +555,8 @@ def export_document(
             "active_intervention": intervention.to_document() if intervention else None,
             "intervention_history": [item.to_document() for item in history.interventions],
         },
-        "goals": {
-            "our_goals_by_scorer_role": dict(goals.scorers),
-            "our_goals_by_assister_role": dict(goals.assisters),
-            "goals_conceded_by_opponent_role": dict(goals.conceded_to),
-            "goals_for_with_player_stats": f"{goals.goals_for_covered} of {goals.goals_for_total}",
-            "goals_against_with_player_stats": f"{goals.goals_against_covered} of {goals.goals_against_total}",
-            "by_period": {
-                "matches_with_goal_minutes": goals.timed_matches,
-                "periods": list(goals.periods), "scored": list(goals.scored), "conceded": list(goals.conceded),
-            },
-            "penalties": {"for": goals.penalties_for, "against": goals.penalties_against},
-            "own_goals": {"for": goals.own_goals_for, "against": goals.own_goals_against},
-            "sent_off": {"ours": goals.sent_off_ours, "theirs": goals.sent_off_theirs},
-        },
-        "roles": [
-            {
-                "role": role.label, "confirmed": role.confirmed, "appearances": role.appearances,
-                "starts": role.starts, "minutes": role.minutes, "avg_rating": role.average_rating,
-                "goals": role.goals, "assists": role.assists, "shots": role.shots,
-                "shots_on_target": role.shots_on_target,
-                "share_of_team_shots_pct": _round(100 * role.shot_share, 1) if role.shot_share is not None else None,
-                "clear_cut_chances": role.clear_cut_chances, "key_passes": role.key_passes,
-                "chances_created": role.chances_created, "dribbles": role.dribbles,
-                "per90": {
-                    key: _round(role.per_90(getattr(role, key)))
-                    for key in ("goals", "assists", "shots", "key_passes", "chances_created")
-                },
-            }
-            for role in competitive.roles
-        ],
+        "goals": _goals(competitive),
+        "roles": _roles(competitive),
         "players": [_player(season, detail) for season in competitive.players],
         "matches": [
             _match(
@@ -570,6 +581,19 @@ def export_document(
 
 MATCH_EXPORT_FORMAT = "fm-analytics/match-export"
 MATCH_EXPORT_FORMAT_VERSION = 1
+_MATCH_CAVEATS = (
+    "summary_for and summary_against are FM's match panel; possession, pass_completion, tackles_won and "
+    "headers_won are percentages. FM20 has no xG: clear-cut chances are the nearest measure of chance quality.",
+    "A player's stats leave out zeros: a missing key is 0.",
+    "Our roles carry the duty our tactic's slot settles; theirs are as FM's role code names them.",
+    "opponent_band uses that season's league table on the morning of the match (a friendly uses the latest "
+    "season under way); 'Early season' means the opponent had played fewer than 3 league games.",
+)
+_RATING_CAVEAT = (
+    "your_pre_match_rating is how strong you judged them before kickoff: -2 much weaker than us, "
+    "0 about the same, +2 much stronger than us."
+)
+_DUTY_CAVEAT = "A saved-tactic duty of null is one FM's code does not yet name (see docs/match-duty-extraction.md)."
 
 
 def _standing(position: TablePosition | None) -> dict[str, int] | None:
@@ -593,9 +617,43 @@ def match_document(
     summary = report.summary
     match = summary.match
     codes = RoleCodes.build(catalogue, history.role_codes)
+    roles = {(match.key, side, short_id): role for (side, short_id), role in report.role_labels.items()}
+    row = _full_match(history, summary, codes, catalogue, roles)
+    caveats = list(_MATCH_CAVEATS)
+    if summary.tactic_inferred:
+        caveats.append("The tactic is inferred from the starting roles; you did not record one.")
+    if summary.strength.rating is not None:
+        caveats.append(_RATING_CAVEAT)
+    if match.detail is None:
+        caveats.append("Only the result was found: FM's archive had no stats for this match that added up.")
+    elif _null_duty(row):
+        caveats.append(_DUTY_CAVEAT)
+    return {
+        "format": MATCH_EXPORT_FORMAT,
+        "formatVersion": MATCH_EXPORT_FORMAT_VERSION,
+        "meta": _match_meta(history, generated_at) | {"caveats": caveats},
+        "match": row,
+    }
+
+
+def _match_meta(history: MatchHistory, generated_at: datetime | None) -> dict[str, Any]:
+    return {
+        "club": history.club.name, "club_id": history.club.id, "save_key": history.save_key,
+        "last_captured_game_date": history.last_game_date.isoformat() if history.last_game_date else None,
+        "generated_at": (generated_at or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
+    }
+
+
+def _null_duty(row: Mapping[str, Any]) -> bool:
+    return any(slot["duty"] is None for tactic in row.get("fm_saved_tactics", {}).values() for slot in tactic["slots"])
+
+
+def _full_match(history: MatchHistory, summary: MatchSummary, codes: RoleCodes, catalogue: FootballCatalogue,
+                roles: Mapping[tuple[str, str, int], str]) -> dict[str, Any]:
+    """One match's verbose season-export entry, plus what only one match has room for."""
+    match = summary.match
     league_ids = {competition.id for competition, _results in history.league_results}
     kind = "league" if match.competition.id in league_ids else "friendly" if match.competition.is_friendly else "cup"
-    roles = {(match.key, side, short_id): role for (side, short_id), role in report.role_labels.items()}
     row = _match(summary, kind, codes, catalogue, "match", roles)
     row.setdefault("attendance", match.attendance)
     strength = summary.strength
@@ -623,33 +681,72 @@ def match_document(
             for who, side in sides
             if (tactic := match.detail.saved_tactics.get(side)) is not None
         }
-    caveats = [
-        "summary_for and summary_against are FM's match panel; possession, pass_completion, tackles_won and "
-        "headers_won are percentages. FM20 has no xG: clear-cut chances are the nearest measure of chance quality.",
-        "A player's stats leave out zeros: a missing key is 0.",
-        "Our roles carry the duty our tactic's slot settles; theirs are as FM's role code names them.",
-        "opponent_band uses that season's league table on the morning of the match (a friendly uses the latest "
-        "season under way); 'Early season' means the opponent had played fewer than 3 league games.",
-    ]
-    if summary.tactic_inferred:
-        caveats.append("The tactic is inferred from the starting roles; you did not record one.")
-    if strength.rating is not None:
-        caveats.append(
-            "your_pre_match_rating is how strong you judged them before kickoff: -2 much weaker than us, "
-            "0 about the same, +2 much stronger than us."
-        )
-    if match.detail is None:
-        caveats.append("Only the result was found: FM's archive had no stats for this match that added up.")
-    elif any(slot["duty"] is None for tactic in row["fm_saved_tactics"].values() for slot in tactic["slots"]):
-        caveats.append("A saved-tactic duty of null is one FM's code does not yet name (see docs/match-duty-extraction.md).")
+    return row
+
+
+# -- the matches a review selected --------------------------------------------
+
+MATCHES_EXPORT_FORMAT = "fm-analytics/matches-export"
+MATCHES_EXPORT_FORMAT_VERSION = 1
+
+
+def matches_document(
+    history: MatchHistory,
+    review: MatchReview,
+    *,
+    catalogue: FootballCatalogue,
+    generated_at: datetime | None = None,
+) -> dict[str, Any]:
+    """Every match a review selected, with everything recorded about each, for the Matches page's copy button.
+
+    `selection` names the filters; `review`, `goals`, `roles` and `players`
+    are the review's figures for just these matches, as the page shows them.
+    Each entry in `matches` is that match's `match` in `match_document`, the
+    match page's own copy.
+    """
+    filters = review.filters
+    codes = RoleCodes.build(catalogue, history.role_codes)
+    rows = [_full_match(history, summary, codes, catalogue, review.appearance_roles) for summary in review.matches]
+    tactic = (
+        "Any tactic" if filters.tactic is None
+        else "Tactic not known" if filters.tactic == NO_TACTIC
+        else catalogue.tactics[filters.tactic].name if filters.tactic in catalogue.tactics
+        else filters.tactic
+    )
+    caveats = list(_MATCH_CAVEATS)
+    if filters.season is not None:
+        caveats.append("FM files no season for a friendly; one counts in the season of the next competitive match.")
+    if any(summary.tactic_inferred for summary in review.matches):
+        caveats.append("tactic_inferred_from_lineup: true means the tactic is inferred from the starting roles; "
+                       "you did not record one.")
+    if any(summary.strength.rating is not None for summary in review.matches):
+        caveats.append(_RATING_CAVEAT)
+    result_only = sum(1 for summary in review.matches if summary.match.detail is None)
+    if result_only:
+        caveats.append(f"{result_only} match(es) have the result only: FM's archive had no stats for them that added up.")
+    if any(_null_duty(row) for row in rows):
+        caveats.append(_DUTY_CAVEAT)
     return {
-        "format": MATCH_EXPORT_FORMAT,
-        "formatVersion": MATCH_EXPORT_FORMAT_VERSION,
-        "meta": {
-            "club": history.club.name, "club_id": history.club.id, "save_key": history.save_key,
-            "last_captured_game_date": history.last_game_date.isoformat() if history.last_game_date else None,
-            "generated_at": (generated_at or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
-            "caveats": caveats,
+        "format": MATCHES_EXPORT_FORMAT,
+        "formatVersion": MATCHES_EXPORT_FORMAT_VERSION,
+        "meta": _match_meta(history, generated_at) | {"caveats": caveats},
+        "selection": {
+            "season": season_label(filters.season) if filters.season is not None else "All seasons",
+            "competitions": COMPETITION_SCOPE_LABELS[filters.competitions],
+            "venue": {"home": "Home", "away": "Away"}.get(filters.venue or "", "Home and away"),
+            "tactic": tactic,
+            "opponents_grouped_by": review.grouping_label,
+            "matches": len(review.matches),
+            "with_full_stats": len(review.matches) - result_only,
         },
-        "match": row,
+        "review": {
+            "overall": _group(review.overall),
+            "by_opponent": [_group(group) for group in review.groups],
+            "by_venue": [_group(group) for group in review.venues],
+            "by_tactic": [{"tactic": row.label, **_group(row.overall)} for row in review.tactics],
+        },
+        "goals": _goals(review),
+        "roles": _roles(review),
+        "players": [_player(season, "verbose") for season in review.players],
+        "matches": rows,
     }

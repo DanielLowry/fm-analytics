@@ -60,6 +60,19 @@ both the page and `fm-matches review` use.
   rating, free text).
 - **On the Tactics page:** a "Your match record" box for the pinned tactics.
   It is evidence only and changes no score.
+- **Filters:** season, how opponents are grouped, competitions, venue and
+  tactic (`ReviewFilters`; `fm-matches review` takes the same, `--season
+  2019` for 2019/20). FM files every competitive match under a season but no
+  friendly, so a friendly counts in the season of the next competitive match:
+  pre-season goes with the season it leads into. Pre-season friendlies read
+  before the new season's first competitive match count in the old season
+  until that match is read.
+- **Copy all match data:** a button on the match list copies every match the
+  filters select as JSON, each exactly as its own page's "Copy match to
+  clipboard" has it, with the selection's review, goals, roles and players
+  (`reporting.build_matches_export`, served at `/api/matches-export` with the
+  page's filters). It is fetched on click, not embedded: a season with full
+  stats is one to two megabytes.
 
 ### Where it lives
 
@@ -69,7 +82,7 @@ both the page and `fm-matches review` use.
 | Domain | `domain/matches.py` (`MatchCapture`, `MatchRecord`, `MatchDetail`, …) |
 | Storage | `persistence/match_history.py`, with the upgrade runner shared with player knowledge in `persistence/migrations.py` |
 | Analysis | `analytics/match_strength.py` (league table at kickoff, strength groups), `analytics/match_roles.py` (role codes, tactic inference, role summaries), `analytics/match_analysis.py` (the review) |
-| Shared computation | `reporting.build_match_review`, `reporting.build_match_report` |
+| Shared computation | `reporting.build_match_review`, `reporting.build_match_report`, `reporting.build_matches_export` |
 | Command line | `match_ingest.py` (`fm-matches`) |
 | Web | `web/match_pages.py`, `web/match_render.py`, `web/match_state.py` |
 | Tests | `test_match_models`, `test_match_history`, `test_match_analysis`, `test_match_ingest`, `test_web_matches`, `test_fm20_match_layout` |

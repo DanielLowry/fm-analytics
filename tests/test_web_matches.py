@@ -9,7 +9,7 @@ from fm_analytics.match_ingest import record_capture_file
 from fm_analytics.persistence.match_history import MatchHistoryStore
 from fm_analytics.reporting import build_match_export, build_match_report, build_match_review
 
-from tests.match_support import capture_document, season
+from tests.match_support import capture_document, season, two_seasons
 from tests.test_match_diagnostics import diagnostic_season
 from tests.web_support import FIXTURE, WebServerHelpers, write_complete_fixture
 
@@ -69,6 +69,40 @@ class ReviewPageTests(MatchPagesCase):
         self.assertNotIn("Cup Rovers", body)
         status, _body = self._get(port, "/matches?group=bogus")
         self.assertEqual(status, 400)
+
+
+    def test_a_season_can_be_picked_and_a_bad_one_is_refused(self) -> None:
+        matches, results = two_seasons()
+        self.capture.write_text(json.dumps(
+            capture_document(matches, game_date="2020-08-09", league_results=results)
+        ), encoding="utf-8")
+        self.record()
+        port = self.serve()
+        last_season = "/matches/" + quote("2019-09-01:100:201", safe="")
+        this_season = "/matches/" + quote("2020-08-08:100:204", safe="")
+        _status, body = self._get(port, "/matches")
+        self.assertIn("<option value='' selected>All seasons</option>", body)
+        self.assertIn("<option value='2020'>2020/21</option><option value='2019'>2019/20</option>", body)
+        self.assertIn(last_season, body)
+        self.assertIn(this_season, body)
+        _status, body = self._get(port, "/matches?season=2019")
+        self.assertIn("2019/20 season review", body)
+        self.assertIn("<option value='2019' selected>2019/20</option>", body)
+        self.assertIn(last_season, body)
+        self.assertNotIn(this_season, body)
+        status, _body = self._get(port, "/matches?season=last")
+        self.assertEqual(status, 400)
+
+    def test_the_copy_button_fetches_the_selected_matches(self) -> None:
+        self.record()
+        port = self.serve()
+        _status, body = self._get(port, "/matches?competitions=league&venue=home")
+        self.assertIn("data-fetch-copy data-copy-url='/api/matches-export?group=table&amp;competitions=league"
+                      "&amp;venue=home'", body)
+        self.assertIn("data-copy-success='2 matches copied as JSON!'", body)
+        self.assertIn(">Copy all match data</button>", body)
+        _status, body = self._get(port, "/matches?tactic=wing_play_442")
+        self.assertNotIn("data-fetch-copy", body)  # nothing selected, nothing to copy
 
 
 class MatchPageTests(MatchPagesCase):

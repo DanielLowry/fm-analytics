@@ -43,6 +43,12 @@ the full relevant attribute groups as readable text. Goalkeepers use the
 goalkeeping attribute set; scouting ranges, unknowns and historical dates
 remain intact.
 
+The Matches page's Copy all match data button (`fetch-copy.js`) fetches its
+JSON from `data-copy-url` on click rather than embedding it, because a
+season's matches run to megabytes. It hands the pending fetch to
+`ClipboardItem` where the browser has it, so the copy still counts as part of
+the click, and falls back to the shared copy helper.
+
 Tactic detail pages use the same clipboard control to copy every selected
 starter's profile, with slot, position, selected role and duty labels. The
 dump includes tactic and game date and excludes the bench. For old-save

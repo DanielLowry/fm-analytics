@@ -44,6 +44,9 @@ the one behind `fm-matches export` and the web's `/api/export`.
 `reporting.build_match_export` is the one behind a match page's "Copy match
 to clipboard": that match's verbose season-export entry plus what only one
 match has room for, built from the same `build_match_report` the page shows.
+`reporting.build_matches_export` is the one behind the Matches page's "Copy all
+match data" (`/api/matches-export`): every match the page's filters select,
+each exactly as its own page's copy has it.
 `reporting.build_contract_review` is the one computation behind `/contracts`
 and the squad player report's Contract plan panel.
 `reporting.build_league_comparison` is the one behind `/league` and its team

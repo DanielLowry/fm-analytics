@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from fm_analytics.analytics import MVP_CATALOGUE
-from fm_analytics.analytics.match_analysis import NO_TACTIC, ReviewFilters, review_matches
+from fm_analytics.analytics.match_analysis import NO_TACTIC, ReviewFilters, match_seasons, review_matches, season_label
 from fm_analytics.analytics.match_roles import RoleCodes, summarise_roles
 from fm_analytics.analytics.match_strength import (
     Strength,
@@ -28,8 +28,15 @@ def load(matches=None):
     return capture.matches, capture.league_results
 
 
-def review(filters=ReviewFilters(), notes=None, confirmed=None, matches=None):
-    records, leagues = load(matches)
+def load_seasons(matches, league_results):
+    capture = MatchCapture.from_document(
+        capture_document(matches, game_date="2020-08-09", league_results=league_results)
+    )
+    return capture.matches, capture.league_results
+
+
+def review(filters=ReviewFilters(), notes=None, confirmed=None, matches=None, league_results=None):
+    records, leagues = load(matches) if league_results is None else load_seasons(matches, league_results)
     return review_matches(
         records, leagues, TeamRef(US["id"], US["name"]), catalogue=MVP_CATALOGUE,
         notes=notes or {}, confirmed_role_codes=confirmed or {}, filters=filters,
@@ -127,6 +134,44 @@ class SeasonTests(unittest.TestCase):
         week_two = next(record for record in untagged.matches if record.date.isoformat() == "2020-08-08")
         merged = calculator.strength(week_two, week_two.away.id, None)
         self.assertEqual((merged.season, merged.ours.played, merged.opponent.teams), (None, 5, 5))
+
+
+class SeasonFilterTests(unittest.TestCase):
+    """A review can be narrowed to one season; a friendly goes with the season it leads into."""
+
+    def setUp(self) -> None:
+        self.matches, self.results = two_seasons()
+
+    def dates(self, filters: ReviewFilters) -> list[str]:
+        return [s.match.date.isoformat() for s in review(filters, matches=self.matches, league_results=self.results).matches]
+
+    def test_each_season_holds_only_its_own_matches(self) -> None:
+        self.assertEqual(self.dates(ReviewFilters(season=2019)),
+                         ["2019-08-03", "2019-08-10", "2019-08-17", "2019-08-24", "2019-09-01"])
+        self.assertEqual(self.dates(ReviewFilters(season=2020)), ["2020-08-01", "2020-08-04", "2020-08-08"])
+        self.assertEqual(len(self.dates(ReviewFilters())), 8)
+
+    def test_a_pre_season_friendly_belongs_to_the_season_it_leads_into(self) -> None:
+        self.assertEqual(self.dates(ReviewFilters(competitions="all", season=2019))[0], "2019-07-20")
+        self.assertEqual(self.dates(ReviewFilters(competitions="all", season=2020))[:2], ["2020-07-25", "2020-07-28"])
+
+    def test_every_season_is_offered_whatever_is_selected(self) -> None:
+        selected = review(ReviewFilters(season=2019), matches=self.matches, league_results=self.results)
+        self.assertEqual(selected.seasons, (2020, 2019))
+        self.assertEqual(review().seasons, ())  # nothing FM filed under a season
+        self.assertEqual(season_label(2019), "2019/20")
+        self.assertEqual(season_label(2099), "2099/00")
+
+    def test_a_friendly_after_the_last_filed_match_takes_its_season(self) -> None:
+        records, _leagues = load_seasons([m for m in self.matches if m.get("season") != 2020], self.results)
+        seasons = match_seasons(records)
+        self.assertEqual({seasons[r.key] for r in records if r.date.year == 2020}, {2019})
+        unfiled, _leagues = load()
+        self.assertEqual(set(match_seasons(unfiled).values()), {None})
+
+    def test_a_season_must_be_a_year(self) -> None:
+        with self.assertRaises(ValueError):
+            ReviewFilters(season="2019")  # type: ignore[arg-type]
 
 
 class ReviewTests(unittest.TestCase):

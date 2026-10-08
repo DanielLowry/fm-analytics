@@ -610,6 +610,7 @@ body.fm-app .fm-table-toolbar label { display: grid; gap: .2rem; flex: 1 1 12rem
 body.fm-app .fm-table-toolbar input { min-width: 0; width: 100%; border: 1px solid var(--fm-border); border-radius: .45rem; padding: .4rem .55rem; font-size: .8rem; }
 body.fm-app .fm-table-toolbar button { padding: .4rem .6rem; border: 1px solid var(--fm-border); border-radius: .45rem; color: var(--color-ink-700); background: var(--fm-card); cursor: pointer; }
 body.fm-app .fm-table-empty { padding: .7rem; color: var(--color-ink-500); }
+body.fm-app .fm-panel-heading .fm-match-copy { flex: 0 1 auto; justify-content: flex-end; align-items: center; margin: 0; text-align: right; }
 body.fm-app .fm-xi-exclude { display: inline-flex; align-items: center; padding: .2rem .55rem; border: 1px solid var(--fm-border); border-radius: .45rem; background: var(--fm-card); color: var(--color-ink-600); font-size: .74rem; font-weight: 650; text-decoration: none; white-space: nowrap; }
 body.fm-app .fm-xi-exclude:is(:hover, :focus-visible) { border-color: #e5a29b; background: #fdf1f0; color: #a3271c; }
 :root.dark body.fm-app .fm-xi-exclude:is(:hover, :focus-visible) { border-color: #7a3a33; background: #3c2423; color: #f4b7ae; }
