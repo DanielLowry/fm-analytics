@@ -33,7 +33,13 @@ def _left_out(breakdowns: Breakdowns) -> str:
     return f" Left out: {reasons}."
 
 
+_NO_SPLIT = ("<p class='muted'>This needs matches with every shot and goal time, which FM's match archive "
+             "gives once matches are read from FM; none in this selection has them yet.</p>")
+
+
 def score_table(breakdowns: Breakdowns) -> str:
+    if not breakdowns.split_matches:
+        return _NO_SPLIT
     rows = []
     for state in STATES:
         tally = breakdowns.by_state[state]
@@ -56,6 +62,8 @@ def score_table(breakdowns: Breakdowns) -> str:
 
 
 def period_table(breakdowns: Breakdowns) -> str:
+    if not breakdowns.split_matches:
+        return _NO_SPLIT
     rows = "".join(
         f"<tr><td>{label}</td><td>{_pair(tally.shots)}</td><td>{_pair(tally.on_goal)}</td>"
         f"<td>{_pair(tally.clear_cut_chances)}</td><td>{_pair(tally.goals)}</td></tr>"
@@ -136,9 +144,10 @@ def players_table(review: MatchReview, breakdowns: Breakdowns) -> str:
             + (f" <span class='muted'>({', '.join(goal_notes)})</span>" if goal_notes else "") + "</td>"
             f"<td>{stat('assists')}</td>"
             f"<td data-sort='{stat('shots')}'>{stat('shots')}{_per_90(stat('shots'), minutes)}</td>"
-            f"<td data-sort='{extra.shots_on_goal}'>{extra.shots_on_goal} / {extra.shots_wide} / {extra.shots_over}</td>"
-            f"<td data-sort='{extra.clear_cut_chances}'>{extra.clear_cut_chances} "
-            f"<span class='muted'>({extra.clear_cut_chances_scored} scored)</span></td>"
+            f"<td data-sort='{extra.shots_on_goal}'>{extra.shots_on_goal} · {extra.shots_wide} · {extra.shots_over}</td>"
+            f"<td data-sort='{extra.clear_cut_chances}'>{extra.clear_cut_chances}"
+            + (f" <span class='muted'>({extra.clear_cut_chances_scored} scored)</span>" if extra.clear_cut_chances else "")
+            + "</td>"
             f"<td data-sort='{stat('key_passes')}'>{stat('key_passes')}{_per_90(stat('key_passes'), minutes)}</td>"
             f"<td data-sort='{stat('chances_created')}'>{stat('chances_created')}{_per_90(stat('chances_created'), minutes)}</td>"
             f"<td>{stat('dribbles')}</td>"
@@ -147,12 +156,12 @@ def players_table(review: MatchReview, breakdowns: Breakdowns) -> str:
             f"<td>{stat('headers_won')} <span class='muted'>({_percent(stat('headers_won'), stat('headers_attempted'))})</span></td>"
             f"<td>{stat('fouls')}</td><td data-sort='{extra.yellow_cards + 3 * extra.sent_off}'>"
             f"{extra.yellow_cards}{f' / {extra.sent_off} off' if extra.sent_off else ''}</td>"
-            f"<td>{season.distance_m / 1000 * 90 / minutes:.1f}</td></tr>" if minutes else ""
+            f"<td>{f'{season.distance_m / 1000 * 90 / minutes:.1f}' if minutes else '–'}</td></tr>"
         )
     return (
         "<div class='table-scroll'><table class='sortable'><thead><tr><th>Player</th><th>Apps (starts)</th>"
         "<th>Minutes</th><th>Average rating</th><th>Goals</th><th>Assists</th><th>Shots (per 90)</th>"
-        "<th>On goal / wide / over</th><th>Clear-cut chances</th><th>Key passes (per 90)</th>"
+        "<th>Shots on goal · wide · over</th><th>Clear-cut chances</th><th>Key passes (per 90)</th>"
         "<th>Chances created (per 90)</th><th>Dribbles</th><th>Passes completed</th><th>Tackles won</th>"
         "<th>Headers won</th><th>Fouls</th><th>Booked</th><th>km per 90</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"

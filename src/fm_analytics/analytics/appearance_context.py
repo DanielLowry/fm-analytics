@@ -126,7 +126,7 @@ def appearance_contexts(
         if saved is not None:
             placements = _with_saved_duties(placements, saved, codes, ours)
         for player in ours:
-            family = codes.family(player.role_code)
+            family = codes.family(player.role_code, player.position)
             placement = placements.get(player.short_id, _Placement(problem=DOES_NOT_FIT))
             contexts.append(AppearanceContext(
                 match=match,
@@ -195,7 +195,7 @@ def _place(
             slots = [slots_by_key[inherited.slot_key]]
         else:
             slots = slots_at.get(sub.position, [])
-        family = codes.family(sub.role_code)
+        family = codes.family(sub.role_code, sub.position)
         placements[sub.short_id] = _settled({slot.key: _family_roles(catalogue, slot, family) for slot in slots}, usual)
     return placements
 
@@ -224,7 +224,7 @@ def _with_saved_duties(
         if player.short_id not in holds or (player.started and player.start_position != player.position):
             continue  # a starter who moved did two jobs
         slot = saved.slot_at(*holds[player.short_id])
-        family = codes.family(player.role_code)
+        family = codes.family(player.role_code, player.start_position or player.position)
         if slot is None or slot.role_code != player.role_code or slot.duty is None or family is None:
             continue
         keys = roles_with_duty(catalogue, family, slot.duty)
@@ -239,7 +239,7 @@ def _place_group(catalogue: FootballCatalogue, codes: RoleCodes, slots, players,
     if len(slots) != len(players):
         return {player.short_id: _Placement(problem=DOES_NOT_FIT) for player in players}
     shared = len(slots) > 1
-    families = [codes.family(player.role_code) for player in players]
+    families = [codes.family(player.role_code, player.start_position) for player in players]
 
     def fits(player, family, slot, sides: bool) -> bool:
         if family is not None and not _family_roles(catalogue, slot, family):
@@ -313,7 +313,7 @@ def role_label(context: AppearanceContext, codes: RoleCodes) -> str:
     he filled settles it, else as his role code names it."""
     if context.role_key is not None:
         return codes.catalogue.roles[context.role_key].name
-    return codes.label(context.player.role_code)
+    return codes.label(context.player.role_code, context.player.position)
 
 
 def appearance_roles(
@@ -338,7 +338,9 @@ def appearance_roles(
     for match in matches:
         for player in match.detail.players if match.detail else ():
             if player.played:
-                labels.setdefault((match.key, player.side, player.short_id), codes.label(player.role_code))
+                labels.setdefault(
+                    (match.key, player.side, player.short_id), codes.label(player.role_code, player.position)
+                )
     return labels
 
 

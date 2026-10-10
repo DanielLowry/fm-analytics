@@ -52,6 +52,11 @@ the same section of `fm-matches show`: that match against the usual range of
 the other competitive matches, by the season diagnosis's own model, and its
 "Result vs chances" (`analytics/match_chances.py`: the chances each side made,
 valued by `analytics/chance_value.py`, against the score).
+`reporting.build_match_breakdowns` is the one behind the Matches page's "By the
+score", "By period", "How the goals came", "Against each formation" and "Your
+players" panels, the same lines of `fm-matches review` and the exports' `breakdowns`
+(`analytics/match_breakdowns.py`); a match's own split by the score comes with its
+`build_match_report` timeline.
 `reporting.build_penalty_record` is the one behind the Matches page's "Penalties
 you gave away" and the same lines of `fm-matches review`: the penalties scored
 against us in the selected matches and who the manager recorded giving each away

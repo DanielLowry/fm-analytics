@@ -75,6 +75,23 @@ both the page and `fm-matches review` use.
     a block, so it counts blocked shots that were going in; FM's own "on
     target" does not.
   - **Formation:** the opposition's, as FM names it ("4-3-3 Narrow").
+  - **Also on the page** (added 10 October 2026): FM's saved tactic name, the
+    score after 90 minutes and any shootout, each player's position (where
+    he started and where he ended up), a keeper's goals conceded, the unused
+    substitutes, the counts behind the panel's percentages, each shot's
+    match clock, a goal-mouth picture of where each side's shots crossed
+    the line, and the match split by the score. A match with the result
+    only lists its goals and sendings-off from FM's result.
+- **Breakdowns of the selected matches** (`analytics/match_breakdowns.py`,
+  10 October 2026): shots, shots on goal, clear-cut chances and goals by the
+  score (level, ahead, behind, per 90) and by 15-minute period; how the goals
+  came, scored and conceded; results against each formation faced; and each
+  of our players' season, with his bookings, where his shots went, his
+  clear-cut chances and how many he scored, and his goals by type. Matches
+  with a sending-off or extra time are left out of the score and period
+  figures. Every figure is also in `fm-matches review` and both exports,
+  which carry each shot's clock and goal-line position, each match's split
+  by the score and any FM timeline codes not yet identified.
 - **A Diagnosis on each match page** (and in `fm-matches show`): no finding,
   since one match is too few for one, but where it sat. Each side's shots, shots
   on target and clear-cut chances against the usual range for that opponent

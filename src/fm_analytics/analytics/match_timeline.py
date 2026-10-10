@@ -74,6 +74,7 @@ class ShotEntry:
     player: str | None
     outcome: str  # a SHOT_LABELS key
     second: int = 0  # the match clock's second within its minute
+    match_clock: str = ""  # FM's match clock when it was taken: "48:12"
     across: float = 0.0  # where it crossed the goal line, metres from the middle of the goal
     up: float = 0.0
 
@@ -230,6 +231,7 @@ def build_timeline(
             player=_name(match, shot.side, shot.player_short_id),
             outcome="goal" if index in goals else shot.heading,
             second=shot.second,
+            match_clock=f"{shot.minute}:{shot.second:02d}",
             across=shot.across,
             up=shot.up,
         )

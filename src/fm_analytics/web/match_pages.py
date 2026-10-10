@@ -23,6 +23,7 @@ from fm_analytics.reporting import (
     build_match_export,
     build_match_intervention_evaluation,
     build_match_report,
+    build_match_breakdowns,
     build_match_review,
     build_matches_export,
     build_penalty_record,
@@ -39,6 +40,7 @@ from fm_analytics.web.match_render import (
     tactic_record_panel,
 )
 from fm_analytics.web.attribute_export import profile_copy_control
+from fm_analytics.web.match_breakdowns_render import breakdown_panels
 from fm_analytics.web.match_detail_render import match_body
 from fm_analytics.web.rendering import _error_page, _layout, _query_first, _query_number
 
@@ -111,6 +113,7 @@ class MatchPagesMixin:
             return
         review = build_match_review(history, filters=filters)
         penalties = build_penalty_record(history, review)
+        breakdowns = build_match_breakdowns(history, review)
         diagnostic_review = build_match_review(
             history, filters=ReviewFilters(grouping="table", competitions="competitive")
         )
@@ -124,6 +127,7 @@ class MatchPagesMixin:
             capture=panel + export_links(),
             copy_control=matches_copy_control(review),
             penalties=penalties,
+            extra_panels=breakdown_panels(review, breakdowns),
         )
         self._send(_layout("Matches", "/matches", body, wide=True))  # type: ignore[attr-defined]
 

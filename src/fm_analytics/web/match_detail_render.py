@@ -43,10 +43,11 @@ def _player_rows(report: MatchReport, side: str) -> str:
         rows.append(
             f"<tr><td>{player.shirt}</td><td>{_e(player.label)}</td>"
             f"<td>{_e(report.role_labels.get((player.side, player.short_id), ''))}</td>"
+            f"<td>{_position(player)}</td>"
             f"<td data-sort='{player.minutes}'>{player.minutes}{_stint(player)}</td>"
             f"<td>{f'{player.rating:.2f}' if player.rating is not None else '–'}</td>"
             f"<td>{stat('shots')} <span class='muted'>({stat('shots_on_target')}, {stat('shots_blocked')})</span></td>"
-            f"<td>{stat('goals')}</td><td>{stat('assists')}</td><td>{stat('clear_cut_chances')}</td>"
+            f"<td>{stat('goals')}{_conceded(player)}</td><td>{stat('assists')}</td><td>{stat('clear_cut_chances')}</td>"
             f"<td>{stat('key_passes')}</td><td>{stat('chances_created')}</td><td>{stat('dribbles')}</td>"
             f"<td>{stat('passes_completed')}/{stat('passes_attempted')}</td>"
             f"<td>{stat('tackles_won')}/{stat('tackles_attempted')}</td><td>{stat('headers_won')}/{stat('headers_attempted')}</td>"
@@ -54,11 +55,33 @@ def _player_rows(report: MatchReport, side: str) -> str:
             f"<td data-sort='{player.distance_m}'>{player.distance_m / 1000:.1f} km</td></tr>"
         )
     return (
-        "<div class='table-scroll'><table class='sortable'><thead><tr><th>#</th><th>Player</th><th>Role</th><th>Minutes</th><th>Rating</th>"
+        "<div class='table-scroll'><table class='sortable'><thead><tr><th>#</th><th>Player</th><th>Role</th><th>Position</th><th>Minutes</th><th>Rating</th>"
         "<th>Shots (on target, blocked)</th><th>Goals</th><th>Assists</th><th>Clear-cut chances</th>"
         "<th>Key passes</th><th>Chances created</th><th>Dribbles</th><th>Passes</th><th>Tackles</th><th>Headers</th><th>Fouls</th><th>Corners</th><th>Distance</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
+        + _unused(detail.players_for(side))
     )
+
+
+def _position(player) -> str:
+    """Where he started (and which side of a central pair), and where he ended up if that differs."""
+    start = player.start_position
+    if start and player.start_centre_side:
+        start += f" ({player.start_centre_side})"
+    if start and player.position and player.position != player.start_position:
+        return f"{_e(start)} → {_e(player.position)}"
+    return _e(start or player.position or "–")
+
+
+def _conceded(player) -> str:
+    if (player.start_position or player.position) != "GK":
+        return ""
+    return f" <span class='muted'>({player.stat('goals_conceded')} conceded)</span>"
+
+
+def _unused(players) -> str:
+    names = [player.label for player in players if not player.played]
+    return f"<p class='muted fm-match-note'>Unused substitutes: {_e(', '.join(names))}.</p>" if names else ""
 
 
 def timeline_items(report: MatchReport) -> str:
@@ -110,16 +133,104 @@ def shots_table(report: MatchReport) -> str:
         + "</tbody></table></div>"
     )
     rows = "".join(
-        f"<tr class='{'ours' if shot.ours else 'theirs'} shot-{shot.outcome}'><td data-sort='{index}'>{shot.clock}′</td>"
+        f"<tr class='{'ours' if shot.ours else 'theirs'} shot-{shot.outcome}'><td data-sort='{index}'>{shot.clock}′"
+        f" <span class='muted'>({shot.match_clock})</span></td>"
         f"<td>{'You' if shot.ours else opponent}</td><td>{_e(shot.player or '')}</td><td>{shot.label}</td></tr>"
         for index, shot in enumerate(timeline.shots)
     )
-    return totals + (
+    return totals + goal_mouths(report) + score_split_table(report) + (
         "<details class='fm-match-shot-list'><summary>Every shot</summary><div class='table-scroll'>"
-        "<table class='sortable'><thead><tr><th>Minute</th><th>Team</th><th>Player</th><th>Where it went</th></tr></thead>"
+        "<table class='sortable'><thead><tr><th>Minute (clock)</th><th>Team</th><th>Player</th><th>Where it went</th></tr></thead>"
         f"<tbody>{rows}</tbody></table></div></details>"
         "<p class='muted fm-match-note'>The match clock runs on through first-half added time, so a shot then shows as 46′.</p>"
     )
+
+
+# The goal-mouth picture: metres across (-10 to 10) and up (0 to 6) from the
+# middle of the goal line, 20 pixels to the metre.
+_SCALE, _HALF_WIDTH, _HEIGHT = 20, 10.0, 6.0
+
+
+def _goal_mouth(shots, title: str, whose: str) -> str:
+    width, height = 2 * _HALF_WIDTH * _SCALE, _HEIGHT * _SCALE
+    x = lambda across: (max(-_HALF_WIDTH, min(_HALF_WIDTH, across)) + _HALF_WIDTH) * _SCALE  # noqa: E731
+    y = lambda up: height - max(0.0, min(_HEIGHT, up)) * _SCALE  # noqa: E731
+    frame = (
+        f"<line class='ground' x1='0' y1='{height}' x2='{width}' y2='{height}'/>"
+        f"<path class='frame' d='M{x(-3.66)} {height} V{y(2.44)} H{x(3.66)} V{height}'/>"
+    )
+    dots = "".join(
+        f"<circle class='shot-dot shot-{shot.outcome}' cx='{x(shot.across):.1f}' cy='{y(shot.up):.1f}' "
+        f"r='{6 if shot.outcome == 'goal' else 4}'><title>{shot.clock}′ {_e(shot.player or '')}: {shot.label}</title></circle>"
+        for shot in shots
+    )
+    return (
+        f"<figure class='fm-goal-mouth {whose}'><svg viewBox='-4 -4 {width + 8} {height + 8}' role='img' "
+        f"aria-label='{_e(title)}'>{frame}{dots}</svg><figcaption>{_e(title)}</figcaption></figure>"
+    )
+
+
+def goal_mouths(report: MatchReport) -> str:
+    """Where each side's shots crossed the goal line, or would have without a save or block."""
+    timeline = report.timeline
+    ours = [shot for shot in timeline.shots if shot.ours]
+    theirs = [shot for shot in timeline.shots if not shot.ours]
+    return (
+        "<div class='fm-goal-mouths'>"
+        + _goal_mouth(ours, "Your shots, as they reached the goal line", "ours")
+        + _goal_mouth(theirs, f"{report.summary.opponent.name}'s shots, as they reached the goal line", "theirs")
+        + "</div><p class='muted fm-match-note'>Big dots are goals, filled ones on goal (saved, blocked or "
+        "scored), hollow ones wide or over. Shots further out are drawn at the edge.</p>"
+    )
+
+
+def score_split_table(report: MatchReport) -> str:
+    """This match's shots, chances and goals while level, ahead and behind."""
+    split = report.timeline.by_score if report.timeline else None
+    if split is None:
+        return ""
+    names = {"level": "Level", "ahead": "Ahead", "behind": "Behind"}
+    rows = "".join(
+        f"<tr><td>{names[state]}</td><td>{tally.minutes:.0f}</td><td>{tally.shots[0]}–{tally.shots[1]}</td>"
+        f"<td>{tally.on_goal[0]}–{tally.on_goal[1]}</td><td>{tally.clear_cut_chances[0]}–{tally.clear_cut_chances[1]}</td>"
+        f"<td>{tally.goals[0]}–{tally.goals[1]}</td></tr>"
+        for state, tally in split.by_state.items() if tally.minutes >= 1
+    )
+    return (
+        "<h3>By the score</h3><div class='table-scroll'><table data-fm-plain><thead><tr><th>Score</th><th>Minutes</th>"
+        "<th>Shots</th><th>On goal</th><th>Clear-cut chances</th><th>Goals</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table></div><p class='muted fm-match-note'>You, then them, while the score "
+        "was each way; a goal's own shot counts in the score before it.</p>"
+    )
+
+
+def _count_rows(match, side: str) -> str:
+    """The counts behind the panel's percentages, as FM's stats panel has them."""
+    other = "away" if side == "home" else "home"
+    ours, theirs = match.detail.team(side), match.detail.team(other)
+    rows = []
+    for done, tried, label in (("passes_completed", "passes_attempted", "Passes completed (of attempted)"),
+                               ("tackles_won", "tackles_attempted", "Tackles won (of attempted)"),
+                               ("headers_won", "headers_attempted", "Headers won (of attempted)")):
+        rows.append(
+            f"<tr><td>{label}</td><td>{versus(ours.get(done), theirs.get(done))}"
+            f"<span class='muted'> of {ours.get(tried, 0)} and {theirs.get(tried, 0)}</span></td></tr>"
+        )
+    return "".join(rows)
+
+
+def _result_incidents(report: MatchReport) -> str:
+    """The goals and sendings-off FM's result records, for a match without full stats."""
+    summary = report.summary
+    kinds = {"goal": "Goal", "penalty": "Penalty", "own_goal": "Own goal", "sent_off": "Sent off"}
+    items = "".join(
+        f"<li class='{'ours' if (incident.side == summary.side) else 'theirs'} kind-{incident.kind}'>"
+        f"<span class='fm-match-minute'>{incident.clock}′</span> "
+        f"{'You' if incident.side == summary.side else _e(summary.opponent.name)} – {kinds[incident.kind]}"
+        f"{': ' + _e(incident.player) if incident.player else ''}</li>"
+        for incident in summary.match.incidents
+    )
+    return f"<ol class='fm-match-timeline'>{items}</ol>" if items else ""
 
 
 def penalty_forms(report: MatchReport) -> str:
@@ -206,8 +317,17 @@ def match_body(
     else:
         context.append(f"{_e(summary.opponent.name)} are not in a league table you play in.")
     timeline = report.timeline
+    saved = match.detail.saved_tactics.get(summary.side) if match.detail else None
+    if saved and saved.name:
+        context.append(f"You lined up in <strong>{_e(saved.name)}</strong> (FM's saved tactic).")
     if timeline and timeline.opponent_formation:
         context.append(f"They lined up <strong>{_e(timeline.opponent_formation)}</strong>.")
+    if match.after_extra_time:
+        home, away = match.score_at_90
+        context.append(f"After 90 minutes it was {home}–{away}; the score shown is after extra time.")
+    if match.penalties:
+        home, away = match.penalties
+        context.append(f"Penalty shootout {home}–{away}.")
     if match.attendance:
         context.append(f"Attendance {match.attendance:,}.")
     header = (
@@ -238,7 +358,7 @@ def match_body(
             "Match evidence",
             "The result is retained, but detailed match stats are not available for this fixture.",
             "<p class='warn'>Only the result was found for this match: FM's archive had no stats for it "
-            "that added up.</p>",
+            "that added up.</p>" + _result_incidents(report),
             panel_class="fm-match-evidence-gap",
         ) + "<section class='fm-workspace-panel fm-match-notes-panel'>" + note_form(
             report, catalogue, pinned, note
@@ -247,7 +367,7 @@ def match_body(
     stat_rows = "".join(
         f"<tr><td>{_e(label)}</td><td>{versus(ours[key], theirs[key], percentage)}</td></tr>"
         for key, label, percentage in METRICS
-    )
+    ) + _count_rows(match, summary.side)
     events = timeline_items(report)
     corner_note = (
         f"<p class='muted fm-match-note'>“Possibly from a corner” is a guess, not something FM records. "

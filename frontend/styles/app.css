@@ -546,7 +546,7 @@
   .fm-match-score-panel .fm-table-card { max-width: 36rem; margin-bottom: 0; }
   .fm-match-score-panel .fm-table-card > table { min-width: 0; }
   .fm-match-timeline { margin: 0; padding: 0; list-style: none; color: var(--color-ink-600); }
-  .fm-match-timeline li { display: flex; align-items: baseline; gap: .55rem; padding: .3rem .55rem; border-left: 3px solid var(--fm-border); border-radius: 0 .4rem .4rem 0; }
+  .fm-match-timeline li { display: block; padding: .3rem .55rem .3rem 4.3rem; text-indent: -3.75rem; border-left: 3px solid var(--fm-border); border-radius: 0 .4rem .4rem 0; }
   .fm-match-timeline li + li { margin-top: .3rem; }
   .fm-match-timeline li.ours { border-left-color: var(--color-brand-600); }
   .fm-match-timeline li.theirs { border-left-color: #c55b45; }
@@ -558,10 +558,25 @@
   .fm-goal-how::before { content: "– "; }
   .fm-guess { margin-left: .35rem; padding: .05rem .4rem; border: 1px dashed #b98a2c; border-radius: 999px; color: #8a6418; font-size: .75rem; font-weight: 500; white-space: nowrap; cursor: help; }
   :root.dark .fm-guess { border-color: #c9a24a; color: #e7c97d; }
-  .fm-match-minute { min-width: 3.4rem; font-variant-numeric: tabular-nums; color: var(--color-ink-500); font-weight: 600; }
+  .fm-match-minute { display: inline-block; min-width: 3.4rem; margin-right: .35rem; text-indent: 0; font-variant-numeric: tabular-nums; color: var(--color-ink-500); font-weight: 600; }
   .fm-match-shots .table-scroll { margin-top: .6rem; }
   .fm-match-shots > .table-scroll table { min-width: 0; max-width: 40rem; }
   .fm-match-shot-list { margin-top: .9rem; }
+  .fm-match-shots h3 { margin: 1.2rem 0 .2rem; color: var(--color-ink-900); font-size: .98rem; }
+  .fm-match-season-players td { white-space: nowrap; }
+  .fm-goal-mouths { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .9rem; margin-top: .9rem; }
+  .fm-goal-mouth { margin: 0; padding: .7rem .7rem .5rem; border: 1px solid var(--fm-border); border-radius: .65rem; background: var(--fm-page); }
+  .fm-goal-mouth svg { display: block; width: 100%; height: auto; }
+  .fm-goal-mouth figcaption { margin-top: .35rem; color: var(--color-ink-600); font-size: .8rem; }
+  .fm-goal-mouth .ground { stroke: var(--fm-border); stroke-width: 2; }
+  .fm-goal-mouth .frame { fill: none; stroke: var(--color-ink-900); stroke-width: 4; stroke-linejoin: round; }
+  .fm-goal-mouth .shot-dot { stroke-width: 2; fill-opacity: .85; }
+  .fm-goal-mouth.ours .shot-dot { stroke: var(--color-brand-600); fill: var(--color-brand-600); }
+  .fm-goal-mouth.theirs .shot-dot { stroke: #c55b45; fill: #c55b45; }
+  .fm-goal-mouth .shot-dot.shot-wide, .fm-goal-mouth .shot-dot.shot-over { fill: none; }
+  .fm-goal-mouth .shot-dot.shot-goal { stroke: var(--color-ink-900); stroke-width: 2.5; fill-opacity: 1; }
+  .fm-match-panel h4 { margin: .6rem 0 .25rem; color: var(--color-ink-600); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+  :root.dark .fm-goal-mouth .frame, :root.dark .fm-goal-mouth .shot-dot.shot-goal { stroke: #e7edf5; }
   .fm-match-note { margin: .6rem 0 0; font-size: .8rem; }
   .fm-match-shots table[data-fm-plain] th { text-align: left; }
   .fm-match-shot-list summary { cursor: pointer; color: var(--color-brand-600); font-weight: 600; }

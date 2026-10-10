@@ -381,7 +381,7 @@ def _goal_breakdown(
         covered_for += summary.goals_for
         covered_against += summary.goals_against
         for player in detail.players:
-            role = roles.get((match.key, player.side, player.short_id)) or codes.label(player.role_code)
+            role = roles.get((match.key, player.side, player.short_id)) or codes.label(player.role_code, player.position)
             if player.side == summary.side:
                 if player.stat("goals"):
                     scorers[role] += player.stat("goals")
@@ -526,7 +526,7 @@ def review_matches(
     appearances = [
         (
             player, summary.match.key, int(summary.ours["shots"] or 0) if summary.ours else 0,
-            roles.get((summary.match.key, player.side, player.short_id)) or codes.label(player.role_code),
+            roles.get((summary.match.key, player.side, player.short_id)) or codes.label(player.role_code, player.position),
         )
         for summary in selected
         if summary.match.detail is not None
@@ -547,7 +547,8 @@ def review_matches(
             (
                 (
                     player, summary.match.date, summary.opponent.name,
-                    roles.get((summary.match.key, player.side, player.short_id)) or codes.label(player.role_code),
+                    roles.get((summary.match.key, player.side, player.short_id))
+                    or codes.label(player.role_code, player.position),
                 )
                 for summary in selected
                 if summary.match.detail is not None

@@ -29,6 +29,7 @@ from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.analytics.appearance_context import RECENT_GAME_DAYS, AppearanceCoverage, duty_choices
 from fm_analytics.analytics.player_form import FormLookup
 from fm_analytics.analytics.penalty_record import PenaltyRecord
+from fm_analytics.analytics.match_breakdowns import PERIODS, STATES, Breakdowns
 from fm_analytics.analytics.match_analysis import (
     COMPETITION_SCOPES,
     METRICS,
@@ -63,6 +64,7 @@ from fm_analytics.reporting import (
     build_match_diagnostics,
     build_match_intervention_evaluation,
     build_match_report,
+    build_match_breakdowns,
     build_match_review,
     build_penalty_record,
     build_recommendation_bundle,
@@ -534,6 +536,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(
                     format_review(review)
                     + format_penalties(build_penalty_record(history, review))
+                    + format_breakdowns(build_match_breakdowns(history, review))
                     + format_diagnostics(build_match_diagnostics(review))
                     + format_intervention(
                         build_match_intervention_evaluation(history, lifecycle_review)
@@ -597,6 +600,45 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"error: {exc}")
         return 1
     return 0
+
+
+def format_breakdowns(found: Breakdowns) -> str:
+    """The Matches page's breakdowns in text: by the score, by period, how the goals came, by formation."""
+    pair = lambda values: "  –  ".join("–" if value is None else f"{value:g}" for value in values)  # noqa: E731
+    if not (found.split_matches or found.goals_for or found.goals_against or found.formations):
+        return ""
+    lines = [""]
+    if found.split_matches:
+        lines += _score_lines(found, pair)
+    for title, goals in (("Goals scored", found.goals_for), ("Goals conceded", found.goals_against)):
+        how = goals.get("how")
+        if how:
+            lines.append(f"{title}: " + ", ".join(f"{label} {count}" for label, count in how.most_common())
+                         + (" | " + ", ".join(f"{label} {count}" for label, count in goals["strike"].most_common())
+                            if goals.get("strike") else ""))
+    if found.formations:
+        lines.append("Against each formation: played, W-D-L, goals")
+        lines += [f"  {record.formation:<24} {record.played:>2}  {record.won}-{record.drawn}-{record.lost}  "
+                  f"{record.goals_for}-{record.goals_against}" for record in found.formations]
+    return "\n".join(lines)
+
+
+def _score_lines(found: Breakdowns, pair) -> list[str]:
+    lines = [f"By the score (you – them, per 90; {found.split_matches} matches"
+             + (", left out: " + ", ".join(f"{n} with {why}" for why, n in found.left_out.items()) if found.left_out else "")
+             + ")", f"  {'':8}{'minutes':>8}  {'shots':>14}  {'on goal':>14}  {'clear-cut':>14}  goals"]
+    for state in STATES:
+        tally = found.by_state[state]
+        if tally.minutes >= 1:
+            lines.append(f"  {state:8}{tally.minutes:>8.0f}  {pair(tally.per_90(tally.shots)):>14}  "
+                         f"{pair(tally.per_90(tally.on_goal)):>14}  {pair(tally.per_90(tally.clear_cut_chances)):>14}  "
+                         f"{tally.goals[0]}–{tally.goals[1]}")
+    lines += ["By period (you – them, totals): shots, on goal, clear-cut chances, goals"]
+    for label, _start, _end in PERIODS:
+        tally = found.by_period[label]
+        lines.append(f"  {label:8} {tally.shots[0]}–{tally.shots[1]:<4} {tally.on_goal[0]}–{tally.on_goal[1]:<4} "
+                     f"{tally.clear_cut_chances[0]}–{tally.clear_cut_chances[1]:<4} {tally.goals[0]}–{tally.goals[1]}")
+    return lines
 
 
 def format_penalties(record: PenaltyRecord) -> str:
@@ -690,6 +732,13 @@ def _format_timeline(report) -> list[str]:
                 f"{' (' + ', '.join(extra) + ')' if extra else ''}"
             )
     if timeline.shots:
+        if timeline.by_score is not None:
+            lines.append("By the score (you – them): minutes, shots, on goal, clear-cut chances, goals")
+            for state, tally in timeline.by_score.by_state.items():
+                if tally.minutes >= 1:
+                    lines.append(f"  {state:8}{tally.minutes:>4.0f}  {tally.shots[0]}–{tally.shots[1]}  "
+                                 f"{tally.on_goal[0]}–{tally.on_goal[1]}  "
+                                 f"{tally.clear_cut_chances[0]}–{tally.clear_cut_chances[1]}  {tally.goals[0]}–{tally.goals[1]}")
         lines.append("Shots           total  on goal  wide  over  first half  second half")
         for label, side in (("Us", timeline.ours), ("Them", timeline.theirs)):
             lines.append(f"  {label:<13} {side.shots:>5}  {side.on_goal:>7}  {side.wide:>4}  {side.over:>4}  "

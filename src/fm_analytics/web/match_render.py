@@ -189,8 +189,8 @@ def goals_section(review: MatchReview) -> str:
         timing
         + discipline
         + who
-        + "<p class='muted'>Penalties and own goals are read from FM; whether any other goal came from open "
-        "play or a set piece, and where the shot came from, are not read yet.</p>"
+        + "<p class='muted'>How each goal came (shot, header or volley; where from; a cross, free kick or "
+        "penalty) is under “How the goals came” below.</p>"
     )
 
 
@@ -533,6 +533,7 @@ def review_body(
     capture: str,
     copy_control: str = "",
     penalties: PenaltyRecord | None = None,
+    extra_panels: str = "",
 ) -> str:
     overall = review.overall
     ppg = f"{overall.points_per_game:.2f}" if overall.points_per_game is not None else "–"
@@ -641,6 +642,7 @@ def review_body(
             roles_table(review),
             panel_class="fm-match-roles",
         )
+        + extra_panels
         + ("<section class='fm-workspace-panel fm-match-confirmations'>" + unconfirmed_roles_form(review, catalogue) + "</section>" if review.unconfirmed_roles else "")
 
         + "</details>"

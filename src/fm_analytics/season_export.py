@@ -42,6 +42,7 @@ from fm_analytics.analytics.match_interventions import InterventionEvaluation
 from fm_analytics.analytics.match_players import PlayerSeason
 from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.analytics.match_timeline import build_timeline
+from fm_analytics.analytics.match_breakdowns import PERIODS, Breakdowns, PlayerEvents, Tally, breakdowns
 from fm_analytics.analytics.penalty_record import conceded_penalties
 from fm_analytics.analytics.match_strength import TablePosition, league_seasons, league_table
 from fm_analytics.domain import AttributeObservation, Player
@@ -161,7 +162,7 @@ def _season(history: MatchHistory, everything: MatchReview, competitive: MatchRe
 # -- players and matches ------------------------------------------------------
 
 
-def _player(season: PlayerSeason, detail: str) -> dict[str, Any]:
+def _player(season: PlayerSeason, detail: str, events: PlayerEvents | None = None) -> dict[str, Any]:
     row: dict[str, Any] = {
         "name": season.name, "player_id": season.player_id,
         "apps": season.appearances, "starts": season.starts, "sub_apps": season.substitute_appearances,
@@ -189,6 +190,15 @@ def _player(season: PlayerSeason, detail: str) -> dict[str, Any]:
                         "chances_created", "dribbles", "tackles_won", "headers_won")
         } | {"distance_km": _round(season.per_90(season.distance_m / 1000))},
     })
+    if events is not None:
+        row.update({
+            "yellow_cards": events.yellow_cards, "sent_off": events.sent_off,
+            "shots_on_goal": events.shots_on_goal, "shots_wide": events.shots_wide, "shots_over": events.shots_over,
+            "clear_cut_chances_had": events.clear_cut_chances,
+            "clear_cut_chances_scored": events.clear_cut_chances_scored,
+            "goals_headed": events.headers, "goals_volleyed": events.volleys, "penalties_scored": events.penalties,
+            "goals_from_outside_the_area": events.from_outside_the_area,
+        })
     ratings = season.ratings if detail == "verbose" else season.ratings[-5:]
     row["ratings" if detail == "verbose" else "last5_ratings"] = [
         {"date": item.date.isoformat(), "opponent": item.opponent, "rating": item.rating} for item in ratings
@@ -238,7 +248,7 @@ def _match(summary: MatchSummary, kind: str, codes: RoleCodes, catalogue: Footba
     strength = summary.strength
 
     def role(player: PlayerMatchStats) -> str:
-        return roles.get((match.key, player.side, player.short_id)) or codes.label(player.role_code)
+        return roles.get((match.key, player.side, player.short_id)) or codes.label(player.role_code, player.position)
 
     row: dict[str, Any] = {
         "key": match.key, "date": match.date.isoformat(), "competition": match.competition.label,
@@ -330,11 +340,49 @@ def _timeline(match, side: str, *, shots: bool) -> dict[str, Any]:
         }
         if shots:
             found["shots"] = [
-                {"minute": shot.clock, "team": "us" if shot.ours else "them", "player": shot.player,
-                 "outcome": shot.outcome}
+                {"minute": shot.clock, "match_clock": shot.match_clock, "team": "us" if shot.ours else "them",
+                 "player": shot.player, "outcome": shot.outcome,
+                 "goal_line_m": {"across": shot.across, "up": shot.up}}
                 for shot in timeline.shots
             ]
+    if timeline.by_score is not None:
+        found["by_score"] = {state: _tally(tally) for state, tally in timeline.by_score.by_state.items() if tally.minutes >= 1}
+    if shots and timeline.unidentified:
+        found["unidentified_fm_events"] = [
+            {"minute": clock, "team": "us" if ours else "them", "fm_code": f"0x{code:02x}"} for clock, ours, code in timeline.unidentified
+        ]
     return found
+
+
+def _tally(tally: Tally) -> dict[str, Any]:
+    """Us, then them."""
+    return {
+        "minutes": round(tally.minutes), "shots": list(tally.shots), "on_goal": list(tally.on_goal),
+        "clear_cut_chances": list(tally.clear_cut_chances), "goals": list(tally.goals),
+    }
+
+
+def _breakdowns(found: Breakdowns) -> dict[str, Any]:
+    """`reporting.build_match_breakdowns` as JSON: each pair is [us, them]."""
+    return {
+        "matches_in_score_and_period": found.split_matches,
+        "left_out_of_score_and_period": dict(found.left_out),
+        "by_score": {
+            state: _tally(tally) | {"per_90": {key: list(tally.per_90(getattr(tally, key)))
+                                               for key in ("shots", "on_goal", "clear_cut_chances", "goals")}}
+            for state, tally in found.by_state.items() if tally.minutes >= 1
+        },
+        "by_period": [{"minutes": label} | _tally(found.by_period[label]) for label, _start, _end in PERIODS],
+        "goals_scored": {key: dict(counts) for key, counts in found.goals_for.items()},
+        "goals_conceded": {key: dict(counts) for key, counts in found.goals_against.items()},
+        "by_formation_faced": [
+            {"formation": record.formation, "played": record.played, "won": record.won, "drawn": record.drawn,
+             "lost": record.lost, "goals": [record.goals_for, record.goals_against],
+             "shots": list(record.shots), "clear_cut_chances": list(record.clear_cut_chances),
+             "matches_with_stats": record.with_stats}
+            for record in found.formations
+        ],
+    }
 
 
 # -- the squad and the app's recommendation -----------------------------------
@@ -549,6 +597,7 @@ def export_document(
         raise ValueError(f"detail must be one of {', '.join(DETAIL_LEVELS)}")
     as_of = history.last_game_date
     codes = RoleCodes.build(catalogue, history.role_codes)
+    season_breakdowns = breakdowns((summary.match for summary in competitive.matches), history.club.id)
     # Each player's role in each match, with the duty his slot settles (FM's code has none).
     roles = appearance_roles(
         history.matches, history.club.id, notes=history.notes, codes=codes, usual_roles=history.usual_roles
@@ -592,8 +641,10 @@ def export_document(
             "intervention_history": [item.to_document() for item in history.interventions],
         },
         "goals": _goals(competitive),
+        "breakdowns": _breakdowns(season_breakdowns),
         "roles": _roles(competitive),
-        "players": [_player(season, detail) for season in competitive.players],
+        "players": [_player(season, detail, season_breakdowns.players.get(season.player_id or season.name))
+                    for season in competitive.players],
         "matches": [
             _match(
                 summary,
@@ -718,7 +769,7 @@ def _full_match(history: MatchHistory, summary: MatchSummary, codes: RoleCodes, 
                 "name": tactic.name,
                 "slots": [
                     {"position": slot.position, "centre_side": slot.centre_side,
-                     "role": codes.label(slot.role_code), "duty": slot.duty}
+                     "role": codes.label(slot.role_code, slot.position), "duty": slot.duty}
                     for slot in tactic.slots
                 ],
             }
@@ -751,6 +802,7 @@ def matches_document(
     filters = review.filters
     codes = RoleCodes.build(catalogue, history.role_codes)
     rows = [_full_match(history, summary, codes, catalogue, review.appearance_roles) for summary in review.matches]
+    selected = breakdowns((summary.match for summary in review.matches), history.club.id)
     tactic = (
         "Any tactic" if filters.tactic is None
         else "Tactic not known" if filters.tactic == NO_TACTIC
@@ -790,7 +842,9 @@ def matches_document(
             "by_tactic": [{"tactic": row.label, **_group(row.overall)} for row in review.tactics],
         },
         "goals": _goals(review),
+        "breakdowns": _breakdowns(selected),
         "roles": _roles(review),
-        "players": [_player(season, "verbose") for season in review.players],
+        "players": [_player(season, "verbose", selected.players.get(season.player_id or season.name))
+                    for season in review.players],
         "matches": rows,
     }

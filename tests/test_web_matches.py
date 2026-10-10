@@ -148,14 +148,44 @@ class MatchPageTests(MatchPagesCase):
         self.assertIn("<h2>Shots</h2>", body)
         self.assertIn("<tr><td>You</td><td>3</td><td>2</td><td>0</td><td>1</td><td>1</td><td>2</td></tr>", body)
         self.assertIn("<td>Home 10</td><td>Over</td>", body)
-        self.assertIn("90+3′</td><td>You</td><td>Home 10</td><td>Goal</td>", body)
+        self.assertIn("90+3′ <span class='muted'>(92:10)</span></td><td>You</td><td>Home 10</td><td>Goal</td>", body)
         exported = build_match_export(self.store.load_history("club:100"),
                                       build_match_report(self.store.load_history("club:100"), DETAILED))["match"]
         self.assertEqual(exported["opponent_formation"], "4-1-4-1 DM Wide")
         self.assertEqual(exported["timeline"][0], {"minute": 12, "team": "us", "event": "goal", "player": "Home 11",
                                                    "assist": "Home 6"})
-        self.assertEqual(exported["shots"][-1], {"minute": "90+3", "team": "us", "player": "Home 10", "outcome": "goal"})
+        self.assertEqual(exported["shots"][-1], {"minute": "90+3", "match_clock": "92:10", "team": "us", "player": "Home 10",
+                                                 "outcome": "goal", "goal_line_m": {"across": 2.0, "up": 1.0}})
         self.assertEqual(exported["shot_directions"]["them"]["on_goal"], 1)
+
+    def test_everything_recorded_about_a_match_is_on_its_page_and_the_matches_page(self) -> None:
+        matches = season()
+        found = matches[-1]["detail"]
+        found["shots"] = [
+            {"side": "home", "playerShortId": 1010, "minute": 11, "second": 4, "across": 1.0, "up": 0.5},
+            {"side": "away", "playerShortId": 1510, "minute": 49, "second": 30, "across": -6.0, "up": 0.2},
+        ]
+        found["formations"] = {"away": "4-1-4-1 DM Wide"}
+        found["players"][10].update({"startPosition": "ST", "startCentreSide": "left", "position": "AML"})
+        found["players"].append({**found["players"][0], "order": 11, "started": False, "played": False,
+                                 "shortId": 1011, "name": "Bench Warmer", "roleCode": 0})
+        matches[-1]["incidents"] = [
+            {"minute": 12, "addedTime": 0, "side": "home", "kind": "goal", "playerShortId": 1010, "player": "Home 11"},
+            {"minute": 50, "addedTime": 0, "side": "away", "kind": "goal", "playerShortId": 1510, "player": "Away 11"},
+            {"minute": 90, "addedTime": 3, "side": "home", "kind": "goal", "playerShortId": 1009, "player": "Home 10"},
+        ]
+        self.capture.write_text(json.dumps(capture_document(matches)), encoding="utf-8")
+        self.record()
+        port = self.serve()
+        _status, body = self._get(port, DETAILED_URL)
+        for text in ("<th>Position</th>", "ST (left) → AML", "Unused substitutes: Bench Warmer.",
+                     "Passes completed (of attempted)", "class='fm-goal-mouth ours'", "<h3>By the score</h3>",
+                     "12′ <span class='muted'>(11:04)</span>"):
+            self.assertIn(text, body)
+        _status, body = self._get(port, "/matches")
+        for heading in ("By the score", "By period", "How the goals came", "Against each formation", "Your players"):
+            self.assertIn(f"<h2>{heading}</h2>", body)
+        self.assertIn("<td>4-1-4-1 DM Wide</td>", body)
 
     def test_the_copy_button_holds_the_shared_match_document(self) -> None:
         self.record()

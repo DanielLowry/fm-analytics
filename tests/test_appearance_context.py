@@ -25,6 +25,7 @@ from fm_analytics.analytics.appearance_context import (
     summarise_coverage,
 )
 from fm_analytics.analytics.match_roles import RoleCodes, role_family
+from fm_analytics.analytics.player_form import build_form
 from fm_analytics.domain.matches import MatchCapture
 
 from tests.match_support import FRIENDLY as FRIENDLY_COMPETITION
@@ -81,6 +82,19 @@ class RoleFamilyTests(unittest.TestCase):
     def test_every_catalogue_role_has_a_family(self) -> None:
         for key in MVP_CATALOGUE.roles:
             self.assertTrue(role_family(MVP_CATALOGUE, key))
+
+    def test_a_confirmed_code_uses_the_role_family_at_the_recorded_position(self) -> None:
+        codes = RoleCodes.build(MVP_CATALOGUE)
+        for code, position, family in (
+            (0x80, "MR", "Winger [ML/MR]"),
+            (0x80, "AMR", "Winger [AML/AMR]"),
+            (0x8000, "DM", "Deep-Lying Playmaker [DM]"),
+            (0x10000000, "DM", "Ball-Winning Midfielder [DM]"),
+        ):
+            with self.subTest(code=code, position=position):
+                self.assertEqual(codes.family(code, position), family)
+        self.assertEqual(codes.family(0x80), "Winger [ML/MR]")
+        self.assertIsNone(codes.family(0x12345, "AMR"))
 
 
 class ContextTests(unittest.TestCase):
@@ -212,6 +226,51 @@ AS_PLAYED = ["defend", "support", "defend", "defend", "support", "support",
              "support", "defend", "support", "support", "attack"]
 
 
+def ball_winning_counter(matches):
+    """The 4-3-3 Lynch played: FM reuses the 4-4-2 winger's code at AMR."""
+    places = (("GK", None), ("DR", None), ("DC", "right"), ("DC", "left"), ("DL", None),
+              ("DM", None), ("MC", "right"), ("MC", "left"), ("AMR", None), ("AML", None), ("ST", None))
+    codes = (0x1, 0x4, 0x2, 0x2, 0x4, 0x10, 0x10000000, 0x8000, 0x80, 0x8000000, 0x800)
+    for line, (position, centre), code in zip(matches[-1]["detail"]["players"][:11], places, codes):
+        line.update({"position": position, "startPosition": position, "startCentreSide": centre,
+                     "roleCode": code, "playerId": str(line["shortId"])})
+    matches[-1]["detail"]["players"][6].update({"name": "David Lynch", "playerId": "28048896"})
+    return saved(matches, ["defend", "support", "defend", "defend", "support", "defend",
+                           "support", "support", "attack", "attack", "attack"])
+
+
+class BallWinningFormTests(unittest.TestCase):
+    def test_the_amr_winger_code_does_not_exclude_lynchs_rated_bwm_start(self) -> None:
+        for has_saved_tactic in (True, False):
+            with self.subTest(has_saved_tactic=has_saved_tactic):
+                matches = ball_winning_counter(season())
+                if not has_saved_tactic:
+                    del matches[-1]["detail"]["savedTactics"]
+                found = contexts(matches)
+                by_order = detailed(found)
+                lynch = by_order[6]
+                self.assertEqual((lynch.tactic_key, lynch.slot_key, lynch.role_key, lynch.exclusions),
+                                 ("ball_winning_counter_433dm", "MCR", "bwm_mc_support", ()))
+                self.assertEqual(by_order[8].role_key, "winger_aml_amr_attack")
+                form = build_form(found, as_of=date(2019, 9, 5))
+                job = form.job("28048896", "ball_winning_counter_433dm", "MC", "bwm_mc_support")
+                self.assertIsNotNone(job)
+                self.assertEqual([(r.match_key, r.rating) for r in job.ratings], [(DETAILED, 6.8)])
+                self.assertIsNone(form.job("28048896", "positive_ball_winning_433dm", "MC", "bwm_mc_support"))
+
+    def test_lynchs_bwm_substitute_appearance_counts_in_the_inherited_job(self) -> None:
+        matches = substitute(11, 0x10000000, "MC", 48, 6, matches=ball_winning_counter(season()))
+        matches[-1]["detail"]["players"][6]["playerId"] = "someone-else"
+        matches[-1]["detail"]["players"][-1].update({"name": "David Lynch", "playerId": "28048896"})
+        found = contexts(matches)
+        sub = detailed(found)[11]
+        self.assertEqual((sub.slot_key, sub.role_key, sub.exclusions), ("MCR", "bwm_mc_support", ()))
+        form = build_form(found, as_of=date(2019, 9, 5))
+        job = form.job("28048896", "ball_winning_counter_433dm", "MC", "bwm_mc_support")
+        self.assertIsNotNone(job)
+        self.assertEqual(job.ratings[0].minutes, 42)
+
+
 class SavedTacticTests(unittest.TestCase):
     def test_fms_saved_duty_comes_first(self) -> None:
         # 24 August 2019: FM saved the left-back on Defend; the slot alone says Support.
@@ -252,6 +311,16 @@ class RoleLabelTests(unittest.TestCase):
         self.assertEqual(codes.label(0x800), "Advanced Forward (Attack)")  # Attack is its only duty
         self.assertEqual(codes.label(0x10000), "Box-to-Box Midfielder (Support)")
         self.assertEqual(codes.label(0x12345), "Unconfirmed role (FM code 0x12345)")
+
+    def test_position_variants_keep_duty_unknown_until_the_slot_settles_it(self) -> None:
+        codes = RoleCodes.build(MVP_CATALOGUE, {0x8000: "dlp_dm_support"})
+        self.assertEqual(codes.label(0x80, "AMR"), "Winger [AML/AMR]")
+        self.assertEqual(codes.label(0x8000, "MC"), "Deep-Lying Playmaker [MC]")
+        matches = ball_winning_counter(season())
+        records = MatchCapture.from_document(capture_document(matches)).matches
+        roles = appearance_roles(records, US["id"], notes={}, codes=codes)
+        winger = records[-1].detail.players_for("home")[8]
+        self.assertEqual(roles[(DETAILED, "home", winger.short_id)], "Winger (Attack) [AML/AMR]")
 
     def test_each_players_role_carries_the_duty_his_slot_settles(self) -> None:
         # 28 March 2020: Central Midfielder (Support) right of (Defend), both 0x20.

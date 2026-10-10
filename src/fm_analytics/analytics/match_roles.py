@@ -26,7 +26,10 @@ catalogue role key:
   override these; and
 * any other code is shown as an unconfirmed role, never guessed.
 
-**A code does not record duty.** On 28 March 2020 Bellamy played Central
+**A code does not record position or duty.** The same `0x80` winger code is
+used at MR in Vertical 4-4-2 and at AMR in Ball-Winning Counter 4-3-3 DM;
+the player's recorded position selects the catalogue's position-specific
+family. On 28 March 2020 Bellamy played Central
 Midfielder (Support) beside Hargreaves at Central Midfielder (Defend), and both
 carry `0x20` (confirmed by the manager on 3 October 2026). A code is labelled
 with the duty it was confirmed as, but it names a role *family*
@@ -66,15 +69,18 @@ CONFIRMED_ROLE_CODES: Mapping[int, str] = {
 _ROLE_NAME = re.compile(r"^(?P<role>.+?) \((?P<duty>[^)]+)\)(?P<where> \[[^\]]+\])?$")
 
 
-_SINGLE_DUTY: dict[int, tuple[FootballCatalogue, frozenset[str]]] = {}
+_SINGLE_DUTY: dict[int, tuple[FootballCatalogue, Mapping[str, str]]] = {}
 
 
-def _single_duty_roles(catalogue: FootballCatalogue) -> frozenset[str]:
+def _single_duty_roles(catalogue: FootballCatalogue) -> Mapping[str, str]:
     """Roles that are the only duty of their family, which a code therefore names exactly."""
     cached = _SINGLE_DUTY.get(id(catalogue))
     if cached is None or cached[0] is not catalogue:
         sizes = Counter(role_family(catalogue, key) for key in catalogue.roles)
-        cached = (catalogue, frozenset(key for key in catalogue.roles if sizes[role_family(catalogue, key)] == 1))
+        cached = (catalogue, {
+            role_family(catalogue, key): key
+            for key in catalogue.roles if sizes[role_family(catalogue, key)] == 1
+        })
         _SINGLE_DUTY[id(catalogue)] = cached
     return cached[1]
 
@@ -122,6 +128,24 @@ def roles_with_duty(catalogue: FootballCatalogue, family: str, duty: str) -> tup
     return cached[1].get((family, duty), ())
 
 
+_POSITION_FAMILIES: dict[int, tuple[FootballCatalogue, Mapping[tuple[str, str], str]]] = {}
+
+
+def _position_families(catalogue: FootballCatalogue) -> Mapping[tuple[str, str], str]:
+    """(role name without its position qualifier, position) -> its unique catalogue family."""
+    cached = _POSITION_FAMILIES.get(id(catalogue))
+    if cached is None or cached[0] is not catalogue:
+        families: dict[tuple[str, str], set[str]] = {}
+        for key, role in catalogue.roles.items():
+            family = role_family(catalogue, key)
+            name = family.partition(" [")[0]
+            for position in role.eligible_positions:
+                families.setdefault((name, position), set()).add(family)
+        cached = (catalogue, {pair: next(iter(found)) for pair, found in families.items() if len(found) == 1})
+        _POSITION_FAMILIES[id(catalogue)] = cached
+    return cached[1]
+
+
 @dataclass(frozen=True)
 class RoleCodes:
     """FM role code -> catalogue role, confirmed codes merged with the manager's."""
@@ -141,22 +165,32 @@ class RoleCodes:
     def role_key(self, code: int) -> str | None:
         return self.codes.get(code)
 
-    def family(self, code: int) -> str | None:
-        """The role family a confirmed code names; its duty is not in the code."""
-        key = self.codes.get(code)
-        return role_family(self.catalogue, key) if key is not None else None
+    def family(self, code: int, position: str | None = None) -> str | None:
+        """The confirmed role family at this position; its duty is not in the code.
 
-    def label(self, code: int) -> str:
+        Older captures without positions retain the family originally confirmed.
+        Only a unique position variant of that same role can replace it.
+        """
+        key = self.codes.get(code)
+        if key is None:
+            return None
+        family = role_family(self.catalogue, key)
+        if position is None:
+            return family
+        return _position_families(self.catalogue).get((family.partition(" [")[0], position), family)
+
+    def label(self, code: int, position: str | None = None) -> str:
         """The role a code names: "Central Midfielder", with no duty, since the code
         records none; "Advanced Forward (Attack)" for a role that has only one duty.
         For one player in one match, `appearance_context.appearance_roles` gives
         the duty the slot he filled settles."""
-        key = self.codes.get(code)
-        if key is None:
+        family = self.family(code, position)
+        if family is None:
             return f"Unconfirmed role (FM code {code:#x})"
-        if key in _single_duty_roles(self.catalogue):
+        key = _single_duty_roles(self.catalogue).get(family)
+        if key is not None:
             return self.catalogue.roles[key].name
-        return role_family(self.catalogue, key)
+        return family
 
     def infer_tactic(self, starters: Iterable[PlayerMatchStats]) -> str | None:
         """The one catalogue tactic these eleven roles fill, if any.
@@ -169,7 +203,7 @@ class RoleCodes:
         """
         roles = []
         for player in starters:
-            family = self.family(player.role_code)
+            family = self.family(player.role_code, player.start_position or player.position)
             if family is None:
                 return None
             roles.append(family)
