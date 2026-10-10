@@ -98,15 +98,16 @@ def record_capture_file(
     return store.record(capture, save_key=save_key or default_save_key(document), allow_rewind=allow_rewind)
 
 
-def run_capture_tool(output: Path = DEFAULT_CAPTURE) -> str:
-    """Read the running game's matches into `output`, read-only.
+def run_capture_tool(output: Path = DEFAULT_CAPTURE, *, latest_only: bool = False) -> str:
+    """Read the running game's matches into `output`, read-only; or, with `latest_only`, the latest match alone.
 
     The reader runs as its own process, as the scouting refresh does, so a
     problem reading FM cannot take the web server down with it.
     """
     try:
         result = subprocess.run(
-            [sys.executable, str(CAPTURE_TOOL), "capture", "--output", str(output)],
+            [sys.executable, str(CAPTURE_TOOL), "capture", "--output", str(output),
+             *(["--latest"] if latest_only else [])],
             cwd=PROJECT_ROOT, capture_output=True, text=True,
             timeout=CAPTURE_TIMEOUT_SECONDS, check=False,
         )

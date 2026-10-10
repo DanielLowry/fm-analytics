@@ -33,16 +33,18 @@ EXPORT_FORMAT_VERSION = 1
 
 
 def latest_played(capture: MatchCapture, match_key: str | None = None) -> MatchRecord:
-    """The match just played (the latest with full stats), or the one named by `match_key`."""
-    detailed = [match for match in capture.matches if match.detail is not None]
+    """The match just played (the latest), or the one named by `match_key`, when FM's full stats were read."""
     if match_key is not None:
-        match = next((match for match in detailed if match.key == match_key), None)
-        if match is None:
-            raise ValueError(f"FM has no full stats for {match_key}")
-        return match
-    if not detailed:
-        raise ValueError("FM has no match with full stats to store")
-    return max(detailed, key=lambda match: match.date)
+        match = next((match for match in capture.matches if match.key == match_key), None)
+    elif capture.matches:
+        match = max(capture.matches, key=lambda match: match.date)
+    else:
+        raise ValueError("FM has no played match to store")
+    if match is None or match.detail is None:
+        # Never another match in its place: an older match is not the one just played.
+        named = match_key if match is None else f"{match.date} {match.home.name} v {match.away.name}"
+        raise ValueError(f"FM's full stats for {named} could not be read, so it cannot be stored")
+    return match
 
 
 def with_default_variant(label: MatchLabel, match: MatchRecord, club_id: str) -> MatchLabel:
@@ -59,9 +61,19 @@ def store_from_fm(
     store: ExperimentStore, label: MatchLabel, *, groups: Sequence[str] = (), match_key: str | None = None,
     capture_path: Path = EXPERIMENT_CAPTURE,
 ) -> tuple[Stored, MatchRecord]:
-    """Read FM now (read-only) and store the match just played, or `match_key`."""
-    run_capture_tool(capture_path)
+    """Read FM now (read-only) and store the match just played, or `match_key`.
+
+    The match just played is read alone, in a couple of seconds. Another
+    match, or one whose stats that quick read cannot vouch for, takes the full
+    read of every match (about fifteen), which tells a fixture's chunks apart
+    by comparing them all.
+    """
+    run_capture_tool(capture_path, latest_only=match_key is None)
     capture = MatchCapture.from_document(json.loads(capture_path.read_text(encoding="utf-8")))
+    if match_key is None and capture.matches and capture.matches[-1].detail is None:
+        match_key = capture.matches[-1].key
+        run_capture_tool(capture_path)
+        capture = MatchCapture.from_document(json.loads(capture_path.read_text(encoding="utf-8")))
     match = latest_played(capture, match_key)
     label = with_default_variant(label, match, capture.managed_club.id)
     return store.store(match, capture.managed_club, label, groups=groups), match
@@ -217,16 +229,19 @@ def build_parser() -> argparse.ArgumentParser:
     history.add_argument("--group", action="append", default=[])
     _label_options(history)
     commands.add_parser("list", help="every stored match and group")
-    group = commands.add_parser("group", help="create a group, or put matches in one or take them out")
-    group.add_argument("action", choices=("create", "add", "remove"))
+    group = commands.add_parser("group", help="create, rename or delete a group, or put matches in one or take them out")
+    group.add_argument("action", choices=("create", "add", "remove", "rename", "delete"))
     group.add_argument("name")
     group.add_argument("ids", nargs="*", type=int)
-    group.add_argument("--note", default="")
+    group.add_argument("--note", help="the group's note (rename: default unchanged)")
+    group.add_argument("--to", help="rename: the group's new name")
     relabel = commands.add_parser("relabel", help="change a stored match's label, notes or tags")
     relabel.add_argument("id", type=int)
     _label_options(relabel)
     for name, text in (("withdraw", "leave a stored match out of every comparison"), ("restore", "bring it back")):
         commands.add_parser(name, help=text).add_argument("id", type=int)
+    commands.add_parser("delete", help="remove stored matches for good, from every group").add_argument(
+        "ids", nargs="+", type=int)
     compare = commands.add_parser("compare", help="compare a group's matches label by label (default: all stored)")
     compare.add_argument("group", nargs="?")
     export = commands.add_parser("export", help="a comparison and every match's full record, as JSON")
@@ -268,12 +283,25 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(format_store(store.matches(), store))
         elif args.command == "group":
             if args.action == "create":
-                store.create_group(args.name, args.note)
+                store.create_group(args.name, args.note or "")
                 if args.ids:
                     store.set_membership(args.name, args.ids, member=True)
+            elif args.action == "rename":
+                found = store.group(args.name)
+                if found is None:
+                    raise ValueError(f"no group is called {args.name!r}")
+                store.edit_group(args.name, args.to or args.name, found.note if args.note is None else args.note)
+            elif args.action == "delete":
+                store.delete_group(args.name)
             else:
                 store.set_membership(args.name, args.ids, member=args.action == "add")
             print("Done.")
+        elif args.command == "delete":
+            gone = {item.id: item for item in store.matches() if item.id in args.ids}
+            store.delete(args.ids)
+            for match_id in args.ids:
+                item = gone[match_id]
+                print(f"Deleted #{match_id}: {item.match.date} v {item.opponent}, {item.label.variant}.")
         elif args.command in ("relabel", "withdraw", "restore"):
             current = next((item for item in store.matches() if item.id == args.id), None)
             if current is None:

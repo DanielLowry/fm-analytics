@@ -5,9 +5,10 @@ adds to it, and it is a database of its own (`data/experiments.sqlite3` by
 default), apart from the match history. A replay of a fixture is not a match
 the season had, and recording one in the history would make it that match's
 current version. Follows the same rules as the other stores (see
-`persistence.migrations`): nothing is overwritten. A label, a note, a
-withdrawal or a match joining or leaving a group is a later row; the latest
-wins.
+`persistence.migrations`): a label, a note, a withdrawal or a match joining
+or leaving a group is a later row; the latest wins. The exceptions are the
+manager's own housekeeping, done only when asked: deleting a stored match or
+a group removes its rows, and renaming a group changes its row.
 """
 
 from __future__ import annotations
@@ -168,6 +169,43 @@ class ExperimentStore:
             for match_id in match_ids:
                 self._existing(connection, match_id)
                 self._membership(connection, group_id, match_id, member=member)
+
+    def delete(self, match_ids: Iterable[int]) -> None:
+        """Remove stored matches for good: each record, every label it had and its place in every group.
+
+        Withdrawing keeps a match out of comparisons and can be undone; this
+        cannot. The number of the latest match stored can be given to the
+        next one.
+        """
+        match_ids = list(match_ids)
+        self.initialize()
+        with closing(self._connect()) as connection, _transaction(connection):
+            for match_id in match_ids:
+                self._existing(connection, match_id)
+                for table in ("group_memberships", "match_labels"):
+                    connection.execute(f"DELETE FROM {table} WHERE stored_match_id = ?", (match_id,))
+                connection.execute("DELETE FROM stored_matches WHERE id = ?", (match_id,))
+
+    def edit_group(self, name: str, new_name: str, note: str) -> None:
+        """Rename a group and set its note; its matches stay in it."""
+        new_name = validate_name(new_name, "a group")
+        if len(note.strip()) > MAX_NOTE_LENGTH:
+            raise ValueError(f"a group's note is limited to {MAX_NOTE_LENGTH} characters")
+        self.initialize()
+        with closing(self._connect()) as connection, _transaction(connection):
+            group_id = self._group_id(connection, name)
+            taken = connection.execute("SELECT id FROM match_groups WHERE name = ?", (new_name,)).fetchone()
+            if taken and taken["id"] != group_id:
+                raise ValueError(f"there is already a group called {new_name!r}")
+            connection.execute("UPDATE match_groups SET name = ?, note = ? WHERE id = ?", (new_name, note.strip(), group_id))
+
+    def delete_group(self, name: str) -> None:
+        """Remove a group. Its matches stay stored, and in any other group they are in."""
+        self.initialize()
+        with closing(self._connect()) as connection, _transaction(connection):
+            group_id = self._group_id(connection, name)
+            connection.execute("DELETE FROM group_memberships WHERE group_id = ?", (group_id,))
+            connection.execute("DELETE FROM match_groups WHERE id = ?", (group_id,))
 
     # -- reading -----------------------------------------------------------
 

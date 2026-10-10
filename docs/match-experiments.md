@@ -17,13 +17,16 @@ play it again with one thing changed. Only that one thing differs.
 
 - **The Experiments page** (`/experiments`), with fm-web run `--direct-live`:
   *Read FM and store the match I've just played* reads FM read-only into
-  `data/experiment-capture.json`, never the match history's capture, and
-  keeps the latest match with full stats.
+  `data/experiment-capture.json`, never the match history's capture. It
+  reads the latest match alone, in about 2.5 seconds (see "Replays in FM's
+  archive" below). If that quick read cannot vouch for the match's stats it
+  falls back to reading every match, about 15 seconds more. It never stores
+  an older match in place of the latest.
 - **Any match page** under Matches: *Store this match for experiments* copies
   that match as recorded.
 - **The command line:** `uv run fm-experiments store` (FM), `store-history
-  KEY`, `group create|add|remove`, `relabel`, `withdraw`, `restore`, `list`,
-  `compare [GROUP]` and `export [GROUP]`.
+  KEY`, `group create|add|remove|rename|delete`, `relabel`, `withdraw`,
+  `restore`, `delete`, `list`, `compare [GROUP]` and `export [GROUP]`.
 
 Each stored match is a copy of FM's whole record of it (stats, players,
 timeline, shots, saved tactic), kept in `data/experiments.sqlite3`
@@ -38,8 +41,25 @@ the name of the tactic FM saved with it), an optional catalogue tactic,
 **notes** for anything FM can't record (a change at half-time, say) and
 **tags** (`key=value`). **Groups** are your own collections; a match can be
 in several, and join or leave one at any time. Relabelling, withdrawing a
-match from comparisons, restoring it and group changes are all later rows:
-nothing is ever overwritten.
+match from comparisons, restoring it and group membership changes are all
+later rows: nothing is overwritten.
+
+## Tidying up
+
+- **Delete a stored match** from its own page, from *Edit* on a group's
+  page, or tick several on the Experiments page. Each takes two clicks
+  (*Delete…*, then *Delete permanently*), and `fm-experiments delete ID...`
+  does the same. It is gone for good, from every group. To keep a match but
+  leave it out of comparisons, **withdraw** it instead, which can be undone.
+  The number of the latest match stored can be given to the next one.
+- **Rename a group** or change its note on the group's page
+  (`fm-experiments group rename NAME --to NEW [--note TEXT]`); its matches
+  stay in it.
+- **Delete a group** there too (`fm-experiments group delete NAME`). Its
+  matches stay stored, and in any other group they are in.
+
+These are the only changes to the store that remove or rewrite rows, and
+only when you ask.
 
 ## How a group is compared
 
@@ -69,8 +89,25 @@ match page as stored, without the forms that save to the match history.
 
 ## Replays in FM's archive
 
-A replayed fixture can leave a chunk per playthrough in FM's match archive.
-`fm20_match_archive.chunk_for_players` picks the one whose player records
-match the match still in FM's memory, so a replay with the same score as an
-earlier one keeps its shots and timeline. Not yet checked against real
-replays; if a stored replay shows no shots, that is where to look.
+FM keeps every match's full stats in archive files on disk, one chunk per
+match, and the managed club's matches are kept in the order played.
+**Reloading a save does not roll that archive back**: after a reload on
+10 October 2026, FM's results ended at the Woking match but the archive
+still ended with the discarded Hampton playthrough. So a replayed fixture
+leaves a chunk per playthrough.
+
+The quick read takes the club's last archived chunk, the playthrough just
+played. It uses that chunk only when it is the same fixture, its timeline
+gives the score, and its goals and sendings-off match FM's result: the same
+players at the same minutes. Those agreed in all 81 matches of the save
+that have both. A chunk from a discarded playthrough fails these checks
+unless every goal and red card fell the same way, so the quick read refuses
+it rather than storing the wrong playthrough. The full read
+(`fm20_match_archive.chunk_for_players`) instead picks the chunk whose
+player records match the match still in FM's memory.
+
+Discarded playthroughs stay in the archive after you carry on. When the
+season's own read (*Read matches from FM* on the Matches page) finds more
+chunks for a fixture than meetings, it keeps only a chunk that fits one
+meeting alone, so a replayed fixture's stats can go missing from the match
+history. They never come from the wrong playthrough.

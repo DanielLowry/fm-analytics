@@ -79,6 +79,17 @@ def _restore(match: StoredMatch) -> str:
     )
 
 
+def delete_match_control(match_id: int, *, back: str = "") -> str:
+    """Deleting one stored match: open it, then confirm."""
+    return (
+        "<details class='fm-danger'><summary>Delete…</summary>"
+        "<form class='fm-inline-form' method='post' action='/experiments/delete'>"
+        f"<input type='hidden' name='id' value='{match_id}'><input type='hidden' name='back' value='{_e(back)}'>"
+        "<span class='muted'>Gone for good, from every group. Withdraw it instead to keep it out of comparisons "
+        f"but stored.</span><button type='submit' class='danger'>Delete #{match_id} permanently</button></form></details>"
+    )
+
+
 def experiments_body(stored: Sequence[StoredMatch], groups: Sequence[MatchGroup], catalogue: FootballCatalogue,
                      *, note: tuple[str, bool] | None, reads_fm: bool) -> str:
     store_form = (
@@ -116,7 +127,8 @@ def experiments_body(stored: Sequence[StoredMatch], groups: Sequence[MatchGroup]
         "<p>FM is read read-only, into a capture of its own that never reaches your match history.</p></div></div>"
         + store_form + "</section>"
         + "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div><h2>Groups</h2>"
-        "<p>Your own collections of stored matches; one match can be in several.</p></div></div>"
+        "<p>Your own collections of stored matches; one match can be in several. Open a group to rename or "
+        "delete it.</p></div></div>"
         + (f"<div class='table-scroll'><table class='sortable'><thead><tr><th>Group</th><th>Matches</th><th>Labels</th>"
            f"<th>Note</th></tr></thead><tbody>{group_rows}</tbody></table></div>" if groups else
            "<p class='muted'>No groups yet: name one when you store a match, or below.</p>")
@@ -126,12 +138,16 @@ def experiments_body(stored: Sequence[StoredMatch], groups: Sequence[MatchGroup]
         f"<p><a class='button-link secondary' href='/experiments/all'>Compare all {len(stored)} stored matches</a></p>"
         "</section>"
         + "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div><h2>Stored matches</h2>"
-        "<p>Tick matches, then put them in a group or take them out.</p></div></div>"
+        "<p>Tick matches, then put them in a group, take them out, or delete them.</p></div></div>"
         + ("<form id='membership' class='fm-inline-form' method='post' action='/experiments/membership'>"
-           f"<label>Group<select name='group'>{group_options}</select></label>"
-           "<button type='submit' name='member' value='1'>Add ticked</button>"
-           "<button type='submit' name='member' value='0' class='secondary'>Remove ticked</button></form>"
-           if groups and stored else "")
+           + (f"<label>Group<select name='group'>{group_options}</select></label>"
+              "<button type='submit' name='member' value='1'>Add ticked</button>"
+              "<button type='submit' name='member' value='0' class='secondary'>Remove ticked</button>" if groups else "")
+           + "<details class='fm-danger'><summary>Delete ticked…</summary><span class='muted'>Gone for good, from "
+           "every group. Withdraw a match instead to keep it out of comparisons but stored.</span>"
+           "<button type='submit' formaction='/experiments/delete' class='danger'>Delete ticked matches permanently"
+           "</button></details></form>"
+           if stored else "")
         + (f"<div class='table-scroll'><table class='sortable'><thead><tr><th></th><th>#</th><th>Date</th><th>Opponent</th>"
            f"<th>Score</th><th>Label</th><th>Groups</th><th>Notes</th></tr></thead><tbody>{match_rows}</tbody></table></div>"
            if stored else "<p class='muted'>No matches stored yet.</p>")
@@ -186,13 +202,31 @@ def _match_rows(report: ExperimentReport, catalogue: FootballCatalogue) -> str:
             + label_fields(catalogue, (), variant=run.variant, tactic=run.tactic_key, note=run.note, tags=dict(run.tags),
                            with_groups=False)
             + "<div class='wide'><button type='submit'>Save</button> <button type='submit' name='withdraw' value='1' "
-            "class='secondary'>Withdraw from comparisons</button></div></form></details></td></tr>"
+            "class='secondary'>Withdraw from comparisons</button></div></form>"
+            + delete_match_control(run.run_id, back=report.name) + "</details></td></tr>"
         )
     return "".join(rows)
 
 
+def _manage_group(report: ExperimentReport) -> str:
+    name = _e(report.name)
+    return (
+        "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div><h2>Rename or delete this group</h2>"
+        "<p>Renaming keeps its matches in it. Deleting the group keeps its matches stored, and in any other group "
+        "they are in.</p></div></div>"
+        "<form class='fm-inline-form' method='post' action='/experiments/group/edit'>"
+        f"<input type='hidden' name='name' value='{name}'>"
+        f"<label>Name<input name='new_name' maxlength='80' required value='{name}'></label>"
+        f"<label class='fm-grow'>Note<input name='note' maxlength='1000' value='{_e(report.note)}'></label>"
+        "<button type='submit'>Save</button></form>"
+        "<form class='fm-inline-form' method='post' action='/experiments/group/delete'>"
+        f"<input type='hidden' name='name' value='{name}'><details class='fm-danger'><summary>Delete this group…</summary>"
+        f"<button type='submit' class='danger'>Delete the group {name}</button></details></form></section>"
+    )
+
+
 def group_body(report: ExperimentReport, catalogue: FootballCatalogue, *, copy_control: str,
-               note: tuple[str, bool] | None) -> str:
+               note: tuple[str, bool] | None, manage: bool = False) -> str:
     variants = "".join(_variant_row(variant) for variant in report.variants)
     return (
         "<p><a href='/experiments'>← Experiments</a></p>"
@@ -213,9 +247,11 @@ def group_body(report: ExperimentReport, catalogue: FootballCatalogue, *, copy_c
         "as clear when it is more than twice its standard error (about 19 times in 20 it is not chance). "
         f"Shots are valued from {report.rates_from} of your competitive matches.</p></section>"
         + "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div><h2>Matches</h2>"
-        "<p>Each one as stored; edit a label, notes or tags, or withdraw a match from the comparison.</p></div></div>"
+        "<p>Each one as stored; edit a label, notes or tags, withdraw a match from the comparison, or delete it."
+        "</p></div></div>"
         "<div class='table-scroll'><table class='sortable'><thead><tr><th>#</th><th>Label</th><th>Opponent</th>"
         "<th>Date</th><th>Result</th><th>Chances worth</th><th>Balance</th><th>Shots</th><th>On goal</th>"
         "<th>Clear-cut chances</th><th>Second-half shots</th><th>Possession</th><th>FM's saved tactic</th>"
         f"<th>Notes and tags</th><th></th></tr></thead><tbody>{_match_rows(report, catalogue)}</tbody></table></div></section>"
+        + (_manage_group(report) if manage else "")
     )

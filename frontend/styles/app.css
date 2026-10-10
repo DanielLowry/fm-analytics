@@ -580,6 +580,13 @@
   .fm-groups { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin: .5rem 0; padding: .6rem .8rem; border: 1px solid var(--fm-border); border-radius: .5rem; }
   .fm-groups legend { padding: 0 .3rem; color: var(--color-ink-600); font-size: .82rem; }
   .fm-check { display: inline-flex; align-items: center; gap: .3rem; }
+  :is(.fm-experiment-form, .fm-inline-form, .fm-danger) button.danger { padding: .5rem .9rem; border: 0; border-radius: .5rem; background: #a8402f; color: #fff; font-weight: 600; cursor: pointer; }
+  .fm-danger { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .4rem 0; }
+  .fm-danger > summary { color: #a8402f; font-size: .85rem; font-weight: 600; cursor: pointer; }
+  .fm-danger[open] { padding: .5rem .7rem; border: 1px solid color-mix(in srgb, #a8402f 40%, transparent); border-radius: .5rem; }
+  .fm-danger .muted { font-size: .82rem; }
+  .fm-danger .fm-inline-form { margin: 0; }
+  .fm-inline-form .fm-grow { flex: 1 1 18rem; }
   .fm-verdicts { margin: .8rem 0 .2rem; padding-left: 1.2rem; }
   .fm-verdicts li + li { margin-top: .3rem; }
   .fm-note-ok { padding: .55rem .8rem; border-radius: .5rem; background: color-mix(in srgb, var(--color-brand-50) 80%, transparent); color: var(--color-ink-900); }

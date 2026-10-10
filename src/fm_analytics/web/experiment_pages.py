@@ -16,7 +16,7 @@ from fm_analytics.domain.experiments import MatchLabel
 from fm_analytics.experiment_ingest import ALL_STORED, experiment_document
 from fm_analytics.reporting import build_experiment_report, build_stored_match_report
 from fm_analytics.web.attribute_export import profile_copy_control
-from fm_analytics.web.experiment_render import experiments_body, group_body, group_url
+from fm_analytics.web.experiment_render import delete_match_control, experiments_body, group_body, group_url
 from fm_analytics.web.match_detail_render import match_body
 from fm_analytics.web.rendering import _error_page, _layout
 
@@ -72,7 +72,8 @@ class ExperimentPagesMixin:
             json.dumps(experiment_document(report), indent=2, ensure_ascii=False),
             label="Copy experiment to clipboard", success="Experiment copied as JSON!",
         )
-        body = group_body(report, MVP_CATALOGUE, copy_control=copy, note=server.experiment_note)
+        body = group_body(report, MVP_CATALOGUE, copy_control=copy, note=server.experiment_note,
+                          manage=path != "/experiments/all")
         server.experiment_note = None
         self._send(_layout(name, "/experiments", body, wide=True))  # type: ignore[attr-defined]
 
@@ -94,6 +95,7 @@ class ExperimentPagesMixin:
             f"<p class='intro'>Stored match #{stored.id}, labelled <strong>{stored.label.variant}</strong>"
             + (f", in {', '.join(stored.groups)}" if stored.groups else "")
             + ". This is the match as stored, which for a replay is not the one in your season.</p>"
+            + delete_match_control(stored.id)
             + match_body(report, MVP_CATALOGUE, (), None, notes=False)
         )
         self._send(_layout(title, "/experiments", body, wide=True))  # type: ignore[attr-defined]
@@ -167,3 +169,38 @@ class ExperimentPagesMixin:
             self._send(_error_page("Stored match", str(exc), location), HTTPStatus.BAD_REQUEST)  # type: ignore[attr-defined]
             return
         self._redirect(location)  # type: ignore[attr-defined]
+
+    def _post_experiment_delete(self) -> None:
+        form = self._read_form()  # type: ignore[attr-defined]
+        try:
+            ids = [int(value) for value in form.get("id", [])]
+            if not ids:
+                raise ValueError("Tick at least one stored match first.")
+            self.server.delete_stored_matches(ids)  # type: ignore[attr-defined]
+        except _ERRORS as exc:
+            self._send(_error_page("Delete stored matches", str(exc), "/experiments"), HTTPStatus.BAD_REQUEST)  # type: ignore[attr-defined]
+            return
+        back = form.get("back", [""])[0]
+        groups = {group.name for group in self.server.experiment_groups()}  # type: ignore[attr-defined]
+        location = ("/experiments/all" if back == ALL_STORED else group_url(back) if back in groups else "/experiments")
+        self._redirect(location)  # type: ignore[attr-defined]
+
+    def _post_experiment_group_edit(self) -> None:
+        form = self._read_form()  # type: ignore[attr-defined]
+        name, new_name = form.get("name", [""])[0], form.get("new_name", [""])[0]
+        try:
+            self.server.edit_experiment_group(name, new_name, form.get("note", [""])[0])  # type: ignore[attr-defined]
+        except _ERRORS as exc:
+            self._send(_error_page("Experiment group", str(exc), group_url(name)), HTTPStatus.BAD_REQUEST)  # type: ignore[attr-defined]
+            return
+        self._redirect(group_url(new_name.strip()))  # type: ignore[attr-defined]
+
+    def _post_experiment_group_delete(self) -> None:
+        form = self._read_form()  # type: ignore[attr-defined]
+        name = form.get("name", [""])[0]
+        try:
+            self.server.delete_experiment_group(name)  # type: ignore[attr-defined]
+        except _ERRORS as exc:
+            self._send(_error_page("Experiment group", str(exc), "/experiments"), HTTPStatus.BAD_REQUEST)  # type: ignore[attr-defined]
+            return
+        self._redirect("/experiments")  # type: ignore[attr-defined]

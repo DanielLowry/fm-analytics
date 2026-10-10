@@ -14,7 +14,7 @@ from fm_analytics.match_ingest import record_capture_file
 from fm_analytics.persistence.experiments import ExperimentStore
 from fm_analytics.persistence.match_history import MatchHistoryStore
 
-from tests.match_support import ALPHA, US, capture_document, detail, lineup, match, season, team_stats
+from tests.match_support import ALPHA, BRAVO, US, capture_document, detail, lineup, match, season, team_stats
 
 # A clear-cut chance is worth 0.4 of a goal, any other shot 0.1.
 RATES = ChanceRates(10, KindRecord(10, 6, 4), KindRecord(100, 40, 10))
@@ -63,6 +63,38 @@ class StoreTests(unittest.TestCase):
         self.assertEqual((current.label.variant, current.withdrawn), ("BWM, CM(D) at half-time", True))
         self.store.relabel(stored.match_id, current.label, withdrawn=False)
         self.assertFalse(self.store.matches()[0].withdrawn)
+
+    def test_deleting_removes_matches_from_every_group_for_good_and_all_or_nothing(self) -> None:
+        self.store.create_group("Woking replays")
+        first = self.store.store(replay(), CLUB, MatchLabel("BWM"), groups=["Woking replays"])
+        second = self.store.store(replay(goals=(2, 0)), CLUB, MatchLabel("CM(D)"), groups=["Woking replays"])
+        self.store.relabel(first.match_id, MatchLabel("BWM again"))
+        with self.assertRaisesRegex(ValueError, "no stored match 99"):
+            self.store.delete([first.match_id, 99])
+        self.assertEqual(len(self.store.matches()), 2)  # nothing was deleted
+        self.store.delete([first.match_id])
+        self.assertEqual([item.id for item in self.store.matches()], [second.match_id])
+        self.assertEqual([item.id for item in self.store.group("Woking replays").matches], [second.match_id])
+        again = self.store.store(replay(), CLUB, MatchLabel("BWM"))
+        self.assertTrue(again.added)  # stored afresh, with only its new label
+        self.assertEqual(self.store.matches()[-1].label.variant, "BWM")
+
+    def test_a_group_is_renamed_with_its_matches_and_deleting_it_keeps_them_stored(self) -> None:
+        self.store.create_group("Woking replays", "first try")
+        self.store.create_group("Other")
+        stored = self.store.store(replay(), CLUB, MatchLabel("BWM"), groups=["Woking replays", "Other"])
+        self.store.edit_group("Woking replays", "  Woking: midfield  ", "second try")
+        group = self.store.group("Woking: midfield")
+        self.assertEqual((group.note, [item.id for item in group.matches]), ("second try", [stored.match_id]))
+        self.assertIsNone(self.store.group("Woking replays"))
+        self.store.edit_group("Other", "Other", "just a note")  # keeping the name is fine
+        with self.assertRaisesRegex(ValueError, "already a group"):
+            self.store.edit_group("Other", "Woking: midfield", "")
+        with self.assertRaisesRegex(ValueError, "no group"):
+            self.store.edit_group("Nope", "Something", "")
+        self.store.delete_group("Woking: midfield")
+        self.assertEqual([group.name for group in self.store.groups()], ["Other"])
+        self.assertEqual(self.store.matches()[0].groups, ("Other",))
 
     def test_a_match_without_stats_another_clubs_match_or_an_unknown_group_is_refused(self) -> None:
         bare = MatchRecord.from_document(match("2019-09-01", US, ALPHA, 1, 0))
@@ -114,11 +146,15 @@ class ComparisonTests(unittest.TestCase):
 
 
 class IngestTests(unittest.TestCase):
-    def test_the_match_just_played_is_the_latest_with_stats_and_its_label_defaults_to_fms_tactic_name(self) -> None:
+    def test_the_match_just_played_is_the_latest_and_its_label_defaults_to_fms_tactic_name(self) -> None:
         capture = MatchCapture.from_document(capture_document(season()))
         self.assertEqual(latest_played(capture).key, "2019-09-01:100:201")
-        with self.assertRaisesRegex(ValueError, "no full stats"):
+        with self.assertRaisesRegex(ValueError, "2019-08-10 Bravo v Hungerford Town could not be read"):
             latest_played(capture, "2019-08-10:202:100")
+        # Without its stats the latest match is refused, never swapped for an earlier one.
+        later = MatchCapture.from_document(capture_document(season() + [match("2019-09-07", BRAVO, US, 1, 0)]))
+        with self.assertRaisesRegex(ValueError, "2019-09-07 Bravo v Hungerford Town could not be read"):
+            latest_played(later)
         label = with_default_variant(MatchLabel(""), replay(tactic="Vertical 4-4-2"), US["id"])
         self.assertEqual(label.variant, "Vertical 4-4-2")
         self.assertEqual(with_default_variant(MatchLabel("Mine"), replay(), US["id"]).variant, "Mine")
@@ -148,6 +184,12 @@ class IngestTests(unittest.TestCase):
         self.assertEqual(exported["matches"][0]["tags"], {"mentality": "positive"})
         self.assertEqual(exported["matches"][0]["fm_record"]["date"], "2019-09-01")
         self.assertIn("withdrawn", run("withdraw", "1") + run("list"))
+        self.assertIn("Done.", run("group", "rename", "Alpha tests", "--to", "Alpha replays"))
+        self.assertIn("groups: Alpha replays", run("list"))
+        self.assertIn("Done.", run("group", "delete", "Alpha replays"))
+        self.assertIn("Deleted #1: 2019-09-01 v Alpha, Vertical.", run("delete", "1"))
+        self.assertIn("No stored matches yet.", run("list"))
+        self.assertIn("error: no stored match 1", run("delete", "1"))
         self.assertEqual((root / "history.sqlite3").read_bytes(), before)
 
 

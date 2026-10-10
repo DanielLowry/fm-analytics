@@ -17,7 +17,9 @@ possession, found beside the team's own passing figures (see
 (``fm20_match_layout.detail_problems``) before it is kept.
 
 A chunk also holds the match's timeline (``decode_events``): goals, assists,
-clear-cut chances, cards and sendings-off, each with its player and minute.
+clear-cut chances, cards and sendings-off, each with its player and minute,
+and a person record for everyone who played, which names them
+(``person_names``).
 
 Not read, on purpose: a later list of the match's highlights, which keeps
 beside each shot a value between 0 and 1 that FM20 never shows (most likely
@@ -377,6 +379,43 @@ def involves(chunk: bytes, home_club: int, away_club: int) -> bool:
     return home != -1 and away != -1 and home < away
 
 
+# A person: ``07 01``, the short ID player records use, four zero bytes,
+# ``01``, the unique ID, four zero bytes, ``01``, eight ``ff``, then the first
+# and last names as length-prefixed strings: the two fields FM's memory names
+# a player by (fm20_match_probe.player_names). Checked 10 October 2026 on all
+# 85 archived matches of the save: 2,687 players named as memory names them,
+# none differently, and 182 more that the memory scan could not name.
+PERSON = re.compile(rb"\x07\x01(.{4})\x00\x00\x00\x00\x01.{4}\x00\x00\x00\x00\x01\xff{8}", re.S)
+MAX_NAME_BYTES = 64
+
+
+def _name_part(chunk: bytes, at: int) -> tuple[str, int] | None:
+    """The length-prefixed string at `at` and where the next one starts, or None."""
+    if at + 4 > len(chunk):
+        return None
+    (length,) = struct.unpack_from("<I", chunk, at)
+    if length > MAX_NAME_BYTES or at + 4 + length > len(chunk):
+        return None
+    try:
+        return chunk[at + 4:at + 4 + length].decode("utf-8"), at + 4 + length
+    except UnicodeDecodeError:
+        return None
+
+
+def person_names(chunk: bytes) -> dict[int, str]:
+    """Each person's name in a chunk by short ID, first then last name."""
+    names: dict[int, str] = {}
+    for match in PERSON.finditer(chunk):
+        first = _name_part(chunk, match.end())
+        last = _name_part(chunk, first[1]) if first else None
+        if first is None or last is None:
+            continue
+        name = " ".join(part for part in (first[0], last[0]) if part)
+        if name:
+            names.setdefault(struct.unpack("<I", match.group(1))[0], name)
+    return names
+
+
 def decode_match(chunk: bytes, home_goals: int, away_goals: int) -> tuple[dict[str, Any] | None, list[str]]:
     """A chunk as the capture's match detail, or None with the reasons it did not add up."""
     found = players(chunk)
@@ -489,6 +528,38 @@ def chunk_for_players(
             if detail is not None and lines(detail["players"], keys) == wanted:
                 matches.append((chunk, detail))
     return matches[0] if len(matches) == 1 and wanted else None
+
+
+def latest_chunk(
+    temporary: Path, club: int, home_club: int, away_club: int, home_goals: int, away_goals: int
+) -> tuple[bytes, dict[str, Any]] | None:
+    """The club's latest archived chunk, decoded, when it is this fixture and its timeline gives the score; or None.
+
+    For the match just played, without decompressing the whole archive. One
+    archive file keeps the managed club's matches in the order played, and
+    the first (pks_0, a few MB) held all 85 of them, the latest last
+    (10 October 2026), so files are read in name order only as far as the
+    first that names the club, and its last chunk naming the club is the one
+    taken: the match just played or, for a replayed fixture, its latest
+    playthrough. Nothing else is taken in its place. Players' goals alone do
+    not settle the score (a 0-0 adds up to a 2-0, the goals read as own
+    goals), so when there were goals the chunk's timeline must give them.
+    """
+    named = b"\x01" + struct.pack("<I", club)
+    for path in archive_files(temporary):
+        last = None
+        for chunk in chunks(path):
+            if named in chunk[:HEADER_SEARCH]:
+                last = chunk
+        if last is None:
+            continue
+        if not involves(last, home_club, away_club):
+            return None
+        detail, _problems = decode_match(last, home_goals, away_goals)
+        if detail is None or (home_goals + away_goals and not detail["events"]):
+            return None
+        return last, detail
+    return None
 
 
 def find_matches(

@@ -174,6 +174,42 @@ class ArchiveTests(unittest.TestCase):
         self.assertEqual((found["first"]["home"]["shots"], found["first"]["away"]["shots"]), (1, 0))
         self.assertEqual((found["second"]["home"]["shots"], found["second"]["away"]["shots"]), (0, 1))
 
+    def test_the_latest_chunk_is_the_clubs_last_in_the_first_file_that_names_it(self) -> None:
+        # A replayed 0-0: the last playthrough archived is the one just played.
+        archive_file(self.directory, "pks_0.obs", [b"not a match"])
+        archive_file(self.directory, "pks_1.obs", [chunk(headers_attempted=47), b"other", chunk(headers_attempted=46)])
+        archive_file(self.directory, "pks_2.obs", [chunk(headers_attempted=45)])  # never read
+        _chunk, detail = archive.latest_chunk(self.directory, AWAY_CLUB, HOME_CLUB, AWAY_CLUB, 0, 0)
+        self.assertEqual(detail["away"]["headers_attempted"], 46)
+        # A goal needs its timeline: the players' figures alone would fit a 0-0 as well.
+        scored = chunk(home_goals={9: 1}) + timeline(event_record(0, 8, 0x01, 49))
+        archive_file(self.directory, "pks_1.obs", [chunk(), scored])
+        _chunk, detail = archive.latest_chunk(self.directory, AWAY_CLUB, HOME_CLUB, AWAY_CLUB, 1, 0)
+        self.assertEqual([event["kind"] for event in detail["events"]], ["goal"])
+
+    def test_no_earlier_chunk_stands_in_for_the_clubs_last(self) -> None:
+        other = chunk().replace(struct.pack("<I", HOME_CLUB), struct.pack("<I", 1234567))
+        archive_file(self.directory, "pks_0.obs", [chunk(home_goals={9: 2}), other])
+        self.assertIsNone(archive.latest_chunk(self.directory, AWAY_CLUB, HOME_CLUB, AWAY_CLUB, 2, 0))  # last is v another club
+        archive_file(self.directory, "pks_0.obs", [chunk(home_goals={9: 2}), chunk()])
+        self.assertIsNone(archive.latest_chunk(self.directory, AWAY_CLUB, HOME_CLUB, AWAY_CLUB, 2, 0))  # a 0-0 read as 2-0
+        self.assertIsNone(archive.latest_chunk(self.directory, AWAY_CLUB, AWAY_CLUB, HOME_CLUB, 0, 0))  # the other way round
+
+
+def person(short_id: int, *names: bytes) -> bytes:
+    """A person as a chunk keeps one: its IDs, then its names, each length-prefixed."""
+    return (b"\x00\x00\x07\x01" + struct.pack("<I", short_id) + bytes(4) + b"\x01" + struct.pack("<I", 28_000_000 + short_id)
+            + bytes(4) + b"\x01" + b"\xff" * 8 + b"".join(struct.pack("<I", len(name)) + name for name in names) + bytes(6))
+
+
+class PersonNameTests(unittest.TestCase):
+    def test_each_person_is_named_first_then_last_name_and_unreadable_names_are_skipped(self) -> None:
+        body = (person(94301, b"Cameron", b"Yates") + person(31039, b"", "Pel\u00e9".encode())
+                + person(20527, b"Joe", b"\xff\xfe") + person(20528, b"x" * 65, b"Long")
+                + person(94301, b"Someone", b"Else"))
+        self.assertEqual(archive.person_names(b"\x00" * 8 + body),
+                         {94301: "Cameron Yates", 31039: "Pel\u00e9"})
+
 
 def shot_group(zone: int, *shots: tuple[float, float, int, int]) -> bytes:
     """One group of a player's shots: zone, count, each shot, then the byte not yet known."""

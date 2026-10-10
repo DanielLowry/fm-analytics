@@ -94,3 +94,15 @@ class ExperimentState:
 
     def relabel_stored_match(self, match_id: int, label: MatchLabel, *, withdrawn: bool) -> None:
         self._experiments().relabel(match_id, label, withdrawn=withdrawn)
+
+    def delete_stored_matches(self, match_ids: Sequence[int]) -> None:
+        self._experiments().delete(match_ids)
+        numbers = ", ".join(f"#{match_id}" for match_id in match_ids)
+        self.experiment_note = (f"Deleted {numbers} for good.", True)
+
+    def edit_experiment_group(self, name: str, new_name: str, note: str) -> None:
+        self._experiments().edit_group(name, new_name, note)
+
+    def delete_experiment_group(self, name: str) -> None:
+        self._experiments().delete_group(name)
+        self.experiment_note = (f"Deleted the group {name!r}; its matches are still stored.", True)

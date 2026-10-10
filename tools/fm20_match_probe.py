@@ -13,6 +13,7 @@ runs the pinned FM20 build. FM keeps running while it reads, so a capture is
 checked against FM's own match screens rather than trusted blindly.
 
     python3 tools/fm20_match_probe.py capture --output data/match-capture.json
+    python3 tools/fm20_match_probe.py capture --latest --output F  # the latest match alone
     python3 tools/fm20_match_probe.py matches            # every match-stats object
     python3 tools/fm20_match_probe.py results            # the first team's results
     python3 tools/fm20_match_probe.py squad              # first team with match-record IDs
@@ -27,7 +28,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import mmap
 import os
 import re
 import struct
@@ -47,7 +47,6 @@ import tools.fm20_linux_probe_runtime  # noqa: F401  (installs decode_fm_date)
 from tools import fm20_match_archive as archive
 from tools import fm20_match_layout as layout
 from tools.fm20_match_tactics import candidate_prefixes, formation_name, team_tactic
-from tools.fm20_field_workbench import PeImage, find_rtti_vtables
 from tools.fm20_status import running_pid
 
 CHUNK = 64 << 20
@@ -346,7 +345,8 @@ def _team_json(club: dict[str, str] | None, team: int) -> dict[str, str]:
     return club or {"id": f"team:{team:#x}", "name": "Unknown team"}
 
 
-def build_capture(memory: Memory) -> dict[str, Any]:
+def _context(memory: Memory) -> tuple[Clubs, int, dict[str, str], Any]:
+    """The club reader, the managed team, its club and FM's current date."""
     clubs = Clubs(memory)
     team = first_team_address(memory)
     managed = clubs(team)
@@ -356,13 +356,18 @@ def build_capture(memory: Memory) -> dict[str, Any]:
         memory.read(memory.module_base + probe.FM20_4_4_STEAM.current_date_offset, 4),
         minimum_year=2018,
     )
-    results = played_results(memory)
-    ours = {key: result for key, result in results.items() if team in (result["home_team"], result["away_team"])}
-    competitions = {result["fixture_name"]: competition(memory, result["fixture_name"]) for result in ours.values()}
+    return clubs, team, managed, game_date
 
-    squad = {player["short_id"]: player for player in managed_squad(memory)}
+
+def _ours(results: dict[tuple, dict[str, Any]], team: int) -> dict[tuple, dict[str, Any]]:
+    return {key: result for key, result in results.items() if team in (result["home_team"], result["away_team"])}
+
+
+def _memory_details(
+    memory: Memory, ours: dict[tuple, dict[str, Any]], squad: dict[int, dict], rejected: list[dict[str, Any]]
+) -> dict[tuple, dict[str, Any]]:
+    """Full stats for each of `ours` that FM still holds in memory, each checked against its score."""
     details: dict[tuple, dict[str, Any]] = {}
-    rejected: list[dict[str, Any]] = []
     for address in memory.instances(layout.GAME_MATCH_STATS):
         try:
             header = memory.read(address, layout.MATCH_STATS_SIZE)
@@ -382,51 +387,45 @@ def build_capture(memory: Memory) -> dict[str, Any]:
             rejected.append({"date": key[0].isoformat(), "problems": problems})
         else:
             details[key] = detail
-    if rejected and not details:
-        raise probe.ProbeError(
-            "FM's match stats did not add up for any match, so FM's memory layout may have "
-            "changed; nothing was saved. " + "; ".join(rejected[0]["problems"])
-        )
+    return details
 
-    # Every other match's full stats, and every match's saved tactics, from the
-    # archive FM keeps on disk (the latest match is there too).
-    folder = temporary_folder(memory.pid) or default_temporary_folder(memory.executable)
+
+def _fixtures(clubs: Clubs, ours: dict[tuple, dict[str, Any]]) -> list[archive.Fixture]:
+    """`ours` as the archive looks them up: by both clubs' IDs and the score."""
     fixtures = []
-    for key in ours:
-        home, away = clubs(ours[key]["home_team"]), clubs(ours[key]["away_team"])
+    for key, result in ours.items():
+        home, away = clubs(result["home_team"]), clubs(result["away_team"])
         if home and away and home["id"].isdigit() and away["id"].isdigit() and home["id"] != away["id"]:
             fixtures.append(
-                (key, key[0], int(home["id"]), int(away["id"]), ours[key]["home_goals"], ours[key]["away_goals"])
+                (key, key[0], int(home["id"]), int(away["id"]), result["home_goals"], result["away_goals"])
             )
-    if folder is not None and fixtures:
-        found = archive.find_chunks(folder, fixtures)
-        # A match still in memory whose fixture has more than one chunk (it was
-        # replayed) is found by its own players' stats instead.
-        for key, _date, home_id, away_id, home_goals, away_goals in fixtures:
-            if key in details and key not in found:
-                chunk_detail = archive.chunk_for_players(
-                    folder, home_id, away_id, home_goals, away_goals, details[key]["players"]
-                )
-                if chunk_detail is not None:
-                    found[key] = chunk_detail
-        for key, (chunk, detail) in found.items():
-            our_side = "home" if ours[key]["home_team"] == team else "away"
-            if key not in details:
-                for player in detail["players"]:
-                    known = squad.get(player["short_id"]) if player["side"] == our_side else None
-                    player["player_id"] = known["id"] if known else None
-                    player["name"] = known["name"] if known else None
-                details[key] = detail
-            else:
-                # Only the archive has the shots, and its timeline names each
-                # event's player and added time, so it is used for the match
-                # still in memory too.
-                details[key]["events"] = detail["events"] or details[key]["events"]
-                details[key]["shots"] = detail["shots"]
-            details[key]["saved_tactics"] = saved_tactics(chunk, details[key])
-            details[key]["formations"] = opposition_formation(chunk, details[key], our_side)
+    return fixtures
 
-    # Every result's goals and sendings-off, kept only when the goals add up to the score.
+
+def _from_archive(
+    details: dict[tuple, dict[str, Any]], key: tuple, chunk: bytes, detail: dict[str, Any], our_side: str,
+    squad: dict[int, dict],
+) -> None:
+    """A match's full stats from its archive chunk, and the tactics both sides started with."""
+    if key not in details:
+        for player in detail["players"]:
+            known = squad.get(player["short_id"]) if player["side"] == our_side else None
+            player["player_id"] = known["id"] if known else None
+            player["name"] = known["name"] if known else None
+        details[key] = detail
+    else:
+        # Only the archive has the shots, and its timeline names each event's
+        # player and added time, so it is used for a match still in memory too.
+        details[key]["events"] = detail["events"] or details[key]["events"]
+        details[key]["shots"] = detail["shots"]
+    details[key]["saved_tactics"] = saved_tactics(chunk, details[key])
+    details[key]["formations"] = opposition_formation(chunk, details[key], our_side)
+
+
+def _incidents(
+    memory: Memory, ours: dict[tuple, dict[str, Any]], rejected: list[dict[str, Any]]
+) -> dict[tuple, list[dict[str, Any]]]:
+    """Every result's goals and sendings-off, kept only when the goals add up to the score."""
     incidents: dict[tuple, list[dict[str, Any]]] = {}
     for key, result in ours.items():
         found = read_incidents(memory, result)
@@ -438,9 +437,11 @@ def build_capture(memory: Memory) -> dict[str, Any]:
             rejected.append({"date": key[0].isoformat(), "problems": [f"goals and red cards: {p}" for p in problems]})
         else:
             incidents[key] = found
+    return incidents
 
-    # A timeline must also show every sending-off the result records; one that
-    # does not is incomplete, and is left out rather than shown short.
+
+def _drop_short_timelines(details: dict[tuple, dict[str, Any]], incidents: dict[tuple, list[dict[str, Any]]]) -> None:
+    """A timeline must show every sending-off the result records; one that does not is left out, not shown short."""
     for key, detail in details.items():
         sent_off = sum(1 for event in detail["events"] if event["kind"] == "sent_off")
         recorded = sum(1 for item in incidents.get(key, ()) if item["kind"] == "sent_off")
@@ -449,23 +450,42 @@ def build_capture(memory: Memory) -> dict[str, Any]:
         ):
             detail["events"] = []
 
-    # Opposition players, and our own who have since left, are named by one scan.
+
+def _name_everyone(
+    memory: Memory, details: dict[tuple, dict[str, Any]], incidents: dict[tuple, list[dict[str, Any]]],
+    squad: dict[int, dict], archived: dict[int, str], *, scan: bool = True,
+) -> None:
+    """Every player and incident named: from the squad, then the archive, then one memory scan for the rest.
+
+    The archive names everyone in a match it holds (`archive.person_names`),
+    so the scan, several seconds over all of FM's memory, runs only for
+    players of matches it does not hold, and not at all without `scan`.
+    """
     known = {short_id: player["name"] for short_id, player in squad.items()}
     known.update({
         player["short_id"]: player["name"]
         for detail in details.values() for player in detail["players"] if player["name"]
     })
-    unnamed = {player["short_id"] for detail in details.values() for player in detail["players"] if not player["name"]}
-    unnamed |= {item["playerShortId"] for found in incidents.values() for item in found} - set(known)
-    names = player_names(memory, unnamed)
+    for short_id, name in archived.items():
+        known.setdefault(short_id, name)
+    wanted = {player["short_id"] for detail in details.values() for player in detail["players"]}
+    wanted |= {item["playerShortId"] for found in incidents.values() for item in found}
+    if scan:
+        known.update(player_names(memory, wanted - set(known)))
     for detail in details.values():
         for player in detail["players"]:
             if not player["name"]:
-                player["name"] = names.get(player["short_id"])
+                player["name"] = known.get(player["short_id"])
     for found in incidents.values():
         for item in found:
-            item["player"] = known.get(item["playerShortId"]) or names.get(item["playerShortId"])
+            item["player"] = known.get(item["playerShortId"])
 
+
+def _document(
+    clubs: Clubs, managed: dict[str, str], game_date: Any, ours: dict[tuple, dict[str, Any]],
+    competitions: dict[int, dict[str, str]], details: dict[tuple, dict[str, Any]],
+    incidents: dict[tuple, list[dict[str, Any]]], rejected: list[dict[str, Any]], league_results: list[dict[str, Any]],
+) -> dict[str, Any]:
     def match_json(key, result) -> dict[str, Any]:
         document = {
             "date": result["date"].isoformat(),
@@ -487,6 +507,21 @@ def build_capture(memory: Memory) -> dict[str, Any]:
             document["incidents"] = incidents[key]
         return document
 
+    return {
+        "format": CAPTURE_FORMAT,
+        "formatVersion": CAPTURE_FORMAT_VERSION,
+        "capturedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "gameDate": game_date.isoformat(),
+        "source": {"tool": "tools/fm20_match_probe.py", "managedClub": managed},
+        "matches": [match_json(key, result) for key, result in sorted(ours.items(), key=lambda item: item[0][0])],
+        "competitionResults": league_results,
+        "rejectedDetails": rejected,
+    }
+
+
+def _league_results(
+    clubs: Clubs, results: dict[tuple, dict[str, Any]], competitions: dict[int, dict[str, str]], team: int
+) -> list[dict[str, Any]]:
     league_results = []
     for fixture_name, comp in competitions.items():
         if not _is_league(results.values(), fixture_name, team):
@@ -504,17 +539,110 @@ def build_capture(memory: Memory) -> dict[str, Any]:
             if result["fixture_name"] == fixture_name
         ]
         league_results.append({"competition": comp, "results": sorted(rows, key=lambda row: row["date"])})
+    return league_results
 
-    return {
-        "format": CAPTURE_FORMAT,
-        "formatVersion": CAPTURE_FORMAT_VERSION,
-        "capturedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "gameDate": game_date.isoformat(),
-        "source": {"tool": "tools/fm20_match_probe.py", "managedClub": managed},
-        "matches": [match_json(key, result) for key, result in sorted(ours.items(), key=lambda item: item[0][0])],
-        "competitionResults": league_results,
-        "rejectedDetails": rejected,
-    }
+
+def _archive_folder(memory: Memory) -> Path | None:
+    return temporary_folder(memory.pid) or default_temporary_folder(memory.executable)
+
+
+def build_capture(memory: Memory) -> dict[str, Any]:
+    clubs, team, managed, game_date = _context(memory)
+    results = played_results(memory)
+    ours = _ours(results, team)
+    competitions = {result["fixture_name"]: competition(memory, result["fixture_name"]) for result in ours.values()}
+
+    squad = {player["short_id"]: player for player in managed_squad(memory)}
+    rejected: list[dict[str, Any]] = []
+    details = _memory_details(memory, ours, squad, rejected)
+    if rejected and not details:
+        raise probe.ProbeError(
+            "FM's match stats did not add up for any match, so FM's memory layout may have "
+            "changed; nothing was saved. " + "; ".join(rejected[0]["problems"])
+        )
+
+    # Every other match's full stats, and every match's saved tactics, from the
+    # archive FM keeps on disk (the latest match is there too).
+    folder = _archive_folder(memory)
+    fixtures = _fixtures(clubs, ours)
+    archived: dict[int, str] = {}
+    if folder is not None and fixtures:
+        found = archive.find_chunks(folder, fixtures)
+        # A match still in memory whose fixture has more than one chunk (it was
+        # replayed) is found by its own players' stats instead.
+        for key, _date, home_id, away_id, home_goals, away_goals in fixtures:
+            if key in details and key not in found:
+                chunk_detail = archive.chunk_for_players(
+                    folder, home_id, away_id, home_goals, away_goals, details[key]["players"]
+                )
+                if chunk_detail is not None:
+                    found[key] = chunk_detail
+        for key, (chunk, detail) in found.items():
+            _from_archive(details, key, chunk, detail, "home" if ours[key]["home_team"] == team else "away", squad)
+            archived.update(archive.person_names(chunk))
+
+    incidents = _incidents(memory, ours, rejected)
+    _drop_short_timelines(details, incidents)
+    _name_everyone(memory, details, incidents, squad, archived)
+    return _document(clubs, managed, game_date, ours, competitions, details, incidents, rejected,
+                     _league_results(clubs, results, competitions, team))
+
+
+def _timeline_agrees(detail: dict[str, Any], incidents: list[dict[str, Any]]) -> bool:
+    """Whether an archived timeline has the result's goals and sendings-off: each player at the same minute.
+
+    They agreed in all 81 matches of the save that have both (10 October
+    2026), so a chunk that disagrees is another playthrough of the fixture,
+    not the match FM's result records.
+    """
+    def line(item: dict[str, Any]) -> tuple:
+        kind = "sent_off" if item["kind"] == "sent_off" else "goal"
+        return kind, item["minute"], item.get("addedTime", 0), item.get("playerShortId")
+
+    archived = [event for event in detail["events"] if event["kind"] in ("goal", "penalty", "own_goal", "sent_off")]
+    return sorted(map(line, incidents)) == sorted(map(line, archived))
+
+
+def build_latest_capture(memory: Memory) -> dict[str, Any]:
+    """A capture of the managed club's latest played match alone, for storing an experiment.
+
+    The full capture reads every match: all the stats FM holds in memory, the
+    whole archive, and the league's results, about fifteen seconds. The match
+    just played needs none of that. Its chunk is the club's last in the first
+    archive file that names it (`archive.latest_chunk`), when its timeline
+    has the result's goals and sendings-off, and that chunk names everyone in
+    it. FM's memory is searched for its stats only when the archive does not
+    have them; a reloaded save leaves the playthrough it discarded in the
+    archive (seen 10 October 2026), and that is never taken for the match.
+    """
+    clubs, team, managed, game_date = _context(memory)
+    ours = _ours(played_results(memory), team)
+    if not ours:
+        raise probe.ProbeError("FM holds no played match of the managed club")
+    key = max(ours, key=lambda item: item[0])
+    latest = {key: ours[key]}
+    squad = {player["short_id"]: player for player in managed_squad(memory)}
+    rejected: list[dict[str, Any]] = []
+    incidents = _incidents(memory, latest, rejected)
+    details: dict[tuple, dict[str, Any]] = {}
+    archived: dict[int, str] = {}
+    folder = _archive_folder(memory)
+    fixtures = _fixtures(clubs, latest)
+    found = (
+        archive.latest_chunk(folder, int(managed["id"]), *fixtures[0][2:])
+        if folder is not None and fixtures and managed["id"].isdigit() else None
+    )
+    if found is not None and (key not in incidents or _timeline_agrees(found[1], incidents[key])):
+        chunk, detail = found
+        _from_archive(details, key, chunk, detail, "home" if ours[key]["home_team"] == team else "away", squad)
+        archived = archive.person_names(chunk)
+    else:
+        details = _memory_details(memory, latest, squad, rejected)
+    _drop_short_timelines(details, incidents)
+    # Without its stats the match cannot be stored, so naming its scorers is not worth a scan.
+    _name_everyone(memory, details, incidents, squad, archived, scan=bool(details))
+    competitions = {ours[key]["fixture_name"]: competition(memory, ours[key]["fixture_name"])}
+    return _document(clubs, managed, game_date, latest, competitions, details, incidents, rejected, [])
 
 
 MAX_LEAGUE_TEAMS = 48
@@ -583,147 +711,14 @@ def write_capture(document: dict[str, Any], output: Path) -> None:
     os.replace(temporary, output)
 
 
-# -- research views ---------------------------------------------------------
-
-
-def class_vtables(executable: Path, names: Sequence[str]) -> dict[str, list[int]]:
-    with executable.open("rb") as handle:
-        data = mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ)
-        image = PeImage.parse(data)
-        return {
-            name: [
-                int(table["rva"], 16)
-                for result in find_rtti_vtables(data, image, name)
-                for locator in result["completeObjectLocators"]
-                for table in locator["vtables"]
-            ]
-            for name in names
-        }
-
-
-def class_name_at(memory: Memory, image, address: int) -> str | None:
-    """The RTTI class of the object at `address`, if it has a vtable in FM."""
-    try:
-        vtable = memory.u64(address)
-    except (OSError, probe.ProbeError):
-        return None
-    info = image.class_at_vtable(vtable - memory.module_base)
-    return info.name if info else None
-
-
-def hexdump(data: bytes) -> str:
-    return "\n".join(
-        f"+{offset:04x}: " + " ".join(f"{byte:02x}" for byte in data[offset:offset + 16])
-        for offset in range(0, len(data), 16)
-    )
-
-
-def research(memory: Memory, args: argparse.Namespace) -> None:
-    clubs = Clubs(memory)
-    if args.command == "matches":
-        for address in memory.instances(layout.GAME_MATCH_STATS):
-            header = memory.read(address, layout.MATCH_STATS_SIZE)
-            result = layout.decode_fixture_result(
-                memory.read(layout.pointer(header, layout.STATS_RESULT), layout.FIXTURE_RESULT_SIZE)
-            )
-            detail = match_detail(memory, address, {})
-            print(json.dumps({
-                "address": hex(address),
-                "date": result["date"].isoformat() if result["date"] else None,
-                "home": (clubs(result["home_team"]) or {}).get("name"),
-                "away": (clubs(result["away_team"]) or {}).get("name"),
-                "score": f"{result['home_goals']}-{result['away_goals']}",
-                "home_stats": detail and detail["home"],
-                "away_stats": detail and detail["away"],
-            }))
-    elif args.command == "results":
-        team = first_team_address(memory)
-        for (day, home, away), result in sorted(played_results(memory).items(), key=lambda item: item[0][0]):
-            if team in (home, away):
-                comp = competition(memory, result["fixture_name"])
-                print(f"{day} {comp['shortName'] or comp['name']}: {(clubs(home) or {}).get('name')} "
-                      f"{result['home_goals']}-{result['away_goals']} {(clubs(away) or {}).get('name')}")
-    elif args.command == "squad":
-        for player in managed_squad(memory):
-            print(json.dumps(player))
-    elif args.command == "players":
-        header = memory.read(int(args.address, 0), layout.MATCH_STATS_SIZE)
-        for side, offset in (("home", layout.STATS_HOME_BLOCK), ("away", layout.STATS_AWAY_BLOCK)):
-            block = memory.read(layout.pointer(header, offset), layout.TEAM_BLOCK_SIZE)
-            records = memory.pointers(block, layout.TEAM_PLAYERS, limit=64)
-            print(f"== {side}: {len(records)} records")
-            for record in records:
-                print(f"-- {record:#x}\n{hexdump(memory.read(record, layout.PLAYER_RECORD_SIZE))}")
-    elif args.command == "scan":
-        for name, tables in class_vtables(memory.executable, args.classes).items():
-            for rva in tables:
-                found = memory.instances(rva)
-                print(f"{name} vtable {rva:#x}: {len(found)} instances {[hex(a) for a in found[:8]]}")
-    elif args.command == "describe":
-        from tools.fm20_pe_symbols import open_image
-
-        address = int(args.address, 0)
-        with open_image(memory.executable) as image:
-            print(f"{address:#x} = {class_name_at(memory, image, address)}")
-            for offset in range(0, 0x100, 8):
-                for indirect in (False, True):
-                    try:
-                        text = probe.read_fm_string(memory.fd, address + offset, indirect=indirect)
-                    except (OSError, OverflowError, probe.ProbeError):
-                        continue
-                    if text and text.isprintable():
-                        print(f"  +{offset:#04x} {'indirect' if indirect else 'direct'}: {text!r}")
-                try:
-                    target = memory.u64(address + offset)
-                except (OSError, probe.ProbeError):
-                    continue
-                name = class_name_at(memory, image, target) if target > 0x10000 else None
-                if name:
-                    print(f"  +{offset:#04x} -> {target:#x} = {name}")
-    elif args.command == "find-u32":
-        patterns = {struct.pack("<I", value): str(value) for value in args.values}
-        for value, found in memory.scan(patterns, align=4).items():
-            print(f"{value}: {len(found)} hits {[hex(a) for a in found[:16]]}")
-    elif args.command == "dated":
-        target = datetime.fromisoformat(args.date).date()
-        for name, tables in class_vtables(memory.executable, [args.class_name]).items():
-            for rva in tables:
-                for address in memory.instances(rva):
-                    try:
-                        data = memory.read(address, int(args.size, 0))
-                    except (OSError, probe.ProbeError):
-                        continue
-                    if any(layout.decode_fm_date(data[offset:offset + 4]) == target for offset in range(0, len(data) - 3, 2)):
-                        print(f"-- {name} {address:#x}\n{hexdump(data)}")
-    elif args.command == "near":
-        first, second = args.first, args.second
-        width = "<Q" if args.wide else "<I"
-        hits = memory.scan({struct.pack(width, first): "a", struct.pack(width, second): "b"},
-                           align=struct.calcsize(width), limit=1_000_000)
-        seconds = sorted(hits["b"])
-        import bisect
-        shown = 0
-        for a in hits["a"]:
-            index = bisect.bisect_left(seconds, a - args.within)
-            if index < len(seconds) and abs(seconds[index] - a) <= args.within:
-                start = min(a, seconds[index]) - 0x20
-                print(f"-- {first} at {a:#x}, {second} at {seconds[index]:#x}\n{hexdump(memory.read(start, args.within + 0x60))}")
-                shown += 1
-                if shown >= 12:
-                    break
-    elif args.command == "names":
-        for short_id, name in sorted(player_names(memory, set(args.short_ids)).items()):
-            print(short_id, name)
-    elif args.command == "dump":
-        print(hexdump(memory.read(int(args.address, 0), int(args.size, 0))))
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--pid", type=int, help="FM process (default: the running one)")
     commands = parser.add_subparsers(dest="command", required=True)
     capture = commands.add_parser("capture", help="write the match-history capture JSON")
     capture.add_argument("--output", type=Path, required=True)
+    capture.add_argument("--latest", action="store_true",
+                         help="only the latest match played, in seconds (for storing an experiment)")
     for name in ("matches", "results", "squad"):
         commands.add_parser(name)
     commands.add_parser("players").add_argument("address")
@@ -755,15 +750,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     try:
         if args.command == "capture":
-            document = build_capture(memory)
+            document = build_latest_capture(memory) if args.latest else build_capture(memory)
             write_capture(document, args.output)
             detailed = sum(1 for match in document["matches"] if match["detail"])
-            print(f"Captured {len(document['matches'])} matches ({detailed} with full stats) "
-                  f"up to {document['gameDate']}.")
+            if args.latest:
+                (match,) = document["matches"]
+                print(f"Captured the latest match, {match['date']} {match['home']['name']} {match['homeGoals']}-"
+                      f"{match['awayGoals']} {match['away']['name']}" + ("." if detailed else ", without full stats."))
+            else:
+                print(f"Captured {len(document['matches'])} matches ({detailed} with full stats) "
+                      f"up to {document['gameDate']}.")
             for item in document["rejectedDetails"]:
                 print(f"Part of {item['date']} did not add up and was left out: "
                       + "; ".join(item["problems"]))
         else:
+            from tools.fm20_match_research import research
+
             research(memory, args)
     except probe.ProbeError as exc:
         print(f"FM20 match capture failed: {exc}", file=sys.stderr)

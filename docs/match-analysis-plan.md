@@ -586,7 +586,9 @@ The executable also names `MATCH_ANALYSIS_MATCH`, `PITCH_GOALS_AREAS`,
   table followed by the short ID. One scan for those 12-byte pairs names
   every player in a match, and first and last name are at person `+0x58` and
   `+0x60`. The capture now does this, so opposition players are named, as
-  are our own who have left.
+  are our own who have left. Since 10 October 2026 the scan runs only for
+  players of matches the archive does not hold, because each chunk names
+  everyone in it (below). It took 6.7 of the capture's ~30 seconds.
 - **Goal records.** `db::GOAL_DESCRIPTION` objects (0x70 bytes) repeat each
   goal's eight descriptor bytes (`+0x20`), with the scoring team (`+0x28`),
   the date (`+0x38`), the scorer's shirt (`+0x40`) and the opposing team
@@ -608,6 +610,22 @@ The executable also names `MATCH_ANALYSIS_MATCH`, `PITCH_GOALS_AREAS`,
     `pks_0` keeps the club's matches in the order they were played (all 67
     archived matches, checked 7 October 2026). Before that, both meetings
     were dropped as ambiguous; see `fm20_match_archive.find_chunks`.
+  - **Person records (10 October 2026).** Everyone who played has one:
+    `07 01`, the short ID, four zero bytes, `01`, the unique ID, four zero
+    bytes, `01`, eight `ff`, then first and last name as u32-length-prefixed
+    UTF-8 strings (`fm20_match_archive.person_names`). Over all 85 archived
+    matches they named 2,687 players exactly as the memory scan does, none
+    differently, and 182 more that the scan could not name.
+  - **The latest match alone** (`fm20_match_probe.py capture --latest`, what
+    storing an experiment uses, about 2.5 s against ~15 s for the full
+    capture). The match just played is the club's last chunk in `pks_0`
+    (`fm20_match_archive.latest_chunk`), taken only when it is that fixture,
+    its timeline gives the score and its goals and sendings-off match FM's
+    result (scorer, minute and added time agreed in all 81 matches that have
+    both). **Reloading a save does not roll the archive back:** after a
+    reload to before the Hampton match, FM's results ended at Woking but
+    `pks_0` still ended with the discarded Hampton playthrough. The checks
+    above refuse such a chunk.
   - Player records are packed. Each starts `01`, the short ID, four zero
     bytes, shirt, side and `02`. It has a 129-byte fixed part, then one
     entry per shot, usually 15 bytes and sometimes 12. Every live field sits
