@@ -9,7 +9,7 @@ from pathlib import Path
 
 from fm_analytics.analytics import recommend_set_pieces
 from fm_analytics.analytics.role_scoring import RoleAttribute
-from fm_analytics.analytics.set_piece_routines import defensive_roles
+from fm_analytics.analytics.set_piece_routines import attacking_roles, defensive_roles
 from fm_analytics.analytics.set_pieces import _optimise_routine
 from fm_analytics.cli import load_fixture
 from fm_analytics.domain import AttributeObservation, Visibility
@@ -182,6 +182,115 @@ class CapturedStartingXIRegressionTests(unittest.TestCase):
                 with self.subTest(risk=risk, routine=routine.key):
                     assignment = next(a for a in routine.assignments if a.player.name == "Ejiro Okosieme")
                     self.assertIn(assignment.role.instruction, {"Attack near post", "Attack far post"})
+
+    def test_balanced_attacking_corners_use_the_captured_xi_for_suitable_jobs(self):
+        expected = {
+            "Take the set piece": "Terrance Saydee",
+            "Attack near post": "Ejiro Okosieme",
+            "Attack far post": "Jamie Bradley-Green",
+            "Attack ball from edge of area": "Challis Johnson",
+            "Lurk far post": "Victor Fundi",
+            "Mark keeper": "Ben Jefford",
+            "Come short": "Ross Holden",
+            "Lurk outside edge of area": "Tom Sharpe",
+            "Stay back": "Lucas Odunston",
+            "Stay back if needed": "David Lynch",
+        }
+        for routine in self.report().routines:
+            if not routine.key.startswith("attacking_corner_"):
+                continue
+            with self.subTest(side=routine.side):
+                self.assertEqual(
+                    {a.role.instruction: a.player.name for a in routine.assignments},
+                    expected,
+                )
+
+    def test_attacking_corner_assignment_follows_exchanged_player_profiles(self):
+        winger = self.players["Ross Holden"]
+        forward = self.players["Victor Fundi"]
+        swapped = replace(self.squad, players=tuple(
+            replace(p, attributes=forward.attributes) if p.id == winger.id
+            else replace(p, attributes=winger.attributes) if p.id == forward.id
+            else p for p in self.squad.players
+        ))
+        for routine in self.report(swapped).routines:
+            if not routine.key.startswith("attacking_corner_"):
+                continue
+            jobs = {a.role.instruction: a.player.id for a in routine.assignments}
+            self.assertEqual(jobs["Come short"], forward.id)
+            self.assertEqual(jobs["Lurk far post"], winger.id)
+
+    def test_box_support_jobs_value_aerial_and_contact_ability(self):
+        winger = self.players["Ross Holden"]
+        physical = self.players["Challis Johnson"]
+        roles = {
+            r.instruction: r for risk in ("secure", "balanced", "aggressive")
+            for r in attacking_roles("corner", risk)
+            if r.instruction in {
+                "Lurk near post", "Lurk far post", "Mark keeper",
+                "Attack ball from edge of area", "Go forward",
+            }
+        }
+        # Hold movement/technical ability constant, then improve one real
+        # aerial/contact input. Each crowded-box job must recognise it.
+        for instruction, role in roles.items():
+            for attribute in ("jumpingReach", "heading", "strength", "bravery"):
+                improved = replace(winger, attributes={
+                    **winger.attributes, attribute: physical.attributes[attribute],
+                })
+                with self.subTest(instruction=instruction, attribute=attribute):
+                    self.assertGreater(role.score(improved).score.central, role.score(winger).score.central)
+
+    def test_short_corner_fit_recognises_dribbling_without_using_it_as_aerial_evidence(self):
+        winger = self.players["Ross Holden"]
+        less_dribbling = replace(winger, attributes={**winger.attributes, "dribbling": known(4)})
+        roles = {r.instruction: r for r in attacking_roles("corner", "balanced")}
+        self.assertGreater(
+            roles["Come short"].score(winger).score.central,
+            roles["Come short"].score(less_dribbling).score.central,
+        )
+        for instruction in ("Attack near post", "Lurk far post", "Mark keeper"):
+            self.assertEqual(
+                roles[instruction].score(winger).score.central,
+                roles[instruction].score(less_dribbling).score.central,
+            )
+
+    def test_corner_taker_choice_accounts_for_the_cost_of_losing_counter_cover(self):
+        report = self.report()
+        routine = next(r for r in report.routines if r.key == "attacking_corner_left")
+        candidates = next(
+            r.candidates for r in report.recommendations
+            if r.task.key == "corners" and r.side == "left"
+        )
+        best_delivery = candidates[0]
+        taker = next(a for a in routine.assignments if a.role.taker_task_key == "corners")
+        cover = next(a for a in routine.assignments if a.player.id == best_delivery.player.id)
+        self.assertEqual(best_delivery.player.name, "Lucas Odunston")
+        self.assertGreater(best_delivery.ordering_score, taker.ordering_score)
+        self.assertEqual(cover.role.instruction, "Stay back")
+        optimum = sum(a.assignment_value for a in routine.assignments)
+        exchanged = (
+            optimum - taker.assignment_value - cover.assignment_value
+            + taker.role.importance * best_delivery.ordering_score
+            + cover.role.importance * cover.role.score(taker.player).score.central
+        )
+        self.assertGreater(optimum, exchanged)
+
+    def test_each_corner_risk_retains_its_cover_and_one_job_per_outfield_player(self):
+        keeper = self.players["Jonathan De Bie"]
+        for risk, cover_count in (("secure", 3), ("balanced", 2), ("aggressive", 1)):
+            for routine in self.report(attacking_risk=risk).routines:
+                if not routine.key.startswith("attacking_corner_"):
+                    continue
+                with self.subTest(risk=risk, side=routine.side):
+                    ids = [a.player.id for a in routine.assignments]
+                    self.assertEqual(len(ids), 10)
+                    self.assertEqual(len(set(ids)), 10)
+                    self.assertNotIn(keeper.id, ids)
+                    self.assertFalse(routine.unfilled_roles)
+                    self.assertEqual(routine.players_held_back, cover_count)
+                    fixed_cover = next(a for a in routine.assignments if a.role.instruction == "Stay back")
+                    self.assertEqual(fixed_cover.player.name, "Lucas Odunston")
 
     def test_indirect_free_kicks_keep_both_main_aerial_defenders_attacking_the_delivery(self):
         for routine in self.report().routines:

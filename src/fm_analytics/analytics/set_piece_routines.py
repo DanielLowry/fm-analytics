@@ -20,7 +20,7 @@ from fm_analytics.analytics.role_scoring import (
 from fm_analytics.domain import Player
 
 
-SET_PIECE_SCORING_VERSION = "set-piece-v8"
+SET_PIECE_SCORING_VERSION = "set-piece-v9"
 
 ATTACKING_CORNER_INSTRUCTIONS = (
     "Attack near post",
@@ -160,11 +160,56 @@ _REST_DEFENCE = (
     RoleAttribute("tackling", 14), RoleAttribute("decisions", 10),
     RoleAttribute("concentration", 5),
 )
-_LURK_POST = (
-    RoleAttribute("offTheBall", 25), RoleAttribute("anticipation", 22),
-    RoleAttribute("finishing", 18), RoleAttribute("firstTouch", 12),
-    RoleAttribute("composure", 10), RoleAttribute("agility", 8),
-    RoleAttribute("balance", 5),
+# Corner support players still contest deliveries inside a crowded box.
+# They need an aerial/physical component as well as movement and finishing;
+# being a technically gifted runner alone does not make a good post lurker.
+# Keep these corner profiles separate while free-kick variants are reviewed.
+_CORNER_POST_LURKER = (
+    RoleAttribute("offTheBall", 18), RoleAttribute("anticipation", 18),
+    RoleAttribute("finishing", 14), RoleAttribute("jumpingReach", 12),
+    RoleAttribute("heading", 12), RoleAttribute("strength", 10),
+    RoleAttribute("bravery", 8), RoleAttribute("decisions", 4),
+    RoleAttribute("composure", 4),
+)
+_CORNER_EDGE_RUNNER = (
+    RoleAttribute("jumpingReach", 18), RoleAttribute("heading", 18),
+    RoleAttribute("offTheBall", 18), RoleAttribute("anticipation", 18),
+    RoleAttribute("strength", 8), RoleAttribute("bravery", 4),
+    RoleAttribute("finishing", 8),
+    RoleAttribute("acceleration", 4), RoleAttribute("decisions", 4),
+)
+_CORNER_KEEPER_CHALLENGER = (
+    RoleAttribute("strength", 20), RoleAttribute("jumpingReach", 18),
+    RoleAttribute("bravery", 16), RoleAttribute("heading", 14),
+    RoleAttribute("anticipation", 14), RoleAttribute("offTheBall", 8),
+    RoleAttribute("finishing", 6), RoleAttribute("decisions", 4),
+)
+_CORNER_BOX_RUNNER = (
+    RoleAttribute("jumpingReach", 18), RoleAttribute("heading", 16),
+    RoleAttribute("strength", 10), RoleAttribute("bravery", 8),
+    RoleAttribute("offTheBall", 18), RoleAttribute("anticipation", 14),
+    RoleAttribute("finishing", 10), RoleAttribute("decisions", 6),
+)
+_CORNER_SHORT_OPTION = (
+    RoleAttribute("crossing", 20), RoleAttribute("passing", 20),
+    RoleAttribute("dribbling", 15), RoleAttribute("technique", 15),
+    RoleAttribute("decisions", 15), RoleAttribute("firstTouch", 10),
+    RoleAttribute("acceleration", 5),
+)
+# The fixed last defender must recover against a break. Conditional cover
+# also reads and intercepts clearances higher up, with a small recycling input.
+_CORNER_STAY_BACK = (
+    RoleAttribute("positioning", 20), RoleAttribute("anticipation", 18),
+    RoleAttribute("pace", 18), RoleAttribute("acceleration", 12),
+    RoleAttribute("tackling", 12), RoleAttribute("marking", 10),
+    RoleAttribute("decisions", 6), RoleAttribute("concentration", 4),
+)
+_CORNER_CONDITIONAL_COVER = (
+    RoleAttribute("positioning", 20), RoleAttribute("anticipation", 20),
+    RoleAttribute("tackling", 14), RoleAttribute("marking", 12),
+    RoleAttribute("decisions", 12), RoleAttribute("concentration", 8),
+    RoleAttribute("pace", 6), RoleAttribute("acceleration", 4),
+    RoleAttribute("firstTouch", 2), RoleAttribute("passing", 2),
 )
 _GO_FORWARD = (
     RoleAttribute("anticipation", 24), RoleAttribute("offTheBall", 24),
@@ -214,7 +259,7 @@ def _attacking_corner_roles(risk: str) -> tuple[RoutineRole, ...]:
     lurk_near = _role(
         "corner_lurk_near", "Near-post lurker", "Box attack", "Near post",
         "Lurk near post", "Finds space for rebounds and loose balls at the near post.",
-        _LURK_POST, priority=82,
+        _CORNER_POST_LURKER, priority=82,
     )
     attack_far = _role(
         "corner_attack_far", "Far-post target", "Box attack", "Far post",
@@ -224,38 +269,34 @@ def _attacking_corner_roles(risk: str) -> tuple[RoutineRole, ...]:
     lurk_far = _role(
         "corner_lurk_far", "Far-post lurker", "Box attack", "Far post",
         "Lurk far post", "Finds space for deep knock-downs and loose balls.",
-        _LURK_POST, priority=80,
+        _CORNER_POST_LURKER, priority=80,
     )
     mark_keeper = _role(
-        "corner_mark_keeper", "Goalkeeper screen", "Box attack", "Goalkeeper zone",
-        "Mark keeper", "Occupies the goalkeeper without using the primary aerial target.",
-        (RoleAttribute("strength", 28), RoleAttribute("bravery", 22),
-         RoleAttribute("balance", 18), RoleAttribute("aggression", 14),
-         RoleAttribute("offTheBall", 10), RoleAttribute("anticipation", 8)),
+        "corner_mark_keeper", "Goalkeeper challenger", "Box attack", "Goalkeeper zone",
+        "Mark keeper", "Challenges the goalkeeper for deliveries and reacts to rebounds.",
+        _CORNER_KEEPER_CHALLENGER,
         priority=76, importance=0.8,
     )
     come_short = _role(
         "corner_come_short", "Short option", "Support", "Short corner channel",
         "Come short", "Offers a short passing option and a second delivery angle.",
-        (RoleAttribute("firstTouch", 22), RoleAttribute("technique", 20),
-         RoleAttribute("passing", 18), RoleAttribute("decisions", 15),
-         RoleAttribute("crossing", 15), RoleAttribute("acceleration", 10)),
+        _CORNER_SHORT_OPTION,
         priority=86, importance=0.9,
     )
     go_left = _role(
         "corner_go_left", "Left box runner", "Box attack", "Left side of box",
         "Go forward", "Attacks loose balls and second contacts from the left side.",
-        _GO_FORWARD, priority=74,
+        _CORNER_BOX_RUNNER, priority=74,
     )
     go_right = _role(
         "corner_go_right", "Right box runner", "Box attack", "Right side of box",
         "Go forward", "Attacks loose balls and second contacts from the right side.",
-        _GO_FORWARD, priority=73,
+        _CORNER_BOX_RUNNER, priority=73,
     )
     attack_edge = _role(
         "corner_attack_edge", "Edge runner", "Box attack", "Edge of area",
-        "Attack ball from edge of area", "Arrives onto a dropping or cleared ball.",
-        _ATTACK_EDGE, priority=90,
+        "Attack ball from edge of area", "Runs into the box to contest the delivery and attack second balls.",
+        _CORNER_EDGE_RUNNER, priority=90,
     )
     lurk_outside = _role(
         "corner_lurk_outside", "Outside-area option", "Second ball", "Outside edge of area",
@@ -265,12 +306,12 @@ def _attacking_corner_roles(risk: str) -> tuple[RoutineRole, ...]:
     stay = _role(
         "corner_stay", "Primary cover", "Rest defence", "Halfway line",
         "Stay back", "Best transition defender protects the first counter lane.",
-        _REST_DEFENCE, priority=99, importance=1.3,
+        _CORNER_STAY_BACK, priority=99, importance=1.3,
     )
     cover = _role(
         "corner_cover", "Secondary cover", "Rest defence", "Halfway support",
-        "Stay back if needed", "Second defender balances the opposite counter lane.",
-        _REST_DEFENCE, priority=98, importance=1.3,
+        "Stay back if needed", "Reads clearances and supports the last defender against a break.",
+        _CORNER_CONDITIONAL_COVER, priority=98, importance=1.3,
     )
     wide_cover = _role(
         "corner_wide_cover", "Wide cover", "Rest defence", "Wide outlet",

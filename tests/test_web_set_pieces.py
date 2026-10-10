@@ -155,6 +155,27 @@ class SetPiecePageTests(unittest.TestCase):
         self.assertIn("<dt>Responsibility weight</dt><dd>0.7×</dd>", body)
         self.assertEqual(body.count("class='routine-assignment-note'"), 11)
 
+    def test_captured_xi_displays_refined_attacking_corner_jobs(self) -> None:
+        status, body = self._get(
+            self._serve(CAPTURE),
+            "/set-pieces?tactic=vertical_442&routine=attacking_corner_left",
+        )
+
+        self.assertEqual(status, 200)
+        self.assertIn("Vertical 4-4-2 match XI", body)
+        for player, instruction in (
+            ("Ross Holden", "Come short"),
+            ("Victor Fundi", "Lurk far post"),
+            ("Challis Johnson", "Attack ball from edge of area"),
+            ("Ben Jefford", "Mark keeper"),
+            ("Lucas Odunston", "Stay back"),
+            ("David Lynch", "Stay back if needed"),
+        ):
+            self.assertIn(f"<b>{player}</b><span><strong>{instruction}</strong>", body)
+        self.assertIn("Goalkeeper challenger", body)
+        self.assertIn("Challenges the goalkeeper for deliveries and reacts to rebounds.", body)
+        self.assertEqual(body.count("class='routine-assignment-note'"), 10)
+
     def test_defending_free_kick_uses_the_fm_instruction_names(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             port = self._serve(_complete_fixture(Path(directory)))

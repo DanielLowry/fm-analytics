@@ -27,7 +27,7 @@ This remains a single global assignment: jobs are never filled greedily.
 
 ## Job suitability and responsibility importance
 
-`set-piece-v8` separates the suitability of a player for a job from the value
+`set-piece-v9` separates the suitability of a player for a job from the value
 of improving that responsibility. Individual job-fit scores remain 0–100;
 the routine score is their importance-weighted average. Delivery-foot bonuses
 influence selection but remain outside the displayed attribute scores.
@@ -52,7 +52,7 @@ when it has enough available players.
 
 The attacking routines also distinguish delivery (1.5; 2.0 for direct free
 kicks), aerial first contact (1.4), rest defence (1.3, with third wide cover
-1.1), short support (0.9), goalkeeper screens (0.8), and other runners (1.0).
+1.1), short support (0.9), goalkeeper challengers (0.8), and other runners (1.0).
 Defensive free kicks weight the wall more for direct shots (1.4) and aerial
 cover more for indirect deliveries (1.4). Their runner-marking profile is
 distinct from their aerial-cover profile.
@@ -69,6 +69,46 @@ adjust the equivalent zones to the actual opposition delivery. The existing
 routine structures and player counts are unchanged; choosing between
 different structures remains separate work.
 
+## Attacking corner profiles
+
+The first-contact near/far-post targets keep the strongest aerial emphasis.
+Supporting box jobs also need to contest a delivery; movement and finishing
+alone do not describe them. `set-piece-v9` adds distinct corner profiles:
+
+| Job | Visible attribute weights (total 100) |
+| --- | --- |
+| Post lurker | Off the ball 18, anticipation 18, finishing 14, jumping reach 12, heading 12, strength 10, bravery 8, decisions 4, composure 4 |
+| Attack ball from edge | Jumping reach 18, heading 18, off the ball 18, anticipation 18, strength 8, finishing 8, bravery 4, acceleration 4, decisions 4 |
+| Mark keeper | Strength 20, jumping reach 18, bravery 16, heading 14, anticipation 14, off the ball 8, finishing 6, decisions 4 |
+| Go forward | Jumping reach 18, heading 16, off the ball 18, anticipation 14, strength 10, finishing 10, bravery 8, decisions 6 |
+| Come short | Crossing 20, passing 20, dribbling 15, technique 15, decisions 15, first touch 10, acceleration 5 |
+| Stay back | Positioning 20, anticipation 18, pace 18, acceleration 12, tackling 12, marking 10, decisions 6, concentration 4 |
+| Stay back if needed | Positioning 20, anticipation 20, tackling 14, marking 12, decisions 12, concentration 8, pace 6, acceleration 4, first touch 2, passing 2 |
+
+The edge runner enters the box to attack the delivery and second balls;
+the outside-area player collects clearances and threatens from range.
+Mark keeper is a goalkeeper challenger and rebound job. Its scoring does
+not use conventional defensive marking. The short option now recognises
+dribbling as well as passing and a second delivery. Fixed cover values
+recovery speed more, while conditional cover puts more emphasis on reading
+and intercepting clearances. These are authored football judgments: the
+[FM20 attacking-corner guide](https://www.passion4fm.com/football-manager-set-piece-guide-attacking-corners/)
+supports the job interpretations and relevant inputs, not the numeric weights.
+
+Corner-specific profiles keep the free-kick variants independent pending
+their separate review. The taker still comes from the same delivery scoring
+as the specialist rankings, but is selected with the whole routine. For the
+captured balanced XI, Odunston's slightly better delivery is less valuable
+than retaining him as the fixed counter defender: Saydee takes the corner,
+Holden comes short, Fundi lurks at the far post, Challis attacks from the edge,
+Jefford challenges the keeper, Sharpe stays outside, and Lynch supplies
+conditional cover. Okosieme and Bradley-Green remain the first-contact targets.
+
+The risk settings retain their existing job counts. An aggressive routine
+therefore still requires weaker box players when the XI lacks enough strong
+aerial players; the scores expose that compromise rather than inventing
+extra physical ability or leaving jobs unfilled.
+
 ## Regression evidence
 
 `tests/fixtures/hungerford-vertical-442-2020-10-20.json` preserves the exact
@@ -80,7 +120,9 @@ metadata for the uncaptured identity and readiness fields.
 Behavioral tests cover scarce aerial strength, player-profile exchanges,
 weak squads, ranged and unknown observations, roster-order stability,
 availability and goalkeeper restrictions, attacking first contact, and
-indirect free-kick aerial cover. Small synthetic problems are checked against
+indirect free-kick aerial cover, attacking box-job physical inputs, short-option
+dribbling, the delivery/cover tradeoff, and complete assignments at every
+corner risk setting. Small synthetic problems are checked against
 exhaustive assignment enumeration, including a case where choosing the best
 player for the first job loses to the global optimum.
 
