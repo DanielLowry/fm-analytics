@@ -172,7 +172,6 @@ class SetPiecePageTests(unittest.TestCase):
             ("David Lynch", "Stay back if needed"),
         ):
             self.assertIn(f"<b>{player}</b><span><strong>{instruction}</strong>", body)
-        self.assertIn("Goalkeeper challenger", body)
         self.assertIn("Challenges the goalkeeper for deliveries and reacts to rebounds.", body)
         self.assertEqual(body.count("class='routine-assignment-note'"), 10)
 

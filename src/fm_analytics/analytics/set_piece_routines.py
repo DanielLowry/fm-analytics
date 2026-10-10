@@ -152,7 +152,7 @@ _COUNTER_OUTLET = (
 )
 # Importance is the marginal value of improving a responsibility, not its
 # probability of producing/preventing a goal. First contact and safe cover
-# carry more weight than supporting runners or screens; direct free kicks
+# carry more weight than supporting runners or keeper challengers; direct free kicks
 # put additional weight on the taker. Symmetric jobs remain equally valuable.
 _REST_DEFENCE = (
     RoleAttribute("positioning", 22), RoleAttribute("anticipation", 18),
@@ -246,9 +246,9 @@ def _attacking_corner_roles(risk: str) -> tuple[RoutineRole, ...]:
 
     taker = _role(
         "corner_taker", "Corner taker", "Delivery", "Ball",
-        "Take the set piece", "Best delivery score for this side and curve.",
-        (RoleAttribute("corners", 50), RoleAttribute("crossing", 30),
-         RoleAttribute("technique", 20)),
+        "Take the set piece", "Delivers the corner while balancing box attack and counter cover.",
+        (RoleAttribute("corners", 60), RoleAttribute("crossing", 25),
+         RoleAttribute("technique", 15)),
         priority=100, taker_task_key="corners", importance=1.5,
     )
     attack_near = _role(

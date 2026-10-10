@@ -220,6 +220,29 @@ class CapturedStartingXIRegressionTests(unittest.TestCase):
             self.assertEqual(jobs["Come short"], forward.id)
             self.assertEqual(jobs["Lurk far post"], winger.id)
 
+    def test_revised_attacking_corner_improves_the_whole_team_over_the_previous_plan(self):
+        previous = {
+            "Take the set piece": "Terrance Saydee",
+            "Attack near post": "Ejiro Okosieme",
+            "Attack far post": "Jamie Bradley-Green",
+            "Attack ball from edge of area": "Victor Fundi",
+            "Lurk far post": "Ross Holden",
+            "Mark keeper": "Challis Johnson",
+            "Come short": "Tom Sharpe",
+            "Lurk outside edge of area": "David Lynch",
+            "Stay back": "Lucas Odunston",
+            "Stay back if needed": "Ben Jefford",
+        }
+        # The capture has no verified preferred foot, so both delivery
+        # bonuses are zero. Compare complete plans under one set of profiles.
+        previous_value = sum(
+            r.importance * r.score(self.players[previous[r.instruction]]).score.central
+            for r in attacking_roles("corner", "balanced")
+        )
+        for routine in self.report().routines:
+            if routine.key.startswith("attacking_corner_"):
+                self.assertGreater(sum(a.assignment_value for a in routine.assignments), previous_value)
+
     def test_box_support_jobs_value_aerial_and_contact_ability(self):
         winger = self.players["Ross Holden"]
         physical = self.players["Challis Johnson"]
