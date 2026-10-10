@@ -26,6 +26,7 @@ from fm_analytics.web.actions import WebActionsMixin
 from fm_analytics.web.auxiliary_pages import AuxiliaryPagesMixin
 from fm_analytics.web.contract_pages import ContractPagesMixin
 from fm_analytics.web.match_pages import MatchPagesMixin
+from fm_analytics.web.experiment_pages import ExperimentPagesMixin
 from fm_analytics.web.scouting_pages import ScoutingPagesMixin
 from fm_analytics.web.tactic_pages import TacticPagesMixin
 from fm_analytics.web.league_pages import LeaguePagesMixin
@@ -46,6 +47,7 @@ class SquadWebHandler(
     AuxiliaryPagesMixin,
     ContractPagesMixin,
     MatchPagesMixin,
+    ExperimentPagesMixin,
     ScoutingPagesMixin,
     TacticPagesMixin,
     BaseHTTPRequestHandler,
@@ -68,6 +70,8 @@ class SquadWebHandler(
             "/scouting": self._scouting_page,
             "/scouting/results": self._scouting_results_fragment,
             "/matches": self._matches_page,
+            "/experiments": self._experiments_page,
+            "/experiments/all": self._experiment_group_page,
             "/league": self._league_page,
             "/api/export": self._export_api,
             "/api/matches-export": self._matches_export_api,
@@ -82,6 +86,10 @@ class SquadWebHandler(
             handler = self._squad_player_page
         if handler is None and path.startswith("/matches/") and path != "/matches/":
             handler = self._match_page
+        if handler is None and path.startswith("/experiments/group/") and path != "/experiments/group/":
+            handler = self._experiment_group_page
+        if handler is None and path.startswith("/experiments/match/"):
+            handler = self._stored_match_page
         if handler is None and path.startswith("/tactics/") and path != "/tactics/":
             handler = self._tactic_detail_page
         if handler is None:

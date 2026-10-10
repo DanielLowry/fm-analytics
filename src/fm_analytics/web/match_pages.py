@@ -41,6 +41,7 @@ from fm_analytics.web.match_render import (
 )
 from fm_analytics.web.attribute_export import profile_copy_control
 from fm_analytics.web.match_breakdowns_render import breakdown_panels
+from fm_analytics.web.experiment_render import keep_match_form
 from fm_analytics.web.match_detail_render import match_body
 from fm_analytics.web.rendering import _error_page, _layout, _query_first, _query_number
 
@@ -218,6 +219,8 @@ class MatchPagesMixin:
             history.notes.get(summary.match.key), copy_control=copy,
             diagnosis=build_match_diagnosis(history, report),
         )
+        if self.server.experiment_store is not None:  # type: ignore[attr-defined]
+            body += keep_match_form(summary.match.key, MVP_CATALOGUE, self.server.experiment_groups())  # type: ignore[attr-defined]
         self._send(_layout(title, "/matches", body, wide=True))  # type: ignore[attr-defined]
 
     def _post_match_capture(self) -> None:

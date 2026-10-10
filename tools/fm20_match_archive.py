@@ -457,6 +457,40 @@ def _unambiguous(games: list[Fixture], found: list[tuple[Path, bytes]]) -> dict[
     }
 
 
+def chunk_for_players(
+    temporary: Path, home_club: int, away_club: int, home_goals: int, away_goals: int,
+    players: Iterable[dict[str, Any]],
+) -> tuple[bytes, dict[str, Any]] | None:
+    """The one chunk of a fixture whose player records are exactly `players`', or None.
+
+    A fixture replayed in a tactic experiment can leave a chunk per
+    playthrough in the archive, and two with the same score cannot be told
+    apart by `find_chunks`. The match FM still holds in memory can: only its
+    own chunk has every player's stats as memory has them.
+    """
+    def lines(found: Iterable[dict[str, Any]], keys: set[str] | None = None) -> dict[tuple[str, int], tuple]:
+        return {
+            (player["side"], player["short_id"]): tuple(
+                sorted((name, value) for name, value in player["stats"].items() if keys is None or name in keys)
+            )
+            for player in found if player.get("played")
+        }
+
+    players = list(players)
+    keys = set.intersection(*(set(player["stats"]) for player in players)) if players else set()
+    keys &= {name for name, _offset in RECORD_FIELDS}
+    wanted = lines(players, keys)
+    matches = []
+    for path in archive_files(temporary):
+        for chunk in chunks(path):
+            if not involves(chunk, home_club, away_club):
+                continue
+            detail, _problems = decode_match(chunk, home_goals, away_goals)
+            if detail is not None and lines(detail["players"], keys) == wanted:
+                matches.append((chunk, detail))
+    return matches[0] if len(matches) == 1 and wanted else None
+
+
 def find_matches(
     temporary: Path, fixtures: Iterable[Fixture]
 ) -> dict[Any, dict[str, Any]]:

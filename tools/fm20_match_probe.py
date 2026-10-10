@@ -399,7 +399,17 @@ def build_capture(memory: Memory) -> dict[str, Any]:
                 (key, key[0], int(home["id"]), int(away["id"]), ours[key]["home_goals"], ours[key]["away_goals"])
             )
     if folder is not None and fixtures:
-        for key, (chunk, detail) in archive.find_chunks(folder, fixtures).items():
+        found = archive.find_chunks(folder, fixtures)
+        # A match still in memory whose fixture has more than one chunk (it was
+        # replayed) is found by its own players' stats instead.
+        for key, _date, home_id, away_id, home_goals, away_goals in fixtures:
+            if key in details and key not in found:
+                chunk_detail = archive.chunk_for_players(
+                    folder, home_id, away_id, home_goals, away_goals, details[key]["players"]
+                )
+                if chunk_detail is not None:
+                    found[key] = chunk_detail
+        for key, (chunk, detail) in found.items():
             our_side = "home" if ours[key]["home_team"] == team else "away"
             if key not in details:
                 for player in detail["players"]:

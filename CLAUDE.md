@@ -20,6 +20,8 @@ src/fm_analytics/persistence/  SQLite stores: the squad capture (versioned, migr
                              in migrations.py that all three stores' migrations reuse)
 src/fm_analytics/knowledge_ingest.py  scouting capture -> player-knowledge history (fm-knowledge)
 src/fm_analytics/match_ingest.py      FM match capture -> match history, and the review (fm-matches)
+src/fm_analytics/experiment_ingest.py stored matches for tactic experiments (fm-experiments): only
+                             what the manager asks for, in data/experiments.sqlite3, never the history
 src/fm_analytics/reporting.py  the ONE "compute a squad recommendation" path
 src/fm_analytics/web/        read-only browser view over reporting.py
 tools/                       low-level FM20 probe/monitor utilities (research-only)
@@ -57,6 +59,10 @@ score", "By period", "How the goals came", "Against each formation" and "Your
 players" panels, the same lines of `fm-matches review` and the exports' `breakdowns`
 (`analytics/match_breakdowns.py`); a match's own split by the score comes with its
 `build_match_report` timeline.
+`reporting.build_experiment_report` is the one behind the Experiments pages,
+`fm-experiments compare` and its export: stored matches compared label by label
+(`docs/match-experiments.md`); `reporting.build_stored_match_report` is a stored
+match's own page.
 `reporting.build_penalty_record` is the one behind the Matches page's "Penalties
 you gave away" and the same lines of `fm-matches review`: the penalties scored
 against us in the selected matches and who the manager recorded giving each away

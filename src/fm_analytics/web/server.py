@@ -45,6 +45,7 @@ from fm_analytics.match_ingest import DEFAULT_DATABASE as DEFAULT_MATCH_DATABASE
 from fm_analytics.match_ingest import DEFAULT_CAPTURE as DEFAULT_MATCH_CAPTURE
 from fm_analytics.match_ingest import capture_and_record, record_capture_file as record_match_capture
 from fm_analytics.persistence.match_history import MatchHistoryStore
+from fm_analytics.web.experiment_state import ExperimentState, add_experiment_arguments, experiment_options
 from fm_analytics.persistence import (
     PlayerKnowledgeStore,
     RecordResult,
@@ -97,7 +98,7 @@ class ScoutingRefreshJob:
 
 
 
-class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
+class SquadWebServer(LeagueState, MatchHistoryState, ExperimentState, ThreadingHTTPServer):
     """Serves `SquadWebHandler`, with a short-TTL cache in front of the source.
 
     Both the provider call and the full recommendation computation can cost
@@ -138,6 +139,8 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
         out_of_date_months: int = DEFAULT_OUT_OF_DATE_MONTHS,
         match_store: MatchHistoryStore | None = None,
         match_capture: Callable[[], str] | None = None,
+        experiment_store=None,
+        experiments_read_fm: bool = False,
         league_provider=None,
         league_store: LeagueHistoryStore | None = None,
         league_capture: Callable[[], str] | None = None,
@@ -147,10 +150,12 @@ class SquadWebServer(LeagueState, MatchHistoryState, ThreadingHTTPServer):
         if read_only:
             knowledge_store = knowledge_recorder = None
             match_store = match_capture = None
+            experiment_store = None
             league_store = league_capture = None
             scouting_refresh = None
         self.setup_league(league_provider, league_store, league_capture)
         self.setup_match_history(match_store, match_capture)
+        self.setup_experiments(experiment_store, reads_fm=experiments_read_fm)
         # Appends each fresh scouting capture to the player-knowledge database
         # (see ``record_knowledge``). None disables recording.
         self.knowledge_recorder = knowledge_recorder
@@ -730,6 +735,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="compare saves without creating, updating or migrating databases; disables history recording and editing",
     )
+    add_experiment_arguments(parser)
     parser.add_argument(
         "--match-db",
         type=Path,
@@ -841,6 +847,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         out_of_date_months=args.out_of_date_months,
         match_store=match_store,
         match_capture=(lambda: capture_and_record(match_store)) if not args.read_only else None,
+        **experiment_options(args),
         league_provider=league_json_provider(league_path, allow_missing=args.direct_live) if league_path else None,
         league_store=LeagueHistoryStore(args.league_db) if league_path and not args.read_only else None,
         # Reading FM needs FM: only a live server offers the League page's read button.

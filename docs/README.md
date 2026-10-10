@@ -59,6 +59,8 @@
 - [Historical match duty extraction](match-duty-extraction.md) records the
   direct 64-bit duty source, bounded archive decoder, and unresolved historical
   team/player/snapshot attribution.
+- [Tactic experiments](match-experiments.md): store the matches you choose, group
+  them and compare what you tried; how many replays a comparison needs.
 - [Reading FM's match replays](match-replay-extraction.md) is the research
   brief for corners, conceded penalties and shot positions: what is known,
   the routes and the main risk.

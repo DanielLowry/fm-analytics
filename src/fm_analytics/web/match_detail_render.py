@@ -302,7 +302,10 @@ def match_body(
     *,
     copy_control: str = "",
     diagnosis: OneMatchDiagnosis | None = None,
+    notes: bool = True,
 ) -> str:
+    """One match's page. `notes=False` leaves out the forms that save to the match
+    history (notes, who gave a penalty away), for a stored replay that is not in it."""
     summary = report.summary
     match = summary.match
     strength = summary.strength
@@ -360,9 +363,7 @@ def match_body(
             "<p class='warn'>Only the result was found for this match: FM's archive had no stats for it "
             "that added up.</p>" + _result_incidents(report),
             panel_class="fm-match-evidence-gap",
-        ) + "<section class='fm-workspace-panel fm-match-notes-panel'>" + note_form(
-            report, catalogue, pinned, note
-        ) + penalty_forms(report) + "</section>"
+        ) + (_notes_panel(report, catalogue, pinned, note) if notes else "")
     ours, theirs = summary.ours, summary.theirs
     stat_rows = "".join(
         f"<tr><td>{_e(label)}</td><td>{versus(ours[key], theirs[key], percentage)}</td></tr>"
@@ -390,6 +391,12 @@ def match_body(
                  "whether saved, blocked or scored), wide or over.", shots, panel_class="fm-match-shots") if shots else "")
         + panel("Your players", "Minutes, match contribution, and role for your side.", _player_rows(report, summary.side), panel_class="fm-match-players")
         + panel(_e(summary.opponent.name), "Their recorded player statistics.", _player_rows(report, other), panel_class="fm-match-players")
-        + "<section class='fm-workspace-panel fm-match-notes-panel'>" + note_form(report, catalogue, pinned, note)
+        + (_notes_panel(report, catalogue, pinned, note) if notes else "")
+    )
+
+
+def _notes_panel(report: MatchReport, catalogue: FootballCatalogue, pinned: Sequence[str], note) -> str:
+    return (
+        "<section class='fm-workspace-panel fm-match-notes-panel'>" + note_form(report, catalogue, pinned, note)
         + penalty_forms(report) + "</section>"
     )

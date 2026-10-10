@@ -32,6 +32,8 @@ from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.analytics.player_form import FormLookup, FormPolicy, build_form
 from fm_analytics.analytics.penalty_record import PenaltyRecord, penalty_record
 from fm_analytics.analytics.match_breakdowns import Breakdowns, breakdowns
+from fm_analytics.analytics.experiments import ExperimentReport, experiment_report, rates_for
+from fm_analytics.domain.experiments import StoredMatch
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics, diagnose_matches
 from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis, diagnose_one_match
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, evaluate_intervention
@@ -834,6 +836,39 @@ def build_match_breakdowns(history: MatchHistory, review: MatchReview) -> Breakd
     of `fm-matches review` and the exports' `breakdowns`.
     """
     return breakdowns((summary.match for summary in review.matches), history.club.id)
+
+
+def build_stored_match_report(
+    stored: StoredMatch, history: MatchHistory | None, *, catalogue: FootballCatalogue = MVP_CATALOGUE
+) -> MatchReport | None:
+    """A stored match as its own match page presents it (a replay is not in the history, so it has no other).
+
+    The league table at kickoff comes from the history when it is the same club's.
+    """
+    same_club = history is not None and history.club.id == stored.club.id
+    return report_match(
+        stored.match.key,
+        [stored.match],
+        history.league_results if same_club else (),
+        stored.club,
+        catalogue=catalogue,
+        confirmed_role_codes=history.role_codes if same_club else {},
+        usual_roles=history.usual_roles if same_club else {},
+    )
+
+
+def build_experiment_report(
+    name: str, stored: Sequence[StoredMatch], history: MatchHistory | None, *, note: str = ""
+) -> ExperimentReport:
+    """Stored matches compared label by label: the one computation behind the
+    Experiments page, `fm-experiments compare` and its export.
+
+    Shots are valued as a match page values them, from the save's own
+    competitive matches when the history is the same club's.
+    """
+    clubs = {match.club.id for match in stored}
+    matches = history.matches if history is not None and clubs <= {history.club.id} else ()
+    return experiment_report(name, stored, rates_for(matches, stored), note=note)
 
 
 def build_penalty_record(history: MatchHistory, review: MatchReview) -> PenaltyRecord:
