@@ -7,6 +7,7 @@ from typing import Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.match_analysis import METRICS, MatchReport
+from fm_analytics.analytics.match_timeline import CORNER_GUESS
 from fm_analytics.analytics.opponent import AXIS_DEFINITIONS
 from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis
 from fm_analytics.web.match_diagnosis_render import match_diagnosis_panel
@@ -78,6 +79,8 @@ def timeline_items(report: MatchReport) -> str:
             f"<span class='fm-match-minute'>{entry.clock}′</span> {'You' if entry.ours else opponent} – "
             f"{_e(entry.label)}{who}"
             + (f" <span class='fm-goal-how'>{_e(entry.how.text)}</span>" if entry.how and entry.how.text else "")
+            + (f" <span class='fm-guess' title='A guess. {_e(CORNER_GUESS)}'>possibly from a corner · guess</span>"
+               if entry.possibly_from_a_corner else "")
             + (f" <span class='muted'>({', '.join(extra)})</span>" if extra else "")
             + "</li>"
         )
@@ -213,6 +216,11 @@ def match_body(
         for key, label, percentage in METRICS
     )
     events = timeline_items(report)
+    corner_note = (
+        f"<p class='muted fm-match-note'>“Possibly from a corner” is a guess, not something FM records. "
+        f"{_e(CORNER_GUESS)}</p>"
+        if report.timeline and any(entry.possibly_from_a_corner for entry in report.timeline.entries) else ""
+    )
     shots = shots_table(report)
     other = "away" if summary.side == "home" else "home"
     return (
@@ -222,7 +230,9 @@ def match_body(
         "<h2>Match stats</h2><p>You, then them, as FM's match stats panel shows them.</p>"
         "</div></div><div class='fm-table-card fm-match-stat-table'>"
         f"<table><tbody>{stat_rows}</tbody></table></div></section>"
-        + (panel("Timeline", "Goals, clear-cut chances and cards, as FM's match timeline records them.", f"<ol class='fm-match-timeline'>{events}</ol>", panel_class="fm-match-timeline-panel") if events else "")
+        + (panel("Timeline", "Goals, clear-cut chances and cards, as FM's match timeline records them.",
+                 f"<ol class='fm-match-timeline'>{events}</ol>" + corner_note, panel_class="fm-match-timeline-panel")
+           if events else "")
         + (panel("Shots", "Every shot, and where it was going: on goal (inside the posts and under the bar, "
                  "whether saved, blocked or scored), wide or over.", shots, panel_class="fm-match-shots") if shots else "")
         + panel("Your players", "Minutes, match contribution, and role for your side.", _player_rows(report, summary.side), panel_class="fm-match-players")

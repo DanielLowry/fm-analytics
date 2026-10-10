@@ -575,6 +575,7 @@ def _format_timeline(report) -> list[str]:
                 f"  {entry.clock + '′':>6} {'Us  ' if entry.ours else 'Them'} {entry.label}"
                 f"{': ' + entry.player if entry.player else ''}"
                 f"{' – ' + entry.how.text if entry.how and entry.how.text else ''}"
+                f"{' [possibly from a corner: a guess]' if entry.possibly_from_a_corner else ''}"
                 f"{' (' + ', '.join(extra) + ')' if extra else ''}"
             )
     if timeline.shots:

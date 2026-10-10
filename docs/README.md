@@ -59,6 +59,9 @@
 - [Historical match duty extraction](match-duty-extraction.md) records the
   direct 64-bit duty source, bounded archive decoder, and unresolved historical
   team/player/snapshot attribution.
+- [Reading FM's match replays](match-replay-extraction.md) is the research
+  brief for corners, conceded penalties and shot positions: what is known,
+  the routes and the main risk.
 - [Frida and player discoverability](frida-discoverability.md) records current
   Player Search evidence and remaining validation gates.
 - [Scouting workspace](scouting-workspace.md) documents the visibility-aware

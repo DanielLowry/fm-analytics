@@ -315,6 +315,7 @@ def _timeline(match, side: str, *, shots: bool) -> dict[str, Any]:
             | ({"from_clear_cut_chance": True} if entry.from_clear_cut_chance else {})
             | ({"how": {key: value for key, value in (("strike", entry.how.strike), ("area", entry.how.area),
                                                        ("from", entry.how.how)) if value}} if entry.how else {})
+            | ({"possibly_from_a_corner": "guess: assisted by a corner taker"} if entry.possibly_from_a_corner else {})
             for entry in timeline.entries
         ]
     if timeline.ours is not None:

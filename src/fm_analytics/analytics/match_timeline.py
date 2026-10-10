@@ -32,6 +32,17 @@ SHOT_LABELS = {"goal": "Goal", "on_goal": "On goal", "wide": "Wide", "over": "Ov
 GOAL_KINDS = frozenset({"goal", "penalty"})
 # A goal's shot is on the match clock within this many minutes of the goal.
 GOAL_SHOT_WINDOW = 2
+# Nothing FM keeps with a match says a goal came from a corner (see
+# goal_descriptions), so this is a guess, and always shown as one: a goal from
+# a cross whose assist came from a player who took corners in that match. It
+# is wrong when a corner taker crosses in open play (Zebroski's 73′ header v
+# Chippenham, 15 September 2020, read off FM's replay as open play), and
+# misses a corner whose cross was not the assist. It flags 44 of 121 goals
+# from crosses in the save's history (10 October 2026).
+CORNER_GUESS = (
+    "The cross came from a player who took corners in this match. A corner taker "
+    "also crosses in open play, so some of these were not corners."
+)
 
 
 @dataclass(frozen=True)
@@ -45,6 +56,7 @@ class TimelineEntry:
     assisted_by: str | None = None
     from_clear_cut_chance: bool = False
     how: GoalDescription | None = None  # how a goal (not a penalty) was scored
+    possibly_from_a_corner: bool = False  # a guess, CORNER_GUESS
 
     @property
     def clock(self) -> str:
@@ -95,6 +107,13 @@ def _name(match: MatchRecord, side: str, short_id: int | None) -> str | None:
     return None
 
 
+def _took_corners(match: MatchRecord, event: MatchEvent) -> bool:
+    return any(
+        player.short_id == event.player_short_id and player.stat("corners_taken")
+        for player in match.detail.players_for(event.side)
+    )
+
+
 def _same_moment(first: MatchEvent, second: MatchEvent) -> bool:
     return (first.side, first.minute, first.added_time) == (second.side, second.minute, second.added_time)
 
@@ -118,18 +137,17 @@ def _entries(match: MatchRecord, side: str) -> tuple[TimelineEntry, ...]:
         ):
             continue
         assist = None
+        assisting = None
         chance = False
         if event.kind in GOAL_KINDS:
-            assist = next(
-                (_name(match, other.side, other.player_short_id) for other in nearby
-                 if other.kind == "assist" and _same_moment(event, other)),
-                None,
-            )
+            assisting = next((other for other in nearby if other.kind == "assist" and _same_moment(event, other)), None)
+            assist = _name(match, assisting.side, assisting.player_short_id) if assisting else None
             chance = any(
                 other.kind == "clear_cut_chance" and other.player_short_id == event.player_short_id
                 and _same_moment(event, other)
                 for other in nearby
             )
+        how = describe_goal(event.descriptor) if event.kind == "goal" else None
         counts_for = event.side if event.kind != "own_goal" else ("away" if event.side == "home" else "home")
         entries.append(TimelineEntry(
             minute=event.minute,
@@ -140,7 +158,8 @@ def _entries(match: MatchRecord, side: str) -> tuple[TimelineEntry, ...]:
             player=_name(match, event.side, event.player_short_id),
             assisted_by=assist,
             from_clear_cut_chance=chance,
-            how=describe_goal(event.descriptor) if event.kind == "goal" else None,
+            how=how,
+            possibly_from_a_corner=bool(how and how.how == "cross" and assisting and _took_corners(match, assisting)),
         ))
     return tuple(entries)
 

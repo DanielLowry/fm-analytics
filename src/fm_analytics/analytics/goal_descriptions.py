@@ -8,9 +8,9 @@ the manager's reading of eight goals off FM's replays, checked against all
 - byte 0, bits 1-2, how it was struck: 0 a shot with the foot (Neufville 3′,
   Sharpe 6′ and Chambers 53′ v Chippenham, all right foot; every one of the
   19 penalties too, so which foot is not recorded here), 1 a header (Holden 2′
-  at Hayes, Okosieme 60′ v Chippenham), 2 most likely a volley: Ekongo's at
-  Hayes was right-footed, so it is not the left foot, and 25 of its 34 goals
-  came from crosses, against 24 of 120 shots. No header is from outside the area.
+  at Hayes, Okosieme 60′ v Chippenham), 2 a volley (Ekongo's right-footed
+  volley from a cross at Hayes, 45+1′; 25 of its 34 goals came from crosses,
+  against 24 of 120 shots). No header is from outside the area.
 - byte 4, where it was scored from: 2 in the area (all 19 penalties and the
   goals read off FM), 8 on its edge (Chambers's "just inside"), 1 the
   six-yard box (Okosieme's header), 0 outside the area (Ashby's free kick;
@@ -23,8 +23,11 @@ the manager's reading of eight goals off FM's replays, checked against all
   0x10 is not a set piece, as first thought: Zebroski's header from a cross
   near the corner flag (73′ v Chippenham) was open play. It is not read.
 
-Corners are not told apart from other crosses by anything known here. The
-other bytes and bits are not known, and are not read.
+Corners are not told apart from other crosses: no byte or bit is more common
+on centre-backs' goals from crosses (most of them corners) than on other
+crosses, and the u32 before the descriptor in the archive's goal record
+tracks how far out the goal was (about 3,500 for a penalty) rather than how
+the move began. The other bytes and bits are not known, and are not read.
 """
 
 from __future__ import annotations

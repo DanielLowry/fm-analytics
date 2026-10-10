@@ -150,7 +150,11 @@ both the page and `fm-matches review` use.
   replays by the manager; the module gives the evidence for each field.
   Which foot a shot was with is not recorded there, and corners are not told
   apart from other crosses (a flag first read as "set piece" turned out to
-  be on an open-play cross). Other bytes are not read. Who gave a penalty away is not in the timeline (checked
+  be on an open-play cross). Other bytes are not read. The timeline marks a
+  goal "possibly from a corner", always as a guess, when it came from a cross
+  assisted by a player who took corners in that match
+  (`match_timeline.CORNER_GUESS`). Reading corners for real needs FM's
+  replays: see [Reading FM's match replays](match-replay-extraction.md). Who gave a penalty away is not in the timeline (checked
   at St Albans, 29 September 2020). Where a shot was taken from is not read at
   all: it has only been seen in the archive's highlights list, which also
   holds a value FM20 never shows (below), and is left alone.
@@ -619,8 +623,8 @@ the per-player figures were confirmed against FM's screens (see above).
    Where a shot was taken from is not in them.
 2. ~~Goal type.~~ Shot / header / volley, where from and cross / free kick /
    penalty decoded 10 October 2026 (`analytics/goal_descriptions.py`). Still
-   open: "volley" rests on how that value falls across the season (25 of 34
-   from crosses) rather than a goal read off FM as one; which foot; corners;
+   open: which foot; corners, which nothing in the goal's record marks (the
+   archive's highlights list may, but it also holds a value FM20 never shows);
    byte 1's 0x10 (34 goals, on crosses, penalties and long shots alike).
 3. Label the remaining team counters. ~~Locate yellow cards.~~ Done: the
    timeline's 0x26.

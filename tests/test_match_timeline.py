@@ -131,3 +131,19 @@ class GoalDescriptionTests(unittest.TestCase):
         self.assertEqual(goal.how.text, "Shot in the area, from a cross")
         self.assertEqual((offside.label, offside.player, offside.how), ("Goal ruled out for offside", "Home 9", None))
         self.assertIsNone(penalty.how)  # "Penalty scored" says it all
+
+
+class CornerGuessTests(unittest.TestCase):
+    def test_a_cross_from_this_matchs_corner_taker_is_only_ever_a_guess_at_a_corner(self) -> None:
+        found = detail(
+            home=team_stats(goals=2), away=team_stats(goals=0),
+            players=lineup("home", o8={"corners_taken": 6}) + lineup("away"),
+            events=[
+                event(20, "home", "goal", 0x01, STRIKER, descriptor="0340000001400000"),  # header from a cross
+                event(20, "home", "assist", 0x24, WINGER),  # who took the corners
+                event(60, "home", "goal", 0x01, 1009, descriptor="0340000001400000"),
+                event(60, "home", "assist", 0x24, 1005),  # took none
+            ],
+        )
+        timeline = build_timeline(MatchRecord.from_document(match("2019-09-01", US, ALPHA, 2, 0, detail=found)), "home")
+        self.assertEqual([entry.possibly_from_a_corner for entry in timeline.entries], [True, False])
