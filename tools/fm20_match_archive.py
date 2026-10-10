@@ -212,12 +212,14 @@ NO_PLAYER = 0xFF
 # assist codes, beside a goal, to the players' assists (160); a sending-off (0x05)
 # follows each red card in each result's incidents, after a second booking
 # (0x0e) only for a player booked (0x26) earlier in the match, otherwise after
-# a straight red (0x0f). Bookings run at 2.6 a match. Every other code is kept
-# as "other" with its code until it is checked.
+# a straight red (0x0f). Bookings run at 2.6 a match. A goal ruled out for
+# offside (0x29) was confirmed by the manager on two of FM's replays (Neufville
+# and Johnson at Hayes, 19 September 2020); its assist keeps an assist code.
+# Every other code is kept as "other" with its code until it is checked.
 EVENT_KINDS = {
     0x01: "goal", 0x02: "own_goal", 0x03: "penalty", 0x05: "sent_off",
     0x0E: "second_yellow", 0x0F: "straight_red", 0x24: "assist", 0x25: "assist",
-    0x26: "yellow_card", 0x2F: "clear_cut_chance",
+    0x26: "yellow_card", 0x29: "offside_goal", 0x2F: "clear_cut_chance",
 }
 GOAL_EVENT_KINDS = {"goal", "penalty"}
 
@@ -287,7 +289,7 @@ def decode_events(
             event["descriptor"] = chunk[at + DESCRIPTOR_AT:at + DESCRIPTOR_AT + 8].hex()
         events.append(event)
     # An assist code with no goal by its side in the same minute (3 in 80
-    # matches, one before a penalty) is not an assist FM counts.
+    # matches, each beside a goal ruled out for offside) is not an assist FM counts.
     scored = {(event["side"], event["minute"], event["addedTime"]) for event in events if event["kind"] in GOAL_EVENT_KINDS}
     for event in events:
         if event["kind"] == "assist" and (event["side"], event["minute"], event["addedTime"]) not in scored:

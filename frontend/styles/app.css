@@ -553,6 +553,8 @@
   .fm-match-timeline li.theirs.kind-goal, .fm-match-timeline li.theirs.kind-penalty, .fm-match-timeline li.theirs.kind-own_goal { background: color-mix(in srgb, #c55b45 10%, transparent); }
   .fm-match-timeline li.kind-yellow_card .fm-match-minute::after { content: ""; display: inline-block; width: .5rem; height: .7rem; margin-left: .35rem; border-radius: 1px; background: #e2b93b; vertical-align: -.05rem; }
   .fm-match-timeline li.kind-second_yellow .fm-match-minute::after, .fm-match-timeline li.kind-straight_red .fm-match-minute::after, .fm-match-timeline li.kind-sent_off .fm-match-minute::after { content: ""; display: inline-block; width: .5rem; height: .7rem; margin-left: .35rem; border-radius: 1px; background: #c8372d; vertical-align: -.05rem; }
+  .fm-goal-how { font-weight: 400; color: var(--color-ink-600); }
+  .fm-goal-how::before { content: "– "; }
   .fm-match-minute { min-width: 3.4rem; font-variant-numeric: tabular-nums; color: var(--color-ink-500); font-weight: 600; }
   .fm-match-shots .table-scroll { margin-top: .6rem; }
   .fm-match-shots > .table-scroll table { min-width: 0; max-width: 40rem; }

@@ -252,6 +252,11 @@ class TimelineTests(unittest.TestCase):
         events = archive.decode_events(data, LINE_UPS, 1, 0)
         self.assertEqual([(e["side"], e["kind"]) for e in events], [("home", "other"), ("away", "own_goal")])
 
+    def test_a_goal_ruled_out_for_offside_is_not_a_goal_and_its_assist_not_an_assist(self) -> None:
+        data = timeline(event_record(1, 9, 0x24, 75), event_record(1, 10, 0x29, 75))
+        events = archive.decode_events(data, LINE_UPS, 0, 0)
+        self.assertEqual([e["kind"] for e in events], ["other", "offside_goal"])
+
     def test_a_timeline_that_misses_a_goal_or_its_count_or_a_player_is_refused(self) -> None:
         goal = event_record(0, 7, 0x01, 49)
         self.assertIsNone(archive.decode_events(timeline(goal), LINE_UPS, 2, 0))

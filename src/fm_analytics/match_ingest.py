@@ -573,7 +573,9 @@ def _format_timeline(report) -> list[str]:
                 extra.append("from a clear-cut chance")
             lines.append(
                 f"  {entry.clock + '′':>6} {'Us  ' if entry.ours else 'Them'} {entry.label}"
-                f"{': ' + entry.player if entry.player else ''}{' (' + ', '.join(extra) + ')' if extra else ''}"
+                f"{': ' + entry.player if entry.player else ''}"
+                f"{' – ' + entry.how.text if entry.how and entry.how.text else ''}"
+                f"{' (' + ', '.join(extra) + ')' if extra else ''}"
             )
     if timeline.shots:
         lines.append("Shots           total  on goal  wide  over  first half  second half")

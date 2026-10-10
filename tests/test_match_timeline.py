@@ -1,13 +1,16 @@
 import unittest
 
+from fm_analytics.analytics.goal_descriptions import describe_goal
 from fm_analytics.analytics.match_timeline import build_timeline
 from fm_analytics.domain.matches import MatchRecord
 
 from tests.match_support import ALPHA, US, detail, lineup, match, team_stats
 
 
-def event(minute, side, kind, code, player=None, added=0):
+def event(minute, side, kind, code, player=None, added=0, descriptor=None):
     found = {"minute": minute, "side": side, "kind": kind, "code": code}
+    if descriptor:
+        found["descriptor"] = descriptor
     if added:
         found["addedTime"] = added
     if player is not None:
@@ -94,3 +97,34 @@ class TimelineTests(unittest.TestCase):
         self.assertEqual([(entry.label, entry.player) for entry in timeline.entries], [("Goal", None)])
         self.assertFalse(timeline.named)
         self.assertIsNone(timeline.ours)  # no shots were read
+
+
+class GoalDescriptionTests(unittest.TestCase):
+    """The goals the manager read off FM's replays, and the season-wide patterns."""
+
+    def test_the_goals_read_off_fms_replays(self) -> None:
+        for descriptor, words in (
+            ("0140000002a00000", "Right foot in the area, from a cross"),  # Neufville 3′ v Chippenham
+            ("0180001008200100", "Right foot on the edge of the area"),  # Chambers 53′, just inside the area
+            ("0340400002400000", "Header in the area, from a cross"),  # Holden 2′ at Hayes
+        ):
+            self.assertEqual(describe_goal(descriptor).text, words)
+
+    def test_set_pieces_free_kicks_and_unknown_areas(self) -> None:
+        self.assertEqual(describe_goal("0188000000c40000").text, "Right foot from outside the area, from a direct free kick")
+        self.assertEqual(describe_goal("0350000001c00000").text, "Header in the six-yard box, from a set-piece cross")
+        self.assertEqual(describe_goal("0120000002800000").how, "a penalty")
+        unknown_area = describe_goal("0510000004000000")
+        self.assertEqual((unknown_area.body, unknown_area.area, unknown_area.text), ("left foot", None, "Left foot, from a set piece"))
+        self.assertIsNone(describe_goal(None))
+
+    def test_a_goal_in_the_timeline_says_how_and_an_offside_goal_is_ruled_out(self) -> None:
+        timeline = build_timeline(record([
+            event(3, "home", "goal", 0x01, STRIKER, descriptor="0140000002a00000"),
+            event(40, "home", "offside_goal", 0x29, WINGER),
+            event(52, "home", "penalty", 0x03, STRIKER, descriptor="0120000002800000"),
+        ], home_goals=2, away_goals=0), "home")
+        goal, offside, penalty = timeline.entries
+        self.assertEqual(goal.how.text, "Right foot in the area, from a cross")
+        self.assertEqual((offside.label, offside.player, offside.how), ("Goal ruled out for offside", "Home 9", None))
+        self.assertIsNone(penalty.how)  # "Penalty scored" says it all

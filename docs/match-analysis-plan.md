@@ -142,17 +142,23 @@ both the page and `fm-matches review` use.
   "–" after 4 minutes and a rating after 13, and its exact cut-off lies in
   between, so the app may hide a rating FM shows but never shows one FM
   hides.
-- Penalties and own goals are read, but whether any other goal came from open
-  play or a set piece, its body part and where it was scored from are not:
-  each goal's eight descriptor bytes are stored with it (`MatchEvent.descriptor`)
-  but not decoded yet. Where a shot was taken from is not read at all: it has
-  only been seen in the archive's highlights list, which also holds a value
-  FM20 never shows (below), and is left alone.
+- How a goal was scored is decoded from its descriptor bytes (stored with each
+  goal as `MatchEvent.descriptor`) by `analytics/goal_descriptions.py`: body
+  part, where from (six-yard box, area, its edge, outside it) and whether it
+  came from a cross, a set piece, a direct free kick or a penalty. Four goals
+  were read off FM's replays by the manager; the rest of each field rests on
+  how it falls across all 226 goals (the module says which is which). Other
+  bytes are not read. Who gave a penalty away is not in the timeline (checked
+  at St Albans, 29 September 2020). Where a shot was taken from is not read at
+  all: it has only been seen in the archive's highlights list, which also
+  holds a value FM20 never shows (below), and is left alone.
 - Timeline codes not yet checked against FM are stored with their code as
   "other" and not shown: 0x16, 0x17, 0x0a, 0x22 and 0x23 are always tags on a
   goal by its scorer (0x16's value is 1, 10 or 20, perhaps a goal-count
-  milestone); 0x27 is by the conceding side at the moment of a goal (perhaps
-  FM's "mistake leading to goal"); 0x28 and 0x29 are not near any shot; 0x06
+  milestone); 0x27 is by the conceding side at the moment of a goal, 24 of
+  27 times one from a cross or from distance (at Hayes the manager read it as
+  the defender who did not block the cross; FM does not show it as such, so
+  it is not shown); 0x28 is near no shot and FM's replay shows nothing; 0x06
   is always a player who went off that minute (perhaps an injury); 0x31 is a
   team's own event with no player.
 - `+0x76` in the player record is **not captured**. It matched Jarra's one
@@ -588,7 +594,9 @@ The executable also names `MATCH_ANALYSIS_MATCH`, `PITCH_GOALS_AREAS`,
   matches are not assists), 0x2f clear-cut chance, 0x26 booking (2.6 a match;
   its value is a reason code), 0x0e second booking (only ever for a player
   already booked that match), 0x0f straight red, 0x05 the sending-off that
-  follows either.
+  follows either, 0x29 a goal ruled out for offside (Neufville and Johnson at
+  Hayes on 19 September 2020, read off FM's replays; the assist code beside
+  one is not counted).
 - **The opposition's formation:** FM saves an AI side's tactic under its
   formation's name, holding that formation's template roles rather than the
   roles its players' records show, so it is matched by the starters'
@@ -607,9 +615,10 @@ the per-player figures were confirmed against FM's screens (see above).
 
 1. ~~Parse the archive's shot entries.~~ Done 10 October 2026 (above).
    Where a shot was taken from is not in them.
-2. Goal type (open play or set piece, body part, where from): decode the
-   goal descriptor bytes, now stored with every goal, against FM's own
-   descriptions of a handful of goals read off its screens.
+2. ~~Goal type.~~ Body part, where from and cross / set piece / free kick /
+   penalty decoded 10 October 2026 (`analytics/goal_descriptions.py`); left
+   foot, the six-yard box, direct free kicks and set-piece crosses still rest
+   on season-wide patterns rather than a goal read off FM.
 3. Label the remaining team counters. ~~Locate yellow cards.~~ Done: the
    timeline's 0x26.
 4. Bind the archived tactic duty words to historical appearances. The player

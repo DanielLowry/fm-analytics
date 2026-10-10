@@ -77,6 +77,7 @@ def timeline_items(report: MatchReport) -> str:
             f"<li class='{'ours' if entry.ours else 'theirs'} kind-{entry.kind}'>"
             f"<span class='fm-match-minute'>{entry.clock}′</span> {'You' if entry.ours else opponent} – "
             f"{_e(entry.label)}{who}"
+            + (f" <span class='fm-goal-how'>{_e(entry.how.text)}</span>" if entry.how and entry.how.text else "")
             + (f" <span class='muted'>({', '.join(extra)})</span>" if extra else "")
             + "</li>"
         )

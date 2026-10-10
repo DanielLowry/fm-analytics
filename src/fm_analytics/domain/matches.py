@@ -27,7 +27,7 @@ MATCH_MINUTES = 90
 INCIDENT_KINDS = ("goal", "own_goal", "penalty", "sent_off")
 # A timeline event's kinds; "other" is a code not yet checked against FM.
 EVENT_KINDS = (
-    "goal", "penalty", "own_goal", "assist", "clear_cut_chance",
+    "goal", "penalty", "own_goal", "offside_goal", "assist", "clear_cut_chance",
     "yellow_card", "second_yellow", "straight_red", "sent_off", "other",
 )
 # The goal mouth, in metres from the middle of the goal line.

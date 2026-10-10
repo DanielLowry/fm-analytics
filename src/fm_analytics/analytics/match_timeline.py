@@ -1,15 +1,17 @@
 """One match's timeline and shots, as the match page, `fm-matches show` and the exports present them.
 
-Everything here is on FM's own match screens: who scored, assisted, had a
-clear-cut chance or was booked, and when; and for every shot, who took it,
-when, and whether it was going in, wide or over. A goal's own shot is told
-from the scorer's other shots by being on goal nearest the goal's minute.
+Everything here is on FM's own match screens: who scored, how and with whose
+assist, who had a clear-cut chance, was booked or had a goal ruled out, and
+when; and for every shot, who took it, when, and whether it was going in,
+wide or over. A goal's own shot is told from the scorer's other shots by
+being on goal nearest the goal's minute.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from fm_analytics.analytics.goal_descriptions import GoalDescription, describe_goal
 from fm_analytics.domain.matches import MatchEvent, MatchRecord, MatchShot
 
 # What the timeline lists, in FM's words. A sending-off always follows its
@@ -19,6 +21,7 @@ EVENT_LABELS = {
     "goal": "Goal",
     "penalty": "Penalty scored",
     "own_goal": "Own goal",
+    "offside_goal": "Goal ruled out for offside",
     "clear_cut_chance": "Clear-cut chance",
     "yellow_card": "Booked",
     "second_yellow": "Sent off (second booking)",
@@ -41,6 +44,7 @@ class TimelineEntry:
     player: str | None  # None when FM's record names nobody
     assisted_by: str | None = None
     from_clear_cut_chance: bool = False
+    how: GoalDescription | None = None  # how a goal (not a penalty) was scored
 
     @property
     def clock(self) -> str:
@@ -136,6 +140,7 @@ def _entries(match: MatchRecord, side: str) -> tuple[TimelineEntry, ...]:
             player=_name(match, event.side, event.player_short_id),
             assisted_by=assist,
             from_clear_cut_chance=chance,
+            how=describe_goal(event.descriptor) if event.kind == "goal" else None,
         ))
     return tuple(entries)
 
