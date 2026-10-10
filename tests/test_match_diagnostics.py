@@ -111,8 +111,8 @@ class MatchDiagnosticTests(unittest.TestCase):
         finishing = next(
             finding for finding in diagnostics.opportunities if finding.key == "finishing_recent"
         )
-        self.assertIn("chance supply remains adequate", finishing.title)
-        self.assertIn("Keep the team tactic fixed", finishing.intervention)
+        self.assertIn("from the same chances", finishing.title)
+        self.assertIn("Keep the tactic", finishing.intervention)
         self.assertIn("chance_creation", {item.key for item in diagnostics.do_not_change})
 
     def test_fewer_than_five_eligible_matches_blocks_team_and_role_findings(self) -> None:

@@ -75,7 +75,7 @@ class IngestAndReadTests(CliCase):
         )
         self.assertEqual(text.strip(), expected.strip())
         self.assertIn("Above us", text)
-        self.assertIn("Top current opportunities", text)
+        self.assertIn("Worth testing", text)
 
     def test_review_can_be_narrowed_to_one_season(self) -> None:
         matches, results = two_seasons()

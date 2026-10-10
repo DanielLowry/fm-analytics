@@ -39,7 +39,8 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Iterable, Mapping
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
@@ -78,21 +79,47 @@ def _single_duty_roles(catalogue: FootballCatalogue) -> frozenset[str]:
     return cached[1]
 
 
+@lru_cache(maxsize=None)
+def _split_name(name: str) -> tuple[str, str] | None:
+    """(family, lower-case duty) from a role's name; None when it is not 'Role (Duty)'.
+
+    Cached by name: a match review asks for the same few dozen names many
+    thousands of times.
+    """
+    parts = _ROLE_NAME.match(name)
+    return (parts["role"] + (parts["where"] or ""), parts["duty"].lower()) if parts else None
+
+
 def role_family(catalogue: FootballCatalogue, role_key: str) -> str:
     """The role without its duty: "Central Midfielder", "Winger [ML/MR]"."""
     name = catalogue.roles[role_key].name
-    parts = _ROLE_NAME.match(name)
+    parts = _split_name(name)
     if parts is None:
         raise ValueError(f"role {role_key!r} is not named 'Role (Duty)': {name!r}")
-    return parts["role"] + (parts["where"] or "")
+    return parts[0]
 
 
 def role_duty(catalogue: FootballCatalogue, role_key: str) -> str:
     """The role's duty, lower case: "support" for "Central Midfielder (Support)"."""
-    parts = _ROLE_NAME.match(catalogue.roles[role_key].name)
+    parts = _split_name(catalogue.roles[role_key].name)
     if parts is None:
         raise ValueError(f"role {role_key!r} is not named 'Role (Duty)'")
-    return parts["duty"].lower()
+    return parts[1]
+
+
+_BY_DUTY: dict[int, tuple[FootballCatalogue, Mapping[tuple[str, str], tuple[str, ...]]]] = {}
+
+
+def roles_with_duty(catalogue: FootballCatalogue, family: str, duty: str) -> tuple[str, ...]:
+    """Every catalogue role of this family with this duty, in catalogue order."""
+    cached = _BY_DUTY.get(id(catalogue))
+    if cached is None or cached[0] is not catalogue:
+        index: dict[tuple[str, str], list[str]] = {}
+        for key in catalogue.roles:
+            index.setdefault((role_family(catalogue, key), role_duty(catalogue, key)), []).append(key)
+        cached = (catalogue, {pair: tuple(keys) for pair, keys in index.items()})
+        _BY_DUTY[id(catalogue)] = cached
+    return cached[1].get((family, duty), ())
 
 
 @dataclass(frozen=True)
@@ -101,6 +128,9 @@ class RoleCodes:
 
     catalogue: FootballCatalogue
     codes: Mapping[int, str]
+    # What `infer_tactic` has found for each set of eleven role families: a
+    # season repeats a handful of line-ups, and each is checked against every tactic.
+    _inferred: dict[tuple[str, ...], str | None] = field(default_factory=dict, compare=False, repr=False)
 
     @classmethod
     def build(cls, catalogue: FootballCatalogue, confirmed: Mapping[int, str] = {}) -> RoleCodes:
@@ -145,19 +175,37 @@ class RoleCodes:
             roles.append(family)
         if len(roles) != 11:
             return None
-        matches = [
-            tactic.key
-            for tactic in self.catalogue.tactics.values()
-            if _fills(self.catalogue, tactic, roles)
-        ]
-        return matches[0] if len(matches) == 1 else None
+        key = tuple(sorted(roles))
+        if key not in self._inferred:
+            matches = [
+                tactic.key
+                for tactic, permitted in _slot_families(self.catalogue)
+                if _fills(permitted, roles)
+            ]
+            self._inferred[key] = matches[0] if len(matches) == 1 else None
+        return self._inferred[key]
 
 
-def _fills(catalogue: FootballCatalogue, tactic, roles: list[str]) -> bool:
+_SLOT_FAMILIES: dict[int, tuple[FootballCatalogue, tuple]] = {}
+
+
+def _slot_families(catalogue: FootballCatalogue) -> tuple[tuple[object, tuple[frozenset[str], ...]], ...]:
+    """(tactic, the role families each of its slots permits) for every tactic in the catalogue."""
+    cached = _SLOT_FAMILIES.get(id(catalogue))
+    if cached is None or cached[0] is not catalogue:
+        cached = (catalogue, tuple(
+            (tactic, tuple(
+                frozenset(role_family(catalogue, key) for key in catalogue.role_keys_for_slot(slot))
+                for slot in tactic.slots
+            ))
+            for tactic in catalogue.tactics.values()
+        ))
+        _SLOT_FAMILIES[id(catalogue)] = cached
+    return cached[1]
+
+
+def _fills(permitted: tuple[frozenset[str], ...], roles: list[str]) -> bool:
     """Whether every role family can take its own slot that permits it (a bipartite matching)."""
-    permitted = [
-        {role_family(catalogue, key) for key in catalogue.role_keys_for_slot(slot)} for slot in tactic.slots
-    ]
     if len(permitted) != len(roles):
         return False
     holder: dict[int, int] = {}  # slot index -> role index

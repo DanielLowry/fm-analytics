@@ -36,7 +36,7 @@ from itertools import permutations
 from typing import Iterable, Mapping, Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
-from fm_analytics.analytics.match_roles import RoleCodes, role_duty, role_family
+from fm_analytics.analytics.match_roles import RoleCodes, role_family, roles_with_duty
 from fm_analytics.domain.matches import MatchRecord, PlayerMatchStats, SavedTactic
 
 # Where the tactic came from.
@@ -227,10 +227,7 @@ def _with_saved_duties(
         family = codes.family(player.role_code)
         if slot is None or slot.role_code != player.role_code or slot.duty is None or family is None:
             continue
-        keys = [
-            key for key in catalogue.roles
-            if role_family(catalogue, key) == family and role_duty(catalogue, key) == slot.duty
-        ]
+        keys = roles_with_duty(catalogue, family, slot.duty)
         if len(keys) == 1:
             before = placements.get(player.short_id)
             settled[player.short_id] = _Placement(before.slot_key if before else None, keys[0], FROM_FM)

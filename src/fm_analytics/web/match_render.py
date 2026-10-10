@@ -19,7 +19,7 @@ from fm_analytics.analytics.match_analysis import (
     MatchSummary,
     season_label,
 )
-from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
+from fm_analytics.analytics.match_diagnostics import EVALUATION_MATCHES, MIN_TEAM_MATCHES, MatchDiagnostics
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, StoredIntervention
 from fm_analytics.analytics.match_strength import GROUPING_LABELS
 from fm_analytics.analytics.opponent import AXIS_DEFINITIONS
@@ -424,18 +424,29 @@ def _intervention_panel(
     )
 
 
+def diagnostics_usable(diagnostics: MatchDiagnostics) -> str:
+    """How many matches the diagnosis could use, as a chip for its panel heading."""
+    quality = diagnostics.quality
+    return (
+        f"<span class='fm-diagnostic-usable{'' if quality.team_findings_allowed else ' waiting'}'>"
+        f"<b>{quality.eligible_team_matches}</b> of {quality.selected_matches} matches usable</span>"
+    )
+
+
 def diagnostics_section(
     diagnostics: MatchDiagnostics,
     intervention: InterventionEvaluation | None,
     interventions: Sequence[StoredIntervention],
 ) -> str:
-    """The explainable diagnostic result; all decisions were made in analytics."""
+    """The explainable diagnostic result; all decisions were made in analytics.
+
+    Each finding shows its title, its figures and what to try; why, and how to
+    judge the test, wait behind a disclosure.
+    """
     quality = diagnostics.quality
-    gate_class = "ready" if quality.team_findings_allowed else "waiting"
-    gate = (
-        f"<div class='fm-diagnostic-gate {gate_class}'><strong>Evidence gate</strong> "
-        f"{quality.eligible_team_matches} of {quality.selected_matches} selected matches have valid "
-        f"full team stats; team findings require 5.</div>"
+    gate = "" if quality.team_findings_allowed else (
+        f"<p class='fm-diagnostic-gate waiting'>Team findings need {MIN_TEAM_MATCHES} usable matches; "
+        f"there are {quality.eligible_team_matches} so far.</p>"
     )
 
     def evidence(items: Sequence[str]) -> str:
@@ -450,56 +461,53 @@ def diagnostics_section(
             start = (
                 "<form class='fm-start-intervention' method='post' action='/matches/intervention/start'>"
                 f"<input type='hidden' name='finding' value='{_e(finding.key)}'>"
-                "<label>Test note <input name='note' maxlength='500' "
-                "placeholder='Optional: player or exact setting'></label>"
-                "<button type='submit'>Start this controlled test</button></form>"
+                "<input name='note' maxlength='500' aria-label='Test note' "
+                "placeholder='Note (optional): player or setting'>"
+                "<button type='submit'>Start this test</button></form>"
             )
         opportunity_cards.append(
             "<article class='fm-diagnostic-card opportunity'>"
-            f"<div class='fm-diagnostic-card-head'><span class='eyebrow'>{_e(finding.problem_class)}</span>"
-            f"<span class='fm-confidence {_e(finding.confidence)}'>{_e(finding.confidence)} confidence</span></div>"
-            f"<h4>{_e(finding.title)}</h4><p>{_e(finding.hypothesis)}</p>"
+            f"<div class='fm-diagnostic-card-head'><h4>{_e(finding.title)}</h4>"
+            f"<span class='fm-confidence {_e(finding.confidence)}' title='{_e(finding.confidence)} confidence'>"
+            f"{_e(finding.confidence)}</span></div>"
             + evidence(finding.evidence)
-            + "<dl class='fm-diagnostic-test'>"
-            f"<dt>Controlled test</dt><dd>{_e(finding.intervention)}</dd>"
-            f"<dt>Expected benefit</dt><dd>{_e(finding.expected_benefit)}</dd>"
-            f"<dt>Evaluate after</dt><dd>{finding.evaluation_matches} eligible matches or starts</dd>"
-            f"<dt>Success</dt><dd>{_e(finding.success_condition)}</dd>"
-            f"<dt>Stop condition</dt><dd>{_e(finding.stop_condition)}</dd></dl>"
+            + f"<p class='fm-diagnostic-try'><b>Try</b> {_e(finding.intervention)}</p>"
+            "<details class='fm-diagnostic-more'><summary>Why, and how to judge it</summary>"
+            f"<p>{_e(finding.hypothesis)}</p><dl class='fm-diagnostic-test'>"
+            f"<dt>Aim</dt><dd>{_e(finding.expected_benefit)}</dd>"
+            f"<dt>Working if</dt><dd>{_e(finding.success_condition)}</dd>"
+            f"<dt>Stop if</dt><dd>{_e(finding.stop_condition)}</dd></dl></details>"
             + start + "</article>"
         )
     opportunities = (
         "<div class='fm-diagnostic-cards'>" + "".join(opportunity_cards) + "</div>"
         if opportunity_cards else
-        "<p class='fm-diagnostic-empty'>No opportunity currently clears both the evidence gate and the effect threshold.</p>"
+        "<p class='fm-diagnostic-empty'>Nothing stands out enough to test.</p>"
     )
 
     assurances = (
-        "<div class='fm-diagnostic-cards assurances'>" + "".join(
-            "<article class='fm-diagnostic-card assurance'>"
-            f"<h4>{_e(item.title)}</h4>{evidence(item.evidence)}</article>"
+        "<ul class='fm-diagnostic-keep'>" + "".join(
+            f"<li><b>{_e(item.title)}</b><span>{_e(' · '.join(item.evidence))}</span></li>"
             for item in diagnostics.do_not_change
-        ) + "</div>"
+        ) + "</ul>"
         if diagnostics.do_not_change else
-        "<p class='muted'>No area has enough positive evidence to protect yet.</p>"
+        "<p class='fm-diagnostic-empty'>Nothing has enough evidence to call settled yet.</p>"
     )
     limitations = [issue.message for issue in quality.issues] + [
         f"{item.title}: {item.reason}" for item in diagnostics.unavailable
     ]
     details = (
-        "<details class='fm-diagnostic-limits'><summary>Evidence limits and unavailable diagnoses</summary>"
+        f"<details class='fm-diagnostic-limits'><summary>What this leaves out ({len(limitations)})</summary>"
         + evidence(limitations) + "</details>"
         if limitations else ""
     )
     return (
         _intervention_panel(intervention, interventions)
         + gate
-        + "<div class='fm-diagnostic-heading'><div><h3>Top current opportunities</h3>"
-        "<p>Ranked by the strongest exploitable evidence, not by a tactic score.</p></div>"
-        "<p class='fm-one-test'><strong>Run one controlled test at a time.</strong> Evaluate it after five eligible matches.</p></div>"
+        + "<div class='fm-diagnostic-heading'><h3>Worth testing</h3>"
+        f"<p>One at a time, judged after {EVALUATION_MATCHES} matches</p></div>"
         + opportunities
-        + "<div class='fm-diagnostic-heading protect'><div><h3>Do not change</h3>"
-        "<p>Areas where the evidence says the current process is working.</p></div></div>"
+        + "<div class='fm-diagnostic-heading protect'><h3>Working: leave alone</h3></div>"
         + assurances + details
     )
 
@@ -580,10 +588,12 @@ def review_body(
         )
         + "<details class='fm-workspace-panel fm-disclosure' id='match-analysis'><summary>Analysis and diagnostics</summary>"
         + panel(
-            "Diagnostic engine",
-            "Season-wide evidence-gated hypotheses, adjusted for opponent strength and venue. Review filters below do not move the recommendation.",
+            "Diagnosis",
+            "All your competitive matches, whatever the filters say. “Vs expected” allows for the opponent’s "
+            "league position and venue.",
             diagnostics_section(diagnostics, intervention, interventions),
             panel_class="fm-match-diagnostics",
+            actions=diagnostics_usable(diagnostics),
         )
 
         + panel(

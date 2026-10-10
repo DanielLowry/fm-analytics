@@ -52,9 +52,9 @@ class ReviewPageTests(MatchPagesCase):
         self.assertEqual(status, 200)
         for heading in ("Against different opposition", "Your tactics against each kind of opponent",
                         "Home and away", "Where goals come from", "Who creates and shoots",
-                        "Top current opportunities", "Do not change"):
+                        "Worth testing", "Working: leave alone"):
             self.assertIn(heading, body)
-        self.assertIn("Evidence gate", body)
+        self.assertIn("matches usable", body)
         self.assertIn("W2 D2 L1", body)  # the same record `fm-matches review` prints
         self.assertIn("Early season", body)
         self.assertIn("too few to read", body)
@@ -196,7 +196,7 @@ class MatchPostTests(MatchPagesCase):
         self.record()
         port = self.serve()
         _status, body = self._get(port, "/matches")
-        self.assertIn("Start this controlled test", body)
+        self.assertIn("Start this test", body)
 
         status, location, _body = self._post(
             port,
@@ -209,7 +209,7 @@ class MatchPostTests(MatchPagesCase):
         _status, body = self._get(port, "/matches")
         self.assertIn("Active controlled test", body)
         self.assertIn("Test Appau", body)
-        self.assertNotIn("Start this controlled test", body)
+        self.assertNotIn("Start this test", body)
 
         status, _location, body = self._post(
             port, "/matches/intervention/start", "finding=role_output%3Ab2b_support"

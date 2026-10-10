@@ -38,7 +38,7 @@ from fm_analytics.analytics.match_analysis import (
     ReviewFilters,
     season_label,
 )
-from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
+from fm_analytics.analytics.match_diagnostics import MIN_TEAM_MATCHES, MatchDiagnostics
 from fm_analytics.analytics.match_interventions import InterventionEvaluation
 from fm_analytics.analytics.match_strength import GROUPINGS
 from fm_analytics.bridge import LinuxProtonDataSource
@@ -217,31 +217,30 @@ def format_diagnostics(diagnostics: MatchDiagnostics) -> str:
     quality = diagnostics.quality
     lines = [
         "",
-        "Diagnostic engine",
-        f"Evidence gate: {quality.eligible_team_matches} of {quality.selected_matches} selected matches "
-        f"are eligible (team findings need 5).",
+        "Diagnosis",
+        f"{quality.eligible_team_matches} of {quality.selected_matches} matches usable "
+        f"(team findings need {MIN_TEAM_MATCHES}).",
         "",
-        "Top current opportunities:",
+        "Worth testing:",
     ]
     if not diagnostics.opportunities:
-        lines.append("  None clears both the evidence gate and the effect threshold.")
+        lines.append("  Nothing stands out enough to test.")
     for index, finding in enumerate(diagnostics.opportunities, start=1):
         lines += [
-            f"  {index}. {finding.title} [{finding.confidence} confidence; {finding.problem_class}]",
-            f"     Hypothesis: {finding.hypothesis}",
-            *(f"     Evidence: {item}" for item in finding.evidence),
-            f"     Test: {finding.intervention}",
-            f"     Expected benefit: {finding.expected_benefit}",
-            f"     Evaluate after: {finding.evaluation_matches} eligible matches or starts",
-            f"     Stop: {finding.stop_condition}",
+            f"  {index}. {finding.title} [{finding.confidence} confidence]",
+            *(f"     - {item}" for item in finding.evidence),
+            f"     Try: {finding.intervention}",
+            f"     Why: {finding.hypothesis}",
+            f"     Working if: {finding.success_condition}",
+            f"     Stop if: {finding.stop_condition}",
         ]
-    lines += ["", "Do not change:"]
+    lines += ["", "Working, leave alone:"]
     if not diagnostics.do_not_change:
-        lines.append("  No area has enough positive evidence to protect yet.")
+        lines.append("  Nothing has enough evidence to call settled yet.")
     for item in diagnostics.do_not_change:
-        lines.append(f"  - {item.title}: {' '.join(item.evidence)}")
+        lines.append(f"  - {item.title}: {' · '.join(item.evidence)}")
     if quality.issues or diagnostics.unavailable:
-        lines += ["", "Evidence limits:"]
+        lines += ["", "What this leaves out:"]
         lines += [f"  - {issue.message}" for issue in quality.issues]
         lines += [f"  - {item.title}: {item.reason}" for item in diagnostics.unavailable]
     return "\n".join(lines)
