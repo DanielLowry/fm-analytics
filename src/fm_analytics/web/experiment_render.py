@@ -143,7 +143,7 @@ def _variant_row(variant: VariantFigures) -> str:
     won, drawn, lost = variant.record
     spread = f" <span class='muted'>(± {variant.balance_spread})</span>" if variant.balance_spread is not None else ""
     return (
-        f"<tr><td>{_e(variant.variant)}</td><td>{variant.count}</td><td>W{won} D{drawn} L{lost}</td>"
+        f"<tr><td><span class='fm-label-cell'>{_e(variant.variant)}</span></td><td>{variant.count}</td><td>W{won} D{drawn} L{lost}</td>"
         f"<td>{variant.points_per_game}</td><td data-sort='{variant.balance}'>{variant.balance:+}{spread}</td>"
         + "".join(f"<td>{versus(*variant.average(name))}</td>"
                   for name in ("worth", "shots", "on_goal", "clear_cut_chances", "second_half_shots", "goals"))
@@ -172,7 +172,7 @@ def _match_rows(report: ExperimentReport, catalogue: FootballCatalogue) -> str:
     for run in report.runs:
         tags = " ".join(f"{key}={value}" for key, value in run.tags.items())
         rows.append(
-            f"<tr><td>#{run.run_id}</td><td>{_e(run.variant)}</td>"
+            f"<tr><td>#{run.run_id}</td><td><span class='fm-label-cell'>{_e(run.variant)}</span></td>"
             f"<td><a href='/experiments/match/{run.run_id}'>{_e(run.opponent)}</a></td>"
             f"<td data-sort='{run.match.date}'>{run.match.date:%d %b}</td>"
             f"<td>{run.result} {run.goals[0]}–{run.goals[1]}</td><td>{versus(*run.worth)}</td>"

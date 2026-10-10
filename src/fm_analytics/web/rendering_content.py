@@ -11,7 +11,8 @@ from fm_analytics.analytics import MVP_CATALOGUE, TacticDefinition, TacticSlot
 _NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
     ("Overview", (("/", "Command centre", "⌂"), ("/league", "League", "≋"))),
     ("Squad intelligence", (("/squad", "Squad", "◫"), ("/roles", "Roles", "◎"), ("/depth", "Depth", "↕"), ("/contracts", "Contracts", "✎"))),
-    ("Matchday", (("/tactics", "Tactics", "⌁"), ("/tactic-checks", "Tactic checks", "✓"), ("/set-pieces", "Set pieces", "✦"), ("/matches", "Matches", "▤"))),
+    ("Matchday", (("/tactics", "Tactics", "⌁"), ("/tactic-checks", "Tactic checks", "✓"), ("/set-pieces", "Set pieces", "✦"), ("/matches", "Matches", "▤"),
+                  ("/experiments", "Experiments", "⚗"))),
     ("Recruitment", (("/scouting", "Scouting", "⌕"),)),
     ("System", (("/data", "Data health", "◌"),)),
 )

@@ -33,6 +33,7 @@ class ExperimentPagesTests(WebServerHelpers, unittest.TestCase):
         port = self.serve()
         _status, body = self._get(port, "/experiments")
         self.assertIn("Nothing is stored here unless you ask", body)
+        self.assertIn('href="/experiments" class="active" data-fm-nav-link', body)  # in the sidebar
         self.assertIn("needs fm-web started with <code>--direct-live</code>", body)  # this server can't read FM
         self.assertEqual(self.store.matches(), ())
         _status, body = self._get(port, "/matches/" + quote(DETAILED, safe=""))
@@ -49,7 +50,7 @@ class ExperimentPagesTests(WebServerHelpers, unittest.TestCase):
         self.assertNotIn("action='/matches/note'", body)  # a stored match never saves to the history
         _status, body = self._get(port, "/experiments/group/" + quote("Alpha tests"))
         self.assertIn("<h2>By label</h2>", body)
-        self.assertIn("<td>Vertical</td><td>1</td>", body)
+        self.assertIn("<td><span class='fm-label-cell'>Vertical</span></td><td>1</td>", body)
         self.assertIn("Copy experiment to clipboard", body)
         status, location, _body = self._post(port, "/experiments/relabel", "id=1&label=Vertical+2&back=Alpha+tests&withdraw=1")
         self.assertEqual(status, 303)

@@ -61,7 +61,6 @@ _NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
             ("/tactic-checks", "Tactic checks", "✓"),
             ("/set-pieces", "Set pieces", "✦"),
             ("/matches", "Matches", "▤"),
-            ("/experiments", "Experiments", "⚗"),
         ),
     ),
     ("Recruitment", (("/scouting", "Scouting", "⌕"),)),

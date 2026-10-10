@@ -564,6 +564,7 @@
   .fm-match-shot-list { margin-top: .9rem; }
   .fm-match-shots h3 { margin: 1.2rem 0 .2rem; color: var(--color-ink-900); font-size: .98rem; }
   .fm-match-season-players td { white-space: nowrap; }
+  .fm-label-cell { display: inline-block; min-width: 11rem; }
   .fm-experiment-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: .75rem; padding: .9rem; border: 1px solid var(--fm-border); border-radius: .65rem; background: var(--fm-page); }
   .fm-experiment-form label { display: grid; gap: .25rem; color: var(--color-ink-600); font-size: .8rem; }
   .fm-experiment-form .wide { grid-column: 1 / -1; }
