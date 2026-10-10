@@ -5,7 +5,11 @@ The review describes what happened.  This module asks the narrower question
 deliberately small and inspectable: no finding is emitted from fewer than five
 valid full-stat matches, opponent adjustment uses only the table band known at
 kickoff and venue, and an individual-role finding needs five starts in a role
-whose FM code has been confirmed by the manager.
+whose FM code has been confirmed by the manager. A finding that rests on a rate
+(finishing, holding leads, a role's ratings) also needs the gap from what is
+usual to be one luck alone leaves less often than 1 time in 10, and says how
+often it does. Over the same matches, `season_chances` sets points and goals
+against what the chances each way were worth.
 
 Findings are hypotheses, never instructions.  Each proposes one controlled
 test and says how long to run it, what improvement would support it, and when
@@ -23,15 +27,23 @@ from dataclasses import dataclass, field
 from statistics import mean
 from typing import Any, Callable, Mapping, Sequence
 
+from fm_analytics.analytics.chance_value import one_in
+from fm_analytics.analytics.game_state import LATE_MINUTE, GameState, game_state
 from fm_analytics.analytics.match_analysis import MatchReview, MatchSummary
 from fm_analytics.analytics.match_roles import RoleSummary
+from fm_analytics.analytics.role_ratings import role_ratings
+from fm_analytics.analytics.season_chances import ChanceWindow, SeasonChances, season_chances
 
-DIAGNOSTIC_VERSION = 1
+DIAGNOSTIC_VERSION = 2
 MIN_TEAM_MATCHES = 5
 MIN_BASELINE_MATCHES = 10
 MIN_ROLE_STARTS = 5
 MIN_ROLE_MINUTES = 450
 EVALUATION_MATCHES = 5
+# A rate-based finding needs luck alone to leave its gap less often than this.
+FINDING_ODDS = 0.10
+# A role's ratings this far below the opposition's in the same position are worth testing.
+ROLE_RATING_GAP = 0.10
 CORE_TEAM_STATS = ("shots", "shots_on_target", "clear_cut_chances")
 _ADJUSTMENT_SHRINKAGE = 3
 _TABLE_BAND_LABELS = {
@@ -172,6 +184,7 @@ class MatchDiagnostics:
     opportunities: tuple[DiagnosticFinding, ...]
     do_not_change: tuple[DiagnosticAssurance, ...]
     unavailable: tuple[UnavailableDiagnostic, ...]
+    chances: SeasonChances | None = None  # None under MIN_BASELINE_MATCHES with every shot recorded
     version: int = DIAGNOSTIC_VERSION
 
     def to_document(self) -> dict[str, Any]:
@@ -183,14 +196,17 @@ class MatchDiagnostics:
             "top_opportunities": [finding.to_document() for finding in self.opportunities],
             "do_not_change": [item.to_document() for item in self.do_not_change],
             "unavailable": [item.to_document() for item in self.unavailable],
+            "results_vs_chances": self.chances.to_document() if self.chances is not None else None,
             "method": {
                 "minimum_team_matches": MIN_TEAM_MATCHES,
                 "minimum_role_starts": MIN_ROLE_STARTS,
                 "evaluation_matches": EVALUATION_MATCHES,
                 "opponent_adjustment": (
                     "Residual from the selected-season average after partially pooling the "
-                    "opponent's table third at kickoff and venue toward that average."
+                    "opponent's table third at kickoff and venue toward that average; the home "
+                    "and away comparison pools the opponent's third only."
                 ),
+                "finding_luck_odds": FINDING_ODDS,
             },
         }
 
@@ -239,12 +255,15 @@ def expected_value(
     row: MatchSummary,
     season: Sequence[MatchSummary],
     value: Callable[[MatchSummary], float],
+    *,
+    by_venue: bool = True,
 ) -> float:
     """What `row` would usually show of `value`, from `season`: its average, moved
-    part of the way towards the average for the row's opponent third and venue."""
+    part of the way towards the average for the row's opponent third and, unless
+    `by_venue` is false, its venue."""
     overall = mean(value(item) for item in season)
     band_rows = [item for item in season if _band_key(item) == _band_key(row)]
-    venue_rows = [item for item in season if item.side == row.side]
+    venue_rows = [item for item in season if item.side == row.side] if by_venue else []
 
     def contribution(group: Sequence[MatchSummary]) -> float:
         # Empty only for a row outside `season`: one match judged against the others.
@@ -261,25 +280,31 @@ def _expected(
     season: Sequence[MatchSummary],
     side: str,
     metric: str,
+    *,
+    by_venue: bool = True,
 ) -> float:
-    return expected_value(row, season, lambda item: float(getattr(item, side)[metric]))
+    return expected_value(row, season, lambda item: float(getattr(item, side)[metric]), by_venue=by_venue)
 
 
 class _Expectations:
     """`_expected` against one season, worked out once for each opposition band, venue, side and metric.
 
     A row's expectation depends on nothing else, and every window of a
-    diagnosis asks it of the same season for each of its rows.
+    diagnosis asks it of the same season for each of its rows. Without
+    `by_venue` it allows for the opposition alone, which is what a home and
+    away comparison needs: allowing for the venue would explain the very gap
+    it is looking for.
     """
 
-    def __init__(self, season: Sequence[MatchSummary]):
+    def __init__(self, season: Sequence[MatchSummary], *, by_venue: bool = True):
         self.season = season
+        self.by_venue = by_venue
         self._known: dict[tuple[str, str, str, str], float] = {}
 
     def __call__(self, row: MatchSummary, side: str, metric: str) -> float:
         key = (_band_key(row), row.side, side, metric)
         if key not in self._known:
-            self._known[key] = _expected(row, self.season, side, metric)
+            self._known[key] = _expected(row, self.season, side, metric, by_venue=self.by_venue)
         return self._known[key]
 
 
@@ -336,54 +361,6 @@ def diagnostic_window(
     return _window(key, label, rows, season)
 
 
-def _complete_goal_sequence(summary: MatchSummary) -> tuple[tuple[int, str], ...] | None:
-    match = summary.match
-    goals = [incident for incident in match.incidents if incident.is_goal]
-    total = summary.goals_for + summary.goals_against
-    if len(goals) == total:
-        return tuple((goal.minute, goal.side) for goal in goals)
-    if match.detail is not None:
-        events = [event for event in match.detail.events if event.kind == "goal"]
-        if len(events) == total:
-            return tuple((event.minute, event.side) for event in events)
-    return None
-
-
-@dataclass(frozen=True)
-class _GameState:
-    matches: int
-    led_not_won: int
-    late_scored: int
-    late_conceded: int
-    red_card_matches_excluded: int
-
-
-def _game_state(rows: Sequence[MatchSummary]) -> _GameState:
-    covered = led_not_won = late_scored = late_conceded = excluded = 0
-    for row in rows:
-        if row.match.after_extra_time:
-            continue
-        if any(incident.kind == "sent_off" for incident in row.match.incidents):
-            excluded += 1
-            continue
-        sequence = _complete_goal_sequence(row)
-        if sequence is None:
-            continue
-        covered += 1
-        ours = theirs = 0
-        led = False
-        for minute, side in sequence:
-            if side == row.side:
-                ours += 1
-                late_scored += int(minute >= 76)
-            else:
-                theirs += 1
-                late_conceded += int(minute >= 76)
-            led = led or ours > theirs
-        led_not_won += int(led and row.result != "W")
-    return _GameState(covered, led_not_won, late_scored, late_conceded, excluded)
-
-
 def _role_stats_complete(review: MatchReview, role: RoleSummary) -> bool:
     required = {"goals", "assists", "shots", "key_passes", "chances_created"}
     appearances = [
@@ -398,31 +375,40 @@ def _role_stats_complete(review: MatchReview, role: RoleSummary) -> bool:
 
 
 def _role_opportunity(review: MatchReview) -> DiagnosticFinding | None:
-    candidates = [
-        role for role in review.roles
-        if role.confirmed
-        and role.role_key != "gk_defend"
-        and role.starts >= MIN_ROLE_STARTS
-        and role.minutes >= MIN_ROLE_MINUTES
-        and role.average_rating is not None
-        and role.average_rating < 6.70
-        and _role_stats_complete(review, role)
-    ]
+    """The role whose ratings fall furthest below the opposition's in the same position, by the evidence."""
+    ratings = {item.label: item for item in role_ratings(review)}
+    candidates = []
+    for role in review.roles:
+        rating = ratings.get(role.label)
+        if (
+            not role.confirmed or role.role_key == "gk_defend"
+            or role.starts < MIN_ROLE_STARTS or role.minutes < MIN_ROLE_MINUTES
+            or rating is None or rating.starts < MIN_ROLE_STARTS
+            or rating.gap > -ROLE_RATING_GAP or rating.luck_odds >= FINDING_ODDS
+            or not _role_stats_complete(review, role)
+        ):
+            continue
+        candidates.append((rating.luck_odds, rating.gap, role, rating))
     if not candidates:
         return None
-    role = min(candidates, key=lambda item: (item.average_rating or 10, -item.starts))
-    chance_rate = role.per_90(role.chances_created) or 0
-    contribution_rate = role.per_90(role.goals + role.assists) or 0
+    _odds, _gap, role, rating = min(candidates, key=lambda item: (item[0], item[1]))
+    evidence = [
+        f"Average rating {rating.rating:.2f} over {rating.starts} starts of 60+ minutes",
+        f"Opposition {rating.group} average {rating.usual:.2f} in the same matches ({rating.baseline_starts} starts); "
+        f"luck alone leaves a gap this large {one_in(rating.luck_odds)}",
+    ]
+    if not (role.role_key or "").endswith("_defend"):
+        evidence.append(
+            f"Per 90: {(role.per_90(role.chances_created) or 0):.2f} chances created, "
+            f"{(role.per_90(role.goals + role.assists) or 0):.2f} goals + assists"
+        )
     return DiagnosticFinding(
         key=f"role_output:{role.role_key or role.label}",
         problem_class="individual-role output",
-        title=f"{role.label} is under-producing",
+        title=f"{role.label} rates below the opposition's {rating.group}",
         hypothesis="It may be the player rather than the role; another player in the same job tells you which.",
-        confidence="medium" if role.starts >= 10 else "low",
-        evidence=(
-            f"Average rating {role.average_rating:.2f} over {role.starts} starts",
-            f"Per 90: {chance_rate:.2f} chances created, {contribution_rate:.2f} goals + assists",
-        ),
+        confidence="medium" if rating.starts >= 10 and rating.luck_odds < 0.05 else "low",
+        evidence=tuple(evidence),
         expected_benefit="Tells a player problem apart from a role or system problem.",
         intervention=f"Give another player {EVALUATION_MATCHES} starts in this role; change nothing else.",
         evaluation_matches=EVALUATION_MATCHES,
@@ -430,7 +416,7 @@ def _role_opportunity(review: MatchReview) -> DiagnosticFinding | None:
         stop_condition=(
             f"The team creates less, or nothing improves after {EVALUATION_MATCHES} starts."
         ),
-        priority=70 + (6.70 - (role.average_rating or 6.70)) * 100,
+        priority=70 + -rating.gap * 50,
     )
 
 
@@ -465,38 +451,39 @@ def _creation_opportunity(season: DiagnosticWindow, recent: DiagnosticWindow) ->
     )
 
 
-def _finishing_opportunity(season: DiagnosticWindow, recent: DiagnosticWindow) -> DiagnosticFinding | None:
-    if recent.matches < MIN_TEAM_MATCHES or season.conversion_pct is None or recent.conversion_pct is None:
+def _finishing_opportunity(chances: ChanceWindow | None, recent: DiagnosticWindow) -> DiagnosticFinding | None:
+    """Goals well short of what the chances were worth, while the chances still come."""
+    if chances is None or chances.matches < MIN_TEAM_MATCHES:
         return None
     shots_delta = recent.opponent_adjusted_for.get("shots")
     ccc_delta = recent.opponent_adjusted_for.get("clear_cut_chances")
     if shots_delta is None or ccc_delta is None:
         return None
-    drop = season.conversion_pct - recent.conversion_pct
+    shortfall = chances.worth_for - chances.goals_for
     creation_adequate = shots_delta >= -1.0 and ccc_delta >= -0.25
-    if drop < 2.5 or not creation_adequate:
+    if shortfall < 2.0 or chances.scoring_odds >= FINDING_ODDS or not creation_adequate:
         return None
     return DiagnosticFinding(
         key="finishing_recent",
         problem_class="finishing",
-        title="Scoring less from the same chances",
+        title="Scoring less than your chances are worth",
         hypothesis=(
             "Could be bad luck or the forwards picked; not a reason to make the whole tactic more attacking."
         ),
-        confidence="medium" if recent.matches >= 10 else "low",
+        confidence="medium" if chances.matches >= 10 and chances.scoring_odds < 0.05 else "low",
         evidence=(
-            f"Goals per shot: {recent.conversion_pct:.1f}% in the last {recent.matches}, "
-            f"{season.conversion_pct:.1f}% overall",
+            f"Last {chances.matches}: {chances.goals_for} goals from chances worth {chances.worth_for:.1f}; "
+            f"luck alone leaves a shortfall this large {one_in(chances.scoring_odds)}",
             f"Chances still there: {shots_delta:+.1f} shots, {ccc_delta:+.2f} clear-cut chances vs expected",
         ),
         expected_benefit="More goals without disturbing chance creation that still works.",
         intervention=f"Keep the tactic; try one change of forward for {EVALUATION_MATCHES} starts.",
         evaluation_matches=EVALUATION_MATCHES,
-        success_condition="Goals per shot go up while shots and clear-cut chances hold.",
+        success_condition="Goals get back towards what the chances are worth, while shots and clear-cut chances hold.",
         stop_condition=(
-            f"Chances dry up, or goals per shot hasn't improved after {EVALUATION_MATCHES} matches."
+            f"Chances dry up, or goals stay well short of the chances after {EVALUATION_MATCHES} matches."
         ),
-        priority=80 + drop,
+        priority=80 + shortfall * 2,
     )
 
 
@@ -529,22 +516,32 @@ def _prevention_opportunity(recent: DiagnosticWindow) -> DiagnosticFinding | Non
     )
 
 
-def _game_state_opportunity(state: _GameState) -> DiagnosticFinding | None:
-    if state.matches < MIN_TEAM_MATCHES or (state.led_not_won < 2 and state.late_conceded <= state.late_scored + 2):
+def _game_state_opportunity(state: GameState) -> DiagnosticFinding | None:
+    """Leads let slip, or late goals conceded, more often than is usual in your matches."""
+    if state.matches < MIN_TEAM_MATCHES or state.usual_hold is None or state.usual_late_share is None:
         return None
+    lead_odds, late_odds = state.lead_odds, state.late_odds
+    if min(lead_odds, late_odds) >= FINDING_ODDS:
+        return None
+    held = state.led_won / state.led if state.led else 0.0
+    usual_lost = state.led * (1 - state.usual_hold)
+    usual_late = state.conceded * state.usual_late_share
     return DiagnosticFinding(
         key="game_state_protection",
         problem_class="game-state management",
-        title="Leads are slipping",
+        title="Leads are slipping" if lead_odds <= late_odds else "Conceding late",
         hypothesis=(
             "Late-game control may be costing results; test it apart from the starting tactic. "
             f"Counts the {state.matches} matches whose goal times are known"
             + (f", leaving out {state.red_card_matches_excluded} with a red card." if state.red_card_matches_excluded else ".")
         ),
-        confidence="medium" if state.matches >= 10 and state.led_not_won >= 3 else "low",
+        confidence="medium" if state.matches >= 10 and min(lead_odds, late_odds) < 0.05 else "low",
         evidence=(
-            f"Led but didn't win {state.led_not_won} of {state.matches} matches",
-            f"From 76′: {state.late_conceded} conceded, {state.late_scored} scored",
+            f"Won {state.led_won} of the {state.led} matches you led ({held:.0%}); sides that led in your "
+            f"matches won {state.usual_hold:.0%}. Luck alone lets this many slip {one_in(lead_odds)}",
+            f"From {LATE_MINUTE}′: {state.late_conceded} of the {state.conceded} goals you conceded, where "
+            f"{state.usual_late_share:.0%} of all goals in your matches come then. Luck alone gives that many "
+            f"{one_in(late_odds)}",
         ),
         expected_benefit="Turn more leads into wins without changing how you start.",
         intervention="Next time you lead after 70′, make one planned, lower-risk change.",
@@ -553,13 +550,19 @@ def _game_state_opportunity(state: _GameState) -> DiagnosticFinding | None:
         stop_condition=(
             f"You lose your outlet and come under more late pressure over {EVALUATION_MATCHES} uses."
         ),
-        priority=75 + state.led_not_won * 5 + max(state.late_conceded - state.late_scored, 0) * 2,
+        priority=75 + max(state.led_not_won - usual_lost, 0) * 5 + max(state.late_conceded - usual_late, 0) * 2,
     )
 
 
 def _venue_opportunity(
     home: DiagnosticWindow | None, away: DiagnosticWindow | None
 ) -> DiagnosticFinding | None:
+    """Away results well below home ones, with the chances to show for it.
+
+    Both windows must be measured against the opposition alone
+    (`_Expectations(by_venue=False)`): an expectation that allowed for the venue
+    would already explain the gap, and the finding could never fire.
+    """
     if home is None or away is None or min(home.matches, away.matches) < MIN_TEAM_MATCHES:
         return None
     if home.points_per_game is None or away.points_per_game is None:
@@ -567,24 +570,49 @@ def _venue_opportunity(
     gap = home.points_per_game - away.points_per_game
     away_shots = away.opponent_adjusted_for.get("shots")
     away_ccc = away.opponent_adjusted_for.get("clear_cut_chances")
-    if gap < 0.60 or away_shots is None or away_ccc is None or (away_shots > -1 and away_ccc > -0.25):
+    away_ccc_against = away.opponent_adjusted_against.get("clear_cut_chances")
+    if gap < 0.60 or away_shots is None or away_ccc is None or away_ccc_against is None:
         return None
+    creation_problem = away_shots <= -1 or away_ccc <= -0.25
+    prevention_problem = away_ccc_against >= 0.25
+    if not (creation_problem or prevention_problem):
+        return None
+    evidence = (
+        f"Points a game: {away.points_per_game:.2f} away, {home.points_per_game:.2f} at home",
+        f"Away, against your average for the same opposition: {away_shots:+.1f} shots and {away_ccc:+.2f} "
+        f"clear-cut chances created, {away_ccc_against:+.2f} clear-cut chances conceded a match",
+    )
+    confidence = "low" if min(home.matches, away.matches) < 10 else "medium"
+    if creation_problem:
+        return DiagnosticFinding(
+            key="away_performance",
+            problem_class="home/away",
+            title="Creating less away than at home",
+            hypothesis="One over-cautious job away may explain it; you may not need a separate away tactic.",
+            confidence=confidence,
+            evidence=evidence,
+            expected_benefit="Close the away gap without changing the tactic.",
+            intervention="Away only: make one supporting duty less cautious; change nothing else.",
+            evaluation_matches=EVALUATION_MATCHES,
+            success_condition="Away chances improve without conceding more clear-cut chances.",
+            stop_condition=(
+                f"Away creation hasn't improved after {EVALUATION_MATCHES} away matches, or you concede more."
+            ),
+            priority=65 + gap * 10,
+        )
     return DiagnosticFinding(
-        key="away_performance",
+        key="away_prevention",
         problem_class="home/away",
-        title="Creating less away than at home",
-        hypothesis="One over-cautious job away may explain it; you may not need a separate away tactic.",
-        confidence="low" if min(home.matches, away.matches) < 10 else "medium",
-        evidence=(
-            f"Points a game: {away.points_per_game:.2f} away, {home.points_per_game:.2f} at home",
-            f"Away: {away_shots:+.1f} shots, {away_ccc:+.2f} clear-cut chances vs expected",
-        ),
+        title="Conceding more away than at home",
+        hypothesis="One player's job when the ball is lost may be exposed away; you may not need a separate away tactic.",
+        confidence=confidence,
+        evidence=evidence,
         expected_benefit="Close the away gap without changing the tactic.",
-        intervention="Away only: make one supporting duty less cautious; change nothing else.",
+        intervention="Away only: change one player's job when the ball is lost; change nothing else.",
         evaluation_matches=EVALUATION_MATCHES,
-        success_condition="Away chances improve without conceding more clear-cut chances.",
+        success_condition="Away clear-cut chances conceded fall, and away creation holds.",
         stop_condition=(
-            f"Away creation hasn't improved after {EVALUATION_MATCHES} away matches, or you concede more."
+            f"Nothing improves after {EVALUATION_MATCHES} away matches, or you create clearly less."
         ),
         priority=65 + gap * 10,
     )
@@ -748,6 +776,13 @@ def diagnose_matches(review: MatchReview) -> MatchDiagnostics:
             "baseline_sample_weak",
             f"Fewer than {MIN_BASELINE_MATCHES} usable matches, so any trend is weak.",
         ))
+    chances = season_chances(eligible, minimum=MIN_BASELINE_MATCHES)
+    if chances is not None and chances.left_out:
+        issues.append(DiagnosticIssue(
+            "shots_not_listed",
+            f"{chances.left_out} match(es) without every shot recorded are left out of results against chances.",
+            ("results against chances", "finishing"),
+        ))
     if unconfirmed:
         issues.append(DiagnosticIssue(
             "unconfirmed_role_mapping",
@@ -790,18 +825,19 @@ def diagnose_matches(review: MatchReview) -> MatchDiagnostics:
     if quality.team_findings_allowed:
         for finding in (
             _creation_opportunity(season, last_five),
-            _finishing_opportunity(season, last_ten),
+            _finishing_opportunity(chances.window("last10") if chances else None, last_ten),
             _prevention_opportunity(last_five),
-            _game_state_opportunity(_game_state(review.matches)),
+            _game_state_opportunity(game_state(review.matches)),
             _opposition_opportunity(season, split_map),
         ):
             if finding is not None:
                 opportunities.append(finding)
         home_rows = [row for row in eligible if row.side == "home"]
         away_rows = [row for row in eligible if row.side == "away"]
+        opposition_only = _Expectations(eligible, by_venue=False)
         venue = _venue_opportunity(
-            _window("home", "Home", home_rows, eligible, expected) if home_rows else None,
-            _window("away", "Away", away_rows, eligible, expected) if away_rows else None,
+            _window("home", "Home", home_rows, eligible, opposition_only) if home_rows else None,
+            _window("away", "Away", away_rows, eligible, opposition_only) if away_rows else None,
         )
         if venue is not None:
             opportunities.append(venue)
@@ -814,19 +850,27 @@ def diagnose_matches(review: MatchReview) -> MatchDiagnostics:
         _assurances(review, season, last_five, split_map)
         if quality.team_findings_allowed else ()
     )
-    unavailable = (
+    unavailable = [
         UnavailableDiagnostic(
             "set_pieces",
             "Set pieces",
-            "how each goal came (open play, corner, free kick) isn't read from FM yet, so there is no "
-            "set-piece diagnosis.",
+            "FM's record of a goal doesn't tell a corner or an indirect free kick from an open-play cross, "
+            "so there is no set-piece diagnosis.",
         ),
-    )
+    ]
+    if chances is None and eligible:
+        unavailable.append(UnavailableDiagnostic(
+            "results_vs_chances",
+            "Results against chances",
+            f"needs {MIN_BASELINE_MATCHES} usable matches with every shot recorded, to count how often each "
+            "kind of shot goes in.",
+        ))
     return MatchDiagnostics(
         quality=quality,
         windows=windows,
         opponent_splits=opponent_splits,
         opportunities=tuple(opportunities[:3]),
         do_not_change=do_not_change,
-        unavailable=unavailable,
+        unavailable=tuple(unavailable),
+        chances=chances,
     )

@@ -163,7 +163,8 @@ def chance_rates(matches: Sequence[Sequence[ClassifiedShot]]) -> ChanceRates:
     return ChanceRates(len(matches), KindRecord(*counts["clear_cut"]), KindRecord(*counts["other"]))
 
 
-def _binomial(count: int, p: float) -> list[float]:
+def binomial(count: int, p: float) -> list[float]:
+    """How likely each number of successes is from `count` tries at `p` (index = successes)."""
     if p <= 0:
         return [1.0] + [0.0] * count
     if p >= 1:
@@ -188,8 +189,25 @@ def goal_chances(shots: Sequence[ClassifiedShot], rates: ChanceRates) -> list[fl
     """How likely each number of goals is from these shots (index = goals), each scoring or not on its own."""
     distribution = [1.0]
     for kind, count in sorted(Counter(shot.kind for shot in shots).items()):
-        distribution = _convolve(distribution, _binomial(count, rates.value(kind)))
+        distribution = _convolve(distribution, binomial(count, rates.value(kind)))
     return distribution
+
+
+def at_least(successes: int, count: int, p: float) -> float:
+    """How often `count` tries at `p` give at least `successes`."""
+    return sum(binomial(count, p)[successes:])
+
+
+def outcomes(ours: Sequence[float], theirs: Sequence[float]) -> tuple[float, float, float]:
+    """(win, draw, loss) from each side's goal chances, as `goal_chances` gives them."""
+    below = 0.0  # how likely they score fewer than `goals`
+    win = draw = 0.0
+    for goals, chance in enumerate(ours):
+        level = theirs[goals] if goals < len(theirs) else 0.0
+        win += chance * below
+        draw += chance * level
+        below += level
+    return win, draw, max(1.0 - win - draw, 0.0)
 
 
 def luck_odds(shots: Sequence[ClassifiedShot], rates: ChanceRates) -> float:

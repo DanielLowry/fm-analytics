@@ -1,5 +1,7 @@
 /*
- * A match page's "Result vs chances" panel (web/match_chances_render.py), light and dark.
+ * Results against chances: a match page's "Result vs chances" panel (web/match_chances_render.py)
+ * and the Matches page's season view with its two trend charts (web/season_chances_render.py),
+ * light and dark. The chart colours were checked for colour-blind separation on each surface.
  * Imported by app.css, and built into static/app.css with it. Every selector starts
  * body.fm-app, as app.css's own late rules do, so it wins over the generic panel rules
  * that the import places after it.
@@ -73,3 +75,39 @@ body.fm-app .fm-chances-method p { margin: .5rem 0 0; color: var(--color-ink-600
 :root.dark body.fm-app .fm-chances-standing.below { background: #49391e; color: #f0d7a2; }
 :root.dark body.fm-app .fm-chances-standing.above { background: #204c31; color: #b9e8c8; }
 :root.dark body.fm-app .fm-chances-standing.usual { color: #a9b8ca; }
+
+body.fm-app .fm-trend { --fm-series-ours: #0f6a40; --fm-series-theirs: #eb6834; position: relative; display: grid; gap: 1.4rem; max-width: 64rem; margin-top: 1.1rem; }
+body.fm-app .fm-trend figure { margin: 0; min-width: 0; }
+body.fm-app .fm-trend figcaption { display: grid; gap: .1rem; margin-bottom: .35rem; }
+body.fm-app .fm-trend figcaption b { color: var(--color-ink-900); font-size: .86rem; font-weight: 650; }
+body.fm-app .fm-trend figcaption span { color: var(--color-ink-500); font-size: .75rem; }
+body.fm-app .fm-trend-legend { display: flex; gap: 1rem; margin: 0 0 .25rem; color: var(--color-ink-600); font-size: .75rem; }
+body.fm-app .fm-trend-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+body.fm-app .fm-trend-legend i, body.fm-app .fm-trend-tip i { display: inline-block; width: .9rem; height: 2px; border-radius: 1px; }
+body.fm-app .fm-trend :is(.fm-trend-legend, .fm-trend-tip) i.ours { background: var(--fm-series-ours); }
+body.fm-app .fm-trend :is(.fm-trend-legend, .fm-trend-tip) i.theirs { background: var(--fm-series-theirs); }
+body.fm-app .fm-trend-scroll { overflow-x: auto; }
+body.fm-app .fm-trend-svg { display: block; width: 100%; min-width: 40rem; height: auto; }
+body.fm-app .fm-trend-grid { stroke: var(--fm-border); stroke-width: 1; }
+body.fm-app .fm-trend-zero { stroke: var(--color-ink-400); stroke-width: 1; }
+body.fm-app .fm-trend-tick { fill: var(--color-ink-500); font-size: 12px; font-variant-numeric: tabular-nums; }
+body.fm-app .fm-trend-end { fill: var(--color-ink-700); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+body.fm-app .fm-trend-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+body.fm-app .fm-trend-line.ours { stroke: var(--fm-series-ours); }
+body.fm-app .fm-trend-line.theirs { stroke: var(--fm-series-theirs); }
+body.fm-app .fm-trend-cross { stroke: var(--color-ink-400); stroke-width: 1; visibility: hidden; }
+body.fm-app .fm-trend-cross.shown { visibility: visible; }
+body.fm-app .fm-trend-hit { fill: transparent; cursor: pointer; }
+body.fm-app .fm-trend-tip { position: absolute; z-index: 5; display: grid; gap: .15rem; min-width: 12rem; max-width: 18rem; padding: .55rem .65rem; border: 1px solid var(--fm-border); border-radius: .55rem; background: var(--fm-card); box-shadow: 0 10px 24px rgba(16, 24, 40, .14); pointer-events: none; font-size: .76rem; }
+body.fm-app .fm-trend-tip p { margin: 0 0 .2rem; color: var(--color-ink-500); font-size: .72rem; }
+body.fm-app .fm-trend-tip div { display: flex; align-items: baseline; gap: .4rem; color: var(--color-ink-500); }
+body.fm-app .fm-trend-tip b { color: var(--color-ink-900); font-weight: 650; font-variant-numeric: tabular-nums; }
+body.fm-app .fm-trend-tip i { align-self: center; }
+body.fm-app .fm-trend-table { margin-top: 1rem; }
+:root.dark body.fm-app .fm-trend { --fm-series-ours: #3fa86f; --fm-series-theirs: #d95926; }
+:root.dark body.fm-app .fm-trend figcaption b, :root.dark body.fm-app .fm-trend-tip b { color: #f5f8fc; }
+:root.dark body.fm-app .fm-trend figcaption span, :root.dark body.fm-app .fm-trend-tip p, :root.dark body.fm-app .fm-trend-tip div { color: #a9b8ca; }
+:root.dark body.fm-app .fm-trend-legend { color: #d9e3ef; }
+:root.dark body.fm-app .fm-trend-tick { fill: #a9b8ca; }
+:root.dark body.fm-app .fm-trend-end { fill: #d9e3ef; }
+:root.dark body.fm-app .fm-trend-tip { box-shadow: 0 10px 24px rgba(0, 0, 0, .4); }

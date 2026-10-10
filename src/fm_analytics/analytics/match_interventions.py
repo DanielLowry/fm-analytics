@@ -21,6 +21,7 @@ from fm_analytics.analytics.match_diagnostics import (
     diagnostic_window,
     eligible_team_summaries,
 )
+from fm_analytics.analytics.season_chances import season_chances
 
 INTERVENTION_OUTCOMES = ("adopted", "not_supported", "stopped")
 MAX_INTERVENTION_NOTE = 500
@@ -49,6 +50,9 @@ class InterventionSnapshot:
     led_not_won: int = 0
     late_scored: int = 0
     late_conceded: int = 0
+    # Goals from shots less what those chances were worth, a match; None for a
+    # test started before it was kept, which is then judged by conversion.
+    finishing_per_match: float | None = None
 
     def to_document(self) -> dict[str, Any]:
         return {
@@ -69,6 +73,7 @@ class InterventionSnapshot:
             "led_not_won": self.led_not_won,
             "late_scored": self.late_scored,
             "late_conceded": self.late_conceded,
+            "finishing_per_match": _round(self.finishing_per_match),
         }
 
     @classmethod
@@ -99,6 +104,7 @@ class InterventionSnapshot:
             led_not_won=count("led_not_won"),
             late_scored=count("late_scored"),
             late_conceded=count("late_conceded"),
+            finishing_per_match=optional("finishing_per_match"),
         )
 
 
@@ -219,7 +225,7 @@ def _relevant_rows(
     rows = list(eligible_team_summaries(review))
     if after is not None:
         rows = [row for row in rows if (row.match.date, row.match.key) > after]
-    if finding_key == "away_performance":
+    if finding_key in ("away_performance", "away_prevention"):
         rows = [row for row in rows if row.side == "away"]
     elif finding_key.startswith("opposition:"):
         band = finding_key.split(":", 1)[1]
@@ -295,6 +301,12 @@ def _snapshot(
                 player.stat("goals") + player.stat("assists") for player in players
             ) / minutes
     led, lost, late_for, late_against = _state_metrics(rows)
+    finishing = None
+    chances = season_chances(season, minimum=1)
+    if chances is not None:
+        keys = {row.match.key for row in rows}
+        gaps = [match.goals_for - match.worth_for for match in chances.matches if match.key in keys]
+        finishing = mean(gaps) if gaps else None
     return InterventionSnapshot(
         matches=len(rows),
         points_per_game=window.points_per_game,
@@ -313,6 +325,7 @@ def _snapshot(
         led_not_won=lost,
         late_scored=late_for,
         late_conceded=late_against,
+        finishing_per_match=finishing,
     )
 
 
@@ -385,16 +398,26 @@ def _verdict(
     guardrail_failed = (shots is not None and shots <= -1.25) or (creation is not None and creation <= -0.30)
 
     if key == "finishing_recent":
-        conversion = _change(current.conversion_pct, baseline.conversion_pct)
-        evidence = (
-            f"Goals per shot: {_number(baseline.conversion_pct)}% → {_number(current.conversion_pct)}%.",
-            *_team_evidence(baseline, current),
-        )
+        finishing = _change(current.finishing_per_match, baseline.finishing_per_match)
+        if finishing is not None:
+            evidence = (
+                f"Goals against what the chances were worth: {baseline.finishing_per_match:+.2f} → "
+                f"{current.finishing_per_match:+.2f} a match.",
+                *_team_evidence(baseline, current),
+            )
+            improved = finishing >= 0.25
+        else:  # a test started before chance values were kept
+            conversion = _change(current.conversion_pct, baseline.conversion_pct)
+            evidence = (
+                f"Goals per shot: {_number(baseline.conversion_pct)}% → {_number(current.conversion_pct)}%.",
+                *_team_evidence(baseline, current),
+            )
+            improved = conversion is not None and conversion >= 2.0
         if guardrail_failed:
-            return "stop", "Stop condition reached", "Conversion cannot justify a material fall in chance supply.", evidence
-        if conversion is not None and conversion >= 2.0:
-            return "supported", "Promising", "Conversion improved while the chance-supply guardrail held.", evidence
-        return "not_supported", "Not supported yet", "Five matches did not produce a meaningful conversion improvement.", evidence
+            return "stop", "Stop condition reached", "Finishing cannot justify a material fall in chance supply.", evidence
+        if improved:
+            return "supported", "Promising", "Finishing improved while the chance-supply guardrail held.", evidence
+        return "not_supported", "Not supported yet", "Five matches did not produce a meaningful finishing improvement.", evidence
 
     if key == "chance_creation_recent" or key == "away_performance" or key.startswith("opposition:"):
         evidence = _team_evidence(baseline, current)
@@ -404,7 +427,7 @@ def _verdict(
             return "supported", "Promising", "Opponent-adjusted chance creation improved and the defensive guardrail held.", evidence
         return "not_supported", "Not supported yet", "Five eligible matches did not materially improve chance creation.", evidence
 
-    if key == "chance_prevention_recent":
+    if key == "chance_prevention_recent" or key == "away_prevention":
         evidence = _team_evidence(baseline, current)
         if guardrail_failed:
             return "stop", "Stop condition reached", "The defensive test materially weakened chance creation.", evidence

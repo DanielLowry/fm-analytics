@@ -16,16 +16,14 @@ from dataclasses import dataclass
 from statistics import mean, stdev
 from typing import Sequence
 
+from fm_analytics.analytics.game_state import LATE_MINUTE, GameState, complete_goal_sequence, game_state
 from fm_analytics.analytics.match_analysis import MatchReview, MatchSummary
 from fm_analytics.analytics.match_chances import ResultVsChances, judge_chances
 from fm_analytics.analytics.match_diagnostics import (
     CORE_TEAM_STATS,
     MIN_BASELINE_MATCHES,
     _band_key,
-    _complete_goal_sequence,
     _Expectations,
-    _game_state,
-    _GameState,
     _valid_team_stats,
     eligible_team_summaries,
 )
@@ -34,7 +32,6 @@ MIN_STANDOUT_MINUTES = 30
 MIN_USUAL_APPEARANCES = 3
 STANDOUT_RATING_GAP = 0.5
 MAX_STANDOUTS = 3
-LATE_MINUTE = 76
 _STAT_LABELS = {"shots": "Shots", "shots_on_target": "On target", "clear_cut_chances": "Clear-cut chances"}
 _OPPONENT_PHRASES = {
     "top": "top-third teams",
@@ -132,9 +129,9 @@ def _headline(checks: Sequence[UsualRangeCheck]) -> str:
     return f"{attack}; {defence}."
 
 
-def _how_it_played_out(summary: MatchSummary, season: _GameState | None) -> tuple[str, ...]:
+def _how_it_played_out(summary: MatchSummary, season: GameState | None) -> tuple[str, ...]:
     lines: list[str] = []
-    sequence = _complete_goal_sequence(summary)
+    sequence = complete_goal_sequence(summary)
     if sequence is None:
         lines.append("Goal times aren't known for this match.")
     else:
@@ -155,8 +152,11 @@ def _how_it_played_out(summary: MatchSummary, season: _GameState | None) -> tupl
         if first_lead is not None and summary.result != "W":
             minute, scored, conceded = first_lead
             line = f"Led {scored}–{conceded} from {minute}′ but {'drew' if summary.result == 'D' else 'lost'}"
-            if season is not None and season.matches:
-                line += f"; that has happened in {season.led_not_won} of {season.matches} matches"
+            if season is not None and season.led:
+                line += (
+                    f"; you've won {season.led_won} of the {season.led} matches you led, where sides that led "
+                    f"in your matches won {season.usual_hold:.0%}"
+                )
             lines.append(line)
         if deepest is not None and summary.result != "L":
             lines.append(
@@ -242,7 +242,7 @@ def diagnose_one_match(review: MatchReview, summary: MatchSummary) -> OneMatchDi
         not_compared=reason,
         headline=_headline(checks) if checks else None,
         checks=checks,
-        game_state=_how_it_played_out(summary, _game_state(review.matches) if in_review else None),
+        game_state=_how_it_played_out(summary, game_state(review.matches) if in_review else None),
         above_usual=above,
         below_usual=below,
         chances=chances,

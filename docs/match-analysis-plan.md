@@ -125,6 +125,43 @@ both the page and `fm-matches review` use.
     expectation, plus or minus one standard deviation); competitive matches
     only. Extra-time matches, matches without a full shot list and histories
     under 10 other matches with every shot are not judged, and say so.
+- **The season Diagnosis** (Matches page, `fm-matches review`; every
+  competitive match whatever the filters, `analytics/match_diagnostics.py`):
+  at most three findings worth testing, each with one controlled test. Since
+  11 October 2026, a finding that rests on a rate must also show a gap from
+  what is usual that luck alone leaves less often than 1 time in 10, and says
+  how often it does:
+  - **Leads and late goals** (`analytics/game_state.py`): your share of leads
+    not won against how often a side that led went on to win in your matches,
+    both sides counted, and your late goals conceded against the share of all
+    goals in your matches from the 76th minute. It used to fire on any two
+    leads not won and gave the wrong denominator ("9 of 57 matches", when you
+    had led in 30); on 10 October you had won 21 of 30 leads where sides that
+    led won 75%, which is within luck.
+  - **Home and away:** away creation and conceding are set against your average
+    for the same opposition, not against what is usual away. Allowing for the
+    venue had explained away the very gap the finding looks for, so it could
+    never fire. A second form, "Conceding more away than at home"
+    (`away_prevention`), covers the defensive side.
+  - **A role's ratings** (`analytics/role_ratings.py`): each start of 60
+    minutes or more against the opposition players who started in the same
+    position in the same matches (left and right together), not a fixed 6.70,
+    since FM rates full-backs and defensive midfielders lower whoever plays
+    there. The role with the strongest evidence is chosen.
+  - **Finishing:** goals in the last 10 against what the chances were worth,
+    not goals per shot, which mixed up worse chances with worse finishing. Its
+    controlled test is judged the same way (`finishing_per_match`); a test
+    started before then is still judged on goals per shot.
+- **Results against chances** (the panel under the Diagnosis, the same
+  matches; `analytics/season_chances.py`, rendered by
+  `web/season_chances_render.py`): points against the points chances like
+  yours usually bring, and goals scored and conceded against what the chances
+  each way were worth, for every match, the last 10 and the last 5, with
+  whether each gap is more than luck explains (1 in 20). Two charts show the
+  trend: each side's chances as a 5-match average, and a running total of
+  points above or below what the chances usually bring, with an "Every match"
+  table holding every figure. `fm-matches review` prints the same windows and
+  the season export carries them under `diagnostics.results_vs_chances`.
 - **On the Tactics page:** a "Your match record" box for the pinned tactics.
   It is evidence only and changes no score.
 - **Filters:** season, how opponents are grouped, competitions, venue and
@@ -148,10 +185,10 @@ both the page and `fm-matches review` use.
 | Reading FM | `tools/fm20_match_layout.py` (byte layouts, tested), `tools/fm20_match_probe.py` (`capture`, plus the research commands) |
 | Domain | `domain/matches.py` (`MatchCapture`, `MatchRecord`, `MatchDetail`, …) |
 | Storage | `persistence/match_history.py`, with the upgrade runner shared with player knowledge in `persistence/migrations.py` |
-| Analysis | `analytics/match_strength.py` (league table at kickoff, strength groups), `analytics/match_roles.py` (role codes, tactic inference, role summaries), `analytics/match_analysis.py` (the review), `analytics/match_diagnostics.py` and `analytics/single_match_diagnosis.py` (season and one-match diagnosis), `analytics/chance_value.py` and `analytics/match_chances.py` (result vs chances) |
+| Analysis | `analytics/match_strength.py` (league table at kickoff, strength groups), `analytics/match_roles.py` (role codes, tactic inference, role summaries), `analytics/match_analysis.py` (the review), `analytics/match_diagnostics.py` and `analytics/single_match_diagnosis.py` (season and one-match diagnosis), `analytics/chance_value.py` and `analytics/match_chances.py` (result vs chances), `analytics/game_state.py`, `analytics/role_ratings.py` and `analytics/season_chances.py` (season findings and results against chances) |
 | Shared computation | `reporting.build_match_review`, `reporting.build_match_report`, `reporting.build_matches_export` |
 | Command line | `match_ingest.py` (`fm-matches`) |
-| Web | `web/match_pages.py`, `web/match_render.py`, `web/match_state.py`, `web/match_detail_render.py`, `web/match_diagnosis_render.py`, `web/match_chances_render.py` (styles in `frontend/styles/match-chances.css`) |
+| Web | `web/match_pages.py`, `web/match_render.py`, `web/match_state.py`, `web/match_detail_render.py`, `web/match_diagnosis_render.py`, `web/match_chances_render.py`, `web/season_chances_render.py` (styles in `frontend/styles/match-chances.css`, chart hover in `frontend/scripts/trend-chart.js`) |
 | Tests | `test_match_models`, `test_match_history`, `test_match_analysis`, `test_match_ingest`, `test_web_matches`, `test_fm20_match_layout`, `test_match_diagnostics`, `test_match_chances` |
 
 ### Differences from the plan below

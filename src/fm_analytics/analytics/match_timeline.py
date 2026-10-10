@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Mapping
 
 from fm_analytics.analytics.goal_descriptions import GoalDescription, describe_goal
+from fm_analytics.analytics.match_breakdowns import ScoreSplit, score_split
 from fm_analytics.domain.matches import MatchEvent, MatchRecord, MatchShot
 
 # What the timeline lists, in FM's words. A sending-off always follows its
@@ -72,6 +73,9 @@ class ShotEntry:
     ours: bool
     player: str | None
     outcome: str  # a SHOT_LABELS key
+    second: int = 0  # the match clock's second within its minute
+    across: float = 0.0  # where it crossed the goal line, metres from the middle of the goal
+    up: float = 0.0
 
     @property
     def label(self) -> str:
@@ -98,6 +102,12 @@ class MatchTimeline:
     # Whether these were read with each event's player: a timeline read from
     # the live match alone has goals and chances without names.
     named: bool
+    # Shots, chances and goals by the score at the time and by period; None
+    # without shots or with goal times missing.
+    by_score: ScoreSplit | None = None
+    # FM's timeline codes not yet identified, as (clock, ours, code): kept so
+    # nothing FM recorded is hidden, though what they mean is not known.
+    unidentified: tuple[tuple[str, bool, int], ...] = ()
 
 
 def _name(match: MatchRecord, side: str, short_id: int | None) -> str | None:
@@ -219,6 +229,9 @@ def build_timeline(
             ours=shot.side == side,
             player=_name(match, shot.side, shot.player_short_id),
             outcome="goal" if index in goals else shot.heading,
+            second=shot.second,
+            across=shot.across,
+            up=shot.up,
         )
         for index, shot in enumerate(detail.shots)
     )
@@ -229,4 +242,8 @@ def build_timeline(
         ours=_side_shots(detail.shots, side) if detail.shots else None,
         theirs=_side_shots(detail.shots, other) if detail.shots else None,
         named=any(event.player_short_id is not None for event in detail.events),
+        by_score=score_split(match, side),
+        unidentified=tuple(
+            (event.clock, event.side == side, event.code) for event in detail.events if event.kind == "other"
+        ),
     )

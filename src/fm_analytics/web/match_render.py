@@ -23,6 +23,7 @@ from fm_analytics.analytics.match_diagnostics import EVALUATION_MATCHES, MIN_TEA
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, StoredIntervention
 from fm_analytics.analytics.match_strength import GROUPING_LABELS
 from fm_analytics.analytics.penalty_record import PenaltyRecord
+from fm_analytics.web.season_chances_render import season_chances_section
 
 _METRIC = {key: (label, percentage) for key, label, percentage in METRICS}
 
@@ -604,6 +605,13 @@ def review_body(
             diagnostics_section(diagnostics, intervention, interventions),
             panel_class="fm-match-diagnostics",
             actions=diagnostics_usable(diagnostics),
+        )
+        + panel(
+            "Results against chances",
+            "The same matches as the Diagnosis: the points and goals you got against what your chances, and "
+            "theirs, were worth. Each match's own page says whether that one was luck.",
+            season_chances_section(diagnostics),
+            panel_class="fm-match-season-chances",
         )
 
         + panel(

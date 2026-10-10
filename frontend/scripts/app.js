@@ -4,6 +4,7 @@ import { initSquadFilters } from "./position-roles.js";
 import { initPlayerAttributeExports, initPlayerCopies } from "./attribute-export.js";
 import { initXiOptions } from "./xi-options.js";
 import { initFetchCopies } from "./fetch-copy.js";
+import { initTrendCharts } from "./trend-chart.js";
 (() => {
   initTables();
   initSquadFilters();
@@ -12,6 +13,7 @@ import { initFetchCopies } from "./fetch-copy.js";
   initPlayerCopies();
   initFetchCopies();
   initXiOptions();
+  initTrendCharts();
   if (document.querySelector('[data-league-pending]')) {
     window.setTimeout(() => location.reload(), 3000);
   }

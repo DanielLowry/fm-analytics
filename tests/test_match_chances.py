@@ -6,6 +6,7 @@ clear-cut chance is worth 0.5 and is always on goal, where half go in; any other
 shot is worth 0.125, half are on goal, and a quarter of those go in.
 """
 
+import json
 import unittest
 from datetime import date, timedelta
 
@@ -21,6 +22,8 @@ from fm_analytics.analytics.chance_value import (
 )
 from fm_analytics.analytics.match_chances import PATTERN_ODDS
 from fm_analytics.analytics.single_match_diagnosis import diagnose_one_match
+from fm_analytics.analytics.match_diagnostics import diagnose_matches
+from fm_analytics.web.season_chances_render import season_chances_section
 from fm_analytics.domain.matches import MatchCapture, MatchRecord, TeamRef
 from fm_analytics.match_ingest import format_match_diagnosis
 
@@ -205,6 +208,35 @@ class ResultVsChancesTests(unittest.TestCase):
         self.assertIn("Unlucky defeat. You had the better chances, worth 3.0 goals to their 0.5.", text)
         self.assertIn("Clear-cut chances you missed: Home 11", text)
         self.assertIn("So: The chances were there", text)
+
+
+class SeasonChancesPanelTests(unittest.TestCase):
+    def test_the_matches_page_sets_the_season_against_its_chances(self) -> None:
+        matches = baseline()
+        matches[3]["away"] = {"id": ALPHA["id"], "name": "</script><b>Alpha"}  # a name that must stay text
+        capture = MatchCapture.from_document(capture_document(matches, game_date="2019-10-20"))
+        review = review_matches(
+            capture.matches, capture.league_results, TeamRef(US["id"], US["name"]), catalogue=MVP_CATALOGUE,
+            filters=ReviewFilters(competitions="competitive"),
+        )
+        body = season_chances_section(diagnose_matches(review))
+        self.assertIn("Over 12 matches you took <b>12</b> points", body)
+        self.assertIn("Both are within what luck alone usually leaves.", body)
+        self.assertEqual(body.count("class='fm-trend-hit'"), 24)  # one per match on each chart
+        self.assertIn("Every match", body)
+        self.assertNotIn("</script><b>Alpha", body)  # escaped in the hover data and the table alike
+        rows = json.loads(body.split("class='fm-trend-data'>", 1)[1].split("</script>", 1)[0])
+        self.assertEqual(len(rows), 12)
+        self.assertEqual(rows[0]["ours"], "")  # no five-match average before the fifth match
+        self.assertEqual(rows[4]["ours"], "2.00")
+
+    def test_without_enough_matches_the_panel_says_why(self) -> None:
+        capture = MatchCapture.from_document(capture_document(baseline(6), game_date="2019-10-20"))
+        review = review_matches(
+            capture.matches, capture.league_results, TeamRef(US["id"], US["name"]), catalogue=MVP_CATALOGUE,
+            filters=ReviewFilters(competitions="competitive"),
+        )
+        self.assertIn("Not yet: needs 10 usable matches", season_chances_section(diagnose_matches(review)))
 
 
 if __name__ == "__main__":

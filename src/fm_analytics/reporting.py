@@ -31,6 +31,7 @@ from fm_analytics.analytics.contract_planning import ContractPolicy, ContractRev
 from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.analytics.player_form import FormLookup, FormPolicy, build_form
 from fm_analytics.analytics.penalty_record import PenaltyRecord, penalty_record
+from fm_analytics.analytics.match_breakdowns import Breakdowns, breakdowns
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics, diagnose_matches
 from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis, diagnose_one_match
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, evaluate_intervention
@@ -823,6 +824,16 @@ def build_match_report(
         usual_roles=history.usual_roles,
         penalty_fouls=history.penalty_fouls,
     )
+
+
+def build_match_breakdowns(history: MatchHistory, review: MatchReview) -> Breakdowns:
+    """The matches `review` selects by the score, by period, by formation faced, how
+    the goals came and each of our players' bookings and shots.
+
+    The one computation behind those panels of the Matches page, the same lines
+    of `fm-matches review` and the exports' `breakdowns`.
+    """
+    return breakdowns((summary.match for summary in review.matches), history.club.id)
 
 
 def build_penalty_record(history: MatchHistory, review: MatchReview) -> PenaltyRecord:

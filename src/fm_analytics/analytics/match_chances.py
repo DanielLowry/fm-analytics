@@ -29,6 +29,7 @@ from fm_analytics.analytics.chance_value import (
     goal_chances,
     luck_odds,
     one_in,
+    outcomes,
     own_goals_for,
 )
 from fm_analytics.analytics.match_analysis import MatchReview, MatchSummary
@@ -201,18 +202,6 @@ def _side_chances(
             for shot in shots if shot.kind == "clear_cut" and not shot.goal
         ),
     )
-
-
-def _outcomes(ours: Sequence[float], theirs: Sequence[float]) -> tuple[float, float, float]:
-    """(win, draw, loss) from each side's goal distribution."""
-    below = 0.0  # P(theirs < i)
-    win = draw = 0.0
-    for goals, chance in enumerate(ours):
-        level = theirs[goals] if goals < len(theirs) else 0.0
-        win += chance * below
-        draw += chance * level
-        below += level
-    return win, draw, max(1.0 - win - draw, 0.0)
 
 
 def _explanation(side: SideChances, who: str, keeper: str) -> str | None:
@@ -407,7 +396,7 @@ def judge_chances(
     theirs_shots = [shot for shot in shots if shot.side == other]
     ours = _side_chances(ours_shots, rates, own_goals_for(match, summary.side), names[summary.side])
     theirs = _side_chances(theirs_shots, rates, own_goals_for(match, other), names[other])
-    win, draw, loss = _outcomes(goal_chances(ours_shots, rates), goal_chances(theirs_shots, rates))
+    win, draw, loss = outcomes(goal_chances(ours_shots, rates), goal_chances(theirs_shots, rates))
     edge = win - loss
     played = "better" if edge >= BETTER_CHANCES else "worse" if edge <= -BETTER_CHANCES else "even"
     verdict, tone = _VERDICTS[(played, summary.result)]

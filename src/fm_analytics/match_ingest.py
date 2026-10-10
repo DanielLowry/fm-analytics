@@ -245,6 +245,15 @@ def format_diagnostics(diagnostics: MatchDiagnostics) -> str:
         lines.append("  Nothing has enough evidence to call settled yet.")
     for item in diagnostics.do_not_change:
         lines.append(f"  - {item.title}: {' · '.join(item.evidence)}")
+    if diagnostics.chances is not None:
+        words = {"usual": "about usual", "above": "more than luck explains", "below": "fewer than luck explains"}
+        lines += ["", "Results against chances (in brackets, what chances like these usually bring):"]
+        for window in diagnostics.chances.windows:
+            lines.append(
+                f"  {window.label:<12} {window.matches:>3} matches  points {window.points} ({window.expected_points:.1f})"
+                f"  scored {window.goals_for} ({window.worth_for:.1f}, {words[window.scoring]})"
+                f"  conceded {window.goals_against} ({window.worth_against:.1f}, {words[window.conceding]})"
+            )
     if quality.issues or diagnostics.unavailable:
         lines += ["", "What this leaves out:"]
         lines += [f"  - {issue.message}" for issue in quality.issues]
