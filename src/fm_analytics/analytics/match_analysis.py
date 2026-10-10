@@ -33,6 +33,7 @@ from fm_analytics.analytics.match_strength import (
     StrengthCalculator,
 )
 from fm_analytics.domain.matches import MATCH_MINUTES, Competition, LeagueResult, MatchRecord, TeamRef
+from fm_analytics.domain.mentality import MentalityPlan
 
 MIN_GROUP_MATCHES = 5
 COMPETITION_SCOPES = ("league", "competitive", "all")
@@ -153,6 +154,7 @@ class MatchSummary:
     ours: Mapping[str, float | None] | None
     theirs: Mapping[str, float | None] | None
     note: str = ""
+    mentality: MentalityPlan | None = None  # as you recorded it; FM keeps none we can read
 
     @property
     def result(self) -> str:
@@ -305,6 +307,7 @@ def summarise_matches(
     notes: Mapping[str, object],
     codes: RoleCodes,
     grouping: str,
+    mentalities: Mapping[str, MentalityPlan] = {},
 ) -> tuple[MatchSummary, ...]:
     calculator = StrengthCalculator(leagues, club.id)
     summaries = []
@@ -334,6 +337,7 @@ def summarise_matches(
                 ours=side_metrics(match, side),
                 theirs=side_metrics(match, other),
                 note=getattr(note, "note", "") or "",
+                mentality=mentalities.get(match.key),
             )
         )
     return tuple(summaries)
@@ -451,18 +455,20 @@ def report_match(
     confirmed_role_codes: Mapping[int, str] = {},
     usual_roles: Mapping[tuple[str, str], str] = {},
     penalty_fouls: Mapping[PenaltyKey, int] = {},
+    mentalities: Mapping[str, MentalityPlan] = {},
 ) -> MatchReport | None:
     codes = RoleCodes.build(catalogue, confirmed_role_codes)
     match = next((match for match in matches if match.key == match_key), None)
     if match is None:
         return None
-    (summary,) = summarise_matches([match], leagues, club, notes=notes, codes=codes, grouping="table")
+    (summary,) = summarise_matches([match], leagues, club, notes=notes, codes=codes, grouping="table",
+                                   mentalities=mentalities)
     roles = appearance_roles([match], club.id, notes=notes, codes=codes, usual_roles=usual_roles)
     penalties = conceded_penalties(match, club.id, penalty_fouls)
     return MatchReport(
         summary,
         {(side, short_id): role for (_key, side, short_id), role in roles.items()},
-        build_timeline(match, summary.side, given_away={
+        build_timeline(match, summary.side, mentality=summary.mentality, given_away={
             (penalty.minute, penalty.added_time): penalty.given_away_by for penalty in penalties if penalty.given_away_by
         }),
         penalties,
@@ -479,6 +485,7 @@ def review_matches(
     confirmed_role_codes: Mapping[int, str] = {},
     filters: ReviewFilters = ReviewFilters(),
     usual_roles: Mapping[tuple[str, str], str] = {},
+    mentalities: Mapping[str, MentalityPlan] = {},
 ) -> MatchReview:
     codes = RoleCodes.build(catalogue, confirmed_role_codes)
     # The role each player had in each match, with the duty his slot settles.
@@ -486,7 +493,7 @@ def review_matches(
     league_ids = {competition.id for competition, _results in leagues}
     seasons = match_seasons(matches)
     everything = summarise_matches(
-        matches, leagues, club, notes=notes, codes=codes, grouping=filters.grouping
+        matches, leagues, club, notes=notes, codes=codes, grouping=filters.grouping, mentalities=mentalities
     )
     selected = tuple(
         summary for summary in everything

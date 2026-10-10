@@ -168,6 +168,7 @@ class ExportTests(unittest.TestCase):
         first = document["matches"][0]
         self.assertEqual((first["stored_match_id"], first["label"]), (real.match_id, "Vertical"))
         self.assertEqual(first["match"], page_copy)  # exactly what the match page's copy holds
+        self.assertIn("result_vs_chances", first["match"]["diagnosis"])
         self.assertIn("timeline", first["match"])
         self.assertEqual(document["group"], {"name": ALL_STORED, "note": "", "matches": 4, "compared": 3, "withdrawn": 1})
         withdrawn = document["matches"][3]
@@ -224,6 +225,8 @@ class IngestTests(unittest.TestCase):
         self.assertIn("Done.", run("group", "rename", "Alpha tests", "--to", "Alpha replays"))
         self.assertIn("groups: Alpha replays", run("list"))
         self.assertIn("Done.", run("group", "delete", "Alpha replays"))
+        self.assertIn("#1: played in Balanced; Cautious from 70′.", run("mentality", "1", "--set", "Balanced, 70 Cautious"))
+        self.assertIn("Vertical (Balanced; Cautious from 70′) (withdrawn)", run("list"))
         self.assertIn("Deleted #1: 2019-09-01 v Alpha, Vertical.", run("delete", "1"))
         self.assertIn("No stored matches yet.", run("list"))
         self.assertIn("error: no stored match 1", run("delete", "1"))

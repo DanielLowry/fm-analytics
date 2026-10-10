@@ -22,6 +22,7 @@ from fm_analytics.analytics.chance_value import ChanceRates, chance_rates, class
 from fm_analytics.analytics.match_breakdowns import ScoreSplit, score_split
 from fm_analytics.domain.matches import MatchRecord
 from fm_analytics.domain.experiments import StoredMatch
+from fm_analytics.domain.mentality import MentalityPlan
 
 MIN_RUNS = 3  # runs of each variant before a comparison is judged at all
 # 95% two-sided and 80% power: how many runs of each settle a difference.
@@ -50,6 +51,7 @@ class RunFigures:
     second_half_shots: tuple[int, int]
     by_score: ScoreSplit | None
     match: MatchRecord
+    mentality: MentalityPlan | None = None  # as you recorded it on the stored match
 
     @property
     def balance(self) -> float:
@@ -157,8 +159,9 @@ def run_figures(run: StoredMatch, rates: ChanceRates) -> RunFigures:
         possession=detail.possession_percent(side),
         second_half_shots=(sum(shot.side == side and shot.minute >= 45 for shot in detail.shots),
                            sum(shot.side == other and shot.minute >= 45 for shot in detail.shots)),
-        by_score=score_split(match, side),
+        by_score=score_split(match, side, run.label.mentality),
         match=match,
+        mentality=run.label.mentality,
     )
 
 

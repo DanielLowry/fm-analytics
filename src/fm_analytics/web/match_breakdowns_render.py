@@ -9,6 +9,7 @@ from typing import Mapping
 from fm_analytics.analytics.match_analysis import MatchReview
 from fm_analytics.analytics.match_breakdowns import PERIODS, STATES, Breakdowns, PlayerEvents, Tally
 from fm_analytics.web.match_render import _e, versus
+from fm_analytics.web.mentality_render import mentality_breakdown
 
 STATE_LABELS = {"level": "Level", "ahead": "Ahead", "behind": "Behind"}
 
@@ -185,4 +186,8 @@ def breakdown_panels(review: MatchReview, breakdowns: Breakdowns | None) -> str:
                  formation_table(breakdowns), "fm-match-formations")
         + _panel("Your players", "Each player's season in these matches: what he made, where his shots went, "
                  "his clear-cut chances, and his bookings.", players_table(review, breakdowns), "fm-match-season-players")
+        + (_panel("By mentality", "Shots, chances and goals in each mentality you recorded on a match's page, and by "
+                  "mentality and the score together: how a lead was held in one mentality against another.",
+                  mentality_breakdown(breakdowns), "fm-match-by-mentality")
+           if breakdowns.mentality_matches else "")
     )

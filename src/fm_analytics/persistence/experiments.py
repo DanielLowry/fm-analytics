@@ -17,6 +17,7 @@ import hashlib
 import json
 import sqlite3
 from contextlib import closing, contextmanager
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Iterator, Sequence
@@ -31,6 +32,7 @@ from fm_analytics.domain.experiments import (
     validate_name,
 )
 from fm_analytics.domain.matches import MatchRecord, TeamRef
+from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.persistence.migrations import bring_up_to_date
 
 
@@ -85,8 +87,15 @@ CREATE TABLE group_memberships (
 CREATE INDEX group_memberships_by_group ON group_memberships (group_id, stored_match_id, id);
 """
 
+_V2 = """
+-- The mentality the match was played in, as the manager records it: JSON
+-- [{"from": minute, "mentality": name}, ...], the first from kickoff; NULL
+-- when not recorded. Part of the label, so a later label row carries it on.
+ALTER TABLE match_labels ADD COLUMN mentality TEXT;
+"""
+
 # Append only. Version N of the file is the result of applying MIGRATIONS[:N].
-MIGRATIONS: tuple[str, ...] = (_V1,)
+MIGRATIONS: tuple[str, ...] = (_V1, _V2)
 
 
 def _now() -> str:
@@ -148,6 +157,18 @@ class ExperimentStore:
         with closing(self._connect()) as connection, _transaction(connection):
             self._existing(connection, match_id)
             self._label(connection, match_id, label, withdrawn=withdrawn)
+
+    def set_mentality(self, match_ids: Iterable[int], mentality: MentalityPlan | None) -> None:
+        """Record the mentality stored matches were played in (None clears it), each keeping the rest of its label."""
+        self.initialize()
+        with closing(self._connect()) as connection, _transaction(connection):
+            for match_id in match_ids:
+                self._existing(connection, match_id)
+                current = self._latest_label(connection, match_id)
+                self._label(
+                    connection, match_id, replace(self._label_of(current), mentality=mentality),
+                    withdrawn=bool(current["withdrawn"]),
+                )
 
     def create_group(self, name: str, note: str = "") -> None:
         name = validate_name(name, "a group")
@@ -261,16 +282,27 @@ class ExperimentStore:
         return {match_id: tuple(sorted(groups)) for match_id, groups in found.items()}
 
     @staticmethod
-    def _stored(connection: sqlite3.Connection, row: sqlite3.Row, groups: tuple[str, ...]) -> StoredMatch:
-        label = connection.execute(
-            "SELECT * FROM match_labels WHERE stored_match_id = ? ORDER BY id DESC LIMIT 1", (row["id"],)
+    def _latest_label(connection: sqlite3.Connection, match_id: int) -> sqlite3.Row:
+        return connection.execute(
+            "SELECT * FROM match_labels WHERE stored_match_id = ? ORDER BY id DESC LIMIT 1", (match_id,)
         ).fetchone()
+
+    @staticmethod
+    def _label_of(row: sqlite3.Row) -> MatchLabel:
+        return MatchLabel(
+            row["variant"], row["tactic_key"], row["note"], json.loads(row["tags"]),
+            MentalityPlan.from_document(json.loads(row["mentality"])) if row["mentality"] else None,
+        )
+
+    @classmethod
+    def _stored(cls, connection: sqlite3.Connection, row: sqlite3.Row, groups: tuple[str, ...]) -> StoredMatch:
+        label = cls._latest_label(connection, row["id"])
         return StoredMatch(
             id=row["id"],
             stored_at=row["stored_at"],
             club=TeamRef(row["club_id"], row["club_name"]),
             match=MatchRecord.from_document(json.loads(row["document"])),
-            label=MatchLabel(label["variant"], label["tactic_key"], label["note"], json.loads(label["tags"])),
+            label=cls._label_of(label),
             withdrawn=bool(label["withdrawn"]),
             groups=groups,
         )
@@ -290,10 +322,11 @@ class ExperimentStore:
     @staticmethod
     def _label(connection: sqlite3.Connection, match_id: int, label: MatchLabel, *, withdrawn: bool) -> None:
         connection.execute(
-            "INSERT INTO match_labels (stored_match_id, recorded_at, variant, tactic_key, note, tags, withdrawn) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO match_labels (stored_match_id, recorded_at, variant, tactic_key, note, tags, withdrawn, mentality) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (match_id, _now(), label.variant, label.tactic_key, label.note,
-             json.dumps(dict(label.tags), sort_keys=True), int(withdrawn)),
+             json.dumps(dict(label.tags), sort_keys=True), int(withdrawn),
+             json.dumps(label.mentality.to_document()) if label.mentality else None),
         )
 
     @staticmethod

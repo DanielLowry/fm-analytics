@@ -307,6 +307,10 @@ class MatchesExportTests(HistoryCase):
             self.assertEqual(entry, build_match_export(self.history, build_match_report(self.history, entry["key"]))["match"])
         self.assertEqual(document["meta"]["generated_at"], "2026-09-29T12:00:00+00:00")
         self.assertIn("5 match(es) have the result only", " ".join(document["meta"]["caveats"]))
+        # The page's own panels beyond the matches: its season diagnosis and penalty record.
+        self.assertIn("top_opportunities", document["season_diagnosis"])
+        self.assertEqual(document["penalties_given_away"], {"penalties": [], "by_player": [], "not_recorded": 0})
+        self.assertIn("result_vs_chances_not_judged", document["matches"][-1]["diagnosis"])
 
     def test_it_holds_only_the_selection_with_the_pages_own_figures(self) -> None:
         self.use_two_seasons()

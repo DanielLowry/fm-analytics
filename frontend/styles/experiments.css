@@ -33,4 +33,17 @@
   body.fm-app .fm-verdicts li + li { margin-top: .3rem; }
   body.fm-app .fm-note-ok { padding: .55rem .8rem; border-radius: .5rem; background: color-mix(in srgb, var(--color-brand-50) 80%, transparent); color: var(--color-ink-900); }
   body.fm-app .fm-experiment-keep summary { cursor: pointer; color: var(--color-brand-600); font-weight: 600; }
+  /* Mentality: kickoff, then a row per change (also the match page's Mentality panel). */
+  body.fm-app .fm-mentality { display: grid; gap: .55rem; margin: 0; padding: .6rem .8rem; border: 1px solid var(--fm-border); border-radius: .5rem; }
+  body.fm-app .fm-mentality legend { padding: 0 .3rem; color: var(--color-ink-600); font-size: .82rem; }
+  body.fm-app .fm-mentality > label { max-width: 16rem; }
+  body.fm-app .fm-mentality-changes { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; }
+  body.fm-app .fm-mentality-change { display: flex; gap: .5rem; align-items: end; }
+  body.fm-app .fm-mentality-change input { width: 5.5rem; }
+  body.fm-app .fm-mentality :is(label, p) { margin: 0; }
+  body.fm-app .fm-mentality :is(input, select) { padding: .4rem .5rem; border: 1px solid var(--fm-border); border-radius: .4rem; background: var(--fm-card); color: var(--color-ink-900); font: inherit; }
+  body.fm-app .fm-bulk-mentality { display: grid; gap: .5rem; margin: .4rem 0; }
+  body.fm-app .fm-bulk-mentality > summary { color: var(--color-brand-600); font-size: .85rem; font-weight: 600; cursor: pointer; }
+  body.fm-app .fm-bulk-mentality[open] { padding: .5rem .7rem; border: 1px solid var(--fm-border); border-radius: .5rem; }
+  body.fm-app .fm-match-mentality-panel .fm-experiment-form { margin-top: .6rem; }
 }

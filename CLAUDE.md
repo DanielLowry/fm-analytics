@@ -45,7 +45,10 @@ analytics inside a handler. The match review follows the same rule:
 the one behind `fm-matches export` and the web's `/api/export`.
 `reporting.build_match_export` is the one behind a match page's "Copy match
 to clipboard": that match's verbose season-export entry plus what only one
-match has room for, built from the same `build_match_report` the page shows.
+match has room for, its Diagnosis included, built from the same
+`build_match_report` and `build_match_diagnosis` the page shows. A match's
+mentality is the manager's record (`domain/mentality.py`, its own table that
+reading FM never writes) and reaches every view through `MatchSummary.mentality`.
 `reporting.build_matches_export` is the one behind the Matches page's "Copy all
 match data" (`/api/matches-export`): every match the page's filters select,
 each exactly as its own page's copy has it.
@@ -55,8 +58,8 @@ the other competitive matches, by the season diagnosis's own model, and its
 "Result vs chances" (`analytics/match_chances.py`: the chances each side made,
 valued by `analytics/chance_value.py`, against the score).
 `reporting.build_match_breakdowns` is the one behind the Matches page's "By the
-score", "By period", "How the goals came", "Against each formation" and "Your
-players" panels, the same lines of `fm-matches review` and the exports' `breakdowns`
+score", "By period", "How the goals came", "Against each formation", "Your
+players" and "By mentality" panels, the same lines of `fm-matches review` and the exports' `breakdowns`
 (`analytics/match_breakdowns.py`); a match's own split by the score comes with its
 `build_match_report` timeline.
 `reporting.build_experiment_report` is the one behind the Experiments pages and

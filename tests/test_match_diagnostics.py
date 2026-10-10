@@ -331,6 +331,17 @@ class OneMatchDiagnosisTests(unittest.TestCase):
         self.assertEqual([p.name for p in diagnosis.below_usual], ["Home 7"])
         self.assertAlmostEqual(diagnosis.below_usual[0].usual, 6.8)
 
+    def test_a_stored_replay_is_judged_on_its_own_roles_not_its_fixtures(self) -> None:
+        review, summary = one_match(varied_season(), one_match_target())
+        roles = {(side, short_id): role for (key, side, short_id), role in review.appearance_roles.items()
+                 if key == summary.match.key}
+        same = diagnose_one_match(review, summary, own_roles=roles)
+        self.assertEqual(same.above_usual, diagnose_one_match(review, summary).above_usual)
+        # A replay in other roles has no usual there to stand out from, whatever the fixture's own match did.
+        moved = diagnose_one_match(review, summary, own_roles={key: "Somewhere else" for key in roles})
+        self.assertEqual((moved.above_usual, moved.below_usual), ((), ()))
+        self.assertIsNone(moved.not_compared)  # still a competitive match, compared as usual
+
     def test_a_comeback_is_described(self) -> None:
         target = one_match_target()
         target["homeGoals"], target["awayGoals"] = 2, 1

@@ -38,6 +38,7 @@ from fm_analytics.analytics.match_interventions import (
     StoredIntervention,
     validate_intervention_note,
 )
+from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.domain.matches import (
     Competition,
     LeagueResult,
@@ -210,8 +211,23 @@ CREATE TABLE penalty_fouls (
 CREATE INDEX penalty_fouls_by_match ON penalty_fouls (save_id, match_key, id);
 """
 
+_V6 = """
+-- The mentality a match was played in, as the manager records it (FM keeps
+-- none we can read): JSON [{"from": minute, "mentality": name}, ...], the
+-- first from kickoff. Reading FM never writes here. Append only; the latest
+-- per match wins, and a NULL plan clears it.
+CREATE TABLE match_mentalities (
+    id INTEGER PRIMARY KEY,
+    save_id INTEGER NOT NULL REFERENCES saves(id),
+    match_key TEXT NOT NULL,
+    plan TEXT,
+    recorded_at TEXT NOT NULL
+);
+CREATE INDEX match_mentalities_by_match ON match_mentalities (save_id, match_key, id);
+"""
+
 # Append only. Version N of the file is the result of applying MIGRATIONS[:N].
-MIGRATIONS: tuple[str, ...] = (_V1, _V2, _V3, _V4, _V5)
+MIGRATIONS: tuple[str, ...] = (_V1, _V2, _V3, _V4, _V5, _V6)
 
 
 @dataclass(frozen=True)
@@ -265,6 +281,8 @@ class MatchHistory:
     usual_roles: Mapping[tuple[str, str], str] = field(default_factory=dict)
     # (match key, minute, added time) -> the short ID of who gave that penalty away.
     penalty_fouls: Mapping[PenaltyKey, int] = field(default_factory=dict)
+    # match key -> the mentality you recorded for it.
+    mentalities: Mapping[str, MentalityPlan] = field(default_factory=dict)
 
 
 def _now() -> str:
@@ -413,6 +431,20 @@ class MatchHistoryStore:
                 "INSERT INTO penalty_fouls (save_id, match_key, minute, added_time, player_short_id, recorded_at) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
                 (self._existing_save_id(connection, save_key), match_key, minute, added_time, player_short_id, _now()),
+            )
+
+    def record_mentality(self, save_key: str, match_key: str, plan: MentalityPlan | None) -> None:
+        """Record the mentality a match was played in (None clears it). Local database only; never FM."""
+        self.initialize()
+        with closing(self._connect()) as connection, _transaction(connection):
+            save_id = self._existing_save_id(connection, save_key)
+            if not connection.execute(
+                "SELECT 1 FROM match_versions WHERE save_id = ? AND match_key = ?", (save_id, match_key)
+            ).fetchone():
+                raise ValueError(f"no match {match_key} is recorded for {save_key}")
+            connection.execute(
+                "INSERT INTO match_mentalities (save_id, match_key, plan, recorded_at) VALUES (?, ?, ?, ?)",
+                (save_id, match_key, json.dumps(plan.to_document()) if plan else None, _now()),
             )
 
     def confirm_role_code(self, code: int, role_key: str) -> None:
@@ -625,6 +657,11 @@ class MatchHistoryStore:
                 (save["id"],),
             ):
                 penalty_fouls[(row["match_key"], row["minute"], row["added_time"])] = row["player_short_id"]
+            mentalities: dict[str, MentalityPlan | None] = {}
+            for row in connection.execute(
+                "SELECT match_key, plan FROM match_mentalities WHERE save_id = ? ORDER BY id", (save["id"],)
+            ):
+                mentalities[row["match_key"]] = MentalityPlan.from_document(json.loads(row["plan"])) if row["plan"] else None
             interventions = tuple(
                 _intervention_from_row(row)
                 for row in connection.execute(
@@ -652,6 +689,7 @@ class MatchHistoryStore:
             role_codes=role_codes,
             usual_roles=usual_roles,
             penalty_fouls={key: player for key, player in penalty_fouls.items() if player is not None},
+            mentalities={key: plan for key, plan in mentalities.items() if plan is not None},
             last_game_date=date.fromisoformat(last) if last else None,
             interventions=interventions,
         )

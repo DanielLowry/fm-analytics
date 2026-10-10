@@ -38,11 +38,16 @@ from fm_analytics.analytics.match_analysis import (
     MatchSummary, season_label,
 )
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
+from fm_analytics.analytics.penalty_record import PenaltyRecord
+from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis, diagnose_one_match
+from fm_analytics.breakdowns_export import breakdowns_json, mentality_json, tally_json
+from fm_analytics.diagnosis_export import diagnosis_json, penalties_json
+from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.analytics.match_interventions import InterventionEvaluation
 from fm_analytics.analytics.match_players import PlayerSeason
 from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.analytics.match_timeline import build_timeline
-from fm_analytics.analytics.match_breakdowns import PERIODS, Breakdowns, PlayerEvents, Tally, breakdowns
+from fm_analytics.analytics.match_breakdowns import PlayerEvents, breakdowns
 from fm_analytics.analytics.penalty_record import conceded_penalties
 from fm_analytics.analytics.match_strength import TablePosition, league_seasons, league_table
 from fm_analytics.domain import AttributeObservation, Player
@@ -264,6 +269,9 @@ def _match(summary: MatchSummary, kind: str, codes: RoleCodes, catalogue: Footba
     }
     if summary.note:
         row["note"] = summary.note
+    if summary.mentality:
+        row["mentality"] = summary.mentality.to_document()
+        row["mentality_text"] = summary.mentality.text
 
     def ours_first(score: tuple[int, int]) -> str:
         home, away = score
@@ -308,13 +316,13 @@ def _match(summary: MatchSummary, kind: str, codes: RoleCodes, catalogue: Footba
             "team_stats_against": _team_panel(match.detail.team(other), match.detail.players_for(other)),
             "their_players": [_line(player, role(player), full=detail == "match") for player in theirs],
         })
-        row.update(_timeline(match, side, shots=detail == "match"))
+        row.update(_timeline(match, side, shots=detail == "match", mentality=summary.mentality))
     return row
 
 
-def _timeline(match, side: str, *, shots: bool) -> dict[str, Any]:
+def _timeline(match, side: str, *, shots: bool, mentality: MentalityPlan | None = None) -> dict[str, Any]:
     """The timeline (and, for one match, every shot) as `build_match_report` gives the match page."""
-    timeline = build_timeline(match, side)
+    timeline = build_timeline(match, side, mentality=mentality)
     found: dict[str, Any] = {}
     if timeline is None:
         return found
@@ -346,43 +354,14 @@ def _timeline(match, side: str, *, shots: bool) -> dict[str, Any]:
                 for shot in timeline.shots
             ]
     if timeline.by_score is not None:
-        found["by_score"] = {state: _tally(tally) for state, tally in timeline.by_score.by_state.items() if tally.minutes >= 1}
+        found["by_score"] = {state: tally_json(tally) for state, tally in timeline.by_score.by_state.items() if tally.minutes >= 1}
+        if timeline.by_score.by_mentality:
+            found.update(mentality_json(timeline.by_score, per_90=False))
     if shots and timeline.unidentified:
         found["unidentified_fm_events"] = [
             {"minute": clock, "team": "us" if ours else "them", "fm_code": f"0x{code:02x}"} for clock, ours, code in timeline.unidentified
         ]
     return found
-
-
-def _tally(tally: Tally) -> dict[str, Any]:
-    """Us, then them."""
-    return {
-        "minutes": round(tally.minutes), "shots": list(tally.shots), "on_goal": list(tally.on_goal),
-        "clear_cut_chances": list(tally.clear_cut_chances), "goals": list(tally.goals),
-    }
-
-
-def breakdowns_json(found: Breakdowns) -> dict[str, Any]:
-    """`reporting.build_match_breakdowns` as JSON: each pair is [us, them]."""
-    return {
-        "matches_in_score_and_period": found.split_matches,
-        "left_out_of_score_and_period": dict(found.left_out),
-        "by_score": {
-            state: _tally(tally) | {"per_90": {key: list(tally.per_90(getattr(tally, key)))
-                                               for key in ("shots", "on_goal", "clear_cut_chances", "goals")}}
-            for state, tally in found.by_state.items() if tally.minutes >= 1
-        },
-        "by_period": [{"minutes": label} | _tally(found.by_period[label]) for label, _start, _end in PERIODS],
-        "goals_scored": {key: dict(counts) for key, counts in found.goals_for.items()},
-        "goals_conceded": {key: dict(counts) for key, counts in found.goals_against.items()},
-        "by_formation_faced": [
-            {"formation": record.formation, "played": record.played, "won": record.won, "drawn": record.drawn,
-             "lost": record.lost, "goals": [record.goals_for, record.goals_against],
-             "shots": list(record.shots), "clear_cut_chances": list(record.clear_cut_chances),
-             "matches_with_stats": record.with_stats}
-            for record in found.formations
-        ],
-    }
 
 
 # -- the squad and the app's recommendation -----------------------------------
@@ -597,7 +576,8 @@ def export_document(
         raise ValueError(f"detail must be one of {', '.join(DETAIL_LEVELS)}")
     as_of = history.last_game_date
     codes = RoleCodes.build(catalogue, history.role_codes)
-    season_breakdowns = breakdowns((summary.match for summary in competitive.matches), history.club.id)
+    season_breakdowns = breakdowns((summary.match for summary in competitive.matches), history.club.id,
+                                   plans=[summary.mentality for summary in competitive.matches])
     # Each player's role in each match, with the duty his slot settles (FM's code has none).
     roles = appearance_roles(
         history.matches, history.club.id, notes=history.notes, codes=codes, usual_roles=history.usual_roles
@@ -636,10 +616,7 @@ def export_document(
             "by_venue": [_group(group) for group in competitive.venues],
             "by_tactic": [{"tactic": row.label, **_group(row.overall)} for row in competitive.tactics],
         },
-        "diagnostics": diagnostics.to_document() | {
-            "active_intervention": intervention.to_document() if intervention else None,
-            "intervention_history": [item.to_document() for item in history.interventions],
-        },
+        "diagnostics": _diagnostics(history, diagnostics, intervention),
         "goals": _goals(competitive),
         "breakdowns": breakdowns_json(season_breakdowns),
         "roles": _roles(competitive),
@@ -683,6 +660,14 @@ _RATING_CAVEAT = (
 DUTY_CAVEAT = "A saved-tactic duty of null is one FM's code does not yet name (see docs/match-duty-extraction.md)."
 
 
+def _diagnostics(history: MatchHistory, diagnostics: MatchDiagnostics,
+                 intervention: InterventionEvaluation | None) -> dict[str, Any]:
+    return diagnostics.to_document() | {
+        "active_intervention": intervention.to_document() if intervention else None,
+        "intervention_history": [item.to_document() for item in history.interventions],
+    }
+
+
 def _standing(position: TablePosition | None) -> dict[str, int] | None:
     return {"position": position.position, "played": position.played, "points": position.points} if position else None
 
@@ -692,6 +677,7 @@ def match_document(
     report: MatchReport,
     *,
     catalogue: FootballCatalogue,
+    diagnosis: OneMatchDiagnosis | None = None,
     generated_at: datetime | None = None,
 ) -> dict[str, Any]:
     """One match with everything recorded about it, for the match page's copy button.
@@ -699,13 +685,14 @@ def match_document(
     Its `match` is the match's entry in the verbose season export, with full
     stat lines for their players as well as ours, plus what only one match
     has room for: the league table at kickoff, the unused substitutes, your
-    pre-match rating of the opponent and the tactic FM saved for each side.
+    pre-match rating of the opponent, the tactic FM saved for each side and
+    the page's Diagnosis with its Result vs chances.
     """
     summary = report.summary
     match = summary.match
     codes = RoleCodes.build(catalogue, history.role_codes)
     roles = {(match.key, side, short_id): role for (side, short_id), role in report.role_labels.items()}
-    row = _full_match(history, summary, codes, catalogue, roles)
+    row = _full_match(history, summary, codes, catalogue, roles, diagnosis)
     caveats = list(MATCH_CAVEATS)
     if summary.tactic_inferred:
         caveats.append("The tactic is inferred from the starting roles; you did not record one.")
@@ -744,23 +731,25 @@ def _given_away(history: MatchHistory, match) -> dict[tuple[int, int], str]:
 
 
 def _full_match(history: MatchHistory, summary: MatchSummary, codes: RoleCodes, catalogue: FootballCatalogue,
-                roles: Mapping[tuple[str, str, int], str]) -> dict[str, Any]:
+                roles: Mapping[tuple[str, str, int], str], diagnosis: OneMatchDiagnosis | None) -> dict[str, Any]:
     return full_match_entry(
         summary, codes, catalogue, roles,
         league_ids={competition.id for competition, _results in history.league_results},
-        given_away=_given_away(history, summary.match),
+        given_away=_given_away(history, summary.match), diagnosis=diagnosis,
     )
 
 
 def full_match_entry(
     summary: MatchSummary, codes: RoleCodes, catalogue: FootballCatalogue, roles: Mapping[tuple[str, str, int], str],
     *, league_ids: set[str] | None, given_away: Mapping[tuple[int, int], str],
+    diagnosis: OneMatchDiagnosis | None = None,
 ) -> dict[str, Any]:
     """One match's verbose season-export entry, plus what only one match has room for: a match page's copy.
 
     `league_ids` are the club's leagues; without them (None) a match is only
     competitive or a friendly. `given_away` is who you recorded giving away
-    each penalty scored against you.
+    each penalty scored against you. `diagnosis` is the match page's
+    Diagnosis; without one the entry's `diagnosis` is null.
     """
     match = summary.match
     kind = (
@@ -795,6 +784,7 @@ def full_match_entry(
             for who, side in sides
             if (tactic := match.detail.saved_tactics.get(side)) is not None
         }
+    row["diagnosis"] = diagnosis_json(diagnosis) if diagnosis is not None else None
     return row
 
 
@@ -809,19 +799,27 @@ def matches_document(
     review: MatchReview,
     *,
     catalogue: FootballCatalogue,
+    competitive: MatchReview,
+    diagnostics: MatchDiagnostics,
+    intervention: InterventionEvaluation | None,
+    penalties: PenaltyRecord,
     generated_at: datetime | None = None,
 ) -> dict[str, Any]:
     """Every match a review selected, with everything recorded about each, for the Matches page's copy button.
 
-    `selection` names the filters; `review`, `goals`, `roles` and `players`
-    are the review's figures for just these matches, as the page shows them.
-    Each entry in `matches` is that match's `match` in `match_document`, the
-    match page's own copy.
+    `selection` names the filters; `review`, `goals`, `breakdowns`, `roles`,
+    `players` and `penalties_given_away` are the review's figures for just
+    these matches, as the page shows them. `season_diagnosis` is the page's
+    diagnosis, which reads every competitive match (`competitive`) whatever
+    the filters. Each entry in `matches` is that match's `match` in
+    `match_document`, the match page's own copy, its Diagnosis included.
     """
     filters = review.filters
     codes = RoleCodes.build(catalogue, history.role_codes)
-    rows = [_full_match(history, summary, codes, catalogue, review.appearance_roles) for summary in review.matches]
-    selected = breakdowns((summary.match for summary in review.matches), history.club.id)
+    rows = [_full_match(history, summary, codes, catalogue, review.appearance_roles,
+                        diagnose_one_match(competitive, summary)) for summary in review.matches]
+    selected = breakdowns((summary.match for summary in review.matches), history.club.id,
+                          plans=[summary.mentality for summary in review.matches])
     tactic = (
         "Any tactic" if filters.tactic is None
         else "Tactic not known" if filters.tactic == NO_TACTIC
@@ -860,6 +858,8 @@ def matches_document(
             "by_venue": [_group(group) for group in review.venues],
             "by_tactic": [{"tactic": row.label, **_group(row.overall)} for row in review.tactics],
         },
+        "season_diagnosis": _diagnostics(history, diagnostics, intervention),
+        "penalties_given_away": penalties_json(penalties),
         "goals": _goals(review),
         "breakdowns": breakdowns_json(selected),
         "roles": _roles(review),

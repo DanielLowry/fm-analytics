@@ -12,12 +12,14 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Sequence
 
 from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.analytics.experiments import ExperimentReport
 from fm_analytics.domain.experiments import MatchLabel, Stored, StoredMatch
+from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.domain.matches import MatchCapture, MatchRecord
 from fm_analytics.match_ingest import DEFAULT_DATABASE, PROJECT_ROOT, run_capture_tool
 from fm_analytics.persistence.experiments import ExperimentStore, ExperimentStoreError
@@ -51,7 +53,7 @@ def with_default_variant(label: MatchLabel, match: MatchRecord, club_id: str) ->
     saved = match.detail.saved_tactics.get(match.side_of(club_id)) if match.detail else None
     if saved is None or not saved.name:
         raise ValueError("give the match a label: FM saved no tactic name with it")
-    return MatchLabel(saved.name, label.tactic_key, label.note, label.tags)
+    return replace(label, variant=saved.name)
 
 
 def store_from_fm(
@@ -83,6 +85,8 @@ def store_from_history(
     match = next((match for match in history.matches if match.key == match_key), None)
     if match is None:
         raise ValueError(f"no match {match_key} is in your match history")
+    if label.mentality is None and match_key in history.mentalities:
+        label = replace(label, mentality=history.mentalities[match_key])  # what you recorded on its page
     return store.store(match, history.club, with_default_variant(label, match, history.club.id), groups=groups)
 
 
@@ -112,6 +116,7 @@ def format_report(report: ExperimentReport) -> str:
     for run in report.runs:
         lines.append(f"  #{run.run_id:<4} {run.variant[:28]:<28} v {run.opponent[:20]:<20} {run.result} "
                      f"{run.goals[0]}-{run.goals[1]}  worth {run.worth[0]}–{run.worth[1]}"
+                     + (f"  ({run.mentality.text})" if run.mentality else "")
                      + (f"  [{run.note}]" if run.note else "")
                      + (" " + " ".join(f"{key}={value}" for key, value in run.tags.items()) if run.tags else ""))
     return "\n".join(lines)
@@ -122,7 +127,8 @@ def format_store(stored: tuple[StoredMatch, ...], store: ExperimentStore) -> str
     for item in stored:
         match = item.match
         lines.append(f"  #{item.id:<4} {match.date} v {item.opponent[:22]:<22} {match.home_goals}-{match.away_goals}  "
-                     f"{item.label.variant}" + (" (withdrawn)" if item.withdrawn else "")
+                     f"{item.label.variant}" + (f" ({item.label.mentality.text})" if item.label.mentality else "")
+                     + (" (withdrawn)" if item.withdrawn else "")
                      + (f"  groups: {', '.join(item.groups)}" if item.groups else ""))
     groups = store.groups()
     if groups:
@@ -146,7 +152,8 @@ def _tags(values: Sequence[str]) -> dict[str, str]:
 def _label(args: argparse.Namespace) -> MatchLabel:
     if args.tactic and args.tactic not in MVP_CATALOGUE.tactics:
         raise ValueError(f"unknown tactic key {args.tactic!r}")
-    return MatchLabel(args.label or "", args.tactic, args.note, _tags(args.tag))
+    return MatchLabel(args.label or "", args.tactic, args.note, _tags(args.tag),
+                      MentalityPlan.parse(args.mentality) if args.mentality else None)
 
 
 def _label_options(parser: argparse.ArgumentParser) -> None:
@@ -154,6 +161,7 @@ def _label_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--tactic", help="the catalogue tactic key, when one fits")
     parser.add_argument("--note", default="", help="anything FM can't record: changes made in the match, say")
     parser.add_argument("--tag", action="append", default=[], help="key=value, as many as you like")
+    parser.add_argument("--mentality", help="what it was played in, e.g. 'Balanced, 65 Cautious'")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -183,6 +191,11 @@ def build_parser() -> argparse.ArgumentParser:
         commands.add_parser(name, help=text).add_argument("id", type=int)
     commands.add_parser("delete", help="remove stored matches for good, from every group").add_argument(
         "ids", nargs="+", type=int)
+    mentality = commands.add_parser("mentality", help="record the mentality stored matches were played in")
+    mentality.add_argument("ids", nargs="+", type=int)
+    plan = mentality.add_mutually_exclusive_group(required=True)
+    plan.add_argument("--set", dest="plan", help="e.g. 'Balanced, 65 Cautious': kickoff, then minute and mentality")
+    plan.add_argument("--clear", action="store_true")
     compare = commands.add_parser("compare", help="compare a group's matches label by label (default: all stored)")
     compare.add_argument("group", nargs="?")
     export = commands.add_parser("export", help="a comparison and every match's full record, as JSON")
@@ -238,6 +251,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             else:
                 store.set_membership(args.name, args.ids, member=args.action == "add")
             print("Done.")
+        elif args.command == "mentality":
+            plan = None if args.clear else MentalityPlan.parse(args.plan)
+            store.set_mentality(args.ids, plan)
+            print(f"#{', #'.join(map(str, args.ids))}: {'played in ' + plan.text if plan else 'cleared'}.")
         elif args.command == "delete":
             gone = {item.id: item for item in store.matches() if item.id in args.ids}
             store.delete(args.ids)
@@ -251,7 +268,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             label = current.label
             if args.command == "relabel":
                 label = MatchLabel(args.label or label.variant, args.tactic or label.tactic_key,
-                                   args.note or label.note, {**label.tags, **_tags(args.tag)})
+                                   args.note or label.note, {**label.tags, **_tags(args.tag)},
+                                   MentalityPlan.parse(args.mentality) if args.mentality else label.mentality)
             store.relabel(args.id, label, withdrawn=args.command == "withdraw" or (
                 args.command == "relabel" and current.withdrawn))
             print("Done.")

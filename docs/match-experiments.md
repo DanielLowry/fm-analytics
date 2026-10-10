@@ -38,8 +38,13 @@ you keep, read matches as usual and the history takes that one.
 
 Each stored match carries **your label** (the variant it tried; blank takes
 the name of the tactic FM saved with it), an optional catalogue tactic,
-**notes** for anything FM can't record (a change at half-time, say) and
-**tags** (`key=value`). **Groups** are your own collections; a match can be
+**notes** for anything FM can't record (a change at half-time, say),
+**tags** (`key=value`) and the **mentality** it was played in, with any
+changes and their minutes. FM keeps no mentality our code can read, so it is
+yours to record: when storing, with *Edit* on a group's page, for every
+ticked match at once on the Experiments page (*Set mentality for ticked*),
+or `fm-experiments mentality ID... --set "Balanced, 65 Cautious"`. A match
+stored from the history takes the mentality recorded on its match page. **Groups** are your own collections; a match can be
 in several, and join or leave one at any time. Relabelling, withdrawing a
 match from comparisons, restoring it and group membership changes are all
 later rows: nothing is overwritten.
@@ -99,12 +104,16 @@ name copies the matches its filters select. `fm-experiments export [GROUP]
   label also has its own `breakdowns` (by the score, by period, how the goals
   came, formations faced) and `players` (each player's figures in that
   label's matches), so a player can be compared from one label to the next.
-- **`breakdowns`** and **`players`**: the same over the whole group.
+- **`breakdowns`** and **`players`**: the same over the whole group. The
+  breakdowns include `by_mentality` and `by_mentality_and_score` for the
+  matches with a recorded mentality.
 - **`matches`**: every stored match with its label, notes, tags and groups,
   its comparison `figures`, and its `match`, exactly what that match's own
   page would copy (team panels, every player's line with role and rating,
   timeline, every shot, unused substitutes, saved tactics, league table at
-  kickoff). A match stored from the history exports the same `match` as its
+  kickoff, its mentality, and its Diagnosis with Result vs chances, judged
+  against your season's competitive matches less that fixture, on the
+  replay's own roles). A match stored from the history exports the same `match` as its
   page under Matches does. Replays of one fixture share a date, so
   `stored_match_id` tells them apart.
 

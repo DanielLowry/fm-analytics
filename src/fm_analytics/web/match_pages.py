@@ -43,6 +43,7 @@ from fm_analytics.web.attribute_export import profile_copy_control
 from fm_analytics.web.match_breakdowns_render import breakdown_panels
 from fm_analytics.web.experiment_render import keep_match_form
 from fm_analytics.web.match_detail_render import match_body
+from fm_analytics.web.mentality_render import plan_from_form
 from fm_analytics.web.rendering import _error_page, _layout, _query_first, _query_number
 
 
@@ -220,7 +221,8 @@ class MatchPagesMixin:
             diagnosis=build_match_diagnosis(history, report),
         )
         if self.server.experiment_store is not None:  # type: ignore[attr-defined]
-            body += keep_match_form(summary.match.key, MVP_CATALOGUE, self.server.experiment_groups())  # type: ignore[attr-defined]
+            body += keep_match_form(summary.match.key, MVP_CATALOGUE, self.server.experiment_groups(),  # type: ignore[attr-defined]
+                                    mentality=summary.mentality)
         self._send(_layout(title, "/matches", body, wide=True))  # type: ignore[attr-defined]
 
     def _post_match_capture(self) -> None:
@@ -257,6 +259,18 @@ class MatchPagesMixin:
             )
         except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
             self._send(_error_page("Penalty", str(exc), match_url(key) if key else "/matches"),  # type: ignore[attr-defined]
+                       HTTPStatus.BAD_REQUEST)
+            return
+        self._redirect(match_url(key))
+
+    def _post_match_mentality(self) -> None:
+        form = self._read_form()  # type: ignore[attr-defined]
+        key = form.get("match", [""])[0]
+        try:
+            plan = None if form.get("clear", [""])[0] == "1" else plan_from_form(form)
+            self.server.record_match_mentality(key, plan)  # type: ignore[attr-defined]
+        except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
+            self._send(_error_page("Mentality", str(exc), match_url(key) if key else "/matches"),  # type: ignore[attr-defined]
                        HTTPStatus.BAD_REQUEST)
             return
         self._redirect(match_url(key))

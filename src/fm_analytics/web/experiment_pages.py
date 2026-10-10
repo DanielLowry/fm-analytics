@@ -14,10 +14,13 @@ from urllib.parse import unquote
 from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.domain.experiments import MatchLabel
 from fm_analytics.experiment_ingest import ALL_STORED
-from fm_analytics.reporting import build_experiment_export, build_experiment_report, build_stored_match_report
+from fm_analytics.reporting import (
+    build_experiment_export, build_experiment_report, build_match_diagnosis, build_stored_match_report,
+)
 from fm_analytics.web.attribute_export import profile_copy_control
 from fm_analytics.web.experiment_render import delete_match_control, experiments_body, group_body, group_url
 from fm_analytics.web.match_detail_render import match_body
+from fm_analytics.web.mentality_render import plan_from_form
 from fm_analytics.web.rendering import _error_page, _layout
 
 _ERRORS = (ValueError, OSError, RuntimeError, sqlite3.Error)
@@ -34,7 +37,7 @@ def _label(form: dict[str, list[str]]) -> MatchLabel:
             if not separator or not key.strip():
                 raise ValueError(f"A tag is key=value, not {line.strip()!r}.")
             tags[key.strip()] = value.strip()
-    return MatchLabel(form.get("label", [""])[0], tactic, form.get("note", [""])[0], tags)
+    return MatchLabel(form.get("label", [""])[0], tactic, form.get("note", [""])[0], tags, plan_from_form(form))
 
 
 class ExperimentPagesMixin:
@@ -85,7 +88,8 @@ class ExperimentPagesMixin:
         except ValueError:
             match_id = -1
         stored = next((item for item in server.stored_matches() if item.id == match_id), None)
-        report = build_stored_match_report(stored, self._history_or_none()) if stored else None
+        history = self._history_or_none()
+        report = build_stored_match_report(stored, history) if stored else None
         if report is None:
             self._send(_error_page("Stored match", "No such stored match.", "/experiments"), HTTPStatus.NOT_FOUND)  # type: ignore[attr-defined]
             return
@@ -95,9 +99,14 @@ class ExperimentPagesMixin:
             "<p><a href='/experiments'>← Experiments</a></p>"
             f"<p class='intro'>Stored match #{stored.id}, labelled <strong>{stored.label.variant}</strong>"
             + (f", in {', '.join(stored.groups)}" if stored.groups else "")
+            + (f", played in {stored.label.mentality.text}" if stored.label.mentality else
+               ", with no mentality recorded (set it with Edit on its group's page)")
             + ". This is the match as stored, which for a replay is not the one in your season.</p>"
             + delete_match_control(stored.id)
-            + match_body(report, MVP_CATALOGUE, (), None, notes=False)
+            + match_body(report, MVP_CATALOGUE, (), None, notes=False, diagnosis=(
+                build_match_diagnosis(history, report, stored=True)
+                if history is not None and history.club.id == stored.club.id else None
+            ))
         )
         self._send(_layout(title, "/experiments", body, wide=True))  # type: ignore[attr-defined]
 
@@ -185,6 +194,22 @@ class ExperimentPagesMixin:
         groups = {group.name for group in self.server.experiment_groups()}  # type: ignore[attr-defined]
         location = ("/experiments/all" if back == ALL_STORED else group_url(back) if back in groups else "/experiments")
         self._redirect(location)  # type: ignore[attr-defined]
+
+    def _post_experiment_mentality(self) -> None:
+        form = self._read_form()  # type: ignore[attr-defined]
+        try:
+            ids = [int(value) for value in form.get("id", [])]
+            if not ids:
+                raise ValueError("Tick at least one stored match first.")
+            clear = form.get("clear", [""])[0] == "1"
+            plan = None if clear else plan_from_form(form)
+            if plan is None and not clear:
+                raise ValueError("Choose the mentality at kickoff first.")
+            self.server.set_stored_mentality(ids, plan)  # type: ignore[attr-defined]
+        except _ERRORS as exc:
+            self._send(_error_page("Mentality", str(exc), "/experiments"), HTTPStatus.BAD_REQUEST)  # type: ignore[attr-defined]
+            return
+        self._redirect("/experiments")  # type: ignore[attr-defined]
 
     def _post_experiment_group_edit(self) -> None:
         form = self._read_form()  # type: ignore[attr-defined]

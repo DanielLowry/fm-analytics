@@ -10,7 +10,9 @@ from urllib.parse import quote
 from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.experiments import ExperimentReport, VariantFigures
 from fm_analytics.domain.experiments import MatchGroup, StoredMatch
+from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.web.match_render import versus
+from fm_analytics.web.mentality_render import hidden_mentality, mentality_fields
 
 
 def _e(value: object) -> str:
@@ -29,7 +31,8 @@ def _tactic_options(catalogue: FootballCatalogue, current: str | None = None) ->
 
 
 def label_fields(catalogue: FootballCatalogue, groups: Sequence[MatchGroup], *, variant: str = "",
-                 tactic: str | None = None, note: str = "", tags: dict | None = None, with_groups: bool = True) -> str:
+                 tactic: str | None = None, note: str = "", tags: dict | None = None, with_groups: bool = True,
+                 mentality: MentalityPlan | None = None) -> str:
     tag_text = "\n".join(f"{key}={value}" for key, value in (tags or {}).items())
     group_boxes = "".join(
         f"<label class='fm-check'><input type='checkbox' name='group' value='{_e(group.name)}'> {_e(group.name)}</label>"
@@ -41,14 +44,16 @@ def label_fields(catalogue: FootballCatalogue, groups: Sequence[MatchGroup], *, 
         f"<label>Catalogue tactic, if one fits<select name='tactic'>{_tactic_options(catalogue, tactic)}</select></label>"
         f"<label class='wide'>Notes: anything FM can't record<textarea name='note' maxlength='1000' "
         f"placeholder='Changes made in the match, team talks, what you saw'>{_e(note)}</textarea></label>"
-        f"<label class='wide'>Tags, one key=value a line<textarea name='tags' rows='2' placeholder='mentality=cautious'>{_e(tag_text)}</textarea></label>"
+        + mentality_fields(mentality)
+        + f"<label class='wide'>Tags, one key=value a line<textarea name='tags' rows='2' placeholder='opponent=Hampton'>{_e(tag_text)}</textarea></label>"
         + (("<fieldset class='fm-groups wide'><legend>Put it in groups</legend>" + group_boxes
             + "<label>New group<input name='new_group' maxlength='80' placeholder='e.g. Woking replays'></label></fieldset>")
            if with_groups else "")
     )
 
 
-def keep_match_form(match_key: str, catalogue: FootballCatalogue, groups: Sequence[MatchGroup]) -> str:
+def keep_match_form(match_key: str, catalogue: FootballCatalogue, groups: Sequence[MatchGroup],
+                    mentality: MentalityPlan | None = None) -> str:
     """The match page's "keep this match for experiments" form."""
     return (
         "<section class='fm-workspace-panel fm-experiment-keep'><details><summary>Store this match for experiments</summary>"
@@ -56,7 +61,8 @@ def keep_match_form(match_key: str, catalogue: FootballCatalogue, groups: Sequen
         "and compare it with others. Your match history is not changed.</p>"
         "<form class='fm-experiment-form' method='post' action='/experiments/store-history'>"
         f"<input type='hidden' name='match' value='{_e(match_key)}'>"
-        + label_fields(catalogue, groups) + "<div class='wide'><button type='submit'>Store it</button></div></form></details></section>"
+        + label_fields(catalogue, groups, mentality=mentality)
+        + "<div class='wide'><button type='submit'>Store it</button></div></form></details></section>"
     )
 
 
@@ -75,7 +81,8 @@ def _restore(match: StoredMatch) -> str:
         f"<input type='hidden' name='id' value='{match.id}'><input type='hidden' name='label' value='{_e(match.label.variant)}'>"
         f"<input type='hidden' name='tactic' value='{_e(match.label.tactic_key or '')}'>"
         f"<input type='hidden' name='note' value='{_e(match.label.note)}'><input type='hidden' name='tags' value='{_e(tags)}'>"
-        "<button type='submit' class='secondary'>Restore</button></form>"
+        + hidden_mentality(match.label.mentality)
+        + "<button type='submit' class='secondary'>Restore</button></form>"
     )
 
 
@@ -111,6 +118,7 @@ def experiments_body(stored: Sequence[StoredMatch], groups: Sequence[MatchGroup]
         f"<td data-sort='{match.match.date}'>{match.match.date:%d %b %Y}</td><td>{_e(match.opponent)}</td>"
         f"<td><a href='/experiments/match/{match.id}'>{match.match.home_goals}–{match.match.away_goals}</a></td>"
         f"<td>{_e(match.label.variant)}{_restore(match) if match.withdrawn else ''}</td>"
+        f"<td>{_e(match.label.mentality.text) if match.label.mentality else '<span class=muted>Not recorded</span>'}</td>"
         f"<td>{_e(', '.join(match.groups))}</td><td>{_e(match.label.note)}</td></tr>"
         for match in reversed(stored)
     )
@@ -138,18 +146,24 @@ def experiments_body(stored: Sequence[StoredMatch], groups: Sequence[MatchGroup]
         f"<p><a class='button-link secondary' href='/experiments/all'>Compare all {len(stored)} stored matches</a></p>"
         "</section>"
         + "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div><h2>Stored matches</h2>"
-        "<p>Tick matches, then put them in a group, take them out, or delete them.</p></div></div>"
+        "<p>Tick matches, then put them in a group, take them out, set the mentality they were played in, "
+        "or delete them.</p></div></div>"
         + ("<form id='membership' class='fm-inline-form' method='post' action='/experiments/membership'>"
            + (f"<label>Group<select name='group'>{group_options}</select></label>"
               "<button type='submit' name='member' value='1'>Add ticked</button>"
               "<button type='submit' name='member' value='0' class='secondary'>Remove ticked</button>" if groups else "")
+           + "<details class='fm-bulk-mentality'><summary>Set mentality for ticked…</summary>"
+           + mentality_fields(None)
+           + "<button type='submit' formaction='/experiments/mentality'>Set it for ticked matches</button> "
+           "<button type='submit' formaction='/experiments/mentality' name='clear' value='1' class='secondary'>"
+           "Clear it for ticked matches</button></details>"
            + "<details class='fm-danger'><summary>Delete ticked…</summary><span class='muted'>Gone for good, from "
            "every group. Withdraw a match instead to keep it out of comparisons but stored.</span>"
            "<button type='submit' formaction='/experiments/delete' class='danger'>Delete ticked matches permanently"
            "</button></details></form>"
            if stored else "")
         + (f"<div class='table-scroll'><table class='sortable'><thead><tr><th></th><th>#</th><th>Date</th><th>Opponent</th>"
-           f"<th>Score</th><th>Label</th><th>Groups</th><th>Notes</th></tr></thead><tbody>{match_rows}</tbody></table></div>"
+           f"<th>Score</th><th>Label</th><th>Mentality</th><th>Groups</th><th>Notes</th></tr></thead><tbody>{match_rows}</tbody></table></div>"
            if stored else "<p class='muted'>No matches stored yet.</p>")
         + "</section>"
     )
@@ -188,7 +202,8 @@ def _match_rows(report: ExperimentReport, catalogue: FootballCatalogue) -> str:
     for run in report.runs:
         tags = " ".join(f"{key}={value}" for key, value in run.tags.items())
         rows.append(
-            f"<tr><td>#{run.run_id}</td><td><span class='fm-label-cell'>{_e(run.variant)}</span></td>"
+            f"<tr><td>#{run.run_id}</td><td><span class='fm-label-cell'>{_e(run.variant)}</span>"
+            + (f"<br><span class='muted'>{_e(run.mentality.text)}</span>" if run.mentality else "") + "</td>"
             f"<td><a href='/experiments/match/{run.run_id}'>{_e(run.opponent)}</a></td>"
             f"<td data-sort='{run.match.date}'>{run.match.date:%d %b}</td>"
             f"<td>{run.result} {run.goals[0]}–{run.goals[1]}</td><td>{versus(*run.worth)}</td>"
@@ -200,7 +215,7 @@ def _match_rows(report: ExperimentReport, catalogue: FootballCatalogue) -> str:
             f"<td><details><summary>Edit</summary><form class='fm-experiment-form' method='post' action='/experiments/relabel'>"
             f"<input type='hidden' name='id' value='{run.run_id}'><input type='hidden' name='back' value='{_e(report.name)}'>"
             + label_fields(catalogue, (), variant=run.variant, tactic=run.tactic_key, note=run.note, tags=dict(run.tags),
-                           with_groups=False)
+                           with_groups=False, mentality=run.mentality)
             + "<div class='wide'><button type='submit'>Save</button> <button type='submit' name='withdraw' value='1' "
             "class='secondary'>Withdraw from comparisons</button></div></form>"
             + delete_match_control(run.run_id, back=report.name) + "</details></td></tr>"

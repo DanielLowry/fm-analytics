@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Mapping
 
 from fm_analytics.domain.matches import MatchRecord, TeamRef
+from fm_analytics.domain.mentality import MentalityPlan
 
 MAX_NAME_LENGTH = 80
 MAX_NOTE_LENGTH = 1000
@@ -29,6 +30,7 @@ class MatchLabel:
     tactic_key: str | None = None  # the catalogue tactic, when one fits
     note: str = ""
     tags: Mapping[str, str] = field(default_factory=dict)
+    mentality: MentalityPlan | None = None  # what the match was played in, as you recorded it
 
 
 @dataclass(frozen=True)
@@ -84,4 +86,4 @@ def validate_label(label: MatchLabel) -> MatchLabel:
     if len(tags) > MAX_TAGS or any(len(key) > MAX_NAME_LENGTH or len(value) > MAX_NAME_LENGTH for key, value in tags.items()):
         raise ValueError(f"a stored match has at most {MAX_TAGS} tags, each up to {MAX_NAME_LENGTH} characters")
     tactic = label.tactic_key.strip() if label.tactic_key else None
-    return MatchLabel(variant, tactic or None, note, tags)
+    return MatchLabel(variant, tactic or None, note, tags, label.mentality)

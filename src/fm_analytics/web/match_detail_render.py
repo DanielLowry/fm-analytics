@@ -13,6 +13,7 @@ from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis
 from fm_analytics.web.match_chances_render import match_chances_panel
 from fm_analytics.web.match_diagnosis_render import match_diagnosis_panel
 from fm_analytics.web.match_render import _e, chip, versus
+from fm_analytics.web.mentality_render import match_mentality_split, mentality_panel
 
 _RATING_AXIS = next(axis for axis in AXIS_DEFINITIONS if axis.key == "quality")
 RATING_LABELS = {
@@ -138,7 +139,7 @@ def shots_table(report: MatchReport) -> str:
         f"<td>{'You' if shot.ours else opponent}</td><td>{_e(shot.player or '')}</td><td>{shot.label}</td></tr>"
         for index, shot in enumerate(timeline.shots)
     )
-    return totals + goal_mouths(report) + score_split_table(report) + (
+    return totals + goal_mouths(report) + score_split_table(report) + match_mentality_split(timeline.by_score) + (
         "<details class='fm-match-shot-list'><summary>Every shot</summary><div class='table-scroll'>"
         "<table class='sortable'><thead><tr><th>Minute (clock)</th><th>Team</th><th>Player</th><th>Where it went</th></tr></thead>"
         f"<tbody>{rows}</tbody></table></div></details>"
@@ -399,4 +400,5 @@ def _notes_panel(report: MatchReport, catalogue: FootballCatalogue, pinned: Sequ
     return (
         "<section class='fm-workspace-panel fm-match-notes-panel'>" + note_form(report, catalogue, pinned, note)
         + penalty_forms(report) + "</section>"
+        + mentality_panel(report.summary.match.key, report.summary.mentality)
     )

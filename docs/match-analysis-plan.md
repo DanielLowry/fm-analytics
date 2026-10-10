@@ -92,6 +92,21 @@ both the page and `fm-matches review` use.
   figures. Every figure is also in `fm-matches review` and both exports,
   which carry each shot's clock and goal-line position, each match's split
   by the score and any FM timeline codes not yet identified.
+- **Mentality, as you record it** (10 October 2026): FM keeps no record of a
+  match's mentality that our reader finds, so a match page has a Mentality
+  panel for the one you started in and each change, from the minute you made
+  it (`fm-matches mentality KEY "Balanced, 65 Cautious"` does the same). It
+  is kept in its own table (`match_mentalities`), which reading FM never
+  writes, so a re-read keeps it (`tests/test_mentality.py`). With it, a match
+  is also split by the mentality in use and by mentality and score together
+  (`match_breakdowns.score_split`), on its page, in a "By mentality" panel on
+  the Matches page and in every export. A change counts from that minute on
+  the match clock; around half-time it is approximate, as the score split is.
+- **Every copy holds what the pages show** (10 October 2026): a match page's
+  "Copy match to clipboard", and each match in "Copy all match data" and in
+  a group's copy on the Experiments pages, carries its Diagnosis with its
+  Result vs chances (`diagnosis_export.py`); "Copy all match data" also
+  carries the page's season diagnosis and its penalty record.
 - **A Diagnosis on each match page** (and in `fm-matches show`): no finding,
   since one match is too few for one, but where it sat. Each side's shots, shots
   on target and clear-cut chances against the usual range for that opponent
@@ -201,11 +216,11 @@ both the page and `fm-matches review` use.
 |---|---|
 | Reading FM | `tools/fm20_match_layout.py` (byte layouts, tested), `tools/fm20_match_probe.py` (`capture`, plus the research commands) |
 | Domain | `domain/matches.py` (`MatchCapture`, `MatchRecord`, `MatchDetail`, …) |
-| Storage | `persistence/match_history.py`, with the upgrade runner shared with player knowledge in `persistence/migrations.py` |
+| Storage | `persistence/match_history.py`, with the upgrade runner shared with player knowledge in `persistence/migrations.py`; your mentality record is `domain/mentality.py` |
 | Analysis | `analytics/match_strength.py` (league table at kickoff, strength groups), `analytics/match_roles.py` (role codes, tactic inference, role summaries), `analytics/match_analysis.py` (the review), `analytics/match_diagnostics.py` and `analytics/single_match_diagnosis.py` (season and one-match diagnosis), `analytics/chance_value.py` and `analytics/match_chances.py` (result vs chances), `analytics/game_state.py`, `analytics/role_ratings.py` and `analytics/season_chances.py` (season findings and results against chances) |
 | Shared computation | `reporting.build_match_review`, `reporting.build_match_report`, `reporting.build_matches_export` |
 | Command line | `match_ingest.py` (`fm-matches`) |
-| Web | `web/match_pages.py`, `web/match_render.py`, `web/match_state.py`, `web/match_detail_render.py`, `web/match_diagnosis_render.py`, `web/match_chances_render.py`, `web/season_chances_render.py` (styles in `frontend/styles/match-chances.css`, chart hover in `frontend/scripts/trend-chart.js`) |
+| Web | `web/match_pages.py`, `web/match_render.py`, `web/match_state.py`, `web/match_detail_render.py`, `web/match_diagnosis_render.py`, `web/match_chances_render.py`, `web/season_chances_render.py`, `web/mentality_render.py` (styles in `frontend/styles/match-chances.css`, chart hover in `frontend/scripts/trend-chart.js`) |
 | Tests | `test_match_models`, `test_match_history`, `test_match_analysis`, `test_match_ingest`, `test_web_matches`, `test_fm20_match_layout`, `test_match_diagnostics`, `test_match_chances` |
 
 ### Differences from the plan below

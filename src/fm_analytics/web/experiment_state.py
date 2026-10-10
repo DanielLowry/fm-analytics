@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Sequence
 
 from fm_analytics.domain.experiments import MatchLabel, MatchGroup, StoredMatch
+from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.experiment_ingest import DEFAULT_EXPERIMENTS, store_from_fm, store_from_history
 from fm_analytics.persistence.experiments import ExperimentStore
 
@@ -99,6 +100,13 @@ class ExperimentState:
         self._experiments().delete(match_ids)
         numbers = ", ".join(f"#{match_id}" for match_id in match_ids)
         self.experiment_note = (f"Deleted {numbers} for good.", True)
+
+    def set_stored_mentality(self, match_ids: Sequence[int], plan: MentalityPlan | None) -> None:
+        self._experiments().set_mentality(match_ids, plan)
+        numbers = ", ".join(f"#{match_id}" for match_id in match_ids)
+        self.experiment_note = (
+            f"{numbers}: {'played in ' + plan.text if plan else 'mentality cleared'}.", True
+        )
 
     def edit_experiment_group(self, name: str, new_name: str, note: str) -> None:
         self._experiments().edit_group(name, new_name, note)

@@ -15,6 +15,7 @@ from fm_analytics.analytics.match_analysis import ReviewFilters
 from fm_analytics.analytics.match_interventions import evaluate_intervention, propose_intervention
 from fm_analytics.analytics.player_form import FormLookup
 from fm_analytics.persistence.match_history import MatchHistory, MatchHistoryError, MatchHistoryStore
+from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.reporting import build_match_diagnostics, build_match_review, squad_form
 
 
@@ -107,6 +108,13 @@ class MatchHistoryState:
         if key is None:
             raise ValueError("No matches are recorded yet.")
         self.match_store.record_penalty_foul(key, match_key, minute, added_time, player_short_id)
+
+    def record_match_mentality(self, match_key: str, plan: MentalityPlan | None) -> None:
+        """The manager's record of the mentality a match was played in. Local database only; never FM."""
+        key = self._match_key()
+        if key is None:
+            raise ValueError("No matches are recorded yet.")
+        self.match_store.record_mentality(key, match_key, plan)
 
     def confirm_role_code(self, code: int, role_key: str) -> None:
         if self.match_store is None:

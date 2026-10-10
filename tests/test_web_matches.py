@@ -12,6 +12,7 @@ from fm_analytics.reporting import build_match_export, build_match_report, build
 from tests.match_support import capture_document, season, two_seasons
 from tests.test_penalty_record import with_penalty_against_us
 from tests.test_match_chances import SNATCHED, UNLUCKY, chance_match
+from tests.test_mentality import season_with_shots
 from tests.test_match_chances import baseline as chance_baseline
 from tests.test_match_diagnostics import diagnostic_season, one_match_target, varied_season
 from tests.web_support import FIXTURE, WebServerHelpers, write_complete_fixture
@@ -198,6 +199,53 @@ class MatchPageTests(MatchPagesCase):
         copied["meta"].pop("generated_at")
         expected["meta"].pop("generated_at")
         self.assertEqual(copied, expected)
+
+    def test_the_copy_holds_the_pages_diagnosis_and_result_vs_chances(self) -> None:
+        target = chance_match("2019-10-01", UNLUCKY, SNATCHED)
+        self.capture.write_text(
+            json.dumps(capture_document(chance_baseline() + [target], game_date="2019-10-20")), encoding="utf-8"
+        )
+        self.record()
+        _status, body = self._get(self.serve(), "/matches/" + quote("2019-10-01:100:201", safe=""))
+        source = body.split("<script type='application/json' data-player-copy-text>")[1].split("</script>")[0]
+        diagnosis = json.loads(json.loads(source))["match"]["diagnosis"]
+        chances = diagnosis["result_vs_chances"]
+        self.assertEqual((chances["verdict"], chances["tone"]), ("Unlucky defeat", "unlucky"))
+        self.assertEqual((round(chances["us"]["worth"], 1), round(chances["them"]["worth"], 1)), (3.0, 0.5))
+        self.assertTrue(chances["us"]["missed_clear_cut_chances"])
+        self.assertTrue(chances["against_your_usual"])
+        self.assertIn("FM20 shows no expected goals", chances["method"])
+        self.assertIsNotNone(diagnosis["compared_with"])
+
+    def test_the_mentality_is_recorded_on_the_match_page_and_survives_reading_fm_again(self) -> None:
+        self.capture.write_text(json.dumps(capture_document(season_with_shots())), encoding="utf-8")
+        self.record()
+        port = self.serve()
+        _status, body = self._get(port, DETAILED_URL)
+        self.assertIn("<h2>Mentality</h2>", body)
+        self.assertIn("Not recorded for this match.", body)
+        form = "match=" + quote(DETAILED) + "&mentality=Positive&change_minute=70&change_mentality=Balanced" \
+               "&change_minute=&change_mentality=&change_minute=&change_mentality="
+        status, location, _body = self._post(port, "/matches/mentality", form)
+        self.assertEqual((status, location), (303, DETAILED_URL))
+        later = season_with_shots()
+        later[-1]["attendance"] = 1234  # FM read again, with a new version of the match itself
+        self.capture.write_text(json.dumps(capture_document(later, game_date="2019-09-20")), encoding="utf-8")
+        self._post(port, "/matches/capture")
+        _status, body = self._get(port, "/matches")
+        self.assertIn("1 new or changed", body)
+        _status, body = self._get(port, DETAILED_URL)
+        self.assertIn("Recorded: <strong>Positive; Balanced from 70′</strong>", body)
+        self.assertIn("<h3>By mentality</h3>", body)
+        _status, body = self._get(port, "/matches")
+        self.assertIn("<h2>By mentality</h2>", body)
+        status, _location, body = self._post(port, "/matches/mentality",
+                                             "match=" + quote(DETAILED) + "&mentality=&change_minute=60&change_mentality=Cautious")
+        self.assertEqual(status, 400)
+        self.assertIn("Choose the mentality at kickoff before any change.", body)
+        self._post(port, "/matches/mentality", "match=" + quote(DETAILED) + "&clear=1")
+        _status, body = self._get(port, DETAILED_URL)
+        self.assertIn("Not recorded for this match.", body)
 
     def test_a_result_only_match_explains_how_to_add_its_stats(self) -> None:
         self.record()

@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 from urllib.parse import quote
 
+from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.match_ingest import record_capture_file
 from fm_analytics.persistence.experiments import ExperimentStore
 from fm_analytics.persistence.match_history import MatchHistoryStore
@@ -103,6 +104,32 @@ class ExperimentPagesTests(WebServerHelpers, unittest.TestCase):
         self.assertIn("Tick at least one", body)
         _status, body = self._get(port, "/experiments/all")
         self.assertNotIn("Rename or delete this group", body)
+
+    def test_the_mentality_is_set_for_ticked_matches_kept_by_edits_and_copied_from_the_history(self) -> None:
+        self.history.record_mentality("club:100", DETAILED, MentalityPlan.parse("Balanced"))
+        port = self.serve()
+        self._post(port, "/experiments/store-history", f"match={quote(DETAILED)}&label=A")
+        (stored,) = self.store.matches()
+        self.assertEqual(stored.label.mentality, MentalityPlan.parse("Balanced"))  # as recorded on its page
+        _status, body = self._get(port, "/experiments")
+        self.assertIn("<td>Balanced</td>", body)
+        self.assertIn("formaction='/experiments/mentality'", body)
+        status, _location, _body = self._post(
+            port, "/experiments/mentality", "id=1&mentality=Attacking&change_minute=75&change_mentality=Balanced")
+        self.assertEqual(status, 303)
+        self.assertEqual(self.store.matches()[0].label.mentality.text, "Attacking; Balanced from 75′")
+        self.assertEqual(self.store.matches()[0].label.variant, "A")  # the rest of the label is kept
+        _status, body = self._get(port, "/experiments/all")
+        self.assertIn("<br><span class='muted'>Attacking; Balanced from 75′</span>", body)
+        # Withdrawing from Edit posts the mentality fields as shown, so it is kept.
+        self._post(port, "/experiments/relabel", "id=1&label=A&withdraw=1&mentality=Attacking"
+                                                 "&change_minute=75&change_mentality=Balanced")
+        self.assertEqual(self.store.matches()[0].label.mentality.text, "Attacking; Balanced from 75′")
+        status, _location, body = self._post(port, "/experiments/mentality", "id=1&mentality=")
+        self.assertEqual(status, 400)
+        self.assertIn("Choose the mentality at kickoff first.", body)
+        self._post(port, "/experiments/mentality", "id=1&clear=1")
+        self.assertIsNone(self.store.matches()[0].label.mentality)
 
 
 if __name__ == "__main__":

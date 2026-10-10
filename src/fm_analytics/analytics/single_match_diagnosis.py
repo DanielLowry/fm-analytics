@@ -14,7 +14,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from statistics import mean, stdev
-from typing import Sequence
+from typing import Mapping, Sequence
 
 from fm_analytics.analytics.game_state import LATE_MINUTE, GameState, complete_goal_sequence, game_state
 from fm_analytics.analytics.match_analysis import MatchReview, MatchSummary
@@ -172,9 +172,12 @@ def _how_it_played_out(summary: MatchSummary, season: GameState | None) -> tuple
 
 
 def _rating_standouts(
-    review: MatchReview, summary: MatchSummary
+    review: MatchReview, summary: MatchSummary, own_roles: Mapping[tuple[str, int], str] | None = None
 ) -> tuple[tuple[RatingStandout, ...], tuple[RatingStandout, ...]]:
-    """Our players rated well away from their own average in the same role, in the other matches."""
+    """Our players rated well away from their own average in the same role, in the other matches.
+
+    `own_roles` are the match's roles when it is judged apart from the review (see `diagnose_one_match`).
+    """
     key = summary.match.key
     usual: dict[tuple[str, str], list[float]] = {}
     for row in review.matches:
@@ -187,7 +190,10 @@ def _rating_standouts(
     above: list[RatingStandout] = []
     below: list[RatingStandout] = []
     for player in summary.match.detail.players_for(summary.side):
-        role = review.appearance_roles.get((key, player.side, player.short_id))
+        role = (
+            own_roles.get((player.side, player.short_id)) if own_roles is not None
+            else review.appearance_roles.get((key, player.side, player.short_id))
+        )
         ratings = usual.get((player.player_id or player.label, role or ""), [])
         if (
             player.rating is None or not role or player.minutes < MIN_STANDOUT_MINUTES
@@ -205,14 +211,24 @@ def _rating_standouts(
     return tuple(above[:MAX_STANDOUTS]), tuple(below[:MAX_STANDOUTS])
 
 
-def diagnose_one_match(review: MatchReview, summary: MatchSummary) -> OneMatchDiagnosis:
+def diagnose_one_match(
+    review: MatchReview, summary: MatchSummary, *, own_roles: Mapping[tuple[str, int], str] | None = None
+) -> OneMatchDiagnosis:
     """One match against the usual range of the review's other usable matches.
 
     `review` is the selection the season diagnosis reads (competitive matches);
     `summary` is the match itself, which may be outside it, as a friendly is.
+    A stored experiment match is judged apart from the review with
+    `own_roles`, its own roles by (side, short ID): a replay shares its
+    fixture's key with the match in the history, so nothing about the match
+    itself may be looked up there. It then counts as competitive unless it
+    is a friendly, and the matches it is compared with leave out that fixture.
     """
     key = summary.match.key
-    in_review = any(row.match.key == key for row in review.matches)
+    in_review = (
+        not summary.match.competition.is_friendly if own_roles is not None
+        else any(row.match.key == key for row in review.matches)
+    )
     baseline = [row for row in eligible_team_summaries(review) if row.match.key != key]
     venue = "at home" if summary.side == "home" else "away"
     if not in_review:
@@ -231,7 +247,7 @@ def diagnose_one_match(review: MatchReview, summary: MatchSummary) -> OneMatchDi
         reason = None
     checks = _usual_ranges(summary, baseline) if reason is None else ()
     above, below = (
-        _rating_standouts(review, summary)
+        _rating_standouts(review, summary, own_roles)
         if in_review and summary.match.detail is not None else ((), ())
     )
     chances, chances_not_judged = judge_chances(review, summary, compare_usual=reason is None)

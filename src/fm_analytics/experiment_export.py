@@ -21,10 +21,10 @@ from fm_analytics.analytics.match_analysis import MatchReport
 from fm_analytics.analytics.match_breakdowns import breakdowns
 from fm_analytics.analytics.match_players import summarise_players
 from fm_analytics.analytics.match_roles import RoleCodes
+from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis
 from fm_analytics.domain.experiments import StoredMatch
-from fm_analytics.season_export import (
-    DUTY_CAVEAT, MATCH_CAVEATS, breakdowns_json, full_match_entry, has_null_duty, player_json,
-)
+from fm_analytics.breakdowns_export import breakdowns_json
+from fm_analytics.season_export import DUTY_CAVEAT, MATCH_CAVEATS, full_match_entry, has_null_duty, player_json
 
 if TYPE_CHECKING:
     from fm_analytics.persistence.match_history import MatchHistory
@@ -58,6 +58,7 @@ def experiment_document(
     stored: Sequence[StoredMatch],
     reports: Mapping[int, MatchReport],
     history: MatchHistory | None,
+    diagnoses: Mapping[int, OneMatchDiagnosis],
     *,
     catalogue: FootballCatalogue,
     generated_at: datetime | None = None,
@@ -67,7 +68,8 @@ def experiment_document(
     `reports` are the stored matches' own reports (`reporting.build_stored_match_report`)
     by ID; `history` is the same club's match history or None, for the
     league table at kickoff, FM role codes you confirmed and which
-    competitions are leagues.
+    competitions are leagues; `diagnoses` each stored match's Diagnosis,
+    against that history's competitive matches (none without one).
     """
     codes = RoleCodes.build(catalogue, history.role_codes if history else {})
     league_ids = {competition.id for competition, _results in history.league_results} if history else None
@@ -81,7 +83,9 @@ def experiment_document(
 
     def counted(runs: Sequence[RunFigures]) -> dict[str, Any]:
         """The Matches page's breakdowns and player lines, for just these matches."""
-        found = breakdowns((run.match for run in runs if run.run_id in ours), club_id)
+        counted_runs = [run for run in runs if run.run_id in ours]
+        found = breakdowns((run.match for run in counted_runs), club_id,
+                           plans=[reports[run.run_id].summary.mentality for run in counted_runs])
         lines = summarise_players(
             (player, summary.match.date, summary.opponent.name,
              reports[run.run_id].role_labels.get((player.side, player.short_id))
@@ -101,11 +105,13 @@ def experiment_document(
         run = figures.get(item.id)
         rows.append({
             "stored_match_id": item.id, "label": item.label.variant, "tactic_key": item.label.tactic_key,
-            "note": item.label.note, "tags": dict(item.label.tags), "stored_at": item.stored_at,
+            "note": item.label.note, "tags": dict(item.label.tags),
+            "mentality": item.label.mentality.to_document() if item.label.mentality else None,
+            "stored_at": item.stored_at,
             "groups": list(item.groups), "withdrawn": item.withdrawn,
             "figures": _figures(run) if run else None,
             "match": full_match_entry(reports[item.id].summary, codes, catalogue, roles(item),
-                                      league_ids=league_ids, given_away={}),
+                                      league_ids=league_ids, given_away={}, diagnosis=diagnoses.get(item.id)),
         })
     caveats = [*_CAVEATS, *MATCH_CAVEATS]
     if any(has_null_duty(row["match"]) for row in rows):

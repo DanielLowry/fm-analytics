@@ -14,6 +14,7 @@ from typing import Mapping
 
 from fm_analytics.analytics.goal_descriptions import GoalDescription, describe_goal
 from fm_analytics.analytics.match_breakdowns import ScoreSplit, score_split
+from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.domain.matches import MatchEvent, MatchRecord, MatchShot
 
 # What the timeline lists, in FM's words. A sending-off always follows its
@@ -212,12 +213,14 @@ def _side_shots(shots: tuple[MatchShot, ...], side: str) -> SideShots:
 
 
 def build_timeline(
-    match: MatchRecord, side: str, *, given_away: Mapping[tuple[int, int], str] = {}
+    match: MatchRecord, side: str, *, given_away: Mapping[tuple[int, int], str] = {},
+    mentality: MentalityPlan | None = None,
 ) -> MatchTimeline | None:
     """The match's timeline and shots from `side`'s point of view, or None without match detail.
 
     `given_away` is the manager's record of who conceded each penalty against
-    `side`, by (minute, added time); see `analytics.penalty_record`.
+    `side`, by (minute, added time); see `analytics.penalty_record`. With
+    `mentality`, the manager's record of it, `by_score` is also split by it.
     """
     detail = match.detail
     if detail is None:
@@ -244,7 +247,7 @@ def build_timeline(
         ours=_side_shots(detail.shots, side) if detail.shots else None,
         theirs=_side_shots(detail.shots, other) if detail.shots else None,
         named=any(event.player_short_id is not None for event in detail.events),
-        by_score=score_split(match, side),
+        by_score=score_split(match, side, mentality),
         unidentified=tuple(
             (event.clock, event.side == side, event.code) for event in detail.events if event.kind == "other"
         ),

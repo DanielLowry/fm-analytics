@@ -48,6 +48,7 @@ from fm_analytics.analytics.match_interventions import InterventionEvaluation
 from fm_analytics.analytics.match_strength import GROUPINGS
 from fm_analytics.bridge import LinuxProtonDataSource
 from fm_analytics.domain.matches import MatchCapture
+from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.knowledge_ingest import default_save_key
 from fm_analytics.persistence.match_history import (
     MatchHistoryError,
@@ -457,6 +458,11 @@ def build_parser() -> argparse.ArgumentParser:
     who = penalty.add_mutually_exclusive_group(required=True)
     who.add_argument("--player", help="your player's name, or enough of it to tell him apart")
     who.add_argument("--clear", action="store_true", help="forget who gave it away")
+    mentality = commands.add_parser("mentality", help="record the mentality a match was played in, and any changes")
+    mentality.add_argument("match")
+    plan = mentality.add_mutually_exclusive_group(required=True)
+    plan.add_argument("plan", nargs="?", help="e.g. 'Balanced, 65 Cautious, 80 Positive': kickoff, then minute and mentality")
+    plan.add_argument("--clear", action="store_true", help="forget the mentality recorded for it")
     export = commands.add_parser("export", help="the season as one JSON document")
     export.add_argument("--detail", choices=DETAIL_LEVELS, default="standard",
                         help="basic: records, splits and one line per match; standard: adds line-ups, "
@@ -591,6 +597,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                           f"squad {document['meta']['squad']}).")
             elif args.command == "penalty":
                 print(_record_penalty(store, history, args))
+            elif args.command == "mentality":
+                plan = None if args.clear else MentalityPlan.parse(args.plan)
+                store.record_mentality(history.save_key, args.match, plan)
+                print(f"Recorded: {plan.text}." if plan else "Cleared.")
             elif args.command == "note":
                 if args.tactic and args.tactic not in MVP_CATALOGUE.tactics:
                     raise ValueError(f"unknown tactic key {args.tactic!r}")
@@ -639,6 +649,13 @@ def _score_lines(found: Breakdowns, pair) -> list[str]:
         tally = found.by_period[label]
         lines.append(f"  {label:8} {tally.shots[0]}–{tally.shots[1]:<4} {tally.on_goal[0]}–{tally.on_goal[1]:<4} "
                      f"{tally.clear_cut_chances[0]}–{tally.clear_cut_chances[1]:<4} {tally.goals[0]}–{tally.goals[1]}")
+    if found.mentality_matches:
+        lines.append(f"By mentality and the score (you – them, per 90; {found.mentality_matches} matches with one recorded)")
+        for (name, state), tally in found.by_mentality_state.items():
+            if tally.minutes >= 1:
+                lines.append(f"  {name + ', ' + state:24}{tally.minutes:>6.0f}  {pair(tally.per_90(tally.shots)):>14}  "
+                             f"{pair(tally.per_90(tally.on_goal)):>14}  {pair(tally.per_90(tally.clear_cut_chances)):>14}  "
+                             f"{tally.goals[0]}–{tally.goals[1]}")
     return lines
 
 
@@ -691,6 +708,7 @@ def _format_match(report) -> str:
         f"At kickoff: {position} ({summary.band.label}). Tactic: "
         f"{MVP_CATALOGUE.tactics[summary.tactic_key].name if summary.tactic_key in MVP_CATALOGUE.tactics else 'not known'}"
         f"{' (from the line-up)' if summary.tactic_inferred else ''}",
+        f"Mentality: {summary.mentality.text if summary.mentality else 'not recorded'}",
     ]
     if summary.ours is None:
         lines.append("Only the result was captured for this match.")
