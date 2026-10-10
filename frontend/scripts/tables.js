@@ -20,7 +20,8 @@ export function positionValue(text) {
 }
 export function initTables(scope = document) {
   scope.querySelectorAll('table').forEach((table) => {
-    if (table.dataset.fmTable || table.closest('#scouting-results')) return;
+    // A small summary table opts out of the toolbar with data-fm-plain.
+    if (table.dataset.fmTable || 'fmPlain' in table.dataset || table.closest('#scouting-results')) return;
     table.dataset.fmTable = 'true';
     let headRow = table.tHead?.rows[0] || table.rows[0];
     if (!headRow) return;

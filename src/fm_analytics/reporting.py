@@ -31,6 +31,7 @@ from fm_analytics.analytics.contract_planning import ContractPolicy, ContractRev
 from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.analytics.player_form import FormLookup, FormPolicy, build_form
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics, diagnose_matches
+from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis, diagnose_one_match
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, evaluate_intervention
 from fm_analytics.analytics import (
     BenchSelection,
@@ -820,6 +821,20 @@ def build_match_report(
         confirmed_role_codes=history.role_codes,
         usual_roles=history.usual_roles,
     )
+
+
+def build_match_diagnosis(
+    history: MatchHistory, report: MatchReport, *, catalogue: FootballCatalogue = MVP_CATALOGUE
+) -> OneMatchDiagnosis:
+    """One match against your usual range: the match page's Diagnosis and `fm-matches show`.
+
+    Judged against the selection the Matches page's season diagnosis reads,
+    every competitive match whatever its filters, less this match itself.
+    """
+    review = build_match_review(
+        history, filters=ReviewFilters(grouping="table", competitions="competitive"), catalogue=catalogue
+    )
+    return diagnose_one_match(review, report.summary)
 
 
 def build_match_export(

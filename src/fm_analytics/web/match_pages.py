@@ -18,6 +18,7 @@ from fm_analytics.analytics.match_analysis import ReviewFilters
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.match_ingest import export_path
 from fm_analytics.reporting import (
+    build_match_diagnosis,
     build_match_diagnostics,
     build_match_export,
     build_match_intervention_evaluation,
@@ -30,7 +31,6 @@ from fm_analytics.season_export import DETAIL_LEVELS
 from fm_analytics.web.match_render import (
     capture_panel,
     export_links,
-    match_body,
     match_url,
     matches_copy_control,
     review_body,
@@ -38,6 +38,7 @@ from fm_analytics.web.match_render import (
     tactic_record_panel,
 )
 from fm_analytics.web.attribute_export import profile_copy_control
+from fm_analytics.web.match_detail_render import match_body
 from fm_analytics.web.rendering import _error_page, _layout, _query_first, _query_number
 
 
@@ -208,6 +209,7 @@ class MatchPagesMixin:
         body = "<p><a href='/matches'>← All matches</a></p>" + match_body(
             report, MVP_CATALOGUE, self.server.pinned_tactics,  # type: ignore[attr-defined]
             history.notes.get(summary.match.key), copy_control=copy,
+            diagnosis=build_match_diagnosis(history, report),
         )
         self._send(_layout(title, "/matches", body, wide=True))  # type: ignore[attr-defined]
 

@@ -176,3 +176,26 @@ def team_tactic(
     if not fits or len({duties for _prefix, duties in fits}) != 1:
         return None
     return fits[0][0]
+
+
+def formation_name(
+    prefixes: tuple[TacticPrefix, ...], positions: list[int], *, excluding: frozenset[str] = frozenset()
+) -> str | None:
+    """FM's name for the formation a side's eleven starters lined up in, or None.
+
+    For a side FM's AI manages, the saved tactic is named after its formation
+    ("4-3-3 Narrow", as FM shows it) but holds only that formation's template
+    roles, not the ones its players' records show (checked 10 October 2026),
+    so it is matched by the starters' positions alone, centre side included.
+    ``positions`` is each starter's starting position code. Tactics named in
+    ``excluding`` (the other side's own) are left out; every other tactic with
+    exactly those positions must share one name, or there is none.
+    """
+    if len(positions) != 11 or len(set(positions)) != 11:
+        return None
+    names = {
+        prefix.name
+        for prefix in prefixes
+        if prefix.name not in excluding and {slot.position for slot in prefix.slots} == set(positions)
+    }
+    return names.pop() if len(names) == 1 else None

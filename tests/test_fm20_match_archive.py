@@ -175,5 +175,90 @@ class ArchiveTests(unittest.TestCase):
         self.assertEqual((found["second"]["home"]["shots"], found["second"]["away"]["shots"]), (0, 1))
 
 
+def shot_group(zone: int, *shots: tuple[float, float, int, int]) -> bytes:
+    """One group of a player's shots: zone, count, each shot, then the byte not yet known."""
+    body = b"".join(struct.pack("<ff", across, up) + bytes([minute, second, 0x55, 0x0A]) for across, up, minute, second in shots)
+    return bytes([zone, len(shots)]) + body + b"\x40"
+
+
+def shooter(shots: int, groups: bytes) -> tuple[bytes, dict]:
+    """A chunk with one player's fixed record, his shot groups, then the next record's leading byte."""
+    data = bytes(archive.SHOTS_START) + groups + b"\x01"
+    return data, {"at": 0, "side": "home", "short_id": 7, "stats": {"shots": shots}}
+
+
+def event_record(side: int, place: int, code: int, minute: int, added: int = 0, descriptor: bytes = bytes(8)) -> bytes:
+    record = bytearray(archive.EVENT_LENGTH)
+    record[0:4] = bytes([1, side, place, code])
+    struct.pack_into("<I", record, 4, 243 * minute + 60 * added)
+    record[8], record[9] = minute, added
+    record[archive.DESCRIPTOR_AT:archive.DESCRIPTOR_AT + 8] = descriptor
+    return bytes(record)
+
+
+def timeline(*records: bytes, count: int | None = None) -> bytes:
+    return b"\xff" * 16 + struct.pack("<H", len(records) if count is None else count) + b"".join(records) + b"\x00" * 64
+
+
+LINE_UPS = [
+    {"side": side, "order": order, "short_id": (100 if side == "home" else 200) + order}
+    for side in ("home", "away") for order in range(16)
+]
+
+
+class ShotTests(unittest.TestCase):
+    def test_shots_are_read_group_by_group_up_to_the_next_record(self) -> None:
+        data, player = shooter(3, shot_group(0x04, (-3.339, 1.793, 48, 12))
+                                  + shot_group(0x20, (2.35, 3.03, 11, 1), (-2.316, 2.688, 50, 57)))
+        self.assertEqual(archive.decode_shots(data, player, len(data) - 1), [
+            {"minute": 48, "second": 12, "across": -3.34, "up": 1.79},
+            {"minute": 11, "second": 1, "across": 2.35, "up": 3.03},
+            {"minute": 50, "second": 57, "across": -2.32, "up": 2.69},
+        ])
+
+    def test_shots_that_do_not_end_at_the_next_record_or_fit_the_count_are_refused(self) -> None:
+        data, player = shooter(2, shot_group(0x04, (0.5, 0.5, 10, 0), (0.5, 0.5, 20, 0)))
+        self.assertIsNone(archive.decode_shots(data, player, len(data)))  # one byte short of where it must end
+        self.assertIsNone(archive.decode_shots(data, dict(player, stats={"shots": 1}), None))  # a group of two for one shot
+        data, player = shooter(1, shot_group(0x04, (0.5, 0.5, 10, 75)))  # a 75th second
+        self.assertIsNone(archive.decode_shots(data, player, None))
+
+    def test_a_match_with_one_undecodable_player_has_no_shots_at_all(self) -> None:
+        good, player = shooter(1, shot_group(0x04, (0.5, 0.5, 10, 0)))
+        self.assertEqual(len(archive.match_shots(good, [player])), 1)
+        self.assertIsNone(archive.match_shots(good, [player, dict(player, at=1, short_id=8)]))
+
+
+class TimelineTests(unittest.TestCase):
+    def test_the_timeline_names_each_player_and_its_goals_give_the_score(self) -> None:
+        data = timeline(
+            event_record(0, 7, 0x2F, 49),
+            event_record(0, 7, 0x01, 49, descriptor=bytes.fromhex("0100080008c00000")),
+            event_record(0, 5, 0x24, 49),
+            event_record(1, 4, 0x26, 62),
+            event_record(1, 0xFF, 0x31, 70),  # a team's own event
+            event_record(0, 1, 0x03, 90, added=3),
+        )
+        events = archive.decode_events(data, LINE_UPS, 2, 0)
+        self.assertEqual([(e["minute"], e["addedTime"], e["side"], e["kind"], e.get("playerShortId")) for e in events], [
+            (49, 0, "home", "clear_cut_chance", 107), (49, 0, "home", "goal", 107), (49, 0, "home", "assist", 105),
+            (62, 0, "away", "yellow_card", 204), (70, 0, "away", "other", None), (90, 3, "home", "penalty", 101),
+        ])
+        self.assertEqual(events[1]["descriptor"], "0100080008c00000")
+        self.assertNotIn("descriptor", events[0])
+
+    def test_an_own_goal_counts_for_the_other_side_and_a_lone_assist_code_is_not_an_assist(self) -> None:
+        data = timeline(event_record(0, 9, 0x24, 1), event_record(1, 3, 0x02, 34))
+        events = archive.decode_events(data, LINE_UPS, 1, 0)
+        self.assertEqual([(e["side"], e["kind"]) for e in events], [("home", "other"), ("away", "own_goal")])
+
+    def test_a_timeline_that_misses_a_goal_or_its_count_or_a_player_is_refused(self) -> None:
+        goal = event_record(0, 7, 0x01, 49)
+        self.assertIsNone(archive.decode_events(timeline(goal), LINE_UPS, 2, 0))
+        self.assertIsNone(archive.decode_events(timeline(goal, count=3), LINE_UPS, 1, 0))
+        self.assertIsNone(archive.decode_events(timeline(event_record(0, 30, 0x01, 49)), LINE_UPS, 1, 0))
+        self.assertEqual(archive.decode_events(timeline(), LINE_UPS, 0, 0), [])
+
+
 if __name__ == "__main__":
     unittest.main()

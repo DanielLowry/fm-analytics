@@ -22,6 +22,7 @@ from fm_analytics.analytics.catalogue import FootballCatalogue
 from fm_analytics.analytics.appearance_context import appearance_roles
 from fm_analytics.analytics.match_players import PlayerSeason, summarise_players
 from fm_analytics.analytics.match_roles import RoleCodes, RoleSummary, summarise_roles
+from fm_analytics.analytics.match_timeline import MatchTimeline, build_timeline
 from fm_analytics.analytics.match_strength import (
     BANDS,
     GROUPING_LABELS,
@@ -433,6 +434,7 @@ class MatchReport:
 
     summary: MatchSummary
     role_labels: Mapping[tuple[str, int], str]  # (side, short ID) -> the role he played
+    timeline: MatchTimeline | None = None  # None without match detail
 
 
 def report_match(
@@ -452,7 +454,11 @@ def report_match(
         return None
     (summary,) = summarise_matches([match], leagues, club, notes=notes, codes=codes, grouping="table")
     roles = appearance_roles([match], club.id, notes=notes, codes=codes, usual_roles=usual_roles)
-    return MatchReport(summary, {(side, short_id): role for (_key, side, short_id), role in roles.items()})
+    return MatchReport(
+        summary,
+        {(side, short_id): role for (_key, side, short_id), role in roles.items()},
+        build_timeline(match, summary.side),
+    )
 
 
 def review_matches(

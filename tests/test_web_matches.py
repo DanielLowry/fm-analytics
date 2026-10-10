@@ -10,7 +10,7 @@ from fm_analytics.persistence.match_history import MatchHistoryStore
 from fm_analytics.reporting import build_match_export, build_match_report, build_match_review
 
 from tests.match_support import capture_document, season, two_seasons
-from tests.test_match_diagnostics import diagnostic_season
+from tests.test_match_diagnostics import diagnostic_season, one_match_target, varied_season
 from tests.web_support import FIXTURE, WebServerHelpers, write_complete_fixture
 
 DETAILED = "2019-09-01:100:201"
@@ -118,6 +118,42 @@ class MatchPageTests(MatchPagesCase):
         self.assertIn("Minutes", body)
         self.assertIn("action='/matches/note'", body)
 
+    def test_a_match_page_shows_the_named_timeline_every_shot_and_their_formation(self) -> None:
+        matches = season()
+        found = matches[-1]["detail"]
+        found["events"] = [
+            {"minute": 12, "side": "home", "kind": "goal", "code": 1, "playerShortId": 1010},
+            {"minute": 12, "side": "home", "kind": "assist", "code": 0x24, "playerShortId": 1005},
+            {"minute": 50, "side": "away", "kind": "goal", "code": 1, "playerShortId": 1510},
+            {"minute": 70, "side": "away", "kind": "yellow_card", "code": 0x26, "playerShortId": 1503},
+            {"minute": 90, "addedTime": 3, "side": "home", "kind": "goal", "code": 1, "playerShortId": 1009},
+        ]
+        found["shots"] = [
+            {"side": "home", "playerShortId": 1010, "minute": 11, "second": 4, "across": 1.0, "up": 0.5},
+            {"side": "away", "playerShortId": 1510, "minute": 49, "second": 30, "across": -1.0, "up": 0.2},
+            {"side": "home", "playerShortId": 1009, "minute": 60, "second": 0, "across": 0.0, "up": 4.0},
+            {"side": "home", "playerShortId": 1009, "minute": 92, "second": 10, "across": 2.0, "up": 1.0},
+        ]
+        found["formations"] = {"away": "4-1-4-1 DM Wide"}
+        self.capture.write_text(json.dumps(capture_document(matches)), encoding="utf-8")
+        self.record()
+        _status, body = self._get(self.serve(), DETAILED_URL)
+        self.assertIn("They lined up <strong>4-1-4-1 DM Wide</strong>", body)
+        self.assertIn("12′</span> You – Goal: Home 11 <span class='muted'>(assist Home 6)</span>", body)
+        self.assertIn("70′</span> Alpha – Booked: Away 4", body)
+        self.assertIn("90+3′</span> You – Goal: Home 10", body)
+        self.assertIn("<h2>Shots</h2>", body)
+        self.assertIn("<tr><td>You</td><td>3</td><td>2</td><td>0</td><td>1</td><td>1</td><td>2</td></tr>", body)
+        self.assertIn("<td>Home 10</td><td>Over</td>", body)
+        self.assertIn("90+3′</td><td>You</td><td>Home 10</td><td>Goal</td>", body)
+        exported = build_match_export(self.store.load_history("club:100"),
+                                      build_match_report(self.store.load_history("club:100"), DETAILED))["match"]
+        self.assertEqual(exported["opponent_formation"], "4-1-4-1 DM Wide")
+        self.assertEqual(exported["timeline"][0], {"minute": 12, "team": "us", "event": "goal", "player": "Home 11",
+                                                   "assist": "Home 6"})
+        self.assertEqual(exported["shots"][-1], {"minute": "90+3", "team": "us", "player": "Home 10", "outcome": "goal"})
+        self.assertEqual(exported["shot_directions"]["them"]["on_goal"], 1)
+
     def test_the_copy_button_holds_the_shared_match_document(self) -> None:
         self.record()
         _status, body = self._get(self.serve(), DETAILED_URL)
@@ -136,6 +172,29 @@ class MatchPageTests(MatchPagesCase):
         self.assertEqual(status, 200)
         self.assertIn("Only the result was found", body)
         self.assertIn("Copy match to clipboard", body)  # the result and its context are still worth copying
+
+    def test_a_match_page_sets_the_match_against_your_usual_range(self) -> None:
+        target = one_match_target()
+        self.capture.write_text(
+            json.dumps(capture_document(varied_season() + [target], game_date="2019-10-20")), encoding="utf-8"
+        )
+        self.record()
+        status, body = self._get(self.serve(), "/matches/" + quote("2019-10-01:100:201", safe=""))
+        self.assertEqual(status, 200)
+        self.assertIn("<h2>Diagnosis</h2>", body)
+        self.assertIn("Created more than usual; allowed about the usual.", body)
+        self.assertIn("vs <b>12</b> matches", body)
+        self.assertIn("▲ Above", body)
+        self.assertIn("Led 1–0 from 10′ but drew", body)
+        self.assertIn("usually 6.80", body)
+        self.assertLess(body.index("<h2>Diagnosis</h2>"), body.index("<h2>Match stats</h2>"))
+
+    def test_a_match_without_enough_history_says_why_it_is_not_compared(self) -> None:
+        self.record()
+        _status, body = self._get(self.serve(), DETAILED_URL)
+        self.assertIn("<h2>Diagnosis</h2>", body)
+        self.assertIn("Your usual range needs 10 other usable matches; there are 0.", body)
+        self.assertIn("From 76′: 1 scored, 0 conceded", body)
 
     def test_an_unknown_match_is_not_found(self) -> None:
         self.record()

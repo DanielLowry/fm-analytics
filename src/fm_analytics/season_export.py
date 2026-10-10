@@ -41,6 +41,7 @@ from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
 from fm_analytics.analytics.match_interventions import InterventionEvaluation
 from fm_analytics.analytics.match_players import PlayerSeason
 from fm_analytics.analytics.match_roles import RoleCodes
+from fm_analytics.analytics.match_timeline import build_timeline
 from fm_analytics.analytics.match_strength import TablePosition, league_seasons, league_table
 from fm_analytics.domain import AttributeObservation, Player
 from fm_analytics.domain.matches import PLAYER_STAT_KEYS, PlayerMatchStats
@@ -293,12 +294,40 @@ def _match(summary: MatchSummary, kind: str, codes: RoleCodes, catalogue: Footba
             "team_stats_against": _team_panel(match.detail.team(other), match.detail.players_for(other)),
             "their_players": [_line(player, role(player), full=detail == "match") for player in theirs],
         })
-        if match.detail.events:
-            row["timeline"] = [
-                {"minute": event.minute, "team": "us" if event.side == side else "them", "event": event.kind}
-                for event in match.detail.events if event.kind != "other"
-            ]
+        row.update(_timeline(match, side, shots=detail == "match"))
     return row
+
+
+def _timeline(match, side: str, *, shots: bool) -> dict[str, Any]:
+    """The timeline (and, for one match, every shot) as `build_match_report` gives the match page."""
+    timeline = build_timeline(match, side)
+    found: dict[str, Any] = {}
+    if timeline is None:
+        return found
+    if timeline.opponent_formation:
+        found["opponent_formation"] = timeline.opponent_formation
+    if timeline.entries:
+        found["timeline"] = [
+            {"minute": entry.minute, "team": "us" if entry.ours else "them", "event": entry.kind}
+            | ({"added_time": entry.added_time} if entry.added_time else {})
+            | ({"player": entry.player} if entry.player else {})
+            | ({"assist": entry.assisted_by} if entry.assisted_by else {})
+            | ({"from_clear_cut_chance": True} if entry.from_clear_cut_chance else {})
+            for entry in timeline.entries
+        ]
+    if timeline.ours is not None:
+        found["shot_directions"] = {
+            team: {"shots": totals.shots, "on_goal": totals.on_goal, "wide": totals.wide, "over": totals.over,
+                   "first_half": totals.first_half, "second_half": totals.second_half}
+            for team, totals in (("us", timeline.ours), ("them", timeline.theirs))
+        }
+        if shots:
+            found["shots"] = [
+                {"minute": shot.clock, "team": "us" if shot.ours else "them", "player": shot.player,
+                 "outcome": shot.outcome}
+                for shot in timeline.shots
+            ]
+    return found
 
 
 # -- the squad and the app's recommendation -----------------------------------

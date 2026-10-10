@@ -96,6 +96,7 @@ class IngestAndReadTests(CliCase):
         self.assertEqual(code, 0)
         self.assertIn("Vertical 4-4-2 (from the line-up)", text)
         self.assertIn("Advanced Forward (Attack)", text)
+        self.assertIn("Diagnosis\n  Your usual range needs 10 other usable matches; there are 0.", text)
         code, text = self.run_cli("note", DETAILED, "--tactic", "wing_play_442", "--rating", "1", "--text", "tight")
         self.assertEqual(code, 0)
         _code, text = self.run_cli("show", DETAILED)

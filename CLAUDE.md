@@ -47,6 +47,9 @@ match has room for, built from the same `build_match_report` the page shows.
 `reporting.build_matches_export` is the one behind the Matches page's "Copy all
 match data" (`/api/matches-export`): every match the page's filters select,
 each exactly as its own page's copy has it.
+`reporting.build_match_diagnosis` is the one behind a match page's Diagnosis and
+the same section of `fm-matches show`: that match against the usual range of
+the other competitive matches, by the season diagnosis's own model.
 `reporting.build_contract_review` is the one computation behind `/contracts`
 and the squad player report's Contract plan panel.
 `reporting.build_league_comparison` is the one behind `/league` and its team

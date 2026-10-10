@@ -12,6 +12,9 @@ test and says how long to run it, what improvement would support it, and when
 to stop.  Persisting and automatically evaluating those tests is a separate
 workflow; the fields are part of the contract now so that workflow can be
 added without changing the diagnostic output.
+
+`single_match_diagnosis` is the single-match counterpart: no finding, only
+where one match sits against the usual range of the others, by the same model.
 """
 
 from __future__ import annotations
@@ -244,6 +247,9 @@ def _expected(
     venue_rows = [item for item in season if item.side == row.side]
 
     def contribution(group: Sequence[MatchSummary]) -> float:
+        # Empty only for a row outside `season`: one match judged against the others.
+        if not group:
+            return 0.0
         weight = len(group) / (len(group) + _ADJUSTMENT_SHRINKAGE)
         group_mean = mean(float(getattr(item, side)[metric]) for item in group)
         return weight * (group_mean - overall)

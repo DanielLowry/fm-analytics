@@ -55,9 +55,30 @@ both the page and `fm-matches review` use.
   (total and per 90), share of the team's shots, goals, assists, goals plus
   assists per 90, clear-cut chances, key passes and chances created (with
   their per-90 rates), dribbles and average rating.
-- **A page for each match:** FM's stats panel, the timeline, both line-ups
-  with role and stats, and a form for your notes (tactic used, pre-match
-  rating, free text).
+- **A page for each match:** FM's stats panel, the timeline, every shot,
+  the opposition's formation, both line-ups with role and stats, and a form
+  for your notes (tactic used, pre-match rating, free text). The timeline,
+  shots and formation are `analytics/match_timeline.build_timeline`, which the
+  page, `fm-matches show` and both exports share (added 10 October 2026):
+  - **Timeline:** every goal with its scorer, assist and whether it came from
+    a clear-cut chance; penalties and own goals; every other clear-cut chance
+    with who had it; bookings and sendings-off; each at FM's minute and added
+    time. Read from the archive for every match, so past ones have it too.
+  - **Shots:** for each side, shots by where they were going (on goal, wide,
+    over) and by half, then every shot with its minute and player. "On goal"
+    is where the ball crossed the goal line, or would have without a save or
+    a block, so it counts blocked shots that were going in; FM's own "on
+    target" does not.
+  - **Formation:** the opposition's, as FM names it ("4-3-3 Narrow").
+- **A Diagnosis on each match page** (and in `fm-matches show`): no finding,
+  since one match is too few for one, but where it sat. Each side's shots, shots
+  on target and clear-cut chances against the usual range for that opponent
+  third and venue (the season diagnosis's expectation, plus or minus one
+  standard deviation, widened to whole counts), from the other competitive
+  matches; how the score went (a lead not held, a comeback, late goals, red
+  cards); and players rated at least 0.5 away from their own average in that
+  role over at least 3 other matches. Friendlies, extra-time matches and
+  histories under 10 other usable matches are not compared, and say so.
 - **On the Tactics page:** a "Your match record" box for the pinned tactics.
   It is evidence only and changes no score.
 - **Filters:** season, how opponents are grouped, competitions, venue and
@@ -121,9 +142,19 @@ both the page and `fm-matches review` use.
   "–" after 4 minutes and a rating after 13, and its exact cut-off lies in
   between, so the app may hide a rating FM shows but never shows one FM
   hides.
-- Penalties and own goals are read (from each result's incidents, below), but
-  whether any other goal came from open play or a set piece, and the shot
-  zone, are not: the goal descriptor bytes are not decoded.
+- Penalties and own goals are read, but whether any other goal came from open
+  play or a set piece, its body part and where it was scored from are not:
+  each goal's eight descriptor bytes are stored with it (`MatchEvent.descriptor`)
+  but not decoded yet. Where a shot was taken from is not read at all: it has
+  only been seen in the archive's highlights list, which also holds a value
+  FM20 never shows (below), and is left alone.
+- Timeline codes not yet checked against FM are stored with their code as
+  "other" and not shown: 0x16, 0x17, 0x0a, 0x22 and 0x23 are always tags on a
+  goal by its scorer (0x16's value is 1, 10 or 20, perhaps a goal-count
+  milestone); 0x27 is by the conceding side at the moment of a goal (perhaps
+  FM's "mistake leading to goal"); 0x28 and 0x29 are not near any shot; 0x06
+  is always a player who went off that minute (perhaps an injury); 0x31 is a
+  team's own event with no player.
 - `+0x76` in the player record is **not captured**. It matched Jarra's one
   key header, but gave Hargreaves 1 where FM showed 0, so what it counts is
   unknown. Where visibility is uncertain, the value is treated as
@@ -536,19 +567,51 @@ The executable also names `MATCH_ANALYSIS_MATCH`, `PITCH_GOALS_AREAS`,
   the shape changes with a substitution (Saydee off from MR, Appau on into
   MC), the substitute carries the code and position of the job he did.
 
+**Decoded on 10 October 2026, from every archive chunk (80 matches):**
+
+- **Each player's shots** follow his fixed record, grouped by FM's goal-mouth
+  zone: per group the zone byte, a count, then 12 bytes per shot (where it
+  crossed the goal line as two floats, metres across from the middle of the
+  goal and up from the ground; the match clock's minute, 0-based, and second;
+  two unknown bytes), then one unknown byte. All 1,906 shots decode, and the
+  goal line agrees with FM's on-target count: of single shots, 474 of 477
+  off target end outside the frame and 150 of 151 goals inside it. The match
+  clock runs on through first-half added time, so a shot then reads as 46′.
+- **The timeline:** a u16 count, then 48-byte records (01, side, line-up
+  place, code, u32 running time at about 243 a minute, minute, added time,
+  payload; a goal's payload holds a u32 and the eight descriptor bytes also
+  in `db::GOAL_DESCRIPTION`). A team's own events have place 0xff. Checked
+  player by player against FM's own stats: scorers, assist-makers and
+  clear-cut chances agree on all 160 sides, every sending-off on all 80
+  matches. Codes: 0x01 goal, 0x02 own goal (recorded for the scorer's side),
+  0x03 penalty, 0x24 and 0x25 assist (beside a goal; three lone 0x24 in 80
+  matches are not assists), 0x2f clear-cut chance, 0x26 booking (2.6 a match;
+  its value is a reason code), 0x0e second booking (only ever for a player
+  already booked that match), 0x0f straight red, 0x05 the sending-off that
+  follows either.
+- **The opposition's formation:** FM saves an AI side's tactic under its
+  formation's name, holding that formation's template roles rather than the
+  roles its players' records show, so it is matched by the starters'
+  positions alone, leaving our own tactic out. 71 of 80 matches have one.
+- **Not read, on purpose:** a later highlights list in each chunk keeps
+  beside each shot a value between 0 and 1 that FM20 never shows (most
+  likely its own chance-quality figure, what football calls expected goals),
+  and blocks inside each person's record look like internal attribute
+  values. Neither is something a manager can see.
+
 **Still open, in order:**
 
 **Answered on 30 September 2026:** the layout held after an FM restart (a new
 process gave the same results, the same stats and a clean self-check), and
 the per-player figures were confirmed against FM's screens (see above).
 
-1. Parse the archive's shot entries for shot placement. (Goal minutes for
-   every match now come from each result's incidents.) Where a shot was taken
-   from does not appear to be stored there.
-2. Goal type (open play or set piece): decode the goal descriptor bytes. It
-   needs ground truth, which FM's own goal descriptions in its archive may
-   provide.
-3. Label the remaining team counters, and locate yellow cards on a match with some.
+1. ~~Parse the archive's shot entries.~~ Done 10 October 2026 (above).
+   Where a shot was taken from is not in them.
+2. Goal type (open play or set piece, body part, where from): decode the
+   goal descriptor bytes, now stored with every goal, against FM's own
+   descriptions of a handful of goals read off its screens.
+3. Label the remaining team counters. ~~Locate yellow cards.~~ Done: the
+   timeline's 0x26.
 4. Bind the archived tactic duty words to historical appearances. The player
    role code does not distinguish duty; the full tactic word does. See
    [historical match duty extraction](match-duty-extraction.md) for the decoder,

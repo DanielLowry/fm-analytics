@@ -46,7 +46,7 @@ from tools import fm20_linux_probe as probe
 import tools.fm20_linux_probe_runtime  # noqa: F401  (installs decode_fm_date)
 from tools import fm20_match_archive as archive
 from tools import fm20_match_layout as layout
-from tools.fm20_match_tactics import candidate_prefixes, team_tactic
+from tools.fm20_match_tactics import candidate_prefixes, formation_name, team_tactic
 from tools.fm20_field_workbench import PeImage, find_rtti_vtables
 from tools.fm20_status import running_pid
 
@@ -327,6 +327,21 @@ def saved_tactics(chunk: bytes, detail: dict[str, Any]) -> dict[str, dict[str, A
     return found
 
 
+def opposition_formation(chunk: bytes, detail: dict[str, Any], our_side: str) -> dict[str, str]:
+    """The opposition's formation as FM names it, keyed by its side, where its starters fix one."""
+    their_side = "away" if our_side == "home" else "home"
+    positions = [
+        layout.position_code(player["start_position"], player["start_centre_side"])
+        for player in detail["players"]
+        if player["side"] == their_side and player.get("started") and player.get("start_position")
+    ]
+    ours = detail.get("saved_tactics", {}).get(our_side)
+    name = formation_name(
+        candidate_prefixes(chunk), positions, excluding=frozenset({ours["name"]}) if ours else frozenset()
+    )
+    return {their_side: name} if name else {}
+
+
 def _team_json(club: dict[str, str] | None, team: int) -> dict[str, str]:
     return club or {"id": f"team:{team:#x}", "name": "Unknown team"}
 
@@ -385,14 +400,21 @@ def build_capture(memory: Memory) -> dict[str, Any]:
             )
     if folder is not None and fixtures:
         for key, (chunk, detail) in archive.find_chunks(folder, fixtures).items():
+            our_side = "home" if ours[key]["home_team"] == team else "away"
             if key not in details:
-                our_side = "home" if ours[key]["home_team"] == team else "away"
                 for player in detail["players"]:
                     known = squad.get(player["short_id"]) if player["side"] == our_side else None
                     player["player_id"] = known["id"] if known else None
                     player["name"] = known["name"] if known else None
                 details[key] = detail
+            else:
+                # Only the archive has the shots, and its timeline names each
+                # event's player and added time, so it is used for the match
+                # still in memory too.
+                details[key]["events"] = detail["events"] or details[key]["events"]
+                details[key]["shots"] = detail["shots"]
             details[key]["saved_tactics"] = saved_tactics(chunk, details[key])
+            details[key]["formations"] = opposition_formation(chunk, details[key], our_side)
 
     # Every result's goals and sendings-off, kept only when the goals add up to the score.
     incidents: dict[tuple, list[dict[str, Any]]] = {}
@@ -406,6 +428,16 @@ def build_capture(memory: Memory) -> dict[str, Any]:
             rejected.append({"date": key[0].isoformat(), "problems": [f"goals and red cards: {p}" for p in problems]})
         else:
             incidents[key] = found
+
+    # A timeline must also show every sending-off the result records; one that
+    # does not is incomplete, and is left out rather than shown short.
+    for key, detail in details.items():
+        sent_off = sum(1 for event in detail["events"] if event["kind"] == "sent_off")
+        recorded = sum(1 for item in incidents.get(key, ()) if item["kind"] == "sent_off")
+        if detail["events"] and key in incidents and sent_off != recorded and any(
+            "playerShortId" in event for event in detail["events"]
+        ):
+            detail["events"] = []
 
     # Opposition players, and our own who have since left, are named by one scan.
     known = {short_id: player["name"] for short_id, player in squad.items()}
@@ -526,7 +558,9 @@ def _detail_json(detail: dict[str, Any] | None) -> dict[str, Any] | None:
             for player in detail["players"]
         ],
         "events": detail["events"],
+        **({"shots": detail["shots"]} if detail.get("shots") else {}),
         **({"savedTactics": detail["saved_tactics"]} if detail.get("saved_tactics") else {}),
+        **({"formations": detail["formations"]} if detail.get("formations") else {}),
     }
 
 

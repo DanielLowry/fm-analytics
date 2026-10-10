@@ -25,6 +25,14 @@ CAPTURE_FORMAT_VERSION = 1
 SIDES = ("home", "away")
 MATCH_MINUTES = 90
 INCIDENT_KINDS = ("goal", "own_goal", "penalty", "sent_off")
+# A timeline event's kinds; "other" is a code not yet checked against FM.
+EVENT_KINDS = (
+    "goal", "penalty", "own_goal", "assist", "clear_cut_chance",
+    "yellow_card", "second_yellow", "straight_red", "sent_off", "other",
+)
+# The goal mouth, in metres from the middle of the goal line.
+GOAL_HALF_WIDTH_M = 3.66
+CROSSBAR_HEIGHT_M = 2.44
 GOAL_INCIDENTS = frozenset({"goal", "own_goal", "penalty"})
 # FM's pitch positions, as a match records where a player played: the
 # catalogue's position names, plus FM's sweeper.
@@ -114,13 +122,15 @@ def _score(value: Any, where: str) -> tuple[int, int] | None:
     return _count(value[0], where), _count(value[1], where)
 
 
-def _optional_minute(value: Any, where: str) -> int | None:
-    if value is None:
-        return None
+def _clock_minute(value: Any, where: str) -> int:
     minute = _count(value, where)
     if minute > 200:
         raise ValueError(f"{where} is not a match minute")
     return minute
+
+
+def _optional_minute(value: Any, where: str) -> int | None:
+    return None if value is None else _clock_minute(value, where)
 
 
 def _side(value: Any, where: str) -> str:
@@ -288,24 +298,126 @@ class PlayerMatchStats:
 
 @dataclass(frozen=True)
 class MatchEvent:
-    """A timeline entry: a goal, its assist, or a clear-cut chance."""
+    """A timeline entry: a goal, its assist, a clear-cut chance, a card or a sending-off.
+
+    `side` is the side of the player it happened to, so an own goal's side is
+    its scorer's, not the side it counts for. `code` is FM's own code; an
+    event whose code is not yet checked is kind "other". Events read from the
+    live match alone (captures before the archive's timeline was read) have no
+    player or added time.
+    """
 
     minute: int
     side: str
     kind: str
     code: int
+    added_time: int = 0
+    player_short_id: int | None = None
+    # A goal's eight descriptor bytes as FM keeps them (hex): how it was
+    # scored, not decoded yet (docs/match-analysis-plan.md).
+    descriptor: str | None = None
+
+    @property
+    def clock(self) -> str:
+        """The minute as FM shows it: 45, or 90+4."""
+        return f"{self.minute}+{self.added_time}" if self.added_time else str(self.minute)
 
     @classmethod
     def from_document(cls, raw: Mapping[str, Any]) -> MatchEvent:
+        where = "an event"
+        kind = str(raw.get("kind") or "other")
+        if kind not in EVENT_KINDS:
+            raise ValueError(f"{where} kind must be one of {', '.join(EVENT_KINDS)}")
+        player = raw.get("playerShortId")
+        descriptor = raw.get("descriptor")
+        if descriptor is not None and (
+            not isinstance(descriptor, str) or len(descriptor) != 16 or set(descriptor) - set("0123456789abcdef")
+        ):
+            raise ValueError(f"{where} descriptor must be eight bytes of lower-case hex")
         return cls(
-            minute=_count(raw.get("minute"), "an event minute"),
-            side=_side(raw.get("side"), "an event side"),
-            kind=str(raw.get("kind") or "other"),
-            code=_count(raw.get("code", 0), "an event code"),
+            minute=_count(raw.get("minute"), f"{where} minute"),
+            side=_side(raw.get("side"), f"{where} side"),
+            kind=kind,
+            code=_count(raw.get("code", 0), f"{where} code"),
+            added_time=_count(raw.get("addedTime", 0), f"{where} addedTime"),
+            player_short_id=_count(player, f"{where} playerShortId") if player is not None else None,
+            descriptor=descriptor,
         )
 
     def to_document(self) -> dict[str, Any]:
-        return {"minute": self.minute, "side": self.side, "kind": self.kind, "code": self.code}
+        document: dict[str, Any] = {"minute": self.minute, "side": self.side, "kind": self.kind, "code": self.code}
+        # Left out when unknown, so a timeline read before these were keeps its hash.
+        if self.added_time:
+            document["addedTime"] = self.added_time
+        if self.player_short_id is not None:
+            document["playerShortId"] = self.player_short_id
+        if self.descriptor is not None:
+            document["descriptor"] = self.descriptor
+        return document
+
+
+@dataclass(frozen=True)
+class MatchShot:
+    """One shot as FM keeps it: whose, when on the match clock, and where it went.
+
+    `across` and `up` are where it crossed the goal line, or would have without
+    a save or a block, in metres from the middle of the goal at ground level.
+    """
+
+    side: str
+    player_short_id: int
+    minute: int  # the match clock's minute: 0 is FM's 1st minute, 90 its 90+1
+    second: int
+    across: float
+    up: float
+
+    @property
+    def heading(self) -> str:
+        """Where it was going: "on_goal" (inside the posts and under the bar), "wide" or "over"."""
+        if abs(self.across) <= GOAL_HALF_WIDTH_M and self.up <= CROSSBAR_HEIGHT_M:
+            return "on_goal"
+        return "wide" if self.up <= CROSSBAR_HEIGHT_M else "over"
+
+    @property
+    def fm_minute(self) -> int:
+        """FM's minute for the shot, added time included (91 for 90+1)."""
+        return self.minute + 1
+
+    def clock(self, *, extra_time: bool = False) -> str:
+        """The minute as FM shows it, 90+1 for a minute past 90 unless the match
+        went to extra time. The match clock carries on through added time before
+        a break, so 45+1 shows as 46 (and in a match with extra time, 90+1 as 91)."""
+        for end in (120, 90) if not extra_time else (120,):
+            if self.minute >= end:
+                return f"{end}+{self.minute - end + 1}"
+        return str(self.minute + 1)
+
+    @classmethod
+    def from_document(cls, raw: Any) -> MatchShot:
+        where = "a shot"
+        if not isinstance(raw, Mapping):
+            raise ValueError(f"{where} must be an object")
+        second = _count(raw.get("second"), f"{where} second")
+        if second > 59:
+            raise ValueError(f"{where} second must be under 60")
+        position = []
+        for key in ("across", "up"):
+            value = raw.get(key)
+            if not isinstance(value, (int, float)) or isinstance(value, bool) or not -100 < value < 100:
+                raise ValueError(f"{where} {key} must be a distance in metres")
+            position.append(float(value))
+        return cls(
+            side=_side(raw.get("side"), f"{where} side"),
+            player_short_id=_count(raw.get("playerShortId"), f"{where} playerShortId"),
+            minute=_clock_minute(raw.get("minute"), f"{where} minute"),
+            second=second,
+            across=position[0],
+            up=position[1],
+        )
+
+    def to_document(self) -> dict[str, Any]:
+        return {"side": self.side, "playerShortId": self.player_short_id, "minute": self.minute,
+                "second": self.second, "across": self.across, "up": self.up}
 
 
 @dataclass(frozen=True)
@@ -366,7 +478,7 @@ class SavedTactic:
 
 @dataclass(frozen=True)
 class MatchDetail:
-    """FM's match stats panel for both sides, the player stats and the timeline."""
+    """FM's match stats panel for both sides, the player stats, the timeline and the shots."""
 
     home: Mapping[str, int]
     away: Mapping[str, int]
@@ -374,6 +486,10 @@ class MatchDetail:
     events: tuple[MatchEvent, ...] = ()
     # Each side's tactic as FM saved it with the match, where one fits its line-up.
     saved_tactics: Mapping[str, SavedTactic] = field(default_factory=dict)
+    # Every shot by the match clock; empty in captures made before they were read.
+    shots: tuple[MatchShot, ...] = ()
+    # FM's name for a side's formation ("4-3-3 Narrow"), read for the opposition.
+    formations: Mapping[str, str] = field(default_factory=dict)
 
     def team(self, side: str) -> Mapping[str, int]:
         return self.home if _side(side, "a side") == "home" else self.away
@@ -403,6 +519,11 @@ class MatchDetail:
                 _side(side, "a saved tactic side"): SavedTactic.from_document(tactic)
                 for side, tactic in (raw.get("savedTactics") or {}).items()
             },
+            shots=tuple(MatchShot.from_document(item) for item in raw.get("shots") or ()),
+            formations={
+                _side(side, "a formation side"): str(_require(raw["formations"], side, str, "a formation"))
+                for side in (raw.get("formations") or {})
+            },
         )
 
     def to_document(self) -> dict[str, Any]:
@@ -414,6 +535,10 @@ class MatchDetail:
         # Left out when none was read, so older matches keep their content hash.
         if self.saved_tactics:
             document["savedTactics"] = {side: tactic.to_document() for side, tactic in self.saved_tactics.items()}
+        if self.shots:
+            document["shots"] = [shot.to_document() for shot in self.shots]
+        if self.formations:
+            document["formations"] = dict(self.formations)
         return document
 
 

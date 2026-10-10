@@ -1,7 +1,7 @@
 import unittest
 from datetime import date
 
-from fm_analytics.domain.matches import MatchCapture, MatchRecord
+from fm_analytics.domain.matches import MatchCapture, MatchRecord, MatchShot
 
 from tests.match_support import US, capture_document, season
 
@@ -130,6 +130,47 @@ class MatchRecordTests(unittest.TestCase):
         self.assertNotEqual(record.content_hash(), self.match.content_hash())
         del document["detail"]["savedTactics"]
         self.assertEqual(MatchRecord.from_document(document).content_hash(), self.match.content_hash())
+
+    def test_shots_formations_and_named_events_round_trip_and_their_absence_keeps_the_old_content_hash(self) -> None:
+        document = self.match.to_document()
+        document["detail"]["shots"] = [
+            {"side": "home", "playerShortId": 1010, "minute": 11, "second": 30, "across": -3.34, "up": 1.79},
+        ]
+        document["detail"]["formations"] = {"away": "4-3-3 Narrow"}
+        document["detail"]["events"][0].update({"addedTime": 2, "playerShortId": 1010, "descriptor": "0100080008c00000"})
+        record = MatchRecord.from_document(document)
+        self.assertEqual(record.detail.formations, {"away": "4-3-3 Narrow"})
+        self.assertEqual((record.detail.events[0].clock, record.detail.events[0].player_short_id), ("12+2", 1010))
+        self.assertEqual(MatchRecord.from_document(record.to_document()), record)
+        self.assertNotEqual(record.content_hash(), self.match.content_hash())
+        for key in ("shots", "formations"):
+            del document["detail"][key]
+        for key in ("addedTime", "playerShortId", "descriptor"):
+            del document["detail"]["events"][0][key]
+        self.assertEqual(MatchRecord.from_document(document).content_hash(), self.match.content_hash())
+
+    def test_a_shot_says_where_it_was_going_and_its_minute_as_fm_shows_it(self) -> None:
+        def shot(minute=10, across=0.0, up=1.0) -> MatchShot:
+            return MatchShot("home", 1, minute, 5, across, up)
+
+        self.assertEqual(shot(across=-3.6, up=2.4).heading, "on_goal")
+        self.assertEqual(shot(across=4.1, up=0.3).heading, "wide")
+        self.assertEqual(shot(across=0.5, up=3.0).heading, "over")
+        self.assertEqual(shot(across=5.0, up=3.0).heading, "over")
+        self.assertEqual([shot(minute).clock() for minute in (0, 48, 89, 90, 93)], ["1", "49", "90", "90+1", "90+4"])
+        self.assertEqual([shot(minute).clock(extra_time=True) for minute in (93, 119, 121)], ["94", "120", "120+2"])
+
+    def test_a_shot_or_event_fm_could_not_have_is_refused(self) -> None:
+        for change, key in (
+            ({"shots": [{"side": "home", "playerShortId": 1, "minute": 3, "second": 60, "across": 0, "up": 0}]}, "second"),
+            ({"shots": [{"side": "home", "playerShortId": 1, "minute": 3, "second": 5, "across": "x", "up": 0}]}, "across"),
+            ({"events": [{"minute": 5, "side": "home", "kind": "nutmeg", "code": 99}]}, "kind"),
+            ({"events": [{"minute": 5, "side": "home", "kind": "goal", "code": 1, "descriptor": "zz"}]}, "descriptor"),
+        ):
+            document = self.match.to_document()
+            document["detail"].update(change)
+            with self.assertRaisesRegex(ValueError, key):
+                MatchRecord.from_document(document)
 
     def test_a_position_or_centre_side_fm_does_not_have_is_refused(self) -> None:
         for key, value in (("position", "STC"), ("startPosition", "CB"), ("startCentreSide", "middle")):

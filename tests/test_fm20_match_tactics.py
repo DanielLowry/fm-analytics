@@ -173,6 +173,18 @@ class TeamTacticTests(unittest.TestCase):
         other[6] = (0x200400, 0x10000)  # a Box-to-Box Midfielder started there instead
         self.assertIsNone(team_tactic((self.prefix("A"),), other))
 
+    def test_the_oppositions_formation_is_named_by_positions_alone_leaving_our_tactic_out(self):
+        from tools.fm20_match_tactics import formation_name
+        positions = [code for code, _role in self.LINE_UP]
+        # FM's AI tactic holds template roles that are not what its players' records show.
+        theirs = self.prefix("4-4-2", roles=[0x1, 0x4, 0x2, 0x2, 0x4, 0x80, 0x20, 0x20, 0x80, 0x400, 0x800])
+        ours = self.prefix("Vertical 4-4-2")
+        self.assertEqual(formation_name((theirs, ours), positions, excluding=frozenset({"Vertical 4-4-2"})), "4-4-2")
+        self.assertIsNone(formation_name((theirs, ours), positions))  # two names fit: none is chosen
+        self.assertIsNone(formation_name((theirs,), positions[:10]))
+        moved = positions[:-1] + [0x4000]  # a lone striker in the middle instead
+        self.assertIsNone(formation_name((theirs,), moved))
+
     def test_a_position_and_centre_side_become_fms_code(self):
         from tools.fm20_match_layout import position_code
         self.assertEqual(position_code("MC", "right"), 0x200400)

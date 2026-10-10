@@ -39,6 +39,7 @@ from fm_analytics.analytics.match_analysis import (
     season_label,
 )
 from fm_analytics.analytics.match_diagnostics import MIN_TEAM_MATCHES, MatchDiagnostics
+from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis
 from fm_analytics.analytics.match_interventions import InterventionEvaluation
 from fm_analytics.analytics.match_strength import GROUPINGS
 from fm_analytics.bridge import LinuxProtonDataSource
@@ -55,6 +56,7 @@ from fm_analytics.reporting import (
     RecommendationPolicy,
     build_appearance_coverage,
     build_player_form,
+    build_match_diagnosis,
     build_match_diagnostics,
     build_match_intervention_evaluation,
     build_match_report,
@@ -243,6 +245,31 @@ def format_diagnostics(diagnostics: MatchDiagnostics) -> str:
         lines += ["", "What this leaves out:"]
         lines += [f"  - {issue.message}" for issue in quality.issues]
         lines += [f"  - {item.title}: {item.reason}" for item in diagnostics.unavailable]
+    return "\n".join(lines)
+
+
+def format_match_diagnosis(diagnosis: OneMatchDiagnosis) -> str:
+    """Plain-text form of the Diagnosis on a match's page."""
+    lines = ["", "Diagnosis"]
+    if diagnosis.not_compared is not None:
+        lines.append(f"  {diagnosis.not_compared}")
+    else:
+        lines.append(
+            f"  {diagnosis.headline} (Against your usual range for {diagnosis.compared_with}, "
+            f"from {diagnosis.baseline_matches} other competitive matches.)"
+        )
+        for check in diagnosis.checks:
+            usual = f"{check.usual_low}-{check.usual_high}" if check.usual_low != check.usual_high else f"{check.usual_low}"
+            standing = "" if check.standing == "usual" else f"  {check.standing}"
+            lines.append(
+                f"  {'You' if check.side == 'ours' else 'Them':<4} {check.label:<18} {check.actual:>3}  usual {usual}{standing}"
+            )
+    lines += [f"  - {line}" for line in diagnosis.game_state]
+    for sign, items in (("+", diagnosis.above_usual), ("-", diagnosis.below_usual)):
+        lines += [
+            f"  {sign} {item.name} {item.rating:.2f}, usually {item.usual:.2f} as {item.role} ({item.matches} matches)"
+            for item in items
+        ]
     return "\n".join(lines)
 
 
@@ -468,7 +495,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 report = build_match_report(history, args.match)
                 if report is None:
                     raise ValueError(f"no match {args.match}")
-                print(_format_match(report))
+                print(_format_match(report) + format_match_diagnosis(build_match_diagnosis(history, report)))
             elif args.command == "export":
                 pinned = parse_pinned_tactics(args.my_tactics)
                 wants_squad = args.squad == "live" and args.detail != "basic"
@@ -525,7 +552,40 @@ def _format_match(report) -> str:
                 f"{player.minutes:>2} min  rating {_number(player.rating)}  shots {player.stat('shots')}  "
                 f"goals {player.stat('goals')}  assists {player.stat('assists')}"
             )
+    lines.extend(_format_timeline(report))
     return "\n".join(lines)
+
+
+def _format_timeline(report) -> list[str]:
+    """The match's timeline and shots, as `build_match_report` gives them to the match page too."""
+    timeline = report.timeline
+    if timeline is None:
+        return []
+    opponent = report.summary.opponent.name
+    lines = []
+    if timeline.opponent_formation:
+        lines.append(f"{opponent} lined up {timeline.opponent_formation}")
+    if timeline.entries:
+        lines.append("Timeline")
+        for entry in timeline.entries:
+            extra = [f"assist {entry.assisted_by}"] if entry.assisted_by else []
+            if entry.from_clear_cut_chance:
+                extra.append("from a clear-cut chance")
+            lines.append(
+                f"  {entry.clock + '′':>6} {'Us  ' if entry.ours else 'Them'} {entry.label}"
+                f"{': ' + entry.player if entry.player else ''}{' (' + ', '.join(extra) + ')' if extra else ''}"
+            )
+    if timeline.shots:
+        lines.append("Shots           total  on goal  wide  over  first half  second half")
+        for label, side in (("Us", timeline.ours), ("Them", timeline.theirs)):
+            lines.append(f"  {label:<13} {side.shots:>5}  {side.on_goal:>7}  {side.wide:>4}  {side.over:>4}  "
+                         f"{side.first_half:>10}  {side.second_half:>11}")
+        lines.append("  " + ", ".join(
+            f"{shot.clock}′ {'us' if shot.ours else 'them'} {shot.label.lower()}"
+            + (f" ({shot.player})" if shot.player else "")
+            for shot in timeline.shots
+        ))
+    return lines
 
 
 if __name__ == "__main__":
