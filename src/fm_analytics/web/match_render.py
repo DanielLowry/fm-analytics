@@ -22,6 +22,7 @@ from fm_analytics.analytics.match_analysis import (
 from fm_analytics.analytics.match_diagnostics import EVALUATION_MATCHES, MIN_TEAM_MATCHES, MatchDiagnostics
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, StoredIntervention
 from fm_analytics.analytics.match_strength import GROUPING_LABELS
+from fm_analytics.analytics.penalty_record import PenaltyRecord
 
 _METRIC = {key: (label, percentage) for key, label, percentage in METRICS}
 
@@ -189,6 +190,24 @@ def goals_section(review: MatchReview) -> str:
         + who
         + "<p class='muted'>Penalties and own goals are read from FM; whether any other goal came from open "
         "play or a set piece, and where the shot came from, are not read yet.</p>"
+    )
+
+
+def penalties_section(record: PenaltyRecord) -> str:
+    """Who has given penalties away, and the penalties not yet recorded, linked to their matches."""
+    recorded = "".join(f"<li><strong>{_e(name)}</strong>: {count}</li>" for name, count in record.by_player)
+    missing = "".join(
+        f"<li><a href='{match_url(penalty.match_key)}'>{penalty.date:%d %b %Y} v {_e(penalty.opponent)}, "
+        f"{penalty.clock}′</a></li>"
+        for penalty in record.unrecorded
+    )
+    total = len(record.penalties)
+    return (
+        f"<p>{total} penalt{'y' if total == 1 else 'ies'} scored against you in these matches; "
+        f"{total - len(record.unrecorded)} recorded.</p>"
+        + (f"<ul class='fm-penalty-tally'>{recorded}</ul>" if recorded else "")
+        + (f"<details><summary>Not recorded yet ({len(record.unrecorded)})</summary><ul>{missing}</ul></details>"
+           if missing else "")
     )
 
 
@@ -512,6 +531,7 @@ def review_body(
     pinned: Sequence[str],
     capture: str,
     copy_control: str = "",
+    penalties: PenaltyRecord | None = None,
 ) -> str:
     overall = review.overall
     ppg = f"{overall.points_per_game:.2f}" if overall.points_per_game is not None else "–"
@@ -604,6 +624,9 @@ def review_body(
             group_table(review.venues, review.matches, first_column="Venue"),
         )
         + panel("Where goals come from", "Timing and scorer information from the available match evidence.", goals_section(review), panel_class="fm-match-goals")
+        + (panel("Penalties you gave away", "Who conceded each penalty scored against you, as you recorded it on "
+                 "each match's page from FM's replay: FM itself doesn't say.", penalties_section(penalties),
+                 panel_class="fm-match-penalties") if penalties and penalties.penalties else "")
         + panel(
             "Who creates and shoots",
             "By the role each player was set to in the match, including substitutes, from matches with full stats.",

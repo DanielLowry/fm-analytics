@@ -3,7 +3,9 @@
 FM keeps full match stats in memory only for the latest match and for any
 match report opened since, so a match's detail must be recorded while it is
 there. The manager's own notes on a match (the tactic used, how strong they
-judged the opponent before kickoff) cannot come from FM at all. Both follow
+judged the opponent before kickoff, who gave a penalty away) cannot come from
+FM at all, and are kept in tables of their own that recording a capture never
+touches. Both follow
 the player-knowledge rules (see `persistence.migrations`):
 
 * **Nothing is overwritten.** Each distinct state of a match is a new row. A
@@ -43,6 +45,7 @@ from fm_analytics.domain.matches import (
     MatchRecord,
     TeamRef,
 )
+from fm_analytics.analytics.penalty_record import PenaltyKey, conceded_penalties
 from fm_analytics.persistence.migrations import bring_up_to_date
 
 
@@ -190,8 +193,25 @@ _V4 = """
 ALTER TABLE league_results ADD COLUMN season INTEGER;
 """
 
+_V5 = """
+-- Who gave a penalty away, as the manager read it off FM's replay: FM's own
+-- record names only who scored it. A penalty is the match, minute and added
+-- time FM's result gives it. Append only; the latest per penalty wins, and a
+-- NULL player clears it.
+CREATE TABLE penalty_fouls (
+    id INTEGER PRIMARY KEY,
+    save_id INTEGER NOT NULL REFERENCES saves(id),
+    match_key TEXT NOT NULL,
+    minute INTEGER NOT NULL,
+    added_time INTEGER NOT NULL,
+    player_short_id INTEGER,
+    recorded_at TEXT NOT NULL
+);
+CREATE INDEX penalty_fouls_by_match ON penalty_fouls (save_id, match_key, id);
+"""
+
 # Append only. Version N of the file is the result of applying MIGRATIONS[:N].
-MIGRATIONS: tuple[str, ...] = (_V1, _V2, _V3, _V4)
+MIGRATIONS: tuple[str, ...] = (_V1, _V2, _V3, _V4, _V5)
 
 
 @dataclass(frozen=True)
@@ -243,6 +263,8 @@ class MatchHistory:
     interventions: tuple[StoredIntervention, ...] = ()
     # (tactic key, slot key) -> the role the manager usually picks there.
     usual_roles: Mapping[tuple[str, str], str] = field(default_factory=dict)
+    # (match key, minute, added time) -> the short ID of who gave that penalty away.
+    penalty_fouls: Mapping[PenaltyKey, int] = field(default_factory=dict)
 
 
 def _now() -> str:
@@ -363,6 +385,34 @@ class MatchHistoryStore:
                 "INSERT INTO match_notes (save_id, match_key, recorded_at, tactic_key, opponent_rating, note) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
                 (save_id, match_key, _now(), tactic_key, opponent_rating, note),
+            )
+
+    def record_penalty_foul(
+        self, save_key: str, match_key: str, minute: int, added_time: int, player_short_id: int | None
+    ) -> None:
+        """Record who gave a penalty against us away (None clears it). Local database only; never FM.
+
+        The penalty must be one FM's result shows scored against the club, and
+        the player one of ours on the pitch at that minute.
+        """
+        history = self.load_history(save_key)
+        match = next((item for item in history.matches if item.key == match_key), None) if history else None
+        if match is None:
+            raise ValueError(f"no match {match_key} is recorded for {save_key}")
+        penalty = next(
+            (item for item in conceded_penalties(match, history.club.id)
+             if (item.minute, item.added_time) == (minute, added_time)),
+            None,
+        )
+        if penalty is None:
+            raise ValueError(f"no penalty was scored against you at {minute}{'+' + str(added_time) if added_time else ''}′ in that match")
+        if player_short_id is not None and player_short_id not in dict(penalty.on_pitch):
+            raise ValueError("that player was not one of yours on the pitch when the penalty was given")
+        with closing(self._connect()) as connection, _transaction(connection):
+            connection.execute(
+                "INSERT INTO penalty_fouls (save_id, match_key, minute, added_time, player_short_id, recorded_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (self._existing_save_id(connection, save_key), match_key, minute, added_time, player_short_id, _now()),
             )
 
     def confirm_role_code(self, code: int, role_key: str) -> None:
@@ -569,6 +619,12 @@ class MatchHistoryStore:
                     (save["id"],),
                 )
             }
+            penalty_fouls: dict[PenaltyKey, int | None] = {}
+            for row in connection.execute(
+                "SELECT match_key, minute, added_time, player_short_id FROM penalty_fouls WHERE save_id = ? ORDER BY id",
+                (save["id"],),
+            ):
+                penalty_fouls[(row["match_key"], row["minute"], row["added_time"])] = row["player_short_id"]
             interventions = tuple(
                 _intervention_from_row(row)
                 for row in connection.execute(
@@ -595,6 +651,7 @@ class MatchHistoryStore:
             notes=notes,
             role_codes=role_codes,
             usual_roles=usual_roles,
+            penalty_fouls={key: player for key, player in penalty_fouls.items() if player is not None},
             last_game_date=date.fromisoformat(last) if last else None,
             interventions=interventions,
         )

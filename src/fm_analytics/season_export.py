@@ -42,6 +42,7 @@ from fm_analytics.analytics.match_interventions import InterventionEvaluation
 from fm_analytics.analytics.match_players import PlayerSeason
 from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.analytics.match_timeline import build_timeline
+from fm_analytics.analytics.penalty_record import conceded_penalties
 from fm_analytics.analytics.match_strength import TablePosition, league_seasons, league_table
 from fm_analytics.domain import AttributeObservation, Player
 from fm_analytics.domain.matches import PLAYER_STAT_KEYS, PlayerMatchStats
@@ -231,7 +232,8 @@ def _line(player: PlayerMatchStats, role: str, *, full: bool) -> dict[str, Any]:
 
 
 def _match(summary: MatchSummary, kind: str, codes: RoleCodes, catalogue: FootballCatalogue,
-           detail: str, roles: Mapping[tuple[str, str, int], str]) -> dict[str, Any]:
+           detail: str, roles: Mapping[tuple[str, str, int], str],
+           given_away: Mapping[tuple[int, int], str] = {}) -> dict[str, Any]:
     match = summary.match
     strength = summary.strength
 
@@ -268,6 +270,8 @@ def _match(summary: MatchSummary, kind: str, codes: RoleCodes, catalogue: Footba
             {"minute": goal.clock, "team": "us" if goal.side == summary.side else "them", "scorer": goal.player}
             | ({"penalty": True} if goal.kind == "penalty" else {})
             | ({"own_goal": True} if goal.kind == "own_goal" else {})
+            | ({"given_away_by": given_away[(goal.minute, goal.added_time)], "given_away_by_source": "your record"}
+               if goal.kind == "penalty" and (goal.minute, goal.added_time) in given_away else {})
             for goal in goals
         ]
     sent_off = [incident for incident in match.incidents if incident.kind == "sent_off"]
@@ -595,7 +599,7 @@ def export_document(
                 summary,
                 "league" if summary.match.key in league_keys
                 else "cup" if summary.match.key in competitive_keys else "friendly",
-                codes, catalogue, detail, roles,
+                codes, catalogue, detail, roles, _given_away(history, summary.match),
             )
             for summary in everything.matches
         ],
@@ -680,13 +684,21 @@ def _null_duty(row: Mapping[str, Any]) -> bool:
     return any(slot["duty"] is None for tactic in row.get("fm_saved_tactics", {}).values() for slot in tactic["slots"])
 
 
+def _given_away(history: MatchHistory, match) -> dict[tuple[int, int], str]:
+    """Who you recorded giving away each penalty scored against you in `match`."""
+    return {
+        (penalty.minute, penalty.added_time): penalty.given_away_by
+        for penalty in conceded_penalties(match, history.club.id, history.penalty_fouls) if penalty.given_away_by
+    }
+
+
 def _full_match(history: MatchHistory, summary: MatchSummary, codes: RoleCodes, catalogue: FootballCatalogue,
                 roles: Mapping[tuple[str, str, int], str]) -> dict[str, Any]:
     """One match's verbose season-export entry, plus what only one match has room for."""
     match = summary.match
     league_ids = {competition.id for competition, _results in history.league_results}
     kind = "league" if match.competition.id in league_ids else "friendly" if match.competition.is_friendly else "cup"
-    row = _match(summary, kind, codes, catalogue, "match", roles)
+    row = _match(summary, kind, codes, catalogue, "match", roles, _given_away(history, match))
     row.setdefault("attendance", match.attendance)
     strength = summary.strength
     row["league_at_kickoff"] = (

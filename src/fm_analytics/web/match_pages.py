@@ -25,6 +25,7 @@ from fm_analytics.reporting import (
     build_match_report,
     build_match_review,
     build_matches_export,
+    build_penalty_record,
     build_season_export,
 )
 from fm_analytics.season_export import DETAIL_LEVELS
@@ -109,6 +110,7 @@ class MatchPagesMixin:
             self._send(_layout("Matches", "/matches", body))  # type: ignore[attr-defined]
             return
         review = build_match_review(history, filters=filters)
+        penalties = build_penalty_record(history, review)
         diagnostic_review = build_match_review(
             history, filters=ReviewFilters(grouping="table", competitions="competitive")
         )
@@ -121,6 +123,7 @@ class MatchPagesMixin:
             pinned=self.server.pinned_tactics,  # type: ignore[attr-defined]
             capture=panel + export_links(),
             copy_control=matches_copy_control(review),
+            penalties=penalties,
         )
         self._send(_layout("Matches", "/matches", body, wide=True))  # type: ignore[attr-defined]
 
@@ -232,6 +235,21 @@ class MatchPagesMixin:
             )
         except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
             self._send(_error_page("Match notes", str(exc), match_url(key) if key else "/matches"),  # type: ignore[attr-defined]
+                       HTTPStatus.BAD_REQUEST)
+            return
+        self._redirect(match_url(key))
+
+    def _post_penalty_foul(self) -> None:
+        form = self._read_form()  # type: ignore[attr-defined]
+        key = form.get("match", [""])[0]
+        player = form.get("player", [""])[0]
+        try:
+            self.server.record_penalty_foul(  # type: ignore[attr-defined]
+                key, int(form.get("minute", [""])[0]), int(form.get("added", ["0"])[0] or 0),
+                int(player) if player else None,
+            )
+        except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
+            self._send(_error_page("Penalty", str(exc), match_url(key) if key else "/matches"),  # type: ignore[attr-defined]
                        HTTPStatus.BAD_REQUEST)
             return
         self._redirect(match_url(key))

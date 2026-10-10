@@ -36,6 +36,7 @@ class WebActionsMixin:
         match_posts = {
             "/matches/capture": self._post_match_capture,
             "/matches/note": self._post_match_note,
+            "/matches/penalty": self._post_penalty_foul,
             "/matches/role-code": self._post_role_code,
             "/matches/intervention/start": self._post_intervention_start,
             "/matches/intervention/finish": self._post_intervention_finish,

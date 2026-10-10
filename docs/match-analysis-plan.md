@@ -22,7 +22,12 @@ the plan and the reconnaissance behind it, kept as the record of why.
   - `review [--group table|relative|rating] [--competitions league|competitive|all]`
     prints the page's figures;
   - `list`, `show KEY`, `status`, `ingest FILE`;
-  - `note KEY --tactic KEY --rating N --text ...` records your own notes; and
+  - `note KEY --tactic KEY --rating N --text ...` records your own notes;
+  - `penalty KEY MINUTE --player NAME` (or `--clear`) records who gave away a
+    penalty scored against you, which FM doesn't record; the match page has the
+    same choice, and `review` and the Matches page tally it. Like your notes, it
+    lives in its own table (`penalty_fouls`, v5), which reading FM never touches;
+    and
   - `role-code CODE ROLE_KEY` confirms which role an FM role code is.
 - **Read whenever you like.** Every read is checked to add up (each side's
   goals match the score, and its players' shots and shots on target match
@@ -79,6 +84,47 @@ both the page and `fm-matches review` use.
   cards); and players rated at least 0.5 away from their own average in that
   role over at least 3 other matches. Friendlies, extra-time matches and
   histories under 10 other usable matches are not compared, and say so.
+- **Result vs chances on each match page** (and first in `fm-matches show`;
+  added 10 October 2026): how well you played, judged by the chances each side
+  made, and whether the score was fair to them. It is part of
+  `reporting.build_match_diagnosis`; the chance model is
+  `analytics/chance_value.py` and the judgement `analytics/match_chances.py`.
+  - **What a chance is worth.** Each shot is classed from FM's own record as a
+    clear-cut chance (the timeline's clear-cut chance, tied to its player's shot
+    nearest its minute, or the goal it became), a penalty, or any other shot,
+    and is worth how often shots of that kind were scored in your other
+    competitive matches, both sides counted. On 10 October 2026 that was 34% of
+    clear-cut chances and 9% of other shots. A penalty is worth 0.75, football's
+    usual rate: FM keeps only scored penalties, so a missed one is an ordinary
+    clear-cut chance in its record. This is not FM's hidden chance value (the
+    archive's highlights list is still never read) and not a shot-location
+    model, which FM20's record can't support; it is the conversion of FM's
+    visible categories in your own matches. Over the save's 61 matches it was
+    calibrated out of sample: matches whose chances were worth about 1.2 goals
+    averaged 1.33, about 1.7 averaged 1.75, about 2.2 averaged 2.00.
+  - **The verdict.** Each shot scores or not independently, which gives how
+    often chances like these win, draw and lose. One side had the better
+    chances when its win chance beats its loss chance by 25 points; that and
+    the result give one of nine verdicts ("Deserved win", "Should have won",
+    "Unlucky defeat", "Won a close one", "Fair draw", "Lost a close one",
+    "Lucky win", "Lucky draw", "Deserved defeat"), with points against the
+    points chances like these usually bring.
+  - **Why the score and the chances differ**, for a side whose goals are at
+    least 0.5 from its chances: its shots on goal against what chances like
+    these usually put on goal (the shooting), and goals from those against what
+    that many shots on goal usually score (the keeper, the blocks and luck).
+    Missed clear-cut chances are listed.
+  - **Whether it is a pattern:** over your other matches, the team's goals
+    against what its chances were worth, and the same for each of your players
+    who missed a clear-cut chance or scored 0.5 below their chances today, with
+    how often luck alone leaves a gap that large; under 1 in 20 is a pattern.
+    That decides what the panel says to take from it: one of those days, the
+    finishing rather than the tactic, or worth a look at the tactic.
+  - **Against your usual:** each side's chances against what they are usually
+    worth for that opponent third and venue (the season diagnosis's own
+    expectation, plus or minus one standard deviation); competitive matches
+    only. Extra-time matches, matches without a full shot list and histories
+    under 10 other matches with every shot are not judged, and say so.
 - **On the Tactics page:** a "Your match record" box for the pinned tactics.
   It is evidence only and changes no score.
 - **Filters:** season, how opponents are grouped, competitions, venue and
@@ -102,11 +148,11 @@ both the page and `fm-matches review` use.
 | Reading FM | `tools/fm20_match_layout.py` (byte layouts, tested), `tools/fm20_match_probe.py` (`capture`, plus the research commands) |
 | Domain | `domain/matches.py` (`MatchCapture`, `MatchRecord`, `MatchDetail`, …) |
 | Storage | `persistence/match_history.py`, with the upgrade runner shared with player knowledge in `persistence/migrations.py` |
-| Analysis | `analytics/match_strength.py` (league table at kickoff, strength groups), `analytics/match_roles.py` (role codes, tactic inference, role summaries), `analytics/match_analysis.py` (the review) |
+| Analysis | `analytics/match_strength.py` (league table at kickoff, strength groups), `analytics/match_roles.py` (role codes, tactic inference, role summaries), `analytics/match_analysis.py` (the review), `analytics/match_diagnostics.py` and `analytics/single_match_diagnosis.py` (season and one-match diagnosis), `analytics/chance_value.py` and `analytics/match_chances.py` (result vs chances) |
 | Shared computation | `reporting.build_match_review`, `reporting.build_match_report`, `reporting.build_matches_export` |
 | Command line | `match_ingest.py` (`fm-matches`) |
-| Web | `web/match_pages.py`, `web/match_render.py`, `web/match_state.py` |
-| Tests | `test_match_models`, `test_match_history`, `test_match_analysis`, `test_match_ingest`, `test_web_matches`, `test_fm20_match_layout` |
+| Web | `web/match_pages.py`, `web/match_render.py`, `web/match_state.py`, `web/match_detail_render.py`, `web/match_diagnosis_render.py`, `web/match_chances_render.py` (styles in `frontend/styles/match-chances.css`) |
+| Tests | `test_match_models`, `test_match_history`, `test_match_analysis`, `test_match_ingest`, `test_web_matches`, `test_fm20_match_layout`, `test_match_diagnostics`, `test_match_chances` |
 
 ### Differences from the plan below
 
@@ -792,7 +838,10 @@ superseded where they differ.
 
 ## Out of scope
 
-- Invented xG, and causal claims drawn from correlations.
+- Invented xG, and causal claims drawn from correlations. The chance values
+  behind "Result vs chances" are not invented in this sense: they are the
+  conversion rates of FM's own visible shot categories in your matches, which
+  became possible once every shot and clear-cut chance was read (see As built).
 - Tactical changes during a match (recorded in the note only) and live
   intervention.
 - The opponent's matches against other teams. That is Phase 08, and it needs

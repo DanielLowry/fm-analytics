@@ -10,6 +10,7 @@ being on goal nearest the goal's minute.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Mapping
 
 from fm_analytics.analytics.goal_descriptions import GoalDescription, describe_goal
 from fm_analytics.domain.matches import MatchEvent, MatchRecord, MatchShot
@@ -57,6 +58,7 @@ class TimelineEntry:
     from_clear_cut_chance: bool = False
     how: GoalDescription | None = None  # how a goal (not a penalty) was scored
     possibly_from_a_corner: bool = False  # a guess, CORNER_GUESS
+    given_away_by: str | None = None  # a penalty against us: the manager's record of who conceded it
 
     @property
     def clock(self) -> str:
@@ -118,7 +120,9 @@ def _same_moment(first: MatchEvent, second: MatchEvent) -> bool:
     return (first.side, first.minute, first.added_time) == (second.side, second.minute, second.added_time)
 
 
-def _entries(match: MatchRecord, side: str) -> tuple[TimelineEntry, ...]:
+def _entries(
+    match: MatchRecord, side: str, given_away: Mapping[tuple[int, int], str]
+) -> tuple[TimelineEntry, ...]:
     events = match.detail.events if match.detail else ()
     entries = []
     for index, event in enumerate(events):
@@ -160,14 +164,15 @@ def _entries(match: MatchRecord, side: str) -> tuple[TimelineEntry, ...]:
             from_clear_cut_chance=chance,
             how=how,
             possibly_from_a_corner=bool(how and how.how == "cross" and assisting and _took_corners(match, assisting)),
+            given_away_by=given_away.get((event.minute, event.added_time)) if event.kind == "penalty" else None,
         ))
     return tuple(entries)
 
 
-def _goal_shots(match: MatchRecord) -> set[int]:
-    """Which shots (by index) were goals: for each goal, its scorer's shot on goal nearest its minute."""
+def goal_shots(match: MatchRecord) -> dict[int, MatchEvent]:
+    """Which shots (by index) were goals, each with its goal: the scorer's shot on goal nearest its minute."""
     shots = match.detail.shots
-    used: set[int] = set()
+    used: dict[int, MatchEvent] = {}
     for event in match.detail.events:
         if event.kind not in GOAL_KINDS or event.player_short_id is None:
             continue
@@ -179,7 +184,7 @@ def _goal_shots(match: MatchRecord) -> set[int]:
             and shot.heading == "on_goal" and abs(shot.fm_minute - minute) <= GOAL_SHOT_WINDOW
         ]
         if candidates:
-            used.add(min(candidates)[1])
+            used[min(candidates)[1]] = event
     return used
 
 
@@ -195,13 +200,19 @@ def _side_shots(shots: tuple[MatchShot, ...], side: str) -> SideShots:
     )
 
 
-def build_timeline(match: MatchRecord, side: str) -> MatchTimeline | None:
-    """The match's timeline and shots from `side`'s point of view, or None without match detail."""
+def build_timeline(
+    match: MatchRecord, side: str, *, given_away: Mapping[tuple[int, int], str] = {}
+) -> MatchTimeline | None:
+    """The match's timeline and shots from `side`'s point of view, or None without match detail.
+
+    `given_away` is the manager's record of who conceded each penalty against
+    `side`, by (minute, added time); see `analytics.penalty_record`.
+    """
     detail = match.detail
     if detail is None:
         return None
     other = "away" if side == "home" else "home"
-    goals = _goal_shots(match)
+    goals = goal_shots(match)
     shots = tuple(
         ShotEntry(
             clock=shot.clock(extra_time=match.after_extra_time),
@@ -212,7 +223,7 @@ def build_timeline(match: MatchRecord, side: str) -> MatchTimeline | None:
         for index, shot in enumerate(detail.shots)
     )
     return MatchTimeline(
-        entries=_entries(match, side),
+        entries=_entries(match, side, given_away),
         shots=shots,
         opponent_formation=detail.formations.get(other),
         ours=_side_shots(detail.shots, side) if detail.shots else None,

@@ -49,7 +49,13 @@ match data" (`/api/matches-export`): every match the page's filters select,
 each exactly as its own page's copy has it.
 `reporting.build_match_diagnosis` is the one behind a match page's Diagnosis and
 the same section of `fm-matches show`: that match against the usual range of
-the other competitive matches, by the season diagnosis's own model.
+the other competitive matches, by the season diagnosis's own model, and its
+"Result vs chances" (`analytics/match_chances.py`: the chances each side made,
+valued by `analytics/chance_value.py`, against the score).
+`reporting.build_penalty_record` is the one behind the Matches page's "Penalties
+you gave away" and the same lines of `fm-matches review`: the penalties scored
+against us in the selected matches and who the manager recorded giving each away
+(FM doesn't say; the record is kept in its own table, which reading FM never touches).
 `reporting.build_contract_review` is the one computation behind `/contracts`
 and the squad player report's Contract plan panel.
 `reporting.build_league_comparison` is the one behind `/league` and its team

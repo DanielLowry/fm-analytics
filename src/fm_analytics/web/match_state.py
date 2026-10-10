@@ -101,6 +101,13 @@ class MatchHistoryState:
         )
         self.forget_recommendations()  # a match's tactic decides which job its ratings count for
 
+    def record_penalty_foul(self, match_key: str, minute: int, added_time: int, player_short_id: int | None) -> None:
+        """The manager's record of who gave a penalty away. Local database only; never FM."""
+        key = self._match_key()
+        if key is None:
+            raise ValueError("No matches are recorded yet.")
+        self.match_store.record_penalty_foul(key, match_key, minute, added_time, player_short_id)
+
     def confirm_role_code(self, code: int, role_key: str) -> None:
         if self.match_store is None:
             raise ValueError("Match history is switched off.")

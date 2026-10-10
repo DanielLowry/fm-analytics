@@ -1,0 +1,75 @@
+/*
+ * A match page's "Result vs chances" panel (web/match_chances_render.py), light and dark.
+ * Imported by app.css, and built into static/app.css with it. Every selector starts
+ * body.fm-app, as app.css's own late rules do, so it wins over the generic panel rules
+ * that the import places after it.
+ */
+body.fm-app .fm-chances { border-top: 3px solid var(--color-ink-400); }
+body.fm-app .fm-chances.tone-good { border-top-color: var(--color-brand-600); }
+body.fm-app .fm-chances.tone-unlucky { border-top-color: #3d6fb0; }
+body.fm-app .fm-chances.tone-lucky { border-top-color: #bd7a11; }
+body.fm-app .fm-chances.tone-bad { border-top-color: #c55b45; }
+body.fm-app .fm-chances-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 1rem 2rem; }
+body.fm-app .fm-chances-verdict { max-width: 72ch; }
+body.fm-app .fm-chances-badge { display: inline-block; padding: .3rem .75rem; border-radius: 999px; background: var(--fm-page); border: 1px solid var(--fm-border); color: var(--color-ink-800); font-size: 1.05rem; font-weight: 700; }
+body.fm-app .fm-chances-badge.tone-good { border-color: transparent; background: #dff1e5; color: #245c38; }
+body.fm-app .fm-chances-badge.tone-unlucky { border-color: transparent; background: #e3ecfb; color: #24456f; }
+body.fm-app .fm-chances-badge.tone-lucky { border-color: transparent; background: #f5e4bf; color: #6c4913; }
+body.fm-app .fm-chances-badge.tone-bad { border-color: transparent; background: #fbe6e3; color: #8f2a22; }
+body.fm-app .fm-chances-summary { margin: .6rem 0 0; color: var(--color-ink-800); font-size: .92rem; line-height: 1.5; }
+body.fm-app .fm-chances-takeaway { margin: .45rem 0 0; color: var(--color-ink-600); font-size: .86rem; line-height: 1.5; }
+body.fm-app .fm-chances-scoreboard { display: grid; grid-template-columns: repeat(3, auto); gap: .2rem 1.6rem; margin: 0; }
+body.fm-app .fm-chances-scoreboard > div { display: flex; flex-direction: column; align-items: end; }
+body.fm-app .fm-chances-scoreboard dt { color: var(--color-ink-500); font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+body.fm-app .fm-chances-scoreboard dd { display: flex; flex-direction: column; align-items: end; margin: .1rem 0 0; color: var(--color-ink-900); font-size: 1.45rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
+body.fm-app .fm-chances-scoreboard dd small { color: var(--color-ink-500); font-size: .72rem; font-weight: 500; }
+body.fm-app .fm-chances-odds { display: flex; gap: 2px; max-width: 48rem; margin: 1.1rem 0 0; overflow: hidden; border-radius: .5rem; }
+body.fm-app .fm-chances-odds > span { display: flex; flex-basis: 0; align-items: baseline; justify-content: center; gap: .35rem; min-width: 3.6rem; padding: .4rem .5rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+body.fm-app .fm-chances-odds b { font-size: .9rem; }
+body.fm-app .fm-chances-odds small { font-size: .7rem; font-weight: 600; }
+body.fm-app .fm-chances-odds-W { background: color-mix(in srgb, var(--color-brand-600) 16%, transparent); color: #245c38; }
+body.fm-app .fm-chances-odds-D { background: color-mix(in srgb, var(--color-ink-500) 14%, transparent); color: var(--color-ink-700); }
+body.fm-app .fm-chances-odds-L { background: color-mix(in srgb, #c55b45 16%, transparent); color: #8f2a22; }
+body.fm-app .fm-chances-odds-W.actual { background: var(--color-brand-600); color: white; }
+body.fm-app .fm-chances-odds-D.actual { background: var(--color-ink-500); color: white; }
+body.fm-app .fm-chances-odds-L.actual { background: #c55b45; color: white; }
+body.fm-app .fm-chances-caption { margin: .35rem 0 0; color: var(--color-ink-500); font-size: .75rem; }
+body.fm-app .fm-chances-table { max-width: 48rem; margin-top: 1rem; }
+body.fm-app .fm-chances-table table { min-width: 0; font-variant-numeric: tabular-nums; }
+body.fm-app .fm-chances-table th[scope='row'] { text-align: left; }
+body.fm-app .fm-chances-table tr.ours th[scope='row'] { box-shadow: inset 3px 0 0 var(--color-brand-600); padding-left: .6rem; }
+body.fm-app .fm-chances-table tr.theirs th[scope='row'] { box-shadow: inset 3px 0 0 #c55b45; padding-left: .6rem; }
+body.fm-app .fm-chances-usual { grid-column: 1 / -1; }
+body.fm-app .fm-chances-missed, body.fm-app .fm-chances-finishing { margin: 0; padding: 0; list-style: none; font-size: .82rem; line-height: 1.45; color: var(--color-ink-700); }
+body.fm-app .fm-chances-missed li, body.fm-app .fm-chances-finishing li { padding: .18rem 0; }
+body.fm-app .fm-chances-finishing b { color: var(--color-ink-900); font-weight: 650; }
+body.fm-app .fm-chances-finishing span:not(.fm-chances-standing) { color: var(--color-ink-500); font-size: .78rem; }
+body.fm-app .fm-chances-standing { margin-left: .3rem; padding: .08rem .4rem; border-radius: 999px; font-size: .66rem; font-weight: 700; white-space: nowrap; }
+body.fm-app .fm-chances-standing.usual { background: var(--fm-page); color: var(--color-ink-600); border: 1px solid var(--fm-border); }
+body.fm-app .fm-chances-standing.below { background: #f5e4bf; color: #6c4913; cursor: help; }
+body.fm-app .fm-chances-standing.above { background: #dff1e5; color: #245c38; cursor: help; }
+body.fm-app .fm-chances-method { margin: 1rem 0 0; border-color: var(--fm-border); border-radius: .55rem; background: var(--fm-page); }
+body.fm-app .fm-chances-method > summary { color: var(--color-brand-700); font-size: .8rem; }
+body.fm-app .fm-chances-method p { margin: .5rem 0 0; color: var(--color-ink-600); font-size: .8rem; line-height: 1.5; }
+@media (max-width: 640px) {
+  body.fm-app .fm-chances-top { grid-template-columns: minmax(0, 1fr); }
+  body.fm-app .fm-chances-scoreboard > div { align-items: start; }
+  body.fm-app .fm-chances-scoreboard dd { align-items: start; }
+}
+:root.dark body.fm-app .fm-chances-badge { color: #d9e3ef; }
+:root.dark body.fm-app .fm-chances-badge.tone-good { background: #204c31; color: #b9e8c8; }
+:root.dark body.fm-app .fm-chances-badge.tone-unlucky { background: #1e3654; color: #b9d3f2; }
+:root.dark body.fm-app .fm-chances-badge.tone-lucky { background: #49391e; color: #f0d7a2; }
+:root.dark body.fm-app .fm-chances-badge.tone-bad { background: #4a2622; color: #f4b8ae; }
+:root.dark body.fm-app .fm-chances-summary, :root.dark body.fm-app .fm-chances-scoreboard dd, :root.dark body.fm-app .fm-chances-finishing b { color: #f5f8fc; }
+:root.dark body.fm-app .fm-chances-takeaway, :root.dark body.fm-app .fm-chances-missed, :root.dark body.fm-app .fm-chances-finishing, :root.dark body.fm-app .fm-chances-method p { color: #d9e3ef; }
+:root.dark body.fm-app .fm-chances-scoreboard dt, :root.dark body.fm-app .fm-chances-scoreboard dd small, :root.dark body.fm-app .fm-chances-caption, :root.dark body.fm-app .fm-chances-finishing span:not(.fm-chances-standing) { color: #a9b8ca; }
+:root.dark body.fm-app .fm-chances-odds-W { background: rgba(127, 214, 160, .16); color: #b9e8c8; }
+:root.dark body.fm-app .fm-chances-odds-D { background: rgba(255, 255, 255, .08); color: #d9e3ef; }
+:root.dark body.fm-app .fm-chances-odds-L { background: rgba(244, 184, 174, .14); color: #f4b8ae; }
+:root.dark body.fm-app .fm-chances-odds-W.actual { background: #2f8a55; color: white; }
+:root.dark body.fm-app .fm-chances-odds-D.actual { background: #5b6b80; color: white; }
+:root.dark body.fm-app .fm-chances-odds-L.actual { background: #b4523e; color: white; }
+:root.dark body.fm-app .fm-chances-standing.below { background: #49391e; color: #f0d7a2; }
+:root.dark body.fm-app .fm-chances-standing.above { background: #204c31; color: #b9e8c8; }
+:root.dark body.fm-app .fm-chances-standing.usual { color: #a9b8ca; }

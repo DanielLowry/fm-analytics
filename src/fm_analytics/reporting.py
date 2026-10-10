@@ -30,6 +30,7 @@ from fm_analytics.analytics.appearance_context import (
 from fm_analytics.analytics.contract_planning import ContractPolicy, ContractReview, assess_contracts
 from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.analytics.player_form import FormLookup, FormPolicy, build_form
+from fm_analytics.analytics.penalty_record import PenaltyRecord, penalty_record
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics, diagnose_matches
 from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis, diagnose_one_match
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, evaluate_intervention
@@ -820,7 +821,16 @@ def build_match_report(
         notes=history.notes,
         confirmed_role_codes=history.role_codes,
         usual_roles=history.usual_roles,
+        penalty_fouls=history.penalty_fouls,
     )
+
+
+def build_penalty_record(history: MatchHistory, review: MatchReview) -> PenaltyRecord:
+    """Who gave away the penalties scored against us in the matches `review` selects.
+
+    The one computation behind the Matches page's panel and `fm-matches review`.
+    """
+    return penalty_record((summary.match for summary in review.matches), history.club.id, history.penalty_fouls)
 
 
 def build_match_diagnosis(

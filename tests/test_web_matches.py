@@ -10,6 +10,9 @@ from fm_analytics.persistence.match_history import MatchHistoryStore
 from fm_analytics.reporting import build_match_export, build_match_report, build_match_review
 
 from tests.match_support import capture_document, season, two_seasons
+from tests.test_penalty_record import with_penalty_against_us
+from tests.test_match_chances import SNATCHED, UNLUCKY, chance_match
+from tests.test_match_chances import baseline as chance_baseline
 from tests.test_match_diagnostics import diagnostic_season, one_match_target, varied_season
 from tests.web_support import FIXTURE, WebServerHelpers, write_complete_fixture
 
@@ -189,6 +192,23 @@ class MatchPageTests(MatchPagesCase):
         self.assertIn("usually 6.80", body)
         self.assertLess(body.index("<h2>Diagnosis</h2>"), body.index("<h2>Match stats</h2>"))
 
+    def test_a_match_page_judges_the_result_against_the_chances(self) -> None:
+        target = chance_match("2019-10-01", UNLUCKY, SNATCHED)
+        self.capture.write_text(
+            json.dumps(capture_document(chance_baseline() + [target], game_date="2019-10-20")), encoding="utf-8"
+        )
+        self.record()
+        status, body = self._get(self.serve(), "/matches/" + quote("2019-10-01:100:201", safe=""))
+        self.assertEqual(status, 200)
+        self.assertIn("<h2>Result vs chances</h2>", body)
+        self.assertIn("tone-unlucky'>Unlucky defeat</span>", body)
+        self.assertIn("You had the better chances, worth 3.0 goals to their 0.5.", body)
+        self.assertIn("fm-chances-odds-L actual", body)
+        self.assertIn("Clear-cut chances you missed", body)
+        self.assertIn("Against your usual for", body)
+        self.assertIn("How this is worked out", body)
+        self.assertLess(body.index("<h2>Result vs chances</h2>"), body.index("<h2>Diagnosis</h2>"))
+
     def test_a_match_without_enough_history_says_why_it_is_not_compared(self) -> None:
         self.record()
         _status, body = self._get(self.serve(), DETAILED_URL)
@@ -214,6 +234,25 @@ class MatchPostTests(MatchPagesCase):
         self.assertEqual((note.tactic_key, note.opponent_rating, note.note), ("wing_play_442", -1, "Sat deep"))
         _status, body = self._get(port, DETAILED_URL)
         self.assertIn("value='wing_play_442' selected", body)
+
+    def test_who_gave_a_penalty_away_is_saved_from_the_match_page_and_tallied_on_the_matches_page(self) -> None:
+        self.capture.write_text(json.dumps(with_penalty_against_us()), encoding="utf-8")
+        self.record()
+        port = self.serve()
+        _status, body = self._get(port, DETAILED_URL)
+        self.assertIn("<h3>Penalties you gave away</h3>", body)
+        self.assertIn("50′, scored by Away 11: who gave it away?", body)
+        self.assertNotIn("Late Sub</option>", body)  # not on the pitch yet
+        status, location, _body = self._post(port, "/matches/penalty", f"match={quote(DETAILED)}&minute=50&added=0&player=1003")
+        self.assertEqual((status, location), (303, DETAILED_URL))
+        _status, body = self._get(port, DETAILED_URL)
+        self.assertIn("<option value='1003' selected>Home 4</option>", body)
+        self.assertIn("given away by Home 4, your record", body)
+        _status, body = self._get(port, "/matches")
+        self.assertIn("<h2>Penalties you gave away</h2>", body)
+        self.assertIn("<li><strong>Home 4</strong>: 1</li>", body)
+        status, _location, _body = self._post(port, "/matches/penalty", f"match={quote(DETAILED)}&minute=50&added=0&player=1503")
+        self.assertEqual(status, 400)  # one of theirs
 
     def test_bad_notes_are_refused_and_nothing_is_stored(self) -> None:
         self.record()

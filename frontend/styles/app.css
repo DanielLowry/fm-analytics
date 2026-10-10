@@ -5,6 +5,7 @@
  * language. The source and pinned upstream revision are recorded in
  * THIRD_PARTY_NOTICES.md.
  */
+@import "./match-chances.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

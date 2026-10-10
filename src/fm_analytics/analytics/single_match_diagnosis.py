@@ -5,7 +5,8 @@ them.  What it can show is where it sits against the usual range of the other
 competitive matches, by that diagnosis's own opponent-and-venue expectation,
 which is a description with its count, not a verdict.  It also says how the
 score went and which players were rated well away from their own average in
-the role.
+the role, and, from `match_chances`, how the result compares with the chances
+each side made.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from statistics import mean, stdev
 from typing import Sequence
 
 from fm_analytics.analytics.match_analysis import MatchReview, MatchSummary
+from fm_analytics.analytics.match_chances import ResultVsChances, judge_chances
 from fm_analytics.analytics.match_diagnostics import (
     CORE_TEAM_STATS,
     MIN_BASELINE_MATCHES,
@@ -94,6 +96,8 @@ class OneMatchDiagnosis:
     game_state: tuple[str, ...]
     above_usual: tuple[RatingStandout, ...]
     below_usual: tuple[RatingStandout, ...]
+    chances: ResultVsChances | None = None
+    chances_not_judged: str | None = None  # why there is no `chances`
 
 
 def _usual_ranges(summary: MatchSummary, baseline: Sequence[MatchSummary]) -> tuple[UsualRangeCheck, ...]:
@@ -230,6 +234,7 @@ def diagnose_one_match(review: MatchReview, summary: MatchSummary) -> OneMatchDi
         _rating_standouts(review, summary)
         if in_review and summary.match.detail is not None else ((), ())
     )
+    chances, chances_not_judged = judge_chances(review, summary, compare_usual=reason is None)
     return OneMatchDiagnosis(
         match_key=key,
         compared_with=f"{_OPPONENT_PHRASES[_band_key(summary)]} {venue}",
@@ -240,4 +245,6 @@ def diagnose_one_match(review: MatchReview, summary: MatchSummary) -> OneMatchDi
         game_state=_how_it_played_out(summary, _game_state(review.matches) if in_review else None),
         above_usual=above,
         below_usual=below,
+        chances=chances,
+        chances_not_judged=chances_not_judged,
     )

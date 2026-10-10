@@ -10,6 +10,7 @@ from fm_analytics.analytics.match_analysis import METRICS, MatchReport
 from fm_analytics.analytics.match_timeline import CORNER_GUESS
 from fm_analytics.analytics.opponent import AXIS_DEFINITIONS
 from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis
+from fm_analytics.web.match_chances_render import match_chances_panel
 from fm_analytics.web.match_diagnosis_render import match_diagnosis_panel
 from fm_analytics.web.match_render import _e, chip, versus
 
@@ -74,6 +75,8 @@ def timeline_items(report: MatchReport) -> str:
             extra.append(f"assist {_e(entry.assisted_by)}")
         if entry.from_clear_cut_chance:
             extra.append("from a clear-cut chance")
+        if entry.given_away_by:
+            extra.append(f"given away by {_e(entry.given_away_by)}, your record")
         items.append(
             f"<li class='{'ours' if entry.ours else 'theirs'} kind-{entry.kind}'>"
             f"<span class='fm-match-minute'>{entry.clock}′</span> {'You' if entry.ours else opponent} – "
@@ -116,6 +119,35 @@ def shots_table(report: MatchReport) -> str:
         "<table class='sortable'><thead><tr><th>Minute</th><th>Team</th><th>Player</th><th>Where it went</th></tr></thead>"
         f"<tbody>{rows}</tbody></table></div></details>"
         "<p class='muted fm-match-note'>The match clock runs on through first-half added time, so a shot then shows as 46′.</p>"
+    )
+
+
+def penalty_forms(report: MatchReport) -> str:
+    """A form per penalty scored against us: who gave it away, as you saw it on FM's replay."""
+    if not report.penalties:
+        return ""
+    forms = []
+    for penalty in report.penalties:
+        heading = f"{penalty.clock}′, scored by {_e(penalty.taker or 'their player')}"
+        if not penalty.on_pitch:
+            forms.append(f"<p>{heading}: <span class='muted'>this match's line-ups were not read, so there is "
+                         "nobody to choose from.</span></p>")
+            continue
+        options = "<option value=''>Not recorded</option>" + "".join(
+            f"<option value='{short_id}'{' selected' if short_id == penalty.given_away_by_id else ''}>{_e(name)}</option>"
+            for short_id, name in penalty.on_pitch
+        )
+        forms.append(
+            "<form class='note-form fm-penalty-form' method='post' action='/matches/penalty'>"
+            f"<input type='hidden' name='match' value='{_e(penalty.match_key)}'>"
+            f"<input type='hidden' name='minute' value='{penalty.minute}'>"
+            f"<input type='hidden' name='added' value='{penalty.added_time}'>"
+            f"<label>{heading}: who gave it away?<select name='player'>{options}</select></label>"
+            "<div><button type='submit'>Save</button></div></form>"
+        )
+    return (
+        "<h3>Penalties you gave away</h3><p class='muted'>FM doesn't record who gave a penalty away, so this is "
+        "yours to note from the replay. Reading matches from FM never changes it.</p>" + "".join(forms)
     )
 
 
@@ -197,7 +229,8 @@ def match_body(
         )
 
     diagnosis_panel = (
-        match_diagnosis_panel(diagnosis, summary.opponent.name, has_stats=match.detail is not None)
+        match_chances_panel(diagnosis, summary.opponent.name, summary.result, has_stats=match.detail is not None)
+        + match_diagnosis_panel(diagnosis, summary.opponent.name, has_stats=match.detail is not None)
         if diagnosis is not None else ""
     )
     if match.detail is None:
@@ -209,7 +242,7 @@ def match_body(
             panel_class="fm-match-evidence-gap",
         ) + "<section class='fm-workspace-panel fm-match-notes-panel'>" + note_form(
             report, catalogue, pinned, note
-        ) + "</section>"
+        ) + penalty_forms(report) + "</section>"
     ours, theirs = summary.ours, summary.theirs
     stat_rows = "".join(
         f"<tr><td>{_e(label)}</td><td>{versus(ours[key], theirs[key], percentage)}</td></tr>"
@@ -237,5 +270,6 @@ def match_body(
                  "whether saved, blocked or scored), wide or over.", shots, panel_class="fm-match-shots") if shots else "")
         + panel("Your players", "Minutes, match contribution, and role for your side.", _player_rows(report, summary.side), panel_class="fm-match-players")
         + panel(_e(summary.opponent.name), "Their recorded player statistics.", _player_rows(report, other), panel_class="fm-match-players")
-        + "<section class='fm-workspace-panel fm-match-notes-panel'>" + note_form(report, catalogue, pinned, note) + "</section>"
+        + "<section class='fm-workspace-panel fm-match-notes-panel'>" + note_form(report, catalogue, pinned, note)
+        + penalty_forms(report) + "</section>"
     )

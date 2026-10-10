@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from statistics import mean
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 from fm_analytics.analytics.match_analysis import MatchReview, MatchSummary
 from fm_analytics.analytics.match_roles import RoleSummary
@@ -235,14 +235,14 @@ def _band_key(summary: MatchSummary) -> str:
     return summary.strength.band("table").key
 
 
-def _expected(
+def expected_value(
     row: MatchSummary,
     season: Sequence[MatchSummary],
-    side: str,
-    metric: str,
+    value: Callable[[MatchSummary], float],
 ) -> float:
-    values = [float(getattr(item, side)[metric]) for item in season]
-    overall = mean(values)
+    """What `row` would usually show of `value`, from `season`: its average, moved
+    part of the way towards the average for the row's opponent third and venue."""
+    overall = mean(value(item) for item in season)
     band_rows = [item for item in season if _band_key(item) == _band_key(row)]
     venue_rows = [item for item in season if item.side == row.side]
 
@@ -251,10 +251,18 @@ def _expected(
         if not group:
             return 0.0
         weight = len(group) / (len(group) + _ADJUSTMENT_SHRINKAGE)
-        group_mean = mean(float(getattr(item, side)[metric]) for item in group)
-        return weight * (group_mean - overall)
+        return weight * (mean(value(item) for item in group) - overall)
 
     return overall + contribution(band_rows) + contribution(venue_rows)
+
+
+def _expected(
+    row: MatchSummary,
+    season: Sequence[MatchSummary],
+    side: str,
+    metric: str,
+) -> float:
+    return expected_value(row, season, lambda item: float(getattr(item, side)[metric]))
 
 
 class _Expectations:

@@ -23,6 +23,7 @@ from fm_analytics.analytics.appearance_context import appearance_roles
 from fm_analytics.analytics.match_players import PlayerSeason, summarise_players
 from fm_analytics.analytics.match_roles import RoleCodes, RoleSummary, summarise_roles
 from fm_analytics.analytics.match_timeline import MatchTimeline, build_timeline
+from fm_analytics.analytics.penalty_record import ConcededPenalty, PenaltyKey, conceded_penalties
 from fm_analytics.analytics.match_strength import (
     BANDS,
     GROUPING_LABELS,
@@ -435,6 +436,8 @@ class MatchReport:
     summary: MatchSummary
     role_labels: Mapping[tuple[str, int], str]  # (side, short ID) -> the role he played
     timeline: MatchTimeline | None = None  # None without match detail
+    # Penalties scored against us, with the manager's record of who gave each away.
+    penalties: tuple[ConcededPenalty, ...] = ()
 
 
 def report_match(
@@ -447,6 +450,7 @@ def report_match(
     notes: Mapping[str, object] = {},
     confirmed_role_codes: Mapping[int, str] = {},
     usual_roles: Mapping[tuple[str, str], str] = {},
+    penalty_fouls: Mapping[PenaltyKey, int] = {},
 ) -> MatchReport | None:
     codes = RoleCodes.build(catalogue, confirmed_role_codes)
     match = next((match for match in matches if match.key == match_key), None)
@@ -454,10 +458,14 @@ def report_match(
         return None
     (summary,) = summarise_matches([match], leagues, club, notes=notes, codes=codes, grouping="table")
     roles = appearance_roles([match], club.id, notes=notes, codes=codes, usual_roles=usual_roles)
+    penalties = conceded_penalties(match, club.id, penalty_fouls)
     return MatchReport(
         summary,
         {(side, short_id): role for (_key, side, short_id), role in roles.items()},
-        build_timeline(match, summary.side),
+        build_timeline(match, summary.side, given_away={
+            (penalty.minute, penalty.added_time): penalty.given_away_by for penalty in penalties if penalty.given_away_by
+        }),
+        penalties,
     )
 
 

@@ -28,6 +28,7 @@ from typing import Sequence
 from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.analytics.appearance_context import RECENT_GAME_DAYS, AppearanceCoverage, duty_choices
 from fm_analytics.analytics.player_form import FormLookup
+from fm_analytics.analytics.penalty_record import PenaltyRecord
 from fm_analytics.analytics.match_analysis import (
     COMPETITION_SCOPES,
     METRICS,
@@ -39,6 +40,8 @@ from fm_analytics.analytics.match_analysis import (
     season_label,
 )
 from fm_analytics.analytics.match_diagnostics import MIN_TEAM_MATCHES, MatchDiagnostics
+from fm_analytics.analytics.chance_value import one_in
+from fm_analytics.analytics.match_chances import FinishingRecord
 from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis
 from fm_analytics.analytics.match_interventions import InterventionEvaluation
 from fm_analytics.analytics.match_strength import GROUPINGS
@@ -61,6 +64,7 @@ from fm_analytics.reporting import (
     build_match_intervention_evaluation,
     build_match_report,
     build_match_review,
+    build_penalty_record,
     build_recommendation_bundle,
     build_season_export,
     has_complete_role_attributes,
@@ -248,9 +252,60 @@ def format_diagnostics(diagnostics: MatchDiagnostics) -> str:
     return "\n".join(lines)
 
 
+def _finishing_standing(record: FinishingRecord) -> str:
+    if record.standing == "usual":
+        return "about usual"
+    return f"{record.standing} their chances; luck alone leaves a gap this large {one_in(record.luck_odds)}"
+
+
+def format_result_vs_chances(diagnosis: OneMatchDiagnosis) -> str:
+    """Plain-text form of a match page's "Result vs chances"."""
+    chances = diagnosis.chances
+    if chances is None:
+        return f"\nResult vs chances\n  {diagnosis.chances_not_judged}" if diagnosis.chances_not_judged else ""
+    lines = [
+        "", "Result vs chances",
+        f"  {chances.verdict}. {chances.summary}",
+        f"  Points {chances.points}; chances like these usually bring {chances.expected_points:.2f}.",
+        f"  {'':<5} {'Shots':>5} {'Clear-cut':>9} {'Worth':>6} {'On goal (usual)':>16} {'Went in (usual)':>16} {'Goals':>5}",
+    ]
+    for label, side in (("You", chances.ours), ("Them", chances.theirs)):
+        lines.append(
+            f"  {label:<5} {side.shots:>5} {side.clear_cut:>9} {side.worth:>6.1f} "
+            f"{f'{side.on_goal} ({side.usual_on_goal:.1f})':>16} "
+            f"{f'{side.scored_on_goal} ({side.usual_scored_on_goal:.1f})':>16} {side.score:>5}"
+        )
+    lines += [f"  - {line}" for line in chances.explanations]
+    if chances.ours.missed_clear_cut:
+        lines.append("  Clear-cut chances you missed: " + ", ".join(
+            f"{item.player or 'unknown player'} {item.clock}′ ({item.outcome})" for item in chances.ours.missed_clear_cut
+        ))
+    if chances.usual:
+        ours, theirs = chances.usual
+        lines.append(
+            f"  Against your usual for {diagnosis.compared_with}: you {ours.actual:.1f} "
+            f"(usual {ours.low:.1f}-{ours.high:.1f}, {ours.standing}), "
+            f"them {theirs.actual:.1f} (usual {theirs.low:.1f}-{theirs.high:.1f}, {theirs.standing})"
+        )
+    team = chances.team_finishing
+    lines.append(
+        f"  Finishing over your other {team.matches} matches: {team.goals} goals from chances worth "
+        f"{team.worth:.1f} ({_finishing_standing(team)})"
+    )
+    for record in chances.finishers:
+        before = (
+            f"before, {record.goals} from {record.worth:.1f} in {record.matches} matches ({_finishing_standing(record)})"
+            if record.shots else "no other shots recorded"
+        )
+        lines.append(f"    {record.name}: today {record.today_goals} from {record.today_worth:.1f}; {before}")
+    lines += [f"  So: {chances.takeaway}", f"  ({chances.method})"]
+    return "\n".join(lines)
+
+
 def format_match_diagnosis(diagnosis: OneMatchDiagnosis) -> str:
-    """Plain-text form of the Diagnosis on a match's page."""
-    lines = ["", "Diagnosis"]
+    """Plain-text form of the Diagnosis on a match's page, "Result vs chances" first as on the page."""
+    chances = format_result_vs_chances(diagnosis)
+    lines = ([chances] if chances else []) + ["", "Diagnosis"]
     if diagnosis.not_compared is not None:
         lines.append(f"  {diagnosis.not_compared}")
     else:
@@ -384,6 +439,12 @@ def build_parser() -> argparse.ArgumentParser:
     note.add_argument("--tactic", help="catalogue tactic key")
     note.add_argument("--rating", type=int, help="opponent strength as you judged it before kickoff, -2..+2")
     note.add_argument("--text", default="")
+    penalty = commands.add_parser("penalty", help="record who gave away a penalty scored against you")
+    penalty.add_argument("match")
+    penalty.add_argument("minute", help="as FM shows it: 52, or 90+3")
+    who = penalty.add_mutually_exclusive_group(required=True)
+    who.add_argument("--player", help="your player's name, or enough of it to tell him apart")
+    who.add_argument("--clear", action="store_true", help="forget who gave it away")
     export = commands.add_parser("export", help="the season as one JSON document")
     export.add_argument("--detail", choices=DETAIL_LEVELS, default="standard",
                         help="basic: records, splits and one line per match; standard: adds line-ups, "
@@ -463,6 +524,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 print(
                     format_review(review)
+                    + format_penalties(build_penalty_record(history, review))
                     + format_diagnostics(build_match_diagnostics(review))
                     + format_intervention(
                         build_match_intervention_evaluation(history, lifecycle_review)
@@ -514,6 +576,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                     output.write_text(text, encoding="utf-8")
                     print(f"Wrote {output} ({args.detail}, {len(document['matches'])} matches, "
                           f"squad {document['meta']['squad']}).")
+            elif args.command == "penalty":
+                print(_record_penalty(store, history, args))
             elif args.command == "note":
                 if args.tactic and args.tactic not in MVP_CATALOGUE.tactics:
                     raise ValueError(f"unknown tactic key {args.tactic!r}")
@@ -524,6 +588,42 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"error: {exc}")
         return 1
     return 0
+
+
+def format_penalties(record: PenaltyRecord) -> str:
+    if not record.penalties:
+        return ""
+    lines = ["", f"Penalties scored against you: {len(record.penalties)}, "
+             f"{len(record.penalties) - len(record.unrecorded)} with who gave it away recorded"]
+    lines += [f"  {name:<24} {count}" for name, count in record.by_player]
+    lines += [f"  not recorded: {penalty.date} v {penalty.opponent} {penalty.clock}′ "
+              f"(fm-matches penalty {penalty.match_key} {penalty.clock} --player NAME)" for penalty in record.unrecorded]
+    return "\n".join(lines)
+
+
+def _record_penalty(store: MatchHistoryStore, history, args) -> str:
+    minute, _, added = args.minute.partition("+")
+    if not minute.isdigit() or (added and not added.isdigit()):
+        raise ValueError(f"{args.minute!r} is not a minute as FM shows it (52, or 90+3)")
+    report = build_match_report(history, args.match)
+    if report is None:
+        raise ValueError(f"no match {args.match}")
+    penalty = next((item for item in report.penalties
+                    if (item.minute, item.added_time) == (int(minute), int(added or 0))), None)
+    if penalty is None:
+        raise ValueError(f"no penalty was scored against you at {args.minute}′ in that match")
+    if args.clear:
+        store.record_penalty_foul(history.save_key, args.match, penalty.minute, penalty.added_time, None)
+        return "Cleared."
+    wanted = args.player.casefold()
+    found = [(short_id, name) for short_id, name in penalty.on_pitch if wanted in name.casefold()]
+    exact = [item for item in found if item[1].casefold() == wanted]
+    if len(exact) == 1 or len(found) == 1:
+        short_id, name = (exact or found)[0]
+        store.record_penalty_foul(history.save_key, args.match, penalty.minute, penalty.added_time, short_id)
+        return f"Recorded: {name} gave away the {penalty.clock}′ penalty."
+    names = ", ".join(name for _id, name in (found or penalty.on_pitch))
+    raise ValueError(f"{args.player!r} does not pick out one of your players then: {names}")
 
 
 def _format_match(report) -> str:
@@ -571,6 +671,8 @@ def _format_timeline(report) -> list[str]:
             extra = [f"assist {entry.assisted_by}"] if entry.assisted_by else []
             if entry.from_clear_cut_chance:
                 extra.append("from a clear-cut chance")
+            if entry.given_away_by:
+                extra.append(f"given away by {entry.given_away_by}, your record")
             lines.append(
                 f"  {entry.clock + '′':>6} {'Us  ' if entry.ours else 'Them'} {entry.label}"
                 f"{': ' + entry.player if entry.player else ''}"
