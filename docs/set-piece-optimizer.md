@@ -27,7 +27,7 @@ This remains a single global assignment: jobs are never filled greedily.
 
 ## Job suitability and responsibility importance
 
-`set-piece-v9` separates the suitability of a player for a job from the value
+`set-piece-v10` separates the suitability of a player for a job from the value
 of improving that responsibility. Individual job-fit scores remain 0–100;
 the routine score is their importance-weighted average. Delivery-foot bonuses
 influence selection but remain outside the displayed attribute scores.
@@ -37,7 +37,8 @@ Defending corners distinguish:
 | Responsibility | Principal visible inputs | Importance |
 | --- | --- | --- |
 | Post guard | Concentration, anticipation, positioning; agility and a small aerial component | 0.7 |
-| Aerial zonal defender | Jumping reach, heading, anticipation, bravery and strength | 1.4 |
+| Central aerial zonal defender | Jumping reach, heading, anticipation, bravery and strength | 1.6 |
+| Near/far aerial zonal defender | Same aerial profile as central cover | 1.4 |
 | Tall-player marker | Jumping reach, heading, marking, strength and bravery | 1.5 |
 | Man marker | Marking, anticipation, positioning, concentration and tracking movement | 1.1 |
 | Spare cover | Anticipation, positioning, concentration and decisions | 0.9 |
@@ -59,9 +60,15 @@ distinct from their aerial-cover profile.
 
 `priority` is separate: it decides which responsibilities survive a partial
 player feed and their display order. For defensive corners, aerial jobs now
-survive before post cover. Importance affects the optimization itself.
+survive before post cover, with the central anchor kept first, followed by
+tall-player marking. Importance affects the optimization itself.
 
-Equivalent post guards, aerial zones, and repeated responsibilities can
+The centre has a higher responsibility weight to anchor the main delivery
+area. For the captured XI this places Okosieme centrally, Bradley-Green on
+the tall-player marking job, Challis in the near zone, and Jefford in the far
+zone. This is a general responsibility change, not a player-specific rule.
+
+Equivalent post guards, near/far aerial zones, and repeated responsibilities can
 genuinely tie. They retain the same profiles and importance unless there is
 a football reason to distinguish them. Canonical player and job ordering
 makes these ties stable when the input roster is reordered; the manager can

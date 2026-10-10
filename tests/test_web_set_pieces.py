@@ -147,11 +147,13 @@ class SetPiecePageTests(unittest.TestCase):
         self.assertIn("Vertical 4-4-2 match XI", body)
         # Check the actual assignment cards, rather than names appearing
         # elsewhere in specialist rankings or the explanation table.
-        self.assertIn("<b>Ejiro Okosieme</b><span><strong>Mark tall player</strong>", body)
-        self.assertIn("<b>Jamie Bradley-Green</b><span><strong>Zonally mark 6 yard box near post</strong>", body)
+        self.assertIn("<b>Ejiro Okosieme</b><span><strong>Zonally mark 6 yard box centre</strong>", body)
+        self.assertIn("<b>Jamie Bradley-Green</b><span><strong>Mark tall player</strong>", body)
+        self.assertIn("<b>Challis Johnson</b><span><strong>Zonally mark 6 yard box near post</strong>", body)
         self.assertIn("<b>Ross Holden</b><span><strong>Mark near post</strong>", body)
         self.assertIn("<b>Terrance Saydee</b><span><strong>Mark far post</strong>", body)
         self.assertIn("<dt>Responsibility weight</dt><dd>1.5×</dd>", body)
+        self.assertIn("<dt>Responsibility weight</dt><dd>1.6×</dd>", body)
         self.assertIn("<dt>Responsibility weight</dt><dd>0.7×</dd>", body)
         self.assertEqual(body.count("class='routine-assignment-note'"), 11)
 

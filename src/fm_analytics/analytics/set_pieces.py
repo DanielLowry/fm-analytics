@@ -391,7 +391,7 @@ def _build_routines(
             lineup_positions=lineup_positions,
             notes=(
                 "Aerial zones and tall-player marking carry more responsibility weight than post cover; all jobs are assigned together.",
-                "Equivalent aerial zones share the same profile and importance; adjust their placement to the opponent's delivery.",
+                "Central zonal cover carries the most aerial responsibility; near and far zonal cover remain equivalent.",
                 "Drop the counter outlet only when protecting a late lead or facing overwhelming aerial pressure.",
             ),
         )

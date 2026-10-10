@@ -20,7 +20,7 @@ from fm_analytics.analytics.role_scoring import (
 from fm_analytics.domain import Player
 
 
-SET_PIECE_SCORING_VERSION = "set-piece-v9"
+SET_PIECE_SCORING_VERSION = "set-piece-v10"
 
 ATTACKING_CORNER_INSTRUCTIONS = (
     "Attack near post",
@@ -473,13 +473,13 @@ def _defending_corner_roles() -> tuple[RoutineRole, ...]:
         "def_corner_zonal_near", "Near-post zonal defender", "Box defence",
         "Six-yard box near post", "Zonally mark 6 yard box near post",
         "Attacks deliveries entering the near side of the six-yard box.",
-        _ZONAL_DEFENCE, priority=98, importance=1.4,
+        _ZONAL_DEFENCE, priority=97, importance=1.4,
     )
     zonal_centre = _role(
         "def_corner_zonal_centre", "Central zonal defender", "Box defence",
         "Six-yard box centre", "Zonally mark 6 yard box centre",
-        "Attacks deliveries entering the centre of the six-yard box.",
-        _ZONAL_DEFENCE, priority=97, importance=1.4,
+        "Anchors the central six-yard zone and attacks the main delivery.",
+        _ZONAL_DEFENCE, priority=99, importance=1.6,
     )
     zonal_far = _role(
         "def_corner_zonal_far", "Far-post zonal defender", "Box defence",
@@ -500,7 +500,7 @@ def _defending_corner_roles() -> tuple[RoutineRole, ...]:
     mark_tall = _role(
         "def_corner_mark_tall", "Primary aerial marker", "Box defence", "Central danger",
         "Mark tall player", "Takes the opponent's strongest aerial threat.",
-        _AERIAL_MARKING, priority=99, importance=1.5,
+        _AERIAL_MARKING, priority=98, importance=1.5,
     )
     edge = _role(
         "def_corner_edge", "Edge-of-area guard", "Second ball", "Edge of area",

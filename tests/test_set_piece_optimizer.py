@@ -54,12 +54,15 @@ class CapturedStartingXIRegressionTests(unittest.TestCase):
         routine = self.corners()
         jobs = {item.role.instruction: item.player.name for item in routine.assignments}
 
-        self.assertEqual(jobs["Mark tall player"], "Ejiro Okosieme")
+        self.assertEqual(jobs["Zonally mark 6 yard box centre"], "Ejiro Okosieme")
+        self.assertEqual(jobs["Mark tall player"], "Jamie Bradley-Green")
+        self.assertEqual(jobs["Zonally mark 6 yard box near post"], "Challis Johnson")
+        self.assertEqual(jobs["Zonally mark 6 yard box far post"], "Ben Jefford")
         zonal_players = {
             item.player.name for item in routine.assignments
             if item.role.instruction.startswith("Zonally mark")
         }
-        self.assertIn("Jamie Bradley-Green", zonal_players)
+        self.assertIn("Ejiro Okosieme", zonal_players)
         self.assertNotIn("Lucas Odunston", zonal_players)
         self.assertNotIn("Terrance Saydee", zonal_players)
         post_players = {jobs["Mark near post"], jobs["Mark far post"]}
@@ -83,9 +86,9 @@ class CapturedStartingXIRegressionTests(unittest.TestCase):
             else replace(p, attributes=aerial.attributes) if p.id == winger.id
             else p for p in self.squad.players
         ))
-        marker = next(a for a in self.corners(swapped).assignments if a.role.instruction == "Mark tall player")
+        anchor = next(a for a in self.corners(swapped).assignments if a.role.instruction == "Zonally mark 6 yard box centre")
 
-        self.assertEqual(marker.player.id, winger.id)
+        self.assertEqual(anchor.player.id, winger.id)
 
     def test_original_assignments_are_strictly_worse_under_the_revised_objective(self):
         previous = {
@@ -384,7 +387,10 @@ class WholeRoutineObjectiveTests(unittest.TestCase):
         report = recommend_set_pieces(replace(squad, players=players))
         routine = next(r for r in report.routines if r.key == "defending_corner")
         jobs = {a.role.instruction for a in routine.assignments}
-        self.assertEqual(jobs, {"Defend area", "Mark tall player", "Zonally mark 6 yard box near post"})
+        self.assertEqual(jobs, {"Defend area", "Mark tall player", "Zonally mark 6 yard box centre"})
+        assignments = {a.role.instruction: a.player.name for a in routine.assignments}
+        self.assertEqual(assignments["Zonally mark 6 yard box centre"], "Ejiro Okosieme")
+        self.assertEqual(assignments["Mark tall player"], "Jamie Bradley-Green")
 
     def test_invalid_importance_is_rejected(self):
         for importance in (0, -1, float("inf"), float("nan")):
