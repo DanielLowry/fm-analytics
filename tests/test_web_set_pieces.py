@@ -16,6 +16,7 @@ from fm_analytics.web.server import SquadWebServer
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURE = ROOT / "src/fm_analytics/fixtures/sample-game.json"
+CAPTURE = ROOT / "tests/fixtures/hungerford-vertical-442-2020-10-20.json"
 
 
 def _complete_fixture(directory: Path) -> Path:
@@ -135,6 +136,24 @@ class SetPiecePageTests(unittest.TestCase):
         self.assertEqual(body.count("class='routine-assignment-note'"), 11)
         self.assertIn("Strongest visible inputs", body)
         self.assertIn("every player can fill only one job", body)
+
+    def test_captured_xi_displays_revised_corner_assignments_and_responsibility_weights(self) -> None:
+        status, body = self._get(
+            self._serve(CAPTURE),
+            "/set-pieces?tactic=vertical_442&routine=defending_corner",
+        )
+
+        self.assertEqual(status, 200)
+        self.assertIn("Vertical 4-4-2 match XI", body)
+        # Check the actual assignment cards, rather than names appearing
+        # elsewhere in specialist rankings or the explanation table.
+        self.assertIn("<b>Ejiro Okosieme</b><span><strong>Mark tall player</strong>", body)
+        self.assertIn("<b>Jamie Bradley-Green</b><span><strong>Zonally mark 6 yard box near post</strong>", body)
+        self.assertIn("<b>Ross Holden</b><span><strong>Mark near post</strong>", body)
+        self.assertIn("<b>Terrance Saydee</b><span><strong>Mark far post</strong>", body)
+        self.assertIn("<dt>Responsibility weight</dt><dd>1.5×</dd>", body)
+        self.assertIn("<dt>Responsibility weight</dt><dd>0.7×</dd>", body)
+        self.assertEqual(body.count("class='routine-assignment-note'"), 11)
 
     def test_defending_free_kick_uses_the_fm_instruction_names(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

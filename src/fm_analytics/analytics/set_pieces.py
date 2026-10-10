@@ -169,6 +169,11 @@ class RoutineAssignment:
         return self.score.score.central + self.side_fit_bonus
 
     @property
+    def assignment_value(self) -> float:
+        """Contribution to the objective; job fit itself remains on 0–100."""
+        return self.role.importance * self.ordering_score
+
+    @property
     def strongest_inputs(self) -> tuple[str, ...]:
         ordered = sorted(
             self.score.contributions,
@@ -384,7 +389,11 @@ def _build_routines(
             roles=defensive_roles("corner"), players=players,
             recommendations=recommendations,
             lineup_positions=lineup_positions,
-            notes=("Primary and secondary aerial markers are intentionally different players.", "Drop the counter outlet only when protecting a late lead or facing overwhelming aerial pressure."),
+            notes=(
+                "Aerial zones and tall-player marking carry more responsibility weight than post cover; all jobs are assigned together.",
+                "Equivalent aerial zones share the same profile and importance; adjust their placement to the opponent's delivery.",
+                "Drop the counter outlet only when protecting a late lead or facing overwhelming aerial pressure.",
+            ),
         )
     )
     for kind, title, objective, wall_note in set_piece_templates.DEFENDING_FREE_KICK_TEMPLATES:
@@ -408,6 +417,9 @@ def _optimise_routine(
     recommendations: tuple[SetPieceRecommendation, ...],
     lineup_positions: Mapping[str, str], notes: tuple[str, ...],
 ) -> SetPieceRoutine:
+    # Canonical player and job ordering resolves genuine ties reproducibly,
+    # regardless of roster or input ordering. It does not alter the objective.
+    players = tuple(sorted(players, key=lambda player: (player.name.casefold(), player.id)))
     goalkeepers = tuple(player for player in players if _is_goalkeeper(player, lineup_positions))
     outfield = tuple(player for player in players if player not in goalkeepers)
     if phase == "attacking":
@@ -419,7 +431,7 @@ def _optimise_routine(
 
     # On a partial feed keep the highest-priority responsibilities rather than
     # producing duplicates or pretending all eleven jobs can be filled.
-    selected_roles = tuple(sorted(eligible_roles, key=lambda item: -item.priority)[:len(eligible_players)])
+    selected_roles = tuple(sorted(eligible_roles, key=lambda item: (-item.priority, item.key))[:len(eligible_players)])
     role_candidates: list[list[RoutineAssignment | None]] = []
     for role in selected_roles:
         row = []
@@ -434,11 +446,11 @@ def _optimise_routine(
     assignments: tuple[RoutineAssignment, ...] = ()
     if role_candidates:
         maximum = max(
-            (candidate.ordering_score for row in role_candidates for candidate in row if candidate is not None),
+            (candidate.assignment_value for row in role_candidates for candidate in row if candidate is not None),
             default=0.0,
         )
         costs = [
-            [round(maximum - candidate.ordering_score, 6) if candidate is not None else None for candidate in row]
+            [round(maximum - candidate.assignment_value, 6) if candidate is not None else None for candidate in row]
             for row in role_candidates
         ]
         player_indexes = _minimum_cost_full_assignment(costs)
@@ -457,7 +469,7 @@ def _optimise_routine(
     return SetPieceRoutine(
         key=key, name=name, phase=phase, side=side, objective=objective,
         assignments=ordered_assignments, unfilled_roles=unfilled, notes=notes,
-        score=_mean_band(tuple(item.score.score for item in assignments)),
+        score=_routine_score(assignments),
         evidence_coverage=_evidence_coverage(assignments),
     )
 
@@ -496,14 +508,23 @@ def _unit_order(unit: str) -> int:
     }.get(unit, 9)
 
 
-def _mean_band(bands: tuple[ScoreBand, ...]) -> ScoreBand:
-    if not bands:
+def _routine_score(assignments: tuple[RoutineAssignment, ...]) -> ScoreBand:
+    """Responsibility-weighted job fit, retaining uncertainty and 0–100 scale.
+
+    Delivery foot preference is an assignment bonus, not an attribute score,
+    so it stays out of the displayed score as it does for individual jobs.
+    """
+    if not assignments:
         return ScoreBand(0.0, 0.0, 0.0)
-    count = len(bands)
+    total_importance = sum(item.role.importance for item in assignments)
     return ScoreBand(
-        lower=round(sum(item.lower for item in bands) / count, 6),
-        central=round(sum(item.central for item in bands) / count, 6),
-        upper=round(sum(item.upper for item in bands) / count, 6),
+        **{
+            bound: round(sum(
+                item.role.importance * getattr(item.score.score, bound)
+                for item in assignments
+            ) / total_importance, 6)
+            for bound in ("lower", "central", "upper")
+        }
     )
 
 

@@ -1,0 +1,2167 @@
+{
+  "source": {
+    "description": "Manager-visible starting-XI clipboard export from the running FM Analytics tactic page.",
+    "url": "http://127.0.0.1:8766/tactics/vertical_442",
+    "capturedOn": "2026-10-10",
+    "notes": [
+      "The exact 11 selected players, IDs, ages, familiarity and visible attributes are preserved.",
+      "positions stores the displayed lineup position; lineupSlots preserves the selected slot.",
+      "Unavailable, injured or suspended players were excluded by the source selector.",
+      "Readiness, dates of birth, contracts and preferred feet were not exported and remain null.",
+      "Manager identity and club ID were not exported; fixture identifiers are explicit placeholders.",
+      "Attribute groups outside the clipboard export are explicitly unknown, even when the live source could supply them."
+    ]
+  },
+  "tacticKey": "vertical_442",
+  "lineupPositions": {
+    "18099804": "GK",
+    "29086213": "DL",
+    "29091678": "DC",
+    "28109937": "DC",
+    "29186423": "DR",
+    "52071676": "ML",
+    "28048896": "MC",
+    "28116001": "MC",
+    "29194198": "MR",
+    "29191556": "ST",
+    "28106293": "ST"
+  },
+  "lineupSlots": {
+    "18099804": "GK",
+    "29086213": "DL",
+    "29091678": "DCL",
+    "28109937": "DCR",
+    "29186423": "DR",
+    "52071676": "ML",
+    "28048896": "MCL",
+    "28116001": "MCR",
+    "29194198": "MR",
+    "29191556": "STL",
+    "28106293": "STR"
+  },
+  "game": {
+    "gameDate": "2020-10-20",
+    "humanManager": {
+      "id": "capture-manager",
+      "name": "Manager not captured"
+    },
+    "controlledClub": {
+      "id": "hungerford-capture",
+      "name": "Hungerford Town"
+    }
+  },
+  "squad": {
+    "club": {
+      "id": "hungerford-capture",
+      "name": "Hungerford Town"
+    },
+    "asOfDate": "2020-10-20",
+    "players": [
+      {
+        "id": "18099804",
+        "name": "Jonathan De Bie",
+        "dateOfBirth": null,
+        "age": 20,
+        "positions": [
+          "GK"
+        ],
+        "clubId": "hungerford-capture",
+        "conditionPercent": null,
+        "matchFitnessPercent": null,
+        "availability": "available",
+        "injured": false,
+        "suspended": false,
+        "contract": null,
+        "positionFamiliarity": {
+          "GK": 20
+        },
+        "preferredFoot": null,
+        "attributes": {
+          "firstTouch": {
+            "visibility": "known",
+            "value": 8
+          },
+          "freeKickTaking": {
+            "visibility": "unknown"
+          },
+          "passing": {
+            "visibility": "known",
+            "value": 6
+          },
+          "penaltyTaking": {
+            "visibility": "unknown"
+          },
+          "technique": {
+            "visibility": "known",
+            "value": 8
+          },
+          "aggression": {
+            "visibility": "known",
+            "value": 8
+          },
+          "anticipation": {
+            "visibility": "known",
+            "value": 8
+          },
+          "bravery": {
+            "visibility": "known",
+            "value": 10
+          },
+          "composure": {
+            "visibility": "known",
+            "value": 7
+          },
+          "concentration": {
+            "visibility": "known",
+            "value": 9
+          },
+          "decisions": {
+            "visibility": "known",
+            "value": 8
+          },
+          "determination": {
+            "visibility": "known",
+            "value": 16
+          },
+          "flair": {
+            "visibility": "known",
+            "value": 6
+          },
+          "leadership": {
+            "visibility": "unknown"
+          },
+          "offTheBall": {
+            "visibility": "known",
+            "value": 4
+          },
+          "positioning": {
+            "visibility": "known",
+            "value": 11
+          },
+          "teamwork": {
+            "visibility": "known",
+            "value": 8
+          },
+          "vision": {
+            "visibility": "known",
+            "value": 7
+          },
+          "workRate": {
+            "visibility": "known",
+            "value": 8
+          },
+          "acceleration": {
+            "visibility": "known",
+            "value": 10
+          },
+          "agility": {
+            "visibility": "known",
+            "value": 10
+          },
+          "balance": {
+            "visibility": "known",
+            "value": 8
+          },
+          "jumpingReach": {
+            "visibility": "known",
+            "value": 17
+          },
+          "naturalFitness": {
+            "visibility": "known",
+            "value": 7
+          },
+          "pace": {
+            "visibility": "known",
+            "value": 9
+          },
+          "stamina": {
+            "visibility": "known",
+            "value": 6
+          },
+          "strength": {
+            "visibility": "known",
+            "value": 13
+          },
+          "aerialReach": {
+            "visibility": "known",
+            "value": 16
+          },
+          "commandOfArea": {
+            "visibility": "known",
+            "value": 13
+          },
+          "communication": {
+            "visibility": "known",
+            "value": 9
+          },
+          "eccentricity": {
+            "visibility": "unknown"
+          },
+          "handling": {
+            "visibility": "known",
+            "value": 8
+          },
+          "kicking": {
+            "visibility": "known",
+            "value": 11
+          },
+          "oneOnOnes": {
+            "visibility": "known",
+            "value": 8
+          },
+          "reflexes": {
+            "visibility": "known",
+            "value": 10
+          },
+          "rushingOut": {
+            "visibility": "known",
+            "value": 11
+          },
+          "tendencyToPunch": {
+            "visibility": "unknown"
+          },
+          "throwing": {
+            "visibility": "known",
+            "value": 12
+          },
+          "crossing": {
+            "visibility": "unknown"
+          },
+          "dribbling": {
+            "visibility": "unknown"
+          },
+          "finishing": {
+            "visibility": "unknown"
+          },
+          "heading": {
+            "visibility": "unknown"
+          },
+          "longShots": {
+            "visibility": "unknown"
+          },
+          "marking": {
+            "visibility": "unknown"
+          },
+          "tackling": {
+            "visibility": "unknown"
+          }
+        }
+      },
+      {
+        "id": "29086213",
+        "name": "Ben Jefford",
+        "dateOfBirth": null,
+        "age": 26,
+        "positions": [
+          "DL"
+        ],
+        "clubId": "hungerford-capture",
+        "conditionPercent": null,
+        "matchFitnessPercent": null,
+        "availability": "available",
+        "injured": false,
+        "suspended": false,
+        "contract": null,
+        "positionFamiliarity": {
+          "DL": 20,
+          "DC": 15,
+          "DR": 11,
+          "WBL": 16,
+          "DM": 6
+        },
+        "preferredFoot": null,
+        "attributes": {
+          "corners": {
+            "visibility": "known",
+            "value": 8
+          },
+          "crossing": {
+            "visibility": "known",
+            "value": 8
+          },
+          "dribbling": {
+            "visibility": "known",
+            "value": 7
+          },
+          "finishing": {
+            "visibility": "known",
+            "value": 6
+          },
+          "firstTouch": {
+            "visibility": "known",
+            "value": 8
+          },
+          "freeKickTaking": {
+            "visibility": "unknown"
+          },
+          "heading": {
+            "visibility": "known",
+            "value": 10
+          },
+          "longShots": {
+            "visibility": "known",
+            "value": 6
+          },
+          "longThrows": {
+            "visibility": "unknown"
+          },
+          "marking": {
+            "visibility": "known",
+            "value": 9
+          },
+          "passing": {
+            "visibility": "known",
+            "value": 7
+          },
+          "penaltyTaking": {
+            "visibility": "unknown"
+          },
+          "tackling": {
+            "visibility": "known",
+            "value": 10
+          },
+          "technique": {
+            "visibility": "known",
+            "value": 8
+          },
+          "aggression": {
+            "visibility": "known",
+            "value": 5
+          },
+          "anticipation": {
+            "visibility": "known",
+            "value": 8
+          },
+          "bravery": {
+            "visibility": "known",
+            "value": 10
+          },
+          "composure": {
+            "visibility": "known",
+            "value": 9
+          },
+          "concentration": {
+            "visibility": "known",
+            "value": 9
+          },
+          "decisions": {
+            "visibility": "known",
+            "value": 8
+          },
+          "determination": {
+            "visibility": "known",
+            "value": 6
+          },
+          "flair": {
+            "visibility": "known",
+            "value": 5
+          },
+          "leadership": {
+            "visibility": "unknown"
+          },
+          "offTheBall": {
+            "visibility": "known",
+            "value": 7
+          },
+          "positioning": {
+            "visibility": "known",
+            "value": 9
+          },
+          "teamwork": {
+            "visibility": "known",
+            "value": 11
+          },
+          "vision": {
+            "visibility": "known",
+            "value": 6
+          },
+          "workRate": {
+            "visibility": "known",
+            "value": 11
+          },
+          "acceleration": {
+            "visibility": "known",
+            "value": 8
+          },
+          "agility": {
+            "visibility": "known",
+            "value": 8
+          },
+          "balance": {
+            "visibility": "known",
+            "value": 8
+          },
+          "jumpingReach": {
+            "visibility": "known",
+            "value": 8
+          },
+          "naturalFitness": {
+            "visibility": "known",
+            "value": 12
+          },
+          "pace": {
+            "visibility": "known",
+            "value": 10
+          },
+          "stamina": {
+            "visibility": "known",
+            "value": 12
+          },
+          "strength": {
+            "visibility": "known",
+            "value": 11
+          },
+          "aerialReach": {
+            "visibility": "unknown"
+          },
+          "commandOfArea": {
+            "visibility": "unknown"
+          },
+          "communication": {
+            "visibility": "unknown"
+          },
+          "handling": {
+            "visibility": "unknown"
+          },
+          "kicking": {
+            "visibility": "unknown"
+          },
+          "oneOnOnes": {
+            "visibility": "unknown"
+          },
+          "reflexes": {
+            "visibility": "unknown"
+          },
+          "rushingOut": {
+            "visibility": "unknown"
+          },
+          "throwing": {
+            "visibility": "unknown"
+          }
+        }
+      },
+      {
+        "id": "29091678",
+        "name": "Ejiro Okosieme",
+        "dateOfBirth": null,
+        "age": 26,
+        "positions": [
+          "DC"
+        ],
+        "clubId": "hungerford-capture",
+        "conditionPercent": null,
+        "matchFitnessPercent": null,
+        "availability": "available",
+        "injured": false,
+        "suspended": false,
+        "contract": null,
+        "positionFamiliarity": {
+          "DL": 5,
+          "DC": 20,
+          "DR": 8
+        },
+        "preferredFoot": null,
+        "attributes": {
+          "corners": {
+            "visibility": "known",
+            "value": 3
+          },
+          "crossing": {
+            "visibility": "known",
+            "value": 2
+          },
+          "dribbling": {
+            "visibility": "known",
+            "value": 7
+          },
+          "finishing": {
+            "visibility": "known",
+            "value": 3
+          },
+          "firstTouch": {
+            "visibility": "known",
+            "value": 7
+          },
+          "freeKickTaking": {
+            "visibility": "unknown"
+          },
+          "heading": {
+            "visibility": "known",
+            "value": 14
+          },
+          "longShots": {
+            "visibility": "known",
+            "value": 3
+          },
+          "longThrows": {
+            "visibility": "unknown"
+          },
+          "marking": {
+            "visibility": "known",
+            "value": 10
+          },
+          "passing": {
+            "visibility": "known",
+            "value": 9
+          },
+          "penaltyTaking": {
+            "visibility": "unknown"
+          },
+          "tackling": {
+            "visibility": "known",
+            "value": 11
+          },
+          "technique": {
+            "visibility": "known",
+            "value": 4
+          },
+          "aggression": {
+            "visibility": "known",
+            "value": 10
+          },
+          "anticipation": {
+            "visibility": "known",
+            "value": 10
+          },
+          "bravery": {
+            "visibility": "known",
+            "value": 12
+          },
+          "composure": {
+            "visibility": "known",
+            "value": 6
+          },
+          "concentration": {
+            "visibility": "known",
+            "value": 10
+          },
+          "decisions": {
+            "visibility": "known",
+            "value": 5
+          },
+          "determination": {
+            "visibility": "known",
+            "value": 10
+          },
+          "flair": {
+            "visibility": "known",
+            "value": 9
+          },
+          "leadership": {
+            "visibility": "unknown"
+          },
+          "offTheBall": {
+            "visibility": "known",
+            "value": 8
+          },
+          "positioning": {
+            "visibility": "known",
+            "value": 7
+          },
+          "teamwork": {
+            "visibility": "known",
+            "value": 9
+          },
+          "vision": {
+            "visibility": "known",
+            "value": 4
+          },
+          "workRate": {
+            "visibility": "known",
+            "value": 11
+          },
+          "acceleration": {
+            "visibility": "known",
+            "value": 10
+          },
+          "agility": {
+            "visibility": "known",
+            "value": 5
+          },
+          "balance": {
+            "visibility": "known",
+            "value": 7
+          },
+          "jumpingReach": {
+            "visibility": "known",
+            "value": 20
+          },
+          "naturalFitness": {
+            "visibility": "known",
+            "value": 14
+          },
+          "pace": {
+            "visibility": "known",
+            "value": 10
+          },
+          "stamina": {
+            "visibility": "known",
+            "value": 9
+          },
+          "strength": {
+            "visibility": "known",
+            "value": 10
+          },
+          "aerialReach": {
+            "visibility": "unknown"
+          },
+          "commandOfArea": {
+            "visibility": "unknown"
+          },
+          "communication": {
+            "visibility": "unknown"
+          },
+          "handling": {
+            "visibility": "unknown"
+          },
+          "kicking": {
+            "visibility": "unknown"
+          },
+          "oneOnOnes": {
+            "visibility": "unknown"
+          },
+          "reflexes": {
+            "visibility": "unknown"
+          },
+          "rushingOut": {
+            "visibility": "unknown"
+          },
+          "throwing": {
+            "visibility": "unknown"
+          }
+        }
+      },
+      {
+        "id": "28109937",
+        "name": "Jamie Bradley-Green",
+        "dateOfBirth": null,
+        "age": 21,
+        "positions": [
+          "DC"
+        ],
+        "clubId": "hungerford-capture",
+        "conditionPercent": null,
+        "matchFitnessPercent": null,
+        "availability": "available",
+        "injured": false,
+        "suspended": false,
+        "contract": null,
+        "positionFamiliarity": {
+          "DC": 20,
+          "DR": 12,
+          "DM": 12
+        },
+        "preferredFoot": null,
+        "attributes": {
+          "corners": {
+            "visibility": "known",
+            "value": 4
+          },
+          "crossing": {
+            "visibility": "known",
+            "value": 5
+          },
+          "dribbling": {
+            "visibility": "known",
+            "value": 7
+          },
+          "finishing": {
+            "visibility": "known",
+            "value": 8
+          },
+          "firstTouch": {
+            "visibility": "known",
+            "value": 11
+          },
+          "freeKickTaking": {
+            "visibility": "unknown"
+          },
+          "heading": {
+            "visibility": "known",
+            "value": 8
+          },
+          "longShots": {
+            "visibility": "known",
+            "value": 7
+          },
+          "longThrows": {
+            "visibility": "unknown"
+          },
+          "marking": {
+            "visibility": "known",
+            "value": 11
+          },
+          "passing": {
+            "visibility": "known",
+            "value": 8
+          },
+          "penaltyTaking": {
+            "visibility": "unknown"
+          },
+          "tackling": {
+            "visibility": "known",
+            "value": 8
+          },
+          "technique": {
+            "visibility": "known",
+            "value": 9
+          },
+          "aggression": {
+            "visibility": "known",
+            "value": 12
+          },
+          "anticipation": {
+            "visibility": "known",
+            "value": 12
+          },
+          "bravery": {
+            "visibility": "known",
+            "value": 9
+          },
+          "composure": {
+            "visibility": "known",
+            "value": 9
+          },
+          "concentration": {
+            "visibility": "known",
+            "value": 10
+          },
+          "decisions": {
+            "visibility": "known",
+            "value": 8
+          },
+          "determination": {
+            "visibility": "known",
+            "value": 7
+          },
+          "flair": {
+            "visibility": "known",
+            "value": 1
+          },
+          "leadership": {
+            "visibility": "unknown"
+          },
+          "offTheBall": {
+            "visibility": "known",
+            "value": 8
+          },
+          "positioning": {
+            "visibility": "known",
+            "value": 8
+          },
+          "teamwork": {
+            "visibility": "known",
+            "value": 9
+          },
+          "vision": {
+            "visibility": "known",
+            "value": 7
+          },
+          "workRate": {
+            "visibility": "known",
+            "value": 9
+          },
+          "acceleration": {
+            "visibility": "known",
+            "value": 11
+          },
+          "agility": {
+            "visibility": "known",
+            "value": 7
+          },
+          "balance": {
+            "visibility": "known",
+            "value": 9
+          },
+          "jumpingReach": {
+            "visibility": "known",
+            "value": 13
+          },
+          "naturalFitness": {
+            "visibility": "known",
+            "value": 17
+          },
+          "pace": {
+            "visibility": "known",
+            "value": 12
+          },
+          "stamina": {
+            "visibility": "known",
+            "value": 10
+          },
+          "strength": {
+            "visibility": "known",
+            "value": 8
+          },
+          "aerialReach": {
+            "visibility": "unknown"
+          },
+          "commandOfArea": {
+            "visibility": "unknown"
+          },
+          "communication": {
+            "visibility": "unknown"
+          },
+          "handling": {
+            "visibility": "unknown"
+          },
+          "kicking": {
+            "visibility": "unknown"
+          },
+          "oneOnOnes": {
+            "visibility": "unknown"
+          },
+          "reflexes": {
+            "visibility": "unknown"
+          },
+          "rushingOut": {
+            "visibility": "unknown"
+          },
+          "throwing": {
+            "visibility": "unknown"
+          }
+        }
+      },
+      {
+        "id": "29186423",
+        "name": "Lucas Odunston",
+        "dateOfBirth": null,
+        "age": 20,
+        "positions": [
+          "DR"
+        ],
+        "clubId": "hungerford-capture",
+        "conditionPercent": null,
+        "matchFitnessPercent": null,
+        "availability": "available",
+        "injured": false,
+        "suspended": false,
+        "contract": null,
+        "positionFamiliarity": {
+          "DR": 20,
+          "DM": 8,
+          "WBR": 18,
+          "MR": 14,
+          "AMR": 16
+        },
+        "preferredFoot": null,
+        "attributes": {
+          "corners": {
+            "visibility": "known",
+            "value": 7
+          },
+          "crossing": {
+            "visibility": "known",
+            "value": 12
+          },
+          "dribbling": {
+            "visibility": "known",
+            "value": 10
+          },
+          "finishing": {
+            "visibility": "known",
+            "value": 6
+          },
+          "firstTouch": {
+            "visibility": "known",
+            "value": 10
+          },
+          "freeKickTaking": {
+            "visibility": "unknown"
+          },
+          "heading": {
+            "visibility": "known",
+            "value": 8
+          },
+          "longShots": {
+            "visibility": "known",
+            "value": 6
+          },
+          "longThrows": {
+            "visibility": "unknown"
+          },
+          "marking": {
+            "visibility": "known",
+            "value": 9
+          },
+          "passing": {
+            "visibility": "known",
+            "value": 10
+          },
+          "penaltyTaking": {
+            "visibility": "unknown"
+          },
+          "tackling": {
+            "visibility": "known",
+            "value": 10
+          },
+          "technique": {
+            "visibility": "known",
+            "value": 7
+          },
+          "aggression": {
+            "visibility": "known",
+            "value": 13
+          },
+          "anticipation": {
+            "visibility": "known",
+            "value": 10
+          },
+          "bravery": {
+            "visibility": "known",
+            "value": 2
+          },
+          "composure": {
+            "visibility": "known",
+            "value": 9
+          },
+          "concentration": {
+            "visibility": "known",
+            "value": 9
+          },
+          "decisions": {
+            "visibility": "known",
+            "value": 8
+          },
+          "determination": {
+            "visibility": "known",
+            "value": 6
+          },
+          "flair": {
+            "visibility": "known",
+            "value": 4
+          },
+          "leadership": {
+            "visibility": "unknown"
+          },
+          "offTheBall": {
+            "visibility": "known",
+            "value": 10
+          },
+          "positioning": {
+            "visibility": "known",
+            "value": 9
+          },
+          "teamwork": {
+            "visibility": "known",
+            "value": 10
+          },
+          "vision": {
+            "visibility": "known",
+            "value": 10
+          },
+          "workRate": {
+            "visibility": "known",
+            "value": 11
+          },
+          "acceleration": {
+            "visibility": "known",
+            "value": 12
+          },
+          "agility": {
+            "visibility": "known",
+            "value": 10
+          },
+          "balance": {
+            "visibility": "known",
+            "value": 8
+          },
+          "jumpingReach": {
+            "visibility": "known",
+            "value": 7
+          },
+          "naturalFitness": {
+            "visibility": "known",
+            "value": 7
+          },
+          "pace": {
+            "visibility": "known",
+            "value": 14
+          },
+          "stamina": {
+            "visibility": "known",
+            "value": 8
+          },
+          "strength": {
+            "visibility": "known",
+            "value": 6
+          },
+          "aerialReach": {
+            "visibility": "unknown"
+          },
+          "commandOfArea": {
+            "visibility": "unknown"
+          },
+          "communication": {
+            "visibility": "unknown"
+          },
+          "handling": {
+            "visibility": "unknown"
+          },
+          "kicking": {
+            "visibility": "unknown"
+          },
+          "oneOnOnes": {
+            "visibility": "unknown"
+          },
+          "reflexes": {
+            "visibility": "unknown"
+          },
+          "rushingOut": {
+            "visibility": "unknown"
+          },
+          "throwing": {
+            "visibility": "unknown"
+          }
+        }
+      },
+      {
+        "id": "52071676",
+        "name": "Ross Holden",
+        "dateOfBirth": null,
+        "age": 22,
+        "positions": [
+          "ML"
+        ],
+        "clubId": "hungerford-capture",
+        "conditionPercent": null,
+        "matchFitnessPercent": null,
+        "availability": "available",
+        "injured": false,
+        "suspended": false,
+        "contract": null,
+        "positionFamiliarity": {
+          "ML": 18,
+          "MR": 14,
+          "AML": 20,
+          "AMR": 14,
+          "ST": 16
+        },
+        "preferredFoot": null,
+        "attributes": {
+          "corners": {
+            "visibility": "known",
+            "value": 4
+          },
+          "crossing": {
+            "visibility": "known",
+            "value": 8
+          },
+          "dribbling": {
+            "visibility": "known",
+            "value": 14
+          },
+          "finishing": {
+            "visibility": "known",
+            "value": 8
+          },
+          "firstTouch": {
+            "visibility": "known",
+            "value": 9
+          },
+          "freeKickTaking": {
+            "visibility": "unknown"
+          },
+          "heading": {
+            "visibility": "known",
+            "value": 7
+          },
+          "longShots": {
+            "visibility": "known",
+            "value": 5
+          },
+          "longThrows": {
+            "visibility": "unknown"
+          },
+          "marking": {
+            "visibility": "known",
+            "value": 4
+          },
+          "passing": {
+            "visibility": "known",
+            "value": 7
+          },
+          "penaltyTaking": {
+            "visibility": "unknown"
+          },
+          "tackling": {
+            "visibility": "known",
+            "value": 2
+          },
+          "technique": {
+            "visibility": "known",
+            "value": 10
+          },
+          "aggression": {
+            "visibility": "known",
+            "value": 12
+          },
+          "anticipation": {
+            "visibility": "known",
+            "value": 4
+          },
+          "bravery": {
+            "visibility": "known",
+            "value": 2
+          },
+          "composure": {
+            "visibility": "known",
+            "value": 7
+          },
+          "concentration": {
+            "visibility": "known",
+            "value": 7
+          },
+          "decisions": {
+            "visibility": "known",
+            "value": 12
+          },
+          "determination": {
+            "visibility": "known",
+            "value": 6
+          },
+          "flair": {
+            "visibility": "known",
+            "value": 9
+          },
+          "leadership": {
+            "visibility": "unknown"
+          },
+          "offTheBall": {
+            "visibility": "known",
+            "value": 11
+          },
+          "positioning": {
+            "visibility": "known",
+            "value": 6
+          },
+          "teamwork": {
+            "visibility": "known",
+            "value": 7
+          },
+          "vision": {
+            "visibility": "known",
+            "value": 6
+          },
+          "workRate": {
+            "visibility": "known",
+            "value": 8
+          },
+          "acceleration": {
+            "visibility": "known",
+            "value": 8
+          },
+          "agility": {
+            "visibility": "known",
+            "value": 11
+          },
+          "balance": {
+            "visibility": "known",
+            "value": 4
+          },
+          "jumpingReach": {
+            "visibility": "known",
+            "value": 4
+          },
+          "naturalFitness": {
+            "visibility": "known",
+            "value": 12
+          },
+          "pace": {
+            "visibility": "known",
+            "value": 12
+          },
+          "stamina": {
+            "visibility": "known",
+            "value": 9
+          },
+          "strength": {
+            "visibility": "known",
+            "value": 4
+          },
+          "aerialReach": {
+            "visibility": "unknown"
+          },
+          "commandOfArea": {
+            "visibility": "unknown"
+          },
+          "communication": {
+            "visibility": "unknown"
+          },
+          "handling": {
+            "visibility": "unknown"
+          },
+          "kicking": {
+            "visibility": "unknown"
+          },
+          "oneOnOnes": {
+            "visibility": "unknown"
+          },
+          "reflexes": {
+            "visibility": "unknown"
+          },
+          "rushingOut": {
+            "visibility": "unknown"
+          },
+          "throwing": {
+            "visibility": "unknown"
+          }
+        }
+      },
+      {
+        "id": "28048896",
+        "name": "David Lynch",
+        "dateOfBirth": null,
+        "age": 27,
+        "positions": [
+          "MC"
+        ],
+        "clubId": "hungerford-capture",
+        "conditionPercent": null,
+        "matchFitnessPercent": null,
+        "availability": "available",
+        "injured": false,
+        "suspended": false,
+        "contract": null,
+        "positionFamiliarity": {
+          "DM": 10,
+          "ML": 16,
+          "MC": 20,
+          "AMC": 10
+        },
+        "preferredFoot": null,
+        "attributes": {
+          "corners": {
+            "visibility": "known",
+            "value": 6
+          },
+          "crossing": {
+            "visibility": "known",
+            "value": 4
+          },
+          "dribbling": {
+            "visibility": "known",
+            "value": 10
+          },
+          "finishing": {
+            "visibility": "known",
+            "value": 4
+          },
+          "firstTouch": {
+            "visibility": "known",
+            "value": 13
+          },
+          "freeKickTaking": {
+            "visibility": "unknown"
+          },
+          "heading": {
+            "visibility": "known",
+            "value": 8
+          },
+          "longShots": {
+            "visibility": "known",
+            "value": 7
+          },
+          "longThrows": {
+            "visibility": "unknown"
+          },
+          "marking": {
+            "visibility": "known",
+            "value": 9
+          },
+          "passing": {
+            "visibility": "known",
+            "value": 14
+          },
+          "penaltyTaking": {
+            "visibility": "unknown"
+          },
+          "tackling": {
+            "visibility": "known",
+            "value": 13
+          },
+          "technique": {
+            "visibility": "known",
+            "value": 12
+          },
+          "aggression": {
+            "visibility": "known",
+            "value": 12
+          },
+          "anticipation": {
+            "visibility": "known",
+            "value": 9
+          },
+          "bravery": {
+            "visibility": "known",
+            "value": 13
+          },
+          "composure": {
+            "visibility": "known",
+            "value": 9
+          },
+          "concentration": {
+            "visibility": "known",
+            "value": 9
+          },
+          "decisions": {
+            "visibility": "known",
+            "value": 11
+          },
+          "determination": {
+            "visibility": "known",
+            "value": 14
+          },
+          "flair": {
+            "visibility": "known",
+            "value": 4
+          },
+          "leadership": {
+            "visibility": "unknown"
+          },
+          "offTheBall": {
+            "visibility": "known",
+            "value": 10
+          },
+          "positioning": {
+            "visibility": "known",
+            "value": 11
+          },
+          "teamwork": {
+            "visibility": "known",
+            "value": 12
+          },
+          "vision": {
+            "visibility": "known",
+            "value": 6
+          },
+          "workRate": {
+            "visibility": "known",
+            "value": 14
+          },
+          "acceleration": {
+            "visibility": "known",
+            "value": 8
+          },
+          "agility": {
+            "visibility": "known",
+            "value": 7
+          },
+          "balance": {
+            "visibility": "known",
+            "value": 7
+          },
+          "jumpingReach": {
+            "visibility": "known",
+            "value": 3
+          },
+          "naturalFitness": {
+            "visibility": "known",
+            "value": 9
+          },
+          "pace": {
+            "visibility": "known",
+            "value": 8
+          },
+          "stamina": {
+            "visibility": "known",
+            "value": 12
+          },
+          "strength": {
+            "visibility": "known",
+            "value": 7
+          },
+          "aerialReach": {
+            "visibility": "unknown"
+          },
+          "commandOfArea": {
+            "visibility": "unknown"
+          },
+          "communication": {
+            "visibility": "unknown"
+          },
+          "handling": {
+            "visibility": "unknown"
+          },
+          "kicking": {
+            "visibility": "unknown"
+          },
+          "oneOnOnes": {
+            "visibility": "unknown"
+          },
+          "reflexes": {
+            "visibility": "unknown"
+          },
+          "rushingOut": {
+            "visibility": "unknown"
+          },
+          "throwing": {
+            "visibility": "unknown"
+          }
+        }
+      },
+      {
+        "id": "28116001",
+        "name": "Tom Sharpe",
+        "dateOfBirth": null,
+        "age": 19,
+        "positions": [
+          "MC"
+        ],
+        "clubId": "hungerford-capture",
+        "conditionPercent": null,
+        "matchFitnessPercent": null,
+        "availability": "available",
+        "injured": false,
+        "suspended": false,
+        "contract": null,
+        "positionFamiliarity": {
+          "MC": 20
+        },
+        "preferredFoot": null,
+        "attributes": {
+          "corners": {
+            "visibility": "known",
+            "value": 6
+          },
+          "crossing": {
+            "visibility": "known",
+            "value": 7
+          },
+          "dribbling": {
+            "visibility": "known",
+            "value": 4
+          },
+          "finishing": {
+            "visibility": "known",
+            "value": 6
+          },
+          "firstTouch": {
+            "visibility": "known",
+            "value": 14
+          },
+          "freeKickTaking": {
+            "visibility": "unknown"
+          },
+          "heading": {
+            "visibility": "known",
+            "value": 7
+          },
+          "longShots": {
+            "visibility": "known",
+            "value": 6
+          },
+          "longThrows": {
+            "visibility": "unknown"
+          },
+          "marking": {
+            "visibility": "known",
+            "value": 8
+          },
+          "passing": {
+            "visibility": "known",
+            "value": 14
+          },
+          "penaltyTaking": {
+            "visibility": "unknown"
+          },
+          "tackling": {
+            "visibility": "known",
+            "value": 8
+          },
+          "technique": {
+            "visibility": "known",
+            "value": 10
+          },
+          "aggression": {
+            "visibility": "known",
+            "value": 4
+          },
+          "anticipation": {
+            "visibility": "known",
+            "value": 10
+          },
+          "bravery": {
+            "visibility": "known",
+            "value": 5
+          },
+          "composure": {
+            "visibility": "known",
+            "value": 10
+          },
+          "concentration": {
+            "visibility": "known",
+            "value": 7
+          },
+          "decisions": {
+            "visibility": "known",
+            "value": 14
+          },
+          "determination": {
+            "visibility": "known",
+            "value": 14
+          },
+          "flair": {
+            "visibility": "known",
+            "value": 3
+          },
+          "leadership": {
+            "visibility": "unknown"
+          },
+          "offTheBall": {
+            "visibility": "known",
+            "value": 9
+          },
+          "positioning": {
+            "visibility": "known",
+            "value": 7
+          },
+          "teamwork": {
+            "visibility": "known",
+            "value": 9
+          },
+          "vision": {
+            "visibility": "known",
+            "value": 10
+          },
+          "workRate": {
+            "visibility": "known",
+            "value": 11
+          },
+          "acceleration": {
+            "visibility": "known",
+            "value": 12
+          },
+          "agility": {
+            "visibility": "known",
+            "value": 6
+          },
+          "balance": {
+            "visibility": "known",
+            "value": 9
+          },
+          "jumpingReach": {
+            "visibility": "known",
+            "value": 7
+          },
+          "naturalFitness": {
+            "visibility": "known",
+            "value": 13
+          },
+          "pace": {
+            "visibility": "known",
+            "value": 8
+          },
+          "stamina": {
+            "visibility": "known",
+            "value": 8
+          },
+          "strength": {
+            "visibility": "known",
+            "value": 5
+          },
+          "aerialReach": {
+            "visibility": "unknown"
+          },
+          "commandOfArea": {
+            "visibility": "unknown"
+          },
+          "communication": {
+            "visibility": "unknown"
+          },
+          "handling": {
+            "visibility": "unknown"
+          },
+          "kicking": {
+            "visibility": "unknown"
+          },
+          "oneOnOnes": {
+            "visibility": "unknown"
+          },
+          "reflexes": {
+            "visibility": "unknown"
+          },
+          "rushingOut": {
+            "visibility": "unknown"
+          },
+          "throwing": {
+            "visibility": "unknown"
+          }
+        }
+      },
+      {
+        "id": "29194198",
+        "name": "Terrance Saydee",
+        "dateOfBirth": null,
+        "age": 19,
+        "positions": [
+          "MR"
+        ],
+        "clubId": "hungerford-capture",
+        "conditionPercent": null,
+        "matchFitnessPercent": null,
+        "availability": "available",
+        "injured": false,
+        "suspended": false,
+        "contract": null,
+        "positionFamiliarity": {
+          "ML": 12,
+          "MR": 20,
+          "AML": 12,
+          "AMR": 20
+        },
+        "preferredFoot": null,
+        "attributes": {
+          "corners": {
+            "visibility": "known",
+            "value": 7
+          },
+          "crossing": {
+            "visibility": "known",
+            "value": 9
+          },
+          "dribbling": {
+            "visibility": "known",
+            "value": 10
+          },
+          "finishing": {
+            "visibility": "known",
+            "value": 7
+          },
+          "firstTouch": {
+            "visibility": "known",
+            "value": 10
+          },
+          "freeKickTaking": {
+            "visibility": "unknown"
+          },
+          "heading": {
+            "visibility": "known",
+            "value": 7
+          },
+          "longShots": {
+            "visibility": "known",
+            "value": 3
+          },
+          "longThrows": {
+            "visibility": "unknown"
+          },
+          "marking": {
+            "visibility": "known",
+            "value": 4
+          },
+          "passing": {
+            "visibility": "known",
+            "value": 7
+          },
+          "penaltyTaking": {
+            "visibility": "unknown"
+          },
+          "tackling": {
+            "visibility": "known",
+            "value": 4
+          },
+          "technique": {
+            "visibility": "known",
+            "value": 7
+          },
+          "aggression": {
+            "visibility": "known",
+            "value": 14
+          },
+          "anticipation": {
+            "visibility": "known",
+            "value": 7
+          },
+          "bravery": {
+            "visibility": "known",
+            "value": 4
+          },
+          "composure": {
+            "visibility": "known",
+            "value": 7
+          },
+          "concentration": {
+            "visibility": "known",
+            "value": 7
+          },
+          "decisions": {
+            "visibility": "known",
+            "value": 8
+          },
+          "determination": {
+            "visibility": "known",
+            "value": 7
+          },
+          "flair": {
+            "visibility": "known",
+            "value": 11
+          },
+          "leadership": {
+            "visibility": "unknown"
+          },
+          "offTheBall": {
+            "visibility": "known",
+            "value": 8
+          },
+          "positioning": {
+            "visibility": "known",
+            "value": 3
+          },
+          "teamwork": {
+            "visibility": "known",
+            "value": 8
+          },
+          "vision": {
+            "visibility": "known",
+            "value": 6
+          },
+          "workRate": {
+            "visibility": "known",
+            "value": 9
+          },
+          "acceleration": {
+            "visibility": "known",
+            "value": 13
+          },
+          "agility": {
+            "visibility": "known",
+            "value": 10
+          },
+          "balance": {
+            "visibility": "known",
+            "value": 8
+          },
+          "jumpingReach": {
+            "visibility": "known",
+            "value": 9
+          },
+          "naturalFitness": {
+            "visibility": "known",
+            "value": 10
+          },
+          "pace": {
+            "visibility": "known",
+            "value": 12
+          },
+          "stamina": {
+            "visibility": "known",
+            "value": 8
+          },
+          "strength": {
+            "visibility": "known",
+            "value": 4
+          },
+          "aerialReach": {
+            "visibility": "unknown"
+          },
+          "commandOfArea": {
+            "visibility": "unknown"
+          },
+          "communication": {
+            "visibility": "unknown"
+          },
+          "handling": {
+            "visibility": "unknown"
+          },
+          "kicking": {
+            "visibility": "unknown"
+          },
+          "oneOnOnes": {
+            "visibility": "unknown"
+          },
+          "reflexes": {
+            "visibility": "unknown"
+          },
+          "rushingOut": {
+            "visibility": "unknown"
+          },
+          "throwing": {
+            "visibility": "unknown"
+          }
+        }
+      },
+      {
+        "id": "29191556",
+        "name": "Challis Johnson",
+        "dateOfBirth": null,
+        "age": 19,
+        "positions": [
+          "ST"
+        ],
+        "clubId": "hungerford-capture",
+        "conditionPercent": null,
+        "matchFitnessPercent": null,
+        "availability": "available",
+        "injured": false,
+        "suspended": false,
+        "contract": null,
+        "positionFamiliarity": {
+          "ST": 20
+        },
+        "preferredFoot": null,
+        "attributes": {
+          "corners": {
+            "visibility": "known",
+            "value": 2
+          },
+          "crossing": {
+            "visibility": "known",
+            "value": 4
+          },
+          "dribbling": {
+            "visibility": "known",
+            "value": 6
+          },
+          "finishing": {
+            "visibility": "known",
+            "value": 8
+          },
+          "firstTouch": {
+            "visibility": "known",
+            "value": 8
+          },
+          "freeKickTaking": {
+            "visibility": "unknown"
+          },
+          "heading": {
+            "visibility": "known",
+            "value": 8
+          },
+          "longShots": {
+            "visibility": "known",
+            "value": 5
+          },
+          "longThrows": {
+            "visibility": "unknown"
+          },
+          "marking": {
+            "visibility": "known",
+            "value": 4
+          },
+          "passing": {
+            "visibility": "known",
+            "value": 7
+          },
+          "penaltyTaking": {
+            "visibility": "unknown"
+          },
+          "tackling": {
+            "visibility": "known",
+            "value": 5
+          },
+          "technique": {
+            "visibility": "known",
+            "value": 7
+          },
+          "aggression": {
+            "visibility": "known",
+            "value": 12
+          },
+          "anticipation": {
+            "visibility": "known",
+            "value": 8
+          },
+          "bravery": {
+            "visibility": "known",
+            "value": 10
+          },
+          "composure": {
+            "visibility": "known",
+            "value": 8
+          },
+          "concentration": {
+            "visibility": "known",
+            "value": 8
+          },
+          "decisions": {
+            "visibility": "known",
+            "value": 9
+          },
+          "determination": {
+            "visibility": "known",
+            "value": 11
+          },
+          "flair": {
+            "visibility": "known",
+            "value": 11
+          },
+          "leadership": {
+            "visibility": "unknown"
+          },
+          "offTheBall": {
+            "visibility": "known",
+            "value": 9
+          },
+          "positioning": {
+            "visibility": "known",
+            "value": 9
+          },
+          "teamwork": {
+            "visibility": "known",
+            "value": 11
+          },
+          "vision": {
+            "visibility": "known",
+            "value": 8
+          },
+          "workRate": {
+            "visibility": "known",
+            "value": 11
+          },
+          "acceleration": {
+            "visibility": "known",
+            "value": 11
+          },
+          "agility": {
+            "visibility": "known",
+            "value": 10
+          },
+          "balance": {
+            "visibility": "known",
+            "value": 10
+          },
+          "jumpingReach": {
+            "visibility": "known",
+            "value": 11
+          },
+          "naturalFitness": {
+            "visibility": "known",
+            "value": 13
+          },
+          "pace": {
+            "visibility": "known",
+            "value": 12
+          },
+          "stamina": {
+            "visibility": "known",
+            "value": 10
+          },
+          "strength": {
+            "visibility": "known",
+            "value": 11
+          },
+          "aerialReach": {
+            "visibility": "unknown"
+          },
+          "commandOfArea": {
+            "visibility": "unknown"
+          },
+          "communication": {
+            "visibility": "unknown"
+          },
+          "handling": {
+            "visibility": "unknown"
+          },
+          "kicking": {
+            "visibility": "unknown"
+          },
+          "oneOnOnes": {
+            "visibility": "unknown"
+          },
+          "reflexes": {
+            "visibility": "unknown"
+          },
+          "rushingOut": {
+            "visibility": "unknown"
+          },
+          "throwing": {
+            "visibility": "unknown"
+          }
+        }
+      },
+      {
+        "id": "28106293",
+        "name": "Victor Fundi",
+        "dateOfBirth": null,
+        "age": 21,
+        "positions": [
+          "ST"
+        ],
+        "clubId": "hungerford-capture",
+        "conditionPercent": null,
+        "matchFitnessPercent": null,
+        "availability": "available",
+        "injured": false,
+        "suspended": false,
+        "contract": null,
+        "positionFamiliarity": {
+          "AML": 13,
+          "AMR": 13,
+          "ST": 20
+        },
+        "preferredFoot": null,
+        "attributes": {
+          "corners": {
+            "visibility": "known",
+            "value": 7
+          },
+          "crossing": {
+            "visibility": "known",
+            "value": 5
+          },
+          "dribbling": {
+            "visibility": "known",
+            "value": 12
+          },
+          "finishing": {
+            "visibility": "known",
+            "value": 8
+          },
+          "firstTouch": {
+            "visibility": "known",
+            "value": 11
+          },
+          "freeKickTaking": {
+            "visibility": "unknown"
+          },
+          "heading": {
+            "visibility": "known",
+            "value": 7
+          },
+          "longShots": {
+            "visibility": "known",
+            "value": 8
+          },
+          "longThrows": {
+            "visibility": "unknown"
+          },
+          "marking": {
+            "visibility": "known",
+            "value": 7
+          },
+          "passing": {
+            "visibility": "known",
+            "value": 6
+          },
+          "penaltyTaking": {
+            "visibility": "unknown"
+          },
+          "tackling": {
+            "visibility": "known",
+            "value": 2
+          },
+          "technique": {
+            "visibility": "known",
+            "value": 8
+          },
+          "aggression": {
+            "visibility": "known",
+            "value": 5
+          },
+          "anticipation": {
+            "visibility": "known",
+            "value": 9
+          },
+          "bravery": {
+            "visibility": "known",
+            "value": 9
+          },
+          "composure": {
+            "visibility": "known",
+            "value": 10
+          },
+          "concentration": {
+            "visibility": "known",
+            "value": 6
+          },
+          "decisions": {
+            "visibility": "known",
+            "value": 5
+          },
+          "determination": {
+            "visibility": "known",
+            "value": 11
+          },
+          "flair": {
+            "visibility": "known",
+            "value": 8
+          },
+          "leadership": {
+            "visibility": "unknown"
+          },
+          "offTheBall": {
+            "visibility": "known",
+            "value": 9
+          },
+          "positioning": {
+            "visibility": "known",
+            "value": 3
+          },
+          "teamwork": {
+            "visibility": "known",
+            "value": 7
+          },
+          "vision": {
+            "visibility": "known",
+            "value": 6
+          },
+          "workRate": {
+            "visibility": "known",
+            "value": 7
+          },
+          "acceleration": {
+            "visibility": "known",
+            "value": 13
+          },
+          "agility": {
+            "visibility": "known",
+            "value": 7
+          },
+          "balance": {
+            "visibility": "known",
+            "value": 11
+          },
+          "jumpingReach": {
+            "visibility": "known",
+            "value": 6
+          },
+          "naturalFitness": {
+            "visibility": "known",
+            "value": 9
+          },
+          "pace": {
+            "visibility": "known",
+            "value": 13
+          },
+          "stamina": {
+            "visibility": "known",
+            "value": 10
+          },
+          "strength": {
+            "visibility": "known",
+            "value": 9
+          },
+          "aerialReach": {
+            "visibility": "unknown"
+          },
+          "commandOfArea": {
+            "visibility": "unknown"
+          },
+          "communication": {
+            "visibility": "unknown"
+          },
+          "handling": {
+            "visibility": "unknown"
+          },
+          "kicking": {
+            "visibility": "unknown"
+          },
+          "oneOnOnes": {
+            "visibility": "unknown"
+          },
+          "reflexes": {
+            "visibility": "unknown"
+          },
+          "rushingOut": {
+            "visibility": "unknown"
+          },
+          "throwing": {
+            "visibility": "unknown"
+          }
+        }
+      }
+    ],
+    "otherTeams": []
+  }
+}

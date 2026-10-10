@@ -146,11 +146,12 @@ def _set_piece_routine_plan(routine, labels: dict[str, str]) -> str:
             + "?</summary><div class='routine-assignment-reason'>"
             f"<p>{html.escape(assignment.role.explanation)}</p><dl>"
             f"<div><dt>Job fit</dt><dd>{_band(assignment.score.score)}</dd></div>"
+            f"<div><dt>Responsibility weight</dt><dd>{assignment.role.importance:g}×</dd></div>"
             "<div><dt>Strongest visible inputs</dt><dd>"
             + (html.escape(evidence) if evidence else "More evidence needed")
             + "</dd></div>" + side_fit + "</dl>"
             "<small>This is a whole-routine choice: every player can fill only one job, "
-            "so the optimizer maximizes the combined fit of the complete routine.</small>"
+            "so the optimizer maximizes the combined fit weighted by each responsibility's importance.</small>"
             "</div></details>"
         )
         assignments.append(
