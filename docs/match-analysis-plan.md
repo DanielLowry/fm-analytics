@@ -143,12 +143,14 @@ both the page and `fm-matches review` use.
   between, so the app may hide a rating FM shows but never shows one FM
   hides.
 - How a goal was scored is decoded from its descriptor bytes (stored with each
-  goal as `MatchEvent.descriptor`) by `analytics/goal_descriptions.py`: body
-  part, where from (six-yard box, area, its edge, outside it) and whether it
-  came from a cross, a set piece, a direct free kick or a penalty. Four goals
-  were read off FM's replays by the manager; the rest of each field rests on
-  how it falls across all 226 goals (the module says which is which). Other
-  bytes are not read. Who gave a penalty away is not in the timeline (checked
+  goal as `MatchEvent.descriptor`) by `analytics/goal_descriptions.py`:
+  whether it was a shot, a header or (most likely) a volley, where from
+  (six-yard box, area, its edge, outside it) and whether it came from a
+  cross, a direct free kick or a penalty. Eight goals were read off FM's
+  replays by the manager; the module gives the evidence for each field.
+  Which foot a shot was with is not recorded there, and corners are not told
+  apart from other crosses (a flag first read as "set piece" turned out to
+  be on an open-play cross). Other bytes are not read. Who gave a penalty away is not in the timeline (checked
   at St Albans, 29 September 2020). Where a shot was taken from is not read at
   all: it has only been seen in the archive's highlights list, which also
   holds a value FM20 never shows (below), and is left alone.
@@ -615,10 +617,11 @@ the per-player figures were confirmed against FM's screens (see above).
 
 1. ~~Parse the archive's shot entries.~~ Done 10 October 2026 (above).
    Where a shot was taken from is not in them.
-2. ~~Goal type.~~ Body part, where from and cross / set piece / free kick /
-   penalty decoded 10 October 2026 (`analytics/goal_descriptions.py`); left
-   foot, the six-yard box, direct free kicks and set-piece crosses still rest
-   on season-wide patterns rather than a goal read off FM.
+2. ~~Goal type.~~ Shot / header / volley, where from and cross / free kick /
+   penalty decoded 10 October 2026 (`analytics/goal_descriptions.py`). Still
+   open: "volley" rests on how that value falls across the season (25 of 34
+   from crosses) rather than a goal read off FM as one; which foot; corners;
+   byte 1's 0x10 (34 goals, on crosses, penalties and long shots alike).
 3. Label the remaining team counters. ~~Locate yellow cards.~~ Done: the
    timeline's 0x26.
 4. Bind the archived tactic duty words to historical appearances. The player

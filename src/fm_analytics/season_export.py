@@ -313,7 +313,7 @@ def _timeline(match, side: str, *, shots: bool) -> dict[str, Any]:
             | ({"player": entry.player} if entry.player else {})
             | ({"assist": entry.assisted_by} if entry.assisted_by else {})
             | ({"from_clear_cut_chance": True} if entry.from_clear_cut_chance else {})
-            | ({"how": {key: value for key, value in (("body", entry.how.body), ("area", entry.how.area),
+            | ({"how": {key: value for key, value in (("strike", entry.how.strike), ("area", entry.how.area),
                                                        ("from", entry.how.how)) if value}} if entry.how else {})
             for entry in timeline.entries
         ]

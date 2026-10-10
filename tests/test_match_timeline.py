@@ -104,18 +104,21 @@ class GoalDescriptionTests(unittest.TestCase):
 
     def test_the_goals_read_off_fms_replays(self) -> None:
         for descriptor, words in (
-            ("0140000002a00000", "Right foot in the area, from a cross"),  # Neufville 3′ v Chippenham
-            ("0180001008200100", "Right foot on the edge of the area"),  # Chambers 53′, just inside the area
+            ("0140000002a00000", "Shot in the area, from a cross"),  # Neufville 3′ v Chippenham, right foot
+            ("0180001008200100", "Shot on the edge of the area"),  # Chambers 53′, just inside the area
             ("0340400002400000", "Header in the area, from a cross"),  # Holden 2′ at Hayes
+            ("0340000001400000", "Header in the six-yard box, from a cross"),  # Okosieme 60′ v Chippenham
+            ("0108010000c40800", "Direct free kick from outside the area"),  # Ashby 72′ v Chippenham
+            ("0350000002c00000", "Header in the area, from a cross"),  # Zebroski 73′: open play, not a set piece
+            ("0540000002e00000", "Volley in the area, from a cross"),  # Ekongo 45+1′ at Hayes, right foot
         ):
             self.assertEqual(describe_goal(descriptor).text, words)
 
-    def test_set_pieces_free_kicks_and_unknown_areas(self) -> None:
-        self.assertEqual(describe_goal("0188000000c40000").text, "Right foot from outside the area, from a direct free kick")
-        self.assertEqual(describe_goal("0350000001c00000").text, "Header in the six-yard box, from a set-piece cross")
-        self.assertEqual(describe_goal("0120000002800000").how, "a penalty")
-        unknown_area = describe_goal("0510000004000000")
-        self.assertEqual((unknown_area.body, unknown_area.area, unknown_area.text), ("left foot", None, "Left foot, from a set piece"))
+    def test_penalties_and_unknown_areas(self) -> None:
+        penalty = describe_goal("0120000002800000")
+        self.assertEqual((penalty.how, penalty.text), ("penalty", "Penalty in the area"))
+        unknown_area = describe_goal("0110000004000000")
+        self.assertEqual((unknown_area.strike, unknown_area.area, unknown_area.text), ("shot", None, "Shot"))
         self.assertIsNone(describe_goal(None))
 
     def test_a_goal_in_the_timeline_says_how_and_an_offside_goal_is_ruled_out(self) -> None:
@@ -125,6 +128,6 @@ class GoalDescriptionTests(unittest.TestCase):
             event(52, "home", "penalty", 0x03, STRIKER, descriptor="0120000002800000"),
         ], home_goals=2, away_goals=0), "home")
         goal, offside, penalty = timeline.entries
-        self.assertEqual(goal.how.text, "Right foot in the area, from a cross")
+        self.assertEqual(goal.how.text, "Shot in the area, from a cross")
         self.assertEqual((offside.label, offside.player, offside.how), ("Goal ruled out for offside", "Home 9", None))
         self.assertIsNone(penalty.how)  # "Penalty scored" says it all
