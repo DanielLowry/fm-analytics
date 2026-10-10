@@ -162,7 +162,7 @@ def _season(history: MatchHistory, everything: MatchReview, competitive: MatchRe
 # -- players and matches ------------------------------------------------------
 
 
-def _player(season: PlayerSeason, detail: str, events: PlayerEvents | None = None) -> dict[str, Any]:
+def player_json(season: PlayerSeason, detail: str, events: PlayerEvents | None = None) -> dict[str, Any]:
     row: dict[str, Any] = {
         "name": season.name, "player_id": season.player_id,
         "apps": season.appearances, "starts": season.starts, "sub_apps": season.substitute_appearances,
@@ -362,7 +362,7 @@ def _tally(tally: Tally) -> dict[str, Any]:
     }
 
 
-def _breakdowns(found: Breakdowns) -> dict[str, Any]:
+def breakdowns_json(found: Breakdowns) -> dict[str, Any]:
     """`reporting.build_match_breakdowns` as JSON: each pair is [us, them]."""
     return {
         "matches_in_score_and_period": found.split_matches,
@@ -641,9 +641,9 @@ def export_document(
             "intervention_history": [item.to_document() for item in history.interventions],
         },
         "goals": _goals(competitive),
-        "breakdowns": _breakdowns(season_breakdowns),
+        "breakdowns": breakdowns_json(season_breakdowns),
         "roles": _roles(competitive),
-        "players": [_player(season, detail, season_breakdowns.players.get(season.player_id or season.name))
+        "players": [player_json(season, detail, season_breakdowns.players.get(season.player_id or season.name))
                     for season in competitive.players],
         "matches": [
             _match(
@@ -668,7 +668,7 @@ def export_document(
 
 MATCH_EXPORT_FORMAT = "fm-analytics/match-export"
 MATCH_EXPORT_FORMAT_VERSION = 1
-_MATCH_CAVEATS = (
+MATCH_CAVEATS = (
     "summary_for and summary_against are FM's match panel; possession, pass_completion, tackles_won and "
     "headers_won are percentages. FM20 has no xG: clear-cut chances are the nearest measure of chance quality.",
     "A player's stats leave out zeros: a missing key is 0.",
@@ -680,7 +680,7 @@ _RATING_CAVEAT = (
     "your_pre_match_rating is how strong you judged them before kickoff: -2 much weaker than us, "
     "0 about the same, +2 much stronger than us."
 )
-_DUTY_CAVEAT = "A saved-tactic duty of null is one FM's code does not yet name (see docs/match-duty-extraction.md)."
+DUTY_CAVEAT = "A saved-tactic duty of null is one FM's code does not yet name (see docs/match-duty-extraction.md)."
 
 
 def _standing(position: TablePosition | None) -> dict[str, int] | None:
@@ -706,15 +706,15 @@ def match_document(
     codes = RoleCodes.build(catalogue, history.role_codes)
     roles = {(match.key, side, short_id): role for (side, short_id), role in report.role_labels.items()}
     row = _full_match(history, summary, codes, catalogue, roles)
-    caveats = list(_MATCH_CAVEATS)
+    caveats = list(MATCH_CAVEATS)
     if summary.tactic_inferred:
         caveats.append("The tactic is inferred from the starting roles; you did not record one.")
     if summary.strength.rating is not None:
         caveats.append(_RATING_CAVEAT)
     if match.detail is None:
         caveats.append("Only the result was found: FM's archive had no stats for this match that added up.")
-    elif _null_duty(row):
-        caveats.append(_DUTY_CAVEAT)
+    elif has_null_duty(row):
+        caveats.append(DUTY_CAVEAT)
     return {
         "format": MATCH_EXPORT_FORMAT,
         "formatVersion": MATCH_EXPORT_FORMAT_VERSION,
@@ -731,7 +731,7 @@ def _match_meta(history: MatchHistory, generated_at: datetime | None) -> dict[st
     }
 
 
-def _null_duty(row: Mapping[str, Any]) -> bool:
+def has_null_duty(row: Mapping[str, Any]) -> bool:
     return any(slot["duty"] is None for tactic in row.get("fm_saved_tactics", {}).values() for slot in tactic["slots"])
 
 
@@ -745,11 +745,30 @@ def _given_away(history: MatchHistory, match) -> dict[tuple[int, int], str]:
 
 def _full_match(history: MatchHistory, summary: MatchSummary, codes: RoleCodes, catalogue: FootballCatalogue,
                 roles: Mapping[tuple[str, str, int], str]) -> dict[str, Any]:
-    """One match's verbose season-export entry, plus what only one match has room for."""
+    return full_match_entry(
+        summary, codes, catalogue, roles,
+        league_ids={competition.id for competition, _results in history.league_results},
+        given_away=_given_away(history, summary.match),
+    )
+
+
+def full_match_entry(
+    summary: MatchSummary, codes: RoleCodes, catalogue: FootballCatalogue, roles: Mapping[tuple[str, str, int], str],
+    *, league_ids: set[str] | None, given_away: Mapping[tuple[int, int], str],
+) -> dict[str, Any]:
+    """One match's verbose season-export entry, plus what only one match has room for: a match page's copy.
+
+    `league_ids` are the club's leagues; without them (None) a match is only
+    competitive or a friendly. `given_away` is who you recorded giving away
+    each penalty scored against you.
+    """
     match = summary.match
-    league_ids = {competition.id for competition, _results in history.league_results}
-    kind = "league" if match.competition.id in league_ids else "friendly" if match.competition.is_friendly else "cup"
-    row = _match(summary, kind, codes, catalogue, "match", roles, _given_away(history, match))
+    kind = (
+        "friendly" if match.competition.is_friendly
+        else "competitive" if league_ids is None
+        else "league" if match.competition.id in league_ids else "cup"
+    )
+    row = _match(summary, kind, codes, catalogue, "match", roles, given_away)
     row.setdefault("attendance", match.attendance)
     strength = summary.strength
     row["league_at_kickoff"] = (
@@ -809,7 +828,7 @@ def matches_document(
         else catalogue.tactics[filters.tactic].name if filters.tactic in catalogue.tactics
         else filters.tactic
     )
-    caveats = list(_MATCH_CAVEATS)
+    caveats = list(MATCH_CAVEATS)
     if filters.season is not None:
         caveats.append("FM files no season for a friendly; one counts in the season of the next competitive match.")
     if any(summary.tactic_inferred for summary in review.matches):
@@ -820,8 +839,8 @@ def matches_document(
     result_only = sum(1 for summary in review.matches if summary.match.detail is None)
     if result_only:
         caveats.append(f"{result_only} match(es) have the result only: FM's archive had no stats for them that added up.")
-    if any(_null_duty(row) for row in rows):
-        caveats.append(_DUTY_CAVEAT)
+    if any(has_null_duty(row) for row in rows):
+        caveats.append(DUTY_CAVEAT)
     return {
         "format": MATCHES_EXPORT_FORMAT,
         "formatVersion": MATCHES_EXPORT_FORMAT_VERSION,
@@ -842,9 +861,9 @@ def matches_document(
             "by_tactic": [{"tactic": row.label, **_group(row.overall)} for row in review.tactics],
         },
         "goals": _goals(review),
-        "breakdowns": _breakdowns(selected),
+        "breakdowns": breakdowns_json(selected),
         "roles": _roles(review),
-        "players": [_player(season, "verbose", selected.players.get(season.player_id or season.name))
+        "players": [player_json(season, "verbose", selected.players.get(season.player_id or season.name))
                     for season in review.players],
         "matches": rows,
     }

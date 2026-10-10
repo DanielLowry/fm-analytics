@@ -59,10 +59,12 @@ score", "By period", "How the goals came", "Against each formation" and "Your
 players" panels, the same lines of `fm-matches review` and the exports' `breakdowns`
 (`analytics/match_breakdowns.py`); a match's own split by the score comes with its
 `build_match_report` timeline.
-`reporting.build_experiment_report` is the one behind the Experiments pages,
-`fm-experiments compare` and its export: stored matches compared label by label
+`reporting.build_experiment_report` is the one behind the Experiments pages and
+`fm-experiments compare`: stored matches compared label by label
 (`docs/match-experiments.md`); `reporting.build_stored_match_report` is a stored
-match's own page.
+match's own page, and `reporting.build_experiment_export` the one behind a group
+page's "Copy all match data" and `fm-experiments export`: that comparison plus
+each stored match exactly as its own page's copy has it.
 `reporting.build_penalty_record` is the one behind the Matches page's "Penalties
 you gave away" and the same lines of `fm-matches review`: the penalties scored
 against us in the selected matches and who the manager recorded giving each away

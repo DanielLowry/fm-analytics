@@ -87,6 +87,30 @@ not results.
 Each stored match also has its own page (`/experiments/match/ID`), the full
 match page as stored, without the forms that save to the match history.
 
+## Exporting a group
+
+*Copy all match data* on a group's page (and on *Compare all stored
+matches*) copies the group as JSON, as the Matches page's button of the same
+name copies the matches its filters select. `fm-experiments export [GROUP]
+[--output FILE]` writes the same document. It is built by
+`reporting.build_experiment_export` (`experiment_export.py`) and holds:
+
+- **`variants`** and **`comparisons`**: the comparison the page shows. Each
+  label also has its own `breakdowns` (by the score, by period, how the goals
+  came, formations faced) and `players` (each player's figures in that
+  label's matches), so a player can be compared from one label to the next.
+- **`breakdowns`** and **`players`**: the same over the whole group.
+- **`matches`**: every stored match with its label, notes, tags and groups,
+  its comparison `figures`, and its `match`, exactly what that match's own
+  page would copy (team panels, every player's line with role and rating,
+  timeline, every shot, unused substitutes, saved tactics, league table at
+  kickoff). A match stored from the history exports the same `match` as its
+  page under Matches does. Replays of one fixture share a date, so
+  `stored_match_id` tells them apart.
+
+Withdrawn matches are listed (`withdrawn: true`, no `figures`) but counted in
+none of the comparison, breakdowns or player figures.
+
 ## Replays in FM's archive
 
 FM keeps every match's full stats in archive files on disk, one chunk per

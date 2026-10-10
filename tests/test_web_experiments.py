@@ -51,7 +51,7 @@ class ExperimentPagesTests(WebServerHelpers, unittest.TestCase):
         _status, body = self._get(port, "/experiments/group/" + quote("Alpha tests"))
         self.assertIn("<h2>By label</h2>", body)
         self.assertIn("<td><span class='fm-label-cell'>Vertical</span></td><td>1</td>", body)
-        self.assertIn("Copy experiment to clipboard", body)
+        self.assertIn("Copy all match data", body)
         status, location, _body = self._post(port, "/experiments/relabel", "id=1&label=Vertical+2&back=Alpha+tests&withdraw=1")
         self.assertEqual(status, 303)
         self.assertTrue(self.store.matches()[0].withdrawn)

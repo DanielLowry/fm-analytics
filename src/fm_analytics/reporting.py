@@ -80,6 +80,7 @@ from fm_analytics.analytics.league_comparison import LeagueReport, build_league_
 from fm_analytics.analytics.league_insights import TeamSummary
 from fm_analytics.domain.leagues import LeagueCapture
 from fm_analytics.domain import GameState, Player, Squad
+from fm_analytics.experiment_export import experiment_document
 from fm_analytics.season_export import export_document, match_document, matches_document
 
 if TYPE_CHECKING:
@@ -869,6 +870,21 @@ def build_experiment_report(
     clubs = {match.club.id for match in stored}
     matches = history.matches if history is not None and clubs <= {history.club.id} else ()
     return experiment_report(name, stored, rates_for(matches, stored), note=note)
+
+
+def build_experiment_export(
+    name: str, stored: Sequence[StoredMatch], history: MatchHistory | None, *, note: str = "",
+    catalogue: FootballCatalogue = MVP_CATALOGUE, generated_at: datetime | None = None,
+) -> dict[str, Any]:
+    """Stored matches as JSON: a group page's "Copy all match data" and `fm-experiments export`.
+
+    `build_experiment_report`'s comparison, then each match as its own page's
+    copy holds it, from its `build_stored_match_report`. See `experiment_export`.
+    """
+    same_club = history if history is not None and {item.club.id for item in stored} <= {history.club.id} else None
+    reports = {item.id: build_stored_match_report(item, history, catalogue=catalogue) for item in stored}
+    return experiment_document(build_experiment_report(name, stored, history, note=note), stored, reports, same_club,
+                               catalogue=catalogue, generated_at=generated_at)
 
 
 def build_penalty_record(history: MatchHistory, review: MatchReview) -> PenaltyRecord:

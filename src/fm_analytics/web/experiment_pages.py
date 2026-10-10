@@ -13,8 +13,8 @@ from urllib.parse import unquote
 
 from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.domain.experiments import MatchLabel
-from fm_analytics.experiment_ingest import ALL_STORED, experiment_document
-from fm_analytics.reporting import build_experiment_report, build_stored_match_report
+from fm_analytics.experiment_ingest import ALL_STORED
+from fm_analytics.reporting import build_experiment_export, build_experiment_report, build_stored_match_report
 from fm_analytics.web.attribute_export import profile_copy_control
 from fm_analytics.web.experiment_render import delete_match_control, experiments_body, group_body, group_url
 from fm_analytics.web.match_detail_render import match_body
@@ -67,10 +67,11 @@ class ExperimentPagesMixin:
                 self._send(_error_page("Experiment", "No such group.", "/experiments"), HTTPStatus.NOT_FOUND)  # type: ignore[attr-defined]
                 return
             name, note, stored = group.name, group.note, group.matches
-        report = build_experiment_report(name, stored, self._history_or_none(), note=note)
+        history = self._history_or_none()
+        report = build_experiment_report(name, stored, history, note=note)
         copy = profile_copy_control(
-            json.dumps(experiment_document(report), indent=2, ensure_ascii=False),
-            label="Copy experiment to clipboard", success="Experiment copied as JSON!",
+            json.dumps(build_experiment_export(name, stored, history, note=note), indent=2, ensure_ascii=False),
+            label="Copy all match data", success="Every match and the comparison copied as JSON!",
         )
         body = group_body(report, MVP_CATALOGUE, copy_control=copy, note=server.experiment_note,
                           manage=path != "/experiments/all")

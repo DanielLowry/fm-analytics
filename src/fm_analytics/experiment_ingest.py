@@ -12,9 +12,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Sequence
 
 from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.analytics.experiments import ExperimentReport
@@ -23,13 +22,11 @@ from fm_analytics.domain.matches import MatchCapture, MatchRecord
 from fm_analytics.match_ingest import DEFAULT_DATABASE, PROJECT_ROOT, run_capture_tool
 from fm_analytics.persistence.experiments import ExperimentStore, ExperimentStoreError
 from fm_analytics.persistence.match_history import MatchHistory, MatchHistoryError, MatchHistoryStore
-from fm_analytics.reporting import build_experiment_report
+from fm_analytics.reporting import build_experiment_export, build_experiment_report
 
 DEFAULT_EXPERIMENTS = PROJECT_ROOT / "data" / "experiments.sqlite3"
 EXPERIMENT_CAPTURE = PROJECT_ROOT / "data" / "experiment-capture.json"
 ALL_STORED = "All stored matches"
-EXPORT_FORMAT = "fm-analytics/experiment-export"
-EXPORT_FORMAT_VERSION = 1
 
 
 def latest_played(capture: MatchCapture, match_key: str | None = None) -> MatchRecord:
@@ -87,62 +84,6 @@ def store_from_history(
     if match is None:
         raise ValueError(f"no match {match_key} is in your match history")
     return store.store(match, history.club, with_default_variant(label, match, history.club.id), groups=groups)
-
-
-def experiment_document(report: ExperimentReport, *, generated_at: datetime | None = None) -> dict[str, Any]:
-    """A comparison as JSON, with every stored match's full record: the copy button and `fm-experiments export`."""
-    def pair(values) -> list:
-        return list(values)
-
-    return {
-        "format": EXPORT_FORMAT,
-        "formatVersion": EXPORT_FORMAT_VERSION,
-        "meta": {
-            "generated_at": (generated_at or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
-            "chance_values_from_matches": report.rates_from,
-            "caveats": [
-                "Pairs are [ours, theirs]. 'worth' is what each side's shots were worth in goals, valued as a "
-                "match page values them; 'balance' is ours less theirs. FM20 shows no expected goals.",
-                "A difference is 'clear' when it is more than twice its standard error; 'runs_needed' is how many "
-                "matches of each would settle a difference that size, from how much these vary.",
-            ],
-        },
-        "group": {"name": report.name, "note": report.note, "matches": len(report.runs), "withdrawn": report.withdrawn},
-        "variants": [
-            {
-                "label": variant.variant, "matches": variant.count, "record": dict(zip("WDL", variant.record)),
-                "points_per_game": variant.points_per_game, "balance": variant.balance,
-                "balance_spread": variant.balance_spread, "standard_error": variant.standard_error,
-                **{name: pair(variant.average(name)) for name in
-                   ("goals", "shots", "on_goal", "clear_cut_chances", "worth", "second_half_shots")},
-                "possession": variant.possession,
-            }
-            for variant in report.variants
-        ],
-        "comparisons": [
-            {"label": item.variant, "against": item.against, "difference": item.difference, "margin": item.margin,
-             "verdict": item.verdict, "runs_needed": item.runs_needed}
-            for item in report.comparisons
-        ],
-        "matches": [
-            {
-                "stored_match_id": run.run_id, "label": run.variant, "tactic_key": run.tactic_key,
-                "fm_saved_tactic": run.saved_tactic, "note": run.note, "tags": dict(run.tags),
-                "stored_at": run.recorded_at, "opponent": run.opponent, "result": run.result,
-                "goals": pair(run.goals), "shots": pair(run.shots), "on_goal": pair(run.on_goal),
-                "clear_cut_chances": pair(run.clear_cut_chances), "worth": pair(run.worth),
-                "balance": round(run.balance, 2), "possession": run.possession,
-                "second_half_shots": pair(run.second_half_shots),
-                "by_score": {
-                    state: {"minutes": round(tally.minutes), "shots": list(tally.shots), "on_goal": list(tally.on_goal),
-                            "clear_cut_chances": list(tally.clear_cut_chances), "goals": list(tally.goals)}
-                    for state, tally in run.by_score.by_state.items() if tally.minutes >= 1
-                } if run.by_score else None,
-                "fm_record": run.match.to_document(),
-            }
-            for run in report.runs
-        ],
-    }
 
 
 # -- text -----------------------------------------------------------------------
@@ -256,13 +197,14 @@ def _history(path: Path) -> MatchHistory | None:
     return store.load_history(key) if key else None
 
 
-def _report(store: ExperimentStore, group: str | None, history_path: Path) -> ExperimentReport:
+def _selection(store: ExperimentStore, group: str | None) -> tuple[str, tuple[StoredMatch, ...], str]:
+    """A group's name, matches and note, or every stored match."""
     if group is None:
-        return build_experiment_report(ALL_STORED, store.matches(), _history(history_path))
+        return ALL_STORED, store.matches(), ""
     found = store.group(group)
     if found is None:
         raise ValueError(f"no group is called {group!r}")
-    return build_experiment_report(found.name, found.matches, _history(history_path), note=found.note)
+    return found.name, found.matches, found.note
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -314,9 +256,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.command == "relabel" and current.withdrawn))
             print("Done.")
         elif args.command == "compare":
-            print(format_report(_report(store, args.group, args.history)))
+            name, stored, note = _selection(store, args.group)
+            print(format_report(build_experiment_report(name, stored, _history(args.history), note=note)))
         elif args.command == "export":
-            document = experiment_document(_report(store, args.group, args.history))
+            name, stored, note = _selection(store, args.group)
+            document = build_experiment_export(name, stored, _history(args.history), note=note)
             text = json.dumps(document, indent=2, ensure_ascii=False) + "\n"
             if args.output:
                 args.output.write_text(text, encoding="utf-8")

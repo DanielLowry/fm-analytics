@@ -9,10 +9,13 @@ from fm_analytics.analytics.chance_value import ChanceRates, KindRecord
 from fm_analytics.analytics.experiments import experiment_report
 from fm_analytics.domain.experiments import MatchLabel
 from fm_analytics.domain.matches import MatchCapture, MatchRecord
-from fm_analytics.experiment_ingest import latest_played, main as fm_experiments, with_default_variant
+from fm_analytics.experiment_ingest import (
+    ALL_STORED, latest_played, main as fm_experiments, store_from_history, with_default_variant,
+)
 from fm_analytics.match_ingest import record_capture_file
 from fm_analytics.persistence.experiments import ExperimentStore
 from fm_analytics.persistence.match_history import MatchHistoryStore
+from fm_analytics.reporting import build_experiment_export, build_match_export, build_match_report
 
 from tests.match_support import ALPHA, BRAVO, US, capture_document, detail, lineup, match, season, team_stats
 
@@ -145,6 +148,40 @@ class ComparisonTests(unittest.TestCase):
         self.assertGreater(comparison.runs_needed, 3)
 
 
+class ExportTests(unittest.TestCase):
+    def test_each_match_is_exported_as_its_own_page_copies_it_with_the_comparison_and_withdrawn_ones_marked(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        capture = root / "capture.json"
+        capture.write_text(json.dumps(capture_document(season())), encoding="utf-8")
+        history_store = MatchHistoryStore(root / "history.sqlite3")
+        record_capture_file(history_store, capture)
+        history = history_store.load_history(history_store.latest_save_key())
+        store = ExperimentStore(root / "experiments.sqlite3")
+        real = store_from_history(store, history, "2019-09-01:100:201", MatchLabel("Vertical"))
+        replays = [store.store(replay(shots=(8 + n, 10), goals=(n % 2, 1)), CLUB, MatchLabel("BWM")) for n in range(3)]
+        store.relabel(replays[2].match_id, MatchLabel("BWM"), withdrawn=True)
+
+        document = build_experiment_export(ALL_STORED, store.matches(), history)
+        page_copy = build_match_export(history, build_match_report(history, "2019-09-01:100:201"))["match"]
+        first = document["matches"][0]
+        self.assertEqual((first["stored_match_id"], first["label"]), (real.match_id, "Vertical"))
+        self.assertEqual(first["match"], page_copy)  # exactly what the match page's copy holds
+        self.assertIn("timeline", first["match"])
+        self.assertEqual(document["group"], {"name": ALL_STORED, "note": "", "matches": 4, "compared": 3, "withdrawn": 1})
+        withdrawn = document["matches"][3]
+        self.assertEqual((withdrawn["withdrawn"], withdrawn["figures"]), (True, None))
+        self.assertEqual(withdrawn["match"]["date"], "2019-09-01")  # still listed in full
+        bwm = next(variant for variant in document["variants"] if variant["label"] == "BWM")
+        self.assertEqual(bwm["stored_match_ids"], [replays[0].match_id, replays[1].match_id])
+        self.assertIn("by_period", bwm["breakdowns"])
+        self.assertEqual(bwm["players"][0]["apps"], 2)  # each label's own player lines
+        self.assertIn("by_period", document["breakdowns"])
+        self.assertEqual(document["players"][0]["apps"], 3)  # three matches compared
+        self.assertEqual(json.loads(json.dumps(document)), document)  # plain JSON throughout
+
+
 class IngestTests(unittest.TestCase):
     def test_the_match_just_played_is_the_latest_and_its_label_defaults_to_fms_tactic_name(self) -> None:
         capture = MatchCapture.from_document(capture_document(season()))
@@ -182,7 +219,7 @@ class IngestTests(unittest.TestCase):
         self.assertIn("Vertical", run("compare", "Alpha tests"))
         exported = json.loads(run("export", "Alpha tests"))
         self.assertEqual(exported["matches"][0]["tags"], {"mentality": "positive"})
-        self.assertEqual(exported["matches"][0]["fm_record"]["date"], "2019-09-01")
+        self.assertEqual(exported["matches"][0]["match"]["date"], "2019-09-01")
         self.assertIn("withdrawn", run("withdraw", "1") + run("list"))
         self.assertIn("Done.", run("group", "rename", "Alpha tests", "--to", "Alpha replays"))
         self.assertIn("groups: Alpha replays", run("list"))
