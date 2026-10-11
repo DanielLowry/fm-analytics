@@ -22,6 +22,16 @@ positions are now read by `tools/fm20_league_capture.py` (and the League
 page's read button), pending a check of a few players and squads against FM's
 screens; see the plan's "Live league capture" record.
 
+**Update, 11 October 2026:** the first pre-match report is built; see the
+[opponent report](../../opponent-report.md). It covers 08.1 (the last 10, 20
+or 40 competitive matches before the fixture, with counts and what FM's
+archive lacks), 08.2 (formations, likely XI from the last five), 08.3 (how
+goals are scored and conceded, by flank, line and period, against the league's
+share, and style figures with ranks), 08.4 (suggested opposition instructions
+from declared rules, kept apart from the evidence) and 08.5 (the Opponent page
+and `fm-matches opponent`). A report never uses a match played on or after its
+day. 08.6, scoring a report afterwards, is still open.
+
 ## Outcome
 
 Generate a concise pre-match opposition report that separates observed facts,

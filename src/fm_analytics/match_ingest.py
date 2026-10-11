@@ -12,6 +12,7 @@ game) and prints the same review the Matches page shows, through the one
     uv run fm-matches export --detail basic          # the season as JSON, for another tool
     uv run fm-matches coverage                       # which appearances could count towards form
     uv run fm-matches form                           # each player's recent form in each job
+    uv run fm-matches opponent [CLUB] [--json]       # the report on our next opponent, or on any club
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ import re
 import subprocess
 import sys
 from dataclasses import replace
+from datetime import date
 from pathlib import Path
 from typing import Sequence
 
@@ -46,10 +48,12 @@ from fm_analytics.analytics.match_chances import FinishingRecord
 from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis
 from fm_analytics.analytics.match_interventions import InterventionEvaluation
 from fm_analytics.analytics.match_strength import GROUPINGS
+from fm_analytics.analytics.opponent_report import DEFAULT_WINDOW, WINDOWS
 from fm_analytics.bridge import LinuxProtonDataSource
 from fm_analytics.domain.matches import MatchCapture
 from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.knowledge_ingest import default_save_key
+from fm_analytics.opponent_cli import run_opponent
 from fm_analytics.persistence.match_history import (
     MatchHistoryError,
     MatchHistoryStore,
@@ -82,6 +86,7 @@ DEFAULT_DATABASE = PROJECT_ROOT / "data" / "match-history.sqlite3"
 DEFAULT_CAPTURE = PROJECT_ROOT / "data" / "match-capture.json"
 CAPTURE_TOOL = PROJECT_ROOT / "tools" / "fm20_match_probe.py"
 DEFAULT_EXPORT_DIRECTORY = PROJECT_ROOT / "data" / "exports"
+DEFAULT_LEAGUE_CAPTURE = PROJECT_ROOT / "data" / "league-capture.json"
 CAPTURE_TIMEOUT_SECONDS = 120
 
 
@@ -488,6 +493,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     usual.add_argument("tactic", help="catalogue tactic key, e.g. vertical_442")
     usual.add_argument("choices", nargs="*", metavar="SLOT=ROLE", help="e.g. DCL=cd_defend; none to list")
+    opponent = commands.add_parser("opponent", help="the report on our next opponent, or on any club in the league")
+    opponent.add_argument("club", nargs="?", help="club name (or enough of it) or FM club ID; default: our next opponent")
+    opponent.add_argument("--window", type=int, choices=WINDOWS, default=DEFAULT_WINDOW,
+                          help="their latest competitive matches with full stats to use (default: %(default)s)")
+    opponent.add_argument("--before", type=date.fromisoformat, metavar="YYYY-MM-DD",
+                          help="only matches played before this day (default: before the fixture)")
+    opponent.add_argument("--league", type=Path, default=DEFAULT_LEAGUE_CAPTURE,
+                          help="league read whose visible attributes the instructions use (default: %(default)s)")
+    opponent.add_argument("--json", action="store_true", help="the report as JSON, as the page's copy button gives it")
     role = commands.add_parser("role-code", help="confirm which catalogue role an FM role code is")
     role.add_argument("code", help="the FM code, e.g. 0x800")
     role.add_argument("role", help="catalogue role key, e.g. af_attack")
@@ -595,6 +609,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                     output.write_text(text, encoding="utf-8")
                     print(f"Wrote {output} ({args.detail}, {len(document['matches'])} matches, "
                           f"squad {document['meta']['squad']}).")
+            elif args.command == "opponent":
+                print(run_opponent(store, history, club=args.club, window=args.window, before=args.before,
+                                   league_path=args.league, as_json=args.json))
             elif args.command == "penalty":
                 print(_record_penalty(store, history, args))
             elif args.command == "mentality":

@@ -8,6 +8,7 @@
 @import "./match-chances.css";
 @import "./experiments.css";
 @import "./tactic-instructions.css";
+@import "./opponent-report.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

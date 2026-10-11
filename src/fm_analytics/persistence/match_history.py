@@ -44,6 +44,7 @@ from fm_analytics.domain.matches import (
     LeagueResult,
     MatchCapture,
     MatchRecord,
+    ScheduledFixture,
     TeamRef,
 )
 from fm_analytics.analytics.penalty_record import PenaltyKey, conceded_penalties
@@ -226,8 +227,33 @@ CREATE TABLE match_mentalities (
 CREATE INDEX match_mentalities_by_match ON match_mentalities (save_id, match_key, id);
 """
 
+_V7 = """
+-- The other league clubs' matches FM keeps in its archive, for the opponent
+-- report: one row per distinct state of a match, as match_versions keeps ours.
+CREATE TABLE club_match_versions (
+    id INTEGER PRIMARY KEY,
+    save_id INTEGER NOT NULL REFERENCES saves(id),
+    match_key TEXT NOT NULL,
+    match_date TEXT NOT NULL,
+    home_id TEXT NOT NULL,
+    away_id TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    document TEXT NOT NULL,
+    capture_id INTEGER NOT NULL REFERENCES captures(id),
+    UNIQUE (save_id, match_key, content_hash)
+);
+CREATE INDEX club_match_versions_by_match ON club_match_versions (save_id, match_key, id);
+
+-- Our fixtures still to play, as each capture saw FM's fixture list: a JSON
+-- list of fixtures. FM reschedules, so the latest capture's list is the one used.
+CREATE TABLE capture_fixtures (
+    capture_id INTEGER PRIMARY KEY REFERENCES captures(id),
+    document TEXT NOT NULL
+);
+"""
+
 # Append only. Version N of the file is the result of applying MIGRATIONS[:N].
-MIGRATIONS: tuple[str, ...] = (_V1, _V2, _V3, _V4, _V5, _V6)
+MIGRATIONS: tuple[str, ...] = (_V1, _V2, _V3, _V4, _V5, _V6, _V7)
 
 
 @dataclass(frozen=True)
@@ -236,14 +262,18 @@ class MatchRecordResult:
     versions_added: int
     league_results_added: int
     skipped: bool = False
+    club_matches_added: int = 0  # other league clubs' matches, new or changed
 
     def summary(self) -> str:
         if self.skipped:
             return "already recorded; nothing new"
-        return (
+        text = (
             f"{self.matches_seen} matches seen, {self.versions_added} new or changed, "
             f"{self.league_results_added} league results added"
         )
+        if self.club_matches_added:
+            text += f", {self.club_matches_added} other clubs' matches added"
+        return text
 
 
 @dataclass(frozen=True)
@@ -375,11 +405,25 @@ class MatchHistoryStore:
                             "AND result_date = ? AND home_id = ? AND away_id = ? AND season IS NULL",
                             (row.season, save_id, competition.id, row.date.isoformat(), row.home.id, row.away.id),
                         )
+            club_versions = 0
+            for match in capture.club_matches:
+                cursor = connection.execute(
+                    "INSERT OR IGNORE INTO club_match_versions (save_id, match_key, match_date, home_id, away_id, "
+                    "content_hash, document, capture_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (save_id, match.key, match.date.isoformat(), match.home.id, match.away.id,
+                     match.content_hash(), json.dumps(match.to_document(), sort_keys=True), capture_id),
+                )
+                club_versions += cursor.rowcount
+            if capture.fixtures is not None:
+                connection.execute(
+                    "INSERT INTO capture_fixtures (capture_id, document) VALUES (?, ?)",
+                    (capture_id, json.dumps([fixture.to_document() for fixture in capture.fixtures])),
+                )
             connection.execute(
                 "UPDATE captures SET match_versions_added = ?, league_results_added = ? WHERE id = ?",
                 (versions, results, capture_id),
             )
-        return MatchRecordResult(len(capture.matches), versions, results)
+        return MatchRecordResult(len(capture.matches), versions, results, club_matches_added=club_versions)
 
     def add_note(
         self,
@@ -694,6 +738,58 @@ class MatchHistoryStore:
             interventions=interventions,
         )
 
+    def load_club_matches(self, save_key: str) -> tuple[MatchRecord, ...]:
+        """Every other league club's match recorded for the save, by date; empty if none.
+
+        Kept apart from `load_history`: the matches of a whole league are many
+        times a season of ours, and only the opponent report reads them.
+        """
+        if not self.path.exists():
+            return ()
+        self.initialize()
+        with closing(self._connect()) as connection:
+            rows = connection.execute(
+                """
+                SELECT v.document FROM club_match_versions v JOIN saves s ON s.id = v.save_id
+                WHERE s.key = ? AND v.id = (
+                    SELECT max(w.id) FROM club_match_versions w
+                    WHERE w.save_id = v.save_id AND w.match_key = v.match_key
+                )
+                ORDER BY v.match_date, v.match_key
+                """,
+                (save_key,),
+            ).fetchall()
+        return tuple(MatchRecord.from_document(json.loads(row["document"])) for row in rows)
+
+    def club_matches_version(self, save_key: str) -> int:
+        """Changes whenever a club match is recorded for the save, for caching what `load_club_matches` gives."""
+        if not self.path.exists():
+            return 0
+        self.initialize()
+        with closing(self._connect()) as connection:
+            row = connection.execute(
+                "SELECT max(v.id) FROM club_match_versions v JOIN saves s ON s.id = v.save_id WHERE s.key = ?",
+                (save_key,),
+            ).fetchone()
+        return row[0] or 0
+
+    def load_fixtures(self, save_key: str) -> tuple[date, tuple[ScheduledFixture, ...]] | None:
+        """The fixture list the latest capture that read one saw, with that capture's game date; None if none did."""
+        if not self.path.exists():
+            return None
+        self.initialize()
+        with closing(self._connect()) as connection:
+            row = connection.execute(
+                "SELECT c.game_date, f.document FROM capture_fixtures f JOIN captures c ON c.id = f.capture_id "
+                "JOIN saves s ON s.id = c.save_id WHERE s.key = ? ORDER BY c.id DESC LIMIT 1",
+                (save_key,),
+            ).fetchone()
+        if row is None:
+            return None
+        return date.fromisoformat(row["game_date"]), tuple(
+            ScheduledFixture.from_document(item) for item in json.loads(row["document"])
+        )
+
     def match_versions(self, save_key: str, match_key: str) -> tuple[MatchRecord, ...]:
         """Every recorded state of one match, oldest first."""
         self.initialize()
@@ -741,6 +837,11 @@ def _capture_hash(capture: MatchCapture) -> str:
             for competition, rows in capture.league_results
         ],
     }
+    # Only when read, so a capture made before these were read keeps its hash.
+    if capture.club_matches:
+        payload["clubMatches"] = sorted(match.content_hash() for match in capture.club_matches)
+    if capture.fixtures is not None:
+        payload["fixtures"] = [fixture.to_document() for fixture in capture.fixtures]
     text = json.dumps(payload, sort_keys=True)
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 

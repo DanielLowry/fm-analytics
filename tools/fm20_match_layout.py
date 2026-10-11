@@ -19,8 +19,16 @@ from typing import Any
 # Class-table addresses (RVAs) in the pinned build.
 GAME_MATCH_STATS = 0x655CA60
 FIXTURE_RESULT = 0x6573620
+# sicomps::FIXTURE: one per scheduled match of every competition, kept after
+# it is played. It shares FIXTURE_RESULT's first fields (teams, competition,
+# season, date at the same offsets) but holds no score. Found 11 October 2026:
+# 23,892 of them, among them all 32 of Hungerford's league fixtures from 20
+# October 2020 to 24 April 2021 in FM's own order, each home and away as FM's
+# fixture list shows them. FIXTURE_RESULT exists only for a played match.
+FIXTURE = 0x6D3AE80
 
 FIXTURE_RESULT_SIZE = 0x80
+FIXTURE_SIZE = 0x58
 MATCH_STATS_SIZE = 0xD0
 TEAM_BLOCK_SIZE = 0x1D0
 PLAYER_RECORD_SIZE = 0xB0
@@ -184,6 +192,17 @@ def vector_bounds(data: bytes, offset: int) -> tuple[int, int]:
 def _stage(record: bytes, stage: int) -> tuple[int, int] | None:
     home, away = record[RESULT_HOME_GOALS + stage], record[RESULT_AWAY_GOALS + stage]
     return None if NOT_PLAYED in (home, away) else (home, away)
+
+
+def decode_fixture(record: bytes) -> dict[str, Any]:
+    """A scheduled match (sicomps::FIXTURE): its teams, competition, season and date."""
+    return {
+        "home_team": pointer(record, RESULT_HOME_TEAM),
+        "away_team": pointer(record, RESULT_AWAY_TEAM),
+        "fixture_name": pointer(record, RESULT_FIXTURE_NAME),
+        "date": decode_fm_date(record[RESULT_DATE:RESULT_DATE + 4]),
+        "season": struct.unpack_from("<H", record, RESULT_SEASON)[0] or None,
+    }
 
 
 def decode_fixture_result(record: bytes) -> dict[str, Any]:

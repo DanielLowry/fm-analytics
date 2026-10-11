@@ -746,6 +746,12 @@ The executable also names `MATCH_ANALYSIS_MATCH`, `PITCH_GOALS_AREAS`,
   and blocks inside each person's record look like internal attribute
   values. Neither is something a manager can see.
 
+**Found on 11 October 2026 (the opponent report):** `sicomps::FIXTURE` holds
+every scheduled match with a result record's first fields, so the capture now
+reads our fixtures still to play; and every other league club's archived
+matches are read too, each matched to FM's own result by its scorers. See
+[the opponent report](opponent-report.md).
+
 **Still open, in order:**
 
 **Answered on 30 September 2026:** the layout held after an FM restart (a new
@@ -931,6 +937,7 @@ superseded where they differ.
   became possible once every shot and clear-cut chance was read (see As built).
 - Tactical changes during a match (recorded in the note only) and live
   intervention.
-- The opponent's matches against other teams. That is Phase 08, and it needs
-  its own visibility rules.
+- The opponent's matches against other teams. Built since as the
+  [opponent report](opponent-report.md) (11 October 2026): FM shows any
+  archived match's report, so they are read like ours.
 - Learned outcome models (Phase 10).

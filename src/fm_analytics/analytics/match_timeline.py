@@ -132,6 +132,47 @@ def _same_moment(first: MatchEvent, second: MatchEvent) -> bool:
     return (first.side, first.minute, first.added_time) == (second.side, second.minute, second.added_time)
 
 
+@dataclass(frozen=True)
+class GoalMoment:
+    """A goal as the timeline tells it: who, with whose assist, how, and whether it may have been a corner."""
+
+    event: MatchEvent  # the goal, penalty or own goal
+    counts_for: str  # the side it counts for: an own goal's is not its scorer's
+    assist: MatchEvent | None
+    from_clear_cut_chance: bool
+    how: GoalDescription | None  # for a goal; None for a penalty or an own goal
+    possibly_from_a_corner: bool  # a guess, CORNER_GUESS
+
+
+def _goal_moment(match: MatchRecord, events: tuple[MatchEvent, ...], index: int) -> GoalMoment:
+    event = events[index]
+    nearby = events[max(index - 2, 0):index + 3]
+    assisting = next((other for other in nearby if other.kind == "assist" and _same_moment(event, other)), None)
+    how = describe_goal(event.descriptor) if event.kind == "goal" else None
+    return GoalMoment(
+        event=event,
+        counts_for=event.side if event.kind != "own_goal" else ("away" if event.side == "home" else "home"),
+        assist=assisting,
+        from_clear_cut_chance=any(
+            other.kind == "clear_cut_chance" and other.player_short_id == event.player_short_id
+            and _same_moment(event, other)
+            for other in nearby
+        ),
+        how=how,
+        possibly_from_a_corner=bool(how and how.how == "cross" and assisting and _took_corners(match, assisting)),
+    )
+
+
+def goal_moments(match: MatchRecord) -> tuple[GoalMoment, ...]:
+    """Every goal of a match's timeline in match order; empty without a timeline."""
+    events = match.detail.events if match.detail else ()
+    return tuple(
+        _goal_moment(match, events, index)
+        for index, event in enumerate(events)
+        if event.kind in GOAL_KINDS or event.kind == "own_goal"
+    )
+
+
 def _entries(
     match: MatchRecord, side: str, given_away: Mapping[tuple[int, int], str]
 ) -> tuple[TimelineEntry, ...]:
@@ -152,30 +193,20 @@ def _entries(
             for other in nearby
         ):
             continue
-        assist = None
-        assisting = None
-        chance = False
-        if event.kind in GOAL_KINDS:
-            assisting = next((other for other in nearby if other.kind == "assist" and _same_moment(event, other)), None)
-            assist = _name(match, assisting.side, assisting.player_short_id) if assisting else None
-            chance = any(
-                other.kind == "clear_cut_chance" and other.player_short_id == event.player_short_id
-                and _same_moment(event, other)
-                for other in nearby
-            )
-        how = describe_goal(event.descriptor) if event.kind == "goal" else None
-        counts_for = event.side if event.kind != "own_goal" else ("away" if event.side == "home" else "home")
+        moment = _goal_moment(match, events, index)
+        scored = event.kind in GOAL_KINDS
+        assisting = moment.assist if scored else None
         entries.append(TimelineEntry(
             minute=event.minute,
             added_time=event.added_time,
-            ours=counts_for == side,
+            ours=moment.counts_for == side,
             kind=event.kind,
             label=EVENT_LABELS[event.kind],
             player=_name(match, event.side, event.player_short_id),
-            assisted_by=assist,
-            from_clear_cut_chance=chance,
-            how=how,
-            possibly_from_a_corner=bool(how and how.how == "cross" and assisting and _took_corners(match, assisting)),
+            assisted_by=_name(match, assisting.side, assisting.player_short_id) if assisting else None,
+            from_clear_cut_chance=moment.from_clear_cut_chance if scored else False,
+            how=moment.how,
+            possibly_from_a_corner=moment.possibly_from_a_corner if scored else False,
             given_away_by=given_away.get((event.minute, event.added_time)) if event.kind == "penalty" else None,
         ))
     return tuple(entries)

@@ -1,7 +1,8 @@
 """The web server's side of the match history: which save, reading and writing it.
 
 Kept apart from `server.py`'s squad caching. Reading the history is cheap (a
-season is tens of matches), so nothing here is cached.
+season is tens of matches), so it is not cached; the other league clubs'
+matches, many times that, are cached until another is recorded.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from fm_analytics.analytics.match_analysis import ReviewFilters
 from fm_analytics.analytics.match_interventions import evaluate_intervention, propose_intervention
 from fm_analytics.analytics.player_form import FormLookup
 from fm_analytics.persistence.match_history import MatchHistory, MatchHistoryError, MatchHistoryStore
+from fm_analytics.domain.matches import MatchRecord
 from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.reporting import build_match_diagnostics, build_match_review, squad_form
 
@@ -36,6 +38,8 @@ class MatchHistoryState:
         # (message, succeeded) from the latest read, shown on the Matches page.
         self.match_capture_note: tuple[str, bool] | None = None
         self._match_capture_lock = threading.Lock()
+        # (save key, version) -> the other league clubs' matches; see `club_matches`.
+        self._club_matches: tuple[tuple[str, int], tuple[MatchRecord, ...]] | None = None
 
     def _match_key(self) -> str | None:
         if self.match_store is None:
@@ -45,6 +49,27 @@ class MatchHistoryState:
     def match_history(self) -> MatchHistory | None:
         key = self._match_key()
         return self.match_store.load_history(key) if key else None
+
+    def club_matches(self) -> tuple[MatchRecord, ...]:
+        """The other league clubs' matches recorded for this save, for the opponent report.
+
+        About 700 matches a season and a half, so they are parsed once and kept
+        until a capture records another.
+        """
+        key = self._match_key()
+        if key is None:
+            return ()
+        cache_key = (key, self.match_store.club_matches_version(key))
+        cached = self._club_matches
+        if cached is None or cached[0] != cache_key:
+            cached = (cache_key, self.match_store.load_club_matches(key))
+            self._club_matches = cached
+        return cached[1]
+
+    def match_fixtures(self):
+        """FM's fixture list as the latest capture that read it saw it: (game date, fixtures), or None."""
+        key = self._match_key()
+        return self.match_store.load_fixtures(key) if key else None
 
     def recent_form(self, game, squad) -> FormLookup | None:
         """Recent form for the recommendation, from this save's match history.

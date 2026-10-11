@@ -1,0 +1,130 @@
+/*
+ * The Opponent page (web/opponent_render.py), light and dark: the hero with its club picker, the
+ * suggested opposition instructions, the likely XI on a pitch, and the share bars for how their
+ * goals come. One hue marks their share (#c55b45 light, #d9705a dark, both checked for contrast
+ * and colour-blind separation against the card surfaces and the neutral league tick); every bar
+ * also prints its count and share, so nothing is read from colour or hover alone.
+ * Imported by app.css; every selector starts body.fm-app, as match-chances.css explains.
+ */
+body.fm-app { --fm-opp-bar: #c55b45; --fm-opp-tick: #5f6f84; --fm-opp-track: color-mix(in srgb, var(--color-ink-400) 14%, transparent); }
+:root.dark body.fm-app { --fm-opp-bar: #d9705a; --fm-opp-tick: #a9b8ca; --fm-opp-track: rgba(255, 255, 255, .08); }
+
+body.fm-app .fm-opp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+body.fm-app .fm-opp-notice { margin: 0 0 1rem; padding: .8rem 1rem; color: var(--color-ink-700); font-size: .86rem; }
+
+/* Hero */
+body.fm-app .fm-opp-hero-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 1rem 2rem; }
+body.fm-app .fm-opp-hero h2 { margin: .15rem 0 .3rem; font-size: clamp(1.5rem, 3vw, 2.1rem); }
+body.fm-app .fm-opp-fixture { margin: 0; color: var(--color-ink-700); font-size: .95rem; }
+body.fm-app .fm-opp-fixture b { color: var(--color-ink-900); }
+body.fm-app .fm-opp-standing { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.2rem; margin: .55rem 0 0; color: var(--color-ink-600); font-size: .85rem; }
+body.fm-app .fm-opp-form { display: inline-flex; align-items: center; gap: .45rem; }
+body.fm-app .fm-opp-form .form-strip { max-width: none; }
+body.fm-app .fm-opp-form .chip { min-width: 1.15rem; padding: .1rem .3rem; font-size: .7rem; }
+body.fm-app .fm-opp-picker { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; margin: 0; padding: .8rem; border: 1px solid var(--fm-border); border-radius: .65rem; background: color-mix(in srgb, var(--fm-card) 85%, transparent); }
+body.fm-app .fm-opp-picker label { display: grid; flex: 1 1 9rem; gap: .25rem; min-width: 0; color: var(--color-ink-500); font-size: .72rem; font-weight: 650; }
+body.fm-app .fm-opp-picker label:first-child { flex-basis: 14rem; }
+body.fm-app .fm-opp-picker select { width: 100%; min-width: 0; }
+body.fm-app .fm-opp-picker button { border-radius: .45rem; background: var(--color-brand-600); font-weight: 650; }
+body.fm-app .fm-opp-picker button:hover { background: var(--color-brand-700); }
+body.fm-app .fm-opp-hero-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1.5rem; margin-top: .9rem; padding-top: .8rem; border-top: 1px solid color-mix(in srgb, var(--color-brand-300) 40%, var(--fm-border)); }
+body.fm-app .fm-opp-hero-foot p { max-width: 80ch; margin: 0; color: var(--color-ink-600); font-size: .84rem; line-height: 1.5; }
+body.fm-app .fm-opp-hero-foot .fm-table-toolbar { margin: 0; }
+body.fm-app .fm-opp-tiles { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+body.fm-app .fm-opp-tiles .fm-decision-stat b { font-size: 1.15rem; overflow-wrap: anywhere; }
+body.fm-app .fm-opp-tiles .fm-decision-stat b i { color: var(--color-ink-500); font-size: .72rem; font-style: normal; font-weight: 600; }
+
+/* Key points */
+body.fm-app .fm-opp-watch { display: grid; gap: .45rem; margin: 0; padding: 0; list-style: none; }
+body.fm-app .fm-opp-watch li { padding: .55rem .8rem; border-left: 3px solid var(--fm-opp-bar); border-radius: 0 .45rem .45rem 0; background: var(--fm-page); color: var(--color-ink-800); font-size: .9rem; line-height: 1.45; }
+
+/* Opposition instructions */
+body.fm-app .fm-opp-instructions { display: grid; grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); gap: .8rem; }
+body.fm-app .fm-opp-instruction { display: grid; align-content: start; gap: .6rem; padding: .9rem 1rem; border: 1px solid var(--fm-border); border-radius: .75rem; background: var(--fm-card); }
+body.fm-app .fm-opp-instruction header { display: flex; align-items: center; gap: .6rem; }
+body.fm-app .fm-opp-instruction h3 { margin: 0; color: var(--color-ink-900); font-size: 1rem; }
+body.fm-app .fm-opp-position { display: inline-grid; place-items: center; min-width: 2.4rem; height: 1.6rem; padding: 0 .35rem; border-radius: .4rem; background: var(--color-ink-800); color: white; font-size: .72rem; font-weight: 700; }
+body.fm-app .fm-opp-settings { display: flex; flex-wrap: wrap; gap: .4rem; }
+body.fm-app .fm-opp-setting { display: grid; gap: .05rem; padding: .3rem .6rem; border: 1px solid color-mix(in srgb, var(--color-brand-300) 70%, var(--fm-border)); border-radius: .5rem; background: var(--color-brand-50); color: var(--color-brand-700); font-size: .86rem; font-weight: 700; }
+body.fm-app .fm-opp-setting small { color: var(--color-ink-500); font-size: .64rem; font-weight: 650; letter-spacing: .03em; text-transform: uppercase; }
+body.fm-app .fm-opp-instruction ul { display: grid; gap: .3rem; margin: 0; padding-left: 1.05rem; color: var(--color-ink-600); font-size: .82rem; line-height: 1.45; }
+body.fm-app .fm-opp-method { max-width: 80ch; }
+
+/* Shape: the pitch and the formations */
+body.fm-app .fm-opp-shape { display: grid; grid-template-columns: minmax(16rem, 25rem) minmax(0, 1fr); gap: 1.5rem 2.2rem; align-items: start; }
+body.fm-app .fm-opp-shape h3, body.fm-app .fm-opp-threats h3, body.fm-app .fm-opp-profile h3 { margin: 0 0 .25rem; color: var(--color-ink-900); font-size: .98rem; }
+body.fm-app .fm-opp-shape > div > p.muted { margin: 0 0 .7rem; font-size: .8rem; line-height: 1.45; }
+body.fm-app .fm-opp-pitch { position: relative; width: 100%; aspect-ratio: 68 / 92; overflow: hidden; border-radius: .75rem; background: repeating-linear-gradient(180deg, #2f7d4e 0 10%, #2b744a 10% 20%); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08); }
+body.fm-app .fm-opp-pitch-lines { position: absolute; inset: 4%; border: 2px solid rgba(255, 255, 255, .55); border-radius: 2px; }
+body.fm-app .fm-opp-pitch-lines i { position: absolute; border: 2px solid rgba(255, 255, 255, .55); }
+body.fm-app .fm-opp-pitch-lines .half { left: 0; right: 0; top: 50%; height: 0; border-width: 2px 0 0; }
+body.fm-app .fm-opp-pitch-lines .circle { left: 50%; top: 50%; width: 26%; aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); }
+body.fm-app .fm-opp-pitch-lines .box { left: 22%; right: 22%; height: 15%; }
+body.fm-app .fm-opp-pitch-lines .box.top { top: -2px; }
+body.fm-app .fm-opp-pitch-lines .box.bottom { bottom: -2px; }
+body.fm-app .fm-opp-player { position: absolute; display: grid; justify-items: center; gap: .1rem; width: 5.6rem; transform: translate(-50%, -50%); outline: none; }
+body.fm-app .fm-opp-dot { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border: 2px solid white; border-radius: 50%; background: var(--fm-opp-bar); box-shadow: 0 2px 6px rgba(0, 0, 0, .25); color: white; font-size: .66rem; font-weight: 800; }
+body.fm-app .fm-opp-player:focus-visible .fm-opp-dot, body.fm-app .fm-opp-player:hover .fm-opp-dot { box-shadow: 0 0 0 3px rgba(255, 255, 255, .7); }
+body.fm-app .fm-opp-name { max-width: 100%; overflow: hidden; padding: .05rem .35rem; border-radius: .3rem; background: rgba(10, 25, 18, .72); color: white; font-size: .72rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+body.fm-app .fm-opp-starts { color: rgba(255, 255, 255, .85); font-size: .62rem; font-weight: 700; text-shadow: 0 1px 2px rgba(0, 0, 0, .5); }
+body.fm-app .fm-opp-recent-row { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin: .9rem 0 0; font-size: .8rem; }
+body.fm-app .fm-opp-recent-row .muted { margin-right: .3rem; }
+body.fm-app .fm-opp-recent { padding: .15rem .5rem; border: 1px solid var(--fm-border); border-radius: 999px; background: var(--fm-page); color: var(--color-ink-700); font-size: .76rem; }
+
+/* Share bars: one series, the league's share as a neutral tick */
+body.fm-app .fm-opp-bars { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+body.fm-app .fm-opp-bar-row { display: grid; grid-template-columns: minmax(9rem, 14rem) minmax(5rem, 1fr) minmax(7.5rem, auto); align-items: center; gap: .7rem; min-height: 1.6rem; font-size: .82rem; }
+body.fm-app .fm-opp-bar-label { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .4rem; color: var(--color-ink-800); }
+body.fm-app .fm-opp-bar-row.guess .fm-opp-bar-label { color: var(--color-ink-500); font-style: italic; }
+body.fm-app .fm-opp-track { position: relative; height: 8px; border-radius: 0 4px 4px 0; background: var(--fm-opp-track); }
+body.fm-app .fm-opp-bar { display: block; max-width: 100%; height: 100%; border-radius: 0 4px 4px 0; background: var(--fm-opp-bar); }
+body.fm-app .fm-opp-bar-row.guess .fm-opp-bar { background: repeating-linear-gradient(135deg, var(--fm-opp-bar) 0 3px, transparent 3px 6px); }
+body.fm-app .fm-opp-league { position: absolute; top: -4px; width: 2px; height: 16px; margin-left: -1px; border-radius: 1px; background: var(--fm-opp-tick); }
+body.fm-app .fm-opp-bar-value { color: var(--color-ink-900); font-variant-numeric: tabular-nums; white-space: nowrap; }
+body.fm-app .fm-opp-bar-value small { color: var(--color-ink-500); font-size: .74rem; }
+body.fm-app .fm-opp-pattern { padding: .05rem .4rem; border-radius: 999px; font-size: .64rem; font-style: normal; font-weight: 700; cursor: help; white-space: nowrap; }
+body.fm-app .fm-opp-pattern.more { background: #fbe6e3; color: #8f2a22; }
+body.fm-app .fm-opp-pattern.fewer { border: 1px solid var(--fm-border); background: var(--fm-page); color: var(--color-ink-600); }
+
+/* How goals come */
+body.fm-app .fm-opp-profiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem 2rem; }
+body.fm-app .fm-opp-profile { min-width: 0; }
+body.fm-app .fm-opp-profile h3 small { margin-left: .3rem; color: var(--color-ink-500); font-size: .78rem; font-weight: 600; }
+body.fm-app .fm-opp-profile h4 { margin: 1rem 0 .4rem; color: var(--color-ink-500); font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+body.fm-app .fm-opp-far { margin: .4rem 0 0; font-size: .78rem; cursor: help; }
+body.fm-app .fm-opp-footnote { max-width: 90ch; margin: 1rem 0 0; font-size: .76rem; line-height: 1.5; }
+
+/* Threats and style */
+body.fm-app .fm-opp-threats { display: grid; gap: 1.4rem; }
+body.fm-app .fm-opp-threats table, body.fm-app .fm-opp-style table { font-variant-numeric: tabular-nums; }
+body.fm-app .fm-opp-pairs { display: flex; flex-wrap: wrap; gap: .4rem .8rem; margin: .3rem 0 0; padding: 0; list-style: none; font-size: .84rem; }
+body.fm-app .fm-opp-pairs li { padding: .3rem .6rem; border: 1px solid var(--fm-border); border-radius: .5rem; background: var(--fm-page); }
+body.fm-app .fm-opp-style { max-width: 52rem; }
+body.fm-app .fm-opp-style th[scope='row'] { text-align: left; }
+body.fm-app .fm-opp-rank { display: inline-block; padding: .08rem .45rem; border-radius: 999px; color: var(--color-ink-600); font-size: .76rem; white-space: nowrap; }
+body.fm-app .fm-opp-rank.high, body.fm-app .fm-opp-rank.low { border: 1px solid var(--fm-border); background: var(--fm-page); color: var(--color-ink-900); font-weight: 700; }
+
+@media (max-width: 900px) {
+  body.fm-app .fm-opp-hero-top, body.fm-app .fm-opp-shape, body.fm-app .fm-opp-profiles { grid-template-columns: minmax(0, 1fr); }
+  body.fm-app .fm-opp-picker { max-width: 32rem; }
+  body.fm-app .fm-opp-pitch { max-width: 24rem; }
+}
+@media (max-width: 560px) {
+  body.fm-app .fm-opp-bar-row { grid-template-columns: minmax(0, 1fr) minmax(4rem, 7rem); }
+  body.fm-app .fm-opp-bar-row .fm-opp-bar-value { grid-column: 1 / -1; }
+  body.fm-app .fm-opp-player { width: 4.4rem; }
+  body.fm-app .fm-opp-name { font-size: .64rem; }
+}
+
+:root.dark body.fm-app .fm-opp-notice, :root.dark body.fm-app .fm-opp-fixture, :root.dark body.fm-app .fm-opp-watch li, :root.dark body.fm-app .fm-opp-bar-label, :root.dark body.fm-app .fm-opp-recent { color: #d9e3ef; }
+:root.dark body.fm-app .fm-opp-fixture b, :root.dark body.fm-app .fm-opp-instruction h3, :root.dark body.fm-app .fm-opp-shape h3, :root.dark body.fm-app .fm-opp-threats h3, :root.dark body.fm-app .fm-opp-profile h3, :root.dark body.fm-app .fm-opp-bar-value, :root.dark body.fm-app .fm-opp-rank.high, :root.dark body.fm-app .fm-opp-rank.low { color: #f5f8fc; }
+:root.dark body.fm-app .fm-opp-standing, :root.dark body.fm-app .fm-opp-hero-foot p, :root.dark body.fm-app .fm-opp-instruction ul, :root.dark body.fm-app .fm-opp-rank { color: #c3cfdc; }
+:root.dark body.fm-app .fm-opp-picker label, :root.dark body.fm-app .fm-opp-bar-value small, :root.dark body.fm-app .fm-opp-profile h4, :root.dark body.fm-app .fm-opp-profile h3 small, :root.dark body.fm-app .fm-opp-setting small, :root.dark body.fm-app .fm-opp-bar-row.guess .fm-opp-bar-label { color: #a9b8ca; }
+:root.dark body.fm-app .fm-opp-picker, :root.dark body.fm-app .fm-opp-watch li, :root.dark body.fm-app .fm-opp-recent, :root.dark body.fm-app .fm-opp-pairs li, :root.dark body.fm-app .fm-opp-rank.high, :root.dark body.fm-app .fm-opp-rank.low, :root.dark body.fm-app .fm-opp-pattern.fewer { background: #1d2b3e; }
+:root.dark body.fm-app .fm-opp-instruction { background: #1a2739; }
+:root.dark body.fm-app .fm-opp-setting { border-color: #2f6b4a; background: #153826; color: #b9e8c8; }
+:root.dark body.fm-app .fm-opp-position { background: #e7edf5; color: #132032; }
+:root.dark body.fm-app .fm-opp-pattern.more { background: #4a2622; color: #f4b8ae; }
+:root.dark body.fm-app .fm-opp-pattern.fewer { color: #c3cfdc; }
+:root.dark body.fm-app .fm-opp-picker button { background: #2f8a55; color: white; }
+:root.dark body.fm-app .fm-opp-pitch { background: repeating-linear-gradient(180deg, #1f5a37 0 10%, #1c5333 10% 20%); }

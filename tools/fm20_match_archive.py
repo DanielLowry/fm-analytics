@@ -386,6 +386,7 @@ def involves(chunk: bytes, home_club: int, away_club: int) -> bool:
 # 85 archived matches of the save: 2,687 players named as memory names them,
 # none differently, and 182 more that the memory scan could not name.
 PERSON = re.compile(rb"\x07\x01(.{4})\x00\x00\x00\x00\x01.{4}\x00\x00\x00\x00\x01\xff{8}", re.S)
+PERSON_UNIQUE_ID = 11  # from the start of the match: 07 01, short ID, four zero bytes, 01
 MAX_NAME_BYTES = 64
 
 
@@ -416,6 +417,20 @@ def person_names(chunk: bytes) -> dict[int, str]:
     return names
 
 
+def person_ids(chunk: bytes) -> dict[int, int]:
+    """Each person's FM unique ID by short ID: the ID the squad and league reads key a player by.
+
+    The unique ID sits in the person record right after its ``01`` (see
+    `PERSON`). Checked 11 October 2026: every Chelmsford City player in their
+    archived matches who is still at the club has the ID the league read gives him.
+    """
+    ids: dict[int, int] = {}
+    for match in PERSON.finditer(chunk):
+        short_id = struct.unpack("<I", match.group(1))[0]
+        ids.setdefault(short_id, struct.unpack_from("<I", chunk, match.start() + PERSON_UNIQUE_ID)[0])
+    return ids
+
+
 def decode_match(chunk: bytes, home_goals: int, away_goals: int) -> tuple[dict[str, Any] | None, list[str]]:
     """A chunk as the capture's match detail, or None with the reasons it did not add up."""
     found = players(chunk)
@@ -435,8 +450,44 @@ def decode_match(chunk: bytes, home_goals: int, away_goals: int) -> tuple[dict[s
     return (None, problems) if problems else (detail, [])
 
 
+# Chunks by the two clubs their header names, home first: (home, away) -> [(file, chunk)].
+ChunkIndex = dict[tuple[int, int], list[tuple[Path, bytes]]]
+
+
+def header_clubs(chunk: bytes, clubs: Iterable[int] | set[int]) -> list[int]:
+    """Which of `clubs` the chunk's header names, each after a ``01`` byte, in the order named."""
+    wanted = clubs if isinstance(clubs, (set, frozenset)) else set(clubs)
+    head = chunk[:HEADER_SEARCH]
+    named: list[int] = []
+    at = head.find(b"\x01")
+    while at != -1 and at + 5 <= len(head):
+        (club,) = struct.unpack_from("<I", head, at + 1)
+        if club in wanted and club not in named:
+            named.append(club)
+        at = head.find(b"\x01", at + 1)
+    return named
+
+
+def index_chunks(temporary: Path, clubs: Iterable[int]) -> ChunkIndex:
+    """Every chunk naming two of `clubs`, under each (home, away) pair `involves` would match it to.
+
+    Each archive file is decompressed once, whatever the number of fixtures
+    looked up in it (about 4.5 s for the save's 8,900 chunks, 11 October 2026),
+    where checking every chunk against every fixture grows with both.
+    """
+    wanted = set(clubs)
+    index: ChunkIndex = {}
+    for path in archive_files(temporary):
+        for chunk in chunks(path):
+            named = header_clubs(chunk, wanted)
+            for first in range(len(named)):
+                for second in range(first + 1, len(named)):
+                    index.setdefault((named[first], named[second]), []).append((path, chunk))
+    return index
+
+
 def find_chunks(
-    temporary: Path, fixtures: Iterable[Fixture]
+    temporary: Path, fixtures: Iterable[Fixture], *, index: ChunkIndex | None = None
 ) -> dict[Any, tuple[bytes, dict[str, Any]]]:
     """(chunk, decoded detail) for each fixture (key, date, home club, away club, home goals, away goals) found.
 
@@ -449,20 +500,75 @@ def find_chunks(
     one file holds exactly one chunk per meeting and each adds up to its own
     meeting's score. Otherwise a fixture is kept only when exactly one chunk
     names both clubs, home first, and adds up to its score, and that chunk
-    fits no other meeting.
+    fits no other meeting. `index` is `index_chunks` over at least these
+    fixtures' clubs, when the caller already has one.
     """
     meetings: dict[tuple[int, int], list[Fixture]] = {}
     for fixture in sorted(fixtures, key=lambda fixture: fixture[1]):
         meetings.setdefault((fixture[2], fixture[3]), []).append(fixture)
-    named: dict[tuple[int, int], list[tuple[Path, bytes]]] = {pair: [] for pair in meetings}
-    for path in archive_files(temporary):
-        for chunk in chunks(path):
-            for pair, found in named.items():
-                if involves(chunk, *pair):
-                    found.append((path, chunk))
+    if index is None:
+        index = index_chunks(temporary, {club for pair in meetings for club in pair})
     kept: dict[Any, tuple[bytes, dict[str, Any]]] = {}
     for pair, games in meetings.items():
-        kept.update(_in_order(games, named[pair]) or _unambiguous(games, named[pair]))
+        found = index.get(pair, [])
+        kept.update(_in_order(games, found) or _unambiguous(games, found))
+    return kept
+
+
+def timeline_agrees(detail: dict[str, Any], incidents: list[dict[str, Any]]) -> bool:
+    """Whether an archived timeline has the result's goals and sendings-off: each player at the same minute.
+
+    They agreed in all 81 matches of the save that have both (10 October
+    2026), so a chunk that disagrees is another playthrough of the fixture,
+    not the match FM's result records.
+    """
+    def line(item: dict[str, Any]) -> tuple:
+        kind = "sent_off" if item["kind"] == "sent_off" else "goal"
+        return kind, item["minute"], item.get("addedTime", 0), item.get("playerShortId")
+
+    archived = [event for event in detail["events"] if event["kind"] in ("goal", "penalty", "own_goal", "sent_off")]
+    return sorted(map(line, incidents)) == sorted(map(line, archived))
+
+
+# (key, date, home club, away club, home goals, away goals, the result's incidents)
+ResultFixture = tuple[Any, date, int, int, int, int, list[dict[str, Any]]]
+
+
+def find_results(index: ChunkIndex, fixtures: Iterable[ResultFixture]) -> dict[Any, tuple[bytes, dict[str, Any]]]:
+    """(chunk, decoded detail) for each result whose one archived playthrough is told apart by FM's own record of it.
+
+    Replaying a match day re-plays every other club's match too, so the
+    archive can keep a fixture once per playthrough, and two playthroughs can
+    end with the same score. FM's result keeps the scorers and sendings-off of
+    the one that counts, each with its minute (`incidents`), and only that
+    playthrough's timeline has them all (`timeline_agrees`). A fixture is kept
+    when exactly one chunk adds up to its score with that timeline, and that
+    chunk fits no other meeting of the two clubs. A goalless draw without a
+    sending-off cannot be told from another such playthrough, so it is kept
+    only when it has one candidate. Checked 11 October 2026 on the National
+    League South's two seasons: 566 of 580 other clubs' league results found.
+    """
+    meetings: dict[tuple[int, int], list[ResultFixture]] = {}
+    for fixture in fixtures:
+        meetings.setdefault((fixture[2], fixture[3]), []).append(fixture)
+    kept: dict[Any, tuple[bytes, dict[str, Any]]] = {}
+    for pair, games in meetings.items():
+        found = index.get(pair, [])
+        fits: dict[Any, list[tuple[int, dict[str, Any]]]] = {}
+        for key, _date, _home, _away, home_goals, away_goals, incidents in games:
+            fits[key] = []
+            for position, (_path, chunk) in enumerate(found):
+                detail, _problems = decode_match(chunk, home_goals, away_goals)
+                if detail is None or (home_goals + away_goals and not detail["events"]):
+                    continue
+                if detail["events"] and not timeline_agrees(detail, incidents):
+                    continue
+                fits[key].append((position, detail))
+        claims = Counter(position for candidates in fits.values() for position, _detail in candidates)
+        for key, candidates in fits.items():
+            if len(candidates) == 1 and claims[candidates[0][0]] == 1:
+                position, detail = candidates[0]
+                kept[key] = (found[position][1], detail)
     return kept
 
 

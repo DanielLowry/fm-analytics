@@ -4,7 +4,10 @@ A `MatchCapture` is what `tools/fm20_match_probe.py capture` read from the
 game: the managed first team's results with their goals and sendings-off,
 full stats for every match FM still held in memory or in its match archive,
 and every result of the leagues it plays in (so the table at
-each kickoff can be rebuilt). Everything in it is on FM's own match screens.
+each kickoff can be rebuilt). It also holds the other league clubs' matches
+FM keeps in its archive (`club_matches`, for the opponent report) and the
+fixtures still to play. Everything in it is on FM's own match screens: FM
+shows any archived match's report, other clubs' included.
 
 Stats are key/value maps rather than fixed fields, so a newly decoded FM stat
 needs no schema change anywhere. The perspective stays neutral (home/away):
@@ -708,12 +711,60 @@ class LeagueResult:
 
 
 @dataclass(frozen=True)
+class ScheduledFixture:
+    """A match of ours FM has scheduled and not yet played, as its fixture list shows it."""
+
+    date: date
+    competition: Competition
+    home: TeamRef
+    away: TeamRef
+    season: int | None = None
+
+    def opponent_of(self, club_id: str) -> TeamRef:
+        return self.away if self.home.id == club_id else self.home
+
+    def venue_for(self, club_id: str) -> str:
+        """"home" or "away" for `club_id`."""
+        return "home" if self.home.id == club_id else "away"
+
+    @classmethod
+    def from_document(cls, raw: Any) -> ScheduledFixture:
+        where = "a fixture"
+        if not isinstance(raw, Mapping):
+            raise ValueError(f"{where} must be an object")
+        return cls(
+            date=_date(raw.get("date"), f"{where} date"),
+            competition=Competition.from_document(raw.get("competition"), f"{where} competition"),
+            home=TeamRef.from_document(raw.get("home"), f"{where} home team"),
+            away=TeamRef.from_document(raw.get("away"), f"{where} away team"),
+            season=_season(raw.get("season"), f"{where} season"),
+        )
+
+    def to_document(self) -> dict[str, Any]:
+        document = {
+            "date": self.date.isoformat(),
+            "competition": self.competition.to_document(),
+            "home": self.home.to_document(),
+            "away": self.away.to_document(),
+        }
+        if self.season is not None:
+            document["season"] = self.season
+        return document
+
+
+@dataclass(frozen=True)
 class MatchCapture:
     captured_at: str
     game_date: date
     managed_club: TeamRef
     matches: tuple[MatchRecord, ...]
     league_results: tuple[tuple[Competition, tuple[LeagueResult, ...]], ...] = field(default=())
+    # The other league clubs' matches FM keeps in its archive, each checked
+    # against FM's own result; empty in captures made before they were read.
+    club_matches: tuple[MatchRecord, ...] = ()
+    # Our fixtures still to play; None in captures made before they were read,
+    # which is not the same as a season with none left.
+    fixtures: tuple[ScheduledFixture, ...] | None = None
 
     @classmethod
     def from_document(cls, document: Any) -> MatchCapture:
@@ -736,5 +787,10 @@ class MatchCapture:
                     tuple(LeagueResult.from_document(row) for row in item.get("results") or ()),
                 )
                 for item in document.get("competitionResults") or ()
+            ),
+            club_matches=tuple(MatchRecord.from_document(item) for item in document.get("clubMatches") or ()),
+            fixtures=(
+                tuple(ScheduledFixture.from_document(item) for item in document["fixtures"])
+                if isinstance(document.get("fixtures"), list) else None
             ),
         )

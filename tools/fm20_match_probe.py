@@ -44,6 +44,7 @@ if __package__ in {None, ""}:
 
 from tools import fm20_linux_probe as probe
 import tools.fm20_linux_probe_runtime  # noqa: F401  (installs decode_fm_date)
+from tools import fm20_club_matches as club_matches
 from tools import fm20_match_archive as archive
 from tools import fm20_match_layout as layout
 from tools.fm20_match_tactics import candidate_prefixes, formation_name, team_tactic
@@ -391,7 +392,7 @@ def _memory_details(
 
 
 def _fixtures(clubs: Clubs, ours: dict[tuple, dict[str, Any]]) -> list[archive.Fixture]:
-    """`ours` as the archive looks them up: by both clubs' IDs and the score."""
+    """Results as the archive looks them up: by both clubs' IDs and the score."""
     fixtures = []
     for key, result in ours.items():
         home, away = clubs(result["home_team"]), clubs(result["away_team"])
@@ -485,6 +486,7 @@ def _document(
     clubs: Clubs, managed: dict[str, str], game_date: Any, ours: dict[tuple, dict[str, Any]],
     competitions: dict[int, dict[str, str]], details: dict[tuple, dict[str, Any]],
     incidents: dict[tuple, list[dict[str, Any]]], rejected: list[dict[str, Any]], league_results: list[dict[str, Any]],
+    club_matches: list[dict[str, Any]] | None = None, fixtures: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     def match_json(key, result) -> dict[str, Any]:
         document = {
@@ -507,7 +509,7 @@ def _document(
             document["incidents"] = incidents[key]
         return document
 
-    return {
+    document = {
         "format": CAPTURE_FORMAT,
         "formatVersion": CAPTURE_FORMAT_VERSION,
         "capturedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -517,6 +519,11 @@ def _document(
         "competitionResults": league_results,
         "rejectedDetails": rejected,
     }
+    if club_matches is not None:
+        document["clubMatches"] = club_matches
+    if fixtures is not None:
+        document["fixtures"] = fixtures
+    return document
 
 
 def _league_results(
@@ -524,7 +531,7 @@ def _league_results(
 ) -> list[dict[str, Any]]:
     league_results = []
     for fixture_name, comp in competitions.items():
-        if not _is_league(results.values(), fixture_name, team):
+        if not club_matches.is_league(results.values(), fixture_name, team):
             continue
         rows = [
             {
@@ -562,12 +569,20 @@ def build_capture(memory: Memory) -> dict[str, Any]:
         )
 
     # Every other match's full stats, and every match's saved tactics, from the
-    # archive FM keeps on disk (the latest match is there too).
+    # archive FM keeps on disk (the latest match is there too), and the league's
+    # other clubs' matches for the opponent report, all from one pass over it.
     folder = _archive_folder(memory)
     fixtures = _fixtures(clubs, ours)
+    theirs = club_matches.league_clubs_results(results, competitions, team)
+    their_fixtures = _fixtures(clubs, theirs)
     archived: dict[int, str] = {}
-    if folder is not None and fixtures:
-        found = archive.find_chunks(folder, fixtures)
+    index: archive.ChunkIndex = {}
+    if folder is not None and (fixtures or their_fixtures):
+        index = archive.index_chunks(
+            folder, {club for fixture in fixtures + their_fixtures for club in fixture[2:4]}
+        )
+    if fixtures and index:
+        found = archive.find_chunks(folder, fixtures, index=index)
         # A match still in memory whose fixture has more than one chunk (it was
         # replayed) is found by its own players' stats instead.
         for key, _date, home_id, away_id, home_goals, away_goals in fixtures:
@@ -585,22 +600,70 @@ def build_capture(memory: Memory) -> dict[str, Any]:
     _drop_short_timelines(details, incidents)
     _name_everyone(memory, details, incidents, squad, archived)
     return _document(clubs, managed, game_date, ours, competitions, details, incidents, rejected,
-                     _league_results(clubs, results, competitions, team))
+                     _league_results(clubs, results, competitions, team),
+                     club_matches=_club_matches(memory, clubs, theirs, their_fixtures, index),
+                     fixtures=_scheduled_json(memory, clubs, club_matches.scheduled_fixtures(memory, team, set(results))))
 
 
-def _timeline_agrees(detail: dict[str, Any], incidents: list[dict[str, Any]]) -> bool:
-    """Whether an archived timeline has the result's goals and sendings-off: each player at the same minute.
+def _club_matches(
+    memory: Memory, clubs: Clubs, theirs: dict[tuple, dict[str, Any]], their_fixtures: list[archive.Fixture],
+    index: archive.ChunkIndex,
+) -> list[dict[str, Any]]:
+    """Other league clubs' matches with full stats, each checked against FM's own result before it is kept.
 
-    They agreed in all 81 matches of the save that have both (10 October
-    2026), so a chunk that disagrees is another playthrough of the fixture,
-    not the match FM's result records.
+    A result FM's memory cannot give the scorers of is left out: without them
+    a replayed fixture's playthroughs cannot be told apart.
     """
-    def line(item: dict[str, Any]) -> tuple:
-        kind = "sent_off" if item["kind"] == "sent_off" else "goal"
-        return kind, item["minute"], item.get("addedTime", 0), item.get("playerShortId")
+    if not index or not their_fixtures:
+        return []
+    incidents = _incidents(memory, theirs, [])
+    found = archive.find_results(index, [fixture + (incidents[fixture[0]],) for fixture in their_fixtures
+                                         if fixture[0] in incidents])
+    names: dict[int, str] = {}
+    competitions: dict[int, dict[str, str]] = {}
+    documents = []
+    for key, (chunk, detail) in sorted(found.items(), key=lambda item: item[0][0]):
+        result = theirs[key]
+        club_matches.club_detail(chunk, detail)
+        names.update(archive.person_names(chunk))
+        if result["fixture_name"] not in competitions:
+            competitions[result["fixture_name"]] = competition(memory, result["fixture_name"])
+        document = {
+            "date": result["date"].isoformat(),
+            "competition": competitions[result["fixture_name"]],
+            "home": _team_json(clubs(result["home_team"]), result["home_team"]),
+            "away": _team_json(clubs(result["away_team"]), result["away_team"]),
+            "homeGoals": result["home_goals"],
+            "awayGoals": result["away_goals"],
+            "attendance": result["attendance"],
+            "season": result["season"],
+            "detail": _detail_json(detail),
+            "incidents": [{**item, "player": names.get(item["playerShortId"])} for item in incidents[key]],
+        }
+        if result["score_at_90"]:
+            document["scoreAt90"] = list(result["score_at_90"])
+        if result["penalties"]:
+            document["penalties"] = list(result["penalties"])
+        documents.append(document)
+    return documents
 
-    archived = [event for event in detail["events"] if event["kind"] in ("goal", "penalty", "own_goal", "sent_off")]
-    return sorted(map(line, incidents)) == sorted(map(line, archived))
+
+def _scheduled_json(memory: Memory, clubs: Clubs, fixtures: dict[tuple, dict[str, Any]]) -> list[dict[str, Any]]:
+    competitions: dict[int, dict[str, str]] = {}
+    rows = []
+    for key, fixture in sorted(fixtures.items(), key=lambda item: item[0][0]):
+        if fixture["fixture_name"] not in competitions:
+            competitions[fixture["fixture_name"]] = competition(memory, fixture["fixture_name"])
+        row = {
+            "date": fixture["date"].isoformat(),
+            "competition": competitions[fixture["fixture_name"]],
+            "home": _team_json(clubs(fixture["home_team"]), fixture["home_team"]),
+            "away": _team_json(clubs(fixture["away_team"]), fixture["away_team"]),
+        }
+        if fixture["season"]:
+            row["season"] = fixture["season"]
+        rows.append(row)
+    return rows
 
 
 def build_latest_capture(memory: Memory) -> dict[str, Any]:
@@ -632,7 +695,7 @@ def build_latest_capture(memory: Memory) -> dict[str, Any]:
         archive.latest_chunk(folder, int(managed["id"]), *fixtures[0][2:])
         if folder is not None and fixtures and managed["id"].isdigit() else None
     )
-    if found is not None and (key not in incidents or _timeline_agrees(found[1], incidents[key])):
+    if found is not None and (key not in incidents or archive.timeline_agrees(found[1], incidents[key])):
         chunk, detail = found
         _from_archive(details, key, chunk, detail, "home" if ours[key]["home_team"] == team else "away", squad)
         archived = archive.person_names(chunk)
@@ -643,28 +706,6 @@ def build_latest_capture(memory: Memory) -> dict[str, Any]:
     _name_everyone(memory, details, incidents, squad, archived, scan=bool(details))
     competitions = {ours[key]["fixture_name"]: competition(memory, ours[key]["fixture_name"])}
     return _document(clubs, managed, game_date, latest, competitions, details, incidents, rejected, [])
-
-
-MAX_LEAGUE_TEAMS = 48
-
-
-def _is_league(results, fixture_name: int, team: int) -> bool:
-    """Whether a competition's results make a league table worth keeping.
-
-    Friendlies span thousands of clubs and a cup round gives each team one
-    match; neither has a table. A league has a bounded set of teams and the
-    managed team plays in it more than once.
-    """
-    teams: set[int] = set()
-    ours = 0
-    for result in results:
-        if result["fixture_name"] != fixture_name:
-            continue
-        teams.update((result["home_team"], result["away_team"]))
-        ours += team in (result["home_team"], result["away_team"])
-        if len(teams) > MAX_LEAGUE_TEAMS:
-            return False
-    return ours >= 2
 
 
 def _detail_json(detail: dict[str, Any] | None) -> dict[str, Any] | None:

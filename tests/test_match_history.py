@@ -266,3 +266,48 @@ class MigrationTests(StoreCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ClubMatchAndFixtureTests(StoreCase):
+    """The other league clubs' matches and FM's fixture list (v7): kept like ours, read apart from the history."""
+
+    def capture_with(self, *, game_date="2019-09-05", club_score=(2, 1), fixtures=True) -> MatchCapture:
+        from tests.match_support import ALPHA, BRAVO, CHARLIE, LEAGUE, match
+
+        document = capture_document(season(), game_date=game_date)
+        document["clubMatches"] = [match("2019-08-24", ALPHA, BRAVO, *club_score), match("2019-08-31", CHARLIE, ALPHA, 0, 0)]
+        if fixtures:
+            document["fixtures"] = [{"date": "2019-09-08", "competition": LEAGUE, "home": BRAVO, "away": US, "season": 2019}]
+        return MatchCapture.from_document(document)
+
+    def test_club_matches_and_the_fixture_list_are_recorded_and_read_back(self) -> None:
+        result = self.store.record(self.capture_with(), save_key=KEY)
+        self.assertEqual(result.club_matches_added, 2)
+        self.assertIn("2 other clubs' matches added", result.summary())
+        self.assertEqual([m.key for m in self.store.load_club_matches(KEY)], ["2019-08-24:201:202", "2019-08-31:203:201"])
+        self.assertEqual(len(self.store.load_history(KEY).matches), 6)  # the history is only ours
+        game_date, fixtures = self.store.load_fixtures(KEY)
+        self.assertEqual((game_date, [(f.date, f.home.name, f.venue_for(US["id"])) for f in fixtures]),
+                         (date(2019, 9, 5), [(date(2019, 9, 8), "Bravo", "away")]))
+
+    def test_a_club_match_is_never_overwritten_and_its_latest_version_is_read(self) -> None:
+        self.store.record(self.capture_with(), save_key=KEY)
+        version = self.store.club_matches_version(KEY)
+        self.store.record(self.capture_with(game_date="2019-09-06", club_score=(3, 1)), save_key=KEY)
+        latest = {m.key: m for m in self.store.load_club_matches(KEY)}
+        self.assertEqual(latest["2019-08-24:201:202"].home_goals, 3)
+        self.assertGreater(self.store.club_matches_version(KEY), version)
+        with closing(sqlite3.connect(self.path)) as connection:
+            self.assertEqual(connection.execute("SELECT count(*) FROM club_match_versions").fetchone()[0], 3)
+
+    def test_a_capture_without_a_fixture_list_keeps_the_last_one_read(self) -> None:
+        self.store.record(self.capture_with(), save_key=KEY)
+        self.store.record(self.capture_with(game_date="2019-09-06", fixtures=False), save_key=KEY)
+        self.assertEqual(self.store.load_fixtures(KEY)[0], date(2019, 9, 5))
+        self.assertIsNone(MatchHistoryStore(Path(self.path.parent) / "empty.sqlite3").load_fixtures(KEY))
+
+    def test_a_capture_made_before_these_were_read_keeps_its_hash(self) -> None:
+        self.store.record(capture(), save_key=KEY)
+        self.assertTrue(self.store.record(capture(), save_key=KEY).skipped)
+        self.assertEqual(self.store.load_club_matches(KEY), ())
+        self.assertIsNone(self.store.load_fixtures(KEY))

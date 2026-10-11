@@ -26,6 +26,7 @@ from fm_analytics.web.actions import WebActionsMixin
 from fm_analytics.web.auxiliary_pages import AuxiliaryPagesMixin
 from fm_analytics.web.contract_pages import ContractPagesMixin
 from fm_analytics.web.match_pages import MatchPagesMixin
+from fm_analytics.web.opponent_pages import OpponentPagesMixin
 from fm_analytics.web.experiment_pages import ExperimentPagesMixin
 from fm_analytics.web.scouting_pages import ScoutingPagesMixin
 from fm_analytics.web.tactic_pages import TacticPagesMixin
@@ -47,6 +48,7 @@ class SquadWebHandler(
     AuxiliaryPagesMixin,
     ContractPagesMixin,
     MatchPagesMixin,
+    OpponentPagesMixin,
     ExperimentPagesMixin,
     ScoutingPagesMixin,
     TacticPagesMixin,
@@ -70,6 +72,7 @@ class SquadWebHandler(
             "/scouting": self._scouting_page,
             "/scouting/results": self._scouting_results_fragment,
             "/matches": self._matches_page,
+            "/opponent": self._opponent_page,
             "/experiments": self._experiments_page,
             "/experiments/all": self._experiment_group_page,
             "/league": self._league_page,

@@ -37,6 +37,15 @@ from fm_analytics.domain.experiments import StoredMatch
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics, diagnose_matches
 from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis, diagnose_one_match
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, evaluate_intervention
+from fm_analytics.analytics.match_strength import league_seasons
+from fm_analytics.analytics.opponent_report import (
+    DEFAULT_WINDOW,
+    OpponentReport,
+    build_opponent_report as _build_opponent_report,
+    next_fixture,
+)
+from fm_analytics.domain.matches import MatchRecord, ScheduledFixture, TeamRef
+from fm_analytics.opponent_export import opponent_document
 from fm_analytics.analytics import (
     BenchSelection,
     PlayerRoleFit,
@@ -875,3 +884,112 @@ def build_season_export(
         squad_note=squad_note,
         generated_at=generated_at,
     )
+
+
+@dataclass(frozen=True)
+class OpponentChoice:
+    """A club the Opponent page can report on, with our next fixture against it when one is scheduled."""
+
+    club: TeamRef
+    fixture: ScheduledFixture | None
+
+
+def _today(history: MatchHistory, fixtures: tuple[Any, tuple[ScheduledFixture, ...]] | None):
+    """The game date the report is for: the fixture list's, else the history's latest read."""
+    return fixtures[0] if fixtures is not None else history.last_game_date
+
+
+def opponent_choices(
+    history: MatchHistory,
+    fixtures: tuple[Any, tuple[ScheduledFixture, ...]] | None = None,
+) -> tuple[OpponentChoice, ...]:
+    """Every club in our current league, and any other we have a fixture with: the next opponent first.
+
+    `fixtures` is `MatchHistoryStore.load_fixtures`: the game date of the
+    capture that read FM's fixture list, and that list.
+    """
+    ours = history.club.id
+    today = _today(history, fixtures)
+    clubs: dict[str, TeamRef] = {}
+    seasons = [season for season in league_seasons(history.league_results) if ours in season.teams]
+    if seasons:
+        latest = max(seasons, key=lambda season: season.starts)
+        for result in latest.results:
+            for team in (result.home, result.away):
+                if team.id != ours:
+                    clubs.setdefault(team.id, team)
+    upcoming: dict[str, ScheduledFixture] = {}
+    played = {match.key for match in history.matches}
+    for fixture in sorted(fixtures[1] if fixtures else (), key=lambda item: item.date):
+        if today is not None and fixture.date < today:
+            continue
+        if f"{fixture.date.isoformat()}:{fixture.home.id}:{fixture.away.id}" in played:
+            continue
+        opponent = fixture.opponent_of(ours)
+        clubs.setdefault(opponent.id, opponent)
+        upcoming.setdefault(opponent.id, fixture)
+    return tuple(sorted(
+        (OpponentChoice(club, upcoming.get(club.id)) for club in clubs.values()),
+        key=lambda choice: (choice.fixture is None, choice.fixture.date if choice.fixture else None, choice.club.name),
+    ))
+
+
+def build_opponent_report(
+    history: MatchHistory,
+    club_matches: Sequence[MatchRecord],
+    *,
+    club_id: str | None = None,
+    fixtures: tuple[Any, tuple[ScheduledFixture, ...]] | None = None,
+    window: int = DEFAULT_WINDOW,
+    league: LeagueCapture | None = None,
+    before: Any = None,
+) -> OpponentReport | None:
+    """The one opponent report, behind the Opponent page and `fm-matches opponent`.
+
+    Without `club_id` it is on our next opponent, from FM's fixture list
+    (`fixtures`, as `MatchHistoryStore.load_fixtures` gives it), and None when
+    no fixture is known. It uses only matches played before that fixture, or
+    before `before` when given; with neither, every match recorded.
+    `club_matches` is `MatchHistoryStore.load_club_matches`. `league` is the
+    latest league read: their players' visible attributes come from it.
+    """
+    ours = history.club.id
+    choices = opponent_choices(history, fixtures)
+    if club_id is None:
+        today = _today(history, fixtures)
+        fixture = next_fixture(fixtures[1], ours, history.matches, today) if fixtures and today else None
+        if fixture is None:
+            return None
+        club = fixture.opponent_of(ours)
+    else:
+        choice = next((item for item in choices if item.club.id == club_id), None)
+        club = choice.club if choice else next(
+            (match.team(side) for match in (*history.matches, *club_matches)
+             for side in ("home", "away") if match.team(side).id == club_id),
+            None,
+        )
+        if club is None:
+            raise ValueError(f"no match of club {club_id} is recorded")
+        fixture = choice.fixture if choice else None
+    as_of = before if before is not None else (fixture.date if fixture else None)
+    if before is not None and fixture is not None and fixture.date != before:
+        fixture = None  # a report as of another day is not this fixture's
+    roster = next((team.squad for team in league.teams if team.squad.club and team.squad.club.id == club.id), None) \
+        if league is not None else None
+    return _build_opponent_report(
+        club,
+        our_club_id=ours,
+        our_matches=history.matches,
+        club_matches=club_matches,
+        league_results=history.league_results,
+        as_of=as_of,
+        fixture=fixture,
+        window=window,
+        roster=roster.players if roster is not None else None,
+        roster_date=league.game.game_date if roster is not None else None,
+    )
+
+
+def build_opponent_export(report: OpponentReport, *, generated_at: datetime | None = None) -> dict[str, Any]:
+    """The opponent report as JSON: the Opponent page's copy button and `fm-matches opponent --json`."""
+    return opponent_document(report, generated_at=generated_at)

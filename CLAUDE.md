@@ -19,7 +19,9 @@ src/fm_analytics/persistence/  SQLite stores: the squad capture (versioned, migr
                              (append-only from v1, migrations required, one shared step-runner
                              in migrations.py that all three stores' migrations reuse)
 src/fm_analytics/knowledge_ingest.py  scouting capture -> player-knowledge history (fm-knowledge)
-src/fm_analytics/match_ingest.py      FM match capture -> match history, and the review (fm-matches)
+src/fm_analytics/match_ingest.py      FM match capture -> match history, and the review (fm-matches);
+                             it also reads the league's other clubs' archived matches and our
+                             fixtures, for the opponent report (opponent_cli.py, fm-matches opponent)
 src/fm_analytics/experiment_ingest.py stored matches for tactic experiments (fm-experiments): only
                              what the manager asks for, in data/experiments.sqlite3, never the history
 src/fm_analytics/reporting.py  the ONE "compute a squad recommendation" path
@@ -74,6 +76,12 @@ against us in the selected matches and who the manager recorded giving each away
 (FM doesn't say; the record is kept in its own table, which reading FM never touches).
 `reporting.build_contract_review` is the one computation behind `/contracts`
 and the squad player report's Contract plan panel.
+`reporting.build_opponent_report` is the one behind the Opponent page
+(`/opponent`) and `fm-matches opponent`: our next opponent (from FM's fixture
+list) or any league club, from its own matches before the fixture, ours against
+it and every other one FM archived (`MatchHistoryStore.load_club_matches`, kept
+out of `load_history`); `reporting.build_opponent_export` is its JSON copy
+(`docs/opponent-report.md`).
 `reporting.build_league_comparison` is the one behind `/league` and its team
 pages, deliberately without recent form (it exists only for our players), and
 `reporting.league_scope` decides which earlier read a new one is compared with.
@@ -94,6 +102,7 @@ uv run fm-matches capture && uv run fm-matches review   # needs FM running; read
 uv run fm-matches export --detail basic|standard|verbose  # season JSON -> data/exports/
 uv run fm-matches coverage [--days N | --all]   # which appearances could count towards form
 uv run fm-matches form                          # each player's recent form in each job
+uv run fm-matches opponent [CLUB] [--json]      # the report on our next opponent, or on any league club
 uv run --extra research python tools/fm20_league_capture.py   # whole league -> data/league-capture.json (FM running)
 ```
 

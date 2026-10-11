@@ -303,3 +303,55 @@ class TimelineTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def played_through(scorer_shirt: int, minute: int) -> bytes:
+    """One playthrough of a 1-0 home win: the goal by `scorer_shirt` at `minute`, with its timeline."""
+    return chunk(home_goals={scorer_shirt: 1}) + timeline(event_record(0, scorer_shirt - 1, 0x01, minute))
+
+
+def incident(shirt: int, minute: int) -> dict:
+    return {"kind": "goal", "minute": minute, "addedTime": 0, "side": "home", "playerShortId": 10_000 + shirt}
+
+
+class ClubIndexTests(unittest.TestCase):
+    def setUp(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.directory = Path(directory.name)
+
+    def test_each_chunk_is_indexed_under_the_clubs_its_header_names_home_first(self) -> None:
+        other = chunk().replace(struct.pack("<I", AWAY_CLUB), struct.pack("<I", 777))
+        archive_file(self.directory, "pks_1.obs", [chunk(), other])
+        index = archive.index_chunks(self.directory, {HOME_CLUB, AWAY_CLUB, 777})
+        self.assertEqual({pair: len(found) for pair, found in index.items()},
+                         {(HOME_CLUB, AWAY_CLUB): 1, (HOME_CLUB, 777): 1})
+        self.assertEqual(archive.header_clubs(chunk(), {AWAY_CLUB}), [AWAY_CLUB])
+
+    def test_find_chunks_gives_the_same_answer_from_an_index(self) -> None:
+        archive_file(self.directory, "pks_0.obs", [chunk(home_goals={9: 1})])
+        fixture = [("k", date(2019, 8, 3), HOME_CLUB, AWAY_CLUB, 1, 0)]
+        index = archive.index_chunks(self.directory, {HOME_CLUB, AWAY_CLUB})
+        self.assertEqual(archive.find_chunks(self.directory, fixture, index=index).keys(),
+                         archive.find_chunks(self.directory, fixture).keys())
+
+    def test_the_playthrough_whose_timeline_has_fms_scorers_is_the_one_kept(self) -> None:
+        archive_file(self.directory, "pks_1.obs", [played_through(9, 30), played_through(10, 70)])
+        index = archive.index_chunks(self.directory, {HOME_CLUB, AWAY_CLUB})
+        for shirt, minute in ((10, 70), (9, 30)):
+            found = archive.find_results(index, [("k", date(2019, 8, 3), HOME_CLUB, AWAY_CLUB, 1, 0, [incident(shirt, minute)])])
+            ((_chunk, detail),) = found.values()
+            goal = next(event for event in detail["events"] if event["kind"] == "goal")
+            self.assertEqual((goal["playerShortId"], goal["minute"]), (10_000 + shirt, minute))
+        none = archive.find_results(index, [("k", date(2019, 8, 3), HOME_CLUB, AWAY_CLUB, 1, 0, [incident(11, 5)])])
+        self.assertEqual(none, {})
+
+    def test_goalless_playthroughs_that_cannot_be_told_apart_are_left_out(self) -> None:
+        fixture = [("k", date(2019, 8, 3), HOME_CLUB, AWAY_CLUB, 0, 0, [])]
+        archive_file(self.directory, "pks_1.obs", [chunk()])
+        self.assertEqual(list(archive.find_results(archive.index_chunks(self.directory, {HOME_CLUB, AWAY_CLUB}), fixture)), ["k"])
+        archive_file(self.directory, "pks_1.obs", [chunk(), chunk()])
+        self.assertEqual(archive.find_results(archive.index_chunks(self.directory, {HOME_CLUB, AWAY_CLUB}), fixture), {})
+
+    def test_each_persons_unique_id_comes_with_his_short_id(self) -> None:
+        self.assertEqual(archive.person_ids(b"\x00" * 8 + person(94301, b"Cameron", b"Yates")), {94301: 28_094_301})

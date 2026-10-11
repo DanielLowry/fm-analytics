@@ -22,7 +22,8 @@ if __package__ in {None, ""}:
 
 from tools import fm20_linux_probe as probe
 from tools.fm20_linux_probe_runtime import snapshot_marker
-from tools.fm20_match_probe import Clubs, Memory, _is_league, competition, first_team_address, played_results
+from tools.fm20_club_matches import is_league
+from tools.fm20_match_probe import Clubs, Memory, competition, first_team_address, played_results
 
 
 def read_roster_ids(memory: Memory, team: int) -> tuple[str, ...]:
@@ -40,7 +41,7 @@ def inventory(memory: Memory) -> dict[str, Any]:
     rosters: dict[int, tuple[str, ...]] = {}
     errors = []
     for fixture_name in candidates:
-        if not _is_league(results, fixture_name, managed_team):
+        if not is_league(results, fixture_name, managed_team):
             continue
         rows = [row for row in results if row["fixture_name"] == fixture_name]
         teams = sorted({row[side] for row in rows for side in ("home_team", "away_team")})

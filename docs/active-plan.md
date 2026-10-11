@@ -61,6 +61,7 @@ opinion to change it (see item 7).
 | — | Dedicated set-piece ratings from an HTML export | No code | — | Manager action |
 | 7 | Match history and review | Medium–large | — | Built 29 September 2026 |
 | 8 | [League team comparison](league-comparison-plan.md) | Medium–large | Verified league membership/rosters; shared scenario optimisation | Built 3 October, including the live read; awaiting a check against FM's screens |
+| 9 | [Opponent report](opponent-report.md) before each match | Medium–large | 7 | Built 11 October 2026; scoring a report afterwards (Phase 08.6) open |
 
 Items 1–3 affect the next few in-game weeks. Items 4–6 pay off over the season.
 Item 4 does not depend on 1–3: if a heavy scouting push starts before they

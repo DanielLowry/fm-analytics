@@ -481,6 +481,13 @@ manager sets the slider, sees no new number and concludes it did nothing.
 Scouted ranges follow the observation band (penalised at the low end, not the
 high); an unknown attribute is the scale minimum centrally, as everywhere.
 
+**Not to be confused with the opponent report** (`opponent_report.py`, with
+`opponent_players.py`, `opponent_goals.py` and `opposition_instructions.py`;
+see `docs/opponent-report.md`). That describes a real club from its own
+matches in FM's archive and suggests FM opposition instructions; it changes
+no score and never sets an `OpponentProfile`. The sliders stay the manager's
+own estimate.
+
 ## Role versions and player assignment — read before editing
 
 `_best_role_version` first enumerates every role combination that a tactic

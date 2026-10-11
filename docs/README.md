@@ -19,6 +19,10 @@
 - [Match analysis plan](match-analysis-plan.md) documents the match history:
   what is read live from FM, how matches are grouped by opposition strength,
   the Matches page and `fm-matches`, and the remaining research.
+- [Opponent report](opponent-report.md), built 11 October 2026: before each
+  match, who supplies and finishes the opponent's goals, how they score and
+  concede, their shape and likely XI, and suggested opposition instructions,
+  from their own matches in FM's archive and FM's fixture list.
 - [Tactic and role-specific form plan](tactic-role-form-plan.md) proposes a
   small recent-form adjustment, exact appearance attribution, and automatic
   background match refresh with measured capture costs.

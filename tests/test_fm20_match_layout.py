@@ -28,6 +28,20 @@ def fixture_result(
     return bytes(record)
 
 
+class ScheduledFixtureTests(unittest.TestCase):
+    def test_a_scheduled_fixture_shares_the_results_teams_competition_season_and_date(self) -> None:
+        # Hungerford Town v Oxford City as FM held it on 20 October 2020: the first 0x58 bytes of a result's layout.
+        record = bytearray(layout.FIXTURE_SIZE)
+        struct.pack_into("<QQ", record, layout.RESULT_HOME_TEAM, 0x26B439A0, 0x26B40DC8)
+        struct.pack_into("<Q", record, layout.RESULT_FIXTURE_NAME, 0x49806508)
+        struct.pack_into("<HHHH", record, layout.RESULT_SEASON, 2020, 0, 0xFFFE, 2)
+        record[layout.RESULT_DATE:layout.RESULT_DATE + 4] = bytes.fromhex("2a4be407")
+        self.assertEqual(layout.decode_fixture(bytes(record)), {
+            "home_team": 0x26B439A0, "away_team": 0x26B40DC8, "fixture_name": 0x49806508,
+            "date": date(2020, 10, 24), "season": 2020,
+        })
+
+
 class FixtureResultTests(unittest.TestCase):
     def test_a_played_result_decodes(self) -> None:
         result = layout.decode_fixture_result(fixture_result())
