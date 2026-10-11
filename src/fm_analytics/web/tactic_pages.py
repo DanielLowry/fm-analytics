@@ -18,6 +18,7 @@ from fm_analytics.web.opponent_controls import (
 )
 from fm_analytics.web.in_possession_render import in_possession_section
 from fm_analytics.web.in_transition_render import in_transition_section
+from fm_analytics.web.instruction_controls import instruction_legend
 from fm_analytics.web.out_of_possession_render import out_of_possession_section
 from fm_analytics.web.rendering import (
     _band,
@@ -561,6 +562,7 @@ class TacticPagesMixin:
             "<div class='fm-panel-heading'><div><h2>Tactical instructions and evidence</h2>"
             "<p>Use this after the matchday choices are clear: it explains the score, shape, and FM settings.</p>"
             "</div></div>"
+            + instruction_legend()
             + in_possession_section(evaluation.tactic)
             + in_transition_section(evaluation.tactic)
             + out_of_possession_section(evaluation.tactic)

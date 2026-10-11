@@ -237,7 +237,8 @@ memory. Status:
 | In transition | Counter-Press / Regroup; Counter / Hold Shape; Distribute Quickly / Slow Pace Down | Neither by default; selecting one makes the other unavailable | 7 October 2026 |
 | In transition | Distribute to area/player | One target makes all others unavailable, except that Centre Backs and Full Backs may be selected together | 7 October 2026 |
 | In transition | Distribution type | None, or one; selecting one makes the others unavailable | 7 October 2026 |
-| Out of possession | All, including whether any FM20 options are missing from the model | | To review |
+| Out of possession | Defensive width | Scale: Narrow / Standard / Wide; was missing from the model, now added (no tactic sets it yet, and it has no scoring weight) | 11 October 2026 |
+| Out of possession | Everything else, including whether any other FM20 options are missing | | To review |
 
 **In possession is built** (7 October 2026). Tactic files list only the toggles
 they select (`"selected": [...]`), the loader refuses a clashing pair (also
@@ -254,6 +255,14 @@ and Roll It Out with Take Long Kicks), and `deep_counter_541` to its target man
 (it had Target Man with Flanks). Distribution has no scoring weight, so no score
 changed. Out of possession reuses `analytics/instruction_toggles.py` once
 reviewed.
+
+**Grouped on the tactic page** (11 October 2026). Each phase is shown as a few
+cards, and instructions that lock each other share one row with a sentence
+saying how (for example "Work ball into box rules out hit early crosses and shoot
+on sight"). Player-dependent settings sit beside the fixed ones they interact
+with, marked, instead of in a separate collapsed panel. A locked instruction
+still says what locks it, on hover. See `analytics/CLAUDE.md`, "How the tactic
+page shows the three phases".
 
 ### 5. Replace the 65% mean / 35% weakest-player XI objective — completed
 

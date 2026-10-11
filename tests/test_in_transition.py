@@ -94,7 +94,7 @@ class TransitionTests(unittest.TestCase):
         both = InTransitionSettings(distribution_targets=(CB, FB))
         self.assertEqual(both.unavailable["Distribute To Flanks"], (CB, FB))
         section = in_transition_section(self.load({"distributionTargets": ["Distribute To Flanks"]}))
-        self.assertEqual(section.count("<small>Distribute To Flanks is selected</small>"), 5)
+        self.assertEqual(section.count("title='Unavailable: Distribute To Flanks is selected'"), 5)
 
     def test_invalid_options_types_and_unknown_keys_are_refused(self):
         invalid = (

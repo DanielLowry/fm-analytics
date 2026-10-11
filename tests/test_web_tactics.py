@@ -326,13 +326,14 @@ class TacticsAndDepthPageTests(unittest.TestCase):
 
                 self.assertEqual(status, 200)
                 self.assertNotIn("Not yet set:", body)
-                self.assertIn("Every fixed in-possession setting is specified.", body)
+                self.assertIn("Every in-possession setting that defines this tactic is specified.", body)
                 self.assertIn(html.escape(tactic.in_possession.attacking_width), body)
                 self.assertEqual(tactic.in_transition_missing_fields, ())
-                self.assertEqual(tactic.out_of_possession_missing_fields, ())
                 self.assertIn("Every in-transition setting is specified.", body)
-                self.assertIn("Every out-of-possession setting is specified.", body)
-                self.assertNotIn("Not set</b>", body)
+                # Defensive width joined the model after these were authored; nothing else is missing.
+                missing = tactic.out_of_possession_missing_fields
+                self.assertLessEqual(set(missing), {"defensive width"})
+                self.assertEqual(body.count("Not set</b>"), len(missing))
 
     def test_tactic_detail_says_which_attributes_the_tactic_leans_on(self) -> None:
         status, body = self._get("/tactics/balanced_442")
@@ -347,14 +348,19 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         status, body = self._get("/tactics/vertical_442")
         self.assertEqual(status, 200)
         section = body.split("<section class='in-transition-section'>", 1)[1].split("</section>", 1)[0]
-        for selected in ("Regroup", "Counter", "Distribute quickly", "Distribute to flanks", "Take long kicks"):
+        for selected in ("Regroup", "Counter", "Distribute quickly", "Flanks", "Take long kicks"):
             self.assertIn(f"<span>{selected}</span><b>Selected</b>", section)
         self.assertIn(
-            "<span>Counter-press</span><b>Unavailable</b><small>Regroup is selected</small>", section
+            "<li class='fm-toggle is-locked' title='Unavailable: Regroup is selected'>"
+            "<i class='fm-box' aria-hidden='true'>", section,
+        )
+        self.assertRegex(
+            section,
+            "title='Unavailable: Distribute To Flanks is selected'><i[^>]*>.*?</i><span>Full backs</span>"
+            "<b>Unavailable</b>",
         )
         self.assertIn(
-            "<span>Distribute to full backs</span><b>Unavailable</b>"
-            "<small>Distribute To Flanks is selected</small>", section,
+            "Pick one at most, except that centre backs and full backs can be selected together.", section
         )
         self.assertEqual(section.count("<b>Selected</b>"), 5)
         self.assertEqual(section.count("<b>Unavailable</b>"), 11)
@@ -369,7 +375,8 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertIn("Use tighter marking</span><b>Neutral", section)
         self.assertIn("Pressing intensity</span><b>Standard", section)
         self.assertIn("Prevent short GK distribution</span><b>No", section)
-        self.assertIn("Every out-of-possession setting is specified.", section)
+        self.assertIn("Defensive width</span><b>Not set", section)
+        self.assertIn("Out-of-possession settings not yet specified: defensive width.", section)
 
     def test_tactic_detail_labels_an_introduced_role_requirement(self) -> None:
         status, body = self._get("/tactics/pressing_442")

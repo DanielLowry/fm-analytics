@@ -371,15 +371,18 @@ detail page always renders its defensive settings, flagging unauthored fields.
 "outOfPossession": {
   "lineOfEngagement": "Standard",
   "defensiveLine": "Standard",
+  "defensiveWidth": "Standard",
   "useTighterMarking": "Neutral",
   "pressingIntensity": "Standard",
   "preventShortGKDistribution": false
 }
 ```
 
-Both line fields allow Standard, Lower, Much Lower, Higher, or Much Higher.
-Pressing intensity allows Standard, More Urgent, Extremely Urgent, Less Urgent,
-or Much Less Urgent. Marking and preventing short goalkeeper distribution
+Both line fields allow Much Lower, Lower, Standard, Higher, or Much Higher.
+Defensive width allows Narrow, Standard or Wide (confirmed against FM20 by the
+manager, 11 October 2026). Pressing intensity allows Much Less Urgent, Less
+Urgent, Standard, More Urgent or Extremely Urgent. Each option list runs from
+one end of FM's slider to the other, which is how the tactic page draws it. Marking and preventing short goalkeeper distribution
 each accept JSON `true`, `false`, or `"Neutral"`. Neutral leaves the control
 unselected; it is distinct from an omitted, unauthored field. Null values,
 unknown choices/keys, incorrect types and multiple selections are rejected.
@@ -388,7 +391,7 @@ Existing line, pressing and goalkeeper-distribution scoring is preserved through
 explicit legacy mappings in `out_of_possession_instruction_strings`. Lower
 defensive line maps to the existing `Drop Off More Defensive Line`, Much Lower
 to `Much Deeper Defensive Line`, and Extremely Urgent pressing to
-`Much More Urgent Pressing`. Tighter marking, Much Higher defensive line and
+`Much More Urgent Pressing`. Tighter marking, Much Higher defensive line, defensive width and
 the other nonstandard pressing intensities have no existing scoring rule:
 they are displayed without inventing new scoring demands. Standard pressing,
 false and neutral flags add no scoring demand either.
@@ -401,9 +404,22 @@ choices. Migrating a tactic removes those legacy strings and retains their
 `instructionRationale` text. `attacking_424`, `balanced_433dm`, `balanced_442`, `deep_counter_541`,
 `enganche_4231`, `positive_4231`, `positive_433dm`, `ball_winning_counter_433dm`,
 `positive_ball_winning_433dm`, `solid_4231`, `vertical_442`
-and `wide_playmakers_433` have
-complete defensive blocks. Other tactics' legacy defensive instructions remain
+and `wide_playmakers_433` set every defensive field except defensive width,
+which joined the model after they were authored and no tactic sets yet, so their
+pages flag it as not set. Other tactics' legacy defensive instructions remain
 visible alongside the new section.
+
+## How the tactic page shows the three phases
+
+Each phase's render module in `web/` (`in_possession_render.py`,
+`in_transition_render.py`, `out_of_possession_render.py`) declares its cards as
+data in `GROUPS`, drawn by `web/instruction_controls.py`. Instructions that lock
+each other share one row, with a sentence generated from the clash table saying
+how; `tests/test_instruction_controls.py` fails if a setting is missing, shown
+twice, or split from one it clashes with. Player-dependent and situational
+settings sit in the same cards as the fixed ones, each marked, so Hit Early
+Crosses appears beside the Work Ball Into Box it locks. Adding a setting to a
+phase means adding it to that phase's `GROUPS` too.
 
 ## The opponent
 

@@ -7,6 +7,7 @@
  */
 @import "./match-chances.css";
 @import "./experiments.css";
+@import "./tactic-instructions.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -373,10 +374,6 @@
   .fm-coverage-panel .coverage-card > b { color: var(--color-ink-900); }
   .fm-coverage-panel .coverage-card > span, .fm-coverage-panel .coverage-card small { color: var(--color-ink-500); }
   .fm-tactic-evidence { margin-bottom: 0; }
-  .fm-tactic-evidence .in-possession-section { margin: 0; }
-  .fm-tactic-evidence .in-possession-section h3 { color: var(--color-ink-900); }
-  .fm-tactic-evidence .instruction-pill { border: 1px solid var(--fm-border); border-left: 3px solid var(--color-brand-600); border-radius: .5rem; background: var(--fm-page); }
-  .fm-tactic-evidence .instruction-pill.unset { border-left-color: #bd7a11; background: #fff8e9; }
   .fm-tactic-evidence .tactic-rationale { border-color: var(--fm-border); }
   .fm-tactic-evidence .tactic-rationale-grid > p { border-left-color: var(--color-brand-300); background: var(--fm-page); }
   .fm-tactic-evidence .score-breakdown, .fm-tactic-evidence .score-guide { border-color: var(--fm-border); }
@@ -624,9 +621,9 @@
   :root.dark .fm-intervention-controls button.secondary { background: #1d2b3e; color: #dce6f2; }
   :root.dark .fm-set-piece-alerts .set-piece-data-warning { background: #3b2e17; color: #f0d7a2; }
   :root.dark .fm-tactic-decision { background: linear-gradient(135deg, #153826, var(--fm-card) 68%); }
-  :root.dark .fm-tactic-decision-heading h2, :root.dark .fm-coverage-panel .coverage-card > b, :root.dark .fm-tactic-evidence .in-possession-section h3 { color: #f5f8fc; }
+  :root.dark .fm-tactic-decision-heading h2, :root.dark .fm-coverage-panel .coverage-card > b { color: #f5f8fc; }
   :root.dark .fm-tactic-actions .button-link.secondary { background: var(--fm-card); color: #dce6f2; }
-  :root.dark .fm-tactic-risks .advisory-banner, :root.dark .fm-tactic-evidence .instruction-pill.unset { background: #3b2e17; color: #f0d7a2; }
+  :root.dark .fm-tactic-risks .advisory-banner { background: #3b2e17; color: #f0d7a2; }
   :root.dark .fm-panel-heading h2, :root.dark .fm-decision-stat b, :root.dark .fm-decision-hero h2 { color: #f5f8fc; }
   :root.dark .fm-decision-hero { background: linear-gradient(135deg, #153826, var(--fm-card) 66%); }
   html[data-sidebar-open="true"] .fm-sidebar { transform: translateX(0); }
@@ -754,14 +751,6 @@ body.fm-app .fm-legacy .opponent-details { background-color: var(--fm-card); col
 body.fm-app .fm-legacy .button-link.secondary { border: 1px solid var(--fm-border); background: var(--fm-card); color: var(--color-ink-700); }
 body.fm-app .fm-command-action:hover, body.fm-app .fm-decision-hero .button-link:hover, body.fm-app .fm-tactic-actions .button-link:hover { background: #0b5133; color: white; }
 body.fm-app .fm-legacy input[type='checkbox']:checked { background-color: #0f6a40; color: white; border-color: #0f6a40; }
-:root.dark body.fm-app .fm-legacy .instruction-pill:not(.unset) { background: var(--fm-page); color: var(--color-ink-800); border-color: var(--fm-border); }
-body.fm-app .fm-legacy .instruction-pill.selected { border-left-color: var(--color-brand-600); }
-:root.dark body.fm-app .fm-legacy .instruction-pill.selected { border-left-color: var(--color-brand-300); }
-body.fm-app .fm-legacy .instruction-pill:is(.off, .locked) { border-left-color: var(--fm-border); }
-body.fm-app .fm-legacy .instruction-pill:is(.off, .locked) b { color: var(--color-ink-500); font-weight: 600; }
-body.fm-app .fm-legacy .instruction-pill.locked { border-style: dashed; border-left-style: solid; background: transparent; }
-:root.dark body.fm-app .fm-legacy .instruction-pill.locked { background: transparent; }
-body.fm-app .fm-legacy .instruction-pill small { display: block; margin-top: .15rem; color: var(--color-ink-500); font-size: .72rem; line-height: 1.3; }
 :root.dark body.fm-app .fm-legacy .versus .bars { background: var(--fm-border); }
 :root.dark body.fm-app .fm-legacy .versus .bars .b-us { background: #4fa477; }
 body.fm-app .fm-legacy form.inline { display: flex; flex-wrap: wrap; max-width: 100%; gap: .4rem; }

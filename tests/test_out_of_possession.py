@@ -9,7 +9,7 @@ from pathlib import Path
 from fm_analytics.analytics import MVP_CATALOGUE, OutOfPossessionSettings
 from fm_analytics.analytics.catalogue import load_catalogue
 from fm_analytics.analytics.out_of_possession import (
-    LINE_OPTIONS, PRESSING_INTENSITY_OPTIONS, out_of_possession_selected_instructions,
+    DEFENSIVE_WIDTH_OPTIONS, LINE_OPTIONS, PRESSING_INTENSITY_OPTIONS, out_of_possession_selected_instructions,
 )
 from fm_analytics.analytics.tactical_system import assess_instruction_suitability, effective_instructions
 from fm_analytics.web.out_of_possession_render import out_of_possession_section
@@ -29,18 +29,18 @@ class DefensiveSettingsTests(unittest.TestCase):
     def test_old_catalogues_load_and_display_missing_settings(self):
         tactic = self.load()
         self.assertIsNone(tactic.out_of_possession)
-        self.assertEqual(len(tactic.out_of_possession_missing_fields), 5)
+        self.assertEqual(len(tactic.out_of_possession_missing_fields), 6)
         section = out_of_possession_section(tactic)
         self.assertIn("Out of possession", section)
         self.assertIn("Out-of-possession settings not yet specified:", section)
-        self.assertEqual(section.count("Not set</b>"), 5)
+        self.assertEqual(section.count("Not set</b>"), 6)
 
     def test_every_requested_line_and_pressing_level_loads_and_displays(self):
         for line in LINE_OPTIONS:
             for pressing in PRESSING_INTENSITY_OPTIONS:
                 with self.subTest(line=line, pressing=pressing):
                     tactic = self.load({
-                        "lineOfEngagement": line, "defensiveLine": line,
+                        "lineOfEngagement": line, "defensiveLine": line, "defensiveWidth": "Standard",
                         "pressingIntensity": pressing, "useTighterMarking": "Neutral",
                         "preventShortGKDistribution": "Neutral",
                     })
@@ -55,12 +55,26 @@ class DefensiveSettingsTests(unittest.TestCase):
         for choice, display in ((True, "Yes"), (False, "No"), ("Neutral", "Neutral")):
             with self.subTest(choice=choice):
                 tactic = self.load({"useTighterMarking": choice, "preventShortGKDistribution": choice})
-                self.assertEqual(len(tactic.out_of_possession_missing_fields), 3)
+                self.assertEqual(len(tactic.out_of_possession_missing_fields), 4)
                 section = out_of_possession_section(tactic)
                 self.assertIn(f"Use tighter marking</span><b>{display}", section)
                 self.assertIn(f"Prevent short GK distribution</span><b>{display}", section)
                 scored = ("Prevent Short GK Distribution",) if choice is True else ()
                 self.assertEqual(effective_instructions(tactic), scored)
+
+    def test_defensive_width_loads_displays_and_never_scores(self):
+        # Narrow, Standard or Wide on FM20's screen, confirmed by the manager on 11 October 2026.
+        self.assertEqual(DEFENSIVE_WIDTH_OPTIONS, ("Narrow", "Standard", "Wide"))
+        for width in DEFENSIVE_WIDTH_OPTIONS:
+            with self.subTest(width=width):
+                tactic = self.load({"defensiveWidth": width})
+                self.assertNotIn("defensive width", tactic.out_of_possession_missing_fields)
+                self.assertIn(f"Defensive width</span><b>{width}</b>", out_of_possession_section(tactic))
+                self.assertEqual(effective_instructions(tactic), ())
+                shown = out_of_possession_selected_instructions(tactic.out_of_possession)
+                self.assertEqual(shown, () if width == "Standard" else (f"{width} Defensive Width",))
+        explained = self.load({"defensiveWidth": "Narrow"}, instructionRationale={"Narrow Defensive Width": "Compact."})
+        self.assertIn("Narrow Defensive Width", explained.instruction_rationale)
 
     def test_invalid_choices_types_nulls_and_unknown_keys_are_refused(self):
         for block in (
@@ -69,6 +83,7 @@ class DefensiveSettingsTests(unittest.TestCase):
             {"useTighterMarking": 1}, {"useTighterMarking": "yes"},
             {"preventShortGKDistribution": 0}, {"preventShortGKDistribution": []},
             {"defensiveLine": None}, {"useTighterMarking": None},
+            {"defensiveWidth": "Very Wide"}, {"defensiveWidth": True}, {"defensiveWidth": None},
         ):
             with self.subTest(block=block), self.assertRaisesRegex(ValueError, "outOfPossession"):
                 self.load(block)

@@ -17,6 +17,11 @@ Writes a version 1 league capture (docs/contracts/league-capture.md) for
   "virtual" placeholder players. FM's squad screen shows the first two only
   (checked 30 May 2020: Maidstone United 16 + 2 = 18 and Havant &
   Waterlooville 12 + 6 = 18, as FM showed), so placeholders are left out.
+- **Loans inside the league.** FM keeps a loaned-out player in his parent
+  club's first-team list as well as the borrowing club's, so he would be in
+  two rosters. He plays for the borrowing club, so only that roster keeps him
+  (``shared_players``). A player lent to a club outside the league still
+  counts for his parent club: nothing read yet says he is away.
 - **What FM shows.** Visible attributes from FM's own visibility builder and
   visible positions from FM's own position-knowledge check, both run in the
   sandbox over a read-only copy of FM's memory (``tools.fm20_sandbox_queries``,
@@ -37,12 +42,13 @@ import os
 import struct
 import sys
 import time
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Collection, Mapping, Sequence
 
 if __package__ in {None, ""}:
     project_root = Path(__file__).resolve().parent.parent
@@ -74,6 +80,7 @@ TEAM_CLUB = 0x18
 TEAM_KIND = 0x30  # 0 is a club's first team
 TEAM_LEAGUE = 0x50  # this season's league competition
 COMP_ID = 0x0C
+ACTUAL_PERSON = 0x28  # from the person part to the fields the squad read uses (name, contract)
 SANDBOX_WORKERS = 8
 SANDBOX_PASSES = 3
 
@@ -161,7 +168,7 @@ def read_squad(memory: Memory, team: int) -> tuple[dict[int, int], int]:
 
 
 def read_identity(fd: int, person: int, as_of: date) -> tuple[str, date | None, int | None]:
-    actual = person + 0x28
+    actual = person + ACTUAL_PERSON
     name = " ".join(part for part in (probe.read_fm_string(fd, actual + 0x30), probe.read_fm_string(fd, actual + 0x38)) if part)
     if not name:
         raise LeagueCaptureError("player has no readable name")
@@ -170,6 +177,53 @@ def read_identity(fd: int, person: int, as_of: date) -> tuple[str, date | None, 
     except (OSError, probe.ProbeError):
         return name, None, None
     return name, born, probe.calculate_age(born, as_of)
+
+
+def contracted_club(fd: int, interface: int) -> str | None:
+    """The club ID a player's contract names: his parent club when he is on loan."""
+    contract = probe.read_player_contract(fd, _person(fd, interface) + ACTUAL_PERSON)
+    return contract.contracted_club.id if contract and contract.contracted_club else None
+
+
+def shared_players(listings: Mapping[str, Collection[str]], contracted: Callable[[str], str | None],
+                   managed: str, names: Mapping[str, str]) -> dict[str, dict[str, str]]:
+    """Which roster keeps a player FM lists in two of our league's first teams.
+
+    FM keeps a loaned-out player in his parent club's first-team list as well
+    as the borrowing club's: on 20 October 2020 Charlie Wickham, on loan at
+    Hungerford Town, was in Boreham Wood's list too. He plays for the
+    borrowing club, the one his contract does not name, so that roster keeps
+    him. Our own row is never changed, because it must equal the Squad page:
+    a player lent between us and a league rival stays in our row only.
+
+    ``listings`` maps club ID to the player IDs FM lists for it. ``contracted``
+    is asked only about players two rivals share. Returns, for each roster
+    that leaves players out, player ID -> the club ID whose roster keeps him.
+    """
+    clubs_by_player: dict[str, list[str]] = {}
+    for club_id, player_ids in listings.items():
+        for player_id in player_ids:
+            clubs_by_player.setdefault(player_id, []).append(club_id)
+    left_out: dict[str, dict[str, str]] = {}
+    for player_id, clubs in clubs_by_player.items():
+        if len(clubs) == 1:
+            continue
+        listed = " and ".join(names.get(club, club) for club in clubs)
+        if len(clubs) > 2:
+            raise LeagueCaptureError(f"FM lists player {player_id} in {len(clubs)} first teams ({listed})")
+        if managed in clubs:
+            keeper = managed
+        else:
+            parent = contracted(player_id)
+            borrowers = [club for club in clubs if club != parent]
+            if len(borrowers) != 1:
+                raise LeagueCaptureError(f"FM lists player {player_id} in both {listed}'s first teams, "
+                                         "and his contract names neither, so which one he plays for is unclear")
+            keeper = borrowers[0]
+        for club in clubs:
+            if club != keeper:
+                left_out.setdefault(club, {})[player_id] = keeper
+    return left_out
 
 
 def _sandbox_pass(pid: int, context: SandboxSearchContext, interfaces: Mapping[int, int],
@@ -213,7 +267,10 @@ def read_visible(pid: int, context: SandboxSearchContext, interfaces: Mapping[in
 
 
 def rival_roster(fd: int, club: Club, interfaces: Mapping[int, int], placeholders: int, as_of: date,
-                 visible: Mapping[int, tuple[dict[str, AttributeObservation], int, bytes]]) -> LeagueRoster:
+                 visible: Mapping[int, tuple[dict[str, AttributeObservation], int, bytes]],
+                 loaned: Mapping[str, int] | None = None) -> LeagueRoster:
+    """One rival's roster. ``loaned`` counts, by club name, the players left out
+    because that club's roster keeps them (see ``shared_players``)."""
     players, errors, knowledge = [], [], {}
     unreadable = uncaptured = 0
     for player_id, interface in sorted(interfaces.items()):
@@ -245,7 +302,9 @@ def rival_roster(fd: int, club: Club, interfaces: Mapping[int, int], placeholder
         errors.append(f"{uncaptured} player(s)' visible attributes and positions could not be read this time")
     evidence = ("First-team squad from FM; visible attributes and positions decided by FM's own knowledge "
                 "checks (" + ", ".join(f"{count} {label}" for label, count in sorted(knowledge.items())) + ")"
-                + (f"; {placeholders} virtual placeholder(s) FM does not show left out" if placeholders else ""))
+                + (f"; {placeholders} virtual placeholder(s) FM does not show left out" if placeholders else "")
+                + "".join(f"; {count} player(s) on loan between this club and {name} counted there only"
+                          for name, count in sorted((loaned or {}).items())))
     return LeagueRoster(Squad(club, as_of, tuple(players)), unreadable == 0,
                         all(player.positions for player in players), evidence, tuple(errors))
 
@@ -273,14 +332,24 @@ def capture_league(pid: int, *, save_key: str | None = None) -> LeagueCapture:
                 raise LeagueCaptureError(f"a league team at {team:#x} has no readable club")
             clubs[team] = Club(club.id, club.name)
             rosters[team] = read_squad(memory, team)
+        listed = {player_id: interface for squad, _ in rosters.values() for player_id, interface in squad.items()}
+        listings = {clubs[team].id: [str(player_id) for player_id in squad] for team, (squad, _) in rosters.items()}
+        listings[game.controlled_club.id] = [player.id for player in owned.players]
+        names = {club.id: club.name for club in clubs.values()} | {game.controlled_club.id: game.controlled_club.name}
+        left_out = shared_players(listings, lambda player_id: contracted_club(memory.fd, listed[int(player_id)]),
+                                  game.controlled_club.id, names)
+        kept = {team: ({player_id: interface for player_id, interface in squad.items()
+                        if str(player_id) not in left_out.get(clubs[team].id, {})}, skipped)
+                for team, (squad, skipped) in rosters.items()}
         context = resolve_sandbox_context(pid)
-        interfaces = {player_id: interface for squad, _ in rosters.values() for player_id, interface in squad.items()}
+        interfaces = {player_id: interface for squad, _ in kept.values() for player_id, interface in squad.items()}
         persons = {player_id: _person(memory.fd, interface) for player_id, interface in interfaces.items()}
         scouts = resolve_scout_persons(memory.fd, memory.module_base, context.knowledge_context, sorted(interfaces))
         visible = read_visible(pid, context, interfaces, persons, scouts)
         teams = [LeagueRoster(replace(owned, other_teams=()), True, all(p.positions for p in owned.players),
                               "Our first team, read exactly as the Squad page reads it")]
-        teams += [rival_roster(memory.fd, clubs[team], *rosters[team], as_of, visible)
+        teams += [rival_roster(memory.fd, clubs[team], *kept[team], as_of, visible,
+                               Counter(names[keeper] for keeper in left_out.get(clubs[team].id, {}).values()))
                   for team in sorted(rosters, key=lambda t: clubs[t].name.casefold())]
         moved = [clubs[team].name for team in rosters if read_squad(memory, team) != rosters[team]]
     if snapshot_marker(pid) != before or moved:

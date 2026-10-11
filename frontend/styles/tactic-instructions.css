@@ -1,0 +1,69 @@
+/*
+ * A tactic page's FM settings (web/instruction_controls.py): each phase as cards,
+ * linked tick boxes side by side with the rule that links them, and sliders drawn
+ * as a track so a choice reads as a position on FM's scale.
+ * Imported by app.css, and built into static/app.css with it. Every selector starts
+ * body.fm-app, as experiments.css's do, so it wins over the generic rules the import
+ * places after it.
+ */
+@layer components {
+  body.fm-app .fm-instruction-legend { display: flex; flex-wrap: wrap; gap: .45rem 1.2rem; margin: 0 0 1.1rem; padding: .65rem .85rem; border: 1px solid var(--fm-border); border-radius: .65rem; background: var(--fm-page); color: var(--color-ink-600); font-size: .76rem; line-height: 1.35; list-style: none; }
+  body.fm-app .fm-legend-item { display: inline-flex; align-items: center; gap: .4rem; }
+  body.fm-app .fm-legend-item:nth-child(n + 5) { flex: 1 1 100%; align-items: flex-start; }
+  body.fm-app .fm-legend-item b { color: var(--color-ink-800); font-weight: 650; }
+
+  body.fm-app :is(.in-possession-section, .in-transition-section, .out-of-possession-section) { margin: 0 0 1.5rem; }
+  body.fm-app :is(.in-possession-section, .in-transition-section, .out-of-possession-section) > h3 { margin: 0; color: var(--color-ink-900); font-size: 1rem; font-weight: 700; }
+  body.fm-app :is(.in-possession-section, .in-transition-section, .out-of-possession-section) > .subhead { margin: .1rem 0 .7rem; color: var(--color-ink-500); font-size: .8rem; }
+  body.fm-app :is(.in-possession-section, .in-transition-section, .out-of-possession-section) > :is(.warn, .muted) { margin: .6rem 0 0; font-size: .8rem; }
+
+  body.fm-app .fm-instruction-groups { container-type: inline-size; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); align-items: start; gap: .75rem; }
+  body.fm-app .fm-instruction-group { display: grid; gap: .85rem; min-width: 0; padding: .85rem .95rem .95rem; border: 1px solid var(--fm-border); border-radius: .7rem; background: var(--fm-card); }
+  @container (min-width: 40rem) {
+    body.fm-app .fm-instruction-group.is-wide { grid-column: span 2; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); align-items: start; column-gap: 1.4rem; }
+    body.fm-app .fm-instruction-group.is-wide > h4 { grid-column: 1 / -1; }
+  }
+  body.fm-app .fm-instruction-group > h4 { margin: 0; color: var(--color-ink-500); font-size: .68rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+
+  body.fm-app .fm-setting-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .45rem; }
+  body.fm-app .fm-setting-head > span:first-child { flex: 1 1 auto; color: var(--color-ink-600); font-size: .8rem; }
+  body.fm-app .fm-setting-head > b { color: var(--color-ink-900); font-size: .86rem; font-weight: 650; }
+  body.fm-app .fm-setting.is-unset .fm-setting-head > b { color: #9a5b00; }
+  body.fm-app .fm-scale { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: 3px; margin: .45rem 0 .25rem; padding: 0; list-style: none; }
+  body.fm-app .fm-scale li { height: .42rem; border-radius: 999px; background: var(--fm-border); }
+  body.fm-app .fm-scale li.is-on { background: var(--color-brand-600); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-600) 22%, transparent); }
+  body.fm-app .fm-setting.is-unset .fm-scale li { background: repeating-linear-gradient(135deg, #f4dfb4 0 4px, transparent 4px 7px); }
+  body.fm-app .fm-scale-ends { display: flex; justify-content: space-between; gap: .75rem; color: var(--color-ink-400); font-size: .68rem; }
+  body.fm-app .fm-dropdown { display: flex; margin: .45rem 0 0; padding: 0; overflow: hidden; border: 1px solid var(--fm-border); border-radius: .45rem; list-style: none; }
+  body.fm-app .fm-dropdown li { flex: 1 1 0; padding: .24rem .3rem; color: var(--color-ink-500); font-size: .72rem; text-align: center; }
+  body.fm-app .fm-dropdown li + li { border-left: 1px solid var(--fm-border); }
+  body.fm-app .fm-dropdown li.is-on { background: var(--color-brand-50); color: var(--color-brand-700); font-weight: 650; }
+
+  body.fm-app .fm-toggle-row { display: grid; gap: .4rem; }
+  body.fm-app .fm-toggles-label { display: inline-flex; align-items: center; gap: .35rem; color: var(--color-ink-600); font-size: .8rem; }
+  body.fm-app .fm-toggles { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+  body.fm-app .fm-toggle { position: relative; display: inline-flex; align-items: center; gap: .42rem; padding: .3rem .7rem .3rem .42rem; border: 1px solid var(--fm-border); border-radius: 999px; background: var(--fm-card); color: var(--color-ink-700); font-size: .8rem; line-height: 1.25; }
+  body.fm-app .fm-toggle.is-selected { border-color: var(--color-brand-600); background: var(--color-brand-50); color: var(--color-ink-900); font-weight: 650; }
+  body.fm-app .fm-toggle.is-locked { border-style: dashed; background: transparent; color: var(--color-ink-400); cursor: help; }
+  body.fm-app .fm-toggle.is-unset { border-color: #e2b25c; background: #fff8e9; color: #7a4b00; }
+  body.fm-app .fm-toggle > b { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  body.fm-app .fm-box { display: inline-grid; flex: none; place-items: center; width: 1rem; height: 1rem; border: 1.5px solid var(--color-ink-400); border-radius: .3rem; background: var(--fm-card); color: #fff; font-size: .66rem; font-style: normal; font-weight: 800; }
+  body.fm-app .fm-box svg { width: .72rem; height: .72rem; }
+  body.fm-app .is-selected > .fm-box { border-color: var(--color-brand-600); background: var(--color-brand-600); }
+  body.fm-app .is-locked > .fm-box { border-color: transparent; background: transparent; color: var(--color-ink-400); }
+  body.fm-app .is-locked > .fm-box svg { width: .8rem; height: .8rem; }
+  body.fm-app .is-unset > .fm-box, body.fm-app .fm-legend-item.is-unset > .fm-box { border-color: #bd7a11; background: transparent; color: #bd7a11; }
+  body.fm-app .fm-rule { margin: 0; color: var(--color-ink-500); font-size: .74rem; line-height: 1.4; }
+  body.fm-app .fm-depends { position: relative; display: inline-flex; flex: none; color: var(--color-ink-400); cursor: help; }
+  body.fm-app .fm-depends svg { width: .78rem; height: .78rem; }
+  body.fm-app .fm-legend-item .fm-depends { cursor: default; margin-top: .1rem; }
+  body.fm-app .fm-toggle.is-selected .fm-depends { color: var(--color-brand-700); }
+  body.fm-app .fm-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  :root.dark body.fm-app .fm-toggle.is-selected { border-color: var(--color-brand-300); }
+  :root.dark body.fm-app .is-selected > .fm-box { border-color: var(--color-brand-300); background: var(--color-brand-300); color: #0e1826; }
+  :root.dark body.fm-app .fm-scale li.is-on { background: var(--color-brand-300); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-300) 25%, transparent); }
+  :root.dark body.fm-app .fm-setting.is-unset .fm-setting-head > b, :root.dark body.fm-app .fm-toggle.is-unset { color: #f0d7a2; }
+  :root.dark body.fm-app .fm-toggle.is-unset { border-color: #8a6420; background: #3b2e17; }
+  :root.dark body.fm-app .fm-setting.is-unset .fm-scale li { background: repeating-linear-gradient(135deg, #5c4520 0 4px, transparent 4px 7px); }
+}

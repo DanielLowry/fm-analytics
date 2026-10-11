@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from fm_analytics.domain import AttributeObservation, Club, GameState, Manager, Squad, Visibility
+from fm_analytics.domain import AttributeObservation, Club, GameState, Manager, Player, Squad, Visibility
 from fm_analytics.domain.leagues import LeagueCapture, LeagueRoster
 from fm_analytics.domain.matches import Competition
 from tools import fm20_league_capture as capture
@@ -149,8 +149,70 @@ class SquadReadTests(unittest.TestCase):
             capture.read_squad(memory, 0x700)
 
 
+class SharedPlayerTests(unittest.TestCase):
+    NAMES = {"1": "Hungerford Town", "2": "Boreham Wood", "3": "Hendon", "4": "Dartford"}
+
+    def shared(self, listings, contracts=None):
+        asked = []
+
+        def contracted(player_id):
+            asked.append(player_id)
+            return (contracts or {}).get(player_id)
+
+        return capture.shared_players(listings, contracted, "1", self.NAMES), asked
+
+    def test_players_listed_once_are_all_kept_without_reading_contracts(self):
+        self.assertEqual(self.shared({"1": ["10", "11"], "2": ["20"]}), ({}, []))
+
+    def test_our_loan_signing_is_left_out_of_his_parent_clubs_roster(self):
+        # Charlie Wickham, 20 October 2020: on loan at Hungerford from Boreham Wood, in both lists.
+        left_out, asked = self.shared({"1": ["10", "89063110"], "2": ["20", "89063110"]})
+        self.assertEqual(left_out, {"2": {"89063110": "1"}})
+        self.assertEqual(asked, [])  # our row never changes, so no contract is needed
+
+    def test_a_player_we_lent_to_a_rival_stays_in_our_row_only(self):
+        left_out, _ = self.shared({"1": ["10"], "3": ["10", "30"]}, {"10": "1"})
+        self.assertEqual(left_out, {"3": {"10": "1"}})
+
+    def test_a_loan_between_two_rivals_is_kept_by_the_borrowing_club(self):
+        left_out, asked = self.shared({"1": [], "2": ["40"], "4": ["40", "41"]}, {"40": "4"})
+        self.assertEqual(left_out, {"4": {"40": "2"}})
+        self.assertEqual(asked, ["40"])
+
+    def test_a_contract_naming_neither_club_is_refused_by_name(self):
+        with self.assertRaisesRegex(capture.LeagueCaptureError, "Boreham Wood and Dartford.*names neither"):
+            self.shared({"2": ["40"], "4": ["40"]}, {"40": "999"})
+
+    def test_a_player_in_three_first_teams_is_refused(self):
+        with self.assertRaisesRegex(capture.LeagueCaptureError, "in 3 first teams"):
+            self.shared({"1": ["40"], "2": ["40"], "4": ["40"]})
+
+    def test_resolved_rosters_pass_the_league_contract_that_refused_the_duplicate(self):
+        game = GameState(date(2020, 10, 20), Manager("m", "Manager"), Club("1", "Hungerford Town"))
+
+        def squad(club, ids):
+            return Squad(club, game.game_date, tuple(
+                Player(id=i, name=f"Player {i}", date_of_birth=None, age=None, positions=("DC",), club_id=club.id,
+                       condition_percent=None, match_fitness_percent=None, availability="unknown", injured=None,
+                       suspended=None, contract=None, attributes={}) for i in ids))
+
+        listings = {"1": ["10", "89063110"], "2": ["20", "89063110"]}
+        left_out, _ = self.shared(listings)
+        clubs = {"1": Club("1", "Hungerford Town"), "2": Club("2", "Boreham Wood")}
+
+        def league(rows):
+            teams = tuple(LeagueRoster(squad(clubs[club], ids), True, True, "read") for club, ids in rows.items())
+            return LeagueCapture("club:1", game, "2020/21", Competition("5", "League"), True, "link",
+                                 "manager-visible", teams)
+
+        with self.assertRaisesRegex(ValueError, "one captured roster"):
+            league(listings)
+        kept = {club: [i for i in ids if i not in left_out.get(club, {})] for club, ids in listings.items()}
+        self.assertEqual([len(team.squad.players) for team in league(kept).teams], [2, 1])
+
+
 class RivalRosterTests(unittest.TestCase):
-    def roster(self, interfaces, visible, placeholders=0):
+    def roster(self, interfaces, visible, placeholders=0, loaned=None):
         identities = {0x2001: ("Alpha One", date(1995, 1, 1), 25), 0x2002: ("Beta Two", None, None)}
 
         def identity(fd, person, as_of):
@@ -162,7 +224,8 @@ class RivalRosterTests(unittest.TestCase):
             patch.object(capture, "_person", side_effect=lambda fd, interface: interface + 0x1C8),
             patch.object(capture, "read_identity", side_effect=identity),
         ):
-            return capture.rival_roster(7, Club("77", "Rivals FC"), interfaces, placeholders, date(2020, 5, 28), visible)
+            return capture.rival_roster(7, Club("77", "Rivals FC"), interfaces, placeholders, date(2020, 5, 28), visible,
+                                        loaned)
 
     def test_players_carry_only_what_fm_shows_and_unknown_readiness(self):
         known = {"pace": AttributeObservation(Visibility.RANGE, minimum=8, maximum=12)}
@@ -178,6 +241,12 @@ class RivalRosterTests(unittest.TestCase):
         self.assertTrue(roster.roster_complete and roster.positions_complete)
         self.assertIn("1 natural-only, 1 partial", roster.evidence)
         self.assertIn("2 virtual placeholder(s) FM does not show left out", roster.evidence)
+
+    def test_players_on_loan_at_another_league_club_are_named_in_the_evidence_not_the_errors(self):
+        roster = self.roster({1: 0x2001}, {1: ({}, 1, ALPHA)}, loaned={"Hungerford Town": 2})
+        self.assertIn("2 player(s) on loan between this club and Hungerford Town counted there only", roster.evidence)
+        self.assertEqual(roster.errors, ())
+        self.assertTrue(roster.roster_complete)
 
     def test_unreadable_member_or_missed_sandbox_read_is_explicit(self):
         roster = self.roster({1: 0x2001, 3: 0x2003}, {})

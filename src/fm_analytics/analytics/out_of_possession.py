@@ -2,26 +2,33 @@
 
 None is unauthored. Boolean fields accept True, False or "Neutral"; neutral
 leaves the corresponding control unselected. New choices without an existing
-scoring rule are presentation only.
+scoring rule are presentation only. That includes defensive width (Narrow,
+Standard or Wide, confirmed against FM20's screen by the manager on 11 October
+2026), which no tactic sets yet.
+
+Each scale's options run from one end to the other, as FM's slider does, so the
+tactic page can show where a choice sits.
 """
 
 from dataclasses import dataclass
 from typing import Any
 
-LINE_OPTIONS = ("Standard", "Lower", "Much Lower", "Higher", "Much Higher")
+LINE_OPTIONS = ("Much Lower", "Lower", "Standard", "Higher", "Much Higher")
+DEFENSIVE_WIDTH_OPTIONS = ("Narrow", "Standard", "Wide")
 PRESSING_INTENSITY_OPTIONS = (
-    "Standard", "More Urgent", "Extremely Urgent", "Less Urgent", "Much Less Urgent",
+    "Much Less Urgent", "Less Urgent", "Standard", "More Urgent", "Extremely Urgent",
 )
 FIELD_LABELS = (
     ("line_of_engagement", "line of engagement"),
     ("defensive_line", "defensive line"),
+    ("defensive_width", "defensive width"),
     ("use_tighter_marking", "use tighter marking"),
     ("pressing_intensity", "pressing intensity"),
     ("prevent_short_gk_distribution", "prevent short GK distribution"),
 )
 ALL_FIELD_LABELS = tuple(label for _, label in FIELD_LABELS)
 OUT_OF_POSSESSION_KEYS = frozenset({
-    "lineOfEngagement", "defensiveLine", "useTighterMarking", "pressingIntensity",
+    "lineOfEngagement", "defensiveLine", "defensiveWidth", "useTighterMarking", "pressingIntensity",
     "preventShortGKDistribution",
 })
 
@@ -48,6 +55,7 @@ LEGACY_INSTRUCTIONS = frozenset().union(*LEGACY_INSTRUCTION_GROUPS.values())
 class OutOfPossessionSettings:
     line_of_engagement: str | None = None
     defensive_line: str | None = None
+    defensive_width: str | None = None
     use_tighter_marking: bool | str | None = None
     pressing_intensity: str | None = None
     prevent_short_gk_distribution: bool | str | None = None
@@ -55,7 +63,7 @@ class OutOfPossessionSettings:
     def __post_init__(self) -> None:
         for name, options in (
             ("line_of_engagement", LINE_OPTIONS), ("defensive_line", LINE_OPTIONS),
-            ("pressing_intensity", PRESSING_INTENSITY_OPTIONS),
+            ("defensive_width", DEFENSIVE_WIDTH_OPTIONS), ("pressing_intensity", PRESSING_INTENSITY_OPTIONS),
         ):
             value = getattr(self, name)
             if value is not None and (not isinstance(value, str) or value not in options):
@@ -101,6 +109,8 @@ def out_of_possession_selected_instructions(settings: OutOfPossessionSettings | 
         instructions.append(_SCORED_DEFENSIVE_LINE.get(
             settings.defensive_line, f"{settings.defensive_line} Defensive Line"
         ))
+    if settings.defensive_width not in (None, "Standard"):
+        instructions.append(f"{settings.defensive_width} Defensive Width")
     if settings.use_tighter_marking is True:
         instructions.append("Use Tighter Marking")
     if settings.pressing_intensity not in (None, "Standard"):
@@ -137,6 +147,7 @@ def out_of_possession_from_json(value: Any, tactic_key: str, *, only_known_keys)
         return OutOfPossessionSettings(
             line_of_engagement=value.get("lineOfEngagement"),
             defensive_line=value.get("defensiveLine"),
+            defensive_width=value.get("defensiveWidth"),
             use_tighter_marking=value.get("useTighterMarking"),
             pressing_intensity=value.get("pressingIntensity"),
             prevent_short_gk_distribution=value.get("preventShortGKDistribution"),

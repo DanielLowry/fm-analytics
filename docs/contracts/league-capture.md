@@ -108,7 +108,14 @@ In live mode the server's league file defaults to `data/league-capture.json`.
 
 The capture lists every first team whose league link is ours this season,
 checked against any played league results. Our own row is read exactly as the
-Squad page reads it. Rival availability is `unknown`. The file is replaced
+Squad page reads it. Rival availability is `unknown`.
+
+FM keeps a loaned-out player in his parent club's first-team list as well as
+the borrowing club's. When both clubs are in the league, only the borrowing
+club's roster keeps him, and the parent's evidence counts him as on loan
+between the two. Our row never changes: a player lent between us and a rival
+stays in our row only. A player lent to a club outside the league still counts
+for his parent club, because nothing read yet says he is away. The file is replaced
 whole, and the web picks up a new capture on the next page load. After the
 game date moves on, the page shows **League out of date** with the button,
 because a capture from another date is never compared with today's squad.
