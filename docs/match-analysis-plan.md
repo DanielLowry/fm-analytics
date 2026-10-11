@@ -92,6 +92,23 @@ both the page and `fm-matches review` use.
   figures. Every figure is also in `fm-matches review` and both exports,
   which carry each shot's clock and goal-line position, each match's split
   by the score and any FM timeline codes not yet identified.
+- **Goals and chances conceded** (the **Goals conceded** page, `/conceded`;
+  11 October 2026): every goal and clear-cut chance against us in the
+  matches the Matches page's filters select, one by one and broken down: how
+  it came (FM's description), who delivered it, from which position and down
+  which flank (from our side: their right winger attacks down our left), who
+  scored or had the chance and from where, near or back post, and which of
+  our players were around, with a table of how often each of ours was. A
+  match page shows its own after the timeline; `fm-matches conceded` prints
+  the same, and every copy holds it. Near or back post and who was around are
+  **guesses from positions**, always labelled: FM's record says where nobody
+  was. The post is the scorer's flank against the crosser's; who was around is
+  whoever we had on the pitch, at that minute, in the positions facing the
+  delivery and covering where it was finished. Set pieces get neither: a
+  penalty and a direct free kick are FM's own (a penalty carries who you
+  recorded giving it away), a corner is the timeline's guess. FM records who
+  had a clear-cut chance but not who set it up. `analytics/conceded.py`,
+  `reporting.build_conceded_review`.
 - **Mentality, as you record it** (10 October 2026): FM keeps no record of a
   match's mentality that our reader finds, so a match page has a Mentality
   panel for the one you started in and each change, from the minute you made

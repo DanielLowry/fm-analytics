@@ -18,6 +18,7 @@ from fm_analytics.analytics.match_analysis import ReviewFilters
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.match_ingest import export_path
 from fm_analytics.reporting import (
+    build_conceded_review,
     build_match_diagnosis,
     build_match_diagnostics,
     build_match_export,
@@ -28,6 +29,7 @@ from fm_analytics.reporting import (
     build_matches_export,
     build_penalty_record,
     build_season_export,
+    build_season_trends,
 )
 from fm_analytics.season_export import DETAIL_LEVELS
 from fm_analytics.web.match_render import (
@@ -40,9 +42,11 @@ from fm_analytics.web.match_render import (
     tactic_record_panel,
 )
 from fm_analytics.web.attribute_export import profile_copy_control
+from fm_analytics.web.conceded_render import conceded_match_panel
 from fm_analytics.web.match_breakdowns_render import breakdown_panels
 from fm_analytics.web.experiment_render import keep_match_form
 from fm_analytics.web.match_detail_render import match_body
+from fm_analytics.web.season_trends_render import season_trends_section
 from fm_analytics.web.mentality_render import plan_from_form
 from fm_analytics.web.rendering import _error_page, _layout, _query_first, _query_number
 
@@ -130,6 +134,7 @@ class MatchPagesMixin:
             copy_control=matches_copy_control(review),
             penalties=penalties,
             extra_panels=breakdown_panels(review, breakdowns),
+            trends=season_trends_section(build_season_trends(review)),
         )
         self._send(_layout("Matches", "/matches", body, wide=True))  # type: ignore[attr-defined]
 
@@ -219,6 +224,7 @@ class MatchPagesMixin:
             report, MVP_CATALOGUE, self.server.pinned_tactics,  # type: ignore[attr-defined]
             history.notes.get(summary.match.key), copy_control=copy,
             diagnosis=build_match_diagnosis(history, report),
+            conceded=conceded_match_panel(build_conceded_review(history, [summary.match])),
         )
         if self.server.experiment_store is not None:  # type: ignore[attr-defined]
             body += keep_match_form(summary.match.key, MVP_CATALOGUE, self.server.experiment_groups(),  # type: ignore[attr-defined]

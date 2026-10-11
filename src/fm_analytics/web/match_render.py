@@ -17,6 +17,7 @@ from fm_analytics.analytics.match_analysis import (
     GroupSummary,
     MatchReview,
     MatchSummary,
+    ReviewFilters,
     season_label,
 )
 from fm_analytics.analytics.match_diagnostics import EVALUATION_MATCHES, MIN_TEAM_MATCHES, MatchDiagnostics
@@ -307,7 +308,11 @@ def matches_table(summaries: Sequence[MatchSummary], catalogue: FootballCatalogu
     )
 
 
-def review_filters(review: MatchReview, catalogue: FootballCatalogue, pinned: Sequence[str]) -> str:
+def review_filters(
+    review: MatchReview, catalogue: FootballCatalogue, pinned: Sequence[str], *, action: str = "/matches",
+    grouping: bool = True,
+) -> str:
+    """The Matches page's filters; the Conceded page (`action`) shares them, without the grouping."""
     filters = review.filters
 
     def select(name: str, options: Sequence[tuple[str, str]], current: str | None) -> str:
@@ -324,14 +329,25 @@ def review_filters(review: MatchReview, catalogue: FootballCatalogue, pinned: Se
     seasons = [("", "All seasons")] + [(str(season), season_label(season)) for season in review.seasons]
     season = str(filters.season) if filters.season is not None else None
     return (
-        "<form class='filters fm-match-filters' method='get' action='/matches'>"
+        f"<form class='filters fm-match-filters' method='get' action='{_e(action)}'>"
         f"<label>Season{select('season', seasons, season)}</label>"
-        f"<label>Group opponents by{select('group', list(GROUPING_LABELS.items()), filters.grouping)}</label>"
-        f"<label>Competitions{select('competitions', list(COMPETITION_SCOPE_LABELS.items()), filters.competitions)}</label>"
+        + (f"<label>Group opponents by{select('group', list(GROUPING_LABELS.items()), filters.grouping)}</label>"
+           if grouping else "")
+        + f"<label>Competitions{select('competitions', list(COMPETITION_SCOPE_LABELS.items()), filters.competitions)}</label>"
         f"<label>Venue{select('venue', [('', 'Home and away'), ('home', 'Home'), ('away', 'Away')], filters.venue)}</label>"
         f"<label>Tactic{select('tactic', tactics, filters.tactic)}</label>"
         "<button type='submit'>Show</button></form>"
     )
+
+
+def filters_query(filters: ReviewFilters) -> str:
+    """The review's filters as a query string, for a link that keeps the same selection."""
+    return urlencode([
+        (name, value) for name, value in (
+            ("season", filters.season), ("group", filters.grouping), ("competitions", filters.competitions),
+            ("venue", filters.venue), ("tactic", filters.tactic),
+        ) if value is not None
+    ])
 
 
 def matches_copy_control(review: MatchReview) -> str:
@@ -342,14 +358,7 @@ def matches_copy_control(review: MatchReview) -> str:
     count = len(review.matches)
     if not count:
         return ""
-    filters = review.filters
-    query = urlencode([
-        (name, value) for name, value in (
-            ("season", filters.season), ("group", filters.grouping), ("competitions", filters.competitions),
-            ("venue", filters.venue), ("tactic", filters.tactic),
-        ) if value is not None
-    ])
-    url = _e(f"/api/matches-export?{query}")
+    url = _e(f"/api/matches-export?{filters_query(review.filters)}")
     success = f"{count} match{'es' if count != 1 else ''} copied as JSON!"
     return (
         f"<div class='fm-table-toolbar fm-match-copy' data-fetch-copy data-copy-url='{url}' "
@@ -534,7 +543,9 @@ def review_body(
     copy_control: str = "",
     penalties: PenaltyRecord | None = None,
     extra_panels: str = "",
+    trends: str = "",
 ) -> str:
+    """The Matches page; `trends` is its "Season trends" panel's contents (`season_trends_render`)."""
     overall = review.overall
     ppg = f"{overall.points_per_game:.2f}" if overall.points_per_game is not None else "–"
     detailed = sum(1 for s in review.matches if s.ours)
@@ -578,7 +589,9 @@ def review_body(
         "<h2>Your results, read in context</h2>"
         f"<p>{season_intro}</p>"
         "<div class='fm-match-review-actions'><a class='button-link' href='#match-list'>Browse matches</a>"
-        "<a class='button-link secondary' href='#review-filters'>Adjust review</a></div></section>"
+        "<a class='button-link secondary' href='#review-filters'>Adjust review</a>"
+        f"<a class='button-link secondary' href='/conceded?{_e(filters_query(review.filters))}'>Goals and chances "
+        "conceded</a></div></section>"
         "<section class='fm-decision-grid fm-match-summary' aria-label='Season summary'>"
         "<article class='fm-decision-stat'><span>Record</span>"
         f"<b>W{overall.wins} D{overall.draws} L{overall.losses}</b><small>{overall.matches} matches selected</small></article>"
@@ -614,6 +627,14 @@ def review_body(
             season_chances_section(diagnostics),
             panel_class="fm-match-season-chances",
         )
+        + (panel(
+            "Season trends",
+            "The matches the filters select: leads you did not win, their chances while you led, the last 15 "
+            "minutes, and what changed after your substitutions. Every match, then the last 10 and the last 5.",
+            trends,
+            panel_class="fm-match-season-trends",
+            panel_id="season-trends",
+        ) if trends else "")
 
         + panel(
             "Against different opposition",

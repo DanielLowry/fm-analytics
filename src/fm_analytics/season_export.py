@@ -40,7 +40,7 @@ from fm_analytics.analytics.match_analysis import (
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics
 from fm_analytics.analytics.penalty_record import PenaltyRecord
 from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis, diagnose_one_match
-from fm_analytics.breakdowns_export import breakdowns_json, mentality_json, tally_json
+from fm_analytics.breakdowns_export import breakdowns_json, mentality_json, season_trends_json, tally_json
 from fm_analytics.diagnosis_export import diagnosis_json, penalties_json
 from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.analytics.match_interventions import InterventionEvaluation
@@ -48,6 +48,7 @@ from fm_analytics.analytics.match_players import PlayerSeason
 from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.analytics.match_timeline import build_timeline
 from fm_analytics.analytics.match_breakdowns import PlayerEvents, breakdowns
+from fm_analytics.analytics.season_trends import season_trends
 from fm_analytics.analytics.penalty_record import conceded_penalties
 from fm_analytics.analytics.match_strength import TablePosition, league_seasons, league_table
 from fm_analytics.domain import AttributeObservation, Player
@@ -619,6 +620,7 @@ def export_document(
         "diagnostics": _diagnostics(history, diagnostics, intervention),
         "goals": _goals(competitive),
         "breakdowns": breakdowns_json(season_breakdowns),
+        "season_trends": season_trends_json(season_trends(competitive.matches)),
         "roles": _roles(competitive),
         "players": [player_json(season, detail, season_breakdowns.players.get(season.player_id or season.name))
                     for season in competitive.players],
@@ -807,8 +809,8 @@ def matches_document(
 ) -> dict[str, Any]:
     """Every match a review selected, with everything recorded about each, for the Matches page's copy button.
 
-    `selection` names the filters; `review`, `goals`, `breakdowns`, `roles`,
-    `players` and `penalties_given_away` are the review's figures for just
+    `selection` names the filters; `review`, `goals`, `breakdowns`, `season_trends`,
+    `roles`, `players` and `penalties_given_away` are the review's figures for just
     these matches, as the page shows them. `season_diagnosis` is the page's
     diagnosis, which reads every competitive match (`competitive`) whatever
     the filters. Each entry in `matches` is that match's `match` in
@@ -862,6 +864,7 @@ def matches_document(
         "penalties_given_away": penalties_json(penalties),
         "goals": _goals(review),
         "breakdowns": breakdowns_json(selected),
+        "season_trends": season_trends_json(season_trends(review.matches)),
         "roles": _roles(review),
         "players": [player_json(season, "verbose", selected.players.get(season.player_id or season.name))
                     for season in review.players],

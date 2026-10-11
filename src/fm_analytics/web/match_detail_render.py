@@ -304,9 +304,11 @@ def match_body(
     copy_control: str = "",
     diagnosis: OneMatchDiagnosis | None = None,
     notes: bool = True,
+    conceded: str = "",
 ) -> str:
     """One match's page. `notes=False` leaves out the forms that save to the match
-    history (notes, who gave a penalty away), for a stored replay that is not in it."""
+    history (notes, who gave a penalty away), for a stored replay that is not in it.
+    `conceded` is its goals and chances conceded panel, shown after the timeline."""
     summary = report.summary
     match = summary.match
     strength = summary.strength
@@ -388,6 +390,7 @@ def match_body(
         + (panel("Timeline", "Goals, clear-cut chances and cards, as FM's match timeline records them.",
                  f"<ol class='fm-match-timeline'>{events}</ol>" + corner_note, panel_class="fm-match-timeline-panel")
            if events else "")
+        + conceded
         + (panel("Shots", "Every shot, and where it was going: on goal (inside the posts and under the bar, "
                  "whether saved, blocked or scored), wide or over.", shots, panel_class="fm-match-shots") if shots else "")
         + panel("Your players", "Minutes, match contribution, and role for your side.", _player_rows(report, summary.side), panel_class="fm-match-players")

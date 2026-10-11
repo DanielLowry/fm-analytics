@@ -1,0 +1,41 @@
+/*
+ * The Goals conceded page and a match page's conceded panel (web/conceded_render.py), light and dark.
+ * The share bars, tiles and hero are the Opponent page's (opponent-report.css); this adds the
+ * breakdown cards, the goal/chance badges and the labelled guesses. Imported by app.css; every
+ * selector starts body.fm-app, as match-chances.css explains.
+ */
+body.fm-app .fm-conceded-hero .fm-opp-hero-foot form.filters { flex: 1 1 38rem; margin: 0; border: 1px solid var(--fm-border); background: color-mix(in srgb, var(--fm-card) 85%, transparent); }
+body.fm-app .fm-conceded-tiles { grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); }
+body.fm-app .fm-conceded-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(23rem, 1fr)); gap: 1rem 1.6rem; }
+body.fm-app .fm-conceded-card { min-width: 0; padding: .9rem 1rem; border: 1px solid var(--fm-border); border-radius: .75rem; background: var(--fm-card); }
+body.fm-app .fm-conceded-card h3 { margin: 0; color: var(--color-ink-900); font-size: .95rem; }
+body.fm-app .fm-conceded-card h3 small, body.fm-app .fm-panel-heading h2 small.fm-conceded-guess { margin-left: .3rem; }
+body.fm-app .fm-conceded-card > p.muted { margin: .15rem 0 .7rem; font-size: .76rem; line-height: 1.4; }
+body.fm-app .fm-conceded-card .fm-opp-bar-row { grid-template-columns: minmax(7rem, 11rem) minmax(4rem, 1fr) minmax(6.5rem, auto); }
+body.fm-app .fm-conceded-guess { display: inline-block; padding: .02rem .4rem; border: 1px dashed var(--color-ink-400); border-radius: 999px; color: var(--color-ink-500); font-size: .66rem; font-style: italic; font-weight: 600; cursor: help; white-space: nowrap; }
+body.fm-app .fm-conceded-guess-cell { color: var(--color-ink-600); font-style: italic; line-height: 1.45; }
+body.fm-app .fm-conceded-kind { display: inline-block; margin-right: .3rem; padding: .05rem .45rem; border-radius: .35rem; font-size: .7rem; font-weight: 700; }
+body.fm-app .fm-conceded-kind.goal { background: #fbe6e3; color: #8f2a22; }
+body.fm-app .fm-conceded-kind.chance { border: 1px solid var(--fm-border); background: var(--fm-page); color: var(--color-ink-600); }
+body.fm-app .fm-conceded-table td { vertical-align: top; font-size: .82rem; line-height: 1.4; }
+body.fm-app .fm-conceded-table td small { display: block; color: var(--color-ink-500); font-size: .72rem; }
+body.fm-app .fm-conceded-table th small { color: var(--color-ink-400); font-size: .62rem; font-weight: 600; text-transform: none; }
+body.fm-app .fm-conceded-table tr.goal td:first-child { box-shadow: inset 3px 0 0 var(--fm-opp-bar); }
+body.fm-app .fm-conceded-table td:first-child { min-width: 8rem; }
+body.fm-app .fm-conceded-table .fm-conceded-what { min-width: 13rem; }
+body.fm-app .fm-conceded-table .fm-conceded-who { min-width: 9.5rem; }
+body.fm-app .fm-conceded-table .fm-conceded-ours { min-width: 15rem; }
+body.fm-app .fm-conceded-match .fm-chances-method { margin-top: .9rem; }
+@media (max-width: 560px) {
+  body.fm-app .fm-conceded-hero .fm-opp-hero-foot form.filters { flex: 1 1 38rem; margin: 0; border: 1px solid var(--fm-border); background: color-mix(in srgb, var(--fm-card) 85%, transparent); }
+body.fm-app .fm-conceded-tiles { grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); }
+body.fm-app .fm-conceded-cards { grid-template-columns: minmax(0, 1fr); }
+  body.fm-app .fm-conceded-card .fm-opp-bar-row { grid-template-columns: minmax(0, 1fr) minmax(4rem, 7rem); }
+}
+:root.dark body.fm-app .fm-conceded-card { background: #1a2739; }
+:root.dark body.fm-app .fm-conceded-hero .fm-opp-hero-foot form.filters { background: #1d2b3e; }
+:root.dark body.fm-app .fm-conceded-card h3 { color: #f5f8fc; }
+:root.dark body.fm-app .fm-conceded-guess, :root.dark body.fm-app .fm-conceded-table td small { color: #a9b8ca; }
+:root.dark body.fm-app .fm-conceded-guess-cell { color: #c3cfdc; }
+:root.dark body.fm-app .fm-conceded-kind.goal { background: #4a2622; color: #f4b8ae; }
+:root.dark body.fm-app .fm-conceded-kind.chance { background: #1d2b3e; color: #c3cfdc; }

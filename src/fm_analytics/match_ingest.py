@@ -13,6 +13,7 @@ game) and prints the same review the Matches page shows, through the one
     uv run fm-matches coverage                       # which appearances could count towards form
     uv run fm-matches form                           # each player's recent form in each job
     uv run fm-matches opponent [CLUB] [--json]       # the report on our next opponent, or on any club
+    uv run fm-matches conceded [--season 2020]       # every goal and chance conceded, broken down
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ from fm_analytics.analytics.appearance_context import RECENT_GAME_DAYS, Appearan
 from fm_analytics.analytics.player_form import FormLookup
 from fm_analytics.analytics.penalty_record import PenaltyRecord
 from fm_analytics.analytics.match_breakdowns import PERIODS, STATES, Breakdowns
+from fm_analytics.analytics.season_trends import CHANGE_WINDOW, SeasonTrends
 from fm_analytics.analytics.match_analysis import (
     COMPETITION_SCOPES,
     METRICS,
@@ -53,6 +55,8 @@ from fm_analytics.bridge import LinuxProtonDataSource
 from fm_analytics.domain.matches import MatchCapture
 from fm_analytics.domain.mentality import MentalityPlan
 from fm_analytics.knowledge_ingest import default_save_key
+from fm_analytics.conceded_cli import format_conceded
+from fm_analytics.conceded_export import conceded_json
 from fm_analytics.opponent_cli import run_opponent
 from fm_analytics.persistence.match_history import (
     MatchHistoryError,
@@ -64,12 +68,14 @@ from fm_analytics.reporting import (
     RecommendationBundle,
     RecommendationPolicy,
     build_appearance_coverage,
+    build_conceded_review,
     build_player_form,
     build_match_diagnosis,
     build_match_diagnostics,
     build_match_intervention_evaluation,
     build_match_report,
     build_match_breakdowns,
+    build_season_trends,
     build_match_review,
     build_penalty_record,
     build_recommendation_bundle,
@@ -502,6 +508,12 @@ def build_parser() -> argparse.ArgumentParser:
     opponent.add_argument("--league", type=Path, default=DEFAULT_LEAGUE_CAPTURE,
                           help="league read whose visible attributes the instructions use (default: %(default)s)")
     opponent.add_argument("--json", action="store_true", help="the report as JSON, as the page's copy button gives it")
+    conceded = commands.add_parser("conceded", help="every goal and clear-cut chance conceded, broken down")
+    conceded.add_argument("--competitions", choices=COMPETITION_SCOPES, default="competitive")
+    conceded.add_argument("--venue", choices=("home", "away"))
+    conceded.add_argument("--tactic", help=f"a tactic key, or {NO_TACTIC!r} for matches with no known tactic")
+    conceded.add_argument("--season", type=int, help="the year a season starts, e.g. 2020 for 2020/21")
+    conceded.add_argument("--json", action="store_true", help="as JSON, as the Conceded page's copy button gives it")
     role = commands.add_parser("role-code", help="confirm which catalogue role an FM role code is")
     role.add_argument("code", help="the FM code, e.g. 0x800")
     role.add_argument("role", help="catalogue role key, e.g. af_attack")
@@ -558,6 +570,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     format_review(review)
                     + format_penalties(build_penalty_record(history, review))
                     + format_breakdowns(build_match_breakdowns(history, review))
+                    + format_trends(build_season_trends(review))
                     + format_diagnostics(build_match_diagnostics(review))
                     + format_intervention(
                         build_match_intervention_evaluation(history, lifecycle_review)
@@ -609,6 +622,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                     output.write_text(text, encoding="utf-8")
                     print(f"Wrote {output} ({args.detail}, {len(document['matches'])} matches, "
                           f"squad {document['meta']['squad']}).")
+            elif args.command == "conceded":
+                review = build_match_review(history, filters=ReviewFilters(
+                    competitions=args.competitions, venue=args.venue, tactic=args.tactic, season=args.season))
+                conceded = build_conceded_review(history, (summary.match for summary in review.matches))
+                print(json.dumps(conceded_json(conceded), indent=2, ensure_ascii=False) if args.json
+                      else format_conceded(conceded))
             elif args.command == "opponent":
                 print(run_opponent(store, history, club=args.club, window=args.window, before=args.before,
                                    league_path=args.league, as_json=args.json))
@@ -674,6 +693,44 @@ def _score_lines(found: Breakdowns, pair) -> list[str]:
                              f"{pair(tally.per_90(tally.on_goal)):>14}  {pair(tally.per_90(tally.clear_cut_chances)):>14}  "
                              f"{tally.goals[0]}–{tally.goals[1]}")
     return lines
+
+
+def format_trends(trends: SeasonTrends) -> str:
+    """The Matches page's "Season trends" in text: every match, the last 10 and the last 5, then your changes."""
+    if not trends.windows:
+        return ""
+    per_90 = lambda tally, name: "–" if tally.minutes < 1 else (  # noqa: E731
+        "  –  ".join(f"{value:.2f}" for value in tally.per_90(getattr(tally, name))))
+    theirs = lambda tally, name: "–" if tally.minutes < 1 else f"{tally.per_90(getattr(tally, name))[1]:.2f}"  # noqa: E731
+    lines = ["", "Season trends: leads, the last 15 minutes and your changes (you – them)"]
+    for window in trends.windows:
+        ahead, level = window.by_state["ahead"], window.by_state["level"]
+        usual = f", usually {window.usual_hold:.0%} of leads are won" if window.usual_hold is not None else ""
+        lines += [
+            f"  {window.label} ({window.matches} matches)",
+            f"    dropped from winning positions: {window.dropped} points (led in {window.led}: "
+            f"won {window.led_won}, drew {window.led_drawn}, lost {window.led_lost}{usual})",
+            f"    while ahead, per 90: their shots {theirs(ahead, 'shots')}, clear-cut chances "
+            f"{theirs(ahead, 'clear_cut_chances')} (level: {theirs(level, 'shots')}, "
+            f"{theirs(level, 'clear_cut_chances')}); {ahead.minutes:.0f} minutes ahead",
+            f"    after 75′: goals {window.late_goals[0]}–{window.late_goals[1]}, clear-cut chances "
+            f"{window.late.clear_cut_chances[0]}–{window.late.clear_cut_chances[1]}, points +{window.late_won} / "
+            f"−{window.late_lost}",
+        ]
+    for match in trends.dropped_matches:
+        lines.append(f"  dropped {match.dropped}: {match.date} v {match.opponent} ({match.venue[0]}) "
+                     f"{match.goals_for}–{match.goals_against}: "
+                     + ", ".join(f"{ours}–{theirs} {clock}′" for clock, ours, theirs in match.goals))
+    if trends.change_groups:
+        lines.append(f"Before → after each change, {CHANGE_WINDOW} minutes either side (per 90: shots, clear-cut chances)")
+        for group in trends.change_groups:
+            lines.append(f"  {group.label:38} {group.changes:>3}  shots {per_90(group.before, 'shots')} → "
+                         f"{per_90(group.after, 'shots')}  clear-cut {per_90(group.before, 'clear_cut_chances')} → "
+                         f"{per_90(group.after, 'clear_cut_chances')}  goals {group.before.goals[0]}–"
+                         f"{group.before.goals[1]} → {group.after.goals[0]}–{group.after.goals[1]}")
+    if trends.left_out:
+        lines.append("  chance figures leave out " + ", ".join(f"{n} with {why}" for why, n in trends.left_out.items()))
+    return "\n".join(lines)
 
 
 def format_penalties(record: PenaltyRecord) -> str:

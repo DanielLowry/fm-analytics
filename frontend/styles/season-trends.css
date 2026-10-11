@@ -1,0 +1,27 @@
+/*
+ * The Matches page's "Season trends" panel (web/season_trends_render.py), light and dark. Its
+ * windows table, charts and "every match" tables are the "Results against chances" ones
+ * (match-chances.css) and its tiles the Opponent page's (opponent-report.css); this adds the
+ * two-row headers, the before-and-after cells and the comparison row. Imported by app.css; every
+ * selector starts body.fm-app, as match-chances.css explains.
+ */
+body.fm-app .fm-trends-tiles { grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr)); margin-top: .25rem; }
+body.fm-app .fm-trends-tiles .fm-decision-stat small { line-height: 1.4; }
+body.fm-app .fm-trends-table { max-width: 64rem; }
+body.fm-app .fm-trends-table thead th { vertical-align: bottom; white-space: nowrap; }
+body.fm-app .fm-trends-table thead th[colspan] { border-bottom: 1px solid var(--fm-border); text-align: center; }
+body.fm-app .fm-trends-table td { white-space: nowrap; }
+body.fm-app .fm-trends-table td b { color: var(--color-ink-900); font-weight: 650; }
+body.fm-app .fm-trends-table td .muted { font-size: .78rem; }
+body.fm-app .fm-trends-arrow { margin-left: .2rem; color: var(--color-ink-500); font-size: .62rem; }
+body.fm-app .fm-trends-baseline th[scope='row'], body.fm-app .fm-trends-baseline td { color: var(--color-ink-500); font-style: italic; }
+body.fm-app .fm-trends-baseline th[scope='row'] { border-top: 1px dashed var(--fm-border); }
+body.fm-app .fm-trends-baseline td { border-top: 1px dashed var(--fm-border); }
+body.fm-app .fm-trends-baseline td b { color: var(--color-ink-700); }
+body.fm-app .fm-trends-heading { margin: 1.6rem 0 0; color: var(--color-ink-900); font-size: .98rem; font-weight: 650; }
+body.fm-app .fm-trends-changes { margin-top: .6rem; }
+body.fm-app .fm-trends-goals { white-space: nowrap; }
+:root.dark body.fm-app .fm-trends-table td b, :root.dark body.fm-app .fm-trends-heading { color: #f5f8fc; }
+:root.dark body.fm-app .fm-trends-baseline th[scope='row'], :root.dark body.fm-app .fm-trends-baseline td,
+:root.dark body.fm-app .fm-trends-arrow { color: #a9b8ca; }
+:root.dark body.fm-app .fm-trends-baseline td b { color: #d9e3ef; }

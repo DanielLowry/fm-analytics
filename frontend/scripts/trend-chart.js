@@ -1,7 +1,8 @@
-// Hover for the Matches page's "Results against chances" charts. The server draws
-// the charts and writes out every match's figures (web/season_chances_render.py);
-// this only moves the crosshair to the match under the pointer and shows them.
-// Every figure is also in the "Every match" table, so nothing depends on hovering.
+// Hover for the Matches page's trend charts, "Results against chances" and "Season
+// trends". The server draws the charts and writes out every match's figures
+// (web/season_chances_render.py, web/season_trends_render.py); this only moves the
+// crosshair to the match under the pointer and shows them. Every figure is also in
+// a table on the page, so nothing depends on hovering.
 
 const row = (value, label, key) => {
   const line = document.createElement('div');
@@ -21,6 +22,8 @@ const row = (value, label, key) => {
 const contents = (match) => {
   const title = document.createElement('p');
   title.textContent = match.match;
+  // A chart that writes its own [value, label] lines; the chances charts name their fields.
+  if (Array.isArray(match.lines)) return [title, ...match.lines.map(([value, label]) => row(value, label))];
   const lines = [title, row(match.worth, 'chances worth')];
   if (match.ours) lines.push(row(match.ours, 'yours, last 5', 'ours'), row(match.theirs, 'theirs, last 5', 'theirs'));
   lines.push(row(match.points, 'points'), row(match.running, 'running total'));

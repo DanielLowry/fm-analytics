@@ -12,7 +12,8 @@ _NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
     ("Overview", (("/", "Command centre", "⌂"), ("/league", "League", "≋"))),
     ("Squad intelligence", (("/squad", "Squad", "◫"), ("/roles", "Roles", "◎"), ("/depth", "Depth", "↕"), ("/contracts", "Contracts", "✎"))),
     ("Matchday", (("/tactics", "Tactics", "⌁"), ("/tactic-checks", "Tactic checks", "✓"), ("/set-pieces", "Set pieces", "✦"), ("/opponent", "Opponent", "◑"),
-                  ("/matches", "Matches", "▤"), ("/experiments", "Experiments", "⚗"))),
+                  ("/matches", "Matches", "▤"), ("/conceded", "Goals conceded", "⊘"),
+                  ("/experiments", "Experiments", "⚗"))),
     ("Recruitment", (("/scouting", "Scouting", "⌕"),)),
     ("System", (("/data", "Data health", "◌"),)),
 )

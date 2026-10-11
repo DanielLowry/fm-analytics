@@ -76,6 +76,11 @@ against us in the selected matches and who the manager recorded giving each away
 (FM doesn't say; the record is kept in its own table, which reading FM never touches).
 `reporting.build_contract_review` is the one computation behind `/contracts`
 and the squad player report's Contract plan panel.
+`reporting.build_conceded_review` is the one behind the Goals conceded page
+(`/conceded`, the Matches page's filters), a match page's "Goals and chances
+conceded", `fm-matches conceded` and both match copies: every goal and
+clear-cut chance against us, who delivered it and from where, and the
+labelled near/back post and "who was around" guesses (`analytics/conceded.py`).
 `reporting.build_opponent_report` is the one behind the Opponent page
 (`/opponent`) and `fm-matches opponent`: our next opponent (from FM's fixture
 list) or any league club, from its own matches before the fixture, ours against
@@ -103,6 +108,7 @@ uv run fm-matches export --detail basic|standard|verbose  # season JSON -> data/
 uv run fm-matches coverage [--days N | --all]   # which appearances could count towards form
 uv run fm-matches form                          # each player's recent form in each job
 uv run fm-matches opponent [CLUB] [--json]      # the report on our next opponent, or on any league club
+uv run fm-matches conceded [--season 2020]      # every goal and chance conceded, broken down
 uv run --extra research python tools/fm20_league_capture.py   # whole league -> data/league-capture.json (FM running)
 ```
 

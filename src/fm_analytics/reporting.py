@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Collection, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Collection, Iterable, Mapping, MutableMapping, Sequence
 
 from fm_analytics.analytics.match_analysis import (
     MatchReport,
@@ -32,19 +32,23 @@ from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.analytics.player_form import FormLookup, FormPolicy, build_form
 from fm_analytics.analytics.penalty_record import PenaltyRecord, penalty_record
 from fm_analytics.analytics.match_breakdowns import Breakdowns, breakdowns
+from fm_analytics.analytics.season_trends import SeasonTrends, season_trends
 from fm_analytics.analytics.experiments import ExperimentReport, experiment_report, rates_for
 from fm_analytics.domain.experiments import StoredMatch
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics, diagnose_matches
 from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis, diagnose_one_match
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, evaluate_intervention
-from fm_analytics.analytics.match_strength import league_seasons
+from fm_analytics.analytics.conceded import ConcededReview, review_conceded
 from fm_analytics.analytics.opponent_report import (
     DEFAULT_WINDOW,
+    OpponentChoice,
     OpponentReport,
     build_opponent_report as _build_opponent_report,
+    club_choices,
     next_fixture,
 )
-from fm_analytics.domain.matches import MatchRecord, ScheduledFixture, TeamRef
+from fm_analytics.domain.matches import MatchRecord, ScheduledFixture
+from fm_analytics.conceded_export import conceded_json
 from fm_analytics.opponent_export import opponent_document
 from fm_analytics.analytics import (
     BenchSelection,
@@ -730,6 +734,16 @@ def build_match_breakdowns(history: MatchHistory, review: MatchReview) -> Breakd
                       plans=[summary.mentality for summary in review.matches])
 
 
+def build_season_trends(review: MatchReview) -> SeasonTrends:
+    """The matches `review` selects as season trends: points dropped from winning positions, chances
+    allowed while ahead, the last 15 minutes, and before and after each change you made.
+
+    The one computation behind the Matches page's "Season trends" panel, the same lines of
+    `fm-matches review` and the exports' `season_trends` (`analytics/season_trends.py`).
+    """
+    return season_trends(review.matches)
+
+
 def build_stored_match_report(
     stored: StoredMatch, history: MatchHistory | None, *, catalogue: FootballCatalogue = MVP_CATALOGUE
 ) -> MatchReport | None:
@@ -823,7 +837,9 @@ def build_match_export(
     verbose season-export entry.
     """
     diagnosis = build_match_diagnosis(history, report, catalogue=catalogue)
-    return match_document(history, report, catalogue=catalogue, diagnosis=diagnosis, generated_at=generated_at)
+    document = match_document(history, report, catalogue=catalogue, diagnosis=diagnosis, generated_at=generated_at)
+    document["conceded"] = conceded_json(build_conceded_review(history, [report.summary.match]))
+    return document
 
 
 def build_matches_export(
@@ -840,11 +856,19 @@ def build_matches_export(
     """
     review = build_match_review(history, filters=filters, catalogue=catalogue)
     competitive = _competitive_review(history, catalogue)
-    return matches_document(
+    document = matches_document(
         history, review, catalogue=catalogue, competitive=competitive, diagnostics=build_match_diagnostics(competitive),
         intervention=build_match_intervention_evaluation(history, competitive),
         penalties=build_penalty_record(history, review), generated_at=generated_at,
     )
+    document["conceded"] = conceded_json(build_conceded_review(history, (s.match for s in review.matches)))
+    return document
+
+
+def build_conceded_review(history: MatchHistory, matches: Iterable[MatchRecord]) -> ConcededReview:
+    """Every goal and clear-cut chance conceded in `matches`, broken down: the one behind the Conceded page
+    (the Matches page's selection), a match page's panel, `fm-matches conceded` and both match copies."""
+    return review_conceded(matches, history.club.id, history.penalty_fouls)
 
 
 def build_season_export(
@@ -886,19 +910,6 @@ def build_season_export(
     )
 
 
-@dataclass(frozen=True)
-class OpponentChoice:
-    """A club the Opponent page can report on, with our next fixture against it when one is scheduled."""
-
-    club: TeamRef
-    fixture: ScheduledFixture | None
-
-
-def _today(history: MatchHistory, fixtures: tuple[Any, tuple[ScheduledFixture, ...]] | None):
-    """The game date the report is for: the fixture list's, else the history's latest read."""
-    return fixtures[0] if fixtures is not None else history.last_game_date
-
-
 def opponent_choices(
     history: MatchHistory,
     fixtures: tuple[Any, tuple[ScheduledFixture, ...]] | None = None,
@@ -908,30 +919,7 @@ def opponent_choices(
     `fixtures` is `MatchHistoryStore.load_fixtures`: the game date of the
     capture that read FM's fixture list, and that list.
     """
-    ours = history.club.id
-    today = _today(history, fixtures)
-    clubs: dict[str, TeamRef] = {}
-    seasons = [season for season in league_seasons(history.league_results) if ours in season.teams]
-    if seasons:
-        latest = max(seasons, key=lambda season: season.starts)
-        for result in latest.results:
-            for team in (result.home, result.away):
-                if team.id != ours:
-                    clubs.setdefault(team.id, team)
-    upcoming: dict[str, ScheduledFixture] = {}
-    played = {match.key for match in history.matches}
-    for fixture in sorted(fixtures[1] if fixtures else (), key=lambda item: item.date):
-        if today is not None and fixture.date < today:
-            continue
-        if f"{fixture.date.isoformat()}:{fixture.home.id}:{fixture.away.id}" in played:
-            continue
-        opponent = fixture.opponent_of(ours)
-        clubs.setdefault(opponent.id, opponent)
-        upcoming.setdefault(opponent.id, fixture)
-    return tuple(sorted(
-        (OpponentChoice(club, upcoming.get(club.id)) for club in clubs.values()),
-        key=lambda choice: (choice.fixture is None, choice.fixture.date if choice.fixture else None, choice.club.name),
-    ))
+    return club_choices(history.club.id, history.league_results, history.matches, fixtures, history.last_game_date)
 
 
 def build_opponent_report(
@@ -956,7 +944,7 @@ def build_opponent_report(
     ours = history.club.id
     choices = opponent_choices(history, fixtures)
     if club_id is None:
-        today = _today(history, fixtures)
+        today = fixtures[0] if fixtures is not None else history.last_game_date
         fixture = next_fixture(fixtures[1], ours, history.matches, today) if fixtures and today else None
         if fixture is None:
             return None

@@ -531,3 +531,48 @@ def next_fixture(
         and f"{fixture.date.isoformat()}:{fixture.home.id}:{fixture.away.id}" not in done
     ]
     return min(upcoming, key=lambda fixture: fixture.date, default=None)
+
+
+@dataclass(frozen=True)
+class OpponentChoice:
+    """A club the Opponent page can report on, with our next fixture against it when one is scheduled."""
+
+    club: TeamRef
+    fixture: ScheduledFixture | None
+
+
+def club_choices(
+    our_club_id: str,
+    league_results: Sequence[tuple],
+    played: Iterable[MatchRecord],
+    fixtures: tuple[date, tuple[ScheduledFixture, ...]] | None,
+    last_read: date | None,
+) -> tuple[OpponentChoice, ...]:
+    """Every club in our current league season, and any other we have a fixture with: the next opponent first.
+
+    `fixtures` is the game date of the capture that read FM's fixture list,
+    and that list; a fixture before that day, or already played, is not next.
+    """
+    today = fixtures[0] if fixtures is not None else last_read
+    clubs: dict[str, TeamRef] = {}
+    seasons = [season for season in league_seasons(league_results) if our_club_id in season.teams]
+    if seasons:
+        latest = max(seasons, key=lambda season: season.starts)
+        for result in latest.results:
+            for team in (result.home, result.away):
+                if team.id != our_club_id:
+                    clubs.setdefault(team.id, team)
+    upcoming: dict[str, ScheduledFixture] = {}
+    done = {match.key for match in played}
+    for fixture in sorted(fixtures[1] if fixtures else (), key=lambda item: item.date):
+        if today is not None and fixture.date < today:
+            continue
+        if f"{fixture.date.isoformat()}:{fixture.home.id}:{fixture.away.id}" in done:
+            continue
+        opponent = fixture.opponent_of(our_club_id)
+        clubs.setdefault(opponent.id, opponent)
+        upcoming.setdefault(opponent.id, fixture)
+    return tuple(sorted(
+        (OpponentChoice(club, upcoming.get(club.id)) for club in clubs.values()),
+        key=lambda choice: (choice.fixture is None, choice.fixture.date if choice.fixture else None, choice.club.name),
+    ))

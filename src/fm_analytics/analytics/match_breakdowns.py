@@ -87,28 +87,83 @@ def _period(minute: int) -> str:
     return next(label for label, start, end in PERIODS if start < minute <= end)
 
 
-def score_split(match: MatchRecord, side: str, plan: MentalityPlan | None = None) -> ScoreSplit | None:
-    """The match by score and by period (and by `plan`'s mentality), or None without its shots or with goal times missing."""
+@dataclass(frozen=True)
+class Moment:
+    """Something a Tally counts: when, in minutes played, and in which of FM's minutes (for its period)."""
+
+    clock: float
+    minute: int
+    counts: tuple[str, ...]  # the Tally pairs it adds to: "shots", "on_goal", "clear_cut_chances", "goals"
+    ours: bool
+
+    def add_to(self, *tallies: Tally) -> None:
+        for tally in tallies:
+            for name in self.counts:
+                getattr(tally, name)[0 if self.ours else 1] += 1
+
+
+@dataclass(frozen=True)
+class MatchClock:
+    """One match from one side's point of view, in minutes played: what a Tally counts, when the score
+    changed and when the match ended. `score_split` and the season trends both read a match through it."""
+
+    moments: tuple[Moment, ...]
+    score_changes: tuple[tuple[float, int], ...]  # (minutes played, +1 for a goal of ours, -1 for theirs)
+    end: float
+
+    def state(self, at: float) -> str:
+        score = sum(change for minute, change in self.score_changes if minute <= at)
+        return "ahead" if score > 0 else "behind" if score < 0 else "level"
+
+    def tally(self, start: float, stop: float) -> Tally:
+        """What happened from `start` up to `stop`, with the minutes between."""
+        found = Tally(minutes=max(0.0, stop - start))
+        for moment in self.moments:
+            if start <= moment.clock < stop:
+                moment.add_to(found)
+        return found
+
+
+def match_clock(match: MatchRecord, side: str) -> MatchClock | None:
+    """The match's shots, clear-cut chances and goals in time, or None without its shots or with goal times missing."""
     detail = match.detail
     goals = [incident for incident in match.incidents if incident.is_goal]
     if detail is None or not detail.shots or len(goals) != match.home_goals + match.away_goals:
         return None
     # Time is in minutes played: FM's minute m runs from m - 1 to m, its added
     # time on from there, and a goal changes the score at the end of its minute.
+    moments = [
+        Moment(shot.minute + shot.second / 60, shot.minute + 1,
+               ("shots", "on_goal") if shot.heading == "on_goal" else ("shots",), shot.side == side)
+        for shot in detail.shots
+    ]
+    moments += [
+        Moment(event.minute + event.added_time - 0.5, event.minute, ("clear_cut_chances",), event.side == side)
+        for event in detail.events if event.kind == "clear_cut_chance"
+    ]
+    moments += [
+        Moment(incident.minute + incident.added_time - 0.5, incident.minute, ("goals",), incident.side == side)
+        for incident in goals
+    ]
+    end = max([MATCH_MINUTES + 3.0, *(shot.minute + 1 + shot.second / 60 for shot in detail.shots),
+               *(event.minute + event.added_time + 1.0 for event in detail.events)])
     changes = sorted((incident.minute + incident.added_time, 1 if incident.side == side else -1) for incident in goals)
+    return MatchClock(tuple(moments), tuple(changes), end)
 
-    def state(at: float) -> str:
-        score = sum(change for minute, change in changes if minute <= at)
-        return "ahead" if score > 0 else "behind" if score < 0 else "level"
 
+def score_split(match: MatchRecord, side: str, plan: MentalityPlan | None = None) -> ScoreSplit | None:
+    """The match by score and by period (and by `plan`'s mentality), or None without its shots or with goal times missing."""
+    clock = match_clock(match, side)
+    if clock is None:
+        return None
+    state = clock.state
     by_state = {name: Tally() for name in STATES}
     by_period = {label: Tally() for label, _start, _end in PERIODS}
     by_mentality: dict[str, Tally] = defaultdict(Tally)
     by_mentality_state: dict[tuple[str, str], Tally] = defaultdict(Tally)
-    end = max([MATCH_MINUTES + 3.0, *(shot.minute + 1 + shot.second / 60 for shot in detail.shots),
-               *(event.minute + event.added_time + 1.0 for event in detail.events)])
+    end = clock.end
     switches = [minute for minute, _name in plan.changes[1:] if minute < end] if plan else []
-    bounds = sorted([0.0, *(minute for minute, _change in changes), *switches, end])
+    bounds = sorted([0.0, *(minute for minute, _change in clock.score_changes), *switches, end])
     for start, stop in zip(bounds, bounds[1:]):
         if stop > start:
             middle = (start + stop) / 2
@@ -118,30 +173,23 @@ def score_split(match: MatchRecord, side: str, plan: MentalityPlan | None = None
                 by_mentality_state[(plan.at(middle), state(middle))].minutes += stop - start
     for label, start, stop in PERIODS:
         by_period[label].minutes = max(0.0, min(stop, end) - start)
-
-    def at(clock: float, period_minute: int) -> tuple[Tally, ...]:
-        """Every tally a moment counts in: its score, its period and, with a plan, its mentality."""
-        found = (by_state[state(clock)], by_period[_period(period_minute)])
+    for moment in clock.moments:
+        # Every tally a moment counts in: its score, its period and, with a plan, its mentality.
+        moment.add_to(by_state[state(moment.clock)], by_period[_period(moment.minute)])
         if plan:
-            found += (by_mentality[plan.at(clock)], by_mentality_state[(plan.at(clock), state(clock))])
-        return found
-
-    def count(tallies: tuple[Tally, ...], name: str, ours: bool) -> None:
-        for tally in tallies:
-            getattr(tally, name)[0 if ours else 1] += 1
-
-    for shot in detail.shots:
-        where = at(shot.minute + shot.second / 60, shot.minute + 1)
-        count(where, "shots", shot.side == side)
-        if shot.heading == "on_goal":
-            count(where, "on_goal", shot.side == side)
-    for event in detail.events:
-        if event.kind != "clear_cut_chance":
-            continue
-        count(at(event.minute + event.added_time - 0.5, event.minute), "clear_cut_chances", event.side == side)
-    for incident in goals:
-        count(at(incident.minute + incident.added_time - 0.5, incident.minute), "goals", incident.side == side)
+            mentality = plan.at(moment.clock)
+            moment.add_to(by_mentality[mentality], by_mentality_state[(mentality, state(moment.clock))])
     return ScoreSplit(by_state, by_period, _in_order(by_mentality), dict(by_mentality_state))
+
+
+def counted_split(match: MatchRecord, side: str, plan: MentalityPlan | None = None) -> tuple[ScoreSplit | None, str | None]:
+    """The match's split as the score and period figures count it, or None and why it is left out of them."""
+    if any(incident.kind == "sent_off" for incident in match.incidents):
+        return None, "a sending-off"
+    if match.after_extra_time:
+        return None, "extra time"
+    split = score_split(match, side, plan)
+    return (split, None) if split is not None else (None, "no shots or goal times")
 
 
 def _in_order(tallies: Mapping[str, Tally]) -> dict[str, Tally]:
@@ -242,25 +290,20 @@ def breakdowns(
         side = match.side_of(club_id)
         other = "away" if side == "home" else "home"
         detail = match.detail
-        if any(incident.kind == "sent_off" for incident in match.incidents):
-            left_out["a sending-off"] += 1
-        elif match.after_extra_time:
-            left_out["extra time"] += 1
+        split, reason = counted_split(match, side, plan)
+        if split is None:
+            left_out[reason] += 1
         else:
-            split = score_split(match, side, plan)
-            if split is None:
-                left_out["no shots or goal times"] += 1
-            else:
-                split_matches += 1
-                for name in STATES:
-                    by_state[name].add(split.by_state[name])
-                for label in by_period:
-                    by_period[label].add(split.by_period[label])
-                mentality_matches += plan is not None
-                for name, tally in split.by_mentality.items():
-                    by_mentality[name].add(tally)
-                for key, tally in split.by_mentality_state.items():
-                    by_mentality_state[key].add(tally)
+            split_matches += 1
+            for name in STATES:
+                by_state[name].add(split.by_state[name])
+            for label in by_period:
+                by_period[label].add(split.by_period[label])
+            mentality_matches += plan is not None
+            for name, tally in split.by_mentality.items():
+                by_mentality[name].add(tally)
+            for key, tally in split.by_mentality_state.items():
+                by_mentality_state[key].add(tally)
         descriptors = {
             (event.side, event.minute, event.added_time, event.player_short_id): event.descriptor
             for event in (detail.events if detail else ()) if event.kind in GOAL_KINDS

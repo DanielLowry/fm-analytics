@@ -9,6 +9,8 @@
 @import "./experiments.css";
 @import "./tactic-instructions.css";
 @import "./opponent-report.css";
+@import "./conceded.css";
+@import "./season-trends.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
