@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "long_throws": {
+      "longThrows": 100
+    }
+  },
+  "tasks": {
+    "long_throws": {
+      "profile": "long_throws"
+    }
+  }
+}

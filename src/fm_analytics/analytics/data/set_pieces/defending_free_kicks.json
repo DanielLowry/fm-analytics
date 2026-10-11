@@ -1,0 +1,158 @@
+{
+  "profiles": {
+    "keeper": {
+      "aerialReach": 28,
+      "commandOfArea": 26,
+      "handling": 16,
+      "communication": 12,
+      "anticipation": 10,
+      "decisions": 8
+    },
+    "wall": {
+      "bravery": 25,
+      "positioning": 20,
+      "anticipation": 18,
+      "jumpingReach": 12,
+      "balance": 10,
+      "concentration": 10,
+      "strength": 5
+    },
+    "man_marking": {
+      "marking": 28,
+      "anticipation": 20,
+      "positioning": 18,
+      "concentration": 14,
+      "strength": 10,
+      "acceleration": 5,
+      "tackling": 5
+    },
+    "zonal_defence": {
+      "jumpingReach": 30,
+      "heading": 22,
+      "anticipation": 18,
+      "bravery": 10,
+      "strength": 8,
+      "positioning": 8,
+      "concentration": 4
+    },
+    "edge_defence": {
+      "anticipation": 24,
+      "positioning": 22,
+      "concentration": 16,
+      "acceleration": 14,
+      "tackling": 12,
+      "decisions": 12
+    },
+    "counter_outlet": {
+      "pace": 24,
+      "acceleration": 20,
+      "firstTouch": 16,
+      "offTheBall": 14,
+      "strength": 12,
+      "dribbling": 8,
+      "passing": 6
+    }
+  },
+  "variants": {
+    "direct_free_kick": {
+      "keeper": {
+        "profile": "keeper",
+        "importance": 1.0
+      },
+      "wall": {
+        "profile": "wall",
+        "importance": 1.4
+      },
+      "mark": {
+        "profile": "man_marking",
+        "importance": 1.1
+      },
+      "back": {
+        "profile": "zonal_defence",
+        "importance": 1.0
+      },
+      "edge": {
+        "profile": "edge_defence",
+        "importance": 1.0
+      },
+      "forward": {
+        "profile": "counter_outlet",
+        "importance": 0.8
+      }
+    },
+    "direct_small_chance": {
+      "keeper": {
+        "profile": "keeper",
+        "importance": 1.0
+      },
+      "wall": {
+        "profile": "wall",
+        "importance": 1.4
+      },
+      "mark": {
+        "profile": "man_marking",
+        "importance": 1.1
+      },
+      "back": {
+        "profile": "zonal_defence",
+        "importance": 1.0
+      },
+      "edge": {
+        "profile": "edge_defence",
+        "importance": 1.0
+      },
+      "forward": {
+        "profile": "counter_outlet",
+        "importance": 0.8
+      }
+    },
+    "indirect_wide": {
+      "keeper": {
+        "profile": "keeper",
+        "importance": 1.0
+      },
+      "wall": {
+        "profile": "wall",
+        "importance": 1.0
+      },
+      "mark": {
+        "profile": "man_marking",
+        "importance": 1.1
+      },
+      "back": {
+        "profile": "zonal_defence",
+        "importance": 1.4
+      },
+      "edge": {
+        "profile": "edge_defence",
+        "importance": 1.0
+      },
+      "forward": {
+        "profile": "counter_outlet",
+        "importance": 0.8
+      }
+    },
+    "indirect_deep": {
+      "keeper": {
+        "profile": "keeper",
+        "importance": 1.0
+      },
+      "mark": {
+        "profile": "man_marking",
+        "importance": 1.1
+      },
+      "back": {
+        "profile": "zonal_defence",
+        "importance": 1.4
+      },
+      "edge": {
+        "profile": "edge_defence",
+        "importance": 1.0
+      },
+      "forward": {
+        "profile": "counter_outlet",
+        "importance": 0.8
+      }
+    }
+  }
+}

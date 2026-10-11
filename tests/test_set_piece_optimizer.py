@@ -188,23 +188,23 @@ class CapturedStartingXIRegressionTests(unittest.TestCase):
 
     def test_balanced_attacking_corners_use_the_captured_xi_for_suitable_jobs(self):
         expected = {
-            "Take the set piece": "Terrance Saydee",
-            "Attack near post": "Ejiro Okosieme",
-            "Attack far post": "Jamie Bradley-Green",
-            "Attack ball from edge of area": "Challis Johnson",
-            "Lurk far post": "Victor Fundi",
-            "Mark keeper": "Ben Jefford",
-            "Come short": "Ross Holden",
-            "Lurk outside edge of area": "Tom Sharpe",
-            "Stay back": "Lucas Odunston",
-            "Stay back if needed": "David Lynch",
+            "Terrance Saydee": "Take the set piece",
+            "Ejiro Okosieme": "Attack near post",
+            "Jamie Bradley-Green": "Attack far post",
+            "Challis Johnson": "Attack ball from edge of area",
+            "Victor Fundi": "Lurk far post",
+            "Ben Jefford": "Mark keeper",
+            "Ross Holden": "Come short",
+            "Tom Sharpe": "Lurk outside edge of area",
+            "Lucas Odunston": "Stay back",
+            "David Lynch": "Stay back",
         }
         for routine in self.report().routines:
             if not routine.key.startswith("attacking_corner_"):
                 continue
             with self.subTest(side=routine.side):
                 self.assertEqual(
-                    {a.role.instruction: a.player.name for a in routine.assignments},
+                    {a.player.name: a.role.instruction for a in routine.assignments},
                     expected,
                 )
 
@@ -225,21 +225,21 @@ class CapturedStartingXIRegressionTests(unittest.TestCase):
 
     def test_revised_attacking_corner_improves_the_whole_team_over_the_previous_plan(self):
         previous = {
-            "Take the set piece": "Terrance Saydee",
-            "Attack near post": "Ejiro Okosieme",
-            "Attack far post": "Jamie Bradley-Green",
-            "Attack ball from edge of area": "Victor Fundi",
-            "Lurk far post": "Ross Holden",
-            "Mark keeper": "Challis Johnson",
-            "Come short": "Tom Sharpe",
-            "Lurk outside edge of area": "David Lynch",
-            "Stay back": "Lucas Odunston",
-            "Stay back if needed": "Ben Jefford",
+            "corner_taker": "Terrance Saydee",
+            "corner_attack_near": "Ejiro Okosieme",
+            "corner_attack_far": "Jamie Bradley-Green",
+            "corner_attack_edge": "Victor Fundi",
+            "corner_lurk_far": "Ross Holden",
+            "corner_mark_keeper": "Challis Johnson",
+            "corner_come_short": "Tom Sharpe",
+            "corner_lurk_outside": "David Lynch",
+            "corner_stay": "Lucas Odunston",
+            "corner_cover": "Ben Jefford",
         }
         # The capture has no verified preferred foot, so both delivery
         # bonuses are zero. Compare complete plans under one set of profiles.
         previous_value = sum(
-            r.importance * r.score(self.players[previous[r.instruction]]).score.central
+            r.importance * r.score(self.players[previous[r.key]]).score.central
             for r in attacking_roles("corner", "balanced")
         )
         for routine in self.report().routines:
@@ -315,8 +315,13 @@ class CapturedStartingXIRegressionTests(unittest.TestCase):
                     self.assertNotIn(keeper.id, ids)
                     self.assertFalse(routine.unfilled_roles)
                     self.assertEqual(routine.players_held_back, cover_count)
-                    fixed_cover = next(a for a in routine.assignments if a.role.instruction == "Stay back")
-                    self.assertEqual(fixed_cover.player.name, "Lucas Odunston")
+                    fixed_cover = [a for a in routine.assignments if a.role.instruction == "Stay back"]
+                    self.assertEqual(len(fixed_cover), 1 if risk == "aggressive" else 2)
+                    primary_cover = next(a for a in routine.assignments if a.role.key == "corner_stay")
+                    self.assertEqual(primary_cover.player.name, "Lucas Odunston")
+                    if risk == "balanced":
+                        self.assertEqual({a.player.name for a in fixed_cover}, {"Lucas Odunston", "David Lynch"})
+                        self.assertFalse(any(a.role.instruction == "Stay back if needed" for a in routine.assignments))
 
     def test_indirect_free_kicks_keep_both_main_aerial_defenders_attacking_the_delivery(self):
         for routine in self.report().routines:

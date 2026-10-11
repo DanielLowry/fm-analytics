@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from fm_analytics.analytics.assignment_solver import _minimum_cost_full_assignment
+from fm_analytics.analytics.set_piece_config import SET_PIECE_WEIGHTS, SetPieceWeights
 from fm_analytics.analytics.set_piece_routines import (
     SET_PIECE_SCORING_VERSION,
     RoutineRole,
@@ -48,7 +49,7 @@ ATTACKING_RISKS = {
 _SIDE_DELIVERY_TASKS = frozenset(
     {"corners", "direct_free_kicks", "indirect_free_kicks"}
 )
-_SIDE_FOOT_BONUS = 4.0
+_SIDE_FOOT_BONUS = SET_PIECE_WEIGHTS.delivery_foot_bonus
 
 
 @dataclass(frozen=True)
@@ -222,54 +223,60 @@ class SetPieceReport:
 # Taker profiles. The dedicated form is selected player-by-player, so an HTML
 # overlay that contains Fre/Pen/L Th immediately improves the result even when
 # the live reader cannot supply those fields yet.
-SET_PIECE_TASKS: tuple[SetPieceTask, ...] = (
-    SetPieceTask(
-        "corners", "Corners",
-        "Delivery quality: Corners first, supported by crossing and technique.",
-        (RoleAttribute("corners", 60), RoleAttribute("crossing", 25), RoleAttribute("technique", 15)),
-    ),
-    SetPieceTask(
-        "direct_free_kicks", "Direct free kicks",
-        "Uses Free Kick Taking when supplied; otherwise estimates striking quality from long shots, technique, composure and flair.",
-        (RoleAttribute("longShots", 35), RoleAttribute("technique", 35), RoleAttribute("composure", 15), RoleAttribute("flair", 15)),
-        proxy_for_unread_attribute="Free Kick Taking",
-        dedicated_attribute="freeKickTaking", dedicated_label="Free Kick Taking",
-        dedicated_attributes=(RoleAttribute("freeKickTaking", 70), RoleAttribute("technique", 15), RoleAttribute("longShots", 10), RoleAttribute("composure", 5)),
-    ),
-    SetPieceTask(
-        "indirect_free_kicks", "Indirect free kicks",
-        "Uses Free Kick Taking when supplied; otherwise compares crossing, corners and technique for delivery.",
-        (RoleAttribute("corners", 40), RoleAttribute("crossing", 40), RoleAttribute("technique", 20)),
-        proxy_for_unread_attribute="Free Kick Taking",
-        dedicated_attribute="freeKickTaking", dedicated_label="Free Kick Taking",
-        dedicated_attributes=(RoleAttribute("freeKickTaking", 60), RoleAttribute("crossing", 25), RoleAttribute("technique", 15)),
-    ),
-    SetPieceTask(
-        "penalties", "Penalties",
-        "Uses Penalty Taking when supplied; otherwise estimates conversion under pressure from finishing, composure and technique.",
-        (RoleAttribute("finishing", 45), RoleAttribute("composure", 35), RoleAttribute("technique", 20)),
-        proxy_for_unread_attribute="Penalty Taking",
-        dedicated_attribute="penaltyTaking", dedicated_label="Penalty Taking",
-        dedicated_attributes=(RoleAttribute("penaltyTaking", 75), RoleAttribute("composure", 20), RoleAttribute("finishing", 5)),
-    ),
-    SetPieceTask(
-        "long_throws", "Long throws",
-        "Long throws require the dedicated Long Throws rating; unrelated throwing or strength ratings are not substituted.",
-        (RoleAttribute("longThrows", 100),),
-        dedicated_attribute="longThrows", dedicated_label="Long Throws",
-        proxy_allowed=False,
-    ),
-    SetPieceTask(
-        "attacking_aerial_target", "Attacking aerial target",
-        "Attack the delivery with jumping reach, heading, strength, anticipation and bravery.",
-        (RoleAttribute("jumpingReach", 35), RoleAttribute("heading", 30), RoleAttribute("strength", 15), RoleAttribute("anticipation", 10), RoleAttribute("bravery", 10)),
-    ),
-    SetPieceTask(
-        "defensive_aerial_target", "Defensive aerial target",
-        "Defend the box with jumping reach, heading, marking, strength and bravery.",
-        (RoleAttribute("jumpingReach", 30), RoleAttribute("heading", 25), RoleAttribute("marking", 20), RoleAttribute("strength", 15), RoleAttribute("bravery", 10)),
-    ),
-)
+def _build_taker_tasks(weights: SetPieceWeights) -> tuple[SetPieceTask, ...]:
+    """Bind task evidence rules to the same weights used by routine delivery."""
+
+    return (
+        SetPieceTask(
+            "corners", "Corners",
+            "Delivery quality: Corners first, supported by crossing and technique.",
+            weights.tasks["corners"].attributes,
+        ),
+        SetPieceTask(
+            "direct_free_kicks", "Direct free kicks",
+            "Uses Free Kick Taking when supplied; otherwise estimates striking quality from long shots, technique, composure and flair.",
+            weights.tasks["direct_free_kicks"].attributes,
+            proxy_for_unread_attribute="Free Kick Taking",
+            dedicated_attribute="freeKickTaking", dedicated_label="Free Kick Taking",
+            dedicated_attributes=weights.tasks["direct_free_kicks"].dedicated_attributes,
+        ),
+        SetPieceTask(
+            "indirect_free_kicks", "Indirect free kicks",
+            "Uses Free Kick Taking when supplied; otherwise compares crossing, corners and technique for delivery.",
+            weights.tasks["indirect_free_kicks"].attributes,
+            proxy_for_unread_attribute="Free Kick Taking",
+            dedicated_attribute="freeKickTaking", dedicated_label="Free Kick Taking",
+            dedicated_attributes=weights.tasks["indirect_free_kicks"].dedicated_attributes,
+        ),
+        SetPieceTask(
+            "penalties", "Penalties",
+            "Uses Penalty Taking when supplied; otherwise estimates conversion under pressure from finishing, composure and technique.",
+            weights.tasks["penalties"].attributes,
+            proxy_for_unread_attribute="Penalty Taking",
+            dedicated_attribute="penaltyTaking", dedicated_label="Penalty Taking",
+            dedicated_attributes=weights.tasks["penalties"].dedicated_attributes,
+        ),
+        SetPieceTask(
+            "long_throws", "Long throws",
+            "Long throws require the dedicated Long Throws rating; unrelated throwing or strength ratings are not substituted.",
+            weights.tasks["long_throws"].attributes,
+            dedicated_attribute="longThrows", dedicated_label="Long Throws",
+            proxy_allowed=False,
+        ),
+        SetPieceTask(
+            "attacking_aerial_target", "Attacking aerial target",
+            "Attack the delivery with jumping reach, heading, strength, anticipation and bravery.",
+            weights.tasks["attacking_aerial_target"].attributes,
+        ),
+        SetPieceTask(
+            "defensive_aerial_target", "Defensive aerial target",
+            "Defend the box with jumping reach, heading, marking, strength and bravery.",
+            weights.tasks["defensive_aerial_target"].attributes,
+        ),
+    )
+
+
+SET_PIECE_TASKS = _build_taker_tasks(SET_PIECE_WEIGHTS)
 
 
 def is_set_piece_available(player: Player) -> bool:

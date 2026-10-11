@@ -1,0 +1,287 @@
+{
+  "profiles": {
+    "partner": {
+      "firstTouch": 22,
+      "technique": 20,
+      "passing": 18,
+      "decisions": 15,
+      "crossing": 15,
+      "acceleration": 10
+    },
+    "attack_edge": {
+      "anticipation": 25,
+      "offTheBall": 22,
+      "acceleration": 18,
+      "finishing": 15,
+      "firstTouch": 10,
+      "technique": 10
+    },
+    "go_forward": {
+      "anticipation": 24,
+      "offTheBall": 24,
+      "finishing": 18,
+      "composure": 12,
+      "firstTouch": 12,
+      "acceleration": 10
+    },
+    "rest_defence": {
+      "positioning": 22,
+      "anticipation": 18,
+      "pace": 16,
+      "marking": 15,
+      "tackling": 14,
+      "decisions": 10,
+      "concentration": 5
+    },
+    "wide_cover": {
+      "decisions": 24,
+      "passing": 22,
+      "positioning": 18,
+      "anticipation": 14,
+      "pace": 12,
+      "firstTouch": 10
+    },
+    "aerial_attack": {
+      "jumpingReach": 30,
+      "heading": 25,
+      "anticipation": 15,
+      "offTheBall": 12,
+      "bravery": 10,
+      "strength": 8
+    },
+    "direct_free_kicks": {
+      "longShots": 35,
+      "technique": 35,
+      "composure": 15,
+      "flair": 15
+    },
+    "direct_free_kicks_dedicated": {
+      "freeKickTaking": 70,
+      "technique": 15,
+      "longShots": 10,
+      "composure": 5
+    },
+    "indirect_free_kicks": {
+      "corners": 40,
+      "crossing": 40,
+      "technique": 20
+    },
+    "indirect_free_kicks_dedicated": {
+      "freeKickTaking": 60,
+      "crossing": 25,
+      "technique": 15
+    }
+  },
+  "variants": {
+    "direct_free_kick": {
+      "taker": {
+        "task": "direct_free_kicks",
+        "importance": 2.0
+      },
+      "partner": {
+        "profile": "partner",
+        "importance": 0.9
+      },
+      "edge_left": {
+        "profile": "attack_edge",
+        "importance": 1.0
+      },
+      "edge_right": {
+        "profile": "attack_edge",
+        "importance": 1.0
+      },
+      "go_centre": {
+        "profile": "go_forward",
+        "importance": 1.0
+      },
+      "go_left": {
+        "profile": "go_forward",
+        "importance": 1.0
+      },
+      "go_right": {
+        "profile": "go_forward",
+        "importance": 1.0
+      },
+      "stay": {
+        "profile": "rest_defence",
+        "importance": 1.3
+      },
+      "cover": {
+        "profile": "rest_defence",
+        "importance": 1.3
+      },
+      "wide_cover": {
+        "profile": "wide_cover",
+        "importance": 1.1
+      },
+      "near": {
+        "profile": "aerial_attack",
+        "importance": 1.4
+      },
+      "far": {
+        "profile": "aerial_attack",
+        "importance": 1.4
+      }
+    },
+    "direct_small_chance": {
+      "taker": {
+        "task": "direct_free_kicks",
+        "importance": 2.0
+      },
+      "partner": {
+        "profile": "partner",
+        "importance": 0.9
+      },
+      "near": {
+        "profile": "aerial_attack",
+        "importance": 1.4
+      },
+      "far": {
+        "profile": "aerial_attack",
+        "importance": 1.4
+      },
+      "edge_left": {
+        "profile": "attack_edge",
+        "importance": 1.0
+      },
+      "go_left": {
+        "profile": "go_forward",
+        "importance": 1.0
+      },
+      "go_right": {
+        "profile": "go_forward",
+        "importance": 1.0
+      },
+      "stay": {
+        "profile": "rest_defence",
+        "importance": 1.3
+      },
+      "cover": {
+        "profile": "rest_defence",
+        "importance": 1.3
+      },
+      "wide_cover": {
+        "profile": "wide_cover",
+        "importance": 1.1
+      },
+      "go_centre": {
+        "profile": "go_forward",
+        "importance": 1.0
+      },
+      "edge_right": {
+        "profile": "attack_edge",
+        "importance": 1.0
+      }
+    },
+    "indirect_wide": {
+      "taker": {
+        "task": "indirect_free_kicks",
+        "importance": 1.5
+      },
+      "near": {
+        "profile": "aerial_attack",
+        "importance": 1.4
+      },
+      "far": {
+        "profile": "aerial_attack",
+        "importance": 1.4
+      },
+      "edge_left": {
+        "profile": "attack_edge",
+        "importance": 1.0
+      },
+      "partner": {
+        "profile": "partner",
+        "importance": 0.9
+      },
+      "go_left": {
+        "profile": "go_forward",
+        "importance": 1.0
+      },
+      "go_right": {
+        "profile": "go_forward",
+        "importance": 1.0
+      },
+      "stay": {
+        "profile": "rest_defence",
+        "importance": 1.3
+      },
+      "cover": {
+        "profile": "rest_defence",
+        "importance": 1.3
+      },
+      "wide_cover": {
+        "profile": "wide_cover",
+        "importance": 1.1
+      },
+      "go_centre": {
+        "profile": "go_forward",
+        "importance": 1.0
+      },
+      "edge_right": {
+        "profile": "attack_edge",
+        "importance": 1.0
+      }
+    },
+    "indirect_deep": {
+      "taker": {
+        "task": "indirect_free_kicks",
+        "importance": 1.5
+      },
+      "near": {
+        "profile": "aerial_attack",
+        "importance": 1.4
+      },
+      "far": {
+        "profile": "aerial_attack",
+        "importance": 1.4
+      },
+      "go_left": {
+        "profile": "go_forward",
+        "importance": 1.0
+      },
+      "go_right": {
+        "profile": "go_forward",
+        "importance": 1.0
+      },
+      "go_centre": {
+        "profile": "go_forward",
+        "importance": 1.0
+      },
+      "edge_left": {
+        "profile": "attack_edge",
+        "importance": 1.0
+      },
+      "stay": {
+        "profile": "rest_defence",
+        "importance": 1.3
+      },
+      "cover": {
+        "profile": "rest_defence",
+        "importance": 1.3
+      },
+      "wide_cover": {
+        "profile": "wide_cover",
+        "importance": 1.1
+      },
+      "edge_right": {
+        "profile": "attack_edge",
+        "importance": 1.0
+      },
+      "partner": {
+        "profile": "partner",
+        "importance": 0.9
+      }
+    }
+  },
+  "tasks": {
+    "direct_free_kicks": {
+      "profile": "direct_free_kicks",
+      "dedicatedProfile": "direct_free_kicks_dedicated"
+    },
+    "indirect_free_kicks": {
+      "profile": "indirect_free_kicks",
+      "dedicatedProfile": "indirect_free_kicks_dedicated"
+    }
+  }
+}

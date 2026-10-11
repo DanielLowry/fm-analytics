@@ -25,9 +25,64 @@ the sum of each job's **responsibility importance × player suitability**, with
 the existing small preferred-foot bonus applied to side-specific delivery.
 This remains a single global assignment: jobs are never filled greedily.
 
+## Editing the weights
+
+All set-piece attribute weights and responsibility importance values live in
+[`src/fm_analytics/analytics/data/set_pieces/`](../src/fm_analytics/analytics/data/set_pieces/).
+The files are included in the installed package:
+
+| File | Contents |
+| --- | --- |
+| [attacking_corners.json](../src/fm_analytics/analytics/data/set_pieces/attacking_corners.json) | Corner delivery, box jobs, short support, counter cover and attacking aerial rankings |
+| [defending_corners.json](../src/fm_analytics/analytics/data/set_pieces/defending_corners.json) | Goalkeeper, aerial zones, markers, posts, second balls, outlet and defensive aerial rankings |
+| [attacking_free_kicks.json](../src/fm_analytics/analytics/data/set_pieces/attacking_free_kicks.json) | Direct, direct small-chance, indirect wide and indirect deep variants, plus dedicated/proxy taker profiles |
+| [defending_free_kicks.json](../src/fm_analytics/analytics/data/set_pieces/defending_free_kicks.json) | Each of the four defensive free-kick variants |
+| [penalties.json](../src/fm_analytics/analytics/data/set_pieces/penalties.json) | Dedicated and proxy penalty profiles |
+| [long_throws.json](../src/fm_analytics/analytics/data/set_pieces/long_throws.json) | Dedicated long-throw profile |
+| [model.json](../src/fm_analytics/analytics/data/set_pieces/model.json) | Scoring version and delivery-foot bonus |
+
+Each family defines named `profiles`, which map manager-visible attributes to
+weights. Corner `roles` and free-kick `variants` reference those profiles and
+set a separate `importance` for each responsibility. For example, defending
+corners currently includes:
+
+```json
+"def_corner_zonal_centre": {
+  "profile": "zonal_defence",
+  "importance": 1.6
+}
+```
+
+Edit `profiles.zonal_defence` to change what makes a suitable aerial zonal
+defender. Edit this role's `importance` to change the value of improving central
+cover relative to the other jobs. Attribute weights are non-negative ratios;
+they need not sum to 100, but their total must be positive. Responsibility
+importance must be positive.
+
+Profiles are shared only within their family file. Changing a shared profile
+changes every job referencing it there. To tune just one free-kick variant or
+zone, copy the profile under a new name and point that job at the copy. Each
+variant already has its own responsibility importance values. Repeated wall
+players and markers within one variant share their respective job profile.
+
+Routine taker jobs reference a `task`, rather than a second delivery profile:
+the specialist rankings and whole-routine assignment use the same taker
+scores. For free kicks and penalties, a task's `profile` is the fallback when
+the dedicated rating is missing, and `dedicatedProfile` is used when that
+rating is available. Dedicated profiles must actually weight the rating they
+claim; long throws continue to use only the dedicated Long Throws attribute.
+
+The loader rejects missing jobs or variants, unknown keys or attributes,
+duplicate JSON keys, unused profiles, invalid numbers and broken references.
+Weights load once when the app starts; restart the app after editing them.
+The Python builders retain FM instructions, player counts and inclusion
+priorities, and the global assignment and uncertainty calculations are
+unchanged. This extraction retains `set-piece-v11` because its assignments
+and scores are unchanged.
+
 ## Job suitability and responsibility importance
 
-`set-piece-v10` separates the suitability of a player for a job from the value
+`set-piece-v11` separates the suitability of a player for a job from the value
 of improving that responsibility. Individual job-fit scores remain 0–100;
 the routine score is their importance-weighted average. Delivery-foot bonuses
 influence selection but remain outside the displayed attribute scores.
@@ -80,24 +135,25 @@ different structures remains separate work.
 
 The first-contact near/far-post targets keep the strongest aerial emphasis.
 Supporting box jobs also need to contest a delivery; movement and finishing
-alone do not describe them. `set-piece-v9` adds distinct corner profiles:
+alone do not describe them. The corner profiles introduced in `set-piece-v9`
+are now maintained in `attacking_corners.json`:
 
-| Job | Visible attribute weights (total 100) |
+| Job | Profile in the config |
 | --- | --- |
-| Post lurker | Off the ball 18, anticipation 18, finishing 14, jumping reach 12, heading 12, strength 10, bravery 8, decisions 4, composure 4 |
-| Attack ball from edge | Jumping reach 18, heading 18, off the ball 18, anticipation 18, strength 8, finishing 8, bravery 4, acceleration 4, decisions 4 |
-| Mark keeper | Strength 20, jumping reach 18, bravery 16, heading 14, anticipation 14, off the ball 8, finishing 6, decisions 4 |
-| Go forward | Jumping reach 18, heading 16, off the ball 18, anticipation 14, strength 10, finishing 10, bravery 8, decisions 6 |
-| Come short | Crossing 20, passing 20, dribbling 15, technique 15, decisions 15, first touch 10, acceleration 5 |
-| Stay back | Positioning 20, anticipation 18, pace 18, acceleration 12, tackling 12, marking 10, decisions 6, concentration 4 |
-| Stay back if needed | Positioning 20, anticipation 20, tackling 14, marking 12, decisions 12, concentration 8, pace 6, acceleration 4, first touch 2, passing 2 |
+| Post lurker | `corner_post_lurker` |
+| Attack ball from edge | `corner_edge_runner` |
+| Mark keeper | `corner_keeper_challenger` |
+| Go forward | `corner_box_runner` |
+| Come short | `corner_short_option` |
+| Stay back | `corner_stay_back` |
+| Second stay-back defender | `corner_secondary_cover` |
 
 The edge runner enters the box to attack the delivery and second balls;
 the outside-area player collects clearances and threatens from range.
 Mark keeper is a goalkeeper challenger and rebound job. Its scoring does
 not use conventional defensive marking. The short option now recognises
 dribbling as well as passing and a second delivery. Fixed cover values
-recovery speed more, while conditional cover puts more emphasis on reading
+recovery speed more, while the second fixed defender puts more emphasis on reading
 and intercepting clearances. These are authored football judgments: the
 [FM20 attacking-corner guide](https://www.passion4fm.com/football-manager-set-piece-guide-attacking-corners/)
 supports the job interpretations and relevant inputs, not the numeric weights.
@@ -109,7 +165,14 @@ captured balanced XI, Odunston's slightly better delivery is less valuable
 than retaining him as the fixed counter defender: Saydee takes the corner,
 Holden comes short, Fundi lurks at the far post, Challis attacks from the edge,
 Jefford challenges the keeper, Sharpe stays outside, and Lynch supplies
-conditional cover. Okosieme and Bradley-Green remain the first-contact targets.
+fixed cover. Okosieme and Bradley-Green remain the first-contact targets.
+
+`set-piece-v11` makes both primary and secondary cover **Stay back** in the
+balanced and secure corner templates. This guarantees two fixed cover
+instructions rather than relying on the second player staying back only
+when needed. The secure template retains a third **Stay back if needed**
+option; aggressive retains one fixed defender. These are general template
+instructions, not a special case for Lynch.
 
 The risk settings retain their existing job counts. An aggressive routine
 therefore still requires weaker box players when the XI lacks enough strong
@@ -132,6 +195,19 @@ dribbling, the delivery/cover tradeoff, and complete assignments at every
 corner risk setting. Small synthetic problems are checked against
 exhaustive assignment enumeration, including a case where choosing the best
 player for the first job loses to the global optimum.
+
+`tests/test_set_piece_config.py` validates the config and checks that edits
+affect the intended jobs, variants and shared taker scores. The frozen
+`tests/fixtures/set-piece-v11-config-migration.json` fingerprints pre-extraction
+definitions and 24 complete reports: the captured XI plus explicitly synthetic
+dedicated ratings/preferred feet, ranged/missing evidence and unavailable
+players, across all three attacking risks and both delivery styles. Every
+routine variant, assignment, score band and scoring contribution is covered.
+Only the old free-kick roles' unused taker placeholder attributes are omitted;
+those role descriptions now use the actual task profile. The dedicated and
+proxy profiles themselves, and every real taker score, remain covered.
+Deliberate future tuning should update the model version and review the real-XI
+expectations and frozen baseline together.
 
 ## Evidence boundary
 

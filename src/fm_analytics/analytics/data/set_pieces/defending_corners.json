@@ -1,0 +1,133 @@
+{
+  "profiles": {
+    "def_corner_keeper": {
+      "aerialReach": 28,
+      "commandOfArea": 26,
+      "handling": 16,
+      "communication": 12,
+      "anticipation": 10,
+      "decisions": 8
+    },
+    "post_guard": {
+      "concentration": 25,
+      "anticipation": 20,
+      "positioning": 20,
+      "agility": 10,
+      "decisions": 10,
+      "heading": 5,
+      "jumpingReach": 5,
+      "bravery": 5
+    },
+    "zonal_defence": {
+      "jumpingReach": 30,
+      "heading": 22,
+      "anticipation": 18,
+      "bravery": 10,
+      "strength": 8,
+      "positioning": 8,
+      "concentration": 4
+    },
+    "box_cover": {
+      "anticipation": 25,
+      "positioning": 20,
+      "concentration": 15,
+      "decisions": 15,
+      "tackling": 10,
+      "heading": 10,
+      "jumpingReach": 5
+    },
+    "man_marking": {
+      "marking": 28,
+      "anticipation": 20,
+      "positioning": 18,
+      "concentration": 14,
+      "strength": 10,
+      "acceleration": 5,
+      "tackling": 5
+    },
+    "aerial_marking": {
+      "jumpingReach": 30,
+      "heading": 20,
+      "marking": 20,
+      "strength": 10,
+      "bravery": 10,
+      "anticipation": 5,
+      "concentration": 5
+    },
+    "edge_defence": {
+      "anticipation": 24,
+      "positioning": 22,
+      "concentration": 16,
+      "acceleration": 14,
+      "tackling": 12,
+      "decisions": 12
+    },
+    "counter_outlet": {
+      "pace": 24,
+      "acceleration": 20,
+      "firstTouch": 16,
+      "offTheBall": 14,
+      "strength": 12,
+      "dribbling": 8,
+      "passing": 6
+    },
+    "defensive_aerial_target": {
+      "jumpingReach": 30,
+      "heading": 25,
+      "marking": 20,
+      "strength": 15,
+      "bravery": 10
+    }
+  },
+  "roles": {
+    "def_corner_keeper": {
+      "profile": "def_corner_keeper",
+      "importance": 1.0
+    },
+    "def_corner_post_near": {
+      "profile": "post_guard",
+      "importance": 0.7
+    },
+    "def_corner_post_far": {
+      "profile": "post_guard",
+      "importance": 0.7
+    },
+    "def_corner_zonal_near": {
+      "profile": "zonal_defence",
+      "importance": 1.4
+    },
+    "def_corner_zonal_centre": {
+      "profile": "zonal_defence",
+      "importance": 1.6
+    },
+    "def_corner_zonal_far": {
+      "profile": "zonal_defence",
+      "importance": 1.4
+    },
+    "def_corner_go_back": {
+      "profile": "box_cover",
+      "importance": 0.9
+    },
+    "def_corner_man_mark": {
+      "profile": "man_marking",
+      "importance": 1.1
+    },
+    "def_corner_mark_tall": {
+      "profile": "aerial_marking",
+      "importance": 1.5
+    },
+    "def_corner_edge": {
+      "profile": "edge_defence",
+      "importance": 1.0
+    },
+    "def_corner_forward": {
+      "profile": "counter_outlet",
+      "importance": 0.8
+    }
+  },
+  "tasks": {
+    "defensive_aerial_target": {
+      "profile": "defensive_aerial_target"
+    }
+  }
+}

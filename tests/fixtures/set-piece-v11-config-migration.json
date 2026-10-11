@@ -1,0 +1,32 @@
+{
+  "version": "set-piece-v11",
+  "source": "Frozen from the original Python weight literals before JSON extraction on 2026-10-10. Captured XI plus explicitly synthetic variations described in test_set_piece_config.py. SHA-256 covers full reports with numeric int/float representation normalized and unused legacy routine-taker placeholder attributes omitted; actual taker profiles, scores and contributions are covered.",
+  "roles": "b441862437200bee7e6e906eb0930aaecdf016ba1f6c38809ace29100aa8f2ce",
+  "tasks": "efd7ad052171b152c5a61f688f23a8be8f90bca1f7c57ac592e553255637879c",
+  "reports": {
+    "captured/secure/inswinging": "6ddea19d87a43206290f6ab7017cec3e136f211b044a815cb1e3d035983cef25",
+    "captured/secure/outswinging": "39e2b67b2296350271a3e6229b2b2e9af782b3b37cd5d3d7104d97fe6ca63a56",
+    "captured/balanced/inswinging": "2da77bd0b0b0f11313515e54a1a24ab40a5f614db5fab361d4e9c02580de91f3",
+    "captured/balanced/outswinging": "f5a05f8867b9c8d90bc59408c3e2ac3c1e0968910c88e408a92bca96afe3b8ed",
+    "captured/aggressive/inswinging": "6ca28576dc40355ed23b6e05bf1943541759d9d1913072fe01422ff5626c7b95",
+    "captured/aggressive/outswinging": "41cc6867b66dd050acd0a4399c2b9f17838edfdc282f66788bf376dd65d864db",
+    "dedicated_and_feet/secure/inswinging": "db3d07932cf0d563c7cebb00eb999e94248d5eafcc5d67329a278001e8a2d0e5",
+    "dedicated_and_feet/secure/outswinging": "d053b20b9349bc6303782cfad814dd59f2ede83ab76ba1883b8fe7cb17724902",
+    "dedicated_and_feet/balanced/inswinging": "0d71462f2c2cbfa48bb5994199dcc38456633230251431075358687fb18777bb",
+    "dedicated_and_feet/balanced/outswinging": "e79e881a03a76a43fe76510d889cb42df8ba8296ecbd2b047f4af52fa488299e",
+    "dedicated_and_feet/aggressive/inswinging": "5acfdf2a7b6302fcb150b9a031e8ef43494f1c6ec6c3b56024ca89087b9a6e4b",
+    "dedicated_and_feet/aggressive/outswinging": "2739e070e2dd1f9fa9e82137177c6ecda22cb5d4b802e0554a2d36be5ca7a84f",
+    "mixed_evidence/secure/inswinging": "ad68668f3286286e9e9e797d4fbc5dae7c9387f24174742c9e2255690444aafc",
+    "mixed_evidence/secure/outswinging": "6e888fe4294eabcdf4d4dfda0df2cce25ea5c43b163344ca797cb9518c0fccc9",
+    "mixed_evidence/balanced/inswinging": "e6022e42ca21a90de0c5ad30dac01381bb798294f6a26a961063f3963fdb672a",
+    "mixed_evidence/balanced/outswinging": "d2e38a8d40083fcf8aa5af02f82ffb2baff3066406423c91c02bee8c8cf2d9c6",
+    "mixed_evidence/aggressive/inswinging": "95df8d3a34145b9a8942de21c8fcc098049631f5824be08a23f522b79451dbac",
+    "mixed_evidence/aggressive/outswinging": "66b02901fbc27179da344b77a4ec6b6b38b425a4cbe37ce2373502f39cff7df3",
+    "unavailable/secure/inswinging": "788314aad0249c80241b435dc847442f475efe2b83f68088ac5be42800e33f59",
+    "unavailable/secure/outswinging": "af4983a147961a27149b696e0be8b931aba7c0e4e7905b239e2b37b4dd78c4d9",
+    "unavailable/balanced/inswinging": "3a9975e3a032f801af17679b289ff319fe0e2161613c30302333c7b7e09297c8",
+    "unavailable/balanced/outswinging": "b064b908f5de6566027177dd888d82ef2411fd2e24904ad5b5cf647213454f93",
+    "unavailable/aggressive/inswinging": "fefa931700ae55ce766d1395c7a751c94b39ddb15d826a68c953ca86133b21f7",
+    "unavailable/aggressive/outswinging": "3c0f0ca95c5f04af7b656c300bf90c1f4cfcec214df29a1e483827c98faeb5eb"
+  }
+}

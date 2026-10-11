@@ -1,0 +1,179 @@
+{
+  "profiles": {
+    "corner_taker": {
+      "corners": 60,
+      "crossing": 25,
+      "technique": 15
+    },
+    "aerial_attack": {
+      "jumpingReach": 30,
+      "heading": 25,
+      "anticipation": 15,
+      "offTheBall": 12,
+      "bravery": 10,
+      "strength": 8
+    },
+    "corner_post_lurker": {
+      "offTheBall": 18,
+      "anticipation": 18,
+      "finishing": 14,
+      "jumpingReach": 12,
+      "heading": 12,
+      "strength": 10,
+      "bravery": 8,
+      "decisions": 4,
+      "composure": 4
+    },
+    "corner_short_option": {
+      "crossing": 20,
+      "passing": 20,
+      "dribbling": 15,
+      "technique": 15,
+      "decisions": 15,
+      "firstTouch": 10,
+      "acceleration": 5
+    },
+    "corner_edge_runner": {
+      "jumpingReach": 18,
+      "heading": 18,
+      "offTheBall": 18,
+      "anticipation": 18,
+      "strength": 8,
+      "bravery": 4,
+      "finishing": 8,
+      "acceleration": 4,
+      "decisions": 4
+    },
+    "lurk_outside": {
+      "longShots": 30,
+      "technique": 20,
+      "anticipation": 18,
+      "firstTouch": 12,
+      "decisions": 10,
+      "passing": 10
+    },
+    "corner_stay_back": {
+      "positioning": 20,
+      "anticipation": 18,
+      "pace": 18,
+      "acceleration": 12,
+      "tackling": 12,
+      "marking": 10,
+      "decisions": 6,
+      "concentration": 4
+    },
+    "corner_secondary_cover": {
+      "positioning": 20,
+      "anticipation": 20,
+      "tackling": 14,
+      "marking": 12,
+      "decisions": 12,
+      "concentration": 8,
+      "pace": 6,
+      "acceleration": 4,
+      "firstTouch": 2,
+      "passing": 2
+    },
+    "corner_wide_cover": {
+      "decisions": 24,
+      "passing": 22,
+      "positioning": 18,
+      "anticipation": 14,
+      "pace": 12,
+      "firstTouch": 10
+    },
+    "corner_keeper_challenger": {
+      "strength": 20,
+      "jumpingReach": 18,
+      "bravery": 16,
+      "heading": 14,
+      "anticipation": 14,
+      "offTheBall": 8,
+      "finishing": 6,
+      "decisions": 4
+    },
+    "corner_box_runner": {
+      "jumpingReach": 18,
+      "heading": 16,
+      "strength": 10,
+      "bravery": 8,
+      "offTheBall": 18,
+      "anticipation": 14,
+      "finishing": 10,
+      "decisions": 6
+    },
+    "attacking_aerial_target": {
+      "jumpingReach": 35,
+      "heading": 30,
+      "strength": 15,
+      "anticipation": 10,
+      "bravery": 10
+    }
+  },
+  "roles": {
+    "corner_taker": {
+      "task": "corners",
+      "importance": 1.5
+    },
+    "corner_attack_near": {
+      "profile": "aerial_attack",
+      "importance": 1.4
+    },
+    "corner_lurk_near": {
+      "profile": "corner_post_lurker",
+      "importance": 1.0
+    },
+    "corner_attack_far": {
+      "profile": "aerial_attack",
+      "importance": 1.4
+    },
+    "corner_come_short": {
+      "profile": "corner_short_option",
+      "importance": 0.9
+    },
+    "corner_attack_edge": {
+      "profile": "corner_edge_runner",
+      "importance": 1.0
+    },
+    "corner_lurk_outside": {
+      "profile": "lurk_outside",
+      "importance": 1.0
+    },
+    "corner_stay": {
+      "profile": "corner_stay_back",
+      "importance": 1.3
+    },
+    "corner_cover": {
+      "profile": "corner_secondary_cover",
+      "importance": 1.3
+    },
+    "corner_wide_cover": {
+      "profile": "corner_wide_cover",
+      "importance": 1.1
+    },
+    "corner_lurk_far": {
+      "profile": "corner_post_lurker",
+      "importance": 1.0
+    },
+    "corner_mark_keeper": {
+      "profile": "corner_keeper_challenger",
+      "importance": 0.8
+    },
+    "corner_go_left": {
+      "profile": "corner_box_runner",
+      "importance": 1.0
+    },
+    "corner_go_right": {
+      "profile": "corner_box_runner",
+      "importance": 1.0
+    }
+  },
+  "tasks": {
+    "corners": {
+      "profile": "corner_taker"
+    },
+    "attacking_aerial_target": {
+      "profile": "attacking_aerial_target"
+    }
+  }
+}

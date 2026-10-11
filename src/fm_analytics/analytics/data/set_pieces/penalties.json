@@ -1,0 +1,20 @@
+{
+  "profiles": {
+    "penalties": {
+      "finishing": 45,
+      "composure": 35,
+      "technique": 20
+    },
+    "penalties_dedicated": {
+      "penaltyTaking": 75,
+      "composure": 20,
+      "finishing": 5
+    }
+  },
+  "tasks": {
+    "penalties": {
+      "profile": "penalties",
+      "dedicatedProfile": "penalties_dedicated"
+    }
+  }
+}

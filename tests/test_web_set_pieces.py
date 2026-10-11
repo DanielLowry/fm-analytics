@@ -171,10 +171,11 @@ class SetPiecePageTests(unittest.TestCase):
             ("Challis Johnson", "Attack ball from edge of area"),
             ("Ben Jefford", "Mark keeper"),
             ("Lucas Odunston", "Stay back"),
-            ("David Lynch", "Stay back if needed"),
+            ("David Lynch", "Stay back"),
         ):
             self.assertIn(f"<b>{player}</b><span><strong>{instruction}</strong>", body)
         self.assertIn("Challenges the goalkeeper for deliveries and reacts to rebounds.", body)
+        self.assertIn("Stays back throughout the corner, reads clearances and covers the second counter lane.", body)
         self.assertEqual(body.count("class='routine-assignment-note'"), 10)
 
     def test_defending_free_kick_uses_the_fm_instruction_names(self) -> None:

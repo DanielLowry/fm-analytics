@@ -1,8 +1,8 @@
 """Reviewable player-job profiles for complete set-piece routines.
 
-This module is deliberately data-like: it names the FM instruction, field
-zone, purpose, inclusion priority, responsibility importance, and visible
-attribute weights for each mutually exclusive job. The assignment and
+The routine builders name the legal FM instructions, zones, purposes and
+inclusion priorities. Attribute weights and responsibility importance come
+from the validated JSON catalogue in ``data/set_pieces``. Assignment and
 uncertainty mechanics live in ``set_pieces.py``.
 """
 
@@ -17,10 +17,11 @@ from fm_analytics.analytics.role_scoring import (
     RoleScore,
     score_role,
 )
+from fm_analytics.analytics.set_piece_config import JobWeights, SET_PIECE_WEIGHTS
 from fm_analytics.domain import Player
 
 
-SET_PIECE_SCORING_VERSION = "set-piece-v10"
+SET_PIECE_SCORING_VERSION = SET_PIECE_WEIGHTS.version
 
 ATTACKING_CORNER_INSTRUCTIONS = (
     "Attack near post",
@@ -100,226 +101,95 @@ class RoutineRole:
         return score_role(profile, player.attributes)
 
 
-_AERIAL_ATTACK = (
-    RoleAttribute("jumpingReach", 30), RoleAttribute("heading", 25),
-    RoleAttribute("anticipation", 15), RoleAttribute("offTheBall", 12),
-    RoleAttribute("bravery", 10), RoleAttribute("strength", 8),
-)
-# Guarding the goal line requires alertness and reactions; winning the first
-# aerial contact requires reach and courage. These are different jobs even
-# though both are inside the box. The profiles are football hypotheses, not
-# match-engine coefficients. Equivalent zones deliberately share a profile.
-_POST_GUARD = (
-    RoleAttribute("concentration", 25), RoleAttribute("anticipation", 20),
-    RoleAttribute("positioning", 20), RoleAttribute("agility", 10),
-    RoleAttribute("decisions", 10), RoleAttribute("heading", 5),
-    RoleAttribute("jumpingReach", 5), RoleAttribute("bravery", 5),
-)
-_ZONAL_DEFENCE = (
-    RoleAttribute("jumpingReach", 30), RoleAttribute("heading", 22),
-    RoleAttribute("anticipation", 18), RoleAttribute("bravery", 10),
-    RoleAttribute("strength", 8), RoleAttribute("positioning", 8),
-    RoleAttribute("concentration", 4),
-)
-_AERIAL_MARKING = (
-    RoleAttribute("jumpingReach", 30), RoleAttribute("heading", 20),
-    RoleAttribute("marking", 20), RoleAttribute("strength", 10),
-    RoleAttribute("bravery", 10), RoleAttribute("anticipation", 5),
-    RoleAttribute("concentration", 5),
-)
-_BOX_COVER = (
-    RoleAttribute("anticipation", 25), RoleAttribute("positioning", 20),
-    RoleAttribute("concentration", 15), RoleAttribute("decisions", 15),
-    RoleAttribute("tackling", 10), RoleAttribute("heading", 10),
-    RoleAttribute("jumpingReach", 5),
-)
-_MAN_MARKING = (
-    RoleAttribute("marking", 28), RoleAttribute("anticipation", 20),
-    RoleAttribute("positioning", 18), RoleAttribute("concentration", 14),
-    RoleAttribute("strength", 10), RoleAttribute("acceleration", 5),
-    RoleAttribute("tackling", 5),
-)
-_EDGE_DEFENCE = (
-    RoleAttribute("anticipation", 24), RoleAttribute("positioning", 22),
-    RoleAttribute("concentration", 16), RoleAttribute("acceleration", 14),
-    RoleAttribute("tackling", 12), RoleAttribute("decisions", 12),
-)
-_COUNTER_OUTLET = (
-    RoleAttribute("pace", 24), RoleAttribute("acceleration", 20),
-    RoleAttribute("firstTouch", 16), RoleAttribute("offTheBall", 14),
-    RoleAttribute("strength", 12), RoleAttribute("dribbling", 8),
-    RoleAttribute("passing", 6),
-)
-# Importance is the marginal value of improving a responsibility, not its
-# probability of producing/preventing a goal. First contact and safe cover
-# carry more weight than supporting runners or keeper challengers; direct free kicks
-# put additional weight on the taker. Symmetric jobs remain equally valuable.
-_REST_DEFENCE = (
-    RoleAttribute("positioning", 22), RoleAttribute("anticipation", 18),
-    RoleAttribute("pace", 16), RoleAttribute("marking", 15),
-    RoleAttribute("tackling", 14), RoleAttribute("decisions", 10),
-    RoleAttribute("concentration", 5),
-)
-# Corner support players still contest deliveries inside a crowded box.
-# They need an aerial/physical component as well as movement and finishing;
-# being a technically gifted runner alone does not make a good post lurker.
-# Keep these corner profiles separate while free-kick variants are reviewed.
-_CORNER_POST_LURKER = (
-    RoleAttribute("offTheBall", 18), RoleAttribute("anticipation", 18),
-    RoleAttribute("finishing", 14), RoleAttribute("jumpingReach", 12),
-    RoleAttribute("heading", 12), RoleAttribute("strength", 10),
-    RoleAttribute("bravery", 8), RoleAttribute("decisions", 4),
-    RoleAttribute("composure", 4),
-)
-_CORNER_EDGE_RUNNER = (
-    RoleAttribute("jumpingReach", 18), RoleAttribute("heading", 18),
-    RoleAttribute("offTheBall", 18), RoleAttribute("anticipation", 18),
-    RoleAttribute("strength", 8), RoleAttribute("bravery", 4),
-    RoleAttribute("finishing", 8),
-    RoleAttribute("acceleration", 4), RoleAttribute("decisions", 4),
-)
-_CORNER_KEEPER_CHALLENGER = (
-    RoleAttribute("strength", 20), RoleAttribute("jumpingReach", 18),
-    RoleAttribute("bravery", 16), RoleAttribute("heading", 14),
-    RoleAttribute("anticipation", 14), RoleAttribute("offTheBall", 8),
-    RoleAttribute("finishing", 6), RoleAttribute("decisions", 4),
-)
-_CORNER_BOX_RUNNER = (
-    RoleAttribute("jumpingReach", 18), RoleAttribute("heading", 16),
-    RoleAttribute("strength", 10), RoleAttribute("bravery", 8),
-    RoleAttribute("offTheBall", 18), RoleAttribute("anticipation", 14),
-    RoleAttribute("finishing", 10), RoleAttribute("decisions", 6),
-)
-_CORNER_SHORT_OPTION = (
-    RoleAttribute("crossing", 20), RoleAttribute("passing", 20),
-    RoleAttribute("dribbling", 15), RoleAttribute("technique", 15),
-    RoleAttribute("decisions", 15), RoleAttribute("firstTouch", 10),
-    RoleAttribute("acceleration", 5),
-)
-# The fixed last defender must recover against a break. Conditional cover
-# also reads and intercepts clearances higher up, with a small recycling input.
-_CORNER_STAY_BACK = (
-    RoleAttribute("positioning", 20), RoleAttribute("anticipation", 18),
-    RoleAttribute("pace", 18), RoleAttribute("acceleration", 12),
-    RoleAttribute("tackling", 12), RoleAttribute("marking", 10),
-    RoleAttribute("decisions", 6), RoleAttribute("concentration", 4),
-)
-_CORNER_CONDITIONAL_COVER = (
-    RoleAttribute("positioning", 20), RoleAttribute("anticipation", 20),
-    RoleAttribute("tackling", 14), RoleAttribute("marking", 12),
-    RoleAttribute("decisions", 12), RoleAttribute("concentration", 8),
-    RoleAttribute("pace", 6), RoleAttribute("acceleration", 4),
-    RoleAttribute("firstTouch", 2), RoleAttribute("passing", 2),
-)
-_GO_FORWARD = (
-    RoleAttribute("anticipation", 24), RoleAttribute("offTheBall", 24),
-    RoleAttribute("finishing", 18), RoleAttribute("composure", 12),
-    RoleAttribute("firstTouch", 12), RoleAttribute("acceleration", 10),
-)
-_ATTACK_EDGE = (
-    RoleAttribute("anticipation", 25), RoleAttribute("offTheBall", 22),
-    RoleAttribute("acceleration", 18), RoleAttribute("finishing", 15),
-    RoleAttribute("firstTouch", 10), RoleAttribute("technique", 10),
-)
-_LURK_OUTSIDE = (
-    RoleAttribute("longShots", 30), RoleAttribute("technique", 20),
-    RoleAttribute("anticipation", 18), RoleAttribute("firstTouch", 12),
-    RoleAttribute("decisions", 10), RoleAttribute("passing", 10),
-)
-
-
 def _role(
     key: str, name: str, unit: str, zone: str, instruction: str,
-    explanation: str, attributes: tuple[RoleAttribute, ...], *,
+    explanation: str, weights: JobWeights, *,
     priority: int = 50, goalkeeper: bool = False,
     taker_task_key: str | None = None,
-    importance: float = 1.0,
 ) -> RoutineRole:
     return RoutineRole(
-        key, name, unit, zone, instruction, explanation, attributes,
-        priority, goalkeeper, taker_task_key, importance,
+        key, name, unit, zone, instruction, explanation, weights.attributes,
+        priority, goalkeeper, taker_task_key, weights.importance,
     )
 
 
 def _attacking_corner_roles(risk: str) -> tuple[RoutineRole, ...]:
     """Use only the player instructions available in FM's attacking-corner UI."""
+    weights = SET_PIECE_WEIGHTS.routine("attacking_corners")
 
     taker = _role(
         "corner_taker", "Corner taker", "Delivery", "Ball",
         "Take the set piece", "Delivers the corner while balancing box attack and counter cover.",
-        (RoleAttribute("corners", 60), RoleAttribute("crossing", 25),
-         RoleAttribute("technique", 15)),
-        priority=100, taker_task_key="corners", importance=1.5,
+        weights["corner_taker"],
+        priority=100, taker_task_key="corners",
     )
     attack_near = _role(
         "corner_attack_near", "Near-post runner", "Box attack", "Near post",
         "Attack near post", "Explosive first contact at the near post.",
-        _AERIAL_ATTACK, priority=96, importance=1.4,
+        weights["corner_attack_near"], priority=96,
     )
     lurk_near = _role(
         "corner_lurk_near", "Near-post lurker", "Box attack", "Near post",
         "Lurk near post", "Finds space for rebounds and loose balls at the near post.",
-        _CORNER_POST_LURKER, priority=82,
+        weights["corner_lurk_near"], priority=82,
     )
     attack_far = _role(
         "corner_attack_far", "Far-post target", "Box attack", "Far post",
         "Attack far post", "Aerial target for deeper delivery and second contact.",
-        _AERIAL_ATTACK, priority=94, importance=1.4,
+        weights["corner_attack_far"], priority=94,
     )
     lurk_far = _role(
         "corner_lurk_far", "Far-post lurker", "Box attack", "Far post",
         "Lurk far post", "Finds space for deep knock-downs and loose balls.",
-        _CORNER_POST_LURKER, priority=80,
+        weights["corner_lurk_far"], priority=80,
     )
     mark_keeper = _role(
         "corner_mark_keeper", "Goalkeeper challenger", "Box attack", "Goalkeeper zone",
         "Mark keeper", "Challenges the goalkeeper for deliveries and reacts to rebounds.",
-        _CORNER_KEEPER_CHALLENGER,
-        priority=76, importance=0.8,
+        weights["corner_mark_keeper"],
+        priority=76,
     )
     come_short = _role(
         "corner_come_short", "Short option", "Support", "Short corner channel",
         "Come short", "Offers a short passing option and a second delivery angle.",
-        _CORNER_SHORT_OPTION,
-        priority=86, importance=0.9,
+        weights["corner_come_short"],
+        priority=86,
     )
     go_left = _role(
         "corner_go_left", "Left box runner", "Box attack", "Left side of box",
         "Go forward", "Attacks loose balls and second contacts from the left side.",
-        _CORNER_BOX_RUNNER, priority=74,
+        weights["corner_go_left"], priority=74,
     )
     go_right = _role(
         "corner_go_right", "Right box runner", "Box attack", "Right side of box",
         "Go forward", "Attacks loose balls and second contacts from the right side.",
-        _CORNER_BOX_RUNNER, priority=73,
+        weights["corner_go_right"], priority=73,
     )
     attack_edge = _role(
         "corner_attack_edge", "Edge runner", "Box attack", "Edge of area",
         "Attack ball from edge of area", "Runs into the box to contest the delivery and attack second balls.",
-        _CORNER_EDGE_RUNNER, priority=90,
+        weights["corner_attack_edge"], priority=90,
     )
     lurk_outside = _role(
         "corner_lurk_outside", "Outside-area option", "Second ball", "Outside edge of area",
         "Lurk outside edge of area", "Collects clearances and threatens from range.",
-        _LURK_OUTSIDE, priority=88,
+        weights["corner_lurk_outside"], priority=88,
     )
     stay = _role(
         "corner_stay", "Primary cover", "Rest defence", "Halfway line",
         "Stay back", "Best transition defender protects the first counter lane.",
-        _CORNER_STAY_BACK, priority=99, importance=1.3,
+        weights["corner_stay"], priority=99,
     )
     cover = _role(
         "corner_cover", "Secondary cover", "Rest defence", "Halfway support",
-        "Stay back if needed", "Reads clearances and supports the last defender against a break.",
-        _CORNER_CONDITIONAL_COVER, priority=98, importance=1.3,
+        "Stay back", "Stays back throughout the corner, reads clearances and covers the second counter lane.",
+        weights["corner_cover"], priority=98,
     )
     wide_cover = _role(
         "corner_wide_cover", "Wide cover", "Rest defence", "Wide outlet",
         "Stay back if needed", "Keeps possession and prevents an exposed flank.",
-        (RoleAttribute("decisions", 24), RoleAttribute("passing", 22),
-         RoleAttribute("positioning", 18), RoleAttribute("anticipation", 14),
-         RoleAttribute("pace", 12), RoleAttribute("firstTouch", 10)),
-        priority=84, importance=1.1,
+        weights["corner_wide_cover"],
+        priority=84,
     )
 
     if risk == "secure":
@@ -342,6 +212,7 @@ def _attacking_free_kick_roles(kind: str, risk: str) -> tuple[RoutineRole, ...]:
     """Use only the player instructions available in FM's attacking-free-kick UI."""
 
     kind = {"wide_free_kick": "indirect_wide"}.get(kind, kind)
+    weights = SET_PIECE_WEIGHTS.routine("attacking_free_kicks", kind)
     task_key = (
         "direct_free_kicks" if kind.startswith("direct")
         else "indirect_free_kicks"
@@ -349,71 +220,65 @@ def _attacking_free_kick_roles(kind: str, risk: str) -> tuple[RoutineRole, ...]:
     taker = _role(
         f"{kind}_taker", "Free-kick taker", "Delivery", "Ball",
         "Take the set piece", "Best free-kick taker for this situation and side.",
-        (RoleAttribute("freeKickTaking", 50), RoleAttribute("crossing", 30),
-         RoleAttribute("technique", 20)),
+        weights["taker"],
         priority=100, taker_task_key=task_key,
-        importance=2.0 if kind.startswith("direct") else 1.5,
     )
     near = _role(
         f"{kind}_near", "Near-post runner", "Box attack", "Near post",
         "Attack near post", "Attacks the quickest delivery lane for first contact.",
-        _AERIAL_ATTACK, priority=96, importance=1.4,
+        weights["near"], priority=96,
     )
     far = _role(
         f"{kind}_far", "Far-post target", "Box attack", "Far post",
         "Attack far post", "Attacks deeper deliveries and far-side knock-downs.",
-        _AERIAL_ATTACK, priority=95, importance=1.4,
+        weights["far"], priority=95,
     )
     edge_left = _role(
         f"{kind}_edge_left", "Left edge runner", "Box attack", "Left edge of area",
         "Attack ball from edge", "Arrives from the edge onto a dropping delivery.",
-        _ATTACK_EDGE, priority=91,
+        weights["edge_left"], priority=91,
     )
     edge_right = _role(
         f"{kind}_edge_right", "Right edge runner", "Box attack", "Right edge of area",
         "Attack ball from edge", "Attacks a dropping delivery from the opposite edge lane.",
-        _ATTACK_EDGE, priority=89,
+        weights["edge_right"], priority=89,
     )
     partner = _role(
         f"{kind}_partner", "Taker support", "Support", "With taker",
         "Stand with taker", "Offers a disguised short option and a second delivery angle.",
-        (RoleAttribute("firstTouch", 22), RoleAttribute("technique", 20),
-         RoleAttribute("passing", 18), RoleAttribute("decisions", 15),
-         RoleAttribute("crossing", 15), RoleAttribute("acceleration", 10)),
-        priority=87, importance=0.9,
+        weights["partner"],
+        priority=87,
     )
     go_left = _role(
         f"{kind}_go_left", "Left box runner", "Box attack", "Left side of box",
         "Go forward", "Attacks loose balls and second contacts from the left side.",
-        _GO_FORWARD, priority=78,
+        weights["go_left"], priority=78,
     )
     go_centre = _role(
         f"{kind}_go_centre", "Central box runner", "Box attack", "Central box",
         "Go forward", "Attacks central knock-downs after the first contact.",
-        _GO_FORWARD, priority=77,
+        weights["go_centre"], priority=77,
     )
     go_right = _role(
         f"{kind}_go_right", "Right box runner", "Box attack", "Right side of box",
         "Go forward", "Attacks loose balls and second contacts from the right side.",
-        _GO_FORWARD, priority=76,
+        weights["go_right"], priority=76,
     )
     stay = _role(
         f"{kind}_stay", "Primary cover", "Rest defence", "Halfway line",
         "Stay back", "Best transition defender protects the first counter lane.",
-        _REST_DEFENCE, priority=99, importance=1.3,
+        weights["stay"], priority=99,
     )
     cover = _role(
         f"{kind}_cover", "Secondary cover", "Rest defence", "Halfway support",
         "Stay back", "Second defender balances the opposite counter lane.",
-        _REST_DEFENCE, priority=98, importance=1.3,
+        weights["cover"], priority=98,
     )
     wide_cover = _role(
         f"{kind}_wide_cover", "Wide cover", "Rest defence", "Wide outlet",
         "Stay back", "Keeps possession and prevents an exposed flank.",
-        (RoleAttribute("decisions", 24), RoleAttribute("passing", 22),
-         RoleAttribute("positioning", 18), RoleAttribute("anticipation", 14),
-         RoleAttribute("pace", 12), RoleAttribute("firstTouch", 10)),
-        priority=85, importance=1.1,
+        weights["wide_cover"],
+        priority=85,
     )
 
     active_roles = {
@@ -450,67 +315,66 @@ def attacking_roles(kind: str, risk: str) -> tuple[RoutineRole, ...]:
 
 def _defending_corner_roles() -> tuple[RoutineRole, ...]:
     """Use the ten outfield instructions available in FM's defending-corner UI."""
+    weights = SET_PIECE_WEIGHTS.routine("defending_corners")
 
     keeper = _role(
         "def_corner_keeper", "Goalkeeper", "Goalkeeper", "Goal line / six-yard box",
         "Defend area", "Claim or clear deliveries and organise the six-yard box.",
-        (RoleAttribute("aerialReach", 28), RoleAttribute("commandOfArea", 26),
-         RoleAttribute("handling", 16), RoleAttribute("communication", 12),
-         RoleAttribute("anticipation", 10), RoleAttribute("decisions", 8)),
+        weights["def_corner_keeper"],
         priority=100, goalkeeper=True,
     )
     post_near = _role(
         "def_corner_post_near", "Near-post guard", "Box defence", "Near post",
         "Mark near post", "Guards the near-post goal line and reacts to shots and flick-ons.",
-        _POST_GUARD, priority=85, importance=0.7,
+        weights["def_corner_post_near"], priority=85,
     )
     post_far = _role(
         "def_corner_post_far", "Far-post guard", "Box defence", "Far post",
         "Mark far post", "Guards the far-post goal line and reacts to shots and knock-downs.",
-        _POST_GUARD, priority=84, importance=0.7,
+        weights["def_corner_post_far"], priority=84,
     )
     zonal_near = _role(
         "def_corner_zonal_near", "Near-post zonal defender", "Box defence",
         "Six-yard box near post", "Zonally mark 6 yard box near post",
         "Attacks deliveries entering the near side of the six-yard box.",
-        _ZONAL_DEFENCE, priority=97, importance=1.4,
+        weights["def_corner_zonal_near"], priority=97,
     )
     zonal_centre = _role(
         "def_corner_zonal_centre", "Central zonal defender", "Box defence",
         "Six-yard box centre", "Zonally mark 6 yard box centre",
         "Anchors the central six-yard zone and attacks the main delivery.",
-        _ZONAL_DEFENCE, priority=99, importance=1.6,
+        weights["def_corner_zonal_centre"], priority=99,
     )
     zonal_far = _role(
         "def_corner_zonal_far", "Far-post zonal defender", "Box defence",
         "Six-yard box far post", "Zonally mark 6 yard box far post",
         "Attacks deliveries entering the far side of the six-yard box.",
-        _ZONAL_DEFENCE, priority=96, importance=1.4,
+        weights["def_corner_zonal_far"], priority=96,
     )
     go_back = _role(
         "def_corner_go_back", "Spare box defender", "Box defence", "Penalty spot",
         "Go back", "Reads loose balls and covers a lost marker.",
-        _BOX_COVER, priority=90, importance=0.9,
+        weights["def_corner_go_back"], priority=90,
     )
     man_mark = _role(
         "def_corner_man_mark", "Man marker", "Box defence", "Central danger",
         "Man mark", "Tracks a designated opposition runner.",
-        _MAN_MARKING, priority=95, importance=1.1,
+        weights["def_corner_man_mark"], priority=95,
     )
     mark_tall = _role(
         "def_corner_mark_tall", "Primary aerial marker", "Box defence", "Central danger",
         "Mark tall player", "Takes the opponent's strongest aerial threat.",
-        _AERIAL_MARKING, priority=98, importance=1.5,
+        weights["def_corner_mark_tall"], priority=98,
     )
     edge = _role(
         "def_corner_edge", "Edge-of-area guard", "Second ball", "Edge of area",
         "Edge of area", "Closes down clearances and late shooters.",
-        _EDGE_DEFENCE, priority=94,
+        weights["def_corner_edge"], priority=94,
     )
     forward = _role(
         "def_corner_forward", "Counter outlet", "Outlet", "Halfway line",
         "Stay forward", "Pins back defenders and gives the clearance a target.",
-        _COUNTER_OUTLET, priority=82, importance=0.8,
+        weights["def_corner_forward"], priority=82,
     )
     return (
         keeper, post_near, post_far, zonal_near, zonal_centre, zonal_far,
@@ -522,19 +386,12 @@ def _defending_free_kick_roles(kind: str) -> tuple[RoutineRole, ...]:
     """Use only the player instructions available in FM's defending-free-kick UI."""
 
     kind = {"free_kick": "indirect_wide"}.get(kind, kind)
+    weights = SET_PIECE_WEIGHTS.routine("defending_free_kicks", kind)
     keeper = _role(
         f"def_{kind}_keeper", "Goalkeeper", "Goalkeeper", "Goal line / six-yard box",
         "Defend area", "Sets the wall, claims deliveries and protects the goal.",
-        (RoleAttribute("aerialReach", 28), RoleAttribute("commandOfArea", 26),
-         RoleAttribute("handling", 16), RoleAttribute("communication", 12),
-         RoleAttribute("anticipation", 10), RoleAttribute("decisions", 8)),
+        weights["keeper"],
         priority=100, goalkeeper=True,
-    )
-    wall_attributes = (
-        RoleAttribute("bravery", 25), RoleAttribute("positioning", 20),
-        RoleAttribute("anticipation", 18), RoleAttribute("jumpingReach", 12),
-        RoleAttribute("balance", 10), RoleAttribute("concentration", 10),
-        RoleAttribute("strength", 5),
     )
     wall_count, mark_count, back_count = {
         "direct_free_kick": (5, 1, 2),
@@ -554,8 +411,7 @@ def _defending_free_kick_roles(kind: str) -> tuple[RoutineRole, ...]:
         _role(
             f"def_{kind}_wall_{index}", f"Wall player {index}", "Wall", zone,
             "Wall", "Blocks the direct shooting route and holds the wall's shape.",
-            wall_attributes, priority=99 - index,
-            importance=1.4 if kind.startswith("direct") else 1.0,
+            weights["wall"], priority=99 - index,
         )
         for index, zone in enumerate(wall_zones, start=1)
     )
@@ -564,7 +420,7 @@ def _defending_free_kick_roles(kind: str) -> tuple[RoutineRole, ...]:
             f"def_{kind}_mark_{index}", f"Man marker {index}", "Box defence",
             f"Runner {index}", "Man mark",
             "Tracks an opposition runner through the delivery phase.",
-            _MAN_MARKING, priority=94 - index, importance=1.1,
+            weights["mark"], priority=94 - index,
         )
         for index in range(1, mark_count + 1)
     )
@@ -573,8 +429,7 @@ def _defending_free_kick_roles(kind: str) -> tuple[RoutineRole, ...]:
             f"def_{kind}_back_{index}", f"Covering defender {index}",
             "Box defence", zone, "Go back",
             "Attacks the delivery and covers a runner who escapes their marker.",
-            _ZONAL_DEFENCE, priority=90 - index,
-            importance=1.0 if kind.startswith("direct") else 1.4,
+            weights["back"], priority=90 - index,
         )
         for index, zone in enumerate(back_zones[:back_count], start=1)
     )
@@ -582,12 +437,12 @@ def _defending_free_kick_roles(kind: str) -> tuple[RoutineRole, ...]:
         _role(
             f"def_{kind}_edge", "Edge-of-area guard", "Second ball", "Edge of area",
             "Edge of area", "Closes down clearances and late shooters.",
-            _EDGE_DEFENCE, priority=84,
+            weights["edge"], priority=84,
         ),
         _role(
             f"def_{kind}_forward", "Counter outlet", "Outlet", "Halfway line",
             "Stay forward", "Pins back defenders and gives the clearance a target.",
-            _COUNTER_OUTLET, priority=82, importance=0.8,
+            weights["forward"], priority=82,
         ),
     ))
     return tuple(roles)
