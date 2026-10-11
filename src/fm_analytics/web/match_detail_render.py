@@ -51,6 +51,7 @@ def _player_rows(report: MatchReport, side: str) -> str:
             f"<td>{stat('goals')}{_conceded(player)}</td><td>{stat('assists')}</td><td>{stat('clear_cut_chances')}</td>"
             f"<td>{stat('key_passes')}</td><td>{stat('chances_created')}</td><td>{stat('dribbles')}</td>"
             f"<td>{stat('passes_completed')}/{stat('passes_attempted')}</td>"
+            f"<td>{_crosses(player)}</td>"
             f"<td>{stat('tackles_won')}/{stat('tackles_attempted')}</td><td>{stat('headers_won')}/{stat('headers_attempted')}</td>"
             f"<td>{stat('fouls')}</td><td>{stat('corners_taken')}</td>"
             f"<td data-sort='{player.distance_m}'>{player.distance_m / 1000:.1f} km</td></tr>"
@@ -58,10 +59,16 @@ def _player_rows(report: MatchReport, side: str) -> str:
     return (
         "<div class='table-scroll'><table class='sortable'><thead><tr><th>#</th><th>Player</th><th>Role</th><th>Position</th><th>Minutes</th><th>Rating</th>"
         "<th>Shots (on target, blocked)</th><th>Goals</th><th>Assists</th><th>Clear-cut chances</th>"
-        "<th>Key passes</th><th>Chances created</th><th>Dribbles</th><th>Passes</th><th>Tackles</th><th>Headers</th><th>Fouls</th><th>Corners</th><th>Distance</th></tr></thead>"
+        "<th>Key passes</th><th>Chances created</th><th>Dribbles</th><th>Passes</th><th>Crosses completed/attempted</th><th>Tackles</th><th>Headers</th><th>Fouls</th><th>Corners</th><th>Distance</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
         + _unused(detail.players_for(side))
     )
+
+
+def _crosses(player) -> str:
+    if "crosses_attempted" not in player.stats or "crosses_completed" not in player.stats:
+        return "–"
+    return f"{player.stats['crosses_completed']}/{player.stats['crosses_attempted']}"
 
 
 def _position(player) -> str:
@@ -211,11 +218,12 @@ def _count_rows(match, side: str) -> str:
     ours, theirs = match.detail.team(side), match.detail.team(other)
     rows = []
     for done, tried, label in (("passes_completed", "passes_attempted", "Passes completed (of attempted)"),
+                               ("crosses_completed", "crosses_attempted", "Crosses completed (of attempted)"),
                                ("tackles_won", "tackles_attempted", "Tackles won (of attempted)"),
                                ("headers_won", "headers_attempted", "Headers won (of attempted)")):
         rows.append(
             f"<tr><td>{label}</td><td>{versus(ours.get(done), theirs.get(done))}"
-            f"<span class='muted'> of {ours.get(tried, 0)} and {theirs.get(tried, 0)}</span></td></tr>"
+            f"<span class='muted'> of {versus(ours.get(tried), theirs.get(tried))}</span></td></tr>"
         )
     return "".join(rows)
 

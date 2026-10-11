@@ -56,8 +56,8 @@ class DetailLevelTests(HistoryCase):
             document = self.export(detail)
             self.assertEqual(
                 list(document),
-                ["format", "formatVersion", "meta", "season", "review", "diagnostics", "goals", "breakdowns", "roles",
-                 "players", "matches"],
+                ["format", "formatVersion", "meta", "season", "review", "diagnostics", "goals", "breakdowns",
+                 "season_trends", "roles", "players", "matches"],
             )
             self.assertEqual(document["formatVersion"], 2)
             self.assertIn("top_opportunities", document["diagnostics"])
@@ -121,8 +121,10 @@ class DetailLevelTests(HistoryCase):
         match = self.detailed(document)
         self.assertEqual(match["summary_for"]["possession"], 40)
         self.assertEqual(len(match["our_players"]), 11)
-        self.assertNotIn("stats", match["our_players"][0])
-        self.assertNotIn("their_players", match)
+        self.assertIn("stats", match["our_players"][0])
+        self.assertEqual(len(match["their_players"]), 11)
+        self.assertIn("stats", match["their_players"][0])
+        self.assertIn("team_stats_against", match)
         scorer = next(player for player in document["players"] if player["name"] == "Home 11")
         self.assertEqual((scorer["goals"], scorer["shots"], scorer["per90"]["shots"]), (1, 5, 5.0))
 
@@ -132,6 +134,36 @@ class DetailLevelTests(HistoryCase):
         self.assertEqual(len(match["their_players"]), 11)
         self.assertEqual(match["our_players"][10]["stats"], {"shots": 5, "goals": 1, "clear_cut_chances": 2})
         self.assertEqual([event["minute"] for event in match["timeline"] if event["event"] == "goal"], [12, 50, 93])
+
+    def test_crossing_exports_preserve_missingness_and_use_only_observed_minutes(self) -> None:
+        original = self.detailed(self.export("standard"))
+        self.assertNotIn("crosses_attempted", original["our_players"][0]["stats_recorded"])
+        self.assertIsNone(original["team_stats_for"]["cross_completion_pct"])
+        matches = season()
+        detailed = matches[-1]["detail"]
+        for side in ("home", "away"):
+            detailed[side].update(crosses_attempted=4, crosses_completed=1)
+        for player in detailed["players"]:
+            player["stats"].update(crosses_attempted=0, crosses_completed=0)
+        detailed["players"][10]["stats"].update(crosses_attempted=4, crosses_completed=1)
+        detailed["players"][21]["stats"].update(crosses_attempted=4, crosses_completed=1)
+        self.capture.write_text(json.dumps(capture_document(matches)), encoding="utf-8")
+        record_capture_file(self.store, self.capture)
+        self.history = self.store.load_history("club:100")
+        for level in ("standard", "verbose"):
+            doc = self.export(level)
+            match = self.detailed(doc)
+            for key in ("our_players", "their_players"):
+                self.assertEqual(match[key][0]["stats"]["crosses_attempted"], 0)
+                self.assertEqual(match[key][10]["stats"]["crosses_completed"], 1)
+                self.assertEqual(match[key][10]["cross_completion_pct"], 25)
+            self.assertEqual(match["team_stats_against"]["cross_completion_pct"], 25)
+            player = next(p for p in doc["players"] if p["name"] == "Home 11")
+            self.assertEqual(player["crossing_coverage"]["crosses_attempted"], {"appearances": 1, "minutes": 90})
+            self.assertEqual(player["per90"]["crosses_attempted"], 4)
+        report = build_match_report(self.history, DETAILED)
+        exported = build_match_export(self.history, report)["match"]
+        self.assertEqual(exported["their_players"][10]["stats"]["crosses_completed"], 1)
 
     def test_line_ups_show_where_each_player_played_and_verbose_where_he_started(self) -> None:
         self.assertIsNone(self.detailed(self.export("standard"))["our_players"][10]["position"])
@@ -244,7 +276,7 @@ class MatchExportTests(HistoryCase):
                          {key: value for key, value in entry.items() if key != "their_players"})
         self.assertEqual([line["name"] for line in match["their_players"]],
                          [line["name"] for line in entry["their_players"]])
-        self.assertNotIn("stats", entry["their_players"][0])  # the season keeps theirs short
+        self.assertIn("stats", entry["their_players"][0])  # every non-basic export retains both teams
         self.assertIn("stats", match["their_players"][0])
         self.assertEqual(match["league_at_kickoff"], {
             "league": "Test League South", "season": None, "teams": 4,

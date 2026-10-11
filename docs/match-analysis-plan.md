@@ -92,6 +92,34 @@ both the page and `fm-matches review` use.
   figures. Every figure is also in `fm-matches review` and both exports,
   which carry each shot's clock and goal-line position, each match's split
   by the score and any FM timeline codes not yet identified.
+- **Season trends** (the panel after "Results against chances"; 11 October
+  2026): how you managed the score in the matches the filters select, for
+  every match, the last 10 and the last 5 (`analytics/season_trends.py`,
+  `reporting.build_season_trends`; the same lines in `fm-matches review` and
+  `season_trends` in both exports).
+  - **Points dropped from winning positions:** matches you led at some point
+    and did not win (a draw drops two, a defeat three), listed with how the
+    score went, beside how often a side that led went on to win in the same
+    matches, both sides counted. A chart draws the running total.
+  - **Their chances while you led:** their shots and clear-cut chances per 90
+    minutes ahead, beside the same while level.
+  - **The last 15 minutes** (from FM's 76th minute): goals and clear-cut
+    chances each way, and the points won and lost then, each result against
+    the score after 75 minutes, with its own running-total chart.
+  - **Before and after your changes:** each substitution (FM records the
+    minute; several in one minute are one change) and each mentality change
+    you recorded: the 15 minutes after it against the 15 before, each stopping
+    at the change before or after; split by the score at that minute. Their substitutions
+    are alongside for comparison, since later minutes and the score move both
+    sides whoever changes anything. Changes between matches (a different
+    tactic) are the tactic tables' job, not this panel's.
+
+  Results figures need every goal timed and leave out extra-time matches;
+  chance figures are exactly the "By the score" and "By period" panels' (the
+  same `match_clock` and `counted_split`), so they need every shot and leave
+  out matches with a sending-off. On 11 October 2026, in 2020/21: led in 12 of
+  16, 12 points dropped; after 75′ 1–5 in goals and 7 points lost; after
+  substitutions made while ahead, their shots went from 13.8 to 17.1 a 90.
 - **Goals and chances conceded** (the **Goals conceded** page, `/conceded`;
   11 October 2026): every goal and clear-cut chance against us in the
   matches the Matches page's filters select, one by one and broken down: how
@@ -234,11 +262,11 @@ both the page and `fm-matches review` use.
 | Reading FM | `tools/fm20_match_layout.py` (byte layouts, tested), `tools/fm20_match_probe.py` (`capture`, plus the research commands) |
 | Domain | `domain/matches.py` (`MatchCapture`, `MatchRecord`, `MatchDetail`, …) |
 | Storage | `persistence/match_history.py`, with the upgrade runner shared with player knowledge in `persistence/migrations.py`; your mentality record is `domain/mentality.py` |
-| Analysis | `analytics/match_strength.py` (league table at kickoff, strength groups), `analytics/match_roles.py` (role codes, tactic inference, role summaries), `analytics/match_analysis.py` (the review), `analytics/match_diagnostics.py` and `analytics/single_match_diagnosis.py` (season and one-match diagnosis), `analytics/chance_value.py` and `analytics/match_chances.py` (result vs chances), `analytics/game_state.py`, `analytics/role_ratings.py` and `analytics/season_chances.py` (season findings and results against chances) |
-| Shared computation | `reporting.build_match_review`, `reporting.build_match_report`, `reporting.build_matches_export` |
+| Analysis | `analytics/match_strength.py` (league table at kickoff, strength groups), `analytics/match_roles.py` (role codes, tactic inference, role summaries), `analytics/match_analysis.py` (the review), `analytics/match_diagnostics.py` and `analytics/single_match_diagnosis.py` (season and one-match diagnosis), `analytics/chance_value.py` and `analytics/match_chances.py` (result vs chances), `analytics/game_state.py`, `analytics/role_ratings.py` and `analytics/season_chances.py` (season findings and results against chances), `analytics/season_trends.py` (season trends) |
+| Shared computation | `reporting.build_match_review`, `reporting.build_match_report`, `reporting.build_matches_export`, `reporting.build_season_trends` |
 | Command line | `match_ingest.py` (`fm-matches`) |
-| Web | `web/match_pages.py`, `web/match_render.py`, `web/match_state.py`, `web/match_detail_render.py`, `web/match_diagnosis_render.py`, `web/match_chances_render.py`, `web/season_chances_render.py`, `web/mentality_render.py` (styles in `frontend/styles/match-chances.css`, chart hover in `frontend/scripts/trend-chart.js`) |
-| Tests | `test_match_models`, `test_match_history`, `test_match_analysis`, `test_match_ingest`, `test_web_matches`, `test_fm20_match_layout`, `test_match_diagnostics`, `test_match_chances` |
+| Web | `web/match_pages.py`, `web/match_render.py`, `web/match_state.py`, `web/match_detail_render.py`, `web/match_diagnosis_render.py`, `web/match_chances_render.py`, `web/season_chances_render.py`, `web/season_trends_render.py`, `web/mentality_render.py` (styles in `frontend/styles/match-chances.css` and `season-trends.css`, chart hover in `frontend/scripts/trend-chart.js`) |
+| Tests | `test_match_models`, `test_match_history`, `test_match_analysis`, `test_match_ingest`, `test_web_matches`, `test_fm20_match_layout`, `test_match_diagnostics`, `test_match_chances`, `test_season_trends` |
 
 ### Differences from the plan below
 

@@ -8,11 +8,11 @@ known by FM's unique ID when he is in the managed squad, else by his name.
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Iterable, Mapping
 
-from fm_analytics.domain.matches import PLAYER_STAT_KEYS, PlayerMatchStats
+from fm_analytics.domain.matches import CROSS_STAT_KEYS, PLAYER_STAT_KEYS, PlayerMatchStats
 
 
 @dataclass(frozen=True)
@@ -33,6 +33,7 @@ class PlayerSeason:
     stats: Mapping[str, int]  # every PLAYER_STAT_KEYS total
     roles: tuple[tuple[str, int], ...]  # role label, appearances; most played first
     ratings: tuple[PlayerRating, ...]  # oldest first
+    stat_coverage: Mapping[str, tuple[int, int]] = field(default_factory=dict)  # observed appearances, minutes
 
     @property
     def substitute_appearances(self) -> int:
@@ -71,6 +72,11 @@ def summarise_players(
         counts["distance_m"] += player.distance_m
         for key in PLAYER_STAT_KEYS:
             counts[key] += player.stat(key)
+        for key in CROSS_STAT_KEYS:
+            if key in player.stats:
+                counts[key] += player.stats[key]
+                counts[f"{key}_appearances"] += 1
+                counts[f"{key}_minutes"] += player.minutes
         row["roles"][role] += 1
         if player.rating is not None:
             row["ratings"].append(PlayerRating(day, opponent, player.rating))
@@ -82,7 +88,11 @@ def summarise_players(
             starts=row["counts"]["starts"],
             minutes=row["counts"]["minutes"],
             distance_m=row["counts"]["distance_m"],
-            stats={key: row["counts"][key] for key in PLAYER_STAT_KEYS},
+            stats={key: row["counts"][key] for key in PLAYER_STAT_KEYS}
+                  | {key: row["counts"][key] for key in CROSS_STAT_KEYS
+                     if row["counts"][f"{key}_appearances"]},
+            stat_coverage={key: (row["counts"][f"{key}_appearances"], row["counts"][f"{key}_minutes"])
+                           for key in CROSS_STAT_KEYS},
             roles=tuple(row["roles"].most_common()),
             ratings=tuple(sorted(row["ratings"], key=lambda item: item.date)),
         )

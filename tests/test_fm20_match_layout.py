@@ -112,6 +112,7 @@ class TeamBlockTests(unittest.TestCase):
         values = {"possession_time": 5131, "goals": 2, "shots": 15, "shots_on_target": 6, "clear_cut_chances": 1,
                   "corners": 3, "fouls": 9, "passes_attempted": 474, "passes_completed": 344,
                   "tackles_attempted": 10, "tackles_won": 8, "headers_attempted": 68, "headers_won": 45}
+        values.update(crosses_attempted=33, crosses_completed=5)
         for name, offset, fmt in layout.TEAM_FIELDS:
             struct.pack_into(fmt, block, offset, values[name])
         self.assertEqual(layout.decode_team_block(bytes(block)), values)
@@ -120,6 +121,16 @@ class TeamBlockTests(unittest.TestCase):
 
 
 class PlayerRecordTests(unittest.TestCase):
+    def test_woking_cross_counts_use_the_verified_player_fields(self) -> None:
+        # User read Jefford 4 at 25% and Casey 22 at 27% from FM; these
+        # bytes also matched the archive for all 28 players who played.
+        for attempted, completed in ((4, 1), (22, 6)):
+            raw = bytearray(self.record())
+            raw[0x8F:0x91] = bytes((attempted, completed))
+            stats = layout.decode_player_record(bytes(raw))["stats"]
+            self.assertEqual((stats["crosses_attempted"], stats["crosses_completed"]),
+                             (attempted, completed))
+
     def record(self, *, short_id=102619, code=0x80, distance=11985.0, shirt=11, side=1, rating=805,
                came_on=0, went_off=0, start=0, centre=0, position=0) -> bytes:
         record = bytearray(layout.PLAYER_RECORD_SIZE)

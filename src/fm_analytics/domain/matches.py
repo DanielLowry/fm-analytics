@@ -58,6 +58,8 @@ TEAM_STAT_KEYS = (
     "fouls",
     "passes_attempted",
     "passes_completed",
+    "crosses_attempted",
+    "crosses_completed",
     "tackles_attempted",
     "tackles_won",
     "headers_attempted",
@@ -84,6 +86,8 @@ PLAYER_STAT_KEYS = (
     "corners_taken",
     "goals_conceded",
 )
+# Added after the original capture: absence in an older record means unknown.
+CROSS_STAT_KEYS = ("crosses_attempted", "crosses_completed")
 
 
 def _require(document: Mapping[str, Any], key: str, kind: type | tuple[type, ...], where: str) -> Any:

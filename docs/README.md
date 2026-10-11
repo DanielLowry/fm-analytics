@@ -30,6 +30,10 @@
   league rosters, player rankings, best-XI score ranges, and a league overview
   using the same scoring model as our own team. Capture-driven scoring,
   history, and screens are built; automatic live acquisition remains open.
+- [League: the hidden-attribute view](hidden-attributes.md) is the one page that
+  uses values FM hides: every squad and every XI fielded this season scored from
+  true attributes, with expected points, to tell squad quality from the rest.
+  How its data is read and quarantined, the model, and its limits.
 - [League capture contract](contracts/league-capture.md) defines dated
   membership/roster evidence, visible observations, history, and an explicit
   synthetic demo for reviewing the comparison pages.
@@ -63,8 +67,14 @@
 - [Historical match duty extraction](match-duty-extraction.md) records the
   direct 64-bit duty source, bounded archive decoder, and unresolved historical
   team/player/snapshot attribution.
+- [Match-stat coverage](match-stat-coverage.md) lists the captured player
+  counts, crossing verification, remaining gaps, and how to recapture and
+  export the actual season without treating missing counts as zeros.
 - [Tactic experiments](match-experiments.md): store the matches you choose, group
   them and compare what you tried; how many replays a comparison needs.
+- [Hampton & Richmond experiment log](hampton-experiments.md): the replay
+  setups, results, decisions and run-by-run record for tactics, Chaney marking
+  and wide pressing, with the next test and its measures.
 - [Reading FM's match replays](match-replay-extraction.md) is the research
   brief for corners, conceded penalties and shot positions: what is known,
   the routes and the main risk.

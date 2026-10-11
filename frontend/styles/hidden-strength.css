@@ -1,0 +1,67 @@
+/*
+ * The League page's hidden view (web/hidden_render.py), light and dark: the "uses hidden attributes"
+ * banner, the verdict and its tiles, signed differences, result chips and the two XIs of a match.
+ * The banner is amber in both themes so it never reads as an ordinary note; differences are tinted
+ * green/red but always print their sign, so nothing is read from colour alone.
+ * Imported by app.css; every selector starts body.fm-app, as match-chances.css explains.
+ */
+body.fm-app { --fm-hidden-amber-bg: #fff6e0; --fm-hidden-amber-border: #e7b54a; --fm-hidden-amber-ink: #6b4a08;
+  --fm-hidden-up: #12693f; --fm-hidden-down: #b03a26; }
+:root.dark body.fm-app { --fm-hidden-amber-bg: rgba(231, 181, 74, .12); --fm-hidden-amber-border: #b98a2c;
+  --fm-hidden-amber-ink: #f3d79a; --fm-hidden-up: #6fd29a; --fm-hidden-down: #f08a74; }
+
+body.fm-app .fm-hidden-banner { display: block; margin: .6rem 0 .8rem; padding: .7rem .95rem .7rem 2.6rem; position: relative;
+  border: 1px solid var(--fm-hidden-amber-border); border-radius: .65rem; background: var(--fm-hidden-amber-bg);
+  color: var(--fm-hidden-amber-ink); font-size: .86rem; line-height: 1.5; }
+body.fm-app .fm-hidden-banner::before { content: "◐"; position: absolute; left: .95rem; top: .62rem; font-size: 1.05rem; }
+body.fm-app .fm-hidden-banner b { color: inherit; }
+
+body.fm-app .fm-hidden-hero h2 { margin-bottom: .2rem; }
+body.fm-app .fm-hidden-hero > p { max-width: 90ch; }
+body.fm-app .fm-hidden-answer { margin: .9rem 0 .2rem !important; color: var(--color-ink-800) !important; font-size: 1.02rem; line-height: 1.55; }
+body.fm-app .fm-hidden-answer b { color: var(--color-ink-900); }
+body.fm-app .fm-hidden-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: .9rem 0 0; }
+body.fm-app .fm-hidden-tiles .fm-decision-stat { background: color-mix(in srgb, var(--fm-card) 82%, transparent); }
+@media (max-width: 900px) { body.fm-app .fm-hidden-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { body.fm-app .fm-hidden-tiles { grid-template-columns: 1fr; } }
+
+body.fm-app .fm-hidden-hero-foot { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: .6rem 1.2rem;
+  margin-top: 1rem; padding-top: .85rem; border-top: 1px solid color-mix(in srgb, var(--color-brand-300) 40%, var(--fm-border)); }
+body.fm-app .fm-hidden-hero-foot .fm-table-toolbar { margin: 0; }
+body.fm-app .fm-hidden-controls { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; margin: 0; }
+body.fm-app .fm-hidden-controls label { display: grid; gap: .25rem; color: var(--color-ink-500); font-size: .72rem; font-weight: 650; }
+body.fm-app .fm-hidden-controls select { min-width: 11rem; }
+body.fm-app .fm-hidden-controls button { border-radius: .45rem; background: var(--color-brand-600); font-weight: 650; }
+body.fm-app .fm-hidden-controls button:hover { background: var(--color-brand-700); }
+
+body.fm-app td.fm-hidden-delta { font-variant-numeric: tabular-nums; font-weight: 650; }
+body.fm-app td.fm-hidden-delta[data-tone='up'] { color: var(--fm-hidden-up); }
+body.fm-app td.fm-hidden-delta[data-tone='down'] { color: var(--fm-hidden-down); }
+body.fm-app td.fm-hidden-delta[data-tone='level'] { color: var(--color-ink-500); }
+body.fm-app .fm-hidden-result { display: inline-grid; place-items: center; width: 1.25rem; height: 1.25rem; margin-right: .2rem;
+  border-radius: .3rem; color: white; font-size: .68rem; font-weight: 750; }
+body.fm-app .fm-hidden-result[data-result='W'] { background: #1f8a52; }
+body.fm-app .fm-hidden-result[data-result='D'] { background: #6b7889; }
+body.fm-app .fm-hidden-result[data-result='L'] { background: #c0452f; }
+body.fm-app #our-matches tfoot th, body.fm-app #our-matches tfoot td { border-top: 2px solid var(--fm-border); font-weight: 700; }
+body.fm-app td.fm-nowrap { white-space: nowrap; }
+body.fm-app td sup { margin-left: .1rem; color: var(--color-ink-400); }
+
+body.fm-app .fm-hidden-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.6rem; padding: .6rem 0 .3rem; }
+@media (max-width: 760px) { body.fm-app .fm-hidden-pair { grid-template-columns: 1fr; } }
+body.fm-app .fm-hidden-pair h4 { margin: 0; color: var(--color-ink-900); font-size: .92rem; }
+body.fm-app .fm-hidden-pair .fm-metric-note { margin: .1rem 0 .45rem; }
+body.fm-app .fm-hidden-xi { display: grid; gap: .2rem; margin: 0; padding: 0; list-style: none; }
+body.fm-app .fm-hidden-xi li { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr) auto; align-items: baseline; gap: 0 .6rem;
+  padding: .3rem .5rem; border-radius: .4rem; background: var(--fm-page); font-size: .84rem; }
+body.fm-app .fm-hidden-xi li span { color: var(--color-ink-500); font-size: .72rem; font-weight: 700; }
+body.fm-app .fm-hidden-xi li b { overflow: hidden; color: var(--color-ink-900); font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+body.fm-app .fm-hidden-xi li small { grid-column: 2; color: var(--color-ink-500); font-size: .72rem; }
+body.fm-app .fm-hidden-xi li em { grid-row: 1; grid-column: 3; color: var(--color-ink-800); font-style: normal; font-variant-numeric: tabular-nums; font-weight: 700; }
+body.fm-app .fm-hidden-method { display: grid; gap: .45rem; margin: .6rem 0 0; padding-left: 1.1rem; color: var(--color-ink-600); font-size: .86rem; line-height: 1.5; }
+
+body.fm-app .fm-hidden-link { display: grid; gap: .15rem; margin: .9rem 0 0 !important; padding: .7rem .9rem;
+  border: 1px solid var(--fm-hidden-amber-border); border-radius: .6rem; background: var(--fm-hidden-amber-bg); }
+body.fm-app .fm-hidden-link a { color: var(--fm-hidden-amber-ink); font-weight: 700; text-decoration: none; }
+body.fm-app .fm-hidden-link a:hover { text-decoration: underline; }
+body.fm-app .fm-hidden-link span { color: var(--fm-hidden-amber-ink); font-size: .8rem; opacity: .85; }

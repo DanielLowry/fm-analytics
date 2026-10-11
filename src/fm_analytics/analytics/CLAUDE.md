@@ -16,6 +16,14 @@ requirement, not a style preference — the whole point of the tool is that
 its numbers are things the manager could in principle have worked out by
 hand.
 
+The one exception is `hidden_strength.py`, the League page's hidden view
+(docs/hidden-attributes.md): the manager asked for squads to be measured from
+the true values FM keeps, to separate squad quality from everything else. It
+reuses the shared scorer on true inputs; the scorer itself is unchanged and
+never sees a hidden value anywhere else. Nothing in here may import
+`hidden_strength` or `domain.hidden`, and nothing it computes may feed a
+recommendation (`tests/test_hidden_strength.py::BoundaryTests`).
+
 ## Where the data lives
 
 `data/catalogue.json` (version, exclusion groups, notes), `data/roles/<pos>.json`

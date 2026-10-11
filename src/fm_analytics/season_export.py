@@ -10,11 +10,11 @@ Every detail level has the same sections; a higher level adds depth to them:
 
 * ``basic``: records, league table, the review's splits, goals and roles,
   one line per player and per match. Needs only the match history.
-* ``standard``: adds per-player totals and per-90s, each match's panel
-  summary and our line-up, and (with a squad) fitness, best roles and the
+* ``standard``: adds per-player totals and per-90s, both match panels and
+  both line-ups' recorded stats, and (with a squad) fitness, best roles and the
   app's tactic ranking and XI.
-* ``verbose``: adds every player's stat line in every match, both teams'
-  full panels, goal timelines, every visible attribute, and the whole
+* ``verbose``: adds detailed own-player metadata, goal timelines,
+  every visible attribute, and the whole
   tactic ranking with depth and recruitment briefs.
 
 `match_document` is one match on its own, for the match page's copy button
@@ -52,7 +52,7 @@ from fm_analytics.analytics.season_trends import season_trends
 from fm_analytics.analytics.penalty_record import conceded_penalties
 from fm_analytics.analytics.match_strength import TablePosition, league_seasons, league_table
 from fm_analytics.domain import AttributeObservation, Player
-from fm_analytics.domain.matches import PLAYER_STAT_KEYS, PlayerMatchStats
+from fm_analytics.domain.matches import CROSS_STAT_KEYS, PlayerMatchStats
 
 if TYPE_CHECKING:
     from fm_analytics.persistence.match_history import MatchHistory
@@ -196,6 +196,17 @@ def player_json(season: PlayerSeason, detail: str, events: PlayerEvents | None =
                         "chances_created", "dribbles", "tackles_won", "headers_won")
         } | {"distance_km": _round(season.per_90(season.distance_m / 1000))},
     })
+    row.update({key: season.stats.get(key) for key in CROSS_STAT_KEYS})
+    row["crossing_coverage"] = {
+        key: {"appearances": season.stat_coverage.get(key, (0, 0))[0],
+              "minutes": season.stat_coverage.get(key, (0, 0))[1]}
+        for key in CROSS_STAT_KEYS
+    }
+    tried, done = (season.stats.get(key) for key in CROSS_STAT_KEYS)
+    row["cross_completion_pct"] = _percent(done, tried) if tried is not None and done is not None else None
+    for key in CROSS_STAT_KEYS:
+        minutes = season.stat_coverage.get(key, (0, 0))[1]
+        row["per90"][key] = _round(90 * season.stats[key] / minutes) if minutes else None
     if events is not None:
         row.update({
             "yellow_cards": events.yellow_cards, "sent_off": events.sent_off,
@@ -221,6 +232,8 @@ def _team_panel(team: Mapping[str, int], players: Iterable[PlayerMatchStats]) ->
         "pass_completion_pct": _percent(team.get("passes_completed", 0), team.get("passes_attempted", 0)),
         "tackles_won_pct": _percent(team.get("tackles_won", 0), team.get("tackles_attempted", 0)),
         "headers_won_pct": _percent(team.get("headers_won", 0), team.get("headers_attempted", 0)),
+        "cross_completion_pct": (_percent(team["crosses_completed"], team["crosses_attempted"])
+                                 if all(key in team for key in CROSS_STAT_KEYS) else None),
         "key_passes": sum(p.stat("key_passes") for p in players),
         "chances_created": sum(p.stat("chances_created") for p in players),
         "dribbles": sum(p.stat("dribbles") for p in players),
@@ -232,15 +245,19 @@ def _line(player: PlayerMatchStats, role: str, *, full: bool) -> dict[str, Any]:
     line: dict[str, Any] = {
         "name": player.label, "role": role, "position": player.position,
         "started": player.started, "minutes": player.minutes, "rating": player.rating,
+        # Keep recorded zero crosses distinct from older uncaptured crosses.
+        # Other zero counts stay compact; stats_recorded identifies their coverage.
+        "stats": {key: value for key, value in player.stats.items() if value or key in CROSS_STAT_KEYS},
+        "stats_recorded": sorted(player.stats),
     }
+    tried, done = (player.stats.get(key) for key in CROSS_STAT_KEYS)
+    line["cross_completion_pct"] = _percent(done, tried) if tried is not None and done is not None else None
     if full:
         line.update({
             "player_id": player.player_id, "shirt": player.shirt,
             "start_position": player.start_position, "start_centre_side": player.start_centre_side,
             "came_on": player.came_on, "went_off": player.went_off,
             "distance_km": _round(player.distance_m / 1000),
-            # Zeros are left out to keep a season's lines readable; a missing key is 0.
-            "stats": {key: player.stat(key) for key in PLAYER_STAT_KEYS if player.stat(key)},
         })
     else:
         line.update({key: player.stat(key) for key in SUMMARY_STATS if player.stat(key)})
@@ -309,14 +326,12 @@ def _match(summary: MatchSummary, kind: str, codes: RoleCodes, catalogue: Footba
         "summary_for": _metrics(summary.ours),
         "summary_against": _metrics(summary.theirs),
         "our_players": [_line(player, role(player), full=detail != "standard") for player in ours],
+        "team_stats_for": _team_panel(match.detail.team(side), match.detail.players_for(side)),
+        "team_stats_against": _team_panel(match.detail.team(other), match.detail.players_for(other)),
+        "their_players": [_line(player, role(player), full=detail == "match")
+                          for player in match.detail.players_for(other) if player.played],
     })
     if detail in ("verbose", "match"):
-        theirs = [player for player in match.detail.players_for(other) if player.played]
-        row.update({
-            "team_stats_for": _team_panel(match.detail.team(side), match.detail.players_for(side)),
-            "team_stats_against": _team_panel(match.detail.team(other), match.detail.players_for(other)),
-            "their_players": [_line(player, role(player), full=detail == "match") for player in theirs],
-        })
         row.update(_timeline(match, side, shots=detail == "match", mentality=summary.mentality))
     return row
 

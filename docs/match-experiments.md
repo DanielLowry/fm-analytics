@@ -3,6 +3,10 @@
 Added 10 October 2026. Store the matches you choose, group them, and compare
 what you tried, label by label.
 
+For the current Hampton & Richmond study, see the
+[experiment log](hampton-experiments.md): setups, checkpoints, decisions and
+each stored run's results.
+
 ## Why
 
 FM's match engine is random, and a season's matches each have a different

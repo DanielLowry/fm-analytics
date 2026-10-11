@@ -2,7 +2,7 @@ const initialized = new WeakSet();
 
 // Keep each cell on one spreadsheet line. Copy displayed descriptions without
 // duplicating nested tables or including closed explanation panels and controls.
-export function tableText(table) {
+function tableCells(table) {
   const styles = new WeakMap();
   const style = (node) => {
     if (!styles.has(node)) styles.set(node, getComputedStyle(node));
@@ -23,7 +23,20 @@ export function tableText(table) {
     let value = text(cell).replace(/\s+/g, ' ').trim();
     if (cell.tagName === 'TH') value = value.replace(/ [▲▼]$/, '');
     return [value, ...Array(cell.colSpan - 1).fill('')];
-  }).join('\t')).join('\n');
+  }));
+}
+
+export function tableText(table) {
+  return tableCells(table).map((row) => row.join('\t')).join('\n');
+}
+
+// The same cells as a Markdown table, for pasting into notes or a chat. The first row is the header.
+export function tableMarkdown(table) {
+  const rows = tableCells(table);
+  if (!rows.length) return '';
+  const width = Math.max(...rows.map((row) => row.length));
+  const line = (row) => `| ${Array.from({ length: width }, (_, i) => (row[i] ?? '').replace(/\|/g, '\\|')).join(' | ')} |`;
+  return [line(rows[0]), `|${' --- |'.repeat(width)}`, ...rows.slice(1).map(line)].join('\n');
 }
 
 function legacyCopy(value) {
@@ -62,15 +75,24 @@ export function initTableCopies(scope = document) {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'fm-table-copy';
     button.textContent = 'Copy to clipboard'; button.title = 'Copy headers and visible rows in their current order';
     const status = document.createElement('span'); status.className = 'fm-table-copy-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
-    toolbar.append(button, status);
-    button.addEventListener('click', async () => {
-      button.disabled = true; status.textContent = '';
+    toolbar.append(button);
+    const copies = [[button, tableText, 'Copied!']];
+    // A table marked data-copy-markdown also offers its cells as a Markdown table.
+    if ('copyMarkdown' in table.dataset) {
+      button.textContent = 'Copy for a spreadsheet'; button.title = 'Tab-separated: headers and visible rows in their current order';
+      const markdown = document.createElement('button'); markdown.type = 'button'; markdown.className = 'fm-table-copy';
+      markdown.textContent = 'Copy as Markdown'; markdown.title = 'A Markdown table of the headers and visible rows in their current order';
+      toolbar.append(markdown);
+      copies.push([markdown, tableMarkdown, 'Copied as Markdown!']);
+    }
+    toolbar.append(status);
+    copies.forEach(([control, format, done]) => control.addEventListener('click', async () => {
+      control.disabled = true; status.textContent = '';
       try {
-        const value = tableText(table);
-        await copyText(value);
-        status.textContent = 'Copied!';
+        await copyText(format(table));
+        status.textContent = done;
       } catch { status.textContent = 'Could not copy. Select the table and copy manually.'; }
-      finally { button.disabled = false; }
-    });
+      finally { control.disabled = false; }
+    }));
   });
 }

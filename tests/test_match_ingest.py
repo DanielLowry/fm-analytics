@@ -13,6 +13,7 @@ from fm_analytics.match_ingest import (
     format_diagnostics,
     format_intervention,
     format_review,
+    format_trends,
     main,
     record_capture_file,
 )
@@ -21,6 +22,7 @@ from fm_analytics.reporting import (
     build_match_diagnostics,
     build_match_intervention_evaluation,
     build_match_review,
+    build_season_trends,
 )
 
 from tests.match_support import capture_document, season, two_seasons
@@ -70,6 +72,7 @@ class IngestAndReadTests(CliCase):
         )
         expected = (
             format_review(review)
+            + format_trends(build_season_trends(review))
             + format_diagnostics(build_match_diagnostics(review))
             + format_intervention(build_match_intervention_evaluation(history, lifecycle_review))
         )

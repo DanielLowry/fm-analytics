@@ -3,6 +3,10 @@
 Manager-visible analytics for Football Manager 2020: recommends tactics, XIs,
 and recruitment targets using only information a human manager could see —
 never hidden Current Ability, Potential Ability, or other internal values.
+One deliberate, quarantined exception: the League page's hidden view
+(`/league/hidden`, [docs/hidden-attributes.md](docs/hidden-attributes.md)) scores
+every squad from the true attribute values FM keeps, at the manager's request,
+to tell squad quality apart from everything else. Its data never leaves it.
 
 ## Layout
 
@@ -64,6 +68,13 @@ score", "By period", "How the goals came", "Against each formation", "Your
 players" and "By mentality" panels, the same lines of `fm-matches review` and the exports' `breakdowns`
 (`analytics/match_breakdowns.py`); a match's own split by the score comes with its
 `build_match_report` timeline.
+`reporting.build_season_trends` is the one behind the Matches page's "Season
+trends" panel, the same lines of `fm-matches review` and the exports' `season_trends`
+(`analytics/season_trends.py`): points dropped from winning positions, their chances
+while you led, the last 15 minutes, and the 15 minutes either side of each
+substitution and recorded mentality change, for every match, the last 10 and the
+last 5. Its chance figures read matches through `match_breakdowns.match_clock` and
+`counted_split`, so they are the "By the score" and "By period" panels' own.
 `reporting.build_experiment_report` is the one behind the Experiments pages and
 `fm-experiments compare`: stored matches compared label by label
 (`docs/match-experiments.md`); `reporting.build_stored_match_report` is a stored
@@ -90,6 +101,12 @@ out of `load_history`); `reporting.build_opponent_export` is its JSON copy
 `reporting.build_league_comparison` is the one behind `/league` and its team
 pages, deliberately without recent form (it exists only for our players), and
 `reporting.league_scope` decides which earlier read a new one is compared with.
+`hidden_reporting.build_hidden_strength_report` is the one behind `/league/hidden`, and
+`build_hidden_strength_export` its "Copy everything as JSON". HIDDEN DATA, so it lives
+outside `reporting.py`, which never imports it: it reads `data/hidden-capture.json`
+(`domain/hidden.py`, written by `tools/fm20_hidden_capture.py`) through
+`analytics/hidden_strength.py`, and no other computation may import any of them;
+`tests/test_hidden_strength.py::BoundaryTests` enforces that.
 `reporting.build_appearance_coverage` is the one behind `fm-matches coverage`:
 which appearances have a known tactic, position and role with its duty, and
 `reporting.build_player_form` the one behind `fm-matches form`: each player's

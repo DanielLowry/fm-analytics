@@ -59,6 +59,8 @@ RECORD_FIELDS: tuple[tuple[str, int], ...] = (
     ("fouls", 47),
     ("passes_attempted", 73),
     ("passes_completed", 74),
+    ("crosses_attempted", 76),
+    ("crosses_completed", 77),
     ("key_passes", 75),
     ("tackles_attempted", 78),
     ("tackles_won", 79),
@@ -76,6 +78,7 @@ RECORD_LENGTH = 129
 SUMMED = ("goals", "shots", "shots_on_target", "clear_cut_chances", "fouls",
           "passes_attempted", "passes_completed", "tackles_attempted", "tackles_won",
           "headers_attempted", "headers_won")
+SUMMED += ("crosses_attempted", "crosses_completed")
 HEADER_SEARCH = 0x400
 
 

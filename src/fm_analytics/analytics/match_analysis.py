@@ -54,6 +54,9 @@ METRICS: tuple[tuple[str, str, bool], ...] = (
     ("pass_completion", "Passes completed", True),
     ("tackles_won", "Tackles won", True),
     ("headers_won", "Headers won", True),
+    ("crosses_attempted", "Crosses attempted", False),
+    ("crosses_completed", "Crosses completed", False),
+    ("cross_completion", "Crosses completed", True),
 )
 PERIODS: tuple[tuple[str, int, int], ...] = (
     ("1-15", 0, 15), ("16-30", 16, 30), ("31-45", 31, 45),
@@ -137,6 +140,10 @@ def side_metrics(match: MatchRecord, side: str) -> dict[str, float | None] | Non
         "pass_completion": _percent(team.get("passes_completed", 0), team.get("passes_attempted", 0)),
         "tackles_won": _percent(team.get("tackles_won", 0), team.get("tackles_attempted", 0)),
         "headers_won": _percent(team.get("headers_won", 0), team.get("headers_attempted", 0)),
+        "crosses_attempted": team.get("crosses_attempted"),
+        "crosses_completed": team.get("crosses_completed"),
+        "cross_completion": (_percent(team["crosses_completed"], team["crosses_attempted"])
+                             if "crosses_attempted" in team and "crosses_completed" in team else None),
     }
 
 

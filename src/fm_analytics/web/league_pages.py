@@ -145,6 +145,11 @@ def _read_panel(server) -> str:
             "It takes a few seconds; the comparison is then worked out in the background.</p></details></div>")
 
 
+_HIDDEN_LINK = ("<p class='fm-hidden-link'><a href='/league/hidden'>Hidden attributes: is it the squad, or is it us? →</a>"
+                "<span>The same comparison from the real values FM keeps for every player, with every XI from this "
+                "season's matches and expected points. Uses data a manager cannot see.</span></p>")
+
+
 class LeaguePagesMixin:
     def _post_league_capture(self) -> None:
         """Read the league from FM (read-only), then go back to the League page."""
@@ -221,7 +226,7 @@ class LeaguePagesMixin:
                        + ("<p>Read the league from FM to compare every club's best XI with yours.</p>" if reading else
                           "<p>Team comparisons will appear once a current league capture is available.</p>")
                        + "<p>Player knowledge remains available in <a href='/scouting'>Scouting</a>.</p>"
-                       + _read_panel(self.server) + "</section>"))
+                       + _read_panel(self.server) + _HIDDEN_LINK + "</section>"))
             return
         tactic, sort = _query_first(query, "tactic") or "", _query_first(query, "sort") or "central"
         try:
@@ -243,7 +248,7 @@ class LeaguePagesMixin:
         scouting = ("<section class='fm-workspace-panel'><h2>What to scout next</h2>" + _SCOUTING_INTRO
                     + f"<ol>{priority_items(priorities, tactic, show_club=True)}</ol></section>" if priorities else "")
         body = ("<section class='fm-decision-hero'><h2>Compare your league</h2>" + _context(report) + _evidence(report)
-                + _read_panel(self.server) + "</section>"
+                + _read_panel(self.server) + _HIDDEN_LINK + "</section>"
                 + "<section class='fm-workspace-panel'>" + _controls(tactic, sort)
                 + f"<p>Possible strength positions among {report.comparable_count} scored clubs. Ordered by {escape(sort)}; positions describe the model under its selection assumptions.</p>"
                 + "<div class='fm-table-scroll'><table><thead><tr><th>Position</th><th>Club</th><th>Best XI range</th><th>Conservative</th><th>Central system / status</th><th>Knowledge</th><th>Compared with us</th><th>Since last read</th></tr></thead><tbody>"

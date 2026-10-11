@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import html
 import json
-import os
 import sqlite3
 import sys
 import threading
@@ -39,13 +38,11 @@ from fm_analytics.analytics import (
 from fm_analytics.bridge.errors import BridgeSourceError
 from fm_analytics.candidate_pool import DEFAULT_OUT_OF_DATE_MONTHS, compose_candidate_pool
 from fm_analytics.domain import SourceHealth
-from fm_analytics.knowledge_ingest import DEFAULT_DATABASE as DEFAULT_KNOWLEDGE_DATABASE
 from fm_analytics.knowledge_ingest import default_save_key, record_capture_file
-from fm_analytics.match_ingest import DEFAULT_DATABASE as DEFAULT_MATCH_DATABASE
 from fm_analytics.match_ingest import DEFAULT_CAPTURE as DEFAULT_MATCH_CAPTURE
 from fm_analytics.match_ingest import capture_and_record, record_capture_file as record_match_capture
 from fm_analytics.persistence.match_history import MatchHistoryStore
-from fm_analytics.web.experiment_state import ExperimentState, add_experiment_arguments, experiment_options
+from fm_analytics.web.experiment_state import ExperimentState, experiment_options
 from fm_analytics.persistence import (
     PlayerKnowledgeStore,
     RecordResult,
@@ -83,6 +80,8 @@ from fm_analytics.web.handlers import SquadWebHandler
 from fm_analytics.web.match_state import MatchHistoryState
 from fm_analytics.web.league_state import DEFAULT_CAPTURE as DEFAULT_LEAGUE_CAPTURE
 from fm_analytics.web.league_state import LeagueState, league_capture_command, league_json_provider
+from fm_analytics.web.hidden_state import HiddenState, hidden_options
+from fm_analytics.web.server_args import build_parser
 from fm_analytics.persistence.league_history import LeagueHistoryStore
 
 
@@ -98,7 +97,7 @@ class ScoutingRefreshJob:
 
 
 
-class SquadWebServer(LeagueState, MatchHistoryState, ExperimentState, ThreadingHTTPServer):
+class SquadWebServer(LeagueState, HiddenState, MatchHistoryState, ExperimentState, ThreadingHTTPServer):
     """Serves `SquadWebHandler`, with a short-TTL cache in front of the source.
 
     Both the provider call and the full recommendation computation can cost
@@ -144,6 +143,8 @@ class SquadWebServer(LeagueState, MatchHistoryState, ExperimentState, ThreadingH
         league_provider=None,
         league_store: LeagueHistoryStore | None = None,
         league_capture: Callable[[], str] | None = None,
+        hidden_provider=None,
+        hidden_capture: Callable[[], str] | None = None,
         read_only: bool = False,
     ):
         self.read_only = read_only
@@ -152,8 +153,10 @@ class SquadWebServer(LeagueState, MatchHistoryState, ExperimentState, ThreadingH
             match_store = match_capture = None
             experiment_store = None
             league_store = league_capture = None
+            hidden_capture = None
             scouting_refresh = None
         self.setup_league(league_provider, league_store, league_capture)
+        self.setup_hidden(hidden_provider, hidden_capture)
         self.setup_match_history(match_store, match_capture)
         self.setup_experiments(experiment_store, reads_fm=experiments_read_fm)
         # Appends each fresh scouting capture to the player-knowledge database
@@ -641,114 +644,6 @@ class SquadWebServer(LeagueState, MatchHistoryState, ExperimentState, ThreadingH
         return built
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Serve the read-only squad decision-support view")
-    parser.add_argument("--league-json", type=Path,
-                        help="dated manager-visible league capture for team comparison; with --direct-live it "
-                             "defaults to data/league-capture.json, which the League page's read button writes")
-    parser.add_argument("--league-db", type=Path, default=Path("data/league-history.sqlite3"),
-                        help="append-only league and roster capture history")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8766)
-    parser.add_argument(
-        "--cache-ttl-seconds",
-        type=float,
-        default=8.0,
-        help="how long to reuse a computed recommendation before recomputing it (default: %(default)s)",
-    )
-    parser.add_argument(
-        "--ranking-workers",
-        type=int,
-        default=min(4, os.cpu_count() or 1),
-        help=(
-            "bounded worker processes for tactic ranking; use 1 for the "
-            "existing sequential calculation (default: %(default)s)"
-        ),
-    )
-    source = parser.add_mutually_exclusive_group()
-    source.add_argument(
-        "--fixture",
-        help="serve a fixed game/squad fixture (default when no other source is given)",
-    )
-    source.add_argument(
-        "--snapshot-db",
-        help="serve the latest (or --capture-id) capture from a --snapshot-db SQLite file",
-    )
-    source.add_argument(
-        "--base-url",
-        help="serve the current squad from the FM HTTP bridge at this URL",
-    )
-    source.add_argument(
-        "--direct-live",
-        action="store_true",
-        help="serve the current squad directly from FM20, without the HTTP bridge",
-    )
-    parser.add_argument(
-        "--capture-id",
-        type=int,
-        help="a specific capture id to serve from --snapshot-db (default: the latest)",
-    )
-    parser.add_argument(
-        "--fm-html",
-        nargs="+",
-        help="overlay a manual FM20 Squad HTML export onto the chosen source, like the CLI's --fm-html",
-    )
-    parser.add_argument(
-        "--fm-html-player-count",
-        type=int,
-        help="required unique-player count shown by FM for --fm-html completeness",
-    )
-    parser.add_argument(
-        "--my-tactics",
-        metavar="KEY[,KEY...]",
-        help=(
-            "comma-separated tactic keys you actually play, primary first "
-            "(e.g. vertical_442,wing_play_442). Depth, set pieces and the "
-            "tactics page then default to these instead of the top-ranked tactic."
-        ),
-    )
-    parser.add_argument(
-        "--knowledge-db",
-        type=Path,
-        default=DEFAULT_KNOWLEDGE_DATABASE,
-        help=(
-            "player-knowledge database that scouting captures are recorded into "
-            "(default: %(default)s)"
-        ),
-    )
-    parser.add_argument(
-        "--out-of-date-months",
-        type=int,
-        default=DEFAULT_OUT_OF_DATE_MONTHS,
-        help=(
-            "game months after which a remembered attribute or fact is labelled "
-            "out of date on the Scouting pages (default: %(default)s)"
-        ),
-    )
-    parser.add_argument(
-        "--no-record-knowledge",
-        action="store_true",
-        help="do not record scouting captures into the player-knowledge database",
-    )
-    parser.add_argument(
-        "--read-only",
-        action="store_true",
-        help="compare saves without creating, updating or migrating databases; disables history recording and editing",
-    )
-    add_experiment_arguments(parser)
-    parser.add_argument(
-        "--match-db",
-        type=Path,
-        default=DEFAULT_MATCH_DATABASE,
-        help="match-history database the Matches page reads and records into (default: %(default)s)",
-    )
-    parser.add_argument(
-        "--scouting-json",
-        help="manager-visible discoverability/scouting capture JSON for the Scouting page",
-    )
-    return parser
-
-
 def _build_provider(args: argparse.Namespace) -> GameSquadProvider:
     if args.capture_id is not None and not args.snapshot_db:
         raise SystemExit("--capture-id requires --snapshot-db")
@@ -852,6 +747,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         league_store=LeagueHistoryStore(args.league_db) if league_path and not args.read_only else None,
         # Reading FM needs FM: only a live server offers the League page's read button.
         league_capture=league_capture_command(league_path) if args.direct_live and not args.read_only else None,
+        **hidden_options(args),  # HIDDEN DATA: the League page's hidden view only; docs/hidden-attributes.md
         read_only=args.read_only,
     )
     if knowledge_recorder is not None and refresh_path.exists():

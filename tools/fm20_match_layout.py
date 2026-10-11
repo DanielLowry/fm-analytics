@@ -6,6 +6,9 @@ Borough 1-3 Hungerford Town, 31 August 2019) -- see
 ``docs/match-analysis-plan.md``. Decoders take bytes already read from FM and
 never touch a process, so they can be tested with made-up records.
 
+Crossing was added from Hungerford 1-1 Woking on 10 October 2020: see
+``docs/match-stat-coverage.md`` for the screen and live/archive checks.
+
 Only what FM shows the manager is decoded: results, the match stats panel and
 each player's match stats. Nothing here reads a hidden attribute.
 """
@@ -102,6 +105,8 @@ TEAM_FIELDS: tuple[tuple[str, int, str], ...] = (
     ("fouls", 0x183, "<B"),
     ("passes_attempted", 0xDA, "<H"),
     ("passes_completed", 0xDC, "<H"),
+    ("crosses_attempted", 0xD6, "<H"),
+    ("crosses_completed", 0xD8, "<H"),
     ("tackles_attempted", 0xE0, "<H"),
     ("tackles_won", 0xE2, "<H"),
     ("headers_attempted", 0xE4, "<H"),
@@ -156,6 +161,10 @@ PLAYER_FIELDS: tuple[tuple[str, int], ...] = (
     ("fouls", 0x7D),
     ("passes_attempted", 0x91),
     ("passes_completed", 0x92),
+    # Woking 1-1, 10 October 2020: Jefford 4/1, Casey 22/6; all 28
+    # played records agree with archive +76/+77 and the team counters.
+    ("crosses_attempted", 0x8F),
+    ("crosses_completed", 0x90),
     ("key_passes", 0x93),  # FM: Saydee 3, Hargreaves 2
     ("tackles_attempted", 0x94),
     ("tackles_won", 0x95),
@@ -321,6 +330,15 @@ def detail_problems(detail: dict[str, Any], home_goals: int, away_goals: int) ->
             total = sum(player["stats"].get(key, 0) for player in players)
             if total != team.get(key):
                 problems.append(f"{side} players' {key} add up to {total}, the team shows {team.get(key)}")
+        for key in ("crosses_attempted", "crosses_completed"):
+            if key in team and all(key in player["stats"] for player in players):
+                total = sum(player["stats"][key] for player in players)
+                if total != team[key]:
+                    problems.append(f"{side} players' {key} add up to {total}, the team shows {team[key]}")
+        for stats in (team, *(player["stats"] for player in players)):
+            if ("crosses_attempted" in stats and "crosses_completed" in stats
+                    and stats["crosses_completed"] > stats["crosses_attempted"]):
+                problems.append(f"{side} has more completed crosses than attempted")
         # An own goal counts in the score but is credited to no player of that side.
         scored = sum(player["stats"].get("goals", 0) for player in players)
         if scored > goals:

@@ -32,6 +32,7 @@ from fm_analytics.web.experiment_pages import ExperimentPagesMixin
 from fm_analytics.web.scouting_pages import ScoutingPagesMixin
 from fm_analytics.web.tactic_pages import TacticPagesMixin
 from fm_analytics.web.league_pages import LeaguePagesMixin
+from fm_analytics.web.hidden_pages import HiddenPagesMixin
 from fm_analytics.web.scouting_render import squad_player_link
 from fm_analytics.web.scouting_report import squad_player_report
 from fm_analytics.web.rendering import (
@@ -45,6 +46,7 @@ from fm_analytics.web.rendering import (
 
 class SquadWebHandler(
     LeaguePagesMixin,
+    HiddenPagesMixin,
     WebActionsMixin,
     AuxiliaryPagesMixin,
     ContractPagesMixin,
@@ -79,6 +81,7 @@ class SquadWebHandler(
             "/experiments": self._experiments_page,
             "/experiments/all": self._experiment_group_page,
             "/league": self._league_page,
+            "/league/hidden": self._hidden_page,
             "/api/export": self._export_api,
             "/api/matches-export": self._matches_export_api,
             "/data": self._data_page,

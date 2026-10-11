@@ -11,6 +11,7 @@
 @import "./opponent-report.css";
 @import "./conceded.css";
 @import "./season-trends.css";
+@import "./hidden-strength.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

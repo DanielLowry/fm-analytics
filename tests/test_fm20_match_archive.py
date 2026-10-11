@@ -108,6 +108,21 @@ class ArchiveTests(unittest.TestCase):
         self.assertEqual(place(lines[15]), (None, None, "DL"))  # a substitute has no start
         self.assertEqual(place(lines[16]), (None, None, None))  # nor does a player who never came on
 
+    def test_cross_counts_are_retained_and_summed_for_each_team(self) -> None:
+        raw = bytearray(chunk())
+        for player in archive.players(raw):
+            if player["shirt"] == 4:
+                raw[player["at"] + 76:player["at"] + 78] = (
+                    bytes((4, 1)) if player["side"] == "home" else bytes((22, 6)))
+        detail, problems = archive.decode_match(bytes(raw), 0, 0)
+        self.assertEqual(problems, [])
+        self.assertEqual((detail["home"]["crosses_attempted"], detail["home"]["crosses_completed"]), (4, 1))
+        self.assertEqual((detail["away"]["crosses_attempted"], detail["away"]["crosses_completed"]), (22, 6))
+        broken = dict(detail["home"], crosses_attempted=99)
+        from tools.fm20_match_layout import detail_problems
+        self.assertTrue(any("crosses_attempted" in problem
+                            for problem in detail_problems(detail | {"home": broken}, 0, 0)))
+
     def test_the_teams_own_figures_win_where_they_differ_from_the_players_sums(self) -> None:
         detail, problems = archive.decode_match(chunk(headers_attempted=47), 0, 0)
         self.assertEqual(problems, [])
