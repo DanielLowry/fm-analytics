@@ -45,7 +45,13 @@ body.fm-app .fm-hidden-result[data-result='D'] { background: #6b7889; }
 body.fm-app .fm-hidden-result[data-result='L'] { background: #c0452f; }
 body.fm-app #our-matches tfoot th, body.fm-app #our-matches tfoot td { border-top: 2px solid var(--fm-border); font-weight: 700; }
 body.fm-app td.fm-nowrap { white-space: nowrap; }
-body.fm-app td sup { margin-left: .1rem; color: var(--color-ink-400); }
+body.fm-app td.fm-hidden-flag::after { content: "*"; margin-left: .1rem; color: var(--color-ink-400); font-size: .72rem; vertical-align: super; }
+body.fm-app td.fm-hidden-ranked::after { content: " · " attr(data-rank); color: var(--color-ink-400); font-size: .72rem; }
+body.fm-app .fm-hidden-units-line { margin: .35rem 0 0 !important; color: var(--color-ink-700) !important; font-size: .9rem; }
+body.fm-app .fm-hidden-units-line b { color: var(--color-ink-900); }
+body.fm-app #units h3 { margin: 1.3rem 0 .15rem; color: var(--color-ink-900); font-size: 1rem; }
+body.fm-app #units h3:first-of-type { margin-top: .6rem; }
+body.fm-app #units tfoot th, body.fm-app #units tfoot td { border-top: 2px solid var(--fm-border); font-weight: 700; }
 
 body.fm-app .fm-hidden-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.6rem; padding: .6rem 0 .3rem; }
 @media (max-width: 760px) { body.fm-app .fm-hidden-pair { grid-template-columns: 1fr; } }
@@ -65,3 +71,7 @@ body.fm-app .fm-hidden-link { display: grid; gap: .15rem; margin: .9rem 0 0 !imp
 body.fm-app .fm-hidden-link a { color: var(--fm-hidden-amber-ink); font-weight: 700; text-decoration: none; }
 body.fm-app .fm-hidden-link a:hover { text-decoration: underline; }
 body.fm-app .fm-hidden-link span { color: var(--fm-hidden-amber-ink); font-size: .8rem; opacity: .85; }
+body.fm-app .fm-hidden-copies { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+body.fm-app .fm-hidden-copies .fm-table-toolbar { margin: 0; }
+body.fm-app .fm-hidden-copies .fm-table-toolbar:first-child .fm-table-copy { border-color: var(--color-brand-600); background: var(--color-brand-600); color: white; font-weight: 650; }
+body.fm-app .fm-hidden-copies .fm-table-toolbar:first-child .fm-table-copy:hover { background: var(--color-brand-700); }

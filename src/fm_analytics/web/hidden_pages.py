@@ -11,7 +11,11 @@ import sqlite3
 from http import HTTPStatus
 
 from fm_analytics.analytics import MVP_CATALOGUE
-from fm_analytics.hidden_reporting import build_hidden_strength_export, hidden_seasons
+from fm_analytics.hidden_reporting import (
+    build_hidden_strength_export,
+    build_hidden_strength_markdown,
+    hidden_seasons,
+)
 from fm_analytics.web.attribute_export import profile_copy_control
 from fm_analytics.web.hidden_render import (
     PATH,
@@ -23,6 +27,7 @@ from fm_analytics.web.hidden_render import (
     our_matches_section,
     results_section,
     tactics_section,
+    units_section,
 )
 from fm_analytics.web.rendering import _error_page, _layout, _query_first
 
@@ -91,8 +96,12 @@ class HiddenPagesMixin:
             self._send(_layout(TITLE, PATH, empty_page(  # type: ignore[attr-defined]
                 "No competitive match of ours is recorded yet.", server)))
             return
-        copy = profile_copy_control(json.dumps(build_hidden_strength_export(report), indent=1, ensure_ascii=False),
-                                    label="Copy everything as JSON", success="Every table and XI copied as JSON!")
+        copy = ("<div class='fm-hidden-copies'>"
+                + profile_copy_control(build_hidden_strength_markdown(report), label="Copy the whole page",
+                                       success="The whole page copied as Markdown: every table and both XIs of every match.")
+                + profile_copy_control(json.dumps(build_hidden_strength_export(report), indent=1, ensure_ascii=False),
+                                       label="Copy everything as JSON", success="Every table and XI copied as JSON!")
+                + "</div>")
         notice = ""
         if not club_matches:
             notice = ("<p class='fm-workspace-panel'>Only our own matches are recorded, so expected points and the "
@@ -100,5 +109,6 @@ class HiddenPagesMixin:
                       "<a href='/matches'>Matches page</a> adds every league club's matches.</p>")
         body = (hero(report, server, seasons=seasons, catalogue=MVP_CATALOGUE, tactic=tactic, copy_control=copy)
                 + notice + our_matches_section(report) + tactics_section(report) + formations_section(report)
-                + results_section(report) + line_ups_section(report) + method_section(report))
+                + results_section(report) + units_section(report) + line_ups_section(report)
+                + method_section(report))
         self._send(_layout(TITLE, PATH, body, wide=True))  # type: ignore[attr-defined]

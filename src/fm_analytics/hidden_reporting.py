@@ -1,7 +1,8 @@
-"""The League page's hidden view: its one computation and its JSON copy. HIDDEN DATA.
+"""The League page's hidden view: its one computation and its two copies. HIDDEN DATA.
 
 `build_hidden_strength_report` is the one computation behind `/league/hidden`,
-and `build_hidden_strength_export` its "Copy everything as JSON". They use the
+`build_hidden_strength_markdown` its "Copy the whole page" and
+`build_hidden_strength_export` its "Copy everything as JSON". They use the
 real values FM keeps for every player (`domain.hidden`), so they live apart
 from `reporting.py`: the recommendation path never imports this module, and
 nothing here may feed it (`tests/test_hidden_strength.py::BoundaryTests`).
@@ -19,6 +20,7 @@ from fm_analytics.analytics.match_roles import RoleCodes
 from fm_analytics.domain.hidden import HiddenCapture
 from fm_analytics.domain.matches import MatchRecord
 from fm_analytics.hidden_export import hidden_document
+from fm_analytics.hidden_markdown import hidden_markdown
 from fm_analytics.persistence.match_history import MatchHistory
 from fm_analytics.reporting import RecommendationPolicy
 
@@ -77,3 +79,8 @@ def build_hidden_strength_report(
 def build_hidden_strength_export(report: HiddenStrength, *, generated_at: datetime | None = None) -> dict[str, Any]:
     """The hidden view as JSON: its "Copy everything as JSON" button."""
     return hidden_document(report, generated_at=generated_at)
+
+
+def build_hidden_strength_markdown(report: HiddenStrength) -> str:
+    """The hidden view as one Markdown document: its "Copy the whole page" button."""
+    return hidden_markdown(report)

@@ -49,6 +49,16 @@ _LINES = (("DL", "DC", "DR", "SW", "WBL", "WBR"), ("DM",), ("ML", "MC", "MR"), (
 _MAX_MOVES = 4
 MIN_MODEL_MATCHES = 40
 _MAX_GOALS = 12
+# An XI's units, by the position each player was scored in: (key, name, positions).
+UNITS = (
+    ("goalkeeper", "Goalkeeper", frozenset({"GK"})),
+    ("defence", "Defence", frozenset({"SW", "DL", "DC", "DR", "WBL", "WBR"})),
+    ("midfield", "Midfield", frozenset({"DM", "ML", "MC", "MR"})),
+    ("attack", "Attack", frozenset({"AML", "AMC", "AMR", "ST"})),
+)
+UNIT_NAMES = {key: name for key, name, _positions in UNITS}
+# The two match-ups across the halfway line: (key, our unit, their unit).
+MATCHUPS = (("defence_vs_attack", "defence", "attack"), ("attack_vs_defence", "attack", "defence"))
 
 
 Shape = tuple[str, ...]  # an XI's eleven positions, sorted
@@ -150,6 +160,19 @@ class XiStrength:
     @property
     def scored(self) -> bool:
         return self.score is not None
+
+    @property
+    def units(self) -> dict[str, float]:
+        """Each unit's score: its players' own scores combined as the XI combines all eleven
+        (the square-root mean), before the tactic's balance factor. A unit nobody plays in is absent."""
+        if not self.scored:
+            return {}
+        found = {}
+        for key, _name, positions in UNITS:
+            scores = [player.score for player in self.players if player.position in positions]
+            if scores:
+                found[key] = round((sum(math.sqrt(score) for score in scores) / len(scores)) ** 2, 2)
+        return found
 
 
 class _Scorer:
@@ -448,6 +471,55 @@ class OurMatch:
             return None
         return self.outcome.away_goals if self.side == "home" else self.outcome.home_goals
 
+    def unit_gap(self, ours: str, theirs: str | None = None) -> float | None:
+        """Our `ours` unit's score minus their `theirs` unit's (the same unit by default)."""
+        mine, other = self.ours.units.get(ours), self.theirs.units.get(theirs or ours)
+        return None if mine is None or other is None else round(mine - other, 2)
+
+    @property
+    def matchups(self) -> dict[str, float | None]:
+        return {key: self.unit_gap(mine, other) for key, mine, other in MATCHUPS}
+
+
+@dataclass(frozen=True)
+class OurTotals:
+    """Our league matches with an expectation, summed or averaged: the foot of the first tables."""
+
+    matches: int
+    points: int
+    expected_points: float
+    our_xi: float
+    their_xi: float
+    unit_gaps: Mapping[str, float]  # per unit, averaged over the matches where both sides fielded it
+    matchups: Mapping[str, float]  # per MATCHUPS key, averaged the same way
+
+    @property
+    def gap(self) -> float:
+        return self.our_xi - self.their_xi
+
+
+def _average(values) -> float | None:
+    values = [value for value in values if value is not None]
+    return sum(values) / len(values) if values else None
+
+
+def _our_totals(rows: Sequence[OurMatch]) -> OurTotals | None:
+    if not rows:
+        return None
+    gaps = {key: _average(row.unit_gap(key) for row in rows) for key, _name, _positions in UNITS}
+    matchups = {key: _average(row.matchups[key] for row in rows) for key, _mine, _theirs in MATCHUPS}
+    return OurTotals(len(rows), sum(row.points for row in rows), sum(row.expected_points for row in rows),
+                     _average(row.ours.score for row in rows), _average(row.theirs.score for row in rows),
+                     {key: value for key, value in gaps.items() if value is not None},
+                     {key: value for key, value in matchups.items() if value is not None})
+
+
+def rank_units(rows: Mapping[str, Mapping[str, float]]) -> dict[str, dict[str, int]]:
+    """For each club (key), its rank in each unit among the clubs given: 1 + how many score higher."""
+    return {club: {unit: 1 + sum(1 for other in rows.values() if other.get(unit, -1.0) > value)
+                   for unit, value in units.items()}
+            for club, units in rows.items()}
+
 
 @dataclass(frozen=True)
 class TacticRow:
@@ -491,6 +563,8 @@ class ClubRecord:
     expected_against: float
     average_xi: float
     average_opponent_xi: float
+    # Each unit's average over those matches (only matches where the club fielded that unit).
+    average_units: Mapping[str, float] = field(default_factory=dict)
 
     @property
     def points_gap(self) -> float:
@@ -519,6 +593,8 @@ class Verdict:
     fielded_rank: int | None  # by the average XI we fielded
     best_rank: int | None  # by our best XI in the tactic we played most
     best_tactic: str | None
+    fielded_unit_ranks: Mapping[str, int] = field(default_factory=dict)  # by the average of each unit we fielded
+    best_unit_ranks: Mapping[str, int] = field(default_factory=dict)  # each unit of our best XI in best_tactic
 
     @property
     def points_gap(self) -> float:
@@ -527,6 +603,15 @@ class Verdict:
     @property
     def recent_gap(self) -> float:
         return self.recent_points - self.recent_expected
+
+    @property
+    def reading(self) -> str:
+        """"better" or "worse" when points beat or miss expected by more than the usual run of luck, else "in line"."""
+        if self.points_gap > self.spread:
+            return "better"
+        if self.points_gap < -self.spread:
+            return "worse"
+        return "in line"
 
 
 def _rank(rows, ours, value) -> int | None:
@@ -552,6 +637,11 @@ class HiddenStrength:
     league_scored: int  # ... with both XIs scored (the model's matches)
     verdict: Verdict | None = None  # None until we have a scored league match
     tactic_names: Mapping[str, str] = field(default_factory=dict)  # every compared tactic's name, by key
+    our_totals: OurTotals | None = None  # our league matches with an expectation
+    # Club ID -> unit -> rank among the league: by the units each club fielded on
+    # average (`ClubRecord.average_units`), and by its best XI's units in our main tactic.
+    fielded_unit_ranks: Mapping[str, Mapping[str, int]] = field(default_factory=dict)
+    best_unit_ranks: Mapping[str, Mapping[str, int]] = field(default_factory=dict)
 
 
 def _starters(capture: HiddenCapture, match: MatchRecord, side: str) -> list[tuple[HiddenPlayer | None, str | None, str]]:
@@ -674,15 +764,19 @@ def build_hidden_strength(
             sum(o.away_goals if side == "home" else o.home_goals for o, (_i, side) in zip(expected, mine)) if model else 0.0,
             sum(getattr(item, side).score for item, side in mine) / len(mine),
             sum(getattr(item, "away" if side == "home" else "home").score for item, side in mine) / len(mine),
+            {key: value for key, _name, _positions in UNITS
+             if (value := _average(getattr(item, side).units.get(key) for item, side in mine)) is not None},
         ))
     clubs.sort(key=lambda row: (-row.points, -(row.goals_for - row.goals_against), -row.goals_for, row.club.name))
+    main = compared[0] if compared else None
+    fielded_ranks = rank_units({row.club.id: row.average_units for row in clubs})
+    best_ranks = rank_units({row.club.id: row.xis[main].units for row in by_tactic}) if main else {}
+    league_rows = [row for row in rows if in_league(row.match) and row.outcome is not None]
     verdict = None
     record = next((row for row in clubs if row.ours), None)
     if record is not None and model is not None:
-        recent = [row for row in rows if in_league(row.match) and row.outcome is not None][-RECENT_MATCHES:]
-        main = compared[0] if compared else None
+        recent = league_rows[-RECENT_MATCHES:]
         tactic_rows = {row.club.id: row for row in by_tactic}
-        league_rows = [row for row in rows if in_league(row.match) and row.outcome is not None]
         verdict = Verdict(
             record.played, record.points, record.expected_points, len(recent), sum(row.points for row in recent),
             sum(row.expected_points for row in recent),
@@ -690,7 +784,9 @@ def build_hidden_strength(
             math.sqrt(sum(row.outcome.points_variance(row.side) for row in recent)), len(clubs),
             _rank(clubs, record, lambda row: row.points), _rank(clubs, record, lambda row: row.average_xi),
             _rank(by_tactic, tactic_rows.get(our_club_id), lambda row: row.xis[main].score) if main else None, main,
+            fielded_ranks.get(our_club_id, {}), best_ranks.get(our_club_id, {}),
         )
     return HiddenStrength(capture, season, our_tactics, compared, rows, by_tactic, tuple(by_formation),
                           model, tuple(clubs), len(league_fielded), sum(item.scored for item in league_fielded), verdict,
-                          {key: catalogue.tactics[key].name for key in compared})
+                          {key: catalogue.tactics[key].name for key in compared}, _our_totals(league_rows),
+                          fielded_ranks, best_ranks)

@@ -101,7 +101,8 @@ out of `load_history`); `reporting.build_opponent_export` is its JSON copy
 `reporting.build_league_comparison` is the one behind `/league` and its team
 pages, deliberately without recent form (it exists only for our players), and
 `reporting.league_scope` decides which earlier read a new one is compared with.
-`hidden_reporting.build_hidden_strength_report` is the one behind `/league/hidden`, and
+`hidden_reporting.build_hidden_strength_report` is the one behind `/league/hidden`,
+`build_hidden_strength_markdown` its "Copy the whole page" and
 `build_hidden_strength_export` its "Copy everything as JSON". HIDDEN DATA, so it lives
 outside `reporting.py`, which never imports it: it reads `data/hidden-capture.json`
 (`domain/hidden.py`, written by `tools/fm20_hidden_capture.py`) through

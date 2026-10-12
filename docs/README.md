@@ -73,6 +73,9 @@
 - [Season crossing audit](season-crossing-audit-2026-10-11.md) uses the
   refreshed real-match counts to test crossing against shots, CCC, goals and
   points, examine the cross goals that cost leads, and define the next tests.
+- [Season improvement decisions](season-improvement-decisions-2026-10-12.md)
+  combines the season and all Hampton experiments, ranks the hypotheses,
+  explains the next right-midfield duty pilot and specifies its measures.
 - [Tactic experiments](match-experiments.md): store the matches you choose, group
   them and compare what you tried; how many replays a comparison needs.
 - [Hampton & Richmond experiment log](hampton-experiments.md): the replay

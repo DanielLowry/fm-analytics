@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from fm_analytics.analytics.hidden_strength import HiddenStrength, XiStrength
+from fm_analytics.analytics.hidden_strength import MATCHUPS, HiddenStrength, XiStrength
 
 FORMAT = "fm-analytics/hidden-strength"
 FORMAT_VERSION = 1
@@ -35,6 +35,8 @@ def _xi(xi: XiStrength | None) -> dict[str, Any] | None:
         document["players_out_of_position"] = True
     if xi.missing:
         document["not_scored_because"] = list(xi.missing)
+    if xi.units:
+        document["units"] = xi.units
     if xi.players:
         document["players"] = [{"name": player.name, "position": player.position, "role": player.role_name,
                                 "score": player.score} for player in xi.players]
@@ -82,6 +84,15 @@ def hidden_document(report: HiddenStrength, *, generated_at: datetime | None = N
             "clubs": verdict.clubs, "points_rank": verdict.points_rank,
             "fielded_xi_rank": verdict.fielded_rank, "best_xi_rank": verdict.best_rank,
             "best_xi_rank_tactic": catalogue_names.get(verdict.best_tactic),
+            "fielded_unit_ranks": dict(verdict.fielded_unit_ranks),
+            "best_xi_unit_ranks": dict(verdict.best_unit_ranks),
+        },
+        "our_league_totals": None if report.our_totals is None else {
+            "matches": report.our_totals.matches, "points": report.our_totals.points,
+            "expected_points": _round(report.our_totals.expected_points, 1),
+            "average_our_xi": _round(report.our_totals.our_xi), "average_their_xi": _round(report.our_totals.their_xi),
+            "average_unit_gaps": {key: _round(value) for key, value in report.our_totals.unit_gaps.items()},
+            "average_matchups": {key: _round(value) for key, value in report.our_totals.matchups.items()},
         },
         "our_matches": [{
             "date": row.match.date.isoformat(),
@@ -98,6 +109,8 @@ def hidden_document(report: HiddenStrength, *, generated_at: datetime | None = N
             "expected_points": _round(row.expected_points),
             "expected_goals_for": _round(row.expected_for),
             "expected_goals_against": _round(row.expected_against),
+            "unit_gaps": {key: row.unit_gap(key) for key in row.ours.units if key in row.theirs.units},
+            "matchups": {key: row.matchups[key] for key, _mine, _theirs in MATCHUPS},
             "our_line_up": _xi(row.ours),
             "their_line_up": _xi(row.theirs),
         } for row in report.our_matches],
@@ -105,7 +118,8 @@ def hidden_document(report: HiddenStrength, *, generated_at: datetime | None = N
             "tactics": [{"key": key, "name": catalogue_names.get(key, key), "our_matches": used.get(key, 0)}
                         for key in report.compared_tactics],
             "clubs": [{"club": row.club.name, "ours": row.ours, "squad": row.squad_size,
-                       "xis": {key: _xi(row.xis[key]) for key in report.compared_tactics}}
+                       "xis": {key: _xi(row.xis[key]) for key in report.compared_tactics},
+                       "unit_ranks_in_main_tactic": dict(report.best_unit_ranks.get(row.club.id, {}))}
                       for row in report.by_tactic],
         },
         "best_xi_in_their_formations": [{
@@ -121,6 +135,8 @@ def hidden_document(report: HiddenStrength, *, generated_at: datetime | None = N
             "goals_for": row.goals_for, "goals_against": row.goals_against,
             "expected_goals_for": _round(row.expected_for, 1), "expected_goals_against": _round(row.expected_against, 1),
             "average_xi": _round(row.average_xi), "average_opposition_xi": _round(row.average_opponent_xi),
+            "average_units": {key: _round(value) for key, value in row.average_units.items()},
+            "unit_ranks": dict(report.fielded_unit_ranks.get(row.club.id, {})),
         } for row in report.clubs],
         "notes": list(capture.notes),
     }

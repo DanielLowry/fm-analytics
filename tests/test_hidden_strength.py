@@ -7,6 +7,7 @@ number (Alpha 14, Bravo 12, us 10, Charlie 8), every one a natural in one
 
 import ast
 import json
+import re
 import math
 import random
 import tempfile
@@ -19,10 +20,14 @@ from pathlib import Path
 from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.analytics.hidden_strength import (
     MIN_MODEL_MATCHES,
+    Verdict,
+    XiPlayer,
+    XiStrength,
     build_hidden_strength,
     catalogue_shapes,
     closest_shapes,
     fit_strength_model,
+    rank_units,
     shape_label,
     shape_of,
 )
@@ -31,7 +36,11 @@ from fm_analytics.domain.hidden import POSITION_CODES, HiddenCapture
 from fm_analytics.domain.matches import Competition, MatchDetail, MatchRecord, PlayerMatchStats, TeamRef
 from fm_analytics.match_ingest import record_capture_file
 from fm_analytics.persistence.match_history import MatchHistory, MatchHistoryStore, MatchNote
-from fm_analytics.hidden_reporting import build_hidden_strength_export, build_hidden_strength_report
+from fm_analytics.hidden_reporting import (
+    build_hidden_strength_export,
+    build_hidden_strength_markdown,
+    build_hidden_strength_report,
+)
 
 from tests.match_support import VERTICAL_442_CODES
 from tests.web_support import FIXTURE, WebServerHelpers
@@ -278,6 +287,58 @@ class StrengthTests(unittest.TestCase):
             self.assertIsNotNone(xi.score)
 
 
+class UnitTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.capture, cls.ours, cls.theirs = world()
+        cls.report = build(cls.capture, cls.ours, cls.theirs)
+
+    def test_a_unit_combines_its_players_as_the_xi_does(self):
+        players = tuple(XiPlayer(str(i), f"P{i}", position, "role", score) for i, (position, score) in enumerate(
+            [("GK", 50.0), ("DC", 40.0), ("DC", 50.0), ("WBR", 45.0), ("DM", 30.0), ("MR", 60.0), ("ST", 44.0)]))
+        units = XiStrength(45.0, "x", players=players).units
+        self.assertEqual(set(units), {"goalkeeper", "defence", "midfield", "attack"})
+        self.assertAlmostEqual(units["defence"], ((40 ** .5 + 50 ** .5 + 45 ** .5) / 3) ** 2, places=2)
+        self.assertLess(units["midfield"], 45.0)  # an uneven pair scores below its plain average
+        self.assertEqual(units["attack"], 44.0)
+        self.assertEqual(XiStrength(None, "x").units, {})
+
+    def test_every_fielded_xi_splits_into_four_units_and_better_clubs_rank_higher_in_each(self):
+        row = self.report.our_matches[0]
+        self.assertEqual(set(row.ours.units), {"goalkeeper", "defence", "midfield", "attack"})
+        ours = {row.club.id: row for row in self.report.clubs}[US.id]
+        self.assertEqual(set(ours.average_units), {"goalkeeper", "defence", "midfield", "attack"})
+        self.assertEqual(self.report.fielded_unit_ranks[ALPHA.id], dict.fromkeys(ours.average_units, 1))
+        self.assertEqual(self.report.verdict.fielded_unit_ranks, dict.fromkeys(ours.average_units, 3))
+        self.assertEqual(self.report.verdict.best_unit_ranks, dict.fromkeys(ours.average_units, 3))
+
+    def test_unit_gaps_and_matchups_are_ours_minus_theirs(self):
+        against_alpha = next(row for row in self.report.our_matches if row.opponent.id == ALPHA.id)
+        against_charlie = next(row for row in self.report.our_matches if row.opponent.id == CHARLIE.id)
+        for key in ("goalkeeper", "defence", "midfield", "attack"):
+            self.assertLess(against_alpha.unit_gap(key), 0)
+            self.assertGreater(against_charlie.unit_gap(key), 0)
+        self.assertEqual(against_alpha.matchups["defence_vs_attack"], against_alpha.unit_gap("defence", "attack"))
+        self.assertEqual(set(against_alpha.matchups), {"defence_vs_attack", "attack_vs_defence"})
+
+    def test_our_totals_are_the_foot_of_the_tables(self):
+        totals, verdict = self.report.our_totals, self.report.verdict
+        self.assertEqual((totals.matches, totals.points), (verdict.played, verdict.points))
+        self.assertAlmostEqual(totals.expected_points, verdict.expected_points)
+        self.assertAlmostEqual(totals.gap, sum(row.gap for row in self.report.our_matches) / 24)
+        self.assertEqual(set(totals.unit_gaps), {"goalkeeper", "defence", "midfield", "attack"})
+
+    def test_ties_share_a_unit_rank(self):
+        self.assertEqual(rank_units({"a": {"attack": 40.0}, "b": {"attack": 45.0}, "c": {"attack": 45.0, "defence": 1.0}}),
+                         {"a": {"attack": 3}, "b": {"attack": 1}, "c": {"attack": 1, "defence": 1}})
+
+    def test_the_verdict_reads_a_gap_against_the_usual_run_of_luck(self):
+        def verdict(points, expected):
+            return Verdict(15, points, expected, 0, 0, 0.0, 5.0, 0.0, 24, None, None, None, None)
+        self.assertEqual((verdict(29, 23.0).reading, verdict(17, 23.0).reading, verdict(27, 23.0).reading),
+                         ("better", "worse", "in line"))
+
+
 class ReportingTests(unittest.TestCase):
     def history(self, ours, notes=None):
         return MatchHistory("club:100", US, tuple(ours), (), notes or {}, {}, None)
@@ -293,6 +354,28 @@ class ReportingTests(unittest.TestCase):
         self.assertEqual(len(document["our_matches"]), 24)
         self.assertEqual(len(document["our_matches"][0]["our_line_up"]["players"]), 11)
         self.assertEqual(document["verdict"]["best_xi_rank"], 3)
+        self.assertEqual(document["verdict"]["fielded_unit_ranks"]["attack"], 3)
+        self.assertEqual(document["our_league_totals"]["matches"], 24)
+        self.assertIn("attack", document["our_matches"][0]["our_line_up"]["units"])
+
+    def test_the_whole_page_copies_as_one_markdown_document(self):
+        capture, ours, theirs = world()
+        text = build_hidden_strength_markdown(build_hidden_strength_report(capture, self.history(ours), theirs))
+        for heading in ("# Is it the squad, or is it us? Hungerford Town", "## Verdict", "## 1 · The XIs in our matches",
+                        "## 2 · Best XI in our tactics", "## 3 · Best XI in the formations they've played",
+                        "## 4 · Results against strength", "## 5 · Defence, midfield and attack",
+                        "## Both XIs, match by match"):
+            self.assertIn(heading, text)
+        self.assertIn("Uses hidden attributes", text)
+        self.assertIn("By unit, XIs fielded: goalkeeper 3rd, defence 3rd, midfield 3rd, attack 3rd of 4.", text)
+        self.assertEqual(text.count("\n### 2020-"), 24)  # both XIs of every match
+        self.assertIn("| GK | Hungerford Town 0 | Goalkeeper", text)
+        # Every Markdown table row has its header's column count.
+        for block in text.split("\n\n"):
+            lines = [line for line in block.splitlines() if line.startswith("| ")]
+            if lines:
+                widths = {line.replace("\\|", "").count("|") for line in block.splitlines() if line.startswith("|")}
+                self.assertEqual(len(widths), 1, block[:120])
 
     def test_a_noted_tactic_wins_over_the_inferred_one(self):
         capture, ours, theirs = world()
@@ -311,9 +394,10 @@ class BoundaryTests(unittest.TestCase):
 
     HIDDEN = {"fm_analytics.domain.hidden", "fm_analytics.analytics.hidden_strength", "fm_analytics.hidden_export",
               "fm_analytics.hidden_reporting", "fm_analytics.web.hidden_state", "fm_analytics.web.hidden_render",
-              "fm_analytics.web.hidden_pages"}
+              "fm_analytics.web.hidden_pages", "fm_analytics.hidden_markdown"}
     # The hidden modules themselves, and the web plumbing that routes to them.
     ALLOWED = {"domain/hidden.py", "analytics/hidden_strength.py", "hidden_export.py", "hidden_reporting.py",
+               "hidden_markdown.py",
                "web/hidden_state.py", "web/hidden_render.py", "web/hidden_pages.py",
                "web/handlers.py", "web/server.py", "web/server_args.py"}
 
@@ -394,10 +478,15 @@ class PageTests(WebServerHelpers, unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("This page uses hidden attributes", body)
         for heading in ("1 · The XIs in our matches", "2 · Best XI in our tactics",
-                        "3 · Best XI in the formations they've played", "4 · Results against strength"):
+                        "3 · Best XI in the formations they've played", "4 · Results against strength",
+                        "5 · Defence, midfield and attack"):
             self.assertIn(heading, body)
-        self.assertEqual(body.count("data-copy-markdown"), 4)
+        self.assertEqual(body.count("data-copy-markdown"), 7)
+        self.assertIn("Copy the whole page", body)
         self.assertIn("Copy everything as JSON", body)
+        self.assertIn("By unit, the XIs you have fielded rank", body)
+        self.assertNotIn("<sup", body)  # marks are drawn by CSS so copied tables keep plain numbers
+        self.assertIsNone(re.search(r"<td[^>]*>[^<]*\u2212", body))  # a plain minus pastes as a number
         self.assertIn("Read 48 players at 4 clubs", body)
 
     def test_choices_are_checked(self):

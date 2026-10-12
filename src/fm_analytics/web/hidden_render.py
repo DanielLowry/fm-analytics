@@ -8,7 +8,7 @@ from __future__ import annotations
 import html
 from urllib.parse import urlencode
 
-from fm_analytics.analytics.hidden_strength import HiddenStrength, OurMatch, XiStrength
+from fm_analytics.analytics.hidden_strength import MATCHUPS, UNIT_NAMES, UNITS, HiddenStrength, OurMatch, XiStrength
 from fm_analytics.web.rendering import _options
 
 _e = html.escape
@@ -31,7 +31,8 @@ def _signed(value: float | None, places: int = 1) -> str:
     if value is None:
         return "—"
     text = f"{value:+.{places}f}"
-    return "0.0" if text in ("+0.0", "-0.0") else text.replace("-", "−")
+    # A plain minus, so a copied table pastes into a spreadsheet as numbers.
+    return text[1:] if float(text) == 0 else text
 
 
 def _delta(value: float | None, places: int = 1) -> str:
@@ -52,8 +53,9 @@ def _xi_cell(xi: XiStrength) -> str:
     if xi.out_of_position:
         notes.append("not enough players for every position: some play out of position")
     title = f"Scored in {xi.tactic_name}" + ("; " + "; ".join(notes) if notes else "")
-    mark = "<sup aria-hidden='true'>*</sup>" if notes else ""
-    return f"<td title='{_e(title, quote=True)}' data-sort='{xi.score:.3f}'>{xi.score:.1f}{mark}</td>"
+    # The * is drawn by CSS, so a copied table keeps a plain number.
+    flag = " class='fm-hidden-flag'" if notes else ""
+    return f"<td{flag} title='{_e(title, quote=True)}' data-sort='{xi.score:.3f}'>{xi.score:.1f}</td>"
 
 
 def _table(head: list[str], rows: list[str], *, foot: str = "", label: str) -> str:
@@ -76,36 +78,48 @@ def _verdict(report: HiddenStrength) -> str:
         reason = ("Not enough league matches have both line-ups scored to say how strength turns into results yet."
                   if model is None else "None of our league matches this season has both line-ups scored yet.")
         return f"<p class='fm-hidden-answer'>{_e(reason)}</p>"
-    gap, spread = verdict.points_gap, verdict.spread
-    if gap > spread:
-        reading = ("Your results are <b>better than your players explain</b>, by more than the usual run of luck.")
-    elif gap < -spread:
-        reading = ("Your results are <b>worse than your players explain</b>, by more than the usual run of luck: "
-                   "something other than the squad is costing points.")
-    else:
-        reading = ("Your results are <b>in line with your squad</b>: the difference is within the usual run of luck "
-                   f"for {verdict.played} matches (about ±{spread:.1f} points).")
+    reading = {
+        "better": "Your results are <b>better than your players explain</b>, by more than the usual run of luck.",
+        "worse": ("Your results are <b>worse than your players explain</b>, by more than the usual run of luck: "
+                  "something other than the squad is costing points."),
+        "in line": ("Your results are <b>in line with your squad</b>: the difference is within the usual run of luck "
+                    f"for {verdict.played} matches (about ±{verdict.spread:.1f} points)."),
+    }[verdict.reading]
     recent = ""
     if verdict.recent_played:
         recent = (f" In the last {verdict.recent_played}: <b>{verdict.recent_points}</b> points against "
                   f"<b>{verdict.recent_expected:.1f}</b> expected (usual run of luck ±{verdict.recent_spread:.1f}).")
     tactic = report.tactic_names.get(verdict.best_tactic, "")
+    units = ""
+    if verdict.fielded_unit_ranks:
+        units = ("<p class='fm-hidden-units-line'>By unit, the XIs you have fielded rank "
+                 + _unit_ranks(verdict.fielded_unit_ranks, verdict.clubs) + "."
+                 + (f" Your best XI in {_e(tactic)}: " + _unit_ranks(verdict.best_unit_ranks, verdict.clubs) + "."
+                    if verdict.best_unit_ranks and tactic else "")
+                 + " <a href='#units'>See section 5</a></p>")
     tiles = [
         ("Points", f"{verdict.points}", f"from {verdict.played} league matches · {_rank(verdict.points_rank, verdict.clubs)}"),
         ("Expected from the XIs", f"{verdict.expected_points:.1f}", f"{_signed(verdict.points_gap)} against what you have"),
         ("XIs you fielded", _rank(verdict.fielded_rank, verdict.clubs), "by average XI score this season"),
         ("Best XI", _rank(verdict.best_rank, verdict.clubs), f"in {tactic}" if tactic else "in your most-used tactic"),
     ]
-    return ("<p class='fm-hidden-answer'>" + reading + recent + "</p><div class='fm-decision-grid fm-hidden-tiles'>"
+    return ("<p class='fm-hidden-answer'>" + reading + recent + "</p>" + units
+            + "<div class='fm-decision-grid fm-hidden-tiles'>"
             + "".join(f"<section class='fm-decision-stat'><span>{_e(label)}</span><b>{_e(value)}</b><small>{_e(note)}</small></section>"
                       for label, value, note in tiles) + "</div>")
 
 
+def _unit_ranks(ranks, clubs: int) -> str:
+    return ", ".join(f"{UNIT_NAMES[key].lower()} <b>{_ordinal(ranks[key])}</b>" for key, _name, _p in UNITS
+                     if key in ranks) + f" of {clubs}"
+
+
+def _ordinal(rank: int) -> str:
+    return f"{rank}" + ("th" if 10 <= rank % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(rank % 10, "th"))
+
+
 def _rank(rank: int | None, of: int) -> str:
-    if rank is None:
-        return "—"
-    suffix = "th" if 10 <= rank % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(rank % 10, "th")
-    return f"{rank}{suffix} of {of}"
+    return "—" if rank is None else f"{_ordinal(rank)} of {of}"
 
 
 def read_panel(server, *, first: bool = False) -> str:
@@ -188,17 +202,13 @@ def _match_row(row: OurMatch) -> str:
 
 def our_matches_section(report: HiddenStrength) -> str:
     rows = [_match_row(row) for row in report.our_matches]
-    league = [row for row in report.our_matches
-              if row.match.competition.name == report.capture.competition.name and row.outcome is not None]
+    totals = report.our_totals
     foot = ""
-    if league:
-        points = sum(row.points for row in league)
-        expected = sum(row.expected_points for row in league)
-        foot = (f"<tr><th scope='row' colspan='5'>League, {len(league)} matches</th><td>{points}</td><td>{expected:.1f}</td>"
-                + _delta(points - expected)
-                + f"<td>{sum(row.ours.score for row in league) / len(league):.1f}</td>"
-                + f"<td>{sum(row.theirs.score for row in league) / len(league):.1f}</td>"
-                + _delta(sum(row.gap for row in league) / len(league)) + "<td></td><td></td></tr>")
+    if totals:
+        foot = (f"<tr><th scope='row' colspan='5'>League, {totals.matches} matches</th><td>{totals.points}</td>"
+                f"<td>{totals.expected_points:.1f}</td>" + _delta(totals.points - totals.expected_points)
+                + f"<td>{totals.our_xi:.1f}</td><td>{totals.their_xi:.1f}</td>" + _delta(totals.gap)
+                + "<td></td><td></td></tr>")
     head = ["Date", "Competition", "Opponent", "Venue", "Result", "Pts", "Expected pts", "Pts − expected",
             "Our XI", "Their XI", "Gap", "Our formation", "Their formation"]
     return ("<section class='fm-workspace-panel' id='our-matches'><h2>1 · The XIs in our matches</h2>"
@@ -293,6 +303,76 @@ def results_section(report: HiddenStrength) -> str:
             "matches recorded, so it can differ from FM's table where a match is missing; matches with a line-up we "
             "cannot score are left out of every column.</p>"
             + _table(head, rows, label="Results against strength") + "</section>")
+
+
+_UNIT_INTRO = (
+    "<p class='muted'>Each XI split by where each player was placed: <b>goalkeeper</b>; <b>defence</b> (centre-backs, "
+    "full-backs, wing-backs); <b>midfield</b> (defensive midfielders and the midfield line, wide midfielders included); "
+    "<b>attack</b> (attacking midfielders, wingers and strikers). A unit's score combines its players' own scores the "
+    "way the XI's does, before the tactic's balance factor. Which line a wide player is in depends on the formation, "
+    "so a 4-4-2's attack is its two strikers and a 4-3-3's is its front three.</p>"
+)
+
+
+def _unit_cells(units, ranks) -> str:
+    cells = []
+    for key, _name, _positions in UNITS:
+        value = units.get(key)
+        if value is None:
+            cells.append("<td>—</td>")
+        else:
+            rank = ranks.get(key)
+            # The rank is drawn by CSS from data-rank, so a copied table keeps a plain number.
+            ranked = f" class='fm-hidden-ranked' data-rank='{_ordinal(rank)}'" if rank else ""
+            cells.append(f"<td{ranked} data-sort='{value:.3f}'>{value:.1f}</td>")
+    return "".join(cells)
+
+
+def units_section(report: HiddenStrength) -> str:
+    unit_head = [name for _key, name, _positions in UNITS]
+    parts = ["<section class='fm-workspace-panel' id='units'><h2>5 · Defence, midfield and attack</h2>" + _UNIT_INTRO]
+    if report.clubs:
+        ordered = sorted(report.clubs, key=lambda row: (-row.average_xi, row.club.name))
+        rows = [f"<tr{' class=our-club' if row.ours else ''}><td>{rank}</td><td>{_e(row.club.name)}{' · you' if row.ours else ''}</td>"
+                + _unit_cells(row.average_units, report.fielded_unit_ranks.get(row.club.id, {}))
+                + f"<td data-sort='{row.average_xi:.3f}'>{row.average_xi:.1f}</td></tr>"
+                for rank, row in enumerate(ordered, 1)]
+        parts.append("<h3>The XIs each club has fielded</h3><p class='muted'>Averaged over its league matches with both "
+                     "line-ups scored; the small figure is the club's rank in that unit (left out of the "
+                     "copies, so they paste as numbers).</p>"
+                     + _table(["Rank", "Club", *unit_head, "Whole XI"], rows, label="The XIs each club has fielded, by unit"))
+    if report.compared_tactics:
+        main = report.compared_tactics[0]
+        ordered = sorted(report.by_tactic, key=lambda row: (row.xis[main].score is None, -(row.xis[main].score or 0),
+                                                            row.club.name))
+        rows = [f"<tr{' class=our-club' if row.ours else ''}><td>{rank if row.xis[main].score is not None else '—'}</td>"
+                f"<td>{_e(row.club.name)}{' · you' if row.ours else ''}</td>"
+                + _unit_cells(row.xis[main].units, report.best_unit_ranks.get(row.club.id, {})) + _xi_cell(row.xis[main]) + "</tr>"
+                for rank, row in enumerate(ordered, 1)]
+        parts.append(f"<h3>Each club's best XI in {_e(report.tactic_names[main])}</h3>"
+                     "<p class='muted'>The best XIs of section 2, unit by unit, in the tactic we played most.</p>"
+                     + _table(["Rank", "Club", *unit_head, "Whole XI"], rows, label="Best XI by unit"))
+    rows = []
+    for row in report.our_matches:
+        result = "W" if row.points == 3 else "D" if row.points == 1 else "L"
+        rows.append(f"<tr><td class='fm-nowrap' data-sort='{row.match.date.isoformat()}'>{row.match.date.isoformat()}</td>"
+                    f"<td><a href='#{_anchor(row)}'>{_e(row.opponent.name)}</a></td><td>{'H' if row.side == 'home' else 'A'}</td>"
+                    f"<td class='fm-nowrap'><span class='fm-hidden-result' data-result='{result}'>{result}</span> "
+                    f"{row.goals_for}–{row.goals_against}</td>"
+                    + "".join(_delta(row.unit_gap(key)) for key, _name, _positions in UNITS)
+                    + "".join(_delta(row.matchups[key]) for key, _mine, _theirs in MATCHUPS) + "</tr>")
+    totals = report.our_totals
+    foot = "" if totals is None else (
+        f"<tr><th scope='row' colspan='4'>League average, {totals.matches} matches</th>"
+        + "".join(_delta(totals.unit_gaps.get(key)) for key, _name, _positions in UNITS)
+        + "".join(_delta(totals.matchups.get(key)) for key, _mine, _theirs in MATCHUPS) + "</tr>")
+    parts.append("<h3>Our matches, unit against unit</h3><p class='muted'>Each figure is ours minus theirs, so a minus "
+                 "means theirs was stronger. The last two set our back line against their forwards and our forwards "
+                 "against their back line; both are how well players suit their jobs on the same 0–100 scale, so read "
+                 "them as a rough guide.</p>"
+                 + _table(["Date", "Opponent", "Venue", "Result", *unit_head, "Our defence vs their attack",
+                           "Our attack vs their defence"], rows, foot=foot, label="Our matches, unit against unit"))
+    return "".join(parts) + "</section>"
 
 
 def _xi_list(xi: XiStrength, heading: str) -> str:

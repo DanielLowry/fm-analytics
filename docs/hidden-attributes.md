@@ -90,15 +90,41 @@ about 10 points each through the readiness fallback; that does not apply here.)
    every catalogue tactic of that shape (or the nearest).
 4. **Results against strength.** Every club's league points and goals against
    what its fielded XIs predicted.
+5. **Defence, midfield and attack** (added 12 October 2026). Every XI split by
+   where each player was placed: goalkeeper; defence (SW, DL, DC, DR, WBL,
+   WBR); midfield (DM, ML, MC, MR); attack (AML, AMC, AMR, ST). A unit's score
+   combines its players' own slot scores as the XI does (the square-root mean),
+   before the tactic's balance factor (`XiStrength.units`). Three tables: each
+   club's fielded XIs by unit (league average, with its rank in each unit), each
+   club's best XI in our main tactic by unit, and our matches unit against unit
+   (ours minus theirs), with our defence against their attack and our attack
+   against their defence. Which line a wide player is in depends on the
+   formation (a 4-4-2's ML is midfield, a 4-3-3's AML attack), so units compare
+   best between similar shapes; the two match-ups compare different jobs on the
+   same 0-100 scale and are a rough guide.
 
 Above them, the verdict: our points against expected, over the season and the
 last five league matches, with the usual run of luck (the standard deviation of
-points those matches would give if replayed with the same XIs), and our rank by
-points, by the XIs we fielded and by our best XI in our main tactic.
+points those matches would give if replayed with the same XIs), our rank by
+points, by the XIs we fielded and by our best XI in our main tactic, and our
+rank in each unit. Its wording ("better than / worse than / in line with your
+squad") is `Verdict.reading`, so the page and the copies say the same.
 
 Every table has **Copy for a spreadsheet** (tab-separated) and **Copy as
-Markdown**, both of the rows as filtered and sorted. **Copy everything as JSON**
-copies every table and every XI (`hidden_export.py`).
+Markdown**, both of the rows as filtered and sorted. Signed figures use a plain
+minus, and the page's * marks and unit ranks are drawn by CSS, so a copied table
+pastes into a spreadsheet as numbers. **Copy the whole page** copies one
+Markdown document: the verdict, every table (marks and ranks written out) and
+both XIs of every match, about 40 KB for a season (`hidden_markdown.py`).
+**Copy everything as JSON** copies the same with every field (`hidden_export.py`).
+The footer figures (league totals and averages) are worked out once in
+`OurTotals`, so the page and both copies cannot disagree.
+
+First unit reading, 12 October 2026 (2020/21, 170 league matches): our fielded
+XIs ranked goalkeeper 4th, defence 8th, midfield 5th and attack 14th of 24; our
+best XI in Ball-Winning Counter 4-3-3 DM ranks the same units 6th, 6th, 5th and
+13th. On average our attack was only +0.4 against the defences it met, while
+every other unit was 2-4 points ahead of its opposite number.
 
 ## The expected-result model
 
