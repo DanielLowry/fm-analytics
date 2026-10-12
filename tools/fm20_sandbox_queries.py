@@ -52,7 +52,7 @@ from tools.fm20_discoverability_cold_filter import (
 from tools.fm20_discoverability_manager_builder import _live_context
 from tools.fm20_scouted_attributes import read_report_records, resolve_persons_by_row_id
 from tools.fm20_linux_probe import ProbeError
-from tools.fm20_sandbox import FmSandbox, SandboxError
+from tools.fm20_sandbox import FmSandbox, MemorySnapshot, SandboxError
 from tools.fm20_visibility_trace import DISPLAY_ATTRIBUTE_IDS
 
 
@@ -449,14 +449,19 @@ def _capture_pass(
     margin: float,
     workers: int,
 ) -> dict[int, PlayerCapture]:
-    """One sharded pass over ``player_ids``, each shard its own fresh sandbox."""
+    """One sharded pass over ``player_ids``, each shard its own fresh sandbox.
+
+    The pass's sandboxes share one copy of FM's memory (``MemorySnapshot``);
+    the next pass takes a new one, so a retry still sees FM at a later moment.
+    """
     worker_count = max(1, min(workers, len(player_ids)))
     shard_size = -(-len(player_ids) // worker_count)  # ceiling division
     shards = [player_ids[start:start + shard_size] for start in range(0, len(player_ids), shard_size)]
+    snapshot = MemorySnapshot(pid)
 
     def run_shard(shard: list[int]) -> dict[int, PlayerCapture]:
         results: dict[int, PlayerCapture] = {}
-        with FmSandbox(pid, context.module_base) as box:
+        with FmSandbox(pid, context.module_base, snapshot=snapshot) as box:
             filter_context = build_filter_context(box, context)
             rules = resolve_interest_rules(box, context)
             for player_id in shard:
@@ -471,7 +476,7 @@ def _capture_pass(
         return results
 
     combined: dict[int, PlayerCapture] = {}
-    with ThreadPoolExecutor(max_workers=worker_count) as pool:
+    with snapshot, ThreadPoolExecutor(max_workers=worker_count) as pool:
         for shard_result in pool.map(run_shard, shards):
             combined.update(shard_result)
     return combined

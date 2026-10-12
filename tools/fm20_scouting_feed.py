@@ -797,11 +797,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     exit_code = main()
-    # Skip Python's own clean-up. Each sandbox is an emulator holding thousands
-    # of copied memory regions, and freeing the nine a refresh creates took 11.5
-    # of a 42-second refresh on 27 September 2026 -- after the feed file was
-    # already written and closed. The operating system reclaims the same memory
-    # instantly when the process ends; the log is written unbuffered.
+    # Skip Python's own clean-up of everything still held at exit. Sandboxes
+    # once made this slow (11.5 s of a 42-second refresh on 27 September 2026);
+    # each is now freed as it closes (``FmSandbox.close``), but there is still
+    # nothing here the operating system cannot reclaim faster. The feed is
+    # already written and closed, and the log is written unbuffered.
     sys.stdout.flush()
     sys.stderr.flush()
     os._exit(exit_code)

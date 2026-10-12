@@ -6,8 +6,8 @@ visibility builder inside the live game -- by ptrace register injection or a
 Frida hook -- and that is the prime suspect for the saves that broke on 17 and
 26 September 2026 (see ``docs/scouting-workspace.md``). This module runs the
 same machine code somewhere else: a Unicorn x86-64 CPU whose memory starts
-empty and is filled on demand, one page at a time, from ``/proc/<pid>/mem``
-opened read-only.
+empty and is filled on demand, a slice at a time, from ``/proc/<pid>/mem``
+opened read-only (see ``MemorySnapshot``).
 
 What that buys:
 
@@ -19,8 +19,8 @@ What that buys:
   knowledge context, for example) lands in the emulator's private copy of that
   page and is discarded with the sandbox.
 
-What it does not buy: a consistent snapshot. Pages are copied when first
-touched while FM keeps running, so a page copied late can disagree with one
+What it does not buy: a consistent snapshot. Slices are copied when first
+touched while FM keeps running, so a slice copied late can disagree with one
 copied early. Callers keep the existing before/after identity checks, and a
 sandbox should be short-lived -- one refresh, not a session.
 
@@ -29,8 +29,12 @@ Research status: trial. See ``docs/scouting-workspace.md`` before promoting.
 
 from __future__ import annotations
 
+import bisect
 import collections
+import ctypes
+import mmap
 import os
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -62,9 +66,15 @@ from unicorn.x86_const import (
 
 
 PAGE = 0x1000
-# Copy this much at once when all of it is readable: FM's heap objects cluster,
-# so neighbouring pages are usually wanted next, and one emulator region per
-# 4 KB page gets slow once thousands exist.
+# FM's memory is copied in slices this big, each clipped to the FM mapping that
+# holds it, and each slice becomes one emulator region. Unicorn's cost per
+# region grows with the number it already holds: on 11 October 2026 a sandbox
+# built from 64 KB chunks held about 5,000 of them and spent 13 s mapping them
+# and 13 s more freeing them, while reading the same memory from FM took
+# 0.04 s. A slice this size keeps a sandbox to a few hundred regions.
+SLICE = 0x200000
+# The fallback when a slice cannot be copied whole (part of it is unreadable):
+# this much if it is all readable, otherwise the single page.
 CHUNK = 0x10000
 PRIVATE_SIZE = 0x400000  # stack, fake thread block, call arguments, return trap
 STACK_SIZE = 0x200000
@@ -102,9 +112,145 @@ class SandboxError(RuntimeError):
 class SandboxStats:
     calls: int = 0
     seconds: float = 0.0
+    slices_mapped: int = 0
     chunks_loaded: int = 0
     pages_loaded: int = 0
     faults: list[str] = field(default_factory=list)
+
+
+_libc = ctypes.CDLL(None, use_errno=True)
+_libc.mmap.restype = ctypes.c_void_p
+_libc.mmap.argtypes = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_long)
+_libc.munmap.argtypes = (ctypes.c_void_p, ctypes.c_size_t)
+_MAP_FAILED = ctypes.c_void_p(-1).value
+
+
+def _readable_mappings(pid: int) -> list[tuple[int, int]]:
+    """FM's readable address ranges, in address order, from its memory map."""
+    ranges = []
+    with Path(f"/proc/{pid}/maps").open(encoding="utf-8") as maps:
+        for line in maps:
+            bounds, permissions = line.split(None, 2)[:2]
+            if permissions.startswith("r"):
+                low, high = (int(value, 16) for value in bounds.split("-"))
+                ranges.append((low, high))
+    ranges.sort()
+    return ranges
+
+
+def _containing(ranges: list[tuple[int, int]], address: int) -> tuple[int, int] | None:
+    index = bisect.bisect_right(ranges, (address, 2**64)) - 1
+    if index >= 0 and address < ranges[index][1]:
+        return ranges[index]
+    return None
+
+
+class MemorySnapshot:
+    """FM's memory, copied a slice at a time on first touch, for one or more sandboxes.
+
+    Each slice is read from ``/proc/<pid>/mem`` once, into an in-memory file,
+    and every sandbox maps its own copy-on-write view of it: FM's code writing
+    in one sandbox never reaches another sandbox, the snapshot, or FM. Sandboxes
+    run side by side in one pass (``tools.fm20_sandbox_queries._capture_pass``)
+    share one snapshot, so FM's memory is copied once per pass rather than once
+    per sandbox. A retry that needs FM "at a different real moment" -- the
+    reason those passes retry at all -- takes a new snapshot.
+    """
+
+    def __init__(self, pid: int):
+        self.pid = pid
+        self.bytes_copied = 0
+        self._lock = threading.Lock()
+        self._fd: int | None = None
+        self._file: int | None = None
+        self._size = 0
+        self._slices: list[tuple[int, int, int]] = []  # (low, high, file offset), by low
+        self._lows: list[int] = []
+        self._readable: list[tuple[int, int]] | None = None
+
+    def slice_at(self, address: int) -> tuple[int, int, int] | None:
+        """The slice holding ``address`` as (low, high, file offset), copied now if new.
+
+        None when FM has no readable memory there, or the slice could not be
+        read as far as ``address``; the sandbox then copies that page alone.
+        """
+        with self._lock:
+            index = bisect.bisect_right(self._lows, address) - 1
+            if index >= 0 and address < self._slices[index][1]:
+                return self._slices[index]
+            mapping = self._mapping(address)
+            if mapping is None:
+                return None
+            window = address & ~(SLICE - 1)
+            low, high = max(mapping[0], window), min(mapping[1], window + SLICE)
+            # FM's mappings change as it runs; never overlap a slice already copied.
+            if index >= 0:
+                low = max(low, self._slices[index][1])
+            if index + 1 < len(self._slices):
+                high = min(high, self._slices[index + 1][0])
+            return self._copy(address, low, high, index + 1)
+
+    def private_view(self, offset: int, size: int) -> int:
+        """A new copy-on-write mapping of part of the snapshot; the caller unmaps it."""
+        with self._lock:
+            pointer = _libc.mmap(
+                None, size, mmap.PROT_READ | mmap.PROT_WRITE, mmap.MAP_PRIVATE, self._file, offset
+            )
+        if pointer in (None, _MAP_FAILED):
+            raise OSError(ctypes.get_errno(), "could not map the memory snapshot")
+        return pointer
+
+    def _mapping(self, address: int) -> tuple[int, int] | None:
+        """FM's readable mapping holding ``address``; the map is re-read if it is not found."""
+        if self._readable is not None:
+            found = _containing(self._readable, address)
+            if found is not None:
+                return found
+        self._readable = _readable_mappings(self.pid)
+        return _containing(self._readable, address)
+
+    def _copy(self, address: int, low: int, high: int, position: int) -> tuple[int, int, int] | None:
+        if self._fd is None:
+            self._fd = os.open(f"/proc/{self.pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
+            self._file = os.memfd_create("fm20-sandbox", os.MFD_CLOEXEC)
+        offset = self._size
+        os.ftruncate(self._file, offset + high - low)
+        with mmap.mmap(
+            self._file, high - low, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE, offset=offset
+        ) as target:
+            try:
+                copied = os.preadv(self._fd, [target], low)
+            except OSError:
+                copied = 0
+        # A read stops at the first unreadable page; keep only what was read.
+        high = low + (copied & ~(PAGE - 1))
+        if address >= high:
+            os.ftruncate(self._file, offset)
+            return None
+        os.ftruncate(self._file, offset + high - low)
+        self._size = offset + high - low
+        self.bytes_copied += high - low
+        entry = (low, high, offset)
+        self._slices.insert(position, entry)
+        self._lows.insert(position, low)
+        return entry
+
+    def close(self) -> None:
+        """Release the snapshot; views sandboxes still hold stay valid until unmapped."""
+        with self._lock:
+            for fd in (self._fd, self._file):
+                if fd is not None:
+                    os.close(fd)
+            self._fd = self._file = None
+            self._size = 0
+            self._slices.clear()
+            self._lows.clear()
+
+    def __enter__(self) -> MemorySnapshot:
+        return self
+
+    def __exit__(self, *_exc) -> None:
+        self.close()
 
 
 def _free_region(pid: int, size: int, also_used: tuple[tuple[int, int], ...] = ()) -> int:
@@ -132,12 +278,22 @@ class FmSandbox:
     """One short-lived emulated CPU over FM's memory, copied on first touch."""
 
     def __init__(
-        self, pid: int, module_base: int, *, as_main_thread: bool = False, trace_blocks: int = 0
+        self,
+        pid: int,
+        module_base: int,
+        *,
+        snapshot: MemorySnapshot | None = None,
+        as_main_thread: bool = False,
+        trace_blocks: int = 0,
     ):
         self.pid = pid
         self.module_base = module_base
         # Diagnostics only: the last few code blocks run, named when a call stops.
         self._trace = collections.deque(maxlen=trace_blocks) if trace_blocks else None
+        # Shared with the other sandboxes of one pass when given, else this one's own.
+        self._owns_snapshot = snapshot is None
+        self.snapshot = MemorySnapshot(pid) if snapshot is None else snapshot
+        self._views: list[tuple[int, int]] = []
         self.fd = os.open(f"/proc/{pid}/mem", os.O_RDONLY | os.O_CLOEXEC)
         self.uc = Uc(UC_ARCH_X86, UC_MODE_64)
         self.stats = SandboxStats()
@@ -383,7 +539,29 @@ class FmSandbox:
         return "; last blocks: " + " > ".join(self._describe(address) for address in list(self._trace)[-8:])
 
     def close(self) -> None:
+        """Free the emulator and this sandbox's view of FM's memory now.
+
+        Unicorn's hook wrappers hold the emulator they belong to, so one is
+        never freed by reference counting. Left alone, each waited for Python's
+        full garbage collection, which then freed them one at a time while
+        every other thread waited: 83 s of one 136 s scouting refresh on 11
+        October 2026. The sandbox must not be used after this.
+        """
+        uc, self.uc = self.uc, None
+        if uc is None:
+            return
         os.close(self.fd)
+        # The binding's own finalizer: it closes the engine once and marks
+        # itself done, so collecting ``uc`` later does nothing.
+        release = getattr(uc, "_Uc__finalizer", None)
+        if release is not None:
+            release()
+            # Only once the engine is gone; until then it may still use them.
+            for pointer, size in self._views:
+                _libc.munmap(pointer, size)
+        self._views.clear()
+        if self._owns_snapshot:
+            self.snapshot.close()
 
     def __enter__(self) -> FmSandbox:
         return self
@@ -404,11 +582,39 @@ class FmSandbox:
         self._mapped.update(range(address, address + size, PAGE))
         return True
 
+    def _map_slice(self, page: int) -> bool:
+        """Map the snapshot's slice holding ``page``, as this sandbox's private copy."""
+        found = self.snapshot.slice_at(page)
+        if found is None:
+            return False
+        low, high, offset = found
+        run_start = None
+        # Only the parts not mapped here already, e.g. by an allocation that
+        # FM's own map did not show when the slice was copied.
+        for address in range(low, high + PAGE, PAGE):
+            if address < high and address not in self._mapped:
+                run_start = address if run_start is None else run_start
+            elif run_start is not None:
+                size = address - run_start
+                pointer = self.snapshot.private_view(offset + run_start - low, size)
+                try:
+                    self.uc.mem_map_ptr(run_start, size, UC_PROT_ALL, pointer)
+                except UcError:
+                    _libc.munmap(pointer, size)
+                    return False
+                self._views.append((pointer, size))
+                self._mapped.update(range(run_start, address, PAGE))
+                run_start = None
+        return page in self._mapped
+
     def _on_unmapped(self, uc, access, address, size, _value, _user_data) -> bool:
         first = address & ~(PAGE - 1)
         last = (address + max(size, 1) - 1) & ~(PAGE - 1)
         for page in range(first, last + PAGE, PAGE):
             if page in self._mapped:
+                continue
+            if self._map_slice(page):
+                self.stats.slices_mapped += 1
                 continue
             chunk = page & ~(CHUNK - 1)
             chunk_pages = range(chunk, chunk + CHUNK, PAGE)

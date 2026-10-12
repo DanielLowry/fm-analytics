@@ -609,6 +609,61 @@ spent 11.5 seconds freeing the nine sandboxes after the feed was already
 written (the command-line entry point now ends the process directly instead),
 and the first history save after the schema-4 change took 11 seconds.
 
+### Why a refresh grew to minutes, and the fix (11 October 2026)
+
+By October a refresh took 50–230 seconds before the page said it was done
+(`scouting_refresh_completed` in the log), up from ~31 s. Measured on the same
+save (5,857 players in the feed, 4,209 read in the sandbox), one refresh
+broke down like this:
+
+| Step | Before | After |
+| --- | --- | --- |
+| Build the Player Search list in the sandbox | 15.8 s | 2.1 s |
+| Attributes and interest (8 sandboxes in parallel) | 47.9 s | 9.4 s |
+| Freeing the sandboxes (Python's full garbage collection) | ~60–80 s | 0.5 s |
+| Everything else (live reads, names, positions, writing the feed) | ~7 s | ~7 s |
+| **Capture, as the button runs it** | **136 s** | **19 s** |
+
+The cause was neither reading FM nor running its code. Reading FM's memory is
+almost free (359 MB in 0.04 s). The cost was in the emulator. Each 64 KB chunk
+copied in became its own Unicorn region, and Unicorn's cost per region grows
+with how many it already holds. A sandbox held about 5,000 regions and spent
+13 s mapping them and another 13 s freeing them. A synthetic test shows the
+shape: 1,000 regions take 0.1 s to map, 4,000 take 4 s. The freeing also
+stalled everything else. Unicorn's Python hook wrappers hold the emulator they
+belong to, so a sandbox was never freed when its work finished. It waited for
+Python's full garbage collection, which then freed sandboxes one at a time
+while every other thread waited: 83 s of that one refresh. Bigger chunks alone
+were no answer, because FM's heap is scattered. 1 MB chunks would still need
+about 1,000 regions and about 1 GB per sandbox, and 8 sandboxes run at once.
+
+What changed, in `tools/fm20_sandbox.py`:
+
+- **FM's memory is copied in 2 MB slices, once per pass.** Each slice is
+  clipped to the FM mapping that holds it (`MemorySnapshot`), and every
+  sandbox maps its own copy-on-write view of it. A sandbox now holds a few
+  hundred regions. FM's code writing in one sandbox still never reaches
+  another sandbox, the snapshot, or FM. The 8 sandboxes of one attribute pass
+  share a snapshot; a retry pass takes a new one, so it still sees FM at a
+  later moment, which is why retries help at all. Copying the ~1.7 GB a pass
+  touches takes about half a second.
+- **`FmSandbox.close()` frees the emulator at once** instead of leaving it to
+  the garbage collector.
+
+Checked live: the feed from the new code matched the old code's feed, captured
+minutes apart from the same game state, on every field of all 5,857 players
+(only `capturedAt` differed). Peak memory fell from 3.7 GB to 2.9 GB. Covered
+in `tests/test_fm20_sandbox_memory.py` (`SnapshotTests`). The league capture
+(`tools/fm20_league_capture.py`) runs its sandboxes the same way and gets the
+same change.
+
+**Still slow, after the capture:** saving the player-knowledge history takes
+~21 s, and it runs before the page says the refresh is done. Scoring the whole
+pool for the first Scouting page takes ~62 s, for 9,522 players once the
+history is merged in. It runs in the background, but the first page view after
+a refresh needs it. Both have grown with the history since the table above;
+neither is a sandbox cost.
+
 **Decision:** the sandbox list is used on every refresh, even when FM has
 built its own, because FM's is only as recent as the last time Player Search
 was opened. FM's own list is the fallback if the sandbox build fails

@@ -8,6 +8,7 @@ to exercise it. These tests run the sandbox over this test process instead of
 FM: nothing under test reads FM's memory.
 """
 
+import ctypes
 import os
 import struct
 import unittest
@@ -82,6 +83,83 @@ class MemoryServiceTests(unittest.TestCase):
         self.box.uc.hook_add(UC_HOOK_CODE, self.box._answer_os_call, lambda: 0, stub, stub)
 
         self.assertEqual(self.box.call(stub), 0)
+
+
+class SnapshotTests(unittest.TestCase):
+    """How FM's memory reaches a sandbox: copied by the slice, private to each sandbox.
+
+    The "game" here is this test process, whose buffer stands in for an FM object.
+    """
+
+    def setUp(self) -> None:
+        self.live = ctypes.create_string_buffer(b"live data", 64)
+        self.address = ctypes.addressof(self.live)
+        self.boxes: list[sandbox.FmSandbox] = []
+
+    def tearDown(self) -> None:
+        for box in self.boxes:
+            box.close()
+
+    def _box(self, snapshot: sandbox.MemorySnapshot | None = None) -> sandbox.FmSandbox:
+        with mock.patch.object(sandbox.FmSandbox, "_build_thread_locals"):
+            box = sandbox.FmSandbox(os.getpid(), 0x140000000, snapshot=snapshot)
+        self.boxes.append(box)
+        return box
+
+    def test_a_sandbox_reads_the_game_and_its_writes_stay_in_the_sandbox(self) -> None:
+        box = self._box()
+
+        self.assertEqual(box.read(self.address, 9), b"live data")
+        box.write(self.address, b"sandboxed")
+
+        self.assertEqual(box.read(self.address, 9), b"sandboxed")
+        self.assertEqual(self.live.raw[:9], b"live data")
+
+    def test_neighbouring_memory_arrives_with_one_slice(self) -> None:
+        low, high = sandbox._containing(sandbox._readable_mappings(os.getpid()), self.address)
+        window = self.address & ~(sandbox.SLICE - 1)
+        low, high = max(low, window), min(high, window + sandbox.SLICE)
+        page = self.address & ~(sandbox.PAGE - 1)
+        neighbour = page + sandbox.PAGE if page + sandbox.PAGE < high else page - sandbox.PAGE
+        if neighbour < low:
+            self.skipTest("the buffer's mapping holds no other page")
+        box = self._box()
+        box.read(self.address, 1)
+
+        box.read(neighbour, 1)
+
+        self.assertEqual(box.stats.slices_mapped, 1)
+        self.assertEqual(box.stats.chunks_loaded + box.stats.pages_loaded, 0)
+
+    def test_sandboxes_sharing_a_snapshot_copy_once_and_never_see_each_others_writes(self) -> None:
+        with sandbox.MemorySnapshot(os.getpid()) as snapshot:
+            first, second = self._box(snapshot), self._box(snapshot)
+            first.write(self.address, b"first's!!")
+            copied = snapshot.bytes_copied
+
+            self.assertEqual(second.read(self.address, 9), b"live data")
+            self.assertEqual(snapshot.bytes_copied, copied)
+
+    def test_a_new_snapshot_sees_the_game_as_it_is_now(self) -> None:
+        # What a retry pass relies on: a fresh snapshot is a later look at the game.
+        with sandbox.MemorySnapshot(os.getpid()) as earlier:
+            before = self._box(earlier)
+            before.read(self.address, 1)
+            self.live.raw = b"new value".ljust(64, b"\0")
+
+            self.assertEqual(before.read(self.address, 9), b"live data")
+            self.assertEqual(self._box().read(self.address, 9), b"new value")
+
+    def test_closing_frees_the_emulator_at_once_and_twice_is_harmless(self) -> None:
+        box = self._box()
+        box.read(self.address, 1)
+        engine = box.uc
+
+        box.close()
+        box.close()
+
+        self.assertIsNone(box.uc)
+        self.assertFalse(engine._Uc__finalizer.alive)
 
 
 if __name__ == "__main__":

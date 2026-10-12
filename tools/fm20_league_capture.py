@@ -65,7 +65,7 @@ from tools import fm20_match_layout as layout
 from tools.fm20_cold_query_cache import _valid_player_interface
 from tools.fm20_linux_probe_runtime import decode_fm_date, snapshot_marker
 from tools.fm20_match_probe import Memory, first_team_address, played_results
-from tools.fm20_sandbox import FmSandbox, SandboxError
+from tools.fm20_sandbox import FmSandbox, MemorySnapshot, SandboxError
 from tools.fm20_sandbox_queries import SandboxSearchContext, read_visible_attributes, resolve_sandbox_context, resolve_scout_persons
 from tools.fm20_status import running_pid
 from tools.fm20_visible_positions import (
@@ -232,10 +232,12 @@ def _sandbox_pass(pid: int, context: SandboxSearchContext, interfaces: Mapping[i
     count = max(1, min(workers, len(player_ids)))
     size = -(-len(player_ids) // count)
     shards = [player_ids[start:start + size] for start in range(0, len(player_ids), size)]
+    # One copy of FM's memory for this pass's sandboxes; the next pass takes its own.
+    snapshot = MemorySnapshot(pid)
 
     def run(shard):
         found = {}
-        with FmSandbox(pid, context.module_base) as box:
+        with FmSandbox(pid, context.module_base, snapshot=snapshot) as box:
             for player_id in shard:
                 try:
                     attributes = read_visible_attributes(box, context, interfaces[player_id], scouts.get(player_id, 0))
@@ -247,7 +249,7 @@ def _sandbox_pass(pid: int, context: SandboxSearchContext, interfaces: Mapping[i
         return found
 
     combined = {}
-    with ThreadPoolExecutor(max_workers=count) as pool:
+    with snapshot, ThreadPoolExecutor(max_workers=count) as pool:
         for shard_result in pool.map(run, shards):
             combined.update(shard_result)
     return combined
