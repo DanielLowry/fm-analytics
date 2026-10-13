@@ -212,6 +212,9 @@ class TacticDefinition:
     why_this_shape: str = ""
     when_to_use: str = ""
     when_not_to_use: str = ""
+    # What to keep or change once ahead in a match: the in-match plan that
+    # goes with the tactic, for the manager. Not scoring input.
+    when_leading: str = ""
     instruction_rationale: Mapping[str, str] = field(default_factory=dict)
     # How much more (or less) this tactic values an attribute, as *deltas* on the
     # role's own weight, in blocks that cover the whole team or named positions.
@@ -687,6 +690,7 @@ def _tactic_from_json(raw: Mapping[str, Any], *, version: str) -> TacticDefiniti
         why_this_shape=raw.get("whyThisShape") or "",
         when_to_use=raw.get("whenToUse") or "",
         when_not_to_use=raw.get("whenNotToUse") or "",
+        when_leading=raw.get("whenLeading") or "",
         instruction_rationale=_string_mapping(raw.get("instructionRationale"), "instructionRationale"),
         attribute_emphasis=_emphasis_blocks(raw.get("attributeEmphasis"), _str(raw, "key")),
         attribute_taper=_taper_blocks(raw.get("attributeTaper"), _str(raw, "key")),
@@ -810,7 +814,7 @@ def _exclusion_group_from_json(raw: Mapping[str, Any]) -> RoleExclusionGroup:
 _ROLE_KEYS = frozenset({"key", "name", "description", "positions", "system", "attributes"})
 _TACTIC_KEYS = frozenset({
     "key", "name", "formation", "mentality", "instructions", "slots", "system",
-    "style", "description", "whyGood", "whyThisShape", "whenToUse", "whenNotToUse",
+    "style", "description", "whyGood", "whyThisShape", "whenToUse", "whenNotToUse", "whenLeading",
     "instructionRationale", "keyRequirements", "tags", "attributeEmphasis",
     "attributeTaper", "inPossession", "inTransition", "outOfPossession",
 })

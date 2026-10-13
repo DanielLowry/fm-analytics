@@ -1,0 +1,425 @@
+{
+  "key": "patient_possession_433",
+  "name": "Patient Possession 4-3-3 DM Wide",
+  "formation": "4-3-3 DM Wide",
+  "mentality": "Balanced",
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Lower Tempo",
+      "selected": [
+        "Play Out Of Defence"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [
+      "Hold Shape"
+    ],
+    "goalkeeperPace": [
+      "Slow Pace Down"
+    ],
+    "distributionTargets": [
+      "Distribute To Centre Backs"
+    ],
+    "distributionTypes": [
+      "Take Short Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "Standard",
+    "preventShortGKDistribution": false
+  },
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "sk_support",
+      "why": "Takes part in the build-up as the spare man behind the back three, receiving back-passes and playing short so the team rarely has to clear."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "wb_dl_dr_support",
+      "why": "Pushes high on the left, because the Half-Back covers behind him, and overlaps when the inside forward comes inside."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "bpd_defend",
+      "why": "Splits wide when the Half-Back drops in and carries or passes the ball into midfield; the first progressive passer."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_cover",
+      "roles": [
+        "cd_defend"
+      ],
+      "why": "Splits wide on the right in build-up and covers behind the back three when the ball is lost. Defend is the alternate."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "wb_dl_dr_support",
+      "why": "Pushes high on the right because the Half-Back covers behind him, underlapping the winger when he holds the touchline."
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "hb_defend",
+      "why": "Drops between the centre-backs when the team has the ball, making a back three so both full-backs can push on, and screens the defence when it does not."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "mez_attack",
+      "why": "Drifts into the left channel as the inside forward comes inside, the rotation that pulls defenders out of position, and runs beyond the dropping forward."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "cm_support",
+      "why": "The main circulator in midfield: always available for a short pass, moving the ball from side to side until a gap appears."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "if_support",
+      "why": "Comes inside from the left to combine with the Mezzala and the forward, leaving the touchline to the wing-back."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "winger_aml_amr_attack",
+      "why": "Holds the right touchline to keep the pitch wide and takes his full-back on to cross or cut back."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "dlf_support",
+      "roles": [
+        "f9_support"
+      ],
+      "why": "Drops off the centre-backs to receive and lay the ball off, so the inside forward and Mezzala can run into the space he leaves. False Nine is the alternate for a forward who drops deeper still and creates."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 4.0,
+      "defensiveCover": 6.0,
+      "ballProgression": 6.0,
+      "creativity": 2.0,
+      "runners": 4.0,
+      "penetration": 2.0,
+      "boxPresence": 1.5,
+      "restDefence": 6.0
+    },
+    "maximumAttackDuties": 3,
+    "maximumCreators": 2
+  },
+  "style": "Patient Possession 4-3-3",
+  "description": "A balanced possession 4-3-3: the Half-Back drops in to make a back three, the full-backs push on, and the team keeps the ball with short passes at a lower tempo until movement opens the defence.",
+  "whyGood": "Keeping the ball is itself a defence against a weaker side, which cannot score without it. The Half-Back gives a secure base of three in build-up, so the full-backs can push on and the midfield has numbers, without the centre-backs needing to be playmakers.",
+  "whyThisShape": "Possession is the lever. Short passes at a lower tempo, Hold Shape when the ball is won and playing out of defence with short goal kicks keep the ball for long spells; the counter-press wins it straight back when it is lost, so possession is rarely given up for long. The Half-Back drops between the centre-backs to make a back three, the ball-playing defender and covering defender split wide, and the sweeper keeper is the spare man behind them. With that base the full-backs push into midfield and the five ahead of them have numbers. The openings come from movement: the forward drops and the Mezzala and inside forward run into the space he leaves, while the Mezzala and inside forward rotate on the left and the right winger holds the touchline. Low crosses and cut-backs finish moves rather than early balls into the box, and the lines and pressing stay standard so the only extra effort is the counter-press.",
+  "whenToUse": "Against weaker sides that sit deep and do not press well, when the squad has a technical spine: a Half-Back, a ball-playing centre-back, passing midfielders and a forward who links play.",
+  "whenNotToUse": "When the centre-backs or keeper are uncomfortable on the ball, against a strong press, or with a forward line that only runs in behind; the plan then produces sterile possession and turnovers near your own goal.",
+  "whenLeading": "Keep the ball rather than dropping off: possession is the defence, and the counter-press keeps it. Stay Balanced; if anything, slow the tempo further. Do not bring on a direct forward to see the game out; it gives the ball back.",
+  "instructionRationale": {
+    "Counter-Press": "Wins the ball back immediately, so possession is rarely given up for long.",
+    "Hold Shape": "Keeps possession after a regain and lets the team reset into its shape instead of forcing a quick attack.",
+    "Standard Line of Engagement": "Keeps the defensive approach unchanged; possession and the counter-press do the controlling.",
+    "Standard Defensive Line": "Keeps the recovery distance moderate behind a side that commits its full-backs.",
+    "Shorter Passing": "Keeps the ball with short, low-risk passes between the back three, the midfield and the dropping forward.",
+    "Lower Tempo": "Gives the team time to move the opponent's block until a gap appears, rather than forcing the ball forward.",
+    "Play Out Of Defence": "Builds from the back three instead of clearing; the Half-Back and the ball-playing defender are there for it.",
+    "Fairly Wide": "Keeps the right winger and the left wing-back on the touchlines, so the opponent's block has to stretch.",
+    "Low Crosses": "Cut-backs and near-post balls when the movement gets someone to the byline.",
+    "Never Time Wasting": "Possession, not stoppages, is how this tactic sees a game out.",
+    "Slow Pace Down": "Lets the team take its build-up positions before the keeper restarts play.",
+    "Distribute To Centre Backs": "Starts every move with the back three, the base the tactic is built on.",
+    "Take Short Kicks": "Keeps goal kicks in the team's possession."
+  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "passing": 1,
+        "firstTouch": 1,
+        "composure": 1
+      }
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "firstTouch": 1
+      },
+      "positions": [
+        "GK"
+      ],
+      "roles": [
+        "sk_support"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 1,
+        "vision": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover",
+        "cd_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 1,
+        "stamina": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "positioning": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "hb_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 1,
+        "dribbling": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "mez_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "decisions": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attributes": {
+        "technique": 1,
+        "decisions": 1
+      },
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_support"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 1,
+        "dribbling": 1
+      },
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "firstTouch": 2,
+        "passing": 1,
+        "vision": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "f9_support"
+      ]
+    }
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "passing",
+      "taperBelow": 9,
+      "positions": [
+        "GK"
+      ],
+      "roles": [
+        "sk_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 10,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
+    },
+    {
+      "attribute": "composure",
+      "taperBelow": 9,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover",
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 10,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "hb_defend"
+      ]
+    },
+    {
+      "attribute": "composure",
+      "taperBelow": 10,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "hb_defend"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 9,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "hb_defend"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 9,
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 10,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "mez_attack"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 11,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 10,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "f9_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 10,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "f9_support"
+      ]
+    }
+  ],
+  "keyRequirements": [
+    "A Half-Back with the positioning to drop in and the composure to pass from there",
+    "A ball-playing centre-back and a keeper comfortable receiving the ball",
+    "Full-backs who pass well enough to be midfielders in possession",
+    "A circulating central midfielder and a Mezzala who runs beyond",
+    "A forward who drops, receives and lays the ball off, and wide players to run beyond him"
+  ],
+  "tags": [
+    "balanced",
+    "433",
+    "dm",
+    "possession",
+    "control",
+    "technical"
+  ]
+}

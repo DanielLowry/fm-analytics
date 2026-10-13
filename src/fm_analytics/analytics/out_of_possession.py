@@ -4,7 +4,7 @@ None is unauthored. Boolean fields accept True, False or "Neutral"; neutral
 leaves the corresponding control unselected. New choices without an existing
 scoring rule are presentation only. That includes defensive width (Narrow,
 Standard or Wide, confirmed against FM20's screen by the manager on 11 October
-2026), which no tactic sets yet.
+2026), which only the control range (`analytics/CLAUDE.md`, "Game plans") sets so far.
 
 Each scale's options run from one end to the other, as FM's slider does, so the
 tactic page can show where a choice sits.

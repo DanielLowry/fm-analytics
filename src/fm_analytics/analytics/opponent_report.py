@@ -42,6 +42,7 @@ from datetime import date
 from typing import Iterable, Mapping, Sequence
 
 from fm_analytics.analytics.chance_value import one_in
+from fm_analytics.analytics.game_plan_suggestion import PlanSuggestion, suggest_plan
 from fm_analytics.analytics.match_strength import TablePosition, league_seasons, positions
 from fm_analytics.analytics.opponent_goals import GoalProfile, ProfileRow, count_goals, goal_profile
 from fm_analytics.analytics.opponent_players import (
@@ -167,6 +168,9 @@ class OpponentReport:
     roster_date: date | None = None  # the league read their squad and attributes come from
     goals_for: int = 0
     goals_against: int = 0
+    # A guess at the game plan to play against them (`analytics.game_plan_suggestion`); None
+    # with too few of their matches.
+    plan: PlanSuggestion | None = None
 
 
 def _competitive(match: MatchRecord) -> bool:
@@ -421,6 +425,7 @@ def build_opponent_report(
     theirs = matches_of(club.id, everything, as_of)
     detailed = [match for match in theirs if match.detail is not None and match.detail.players][:window]
     position, league_name, league_teams, season_results = _league(league_results, club.id, as_of)
+    our_position = _league(league_results, our_club_id, as_of)[0] if our_club_id in league_teams else None
     first = detailed[-1].date if detailed else None
     last = detailed[0].date if detailed else None
 
@@ -485,6 +490,7 @@ def build_opponent_report(
     partnerships = partnerships_in(detailed, club.id, players)
     scored = goal_profile(scored_counts, league_scored if pool else None)
     conceded = goal_profile(conceded_counts, league_conceded if pool else None)
+    style = _style(detailed, club.id, pool, teams) if detailed else ()
     parts = {
         "formations": formations, "finishers": finishers, "suppliers": suppliers,
         "scored": scored, "conceded": conceded, "goals_for": goals_for,
@@ -510,13 +516,14 @@ def build_opponent_report(
         partnerships=partnerships,
         scored=scored,
         conceded=conceded,
-        style=_style(detailed, club.id, pool, teams) if detailed else (),
+        style=style,
         meetings=meetings,
         instructions=suggest_instructions(players),
         watch=_watch(parts),
         roster_date=roster_date,
         goals_for=goals_for,
         goals_against=goals_against,
+        plan=suggest_plan(style, len(detailed), position, our_position),
     )
 
 

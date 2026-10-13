@@ -392,6 +392,40 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         for tactic in MVP_CATALOGUE.tactics.values():
             self.assertIn(html.escape(tactic.when_to_use), body)
 
+    def test_tactics_overview_names_the_best_tactic_of_each_game_plan(self) -> None:
+        status, body = self._get("/tactics")
+
+        self.assertEqual(status, 200)
+        panel = body.split("Best of each game plan")[1].split("</table>")[0]
+        for plan in ("Possession control", "Territorial control", "Chance control", "Counter-attack"):
+            self.assertIn(plan, panel)
+        self.assertIn("fm-plan-chip", body.split("Compare tactics")[1])
+
+    def test_a_game_plan_filter_keeps_only_tactics_with_that_plan(self) -> None:
+        from fm_analytics.analytics.game_plan import game_plan_keys
+
+        status, body = self._get("/tactics?plan=territorial")
+
+        self.assertEqual(status, 200)
+        table = body.split("Compare tactics")[1].split("</table>")[0]
+        for tactic in MVP_CATALOGUE.tactics.values():
+            shown = f"<b>{html.escape(tactic.name)}</b>" in table
+            self.assertEqual(shown, "territorial" in game_plan_keys(tactic, MVP_CATALOGUE), tactic.key)
+        self.assertIn("fm-plan-filter-link is-active", table)
+
+    def test_an_unknown_game_plan_is_a_bad_request(self) -> None:
+        status, body = self._get("/tactics?plan=tiki-taka")
+
+        self.assertEqual(status, 400)
+        self.assertIn("plan must be one of", body)
+
+    def test_tactic_detail_says_which_game_plan_it_follows_and_when_leading(self) -> None:
+        status, body = self._get("/tactics/squeeze_433dm")
+
+        self.assertEqual(status, 200)
+        self.assertIn("<b>Game plan:</b> Territorial control (Counter-Press", body)
+        self.assertIn("<b>When leading:</b>", body)
+
     def test_an_alternate_role_choice_does_not_borrow_the_default_roles_reasoning(self) -> None:
         slot = MVP_CATALOGUE.tactics["balanced_442"].slots[-1]
         default = _slot_reasoning(slot, slot.role_key, "Advanced Forward (Attack)")

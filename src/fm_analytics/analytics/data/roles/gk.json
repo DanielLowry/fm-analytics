@@ -67,6 +67,80 @@
         "technique": 5,
         "throwing": 6
       }
+    },
+    {
+      "key": "sk_support",
+      "name": "Sweeper Keeper (Support)",
+      "description": "Goalkeeper who sweeps behind a higher line and, on Support duty, comes further to receive and pass short so the team can build from the back.",
+      "positions": [
+        "GK"
+      ],
+      "system": {
+        "defensiveCover": 0.7,
+        "restDefence": 1.0,
+        "ballProgression": 1.0,
+        "pressing": 0.5
+      },
+      "attributes": {
+        "reflexes": 10,
+        "rushingOut": 10,
+        "handling": 9,
+        "oneOnOnes": 9,
+        "positioning": 8,
+        "anticipation": 8,
+        "composure": 8,
+        "decisions": 8,
+        "firstTouch": 8,
+        "passing": 8,
+        "kicking": 8,
+        "aerialReach": 7,
+        "agility": 7,
+        "commandOfArea": 7,
+        "concentration": 7,
+        "acceleration": 6,
+        "communication": 6,
+        "pace": 6,
+        "throwing": 6,
+        "technique": 6,
+        "vision": 5
+      }
+    },
+    {
+      "key": "sk_attack",
+      "name": "Sweeper Keeper (Attack)",
+      "description": "Goalkeeper who acts as an extra outfield passer and sweeper on Attack duty, starting high, rushing out early and taking risks on the ball to keep possession moving.",
+      "positions": [
+        "GK"
+      ],
+      "system": {
+        "defensiveCover": 0.6,
+        "restDefence": 1.0,
+        "ballProgression": 1.2,
+        "pressing": 0.6
+      },
+      "attributes": {
+        "rushingOut": 10,
+        "reflexes": 9,
+        "oneOnOnes": 9,
+        "passing": 9,
+        "handling": 8,
+        "anticipation": 8,
+        "composure": 8,
+        "decisions": 8,
+        "firstTouch": 8,
+        "kicking": 8,
+        "positioning": 8,
+        "acceleration": 7,
+        "pace": 7,
+        "technique": 7,
+        "agility": 7,
+        "aerialReach": 6,
+        "commandOfArea": 6,
+        "concentration": 6,
+        "communication": 6,
+        "throwing": 6,
+        "vision": 6
+      }
     }
   ]
 }

@@ -152,6 +152,32 @@
       ]
     }
   ],
+  "attributeTaper": [
+    {
+      "attribute": "stamina",
+      "taperBelow": 11,
+      "positions": [
+        "DL",
+        "DR",
+        "DM",
+        "MC",
+        "AML",
+        "AMR",
+        "ST"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 11,
+      "positions": [
+        "DM",
+        "MC",
+        "AML",
+        "AMR",
+        "ST"
+      ]
+    }
+  ],
   "keyRequirements": [
     "High work rate/stamina",
     "Fast centre-backs",

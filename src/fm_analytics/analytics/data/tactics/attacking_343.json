@@ -123,6 +123,30 @@
       }
     }
   ],
+  "attributeTaper": [
+    {
+      "attribute": "stamina",
+      "taperBelow": 10,
+      "positions": [
+        "WBL",
+        "WBR",
+        "MC",
+        "AML",
+        "AMR",
+        "ST"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 10,
+      "positions": [
+        "MC",
+        "AML",
+        "AMR",
+        "ST"
+      ]
+    }
+  ],
   "keyRequirements": [
     "Mobile outside centre-backs",
     "Elite wing-back stamina",

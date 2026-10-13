@@ -1,0 +1,440 @@
+{
+  "key": "control_352",
+  "name": "Control 3-5-2 Wing-Back",
+  "formation": "3-5-2",
+  "mentality": "Balanced",
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Slightly Shorter Passing",
+      "tempo": "Standard",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "Standard",
+    "preventShortGKDistribution": false
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Centre Backs"
+    ],
+    "distributionTypes": [
+      "Roll It Out"
+    ]
+  },
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "A conventional keeper who rolls the ball to a wide centre-back to start a move. Possession starts short, but the build-up does not ask him to be a passer."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "why": "The left of the three. He spreads wide when the team has the ball to receive from the keeper and give a short pass to the wing-back or holder, and covers the space the wing-back leaves."
+    },
+    {
+      "key": "DCC",
+      "position": "DC",
+      "role": "bpd_defend",
+      "roles": [
+        "cd_defend"
+      ],
+      "why": "The middle of the three has the most time on the ball against a deep opponent, so a Ball-Playing Defender lets him step in and pass into midfield. Central Defender (Defend) is the alternate, at the cost of that progression."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "The right of the three. He spreads wide in possession and covers behind the wing-back. Cover is the alternate when he is quicker than he is strong."
+    },
+    {
+      "key": "WBL",
+      "position": "WBL",
+      "role": "wb_wbl_wbr_attack",
+      "why": "Supplies the width on his flank on his own, so he plays on Attack: he gets beyond the ball to the byline and crosses low. The wide centre-back and the ball-side central midfielder cover behind him."
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dm_defend",
+      "why": "Stays in front of the back three as the first pass out and the screen when the ball is lost. With both wing-backs high, he is the player who stops a counter reaching the defence through the middle."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "dlp_mc_support",
+      "why": "The main passer. He collects from the holder and the back three and switches play to the wing-back with the most space."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "b2b_support",
+      "why": "Covers ground both ways: he helps the wing-back on his side when the ball is lost and arrives late in the box when it goes wide, as a third body for crosses behind the two forwards."
+    },
+    {
+      "key": "WBR",
+      "position": "WBR",
+      "role": "wb_wbl_wbr_attack",
+      "why": "Supplies the width on his flank on his own, so he plays on Attack: he gets beyond the ball to the byline and crosses low. The wide centre-back and the ball-side central midfielder cover behind him."
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "dlf_support",
+      "roles": [
+        "cf_support"
+      ],
+      "why": "Drops off the front line to give the two central midfielders a forward pass, then rejoins the attack. Complete Forward (Support) is the alternate for a striker who also carries the ball and finishes; both link play rather than running in behind."
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "p_attack",
+      "roles": [
+        "af_attack"
+      ],
+      "why": "Poacher stays on the last defender's shoulder to meet low crosses and cut-backs at the near post. Advanced Forward is the alternate for a striker who also runs the channels."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 3.5,
+      "defensiveCover": 6.5,
+      "ballProgression": 6.0,
+      "creativity": 2.0,
+      "runners": 3.5,
+      "penetration": 2.5,
+      "boxPresence": 3.0,
+      "restDefence": 7.0
+    },
+    "maximumAttackDuties": 3,
+    "maximumCreators": 2
+  },
+  "style": "Control 3-5-2",
+  "description": "A balanced 3-5-2 for games you are expected to win: three centre-backs and a holder keep the ball safely, two central midfielders move it, two attacking wing-backs supply all the width and low crosses, and two forwards meet them.",
+  "whyGood": "Puts two forwards and an arriving midfielder in the box for every cross, which a one-striker control shape cannot, while three centre-backs and a holding midfielder keep the team secure against a weaker side's counters. Against a deep back four the wing-backs are often unmarked, because the opponent's wide midfielders are pinned by the width or drop into their back line.",
+  "whyThisShape": "Against an opponent that sits deep, the back three and the holder outnumber its forwards, so the ball can be kept without risk while the two central midfielders move it from side to side. Each wing-back is the only width on his flank, so both play on Attack and get to the byline; with Hit Early Crosses off they carry the ball there before a low cross. Two forwards and the box-to-box midfielder then attack the near post, the penalty spot and the back post. The support forward drops to give midfield a forward pass, the poacher stays high. Slightly shorter passing at standard tempo keeps possession without asking the back line to play tiki-taka, and with no Counter on winning the ball a regain becomes a new spell of possession. Regroup and standard lines, pressing and engagement keep the defensive shape conventional: out of possession the wing-backs drop in to make five. The keeper rolls the ball to a wide centre-back, the natural first pass in a back three.",
+  "whenToUse": "Against weaker sides who sit deep in a back four, when you have two wing-backs with the running and crossing to cover a whole flank, three centre-backs, and two forwards who can share the box.",
+  "whenNotToUse": "When the wing-backs cannot sustain the running or cross, because the shape has no other width; against a side whose wingers attack the space behind the wing-backs; or against a strong press, where three centre-backs on the ball are a target.",
+  "whenLeading": "Stay Balanced: the wing-backs already drop in to make five when the ball is lost, so there is no need to change shape. Replace a tiring wing-back like for like, since he is the only width on his side, and keep two forwards on as an outlet.",
+  "instructionRationale": {
+    "Fairly Wide": "Tells the wing-backs to hold the touchline, since nobody else provides width, so the playmaker always has a switch of play.",
+    "Slightly Shorter Passing": "Keeps the ball against a deep block without asking defenders with ordinary passing to play intricate short combinations.",
+    "Low Crosses": "Played to the near post and the penalty spot, where forwards who are not aerial specialists can still finish.",
+    "Never Time Wasting": "Keeps playing to win the ball back and attack when ahead, rather than inviting pressure late in a game.",
+    "Regroup": "Recovers the defensive shape after losing the ball instead of a counter-press the squad's stamina would not sustain for ninety minutes.",
+    "Roll It Out": "Keeps goal kicks and catches in the team's possession rather than contesting long balls.",
+    "Standard Line of Engagement": "Leaves the defensive approach unchanged from the side's usual tactics: the attacking phase is what this tactic changes.",
+    "Standard Defensive Line": "Keeps the recovery distance behind the back four moderate, so a rare counter does not find a high line.",
+    "Distribute To Centre Backs": "The wide centre-backs split towards the touchlines as the first, low-risk pass, which is where a back three starts possession."
+  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "decisions": 1,
+        "teamwork": 1
+      }
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "composure": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 1,
+        "composure": 1,
+        "vision": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 2,
+        "stamina": 1,
+        "workRate": 1
+      },
+      "positions": [
+        "WBL",
+        "WBR"
+      ],
+      "roles": [
+        "wb_wbl_wbr_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "passing": 2,
+        "composure": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "decisions": 2,
+        "composure": 2,
+        "firstTouch": 1,
+        "vision": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 1,
+        "offTheBall": 1,
+        "positioning": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attributes": {
+        "firstTouch": 2,
+        "passing": 2,
+        "decisions": 1,
+        "composure": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "cf_support"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 2,
+        "anticipation": 2,
+        "finishing": 1,
+        "composure": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack",
+        "af_attack"
+      ]
+    }
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "positioning",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 9,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 10,
+      "positions": [
+        "WBL",
+        "WBR"
+      ],
+      "roles": [
+        "wb_wbl_wbr_attack"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 9,
+      "positions": [
+        "WBL",
+        "WBR"
+      ],
+      "roles": [
+        "wb_wbl_wbr_attack"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 7,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 11,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 9,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 9,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 10,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 10,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 8,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "cf_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "dlf_support",
+        "cf_support"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack",
+        "af_attack"
+      ]
+    }
+  ],
+  "keyRequirements": [
+    "Two wing-backs with the stamina to cover a whole flank and the crossing to finish moves from the byline",
+    "Three centre-backs who defend a standard line, the middle one able to pass into midfield",
+    "A holding midfielder with the positioning to screen and enough passing to make the simple pass out",
+    "A central-midfield playmaker who passes well enough to run possession",
+    "A box-to-box midfielder with the running to cover a wing-back and still arrive in the box",
+    "A forward who drops to link play and a striker who attacks the near post"
+  ],
+  "tags": [
+    "balanced",
+    "352",
+    "wing-backs",
+    "control",
+    "possession"
+  ]
+}

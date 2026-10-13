@@ -298,6 +298,194 @@
         "tackling": 10,
         "technique": 1
       }
+    },
+    {
+      "key": "wcb_defend",
+      "name": "Wide Centre-Back (Defend)",
+      "description": "The left or right centre-back of a back three; on Defend duty he covers the channel outside him and the space behind his wing-back while holding the line with the other two.",
+      "positions": [
+        "DC"
+      ],
+      "system": {
+        "defensiveCover": 1.6,
+        "restDefence": 1.6,
+        "width": 0.3,
+        "ballProgression": 0.3,
+        "aerialOutlet": 0.6
+      },
+      "attributes": {
+        "marking": 10,
+        "positioning": 10,
+        "tackling": 10,
+        "anticipation": 8,
+        "heading": 8,
+        "jumpingReach": 8,
+        "concentration": 7,
+        "decisions": 7,
+        "strength": 7,
+        "bravery": 6,
+        "pace": 6,
+        "acceleration": 5,
+        "composure": 5,
+        "stamina": 5,
+        "workRate": 5,
+        "aggression": 4,
+        "firstTouch": 4,
+        "passing": 4,
+        "dribbling": 3
+      }
+    },
+    {
+      "key": "wcb_support",
+      "name": "Wide Centre-Back (Support)",
+      "description": "The left or right centre-back of a back three; on Support duty he steps out with the ball into midfield or the channel and supports his wing-back, then recovers into the three.",
+      "positions": [
+        "DC"
+      ],
+      "system": {
+        "defensiveCover": 1.3,
+        "restDefence": 1.2,
+        "width": 0.6,
+        "ballProgression": 0.8,
+        "runners": 0.3,
+        "pressing": 0.3
+      },
+      "attributes": {
+        "positioning": 9,
+        "tackling": 9,
+        "marking": 8,
+        "anticipation": 7,
+        "decisions": 7,
+        "heading": 7,
+        "jumpingReach": 7,
+        "pace": 7,
+        "stamina": 7,
+        "workRate": 7,
+        "acceleration": 6,
+        "composure": 6,
+        "concentration": 6,
+        "dribbling": 6,
+        "firstTouch": 6,
+        "passing": 6,
+        "strength": 6,
+        "bravery": 5,
+        "crossing": 5,
+        "technique": 5,
+        "offTheBall": 4
+      }
+    },
+    {
+      "key": "wcb_attack",
+      "name": "Wide Centre-Back (Attack)",
+      "description": "The left or right centre-back of a back three; on Attack duty he overlaps his wing-back into the final third to deliver or combine, relying on the other centre-backs and the midfield to cover.",
+      "positions": [
+        "DC"
+      ],
+      "system": {
+        "defensiveCover": 1.0,
+        "restDefence": 0.9,
+        "width": 0.9,
+        "ballProgression": 1.0,
+        "runners": 0.7,
+        "penetration": 0.3,
+        "pressing": 0.3,
+        "attackDuty": 1.0
+      },
+      "attributes": {
+        "dribbling": 8,
+        "pace": 8,
+        "positioning": 8,
+        "stamina": 8,
+        "tackling": 8,
+        "workRate": 8,
+        "acceleration": 7,
+        "crossing": 7,
+        "decisions": 7,
+        "marking": 7,
+        "offTheBall": 7,
+        "anticipation": 6,
+        "firstTouch": 6,
+        "heading": 6,
+        "jumpingReach": 6,
+        "passing": 6,
+        "technique": 6,
+        "composure": 5,
+        "strength": 5,
+        "concentration": 5
+      }
+    },
+    {
+      "key": "libero_support",
+      "name": "Libero (Support)",
+      "description": "Central defender who steps out of the back line with the ball into midfield, joining build-up as an extra passer before dropping back to sweep; on Support duty he returns early.",
+      "positions": [
+        "DC"
+      ],
+      "system": {
+        "defensiveCover": 1.3,
+        "restDefence": 1.3,
+        "ballProgression": 1.6,
+        "creativity": 0.6
+      },
+      "attributes": {
+        "composure": 9,
+        "decisions": 9,
+        "passing": 9,
+        "positioning": 9,
+        "anticipation": 8,
+        "firstTouch": 8,
+        "marking": 8,
+        "tackling": 8,
+        "technique": 8,
+        "concentration": 7,
+        "teamwork": 7,
+        "vision": 7,
+        "dribbling": 6,
+        "heading": 6,
+        "jumpingReach": 6,
+        "acceleration": 5,
+        "bravery": 5,
+        "pace": 5,
+        "strength": 5
+      }
+    },
+    {
+      "key": "libero_attack",
+      "name": "Libero (Attack)",
+      "description": "Central defender who carries the ball out of the back line deep into midfield and stays involved further forward on Attack duty, leaving the other defenders to hold the line.",
+      "positions": [
+        "DC"
+      ],
+      "system": {
+        "defensiveCover": 1.0,
+        "restDefence": 1.0,
+        "ballProgression": 1.8,
+        "creativity": 0.9,
+        "runners": 0.3,
+        "attackDuty": 1.0
+      },
+      "attributes": {
+        "passing": 10,
+        "composure": 9,
+        "decisions": 9,
+        "dribbling": 8,
+        "firstTouch": 8,
+        "technique": 8,
+        "vision": 8,
+        "anticipation": 8,
+        "positioning": 8,
+        "marking": 7,
+        "tackling": 7,
+        "concentration": 6,
+        "teamwork": 6,
+        "acceleration": 6,
+        "pace": 6,
+        "offTheBall": 5,
+        "heading": 5,
+        "jumpingReach": 5,
+        "strength": 5,
+        "longShots": 4
+      }
     }
   ]
 }

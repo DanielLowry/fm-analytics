@@ -197,7 +197,7 @@
   "attributeTaper": [
     {
       "attribute": "stamina",
-      "taperBelow": 7,
+      "taperBelow": 9,
       "positions": [
         "DL",
         "DR"
@@ -205,7 +205,7 @@
     },
     {
       "attribute": "workRate",
-      "taperBelow": 7,
+      "taperBelow": 9,
       "positions": [
         "DL",
         "DR"
@@ -213,7 +213,7 @@
     },
     {
       "attribute": "stamina",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "ML",
         "MR"
@@ -221,7 +221,7 @@
     },
     {
       "attribute": "workRate",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "ML",
         "MR"
@@ -229,28 +229,28 @@
     },
     {
       "attribute": "stamina",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "MC"
       ]
     },
     {
       "attribute": "workRate",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "MC"
       ]
     },
     {
       "attribute": "stamina",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "ST"
       ]
     },
     {
       "attribute": "workRate",
-      "taperBelow": 8,
+      "taperBelow": 10,
       "positions": [
         "ST"
       ]

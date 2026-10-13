@@ -1,0 +1,366 @@
+{
+  "key": "rest_defence_433",
+  "name": "Rest-Defence 4-3-3 DM Wide",
+  "formation": "4-3-3 DM Wide",
+  "mentality": "Balanced",
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Slightly Shorter Passing",
+      "tempo": "Standard",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Full Backs"
+    ],
+    "distributionTypes": [
+      "Roll It Out"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "Standard",
+    "preventShortGKDistribution": false
+  },
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "A conventional keeper who rolls the ball to a full-back to start a move; the build-up does not ask him to be a passer."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "iwb_dl_dr_support",
+      "why": "Steps inside beside the holding midfielder when the team has the ball, making the second line of the 2-3 base that stops counters, and gives the playmakers a short pass."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "One of the two that always stay. Cover is the alternate, but only one centre-back may use it."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_cover",
+      "roles": [
+        "cd_defend"
+      ],
+      "why": "One of the two that always stay, covering behind the other when a counter does start. Defend is the alternate; only one centre-back may use Cover."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "wb_dl_dr_attack",
+      "why": "The width on the right: he overlaps the inside forward to reach the byline, which is safe because the inverted wing-back has stayed."
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dm_defend",
+      "why": "The middle of the 2-3 base: he stays in front of the centre-backs, screens the first pass of a counter and starts the counter-press."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "mez_attack",
+      "why": "Runs into the left half-space inside the winger, the underlap that drags a full-back or centre-back out of position, and arrives in the box."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "cm_support",
+      "why": "Recycles the ball when an attack stalls, plays the switch, and waits on the edge of the box for the cut-back and the half-clearance."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "winger_aml_amr_attack",
+      "why": "Holds the left touchline so the Mezzala can run inside him, and takes his full-back on to the byline."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "if_support",
+      "why": "Comes inside from the right as the wing-back overlaps, to combine around the box and arrive at the back post."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "af_attack",
+      "roles": [
+        "p_attack"
+      ],
+      "why": "Pins the centre-backs and attacks the near post and the space they leave when they step out. Poacher is the alternate for a striker who stays in the box."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 4.0,
+      "defensiveCover": 6.0,
+      "ballProgression": 4.0,
+      "creativity": 1.5,
+      "runners": 4.5,
+      "penetration": 3.5,
+      "boxPresence": 2.5,
+      "restDefence": 6.5
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 2
+  },
+  "style": "Rest-Defence 4-3-3",
+  "description": "A balanced 4-3-3 built around a fixed rest defence: two centre-backs, the holding midfielder and an inverted wing-back always stay, so five can attack and the team counter-presses rather than regroups when an attack breaks down.",
+  "whyGood": "Chance control without giving up territory: because the same four players are always behind the ball, the team can counter-press straight after losing it, recycling attacks instead of retreating to restart. The two flanks open a defence in different ways, so the opponent cannot defend both with one plan.",
+  "whyThisShape": "Each attack has five players for it and four behind it. The left wing-back steps inside next to the holding midfielder, so with the two centre-backs the team keeps a 2-2 base when the full-back on the other side and the midfielders go forward. Behind that base the counter-press is safe: the ball is won back where it was lost, and the attack goes again. The two flanks attack differently. On the left the winger holds the touchline and the Mezzala underlaps him into the half-space; on the right the inside forward comes inside and the wing-back overlaps him to the byline. Low crosses and cut-backs find the striker, the inside forward at the back post and the central midfielder on the edge of the box. Slightly shorter passing at standard tempo keeps possession without asking the back line to play tiki-taka, there is no Counter on winning the ball, and the lines and pressing stay standard: the counter-press is the only extra effort asked for.",
+  "whenToUse": "Against weaker sides that defend deep and try to counter, when you have a full-back who can play inside, a disciplined holder and an eight who runs beyond.",
+  "whenNotToUse": "When the inverted wing-back is not comfortable in midfield, since the whole rest defence depends on him; or against a high press, where the slower build-up gives the ball away near your own goal.",
+  "whenLeading": "Keep the 2-2 base and the counter-press, and stay Balanced; the rest defence is what makes a lead safe, not dropping deeper. If the wing-back and winger are tiring, replace them with fresh players in the same roles rather than taking the width away.",
+  "instructionRationale": {
+    "Counter-Press": "Wins the ball back where the attack broke down, which the 2-2 base behind it makes safe.",
+    "Standard Line of Engagement": "Keeps the defensive approach unchanged; the counter-press is the only extra demand.",
+    "Standard Defensive Line": "Keeps the recovery distance behind the back line moderate in case the counter-press is beaten.",
+    "Fairly Wide": "Keeps a winger on the left touchline and a wing-back on the right one, so both underlap and overlap have room.",
+    "Slightly Shorter Passing": "Keeps the ball through the inverted wing-back and the central midfielders without forcing it.",
+    "Low Crosses": "Cut-backs and near-post balls for the striker, the inside forward and the arriving midfielders.",
+    "Never Time Wasting": "Keeps playing to attack when ahead, rather than inviting pressure.",
+    "Distribute To Full Backs": "Starts possession with the inverted wing-back, who steps straight into midfield.",
+    "Roll It Out": "Keeps goal kicks and catches in the team's possession."
+  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "decisions": 1,
+        "teamwork": 1
+      }
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "passing": 1,
+        "composure": 1
+      },
+      "positions": [
+        "DL"
+      ],
+      "roles": [
+        "iwb_dl_dr_support"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 2,
+        "stamina": 1
+      },
+      "positions": [
+        "DR"
+      ],
+      "roles": [
+        "wb_dl_dr_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "anticipation": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 2,
+        "anticipation": 1,
+        "finishing": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "mez_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "decisions": 1,
+        "positioning": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 2,
+        "dribbling": 1
+      },
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 1,
+        "offTheBall": 1,
+        "technique": 1
+      },
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "if_support"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 2,
+        "finishing": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "af_attack",
+        "p_attack"
+      ]
+    }
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "positioning",
+      "taperBelow": 9,
+      "positions": [
+        "DL"
+      ],
+      "roles": [
+        "iwb_dl_dr_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 9,
+      "positions": [
+        "DL"
+      ],
+      "roles": [
+        "iwb_dl_dr_support"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 9,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 9,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "mez_attack"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 10,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_support"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 9,
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 10,
+      "positions": [
+        "DR"
+      ],
+      "roles": [
+        "wb_dl_dr_attack"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 9,
+      "positions": [
+        "DR"
+      ],
+      "roles": [
+        "wb_dl_dr_attack"
+      ]
+    }
+  ],
+  "keyRequirements": [
+    "A full-back who can step inside and pass like a midfielder",
+    "A disciplined holding midfielder and two centre-backs who defend space",
+    "An eight who runs beyond the winger into the half-space and arrives in the box",
+    "A winger who holds the touchline and an attacking wing-back on the other side",
+    "A striker who attacks the near post and the space centre-backs leave"
+  ],
+  "tags": [
+    "balanced",
+    "433",
+    "dm",
+    "control",
+    "counter-press",
+    "asymmetric"
+  ]
+}

@@ -32,8 +32,8 @@ and `data/tactics/<key>.json` (one file per tactic; the file name must equal
 the key). Discovery is a sorted glob, so adding a tactic is adding a file. The
 catalogue has a single version, in `catalogue.json` — never put a version in a
 file name. A tactic file also carries manager-facing justification text
-(`whyThisShape`, `whenToUse`, `whenNotToUse`, `instructionRationale`, and a `why`
-on each slot); it is not scoring input, and it must be kept in step with the
+(`whyThisShape`, `whenToUse`, `whenNotToUse`, the optional in-match plan
+`whenLeading`, `instructionRationale`, and a `why` on each slot); it is not scoring input, and it must be kept in step with the
 roles, alternates and instructions it describes. The wheel picks these files up from the package tree; don't
 enumerate them in `pyproject.toml`.
 
@@ -114,11 +114,12 @@ penetration for this template.
 Slot alternatives are chosen independently, so a tactic can name the same
 role in two slots on one line. `data/catalogue.json`'s `exclusiveRoleGroups` rules
 those out: each group names roles of which at most one slot may play, at one
-position or, with no `position`, anywhere in the eleven. Three groups ship
+position or, with no `position`, anywhere in the eleven. Five groups ship
 today: **Cover centre-back** (`cd_cover`, `bpd_cover`, `nncb_cover`) and
 **Stopper centre-back** (`cd_stopper`, `bpd_stopper`, `nncb_stopper`), both
-scoped to DC, and **Free roles** across the whole XI (the three Trequartistas,
-Enganche, Raumdeuter). Roles in a
+scoped to DC, **Free roles** across the whole XI (the three Trequartistas,
+Enganche, Raumdeuter), **Half-Back** at DM (two cannot both drop between the
+centre-backs) and **Libero** at DC. Roles in a
 group are the ones that only make sense alongside a partner who isn't in it.
 `_best_role_version` skips any role version that breaks a group, and
 `FootballCatalogue` refuses to load a tactic with no legal version. When a new
@@ -255,7 +256,7 @@ for the other two phases to reuse once they are reviewed.
   Ball Into Box): part of what makes this tactic *this* tactic, always
   hand-authored. Only a handful of
   tactics have been given these so far (`attacking_424`, `balanced_433dm`,
-  `balanced_442`, `deep_counter_541`, `enganche_4231`, `positive_4231`,
+  `balanced_442`, the control range (see "Game plans" below), `deep_counter_541`, `enganche_4231`, `positive_4231`,
   `positive_433dm`, `ball_winning_counter_433dm`, `positive_ball_winning_433dm`,
   `solid_4231`, `vertical_442`, `wide_playmakers_433` and
   `wing_play_442`); the rest report every fixed field as missing. `TacticDefinition.in_possession_missing_fields`
@@ -362,9 +363,9 @@ choice is not. Moving an instruction into `inTransition` requires removing its
 legacy `instructions` string, but its `instructionRationale` stays. Duplicates and
 conflicts between structured and legacy transition choices are rejected.
 
-`attacking_424`, `balanced_433dm`, `balanced_442`, `deep_counter_541`,
-`enganche_4231`, `positive_4231`, `positive_433dm`, `ball_winning_counter_433dm`,
-`positive_ball_winning_433dm`, `solid_4231`, `vertical_442`
+`attacking_424`, `balanced_433dm`, `balanced_442`, the control range,
+`deep_counter_541`, `enganche_4231`, `positive_4231`, `positive_433dm`,
+`ball_winning_counter_433dm`, `positive_ball_winning_433dm`, `solid_4231`, `vertical_442`
 and `wide_playmakers_433` have complete transition
 blocks, including goalkeeper distribution. `wing_play_442` carries only its
 possession-won choice in this block; other tactics retain their legacy
@@ -413,9 +414,9 @@ choices. Migrating a tactic removes those legacy strings and retains their
 `enganche_4231`, `positive_4231`, `positive_433dm`, `ball_winning_counter_433dm`,
 `positive_ball_winning_433dm`, `solid_4231`, `vertical_442`
 and `wide_playmakers_433` set every defensive field except defensive width,
-which joined the model after they were authored and no tactic sets yet, so their
-pages flag it as not set. Other tactics' legacy defensive instructions remain
-visible alongside the new section.
+which joined the model after they were authored, so their pages flag it as not
+set. The control range sets every defensive field, defensive width included. Other tactics' legacy defensive instructions remain visible alongside
+the new section.
 
 ## How the tactic page shows the three phases
 
@@ -428,6 +429,31 @@ twice, or split from one it clashes with. Player-dependent and situational
 settings sit in the same cards as the fixed ones, each marked, so Hit Early
 Crosses appears beside the Work Ball Into Box it locks. Adding a setting to a
 phase means adding it to that phase's `GROUPS` too.
+
+## Game plans
+
+`game_plan.py` labels each tactic with the game plans it follows, read in one
+place from its own settings and default roles (docs/control-tactics-plan.md):
+possession control, territorial control, chance control, direct, counter-attack
+and low block, each with the settings that earned it. **Labels never reach
+scoring**: the fit score says whether a squad can play a tactic, and which plan
+to play is the manager's choice. They filter and group the `/tactics` ranking
+("Best of each game plan"), show on the tactic page and the catalogue index,
+split the Matches page's control scorecard (`control_scorecard.py`), and are
+what the opponent report's suggestion (`game_plan_suggestion.py`) points at.
+Chance control is the residual control plan: a tactic already territorial,
+possession-based, direct, countering or deep is not also labelled chance
+control. A tactic with mixed settings carries several labels; that is
+information, not a reason to change it.
+
+The **control range** is the eleven tactics built for a promotion-chasing side
+against weaker opponents: the five `control_*` (chance control, Regroup),
+`rest_defence_433` (chance control, Counter-Press), `squeeze_433dm` and
+`territorial_352` (territorial), `siege_442` (territorial, direct), and
+`patient_possession_433` and `regista_4231` (possession). Each carries a
+`whenLeading` note. The territorial ones, and the older high-press tactics,
+write their intensity into stamina and work-rate tapers (10, or 11 for the two
+extreme presses), so an unfit squad sees them fall down the ranking.
 
 ## The opponent
 
@@ -571,6 +597,15 @@ silently treating it as independent.
   with one player moved to the other end of his range (for the best case, his
   slot's best alternative may take over), never a full re-selection; keep
   their "up to" / "at least" wording if you change them.
+- `control_scorecard.py` — the Matches page's "Control against each third":
+  possession, territorial and chance measures for our selected matches by
+  opponent third and by game plan, beside the league's top third (every archived
+  match between two other clubs where one was top third at kickoff, placed by
+  `StrengthCalculator.table_at`). Describes; changes no score.
+- `game_plan_suggestion.py` — the opponent report's suggested game plan, read
+  from the opponent's possession, pass completion and headers against its
+  league (`StyleFigure` ranks), and from whether it is above us. A labelled
+  guess; it needs six league teams to rank against and changes no score.
 - `squad_depth.py` / `bench_selection.py` / `weaknesses.py` — all consume
   the XI evaluations `xi_selection.py` already produced. They shouldn't
   re-run tactic evaluation themselves.

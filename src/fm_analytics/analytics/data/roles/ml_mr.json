@@ -344,6 +344,77 @@
         "vision": 5,
         "workRate": 6
       }
+    },
+    {
+      "key": "wm_defend",
+      "name": "Wide Midfielder (Defend)",
+      "description": "Disciplined wide midfielder who holds the shape of the midfield line, tracks the opposing full-back and gives a simple outlet rather than running beyond.",
+      "positions": [
+        "ML",
+        "MR"
+      ],
+      "system": {
+        "width": 1.2,
+        "defensiveCover": 1.0,
+        "ballProgression": 0.5,
+        "restDefence": 0.6,
+        "pressing": 0.5
+      },
+      "attributes": {
+        "positioning": 9,
+        "teamwork": 9,
+        "workRate": 9,
+        "stamina": 8,
+        "tackling": 8,
+        "concentration": 7,
+        "decisions": 7,
+        "marking": 7,
+        "anticipation": 6,
+        "passing": 6,
+        "composure": 5,
+        "crossing": 5,
+        "acceleration": 5,
+        "pace": 5,
+        "firstTouch": 4,
+        "technique": 4
+      }
+    },
+    {
+      "key": "wm_attack",
+      "name": "Wide Midfielder (Attack)",
+      "description": "Wide midfielder who gets forward to deliver from the flank and arrive at the back post, while still working back into the midfield line.",
+      "positions": [
+        "ML",
+        "MR"
+      ],
+      "system": {
+        "width": 1.6,
+        "ballProgression": 0.8,
+        "runners": 0.8,
+        "penetration": 0.5,
+        "boxPresence": 0.3,
+        "pressing": 0.4,
+        "attackDuty": 1.0
+      },
+      "attributes": {
+        "crossing": 9,
+        "offTheBall": 8,
+        "stamina": 8,
+        "workRate": 8,
+        "acceleration": 7,
+        "decisions": 7,
+        "pace": 7,
+        "passing": 7,
+        "teamwork": 7,
+        "anticipation": 6,
+        "dribbling": 6,
+        "firstTouch": 6,
+        "technique": 6,
+        "composure": 5,
+        "tackling": 5,
+        "vision": 5,
+        "positioning": 4
+      }
     }
   ]
 }

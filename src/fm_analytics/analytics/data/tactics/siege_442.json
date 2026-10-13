@@ -1,0 +1,339 @@
+{
+  "key": "siege_442",
+  "name": "Siege 4-4-2",
+  "formation": "4-4-2",
+  "mentality": "Positive",
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Slightly More Direct Passing",
+      "tempo": "Standard",
+      "selected": [
+        "Focus Play Down The Left",
+        "Focus Play Down The Right"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Mixed",
+      "selected": [
+        "Play For Set Pieces"
+      ]
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Higher",
+    "defensiveLine": "Higher",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "Standard",
+    "preventShortGKDistribution": false
+  },
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "Kicks long to the flanks, where the wide players and full-backs contest the ball in the opponent's half."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support",
+      "why": "Pushes up behind the left winger to win the second ball on the flank and offer a second cross."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_stopper"
+      ],
+      "why": "Defends a higher line and wins the clearance in the air. Stopper is the alternate, stepping up to attack the ball before it drops; only one centre-back may be a Stopper."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Defends a higher line and wins the clearance in the air. Cover is the alternate when the partner steps up; only one centre-back may use Cover."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "Pushes up behind the right winger to win the second ball on the flank and offer a second cross."
+    },
+    {
+      "key": "ML",
+      "position": "ML",
+      "role": "winger_ml_mr_attack",
+      "why": "Gets beyond the full-back to cross from near the byline, or wins a corner trying."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "bwm_mc_support",
+      "why": "Wins the knock-downs and second balls around the opponent's box and gives the ball straight back to the wide players."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "b2b_support",
+      "why": "Follows the ball into the box when it goes wide and is first to the cut-back and the half-cleared cross."
+    },
+    {
+      "key": "MR",
+      "position": "MR",
+      "role": "winger_ml_mr_support",
+      "why": "Delivers from a little deeper than the left winger, early enough for the target man to attack it, and tracks back to win second balls."
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "tm_support",
+      "roles": [
+        "tm_attack"
+      ],
+      "why": "The aerial target: wins long goal kicks and crosses, flicks on and holds the ball up while the midfield arrives. Target Man (Attack) is the alternate for a target who mostly attacks the box."
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "p_attack",
+      "roles": [
+        "af_attack"
+      ],
+      "why": "Plays off the target man to attack flick-ons, knock-downs and the near post. Advanced Forward is the alternate for a striker who also runs the channels."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 4.5,
+      "defensiveCover": 6.5,
+      "ballProgression": 3.0,
+      "runners": 3.5,
+      "penetration": 2.0,
+      "aerialOutlet": 3.0,
+      "boxPresence": 3.0,
+      "restDefence": 6.5,
+      "pressing": 3.0
+    },
+    "maximumAttackDuties": 3,
+    "maximumCreators": 1
+  },
+  "style": "Siege 4-4-2",
+  "description": "A positive, direct 4-4-2 that keeps a weaker side pinned back: the ball goes into the opponent's half early, the midfield wins the second balls, and the pressure comes from crosses, corners and throw-ins.",
+  "whyGood": "The traditional lower-league way to hold territory, and the one that asks least of a squad's technique. Every long ball, cross and set piece is contested in the opponent's half by players chosen for it, so even a lost duel leaves the ball near their goal rather than ours.",
+  "whyThisShape": "Territory comes from where the ball is played and who wins it next. Slightly more direct passing and long goal kicks to the flanks get the ball into the opponent's half early; focusing play down both flanks keeps it away from the middle, where a lost ball becomes a counter. The target man and the ball-winner contest the first and second balls, the higher line and engagement keep the team close enough to win them, and the counter-press stops the opponent relieving the pressure. The poacher plays off the target man, the left winger crosses from near the byline and the right winger earlier, so the target man is attacked from both depths, and the box-to-box midfielder arrives behind them. Mixed crosses suit a target man in the air and a poacher on the ground. Play For Set Pieces asks the wide players to win corners and throw-ins when the cross is not on.",
+  "whenToUse": "Against weaker sides that defend their box deep but are physically ordinary, when you have a genuine target man, centre-backs who dominate in the air and wide players who cross.",
+  "whenNotToUse": "Against a side with tall centre-backs who will win every long ball, or when your forwards are not aerial; the plan then just gives the ball away. Also against quick forwards who would run behind a higher line.",
+  "whenLeading": "Keep the ball in the opponent's half rather than inviting them on: play for corners and throw-ins in the final ten minutes, and replace the target man or a winger with a fresh one rather than dropping the line. The risk when ahead is the long ball over a tired higher line, so a quicker centre-back is the change if one is needed.",
+  "instructionRationale": {
+    "Counter-Press": "Stops the opponent relieving the pressure after a lost duel, so the next long ball is ours rather than theirs.",
+    "Higher Line of Engagement": "Keeps the team close to the opponent's box, where the second balls land.",
+    "Higher Defensive Line": "Pushes the back four up so clearances fall to the midfield rather than to the opponent's forwards.",
+    "Slightly More Direct Passing": "Gets the ball into the opponent's half early, where the target man and the wide players contest it.",
+    "Focus Play Down The Left": "With the right focus as well, keeps the ball on the flanks, where losing it does not open the middle.",
+    "Focus Play Down The Right": "With the left focus as well, keeps the ball on the flanks, where losing it does not open the middle.",
+    "Play For Set Pieces": "Wins corners and throw-ins when the cross is not on; sustained pressure is how this tactic scores.",
+    "Fairly Wide": "Stretches the opponent so the wide players have room to cross.",
+    "Never Time Wasting": "Keeps the pressure on when ahead rather than inviting the opponent forward.",
+    "Distribute To Flanks": "Aims goal kicks at the wide areas, away from the opponent's tallest defenders.",
+    "Take Long Kicks": "Gains territory from every goal kick; the higher line and the ball-winner contest the second ball."
+  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "workRate": 1,
+        "bravery": 1
+      }
+    },
+    {
+      "attributes": {
+        "heading": 2,
+        "jumpingReach": 2,
+        "strength": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 1,
+        "stamina": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 2,
+        "workRate": 1
+      },
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attributes": {
+        "anticipation": 2,
+        "strength": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "bwm_mc_support"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 1,
+        "stamina": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attributes": {
+        "heading": 2,
+        "jumpingReach": 2,
+        "strength": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support",
+        "tm_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "anticipation": 2,
+        "offTheBall": 1,
+        "heading": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack",
+        "af_attack"
+      ]
+    }
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "heading",
+      "taperBelow": 10,
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attribute": "jumpingReach",
+      "taperBelow": 10,
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attribute": "heading",
+      "taperBelow": 11,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support",
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "jumpingReach",
+      "taperBelow": 11,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support",
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "strength",
+      "taperBelow": 10,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "tm_support",
+        "tm_attack"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 10,
+      "positions": [
+        "ML",
+        "MR"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 10,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 10,
+      "positions": [
+        "MC",
+        "ML",
+        "MR"
+      ]
+    }
+  ],
+  "keyRequirements": [
+    "A target man who wins headers against centre-backs and holds the ball up",
+    "Centre-backs who dominate in the air at both ends",
+    "Wide players and full-backs who cross, and work back to win second balls",
+    "A ball-winning midfielder who reads the knock-downs and a runner who arrives in the box",
+    "A striker who feeds off flick-ons and finishes at the near post"
+  ],
+  "tags": [
+    "positive",
+    "442",
+    "direct",
+    "territorial",
+    "set-pieces",
+    "lower-league-friendly"
+  ]
+}

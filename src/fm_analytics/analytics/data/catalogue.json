@@ -28,6 +28,21 @@
         "eng_support",
         "raum_attack"
       ]
+    },
+    {
+      "name": "Half-Back",
+      "position": "DM",
+      "roles": [
+        "hb_defend"
+      ]
+    },
+    {
+      "name": "Libero",
+      "position": "DC",
+      "roles": [
+        "libero_support",
+        "libero_attack"
+      ]
     }
   ]
 }

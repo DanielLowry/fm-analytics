@@ -46,6 +46,13 @@
   process-parallel experiments for tactic ranking.
 - [Delivery roadmap](phases/README.md) tracks capability gates, evidence, and
   intentional deferrals.
+- [Controlling games against weaker sides](control-tactics-plan.md), built 13
+  October 2026: possession, territorial and chance control in FM20 terms, what
+  our league says about dominating weaker sides, and the control range of
+  eleven tactics, including the five from the
+  [control tactic brief](control-tactic-brief-2026-10-12.md). Also covers the
+  FM20 roles added for it, game-plan labels, the Matches page's control
+  scorecard and the opponent report's suggested plan.
 - [Tactical-system roadmap](tactical-system-roadmap.md) tracks deliberate
   changes to the football model rather than application polish.
 - [Tactic catalogue](tactic-catalogue.md) is the generated one-page index of

@@ -180,7 +180,7 @@ class RankForPositionTests(unittest.TestCase):
             keeper_attributes[name] = ranged(10, 16)
         ranked = rank_for_position([candidate("k", keeper_attributes, name="Keeper")], MVP_CATALOGUE, None)
 
-        self.assertIn(ranked[0].role_key, {"gk_defend", "sk_defend"})
+        self.assertIn("GK", MVP_CATALOGUE.roles[ranked[0].role_key].eligible_positions)
 
     # FM's sandboxed answer names every attribute for every player and returns
     # the other family's set as unknown, so these sheets carry both sets.
@@ -207,7 +207,7 @@ class RankForPositionTests(unittest.TestCase):
             ScoutingCandidate(id="k", name="Keeper", positions=(), attributes=sheet),
         ], MVP_CATALOGUE, None)
 
-        self.assertIn(ranked[0].role_key, {"gk_defend", "sk_defend"})
+        self.assertIn("GK", MVP_CATALOGUE.roles[ranked[0].role_key].eligible_positions)
 
     def test_a_sheet_with_nothing_shown_follows_his_positions_not_the_goalkeeping_names(self) -> None:
         striker = ScoutingCandidate(

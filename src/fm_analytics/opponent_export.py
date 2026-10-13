@@ -9,6 +9,7 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from typing import Any
 
+from fm_analytics.analytics.game_plan_suggestion import PLAN_GUESS
 from fm_analytics.analytics.opponent_goals import FAR_SIDE_GUESS, GoalProfile, ProfileRow
 from fm_analytics.analytics.opponent_players import PlayerLine
 from fm_analytics.analytics.opponent_report import OpponentReport
@@ -135,6 +136,11 @@ def opponent_document(report: OpponentReport, *, generated_at: datetime | None =
             for item in report.instructions
         ],
         "watch": list(report.watch),
+        "suggested_game_plan": (
+            {"plans": [plan.label for plan in report.plan.plans], "they": report.plan.style,
+             "why": list(report.plan.reasons), "guess": PLAN_GUESS}
+            if report.plan is not None else None
+        ),
         "players": [_player(line) for line in report.players],
         "guesses": {"possibly_from_corners": CORNER_GUESS, "far_side": FAR_SIDE_GUESS},
     }

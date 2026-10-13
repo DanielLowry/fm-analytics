@@ -34,6 +34,7 @@ from fm_analytics.analytics.player_form import FormLookup
 from fm_analytics.analytics.penalty_record import PenaltyRecord
 from fm_analytics.analytics.match_breakdowns import PERIODS, STATES, Breakdowns
 from fm_analytics.analytics.season_trends import CHANGE_WINDOW, SeasonTrends
+from fm_analytics.analytics.control_scorecard import MEASURES, ControlRow, ControlScorecard
 from fm_analytics.analytics.match_analysis import (
     COMPETITION_SCOPES,
     METRICS,
@@ -76,6 +77,7 @@ from fm_analytics.reporting import (
     build_match_report,
     build_match_breakdowns,
     build_season_trends,
+    build_control_scorecard,
     build_match_review,
     build_penalty_record,
     build_recommendation_bundle,
@@ -571,6 +573,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                     + format_penalties(build_penalty_record(history, review))
                     + format_breakdowns(build_match_breakdowns(history, review))
                     + format_trends(build_season_trends(review))
+                    + format_control(build_control_scorecard(
+                        history, review, store.load_club_matches(history.save_key)
+                    ))
                     + format_diagnostics(build_match_diagnostics(review))
                     + format_intervention(
                         build_match_intervention_evaluation(history, lifecycle_review)
@@ -612,6 +617,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     detail=args.detail,
                     bundle=read_live_bundle(pinned, history) if wants_squad else None,
                     squad_note="left out (--squad none)",
+                    club_matches=store.load_club_matches(history.save_key),
                 )
                 text = json.dumps(document, indent=2, ensure_ascii=False) + "\n"
                 if str(args.output) == "-":
@@ -693,6 +699,38 @@ def _score_lines(found: Breakdowns, pair) -> list[str]:
                              f"{pair(tally.per_90(tally.on_goal)):>14}  {pair(tally.per_90(tally.clear_cut_chances)):>14}  "
                              f"{tally.goals[0]}–{tally.goals[1]}")
     return lines
+
+
+def format_control(scorecard: ControlScorecard) -> str:
+    """The Matches page's "Control against each third" in text: ours, by game plan, then the league's top third."""
+    if not any(band.ours.matches or band.benchmark.matches for band in scorecard.bands):
+        return ""
+
+    def cell(row: ControlRow, key: str, percent: bool, margin: bool) -> str:
+        value = row.values[key]
+        if value is None:
+            return "–"
+        return f"{value:.1f}%" if percent else f"{value:+.1f}" if margin else f"{value:.1f}"
+
+    headings = {"possession": "poss", "pass_completion": "passes", "crosses": "crosses",
+                "corner_margin": "corners", "opponent_pass_completion": "their passes",
+                "sot_margin": "on target", "ccc_margin": "clear-cut"}
+    lines = ["", "Control against each third (possession: poss, passes; territory: crosses, corners, "
+                 "their passes, lower is better; chances: on target, clear-cut; margins are you – them)"]
+    lines.append(f"  {'':34}{'n':>4}" + "".join(f"{headings[m.key]:>13}" for m in MEASURES))
+    for band in scorecard.bands:
+        rows = [(band.ours, ""), *((row, "  ") for row in band.plans)]
+        if scorecard.has_benchmark:
+            rows.append((band.benchmark, ""))
+        lines.append(f"  {band.label}")
+        for row, indent in rows:
+            thin = "" if row.enough else " (few)"
+            label = indent + row.label + thin
+            lines.append(f"    {label[:32]:32}{row.matches:>4}" + "".join(
+                f"{cell(row, m.key, m.percent, m.key.endswith('margin')):>13}" for m in MEASURES))
+    if not scorecard.has_benchmark:
+        lines.append("  No other clubs' matches are recorded, so there is no league benchmark.")
+    return "\n".join(lines) + "\n"
 
 
 def format_trends(trends: SeasonTrends) -> str:

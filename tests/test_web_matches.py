@@ -65,6 +65,17 @@ class ReviewPageTests(MatchPagesCase):
         self.assertIn("Advanced Forward (Attack)", body)
         self.assertIn(DETAILED_URL, body)
 
+    def test_the_review_shows_the_control_scorecard_and_says_when_it_has_no_benchmark(self) -> None:
+        self.record()
+        status, body = self._get(self.serve(), "/matches")
+        self.assertEqual(status, 200)
+        panel = body.split("Control against each third")[1].split("</section>")[0]
+        for label in ("Possession control", "Territorial control", "Chance control", "All our matches",
+                      "Counter-attack", "(lower is better)"):
+            self.assertIn(label, panel)
+        # The test capture records no other clubs' matches.
+        self.assertIn("There is no league benchmark yet", panel)
+
     def test_filters_change_the_selection_and_bad_ones_are_refused(self) -> None:
         self.record()
         port = self.serve()

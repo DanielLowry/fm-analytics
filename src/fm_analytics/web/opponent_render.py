@@ -165,6 +165,23 @@ def _watch(report: OpponentReport) -> str:
     return "<ul class='fm-opp-watch'>" + "".join(f"<li>{_e(item)}</li>" for item in report.watch) + "</ul>"
 
 
+def _plan(report: OpponentReport) -> str:
+    """The suggested game plan: a guess from their own style figures, pointing at the tactics filter."""
+    plan = report.plan
+    if plan is None:
+        return ("<p class='muted'>Not enough recorded matches, theirs or the rest of their league's, to read how "
+                "they play against the league. Reading matches from FM records every league club's.</p>")
+    links = " ".join(
+        f"<a class='fm-plan-filter-link' href='/tactics?plan={item.key}#compare'>{_e(item.label)} tactics →</a>"
+        for item in plan.plans
+    )
+    return (
+        f"<p><b>They {_e(plan.style)}.</b> A guess from their own matches: "
+        + _e("; ".join(plan.reasons)) + ".</p>"
+        + f"<nav class='fm-plan-filter' aria-label='Tactics for this plan'>{links}</nav>"
+    )
+
+
 def _instructions(report: OpponentReport) -> str:
     if not report.instructions:
         return ("<p class='muted'>None: no player of theirs who is likely to play stands out on what FM shows. "
@@ -446,13 +463,18 @@ def opponent_body(report: OpponentReport, choices, *, window: int, our_club_id: 
               if report.roster_date else " Without a league read, no attribute of theirs is used.")
     return (
         "<nav class='fm-section-nav' aria-label='Opponent report sections'>"
-        "<a href='#opp-watch'>Key points</a><a href='#opp-instructions'>Instructions</a><a href='#opp-shape'>Shape</a>"
+        "<a href='#opp-watch'>Key points</a><a href='#opp-plan'>Game plan</a><a href='#opp-instructions'>Instructions</a><a href='#opp-shape'>Shape</a>"
         "<a href='#opp-threats'>Threats</a><a href='#opp-goals'>How goals come</a><a href='#opp-style'>Style</a>"
         "<a href='#opp-meetings'>Against us</a></nav>"
         + hero
         + _tiles(report)
         + _panel("What to take from it", "The few things that stand out, each with its count.",
                  _watch(report), panel_id="opp-watch", panel_class="fm-opp-watch-panel")
+        + _panel("Suggested game plan",
+                 "Which kind of control suits playing them, read from how much of the ball they have, how many "
+                 "passes they complete and how many headers their matches are contested with, against the rest of "
+                 "their league. A guess: FM gives the figures, the plan is ours.",
+                 _plan(report), panel_id="opp-plan")
         + _panel("Suggested opposition instructions",
                  "For FM's Opposition Instructions, player by player, with the evidence for each." + roster,
                  _instructions(report), panel_id="opp-instructions")

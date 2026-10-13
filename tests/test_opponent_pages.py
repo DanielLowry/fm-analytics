@@ -59,8 +59,8 @@ class OpponentPageTests(WebServerHelpers, OpponentCase):
         self.assertEqual(status, 200)
         self.assertIn("<h2>Alpha</h2>", body)
         self.assertIn("Sunday 8 September 2019", body)
-        for heading in ("What to take from it", "Suggested opposition instructions", "Their shape",
-                        "Who finishes, who supplies", "How their goals come", "Style", "Against us"):
+        for heading in ("What to take from it", "Suggested game plan", "Suggested opposition instructions",
+                        "Their shape", "Who finishes, who supplies", "How their goals come", "Style", "Against us"):
             self.assertIn(heading, body)
         self.assertIn("fm-opp-pitch", body)
         self.assertIn("Copy report to clipboard", body)

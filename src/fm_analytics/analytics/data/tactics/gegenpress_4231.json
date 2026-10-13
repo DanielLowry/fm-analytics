@@ -157,6 +157,32 @@
       ]
     }
   ],
+  "attributeTaper": [
+    {
+      "attribute": "stamina",
+      "taperBelow": 11,
+      "positions": [
+        "DL",
+        "DR",
+        "DM",
+        "AML",
+        "AMC",
+        "AMR",
+        "ST"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 11,
+      "positions": [
+        "DM",
+        "AML",
+        "AMC",
+        "AMR",
+        "ST"
+      ]
+    }
+  ],
   "keyRequirements": [
     "High work rate/stamina",
     "Fast defenders",

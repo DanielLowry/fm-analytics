@@ -33,23 +33,16 @@ from fm_analytics.analytics.player_form import FormLookup, FormPolicy, build_for
 from fm_analytics.analytics.penalty_record import PenaltyRecord, penalty_record
 from fm_analytics.analytics.match_breakdowns import Breakdowns, breakdowns
 from fm_analytics.analytics.season_trends import SeasonTrends, season_trends
+from fm_analytics.analytics.control_scorecard import ControlScorecard, control_scorecard
 from fm_analytics.analytics.experiments import ExperimentReport, experiment_report, rates_for
 from fm_analytics.domain.experiments import StoredMatch
 from fm_analytics.analytics.match_diagnostics import MatchDiagnostics, diagnose_matches
 from fm_analytics.analytics.single_match_diagnosis import OneMatchDiagnosis, diagnose_one_match
 from fm_analytics.analytics.match_interventions import InterventionEvaluation, evaluate_intervention
 from fm_analytics.analytics.conceded import ConcededReview, review_conceded
-from fm_analytics.analytics.opponent_report import (
-    DEFAULT_WINDOW,
-    OpponentChoice,
-    OpponentReport,
-    build_opponent_report as _build_opponent_report,
-    club_choices,
-    next_fixture,
-)
-from fm_analytics.domain.matches import MatchRecord, ScheduledFixture
+from fm_analytics.domain.matches import MatchRecord
 from fm_analytics.conceded_export import conceded_json
-from fm_analytics.opponent_export import opponent_document
+from fm_analytics.breakdowns_export import control_scorecard_json
 from fm_analytics.analytics import (
     BenchSelection,
     PlayerRoleFit,
@@ -94,6 +87,11 @@ from fm_analytics.domain import GameState, Player, Squad
 from fm_analytics.experiment_export import experiment_document
 from fm_analytics.season_export import export_document, match_document, matches_document
 from fm_analytics.weak_slots import WeakSlot, weakest_slots  # noqa: F401  (reporting's names)
+from fm_analytics.opponent_reporting import (  # noqa: F401  (reporting's names)
+    build_opponent_export,
+    build_opponent_report,
+    opponent_choices,
+)
 
 if TYPE_CHECKING:
     from fm_analytics.persistence.match_history import MatchHistory
@@ -744,6 +742,24 @@ def build_season_trends(review: MatchReview) -> SeasonTrends:
     return season_trends(review.matches)
 
 
+def build_control_scorecard(
+    history: MatchHistory,
+    review: MatchReview,
+    club_matches: Sequence[MatchRecord],
+    *,
+    catalogue: FootballCatalogue = MVP_CATALOGUE,
+) -> ControlScorecard:
+    """How far the matches `review` selects show possession, territorial and chance control, by
+    opponent third and by the game plan of the tactic played, beside the league's top third.
+
+    The one computation behind the Matches page's "Control against each third" panel, the same
+    lines of `fm-matches review` and the exports' `control_scorecard`
+    (`analytics/control_scorecard.py`). `club_matches` is `MatchHistoryStore.load_club_matches`,
+    the other clubs' archived matches the benchmark is read from; empty, it has no benchmark.
+    """
+    return control_scorecard(review, club_matches, history.league_results, catalogue)
+
+
 def build_stored_match_report(
     stored: StoredMatch, history: MatchHistory | None, *, catalogue: FootballCatalogue = MVP_CATALOGUE
 ) -> MatchReport | None:
@@ -848,11 +864,13 @@ def build_matches_export(
     filters: ReviewFilters = ReviewFilters(),
     catalogue: FootballCatalogue = MVP_CATALOGUE,
     generated_at: datetime | None = None,
+    club_matches: Sequence[MatchRecord] = (),
 ) -> dict[str, Any]:
     """The matches the Matches page selects, as JSON: its "Copy all match data" button.
 
     The page's own `build_match_review` with the same filters; each match is
     the entry its match page's copy holds. See `season_export.matches_document`.
+    `club_matches` is the benchmark of the page's control scorecard.
     """
     review = build_match_review(history, filters=filters, catalogue=catalogue)
     competitive = _competitive_review(history, catalogue)
@@ -862,7 +880,9 @@ def build_matches_export(
         penalties=build_penalty_record(history, review), generated_at=generated_at,
     )
     document["conceded"] = conceded_json(build_conceded_review(history, (s.match for s in review.matches)))
-    return document
+    return _with_control_scorecard(
+        document, build_control_scorecard(history, review, club_matches, catalogue=catalogue)
+    )
 
 
 def build_conceded_review(history: MatchHistory, matches: Iterable[MatchRecord]) -> ConcededReview:
@@ -879,12 +899,15 @@ def build_season_export(
     squad_note: str | None = None,
     catalogue: FootballCatalogue = MVP_CATALOGUE,
     generated_at: datetime | None = None,
+    club_matches: Sequence[MatchRecord] = (),
 ) -> dict[str, Any]:
     """The one season export, shared by `fm-matches export` and the web server's `/api/export`.
 
     `bundle` is the recommendation for the current squad, when one was read;
     without it the document has no squad or recommendation sections, and
     `squad_note` says why. See `season_export` for what each detail level holds.
+    `club_matches` (`MatchHistoryStore.load_club_matches`) is the benchmark of
+    the `control_scorecard`; without them it has none.
     """
 
     def review(grouping: str, competitions: str) -> MatchReview:
@@ -894,7 +917,7 @@ def build_season_export(
     competitive = review("table", "competitive")
     relative = review("relative", "competitive")
     league = review("table", "league")
-    return export_document(
+    document = export_document(
         history,
         everything=everything,
         competitive=competitive,
@@ -908,76 +931,19 @@ def build_season_export(
         squad_note=squad_note,
         generated_at=generated_at,
     )
-
-
-def opponent_choices(
-    history: MatchHistory,
-    fixtures: tuple[Any, tuple[ScheduledFixture, ...]] | None = None,
-) -> tuple[OpponentChoice, ...]:
-    """Every club in our current league, and any other we have a fixture with: the next opponent first.
-
-    `fixtures` is `MatchHistoryStore.load_fixtures`: the game date of the
-    capture that read FM's fixture list, and that list.
-    """
-    return club_choices(history.club.id, history.league_results, history.matches, fixtures, history.last_game_date)
-
-
-def build_opponent_report(
-    history: MatchHistory,
-    club_matches: Sequence[MatchRecord],
-    *,
-    club_id: str | None = None,
-    fixtures: tuple[Any, tuple[ScheduledFixture, ...]] | None = None,
-    window: int = DEFAULT_WINDOW,
-    league: LeagueCapture | None = None,
-    before: Any = None,
-) -> OpponentReport | None:
-    """The one opponent report, behind the Opponent page and `fm-matches opponent`.
-
-    Without `club_id` it is on our next opponent, from FM's fixture list
-    (`fixtures`, as `MatchHistoryStore.load_fixtures` gives it), and None when
-    no fixture is known. It uses only matches played before that fixture, or
-    before `before` when given; with neither, every match recorded.
-    `club_matches` is `MatchHistoryStore.load_club_matches`. `league` is the
-    latest league read: their players' visible attributes come from it.
-    """
-    ours = history.club.id
-    choices = opponent_choices(history, fixtures)
-    if club_id is None:
-        today = fixtures[0] if fixtures is not None else history.last_game_date
-        fixture = next_fixture(fixtures[1], ours, history.matches, today) if fixtures and today else None
-        if fixture is None:
-            return None
-        club = fixture.opponent_of(ours)
-    else:
-        choice = next((item for item in choices if item.club.id == club_id), None)
-        club = choice.club if choice else next(
-            (match.team(side) for match in (*history.matches, *club_matches)
-             for side in ("home", "away") if match.team(side).id == club_id),
-            None,
-        )
-        if club is None:
-            raise ValueError(f"no match of club {club_id} is recorded")
-        fixture = choice.fixture if choice else None
-    as_of = before if before is not None else (fixture.date if fixture else None)
-    if before is not None and fixture is not None and fixture.date != before:
-        fixture = None  # a report as of another day is not this fixture's
-    roster = next((team.squad for team in league.teams if team.squad.club and team.squad.club.id == club.id), None) \
-        if league is not None else None
-    return _build_opponent_report(
-        club,
-        our_club_id=ours,
-        our_matches=history.matches,
-        club_matches=club_matches,
-        league_results=history.league_results,
-        as_of=as_of,
-        fixture=fixture,
-        window=window,
-        roster=roster.players if roster is not None else None,
-        roster_date=league.game.game_date if roster is not None else None,
+    return _with_control_scorecard(
+        document, build_control_scorecard(history, competitive, club_matches, catalogue=catalogue)
     )
 
 
-def build_opponent_export(report: OpponentReport, *, generated_at: datetime | None = None) -> dict[str, Any]:
-    """The opponent report as JSON: the Opponent page's copy button and `fm-matches opponent --json`."""
-    return opponent_document(report, generated_at=generated_at)
+def _with_control_scorecard(document: dict[str, Any], scorecard: ControlScorecard) -> dict[str, Any]:
+    """The export with its `control_scorecard`, placed after `season_trends`."""
+    entry = control_scorecard_json(scorecard)
+    if "season_trends" not in document:
+        return document | {"control_scorecard": entry}
+    placed: dict[str, Any] = {}
+    for key, value in document.items():
+        placed[key] = value
+        if key == "season_trends":
+            placed["control_scorecard"] = entry
+    return placed

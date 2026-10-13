@@ -57,7 +57,7 @@ class DetailLevelTests(HistoryCase):
             self.assertEqual(
                 list(document),
                 ["format", "formatVersion", "meta", "season", "review", "diagnostics", "goals", "breakdowns",
-                 "season_trends", "roles", "players", "matches"],
+                 "season_trends", "control_scorecard", "roles", "players", "matches"],
             )
             self.assertEqual(document["formatVersion"], 2)
             self.assertIn("top_opportunities", document["diagnostics"])

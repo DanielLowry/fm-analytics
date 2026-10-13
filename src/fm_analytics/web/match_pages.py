@@ -30,6 +30,7 @@ from fm_analytics.reporting import (
     build_penalty_record,
     build_season_export,
     build_season_trends,
+    build_control_scorecard,
 )
 from fm_analytics.season_export import DETAIL_LEVELS
 from fm_analytics.web.match_render import (
@@ -47,6 +48,7 @@ from fm_analytics.web.match_breakdowns_render import breakdown_panels
 from fm_analytics.web.experiment_render import keep_match_form
 from fm_analytics.web.match_detail_render import match_body
 from fm_analytics.web.season_trends_render import season_trends_section
+from fm_analytics.web.control_scorecard_render import control_scorecard_section
 from fm_analytics.web.mentality_render import plan_from_form
 from fm_analytics.web.rendering import _error_page, _layout, _query_first, _query_number
 
@@ -133,7 +135,9 @@ class MatchPagesMixin:
             capture=panel + export_links(),
             copy_control=matches_copy_control(review),
             penalties=penalties,
-            extra_panels=breakdown_panels(review, breakdowns),
+            extra_panels=control_scorecard_section(
+                build_control_scorecard(history, review, self.server.club_matches())  # type: ignore[attr-defined]
+            ) + breakdown_panels(review, breakdowns),
             trends=season_trends_section(build_season_trends(review)),
         )
         self._send(_layout("Matches", "/matches", body, wide=True))  # type: ignore[attr-defined]
@@ -157,7 +161,9 @@ class MatchPagesMixin:
         if history is None:
             self._send_json({"error": "No matches are recorded yet."}, HTTPStatus.NOT_FOUND)  # type: ignore[attr-defined]
             return
-        self._send_json(build_matches_export(history, filters=filters))  # type: ignore[attr-defined]
+        self._send_json(build_matches_export(  # type: ignore[attr-defined]
+            history, filters=filters, club_matches=self.server.club_matches(),  # type: ignore[attr-defined]
+        ))
 
     def _export_api(self, _path: str, query: dict[str, list[str]]) -> None:
         """The season as JSON: `reporting.build_season_export`, as `fm-matches export` writes it.
@@ -198,6 +204,7 @@ class MatchPagesMixin:
         document = build_season_export(
             history, detail=detail, bundle=bundle,
             squad_note="left out (squad=none)",
+            club_matches=self.server.club_matches(),  # type: ignore[attr-defined]
         )
         filename = export_path(history.club.name, document["meta"]["game_date"], detail).name
         self._send_json(document, filename=filename)  # type: ignore[attr-defined]

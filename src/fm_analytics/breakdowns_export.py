@@ -1,5 +1,5 @@
-"""`reporting.build_match_breakdowns`, a match's own split and `reporting.build_season_trends` as JSON:
-each pair is [us, them].
+"""`reporting.build_match_breakdowns`, a match's own split, `reporting.build_season_trends` and
+`reporting.build_control_scorecard` as JSON: each pair is [us, them].
 
 Serialisation only, shared by the season, matches, match and experiment
 exports. The mentality figures appear where you recorded a mentality.
@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from fm_analytics.analytics.control_scorecard import BENCHMARK_LABEL, MEASURES, ControlRow, ControlScorecard
 from fm_analytics.analytics.match_breakdowns import PERIODS, Breakdowns, ScoreSplit, Tally
 from fm_analytics.analytics.season_trends import CHANGE_WINDOW, ChangeGroup, SeasonTrends, TrendWindow
 
@@ -98,5 +99,42 @@ def season_trends_json(trends: SeasonTrends) -> dict[str, Any]:
              "minute": change.minute, "by": "us" if change.ours else "them", "kind": change.kind, "what": change.what,
              "score": list(change.score), "before": tally_json(change.before), "after": tally_json(change.after)}
             for change in trends.changes
+        ],
+    }
+
+
+def _control_row_json(row: ControlRow) -> dict[str, Any]:
+    return {
+        "label": row.label,
+        "matches_with_full_stats": row.matches,
+        "enough_to_read": row.enough,
+        **{key: (round(value, 1) if value is not None else None) for key, value in row.values.items()},
+    }
+
+
+def control_scorecard_json(scorecard: ControlScorecard) -> dict[str, Any]:
+    """`reporting.build_control_scorecard` as JSON: by opponent third, ours, by game plan and the benchmark."""
+    return {
+        "measures": [
+            {"key": measure.key, "label": measure.label, "kind": measure.kind, "percent": measure.percent,
+             "lower_is_better": not measure.higher_is_better}
+            for measure in MEASURES
+        ],
+        "benchmark": (
+            f"{BENCHMARK_LABEL}: every archived league match between two other clubs in which one was in the "
+            "top third at kickoff, from that club's side"
+            + (f", season {scorecard.season} only" if scorecard.season is not None else "")
+            + f"; {scorecard.benchmark_matches} club-sides in all."
+            if scorecard.has_benchmark
+            else "No other clubs' matches are recorded, so there is no benchmark."
+        ),
+        "by_opponent_third": [
+            {
+                "third": band.label,
+                "ours": _control_row_json(band.ours),
+                "by_game_plan": [_control_row_json(row) for row in band.plans],
+                "league_top_third": _control_row_json(band.benchmark) if scorecard.has_benchmark else None,
+            }
+            for band in scorecard.bands
         ],
     }

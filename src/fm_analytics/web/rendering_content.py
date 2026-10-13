@@ -7,6 +7,8 @@ import re
 from typing import Sequence
 
 from fm_analytics.analytics import MVP_CATALOGUE, TacticDefinition, TacticSlot
+from fm_analytics.analytics.game_plan import game_plans
+from fm_analytics.web.game_plan_render import plan_detail
 
 _NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
     ("Overview", (("/", "Command centre", "⌂"), ("/league", "League", "≋"))),
@@ -89,7 +91,7 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
         (
             tactic.style, tactic.description, tactic.why_good, tactic.key_requirements,
             tactic.tags, tactic.why_this_shape, tactic.when_to_use, tactic.when_not_to_use,
-            tactic.instruction_rationale, tactic.attribute_emphasis, tactic.attribute_taper,
+            tactic.when_leading, tactic.instruction_rationale, tactic.attribute_emphasis, tactic.attribute_taper,
         )
     ):
         return ""
@@ -98,12 +100,16 @@ def _tactic_notes(tactic: TacticDefinition) -> str:
         parts.append(f"<p><b>{html.escape(tactic.style)}</b></p>")
     if tactic.description:
         parts.append(f"<p>{html.escape(tactic.description)}</p>")
+    if tactic.key in MVP_CATALOGUE.tactics:
+        parts.append(plan_detail(game_plans(tactic, MVP_CATALOGUE)))
     if tactic.why_this_shape:
         parts.append(f"<p><b>Why this shape:</b> {html.escape(tactic.why_this_shape)}</p>")
     if tactic.when_to_use:
         parts.append(f"<p><b>When to use it:</b> {html.escape(tactic.when_to_use)}</p>")
     if tactic.when_not_to_use:
         parts.append(f"<p><b>When to avoid it:</b> {html.escape(tactic.when_not_to_use)}</p>")
+    if tactic.when_leading:
+        parts.append(f"<p><b>When leading:</b> {html.escape(tactic.when_leading)}</p>")
     if tactic.why_good:
         parts.append(f"<p class='muted'><b>Why it works:</b> {html.escape(tactic.why_good)}</p>")
     if tactic.key_requirements:

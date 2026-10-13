@@ -1,0 +1,343 @@
+{
+  "key": "squeeze_433dm",
+  "name": "Squeeze 4-3-3 DM Wide",
+  "formation": "4-3-3 DM Wide",
+  "mentality": "Positive",
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Standard",
+      "tempo": "Standard",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Full Backs"
+    ],
+    "distributionTypes": [
+      "Roll It Out"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Higher",
+    "defensiveLine": "Higher",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "More Urgent",
+    "preventShortGKDistribution": true
+  },
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "sk_defend",
+      "why": "Sweeps the space behind a higher line, so balls over the top are his rather than a foot race for the centre-backs."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "wb_dl_dr_attack",
+      "why": "The width on the left: he overlaps the inside forward to reach the byline, and pins the opposing winger back in his own half."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_cover",
+      "roles": [
+        "cd_defend"
+      ],
+      "why": "Covers behind the higher line, sweeping up balls played over it. Defend is the alternate when he is stronger than he is quick; only one centre-back may use Cover."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Holds the higher line and steps in to win the clearance or knock-down. Cover is the alternate, but only one centre-back may use it."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "Stays behind the right winger as part of the rest defence, so the left wing-back can go and the team is never caught with both full-backs high."
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dm_defend",
+      "why": "Sits at the edge of the opponent's box when the team attacks, to win the clearance and the second ball, and screens the centre-backs when a counter starts."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "b2b_support",
+      "why": "Counter-presses the moment the ball is lost and arrives late in the box when it is not; the runner of the two eights."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "dlp_mc_support",
+      "why": "Recycles the ball after each regain and switches it to the side with the most space; the passer of the two eights."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "if_attack",
+      "why": "Moves inside once the wing-back is outside him and attacks the back post when the cross comes from the right."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "winger_aml_amr_attack",
+      "why": "Holds the right touchline and goes to the byline, keeping the opponent's left-back pinned in his own half."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "pf_attack",
+      "roles": [
+        "af_attack"
+      ],
+      "why": "Leads the press and the counter-press, closing the centre-backs and goalkeeper so they have to go long, and stays high to attack the cross. Advanced Forward is the alternate for a striker who runs but presses less; the tactic then falls short of its pressing."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 4.0,
+      "defensiveCover": 6.5,
+      "ballProgression": 4.0,
+      "creativity": 1.0,
+      "runners": 4.5,
+      "penetration": 3.0,
+      "boxPresence": 2.5,
+      "restDefence": 7.0,
+      "pressing": 4.0
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 2
+  },
+  "style": "Squeeze 4-3-3",
+  "description": "A positive 4-3-3 that holds territory: a higher line and engagement, more urgent pressing and an immediate counter-press keep a weaker side penned in its own half, so attacks that break down are won back and go again.",
+  "whyGood": "Against a side that sits deep and clears its lines, most of the ball comes back to whoever wins the second ball. This keeps the team close enough to the opponent's box to win it, without the extreme press that empties a lower-league squad's legs by the hour.",
+  "whyThisShape": "Territory is the lever: the team plays in the opponent's half and wins the ball back there. The higher line and engagement compress the pitch, so clearances land among our players rather than theirs; the counter-press wins the ball back before the opponent can relieve the pressure, and preventing short goal kicks forces them long to centre-backs set up to win it. More urgent rather than extreme pressing is a level a squad can hold for a whole match. On the ball the passing is standard and the team does not counter: a regain near the box is followed by another attack, not a hurried shot. The holding midfielder is the base for the second balls and the screen if the press is beaten, the sweeper keeper covers behind the line, and the right full-back stays as part of the rest defence. Openings come from an overlap on the left (wing-back outside the inside forward), a winger going to the byline on the right, and the box-to-box midfielder arriving; low crosses suit forwards who attack the near post.",
+  "whenToUse": "Against weaker sides that sit deep or go long to escape pressure, when the squad is fit and hard-working and the back line has the pace to defend space behind it.",
+  "whenNotToUse": "With tired or slow players, against a side with quick forwards who will run in behind a higher line, or in a run of fixtures with no rest; the tactic's pressing is the first thing to go when legs do.",
+  "whenLeading": "Keep the higher line and the counter-press rather than dropping off; sitting deeper hands back the territory the tactic exists to hold. If the press is fading, drop the line of engagement to Standard before touching the mentality, and replace the forward and the box-to-box midfielder first.",
+  "instructionRationale": {
+    "Counter-Press": "Wins the ball back near the opponent's box before it can clear the pressure, which is how a broken-down attack is recycled.",
+    "Higher Line of Engagement": "Starts the press in the opponent's half, so the team defends forward rather than retreating.",
+    "Higher Defensive Line": "Compresses the pitch so clearances and second balls land among our players; the sweeper keeper and the covering centre-back deal with the space behind.",
+    "More Urgent Pressing": "Closes the ball quickly without the extreme intensity a lower-league squad cannot sustain for ninety minutes.",
+    "Prevent Short GK Distribution": "Forces the goalkeeper to kick long, where the higher line and the holder can win the ball back in the opponent's half.",
+    "Fairly Wide": "Pins the opposing full-backs with a wing-back on one side and a winger on the other.",
+    "Low Crosses": "Played to the near post and the penalty spot for the striker, the inside forward and the arriving midfielder.",
+    "Never Time Wasting": "Keeps the tempo of a side that wants to be in the opponent's half, including when ahead.",
+    "Distribute To Full Backs": "Starts possession wide and short, away from the opponent's forwards.",
+    "Roll It Out": "Keeps possession from goal kicks and catches rather than contesting long balls."
+  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "stamina": 1,
+        "workRate": 1,
+        "teamwork": 1
+      }
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "acceleration": 2,
+        "anticipation": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 1,
+        "stamina": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "anticipation": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 1,
+        "anticipation": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "b2b_support"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 1,
+        "decisions": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 1,
+        "finishing": 1
+      },
+      "positions": [
+        "AML"
+      ],
+      "roles": [
+        "if_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 2
+      },
+      "positions": [
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "aggression": 1,
+        "anticipation": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "pf_attack"
+      ]
+    }
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "stamina",
+      "taperBelow": 10,
+      "positions": [
+        "DL",
+        "DR",
+        "MC",
+        "AML",
+        "AMR",
+        "ST"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 10,
+      "positions": [
+        "MC",
+        "AML",
+        "AMR",
+        "ST"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 9,
+      "positions": [
+        "DM"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 10,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 9,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_defend"
+      ]
+    },
+    {
+      "attribute": "acceleration",
+      "taperBelow": 9,
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 9,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 9,
+      "positions": [
+        "DL",
+        "AMR"
+      ]
+    }
+  ],
+  "keyRequirements": [
+    "Stamina and work rate across the midfield and attack to press for ninety minutes",
+    "Centre-backs and a sweeper keeper with the pace to defend the space behind a higher line",
+    "A holding midfielder who reads where the second ball will land",
+    "A striker who presses the centre-backs and still attacks the cross",
+    "A wing-back and a winger who can reach the byline and cross"
+  ],
+  "tags": [
+    "positive",
+    "433",
+    "dm",
+    "territorial",
+    "pressing",
+    "control"
+  ]
+}

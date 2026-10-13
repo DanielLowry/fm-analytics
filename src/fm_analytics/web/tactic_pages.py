@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+from collections import Counter
 from http import HTTPStatus
 from urllib.parse import quote, unquote
 
@@ -11,6 +12,8 @@ from fm_analytics.analytics import MVP_CATALOGUE, OpponentProfile, WeaknessRepor
 from fm_analytics.web.bench_render import bench_priority_section
 from fm_analytics.web.attribute_export import profile_copy_control, starting_xi_copy_text
 from fm_analytics.web.form_render import form_card, form_chip, form_note, form_ratings, job_form
+from fm_analytics.analytics.game_plan import game_plans
+from fm_analytics.web.game_plan_render import best_by_plan_panel, plan_chips, plan_filter, plan_from_query
 from fm_analytics.web.opponent_controls import (
     opponent_controls as _opponent_controls,
     opponent_from_query as _opponent_from_query,
@@ -42,6 +45,7 @@ class TacticPagesMixin:
         try:
             opponent = _opponent_from_query(_query)
             selection_options = selection_options_from_query(_query)
+            plan = plan_from_query(_query)
         except ValueError as exc:
             self._send(_error_page("Tactics", str(exc), path), HTTPStatus.BAD_REQUEST)
             return
@@ -67,9 +71,16 @@ class TacticPagesMixin:
         link_query_suffix = html.escape(query_suffix, quote=True)
         active_axes = _opponent_summary_items(opponent)
         pinned_keys = bundle.policy.pinned_tactics
+        plans_by_key = {
+            evaluation.tactic.key: game_plans(evaluation.tactic, MVP_CATALOGUE)
+            for evaluation in bundle.recommendation.evaluations
+        }
+        plan_counts = Counter(label.key for labels in plans_by_key.values() for label in labels)
         rows = []
         for rank, evaluation in enumerate(bundle.recommendation.evaluations, start=1):
             tactic_key = evaluation.tactic.key
+            if plan is not None and not any(label.key == plan for label in plans_by_key[tactic_key]):
+                continue
             issue = self._tactic_headline(evaluation, bundle.squad_depth.per_tactic[tactic_key])
             neutral_rank, neutral_evaluation = neutral_by_key[tactic_key]
             recommendation = (
@@ -114,6 +125,7 @@ class TacticPagesMixin:
                 "<tr>"
                 f"<td>{rank}</td>"
                 f"<td><b>{html.escape(evaluation.tactic.name)}</b>{recommendation}"
+                + plan_chips(plans_by_key[tactic_key])
                 + (
                     cell_details("When to use", evaluation.tactic.when_to_use)
                     if evaluation.tactic.when_to_use else ""
@@ -182,13 +194,15 @@ class TacticPagesMixin:
             "Open recommended tactic →</a></p></section>"
             + pinned_block
             + self._match_record_block(pinned_keys, opponent.quality)  # type: ignore[attr-defined]
-            + "<section class='fm-workspace-panel'><div class='fm-panel-heading'><div>"
+            + best_by_plan_panel(bundle.recommendation.evaluations, plans_by_key, _band, link_query_suffix)
+            + "<section class='fm-workspace-panel' id='compare'><div class='fm-panel-heading'><div>"
             "<h2>Compare tactics</h2>"
             "<p>A quick squad-fit comparison. Open a tactic to inspect its "
             f"XI, why each player was selected, and a {bundle.policy.bench_size}-player "
             "matchday bench.</p></div>"
             f"<span class='fm-panel-count'>{len(rows)} options</span></div>"
-            "<div class='fm-table-card'><table><tr><th>Rank</th><th>Tactic</th><th>Shape</th>"
+            + plan_filter(plan, opponent_query, plan_counts)
+            + "<div class='fm-table-card'><table><tr><th>Rank</th><th>Tactic</th><th>Shape</th>"
             "<th>Play-now score</th><th>Line-up</th><th>Key issue</th>"
             + opponent_headers
             + "<th></th></tr>"

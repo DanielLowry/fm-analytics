@@ -1,0 +1,383 @@
+{
+  "key": "control_433dm",
+  "name": "Control 4-3-3 DM Wide",
+  "formation": "4-3-3 DM Wide",
+  "mentality": "Balanced",
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Slightly Shorter Passing",
+      "tempo": "Standard",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Full Backs"
+    ],
+    "distributionTypes": [
+      "Roll It Out"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "Standard",
+    "preventShortGKDistribution": false
+  },
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "why": "A conventional keeper who rolls the ball to a full-back to start a move. Possession is started short rather than kicked long, but the build-up does not ask him to be a passer."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support",
+      "why": "Gives the left winger a safe pass behind him and a second option for an overlap, while staying close enough to the centre-backs to keep the back four intact when the ball is lost."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Defends simply and passes the ball short to the holding midfielder or a full-back. Cover is the alternate, but only one centre-back may use it."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "roles": [
+        "cd_cover"
+      ],
+      "why": "Defends simply and passes the ball short to the holding midfielder or a full-back. Cover is the alternate, but only one centre-back may use it."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "Gives the right winger a safe pass behind him and a second option for an overlap, while staying close enough to the centre-backs to keep the back four intact when the ball is lost."
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dm_defend",
+      "why": "Stays in front of the centre-backs as the first pass out of defence and the screen when the ball is lost. With two eights committed to keeping and moving the ball, the holder is what stops a deep opponent's rare counter from reaching the back four."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "dlp_mc_support",
+      "why": "The main passer. He collects from the holder and the full-backs and switches the ball between the flanks until a winger is one against one. Possession runs through him, not through the centre-backs or the wide players."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "cm_attack",
+      "why": "The second passer, who also arrives in the box. With one striker, low crosses and cut-backs need a midfielder reaching the penalty spot; this is that player, so the far winger is not the only extra body."
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "winger_aml_amr_attack",
+      "why": "Stays wide and attacks the full-back to reach the byline before crossing. On Attack he starts higher than a support winger, which keeps the opponent's back four pinned and the cross coming from a better position."
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "winger_aml_amr_attack",
+      "why": "Stays wide and attacks the full-back to reach the byline before crossing. On Attack he starts higher than a support winger, which keeps the opponent's back four pinned and the cross coming from a better position."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "p_attack",
+      "roles": [
+        "af_attack"
+      ],
+      "why": "Poacher stays on the last defender's shoulder to meet low crosses and cut-backs at the near post. Advanced Forward is the alternate for a striker who also runs the channels; both stay in the box rather than dropping off to link play."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 4.5,
+      "defensiveCover": 6.5,
+      "ballProgression": 3.5,
+      "creativity": 1.5,
+      "runners": 3.5,
+      "penetration": 3.0,
+      "boxPresence": 2.5,
+      "restDefence": 7.0
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 2
+  },
+  "style": "Control 4-3-3 DM",
+  "description": "A balanced 4-3-3 for games you are expected to win: keeps the ball through a deep-lying playmaker and a box-arriving eight, holds a screen in front of the back four, and finishes moves with low crosses from two wingers on Attack.",
+  "whyGood": "Adds a third central midfielder to give the passers short options, without asking defenders who cannot pass to start possession. The width and crossing that score most lower-league goals stay, but the crosses come from nearer the byline after the ball has been worked there, instead of early from deep.",
+  "whyThisShape": "Against an opponent that sits deep there is little space to counter into, so this shape keeps the ball and moves it from side to side instead. Slightly shorter passing at standard tempo lets the two eights circulate the ball without demanding tiki-taka from the back four, and with no Counter on winning the ball the team keeps it rather than giving it straight back with a hopeful forward pass. Fairly wide positioning and two attacking wingers stretch a deep back four, so the playmaker can switch play to whichever winger is isolated. Low crosses suit forwards who attack the near post rather than win headers, and leaving Hit Early Crosses off means the winger carries the ball nearer the byline first. One striker and the box-arriving eight meet the cross, with the far winger at the back post. Regroup and standard lines, pressing and engagement keep the defensive shape the counter-attacking tactics already use, so only the attacking phase changes. The keeper rolls the ball to a full-back to start possession short.",
+  "whenToUse": "Against weaker opponents who will sit deep and let you have the ball, when your passing quality is in central midfield and your goals come mainly from wide deliveries.",
+  "whenNotToUse": "Against stronger sides or a high press, where short build-up from ordinary defenders gives the ball away near your own goal; there a direct or counter-attacking tactic suits better. Also when the wingers cannot beat a full-back, because the moves then stall wide without a cross.",
+  "whenLeading": "Stay Balanced rather than dropping to Cautious: the holder and the regroup already protect a lead, and sitting deeper gives a weaker side the ball and the crosses it could not otherwise get. Replace tiring wingers like for like around the hour so the width stays, and keep the box-arriving midfielder on.",
+  "instructionRationale": {
+    "Fairly Wide": "Stretches a deep back four so the wingers receive in space and the playmaker has a switch of play available.",
+    "Slightly Shorter Passing": "Keeps the ball against a deep block without asking defenders with ordinary passing to play intricate short combinations.",
+    "Low Crosses": "Played to the near post and the penalty spot, where forwards who are not aerial specialists can still finish.",
+    "Never Time Wasting": "Keeps playing to win the ball back and attack when ahead, rather than inviting pressure late in a game.",
+    "Regroup": "Recovers the defensive shape after losing the ball instead of a counter-press the squad's stamina would not sustain for ninety minutes.",
+    "Distribute To Full Backs": "Starts possession with a short, low-risk pass wide, where there is space against a side that defends deep.",
+    "Roll It Out": "Keeps goal kicks and catches in the team's possession rather than contesting long balls.",
+    "Standard Line of Engagement": "Leaves the defensive approach unchanged from the side's usual tactics: the attacking phase is what this tactic changes.",
+    "Standard Defensive Line": "Keeps the recovery distance behind the back four moderate, so a rare counter does not find a high line."
+  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "decisions": 1,
+        "teamwork": 1
+      }
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "concentration": 2,
+        "composure": 1
+      },
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 1,
+        "crossing": 1,
+        "positioning": 1
+      },
+      "positions": [
+        "DL",
+        "DR"
+      ],
+      "roles": [
+        "fb_support"
+      ]
+    },
+    {
+      "attributes": {
+        "positioning": 2,
+        "passing": 2,
+        "composure": 1,
+        "concentration": 1
+      },
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "decisions": 2,
+        "composure": 2,
+        "firstTouch": 1,
+        "vision": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "firstTouch": 1,
+        "offTheBall": 1,
+        "anticipation": 1
+      },
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "crossing": 2,
+        "dribbling": 1,
+        "technique": 1,
+        "decisions": 1
+      },
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "offTheBall": 2,
+        "anticipation": 2,
+        "finishing": 1,
+        "composure": 1
+      },
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack",
+        "af_attack"
+      ]
+    }
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "positioning",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attribute": "positioning",
+      "taperBelow": 8,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 7,
+      "positions": [
+        "DM"
+      ],
+      "roles": [
+        "dm_defend"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 11,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "firstTouch",
+      "taperBelow": 9,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 9,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "dlp_mc_support"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 10,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 7,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "cm_attack"
+      ]
+    },
+    {
+      "attribute": "crossing",
+      "taperBelow": 8,
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "pace",
+      "taperBelow": 9,
+      "positions": [
+        "AML",
+        "AMR"
+      ],
+      "roles": [
+        "winger_aml_amr_attack"
+      ]
+    },
+    {
+      "attribute": "offTheBall",
+      "taperBelow": 7,
+      "positions": [
+        "ST"
+      ],
+      "roles": [
+        "p_attack",
+        "af_attack"
+      ]
+    }
+  ],
+  "keyRequirements": [
+    "A central midfielder who passes well enough to run possession, with decisions and touch to receive under pressure",
+    "A second central midfielder who passes reliably and times runs into the box",
+    "A holding midfielder with the positioning to screen and enough passing to make the simple pass out",
+    "Two wingers with the pace, dribbling and crossing to reach the byline against a set full-back",
+    "A striker who attacks the near post and finishes low crosses, rather than an aerial target",
+    "A back four comfortable defending a standard line and making short, simple passes"
+  ],
+  "tags": [
+    "balanced",
+    "433",
+    "dm",
+    "control",
+    "possession",
+    "lower-league-friendly"
+  ]
+}

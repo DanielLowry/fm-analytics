@@ -131,6 +131,283 @@
         "agility": 5,
         "pace": 6
       }
+    },
+    {
+      "key": "anchor_defend",
+      "name": "Anchor (Defend)",
+      "description": "The purest holding midfielder: sits in front of the centre-backs and stays there, screening passes into the forwards and covering gaps rather than joining the play.",
+      "positions": [
+        "DM"
+      ],
+      "system": {
+        "defensiveCover": 1.9,
+        "restDefence": 1.9,
+        "ballProgression": 0.3
+      },
+      "attributes": {
+        "positioning": 10,
+        "anticipation": 9,
+        "concentration": 9,
+        "marking": 9,
+        "tackling": 9,
+        "decisions": 8,
+        "teamwork": 7,
+        "composure": 6,
+        "strength": 6,
+        "stamina": 5,
+        "workRate": 5,
+        "bravery": 4,
+        "passing": 4,
+        "aggression": 3,
+        "firstTouch": 3
+      }
+    },
+    {
+      "key": "hb_defend",
+      "name": "Half-Back (Defend)",
+      "description": "Holding midfielder who drops between the centre-backs when the team has the ball, forming a back three so the full-backs can push on, and screens the defence when it does not.",
+      "positions": [
+        "DM"
+      ],
+      "system": {
+        "defensiveCover": 1.7,
+        "restDefence": 2.0,
+        "ballProgression": 1.0
+      },
+      "attributes": {
+        "positioning": 10,
+        "anticipation": 9,
+        "composure": 9,
+        "concentration": 9,
+        "decisions": 9,
+        "marking": 9,
+        "tackling": 9,
+        "teamwork": 8,
+        "passing": 7,
+        "firstTouch": 6,
+        "jumpingReach": 6,
+        "strength": 6,
+        "workRate": 6,
+        "bravery": 5,
+        "heading": 5,
+        "stamina": 5,
+        "aggression": 4,
+        "technique": 4
+      }
+    },
+    {
+      "key": "regista_support",
+      "name": "Regista (Support)",
+      "description": "Deep creative hub with licence to roam from the holding position, receiving from the defence, dictating tempo and taking risks with long and incisive passes.",
+      "positions": [
+        "DM"
+      ],
+      "system": {
+        "ballProgression": 1.7,
+        "creativity": 1.8,
+        "runners": 0.3,
+        "restDefence": 0.4
+      },
+      "attributes": {
+        "passing": 10,
+        "vision": 10,
+        "composure": 9,
+        "decisions": 9,
+        "firstTouch": 9,
+        "technique": 9,
+        "flair": 8,
+        "offTheBall": 7,
+        "anticipation": 6,
+        "dribbling": 6,
+        "teamwork": 6,
+        "balance": 5,
+        "longShots": 4,
+        "stamina": 4,
+        "workRate": 4,
+        "positioning": 3,
+        "tackling": 2
+      }
+    },
+    {
+      "key": "sv_support",
+      "name": "Segundo Volante (Support)",
+      "description": "Holding midfielder who defends from the DM line but breaks forward with and without the ball when possession is won; on Support duty he times his runs and still covers.",
+      "positions": [
+        "DM"
+      ],
+      "system": {
+        "defensiveCover": 0.9,
+        "restDefence": 0.7,
+        "ballProgression": 0.9,
+        "runners": 1.2,
+        "boxPresence": 0.6,
+        "pressing": 0.7
+      },
+      "attributes": {
+        "workRate": 10,
+        "offTheBall": 9,
+        "stamina": 9,
+        "anticipation": 8,
+        "passing": 8,
+        "pace": 8,
+        "positioning": 8,
+        "tackling": 8,
+        "marking": 7,
+        "acceleration": 6,
+        "composure": 6,
+        "decisions": 6,
+        "finishing": 6,
+        "firstTouch": 6,
+        "longShots": 6,
+        "teamwork": 6,
+        "balance": 5,
+        "concentration": 5,
+        "strength": 5
+      }
+    },
+    {
+      "key": "sv_attack",
+      "name": "Segundo Volante (Attack)",
+      "description": "Holding midfielder who arrives late in and around the box from deep on Attack duty, as a goal threat the opposition midfield struggles to track.",
+      "positions": [
+        "DM"
+      ],
+      "system": {
+        "defensiveCover": 0.6,
+        "restDefence": 0.4,
+        "ballProgression": 0.8,
+        "runners": 1.5,
+        "boxPresence": 1.0,
+        "penetration": 0.7,
+        "pressing": 0.6,
+        "attackDuty": 1.0
+      },
+      "attributes": {
+        "offTheBall": 10,
+        "workRate": 10,
+        "stamina": 9,
+        "anticipation": 8,
+        "pace": 8,
+        "acceleration": 7,
+        "finishing": 7,
+        "longShots": 7,
+        "passing": 7,
+        "tackling": 7,
+        "composure": 6,
+        "decisions": 6,
+        "firstTouch": 6,
+        "marking": 6,
+        "positioning": 6,
+        "balance": 5,
+        "strength": 5
+      }
+    },
+    {
+      "key": "rpm_dm_support",
+      "name": "Roaming Playmaker (Support) [DM]",
+      "description": "Playmaker who starts from the holding line but roams the pitch to find the ball and progress it, covering ground in both directions.",
+      "positions": [
+        "DM"
+      ],
+      "system": {
+        "ballProgression": 1.6,
+        "creativity": 1.4,
+        "runners": 1.0,
+        "pressing": 0.8,
+        "restDefence": 0.5
+      },
+      "attributes": {
+        "acceleration": 7,
+        "agility": 7,
+        "anticipation": 7,
+        "composure": 8,
+        "decisions": 8,
+        "dribbling": 8,
+        "firstTouch": 9,
+        "flair": 8,
+        "longShots": 5,
+        "offTheBall": 8,
+        "pace": 7,
+        "passing": 10,
+        "positioning": 5,
+        "stamina": 10,
+        "tackling": 5,
+        "teamwork": 8,
+        "technique": 9,
+        "vision": 10,
+        "workRate": 10,
+        "balance": 6
+      }
+    },
+    {
+      "key": "dlp_dm_defend",
+      "name": "Deep-Lying Playmaker (Defend) [DM]",
+      "description": "Deep distributor who stays in the holding position, receiving from the defence and moving the ball on while keeping his place in front of the back line.",
+      "positions": [
+        "DM"
+      ],
+      "system": {
+        "defensiveCover": 0.8,
+        "ballProgression": 1.4,
+        "creativity": 1.2,
+        "restDefence": 1.3,
+        "pressing": 0.1
+      },
+      "attributes": {
+        "anticipation": 7,
+        "composure": 8,
+        "concentration": 6,
+        "decisions": 8,
+        "firstTouch": 9,
+        "offTheBall": 2,
+        "passing": 10,
+        "positioning": 8,
+        "stamina": 4,
+        "strength": 4,
+        "tackling": 6,
+        "teamwork": 7,
+        "technique": 9,
+        "vision": 9,
+        "workRate": 7,
+        "balance": 5
+      }
+    },
+    {
+      "key": "bwm_dm_defend",
+      "name": "Ball-Winning Midfielder (Defend) [DM]",
+      "description": "Ball hunter from the holding line who closes down and tackles in front of the defence, then gives the ball to a passer rather than carrying it.",
+      "positions": [
+        "DM"
+      ],
+      "system": {
+        "defensiveCover": 1.6,
+        "pressing": 1.5,
+        "ballProgression": 0.2,
+        "restDefence": 1.3
+      },
+      "attributes": {
+        "acceleration": 5,
+        "aggression": 9,
+        "anticipation": 9,
+        "bravery": 9,
+        "composure": 3,
+        "concentration": 7,
+        "decisions": 6,
+        "firstTouch": 4,
+        "marking": 8,
+        "offTheBall": 2,
+        "passing": 4,
+        "positioning": 8,
+        "stamina": 9,
+        "strength": 7,
+        "tackling": 10,
+        "teamwork": 9,
+        "technique": 3,
+        "vision": 2,
+        "workRate": 10,
+        "agility": 5,
+        "pace": 6
+      }
     }
   ]
 }

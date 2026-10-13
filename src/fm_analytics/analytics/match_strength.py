@@ -212,11 +212,23 @@ class StrengthCalculator:
         league = self.season_of(match, opponent_id)
         if league is None:
             return Strength(None, None, None, rating)
-        key = (league.competition.id, league.season, match.date)
-        if key not in self._cache:
-            self._cache[key] = positions(league.results, match.date)
-        table = self._cache[key]
+        table = self._table(league, match.date)
         return Strength(league.competition, table.get(opponent_id), table.get(self.club_id), rating, league.season)
+
+    def table_at(self, match: MatchRecord, team_id: str) -> Mapping[str, TablePosition] | None:
+        """Every team's place on the morning of `match`, in the season that rates `team_id` there.
+
+        For matches between two other clubs of our league (the control
+        scorecard's benchmark), placed exactly as our own opponents are.
+        """
+        league = self.season_of(match, team_id)
+        return None if league is None else self._table(league, match.date)
+
+    def _table(self, league: LeagueSeason, day: date) -> dict[str, TablePosition]:
+        key = (league.competition.id, league.season, day)
+        if key not in self._cache:
+            self._cache[key] = positions(league.results, day)
+        return self._cache[key]
 
     def season_of(self, match: MatchRecord, opponent_id: str) -> LeagueSeason | None:
         """The league season, ours and the opponent's, whose table rates this match; None if there is none.

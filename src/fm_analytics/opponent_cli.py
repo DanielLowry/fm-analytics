@@ -77,6 +77,9 @@ def format_opponent_report(report: OpponentReport) -> str:
         f"{entry.outcome} {entry.goals_for}-{entry.goals_against} {entry.venue} {entry.opponent}" for entry in report.form)]
     if report.watch:
         lines += ["", "What to take from it:", *(f"  - {item}" for item in report.watch)]
+    if report.plan is not None:
+        lines += ["", f"Suggested game plan (a guess): {', '.join(plan.label for plan in report.plan.plans)}. "
+                      f"They {report.plan.style}: " + "; ".join(report.plan.reasons) + "."]
     formations = report.formations
     lines += ["", f"Formation (FM names it for {formations.known} of {evidence.matches}): " + (", ".join(
         f"{use.name} {use.matches} ({use.home} home, {use.away} away)" for use in formations.uses) or "not known")]
