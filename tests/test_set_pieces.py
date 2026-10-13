@@ -265,8 +265,8 @@ class SetPieceRecommendationTests(unittest.TestCase):
         expected_counts = {
             "direct_free_kick": (5, 1, 2),
             "direct_small_chance": (4, 2, 2),
-            "indirect_wide": (3, 3, 2),
-            "indirect_deep": (0, 4, 4),
+            "indirect_wide": (1, 2, 5),
+            "indirect_deep": (0, 2, 6),
         }
         seen = set()
 

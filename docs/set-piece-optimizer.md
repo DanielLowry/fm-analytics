@@ -24,6 +24,8 @@ cannot occupy the near, central, and far-post zones. The objective maximizes
 the sum of each job's **responsibility importance × player suitability**, with
 the existing small preferred-foot bonus applied to side-specific delivery.
 This remains a single global assignment: jobs are never filled greedily.
+For wide and deep defensive free kicks, the optimizer solves several sensible
+structures and chooses both the template and its player assignments.
 
 ## Editing the weights
 
@@ -75,14 +77,80 @@ claim; long throws continue to use only the dedicated Long Throws attribute.
 The loader rejects missing jobs or variants, unknown keys or attributes,
 duplicate JSON keys, unused profiles, invalid numbers and broken references.
 Weights load once when the app starts; restart the app after editing them.
-The Python builders retain FM instructions, player counts and inclusion
-priorities, and the global assignment and uncertainty calculations are
-unchanged. This extraction retains `set-piece-v11` because its assignments
-and scores are unchanged.
+The Python builders retain legal FM instructions and inclusion priorities.
+Wide/deep defensive free-kick job counts and approach coverage requirements
+also live in `defending_free_kicks.json`, under `templates` and `approaches`.
+The extraction initially retained `set-piece-v11`; template selection and
+the revised wide/deep profiles now use `set-piece-v12`.
+
+## Choosing a defensive free-kick structure
+
+Wide and deep free kicks each have five authored candidate templates. Every
+candidate assigns all ten outfield players, plus the goalkeeper. The loader
+requires at least six box defenders, two man markers, a clearance guard and
+one outlet. Wide candidates use one or two wall players and at least three
+covering defenders; deep candidates have no wall and at least four covering
+defenders. No template can omit second-ball protection, add a third outlet,
+or leave a player unassigned. Duplicate identities and duplicate job-count
+structures are rejected.
+
+The existing `risk=secure|balanced|aggressive` control is labelled **Set-piece
+approach** and keeps its attacking effect. For wide/deep defensive free kicks:
+
+| Approach | Eligible structures |
+| --- | --- |
+| Secure | At least seven box defenders and exactly one outlet |
+| Balanced | At least six box defenders and one or two outlets |
+| Aggressive | At least six box defenders and exactly two outlets |
+
+For each eligible structure, the existing exact assignment solver allocates
+each player once. The optimizer compares those completed plans and shows the
+chosen template, its counts and the eligible alternatives in **Why this plan?**
+Near-equal numbers should be treated as a modest model preference, not proof
+of a better result in FM.
+
+Comparing raw totals or role-fit averages with the former per-job importance
+would give a responsibility more influence merely by repeating it. Instead,
+for these two variants the configured `importance` is a **budget for the whole
+responsibility group**. A template divides that budget equally over the players
+doing the job. For example, a marking budget of 2.4 becomes 1.2 per player with
+two markers, or 0.8 with three. Every template consequently has the same total
+importance and each responsibility has the same influence. Individual fit
+scores stay on 0–100. This comparison is still linear, so the player assignment
+for each template remains exact for its objective.
+
+On a partial feed, absent jobs contribute zero coverage to the comparison;
+their planned importance remains in the denominator. This prevents an
+incomplete plan winning through a high average over a few filled jobs. The
+ordinary assigned-job fit retains its uncertainty bands, and the UI continues
+to show the unfilled responsibilities and provisional scope.
+
+The wide/deep marking profile now includes bravery and strength as well as
+tracking inputs, without treating every marker as a tall aerial defender. The
+clearance profiles distinguish closing a wide short option from receiving and
+using a deep clearance. Direct and small-chance defensive free kicks retain
+their previous profiles and structures. Corners and attacking free kicks also
+retain their existing structures and assignments.
+
+For the captured Control XI on Balanced, wide kicks select **Two outlets with
+runner marking**: Okosieme, Bradley-Green and Collier cover the delivery;
+Lynch, Jefford and Odunston mark; Holden takes the small wall; Sharpe protects
+the edge; Neufville and Sankoh stay forward. Holden is a weak wall player, but
+this is a low-importance wide-delivery job and keeps better defenders behind
+him. This is a model trade-off rather than an ability cutoff or a name rule.
+Deep kicks select **Two outlets and second-ball cover**: Okosieme, Bradley-Green,
+Collier and Neufville cover; Lynch and Jefford mark; Odunston and Sharpe protect
+the edge; Holden and Sankoh stay forward. Secure chooses one-outlet structures.
+
+Opposition strengths are not automatically applied yet. Candidate eligibility
+is separated from assignment and comparison: future opposition coverage
+requirements can restrict the catalogue before any player assignment is solved.
+The current choices use the selected XI and explicit baseline approach rules,
+all based on manager-visible data.
 
 ## Job suitability and responsibility importance
 
-`set-piece-v11` separates the suitability of a player for a job from the value
+The scoring model separates the suitability of a player for a job from the value
 of improving that responsibility. Individual job-fit scores remain 0–100;
 the routine score is their importance-weighted average. Delivery-foot bonuses
 influence selection but remain outside the displayed attribute scores.
@@ -109,9 +177,9 @@ when it has enough available players.
 The attacking routines also distinguish delivery (1.5; 2.0 for direct free
 kicks), aerial first contact (1.4), rest defence (1.3, with third wide cover
 1.1), short support (0.9), goalkeeper challengers (0.8), and other runners (1.0).
-Defensive free kicks weight the wall more for direct shots (1.4) and aerial
-cover more for indirect deliveries (1.4). Their runner-marking profile is
-distinct from their aerial-cover profile.
+Direct defensive free kicks weight each wall player at 1.4. Wide/deep routines
+use the group budgets explained above, with a much smaller wide-wall budget
+and separate marking, aerial-cover and second-ball profiles.
 
 `priority` is separate: it decides which responsibilities survive a partial
 player feed and their display order. For defensive corners, aerial jobs now
@@ -207,7 +275,17 @@ Only the old free-kick roles' unused taker placeholder attributes are omitted;
 those role descriptions now use the actual task profile. The dedicated and
 proxy profiles themselves, and every real taker score, remain covered.
 Deliberate future tuning should update the model version and review the real-XI
-expectations and frozen baseline together.
+expectations and frozen baseline together. The v11 fingerprints remain preserved;
+an independently frozen projection continues to guard all unchanged corner,
+attacking, direct defensive and taker outputs after the v12 change, ignoring
+only the bumped model version and new selection metadata.
+
+`tests/fixtures/hungerford-control-433dm-2020-10-20.json` preserves the separate
+Control XI visible export used in this review. Template tests cover all approach
+constraints, complete and partial assignments, constant responsibility budgets,
+equal-player comparisons, different squads choosing different structures,
+attribute exchanges, ranged/unknown evidence, unavailable players, deterministic
+ties, stricter future coverage policies and the actual web assignment cards.
 
 ## Evidence boundary
 

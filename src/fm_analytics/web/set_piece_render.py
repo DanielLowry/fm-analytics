@@ -123,6 +123,35 @@ def _set_piece_assignment_cards(report) -> str:
 
 
 def _set_piece_routine_plan(routine, labels: dict[str, str]) -> str:
+    selection_summary = ""
+    selection_evidence = ""
+    if routine.selection is not None:
+        selection = routine.selection
+        selection_summary = (
+            "<p class='routine-template-choice'><b>Selected: "
+            + html.escape(selection.template_name) + "</b> · "
+            + html.escape(selection.approach.capitalize()) + " approach<br>"
+            + html.escape(selection.description) + "</p>"
+        )
+        comparisons = "".join(
+            "<tr><th scope='row'>" + html.escape(candidate.name)
+            + (" (selected)" if candidate.key == selection.template_key else "") + "</th>"
+            f"<td>{candidate.box_defenders}</td><td>{candidate.wall_players}</td>"
+            f"<td>{candidate.edge_players}</td><td>{candidate.outlets}</td>"
+            f"<td>{_band(candidate.score)}</td></tr>"
+            for candidate in selection.comparisons
+        )
+        selection_evidence = (
+            f"<p>Compared {len(selection.comparisons)} sensible templates for this XI and approach. "
+            "Each plan protects the delivery, runners and second balls. "
+            "The comparison gives each responsibility the same influence across plans; "
+            "adding more players to a job does not increase its importance. "
+            "Missing jobs reduce coverage in a provisional plan.</p>"
+            "<div class='table-scroll'><table><thead><tr><th scope='col'>Template</th>"
+            "<th scope='col'>Box defenders</th><th scope='col'>Wall</th>"
+            "<th scope='col'>Edge</th><th scope='col'>Outlets</th><th scope='col'>Plan fit</th>"
+            "</tr></thead><tbody>" + comparisons + "</tbody></table></div>"
+        )
     assignments = []
     evidence_rows = []
     for assignment in routine.assignments:
@@ -187,7 +216,8 @@ def _set_piece_routine_plan(routine, labels: dict[str, str]) -> str:
         )
         shape_summary = (
             f"{routine.players_in_box} box defenders · {wall_players} in wall · "
-            f"{routine.players_held_back} outlet"
+            + (f"{sum(a.role.instruction == 'Edge of area' for a in routine.assignments)} on edge · " if routine.selection else "")
+            + f"{routine.players_held_back} outlet{'s' if routine.players_held_back != 1 else ''}"
         )
     notes = "".join(f"<li>{html.escape(note)}</li>" for note in routine.notes)
     return (
@@ -196,9 +226,9 @@ def _set_piece_routine_plan(routine, labels: dict[str, str]) -> str:
         f"<h3 id='selected-routine'>{html.escape(routine.name)}</h3>"
         f"<p>{html.escape(routine.objective)}</p></div>"
         f"<span>{shape_summary} · {round(routine.evidence_coverage * 100):.0f}% evidence</span></div>"
-        "<div class='routine-assignments'>" + "".join(assignments) + "</div>" + unfilled
+        + selection_summary + "<div class='routine-assignments'>" + "".join(assignments) + "</div>" + unfilled
         + "<details class='routine-evidence'><summary>Why this plan?</summary>"
-        "<div class='table-scroll'><table><thead><tr>"
+        + selection_evidence + "<div class='table-scroll'><table><thead><tr>"
         "<th scope='col'>Player</th><th scope='col'>Job</th><th scope='col'>Job fit</th>"
         "<th scope='col'>Strongest inputs</th><th scope='col'>Purpose</th>"
         "</tr></thead><tbody>" + "".join(evidence_rows) + "</tbody></table></div>"

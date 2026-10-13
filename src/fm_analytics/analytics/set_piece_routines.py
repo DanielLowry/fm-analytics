@@ -17,7 +17,9 @@ from fm_analytics.analytics.role_scoring import (
     RoleScore,
     score_role,
 )
-from fm_analytics.analytics.set_piece_config import JobWeights, SET_PIECE_WEIGHTS
+from fm_analytics.analytics.set_piece_config import (
+    DefensiveTemplate, FLEXIBLE_DEFENSIVE_FREE_KICKS, JobWeights, SET_PIECE_WEIGHTS,
+)
 from fm_analytics.domain import Player
 
 
@@ -382,36 +384,46 @@ def _defending_corner_roles() -> tuple[RoutineRole, ...]:
     )
 
 
-def _defending_free_kick_roles(kind: str) -> tuple[RoutineRole, ...]:
+def _defending_free_kick_roles(kind: str, template: DefensiveTemplate | None = None) -> tuple[RoutineRole, ...]:
     """Use only the player instructions available in FM's defending-free-kick UI."""
 
     kind = {"free_kick": "indirect_wide"}.get(kind, kind)
     weights = SET_PIECE_WEIGHTS.routine("defending_free_kicks", kind)
+    if kind in FLEXIBLE_DEFENSIVE_FREE_KICKS:
+        template = template or SET_PIECE_WEIGHTS.defensive_templates[kind][0]
+        counts = template.jobs
+    else:
+        if template is not None:
+            raise ValueError("candidate templates apply to wide and deep defensive free kicks")
+        wall, mark, back = {"direct_free_kick": (5, 1, 2), "direct_small_chance": (4, 2, 2)}[kind]
+        counts = {"wall": wall, "mark": mark, "back": back, "edge": 1, "forward": 1}
+
+    def group_weights(group):
+        profile = weights[group]
+        # Each responsibility has one budget across candidate structures.
+        # Repeating a job splits that budget; it never increases its influence.
+        return JobWeights(profile.attributes, profile.importance / counts[group]) if template else profile
+
     keeper = _role(
         f"def_{kind}_keeper", "Goalkeeper", "Goalkeeper", "Goal line / six-yard box",
         "Defend area", "Sets the wall, claims deliveries and protects the goal.",
         weights["keeper"],
         priority=100, goalkeeper=True,
     )
-    wall_count, mark_count, back_count = {
-        "direct_free_kick": (5, 1, 2),
-        "direct_small_chance": (4, 2, 2),
-        "indirect_wide": (3, 3, 2),
-        "indirect_deep": (0, 4, 4),
-    }[kind]
     wall_zones = {
         5: ("Left edge", "Inner left", "Centre", "Inner right", "Right edge"),
         4: ("Left edge", "Inner left", "Inner right", "Right edge"),
-        3: ("Left", "Centre", "Right"),
+        2: ("Left", "Right"),
+        1: ("Delivery angle",),
         0: (),
-    }[wall_count]
-    back_zones = ("Central box", "Deep box", "Near channel", "Far channel")
+    }[counts["wall"]]
+    back_zones = ("Central box", "Deep box", "Near channel", "Far channel", "Left cover", "Right cover")
     roles = [keeper]
     roles.extend(
         _role(
             f"def_{kind}_wall_{index}", f"Wall player {index}", "Wall", zone,
             "Wall", "Blocks the direct shooting route and holds the wall's shape.",
-            weights["wall"], priority=99 - index,
+            group_weights("wall"), priority=(80 if template else 99) - index,
         )
         for index, zone in enumerate(wall_zones, start=1)
     )
@@ -420,37 +432,43 @@ def _defending_free_kick_roles(kind: str) -> tuple[RoutineRole, ...]:
             f"def_{kind}_mark_{index}", f"Man marker {index}", "Box defence",
             f"Runner {index}", "Man mark",
             "Tracks an opposition runner through the delivery phase.",
-            weights["mark"], priority=94 - index,
+            group_weights("mark"), priority=(92 if template else 94) - index,
         )
-        for index in range(1, mark_count + 1)
+        for index in range(1, counts["mark"] + 1)
     )
     roles.extend(
         _role(
             f"def_{kind}_back_{index}", f"Covering defender {index}",
             "Box defence", zone, "Go back",
             "Attacks the delivery and covers a runner who escapes their marker.",
-            weights["back"], priority=90 - index,
+            group_weights("back"), priority=(100 if template else 90) - index,
         )
-        for index, zone in enumerate(back_zones[:back_count], start=1)
+        for index, zone in enumerate(back_zones[:counts["back"]], start=1)
     )
-    roles.extend((
+    roles.extend(
         _role(
-            f"def_{kind}_edge", "Edge-of-area guard", "Second ball", "Edge of area",
+            f"def_{kind}_edge" + (f"_{index}" if index > 1 else ""),
+            "Edge-of-area guard" + (f" {index}" if index > 1 else ""), "Second ball", "Edge of area",
             "Edge of area", "Closes down clearances and late shooters.",
-            weights["edge"], priority=84,
-        ),
+            group_weights("edge"), priority=85 - index,
+        ) for index in range(1, counts["edge"] + 1)
+    )
+    roles.extend(
         _role(
-            f"def_{kind}_forward", "Counter outlet", "Outlet", "Halfway line",
+            f"def_{kind}_forward" + (f"_{index}" if index > 1 else ""),
+            "Counter outlet" + (f" {index}" if index > 1 else ""), "Outlet", "Halfway line",
             "Stay forward", "Pins back defenders and gives the clearance a target.",
-            weights["forward"], priority=82,
-        ),
-    ))
+            group_weights("forward"), priority=(70 if template else 83) - index,
+        ) for index in range(1, counts["forward"] + 1)
+    )
     return tuple(roles)
 
 
-def defensive_roles(kind: str) -> tuple[RoutineRole, ...]:
+def defensive_roles(kind: str, template: DefensiveTemplate | None = None) -> tuple[RoutineRole, ...]:
     """Return the goalkeeper and ten outfield defensive jobs."""
 
     if kind == "corner":
+        if template is not None:
+            raise ValueError("defensive corners retain their existing routine")
         return _defending_corner_roles()
-    return _defending_free_kick_roles(kind)
+    return _defending_free_kick_roles(kind, template)

@@ -19,7 +19,10 @@ from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from fm_analytics.analytics.assignment_solver import _minimum_cost_full_assignment
-from fm_analytics.analytics.set_piece_config import SET_PIECE_WEIGHTS, SetPieceWeights
+from fm_analytics.analytics.set_piece_config import (
+    FLEXIBLE_DEFENSIVE_FREE_KICKS, SET_PIECE_WEIGHTS, SetPieceWeights,
+)
+from fm_analytics.analytics.set_piece_plan_selection import TemplateSelection, select_defensive_plan
 from fm_analytics.analytics.set_piece_routines import (
     SET_PIECE_SCORING_VERSION,
     RoutineRole,
@@ -195,6 +198,7 @@ class SetPieceRoutine:
     notes: tuple[str, ...]
     score: ScoreBand
     evidence_coverage: float
+    selection: TemplateSelection | None = None
 
     @property
     def players_in_box(self) -> int:
@@ -404,6 +408,25 @@ def _build_routines(
         )
     )
     for kind, title, objective, wall_note in set_piece_templates.DEFENDING_FREE_KICK_TEMPLATES:
+        if kind in FLEXIBLE_DEFENSIVE_FREE_KICKS:
+            def solve(template):
+                return _optimise_routine(
+                    key=f"defending_{kind}", name=f"Defending {title.lower()}",
+                    phase="defending", side=None, objective=objective,
+                    roles=defensive_roles(kind, template), players=players,
+                    recommendations=recommendations, lineup_positions=lineup_positions,
+                    notes=(
+                        wall_note,
+                        "The selected XI and set-piece approach determine the template and all player assignments.",
+                        "Each responsibility keeps the same importance across templates; extra players share its budget.",
+                        "Bring an outlet back if the opponent overloads the delivery area.",
+                    ),
+                )
+            routines.append(select_defensive_plan(
+                SET_PIECE_WEIGHTS.defensive_templates[kind],
+                SET_PIECE_WEIGHTS.defensive_approaches[attacking_risk], attacking_risk, solve,
+            ))
+            continue
         routines.append(_optimise_routine(
             key=f"defending_{kind}", name=f"Defending {title.lower()}",
             phase="defending", side=None, objective=objective,

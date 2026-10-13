@@ -199,7 +199,7 @@ class AuxiliaryPagesMixin:
             f"<input type='hidden' name='routine' value='{html.escape(selected_routine_key, quote=True)}'>"
             "<label>Delivery curve<select name='delivery'>"
             + _options(DELIVERY_STYLES.items(), report.delivery_style, "")
-            + "</select></label><label>Attacking commitment<select name='risk'>"
+            + "</select></label><label>Set-piece approach<select name='risk'>"
             + _options(ATTACKING_RISKS.items(), report.attacking_risk, "")
             + "</select></label>"
             + (
@@ -238,7 +238,10 @@ class AuxiliaryPagesMixin:
         )
         settings = (
             "<details class='fm-set-piece-settings'><summary>Adjust plan settings</summary>"
-            "<p class='muted'>Change the match XI, delivery curve, or attacking commitment, then rebuild the plan.</p>"
+            "<p class='muted'>Change the match XI, delivery curve, or set-piece approach, then rebuild the plan. "
+            "Secure adds delivery cover and keeps one outlet when defending wide or deep free kicks; "
+            "Balanced considers one or two outlets; Aggressive keeps two with at least six box defenders. "
+            "The approach also sets attacking commitments.</p>"
             + controls
             + "</details>"
         )

@@ -48,12 +48,12 @@ DEFENDING_FREE_KICK_TEMPLATES = (
     ),
     (
         "indirect_wide", "Indirect free kicks (wide)",
-        "Protect delivery lanes, track runners and keep one counter outlet.",
-        "Three wall players protect the near shooting route without crowding the box.",
+        "Protect delivery lanes, track runners and retain counter outlets.",
+        "Candidate structures use one or two wall players while retaining delivery cover.",
     ),
     (
         "indirect_deep", "Indirect free kicks (deep)",
-        "Prioritise marking and aerial cover against a deep delivery.",
+        "Protect the long delivery, runners and second balls while retaining counter outlets.",
         "No wall is used because the routine is outside realistic shooting range.",
     ),
 )

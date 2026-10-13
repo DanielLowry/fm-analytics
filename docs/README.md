@@ -82,12 +82,14 @@
   points, examine the cross goals that cost leads, and define the next tests.
 - [Season improvement decisions](season-improvement-decisions-2026-10-12.md)
   combines the season and all Hampton experiments, ranks the hypotheses,
-  explains the next right-midfield duty pilot and specifies its measures.
+  closes the right-midfield duty pilot and reviews the new Control 4-3-3
+  groups, their mentality/personnel differences and the next useful test.
 - [Tactic experiments](match-experiments.md): store the matches you choose, group
   them and compare what you tried; how many replays a comparison needs.
 - [Hampton & Richmond experiment log](hampton-experiments.md): the replay
   setups, results, decisions and run-by-run record for tactics, Chaney marking
-  and wide pressing, with the next test and its measures.
+  and wide pressing, including Control 4-3-3 Attacking/Positive/Balanced,
+  with the next test and its measures.
 - [Reading FM's match replays](match-replay-extraction.md) is the research
   brief for corners, conceded penalties and shot positions: what is known,
   the routes and the main risk.

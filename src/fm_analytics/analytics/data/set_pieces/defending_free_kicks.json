@@ -51,6 +51,36 @@
       "strength": 12,
       "dribbling": 8,
       "passing": 6
+    },
+    "delivery_marking": {
+      "marking": 24,
+      "anticipation": 14,
+      "positioning": 14,
+      "concentration": 12,
+      "bravery": 12,
+      "strength": 12,
+      "acceleration": 6,
+      "tackling": 6
+    },
+    "wide_second_ball": {
+      "anticipation": 20,
+      "positioning": 16,
+      "concentration": 12,
+      "acceleration": 18,
+      "tackling": 14,
+      "decisions": 10,
+      "firstTouch": 6,
+      "passing": 4
+    },
+    "deep_second_ball": {
+      "anticipation": 20,
+      "positioning": 14,
+      "concentration": 10,
+      "acceleration": 10,
+      "tackling": 10,
+      "decisions": 14,
+      "firstTouch": 12,
+      "passing": 10
     }
   },
   "variants": {
@@ -113,23 +143,23 @@
       },
       "wall": {
         "profile": "wall",
-        "importance": 1.0
+        "importance": 0.3
       },
       "mark": {
-        "profile": "man_marking",
-        "importance": 1.1
+        "profile": "delivery_marking",
+        "importance": 2.4
       },
       "back": {
         "profile": "zonal_defence",
-        "importance": 1.4
+        "importance": 3
       },
       "edge": {
-        "profile": "edge_defence",
-        "importance": 1.0
+        "profile": "wide_second_ball",
+        "importance": 1.2
       },
       "forward": {
         "profile": "counter_outlet",
-        "importance": 0.8
+        "importance": 1.2
       }
     },
     "indirect_deep": {
@@ -138,21 +168,164 @@
         "importance": 1.0
       },
       "mark": {
-        "profile": "man_marking",
-        "importance": 1.1
+        "profile": "delivery_marking",
+        "importance": 2.4
       },
       "back": {
         "profile": "zonal_defence",
-        "importance": 1.4
+        "importance": 3
       },
       "edge": {
-        "profile": "edge_defence",
-        "importance": 1.0
+        "profile": "deep_second_ball",
+        "importance": 1.8
       },
       "forward": {
         "profile": "counter_outlet",
-        "importance": 0.8
+        "importance": 1.2
       }
+    }
+  },
+  "templates": {
+    "indirect_wide": [
+      {
+        "key": "delivery_cover",
+        "name": "Extra delivery cover",
+        "description": "Seven box defenders and one outlet, with a small wall and a clearance guard.",
+        "jobs": {
+          "wall": 1,
+          "mark": 2,
+          "back": 5,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "runner_cover",
+        "name": "Extra runner marking",
+        "description": "Three markers track runs while four covering defenders attack the delivery.",
+        "jobs": {
+          "wall": 1,
+          "mark": 3,
+          "back": 4,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "two_player_wall",
+        "name": "Two-player wall",
+        "description": "A second wall player protects the delivery angle, with six box defenders and one outlet.",
+        "jobs": {
+          "wall": 2,
+          "mark": 2,
+          "back": 4,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "two_outlets",
+        "name": "Two outlets with aerial cover",
+        "description": "Four covering defenders and two markers protect the box while two players offer an outlet.",
+        "jobs": {
+          "wall": 1,
+          "mark": 2,
+          "back": 4,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "two_outlets_marking",
+        "name": "Two outlets with runner marking",
+        "description": "Three markers and three covering defenders share delivery protection, with two outlets.",
+        "jobs": {
+          "wall": 1,
+          "mark": 3,
+          "back": 3,
+          "edge": 1,
+          "forward": 2
+        }
+      }
+    ],
+    "indirect_deep": [
+      {
+        "key": "delivery_cover",
+        "name": "Extra delivery cover",
+        "description": "Six covering defenders and two markers protect the long delivery, with one clearance guard and one outlet.",
+        "jobs": {
+          "wall": 0,
+          "mark": 2,
+          "back": 6,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "runner_cover",
+        "name": "Extra runner marking",
+        "description": "Four markers and four covering defenders protect the delivery and attacking runs.",
+        "jobs": {
+          "wall": 0,
+          "mark": 4,
+          "back": 4,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "second_balls",
+        "name": "Extra second-ball cover",
+        "description": "Seven box defenders and two clearance guards retain one outlet.",
+        "jobs": {
+          "wall": 0,
+          "mark": 3,
+          "back": 4,
+          "edge": 2,
+          "forward": 1
+        }
+      },
+      {
+        "key": "two_outlets",
+        "name": "Two outlets with aerial cover",
+        "description": "Seven box defenders protect the delivery, with one clearance guard and two outlets.",
+        "jobs": {
+          "wall": 0,
+          "mark": 2,
+          "back": 5,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "two_outlets_second_balls",
+        "name": "Two outlets and second-ball cover",
+        "description": "Six box defenders attack the delivery and track runners; two clearance guards support two outlets.",
+        "jobs": {
+          "wall": 0,
+          "mark": 2,
+          "back": 4,
+          "edge": 2,
+          "forward": 2
+        }
+      }
+    ]
+  },
+  "approaches": {
+    "secure": {
+      "minimumBoxDefenders": 7,
+      "minimumOutlets": 1,
+      "maximumOutlets": 1
+    },
+    "balanced": {
+      "minimumBoxDefenders": 6,
+      "minimumOutlets": 1,
+      "maximumOutlets": 2
+    },
+    "aggressive": {
+      "minimumBoxDefenders": 6,
+      "minimumOutlets": 2,
+      "maximumOutlets": 2
     }
   }
 }

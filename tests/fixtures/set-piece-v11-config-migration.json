@@ -28,5 +28,36 @@
     "unavailable/balanced/outswinging": "b064b908f5de6566027177dd888d82ef2411fd2e24904ad5b5cf647213454f93",
     "unavailable/aggressive/inswinging": "fefa931700ae55ce766d1395c7a751c94b39ddb15d826a68c953ca86133b21f7",
     "unavailable/aggressive/outswinging": "3c0f0ca95c5f04af7b656c300bf90c1f4cfcec214df29a1e483827c98faeb5eb"
+  },
+  "unchangedAfterTemplateSelection": {
+    "source": "Unchanged corner/attacking/direct-FK/taker portions projected from original v11 code and committed v11 JSON, before template selection. New selection metadata and model version are excluded.",
+    "roles": "aeb5c3ee98b0c749cd2e3d3c47cb4678fe7b574f43bc8b9311d1cffc515a7ab0",
+    "tasks": "efd7ad052171b152c5a61f688f23a8be8f90bca1f7c57ac592e553255637879c",
+    "reports": {
+      "captured/secure/inswinging": "37b8af0e36e581994cfdcb88239e26f2bb6b296bdae35f279ef99dbf4cd91944",
+      "captured/secure/outswinging": "ed17014e3c3417422ffd3aa0a3c17044dc29682b8b8e1b816201186f549cc61b",
+      "captured/balanced/inswinging": "c0dd7e6f16235fee3bb87a086404edba041ab50d5aabd2bad86e8a1aed44d716",
+      "captured/balanced/outswinging": "730f4905579dab9deb648bc9c9e8d34eedad0e68dd24ed4b8111764515ce2f5f",
+      "captured/aggressive/inswinging": "96c35463c048d2aff79ee3009d8c2f4c2da8a62ba3bdc1b54e3e56ee5215de25",
+      "captured/aggressive/outswinging": "e5c16bd0719b3500beb0151197c9cd4801f213a24062664aa2a0ddab28856324",
+      "dedicated_and_feet/secure/inswinging": "cee21fc5cd3b2cd01e3f478a8660c66f59cb28f679560f8f3e2270379abac600",
+      "dedicated_and_feet/secure/outswinging": "2c211ce005e41d1e7bcb75e1f400f731669645804885d1ee0426a3e497818365",
+      "dedicated_and_feet/balanced/inswinging": "854ae8e1a5c7135da83b89af2bc07ff4b778d848875810e7aacd3a2abcfff662",
+      "dedicated_and_feet/balanced/outswinging": "6a5baf71f7500ea5703a999b87b7d49f6cc13a91ea62bf6d3a11aa949402464c",
+      "dedicated_and_feet/aggressive/inswinging": "e5d9d1f4804a1e50eb1845d2c5016a3033c1955a366f414e7e3797d98520bab4",
+      "dedicated_and_feet/aggressive/outswinging": "fbcd790fc3713b8858db8f580696d95f0963c4e5371e99142c6084d2c6103a83",
+      "mixed_evidence/secure/inswinging": "c7c56b84a8a68f534d725af12bda34a353bb5708dd4a9bd21cce6ba31eb5745e",
+      "mixed_evidence/secure/outswinging": "a824a681cc302dff86b74d97a8aeb6dda7816b621de1e6e7e1b938c0754dde79",
+      "mixed_evidence/balanced/inswinging": "0f5eb98140169cc8341db5f84e139ada192655fffd1ed9d31819d6ff033f3f41",
+      "mixed_evidence/balanced/outswinging": "df38ada8ff5c3bcd10ee1d3b371bb226ea79c0d3f8230ac82120d4fc775af82c",
+      "mixed_evidence/aggressive/inswinging": "d004f022a23be9dd9467b581c953efa408ae3aefc88d58d737f468b4ffebc2cd",
+      "mixed_evidence/aggressive/outswinging": "dd293051c9d37bf90f18bb99aa1b720ee29193d7900e20725dd45d6fe8682ec8",
+      "unavailable/secure/inswinging": "eac12eeb9c482ce12accf54707ed17ca785428692061a96d2d7a40d31f5909b3",
+      "unavailable/secure/outswinging": "4f9f80729a707f253bc6cf3678f3e21d2658054b2e6f44cdf5a7d04238941d87",
+      "unavailable/balanced/inswinging": "918fc4b888b7c17d635e11dc16ddc0749b3565cf2e68d81c3250a2c3d3bc92ba",
+      "unavailable/balanced/outswinging": "e171ca9a6eeffd3edcf14e9d8102acfdca9f08441c3f5d596e6855ef5bf73837",
+      "unavailable/aggressive/inswinging": "cf68a1153a9cdc5dab34ba61b414b71f52454facc0e05541a877af8a4eba54ae",
+      "unavailable/aggressive/outswinging": "607c59f3775b9421385e69d1b8aaeea03b6f049d9f68822c59c20a042dedd541"
+    }
   }
 }

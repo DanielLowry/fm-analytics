@@ -17,6 +17,7 @@ from fm_analytics.web.server import SquadWebServer
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURE = ROOT / "src/fm_analytics/fixtures/sample-game.json"
 CAPTURE = ROOT / "tests/fixtures/hungerford-vertical-442-2020-10-20.json"
+CONTROL_CAPTURE = ROOT / "tests/fixtures/hungerford-control-433dm-2020-10-20.json"
 
 
 def _complete_fixture(directory: Path) -> Path:
@@ -204,6 +205,40 @@ class SetPiecePageTests(unittest.TestCase):
         ):
             self.assertNotIn(old_instruction, body)
         self.assertEqual(body.count("class='routine-assignment-note'"), 11)
+
+    def test_control_xi_displays_selected_templates_alternatives_and_real_assignments(self) -> None:
+        port = self._serve(CONTROL_CAPTURE)
+        for kind, title, edge_count in (
+            ("indirect_wide", "Two outlets with runner marking", 1),
+            ("indirect_deep", "Two outlets and second-ball cover", 2),
+        ):
+            with self.subTest(kind=kind):
+                status, body = self._get(port, "/set-pieces?tactic=control_433dm&routine=defending_" + kind)
+                self.assertEqual(status, 200)
+                self.assertIn("Control 4-3-3 DM Wide match XI", body)
+                self.assertIn("Set-piece approach<select name='risk'>", body)
+                self.assertNotIn("Attacking commitment", body)
+                self.assertIn("Selected: " + title, body)
+                self.assertIn("Compared 5 sensible templates", body)
+                self.assertIn("Plan fit", body)
+                self.assertIn(f"{edge_count} on edge · 2 outlets", body)
+                self.assertIn("<b>Ejiro Okosieme</b><span><strong>Go back</strong>", body)
+                self.assertEqual(body.count("class='routine-assignment-note'"), 11)
+                if kind == "indirect_deep":
+                    for name, job in (("Tom Sharpe", "Edge of area"), ("Lucas Odunston", "Edge of area"), ("Ross Holden", "Stay forward"), ("Abdul Sankoh", "Stay forward")):
+                        self.assertIn(f"<b>{name}</b><span><strong>{job}</strong>", body)
+
+    def test_existing_risk_dropdown_changes_defensive_templates_and_preserves_links(self) -> None:
+        port = self._serve(CONTROL_CAPTURE)
+        for approach, count, candidates in (("secure", 1, 2), ("aggressive", 2, 2)):
+            status, body = self._get(port, f"/set-pieces?tactic=control_433dm&routine=defending_indirect_wide&risk={approach}")
+            self.assertEqual(status, 200)
+            self.assertIn(f"{approach.capitalize()} approach", body)
+            self.assertIn(f"Compared {candidates} sensible templates", body)
+            self.assertIn(f"on edge · {count} outlet", body)
+            self.assertIn(f"risk={approach}", body)
+            self.assertIn("tactic=control_433dm", body)
+            self.assertIn("routine=defending_indirect_deep", body)
 
     def test_attacking_free_kick_uses_the_fm_instruction_names(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
