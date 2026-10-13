@@ -136,8 +136,10 @@ class ContextTests(unittest.TestCase):
 
     def test_only_slots_allowing_two_duties_of_one_role_need_a_usual_pick(self) -> None:
         # MCR allows Box-to-Box or Central Midfielder (Support): different roles, which the code tells apart.
+        # DCL's Ball-Playing Defender has only one duty there, so it needs no pick either.
+        both_pairs = ("cd_defend", "cd_cover", "nncb_defend", "nncb_cover")
         self.assertEqual(duty_choices(MVP_CATALOGUE, "vertical_442"),
-                         (("DCL", ("cd_defend", "cd_cover")), ("DCR", ("cd_defend", "cd_cover"))))
+                         (("DCL", both_pairs), ("DCR", both_pairs)))
 
     def test_one_code_for_two_duties_is_told_apart_by_the_slot(self) -> None:
         # 28 March 2020: Central Midfielder (Support) right of Central Midfielder (Defend), both 0x20.

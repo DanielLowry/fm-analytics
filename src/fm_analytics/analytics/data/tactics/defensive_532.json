@@ -23,18 +23,22 @@
       "position": "DC",
       "role": "cd_defend",
       "roles": [
-        "cd_cover"
+        "cd_cover",
+        "nncb_defend",
+        "nncb_cover"
       ],
-      "why": "Wide centre-back who defends the channel. Cover is the alternate."
+      "why": "Wide centre-back who defends the channel. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the ball-playing defender on the right starts the attacks, so the other two only have to defend the box. Only one centre-back may use Cover."
     },
     {
       "key": "DCC",
       "position": "DC",
       "role": "cd_defend",
       "roles": [
-        "cd_cover"
+        "cd_cover",
+        "nncb_defend",
+        "nncb_cover"
       ],
-      "why": "Central defender in the middle of the three. Cover is the alternate, but only one Cover can be used."
+      "why": "Central defender in the middle of the three. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the ball-playing defender on the right starts the attacks, so the other two only have to defend the box. Only one centre-back may use Cover."
     },
     {
       "key": "DCR",

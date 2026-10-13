@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fm_analytics.analytics import MVP_CATALOGUE
 from fm_analytics.analytics.catalogue import load_catalogue
+from fm_analytics.analytics.tactical_system import effective_instructions
 from fm_analytics.imports import FM20_ATTRIBUTE_HEADERS
 
 
@@ -52,6 +53,45 @@ class MvpCatalogueTests(unittest.TestCase):
         for tactic in MVP_CATALOGUE.tactics.values():
             keys = [slot.key for slot in tactic.slots]
             self.assertEqual(len(keys), len(set(keys)))
+
+
+class CentreBackRoleRuleTests(unittest.TestCase):
+    """The centre-back rules in analytics/CLAUDE.md, which the balance checks cannot see."""
+
+    BALL_PLAYERS = {"bpd_defend", "bpd_stopper", "bpd_cover", "libero_support", "libero_attack"}
+
+    def test_a_tactic_that_plays_out_of_defence_fixes_a_ball_playing_centre_back(self) -> None:
+        # Midfielders alone meet Play Out Of Defence's balance demand, so a tactic
+        # can pass that check with nobody at the back who can start the build-up.
+        for tactic in MVP_CATALOGUE.tactics.values():
+            if "Play Out Of Defence" not in effective_instructions(tactic):
+                continue
+            fixed = [
+                slot.key for slot in tactic.slots
+                if slot.position == "DC" and set(MVP_CATALOGUE.role_keys_for_slot(slot)) <= self.BALL_PLAYERS
+            ]
+            self.assertTrue(fixed, f"{tactic.key}: plays out of defence with no fixed ball-playing centre-back")
+
+    def test_no_nonsense_centre_backs_only_where_clearing_the_ball_fits_the_plan(self) -> None:
+        # The No-Nonsense Centre-Back defends as well as a Central Defender by every
+        # balance measure and nothing charges for the ball he gives away, so it is
+        # offered only in tactics that go forward early or sit deep.
+        keeps_the_ball = {
+            "Shorter Passing", "Slightly Shorter Passing", "Play Out Of Defence", "Hold Shape",
+        }
+        for tactic in MVP_CATALOGUE.tactics.values():
+            offered = sorted(
+                role_key
+                for slot in tactic.slots
+                for role_key in MVP_CATALOGUE.role_keys_for_slot(slot)
+                if role_key.startswith("nncb_")
+            )
+            if not offered:
+                continue
+            self.assertNotIn(tactic.mentality, {"Positive", "Attacking"}, tactic.key)
+            self.assertEqual(
+                sorted(keeps_the_ball & set(effective_instructions(tactic))), [], tactic.key
+            )
 
 
 class CatalogueLoaderTests(unittest.TestCase):

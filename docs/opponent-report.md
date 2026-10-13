@@ -75,6 +75,17 @@ its day.
 - **Key points:** the shape, the top scorer and supplier, and any way of
   scoring or conceding that is more (or less) than the league's share by more
   than luck explains.
+- **Suggested game plan** (a guess, labelled as one): which kind of control
+  suits playing them, from their possession, pass completion and headers
+  contested ranked against their league, and whether they are above us
+  (`analytics/game_plan_suggestion.py`). A club above us gets counter-attack;
+  one that keeps the ball and passes it well, or one that goes long, gets
+  territorial control; one that lets opponents have the ball gets possession or
+  chance control; anything else chance control. "Marked" means the top or
+  bottom third of the league for that figure, and it needs six league teams to
+  rank against. It links to the tactics of that plan (`/tactics?plan=`), and is
+  in `fm-matches opponent` and the JSON copy as `suggested_game_plan`. See
+  [control-tactics-plan.md](control-tactics-plan.md).
 - **Suggested opposition instructions** (below).
 - **Shape:** the likely XI on a pitch (the eleven who started most of the last
   five, each at the position he most often started in), every formation FM

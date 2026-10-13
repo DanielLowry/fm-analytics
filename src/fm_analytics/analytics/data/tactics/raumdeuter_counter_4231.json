@@ -29,18 +29,22 @@
       "position": "DC",
       "role": "cd_defend",
       "roles": [
-        "cd_cover"
+        "cd_cover",
+        "nncb_defend",
+        "nncb_cover"
       ],
-      "why": "Central defender. Cover is the alternate."
+      "why": "Central defender. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the counter goes forward early and the pair is not asked to build. Only one centre-back may use Cover."
     },
     {
       "key": "DCR",
       "position": "DC",
       "role": "cd_cover",
       "roles": [
-        "cd_defend"
+        "cd_defend",
+        "nncb_defend",
+        "nncb_cover"
       ],
-      "why": "Cover centre-back sweeps up behind his partner; Defend is the alternate."
+      "why": "Cover centre-back sweeps up behind his partner. Defend is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the counter goes forward early and the pair is not asked to build. Only one centre-back may use Cover."
     },
     {
       "key": "DR",

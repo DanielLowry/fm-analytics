@@ -65,9 +65,11 @@
       "position": "DC",
       "role": "cd_defend",
       "roles": [
-        "cd_cover"
+        "cd_cover",
+        "nncb_defend",
+        "nncb_cover"
       ],
-      "why": "Defends the box simply as part of the back three. Cover is an alternative for a quicker, anticipatory defender, but only one centre-back should use Cover."
+      "why": "Defends the box simply as part of the back three. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the box is defended first and the ball goes long to the target man. Only one centre-back may use Cover."
     },
     {
       "key": "DCC",
@@ -83,9 +85,11 @@
       "position": "DC",
       "role": "cd_defend",
       "roles": [
-        "cd_cover"
+        "cd_cover",
+        "nncb_defend",
+        "nncb_cover"
       ],
-      "why": "Defends the box simply as part of the back three. Cover is an alternative for a quicker, anticipatory defender, but only one centre-back should use Cover."
+      "why": "Defends the box simply on the right of the back three. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the box is defended first and the ball goes long to the target man. Only one centre-back may use Cover."
     },
     {
       "key": "DR",

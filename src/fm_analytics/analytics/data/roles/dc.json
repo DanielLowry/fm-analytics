@@ -75,7 +75,8 @@
       "system": {
         "defensiveCover": 1.8,
         "restDefence": 1.8,
-        "pressing": 0.3
+        "pressing": 0.3,
+        "aerialOutlet": 0.8
       },
       "attributes": {
         "acceleration": 7,

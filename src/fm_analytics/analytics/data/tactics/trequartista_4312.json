@@ -29,9 +29,10 @@
       "position": "DC",
       "role": "cd_defend",
       "roles": [
-        "cd_cover"
+        "cd_cover",
+        "bpd_defend"
       ],
-      "why": "Central defender. Cover is the alternate."
+      "why": "Central defender. Cover is the alternate, as is a Ball-Playing Defender (Defend), who can pass into the midfield three with shorter passing."
     },
     {
       "key": "DCR",

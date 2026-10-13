@@ -60,11 +60,8 @@
     {
       "key": "DCL",
       "position": "DC",
-      "role": "cd_defend",
-      "roles": [
-        "cd_cover"
-      ],
-      "why": "Central defender. Cover is the alternate."
+      "role": "bpd_defend",
+      "why": "Ball-playing defender who takes the goalkeeper's short kicks and starts Play Out Of Defence, finding the holding midfielder or the DLP(S). The short build-up needs one passer at the back, so this slot is fixed."
     },
     {
       "key": "DCR",
@@ -73,7 +70,7 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+      "why": "Central defender on the right, the safer partner beside the ball-playing defender. Cover is the alternate."
     },
     {
       "key": "DR",
@@ -338,6 +335,20 @@
       ],
       "roles": [
         "pf_attack"
+      ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "technique": 1,
+        "decisions": 1,
+        "composure": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
       ]
     }
   ],
@@ -673,6 +684,26 @@
       ],
       "roles": [
         "pf_attack"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
       ]
     }
   ]

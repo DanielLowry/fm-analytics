@@ -67,18 +67,23 @@
       "position": "DC",
       "role": "cd_defend",
       "roles": [
-        "cd_cover"
+        "cd_cover",
+        "nncb_defend",
+        "nncb_cover",
+        "bpd_defend"
       ],
-      "why": "Defends simply in a flat pair. Cover is an alternative when pace and anticipation suit it, but only one centre-back should use Cover."
+      "why": "Defends simply in a flat pair and moves the ball on early. Alternates: Cover when pace and anticipation suit it; a No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes, since the keeper's long kicks mean the pair is not asked to build; or a Ball-Playing Defender (Defend), who plays the vertical passes into the support striker. Only one centre-back may use Cover."
     },
     {
       "key": "DCR",
       "position": "DC",
       "role": "cd_defend",
       "roles": [
-        "cd_cover"
+        "cd_cover",
+        "nncb_defend",
+        "nncb_cover"
       ],
-      "why": "Defends simply in a flat pair. Cover is an alternative when pace and anticipation suit it, but only one centre-back should use Cover."
+      "why": "Defends simply in a flat pair and moves the ball on early. Alternates: Cover when pace and anticipation suit it, or a No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes, since the keeper's long kicks mean the pair is not asked to build. Only one centre-back may use Cover. The ball-playing option is on the left only, so the pair never has two risk-takers."
     },
     {
       "key": "DR",
@@ -293,7 +298,7 @@
     "Wide players with enough pace and crossing to make early service worthwhile",
     "A support striker who can work, receive and connect vertical passes",
     "A second striker with enough pace or movement to threaten the space beyond",
-    "A conventional back four capable of defending a standard line without specialist demands"
+    "A conventional back four capable of defending a standard line without specialist demands: a central defender, no-nonsense or ball-playing centre-back all fit"
   ],
   "tags": [
     "balanced",

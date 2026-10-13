@@ -59,7 +59,8 @@ vs. a ball-winner as the DM defines two different systems), so a slot stays
 single-role unless a human decided otherwise for it specifically.
 
 Common alternatives include
-`cd_defend`/`cd_cover`, `af_attack`/`p_attack`, `dlf_support`/`cf_support`,
+`cd_defend`/`cd_cover` (with `nncb_defend`/`nncb_cover` beside them in direct
+and deep tactics; see "Centre-back roles"), `af_attack`/`p_attack`, `dlf_support`/`cf_support`,
 `cm_support`/`b2b_support`, the one three-role set
 `dlf_support`/`pf_support`/`cf_support`, and `pf_attack`/`af_attack` (with
 `p_attack` also permitted in the two original positive templates). Several pairs are
@@ -108,6 +109,51 @@ width; the left full-back and DM(D) remain pinned for security. This is another
 explicit tactical trade-off, not an interchangeable role pair.
 The wide AP stays on Attack: the former Support alternate lost too much
 penetration for this template.
+
+## Centre-back roles
+
+A centre-back's role follows how the tactic gets the ball out of defence; his
+duty follows the line and what screens him. Decide both from the tactic's own
+plan, never from a particular squad: the ranking is what matches tactics to
+players. The balance checks cannot see these rules, so
+`tests/test_catalogue.py::CentreBackRoleRuleTests` guards the first and third.
+
+- **Builds through the centre-backs** (Play Out Of Defence, or the keeper's
+  short kicks to them): fix one Ball-Playing Defender (or Libero) beside a
+  Central Defender. Midfielders alone meet Play Out Of Defence's balance
+  demand, which is how `positive_4231`, `positive_433dm` and
+  `positive_ball_winning_433dm` shipped with no passer at the back until 13
+  October 2026.
+- **Keeps the ball, but not through the centre-backs:** Central Defender, with
+  BPD(D) as an alternate on one side where the slot leaves his passing open
+  (`balanced_41212_diamond`, `narrow_4222`, `trequartista_4312`,
+  `fluid_counter_4141`). Where the slot defines the job as short, simple passes
+  to the holder or a full-back (the `control_*` tactics, `regista_4231`,
+  `rest_defence_433`), the tactic is deliberately one that needs no
+  ball-playing centre-back and stays Central Defender only.
+- **Goes forward early or sits deep** (direct passing, long goal kicks,
+  Regroup, deep lines), and is neither Positive/Attacking nor Hold Shape: the
+  No-Nonsense Centre-Back (Defend and Cover) is an equal alternate to the
+  Central Defender. Its traits match or beat CD's on every balance measure and
+  nothing charges for the ball he clears, so offering it where keeping the
+  ball is the plan would let the optimiser pick it whenever a player's numbers
+  favour it. In a back three with a Ball-Playing Defender to start the counters
+  (`counter_3412`, `defensive_532`, and `deep_counter_541`, where he is the
+  middle centre-back's alternate), only the other two get it.
+- **Duties:** Defend + Defend always works, and one Cover is allowed almost
+  everywhere. A Stopper needs a Cover beside him, which the exclusion groups
+  cannot require, so he belongs in tactics built around stepping out
+  (`front_foot_442`, `aggressive_playing_343`, `no_nonsense_532`), not as a
+  general alternate. `siege_442` is the one exception (Stopper on the left,
+  Cover on the right), and it therefore also allows Stopper + Defend behind its
+  higher line. In a back three, the outer centre-back who steps out is a Wide
+  Centre-Back (`territorial_352`), not a second Stopper.
+
+`vertical_442` shows all three: CD(D) by default, CD(Cover) and NCB(D/Cover)
+on both sides, and BPD(D) on the left only, so the pair never has two
+risk-takers. CD(Cover) carries the same 0.8 aerial outlet as CD(D); it had none
+until 13 October 2026, which docked a Cover partner in tactics that ask for
+headers.
 
 ## Illegal role combinations
 

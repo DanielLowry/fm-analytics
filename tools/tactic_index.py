@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 
 from fm_analytics.analytics.catalogue import MVP_CATALOGUE, TacticDefinition
+from fm_analytics.analytics.game_plan import game_plans
 from fm_analytics.analytics.in_transition import in_transition_selected_instructions
 from fm_analytics.analytics.in_possession import in_possession_instruction_strings
 from fm_analytics.analytics.out_of_possession import out_of_possession_selected_instructions
@@ -114,14 +115,15 @@ def render() -> str:
         "",
         "## At a glance",
         "",
-        "| Tactic | Shape | Mentality | Leans on | Use it when |",
-        "| --- | --- | --- | --- | --- |",
+        "| Tactic | Shape | Mentality | Game plan | Leans on | Use it when |",
+        "| --- | --- | --- | --- | --- | --- |",
     ]
     for tactic in tactics:
         leans = ", ".join(readable(a) for a in tactic.emphasised_attributes) or "—"
+        plans = ", ".join(label.label for label in game_plans(tactic, MVP_CATALOGUE)) or "—"
         out.append(
             f"| [{tactic.name}](#{tactic.key.replace('_', '-')}) | {tactic.formation} "
-            f"| {tactic.mentality} | {leans} | {first_sentence(tactic.when_to_use)} |"
+            f"| {tactic.mentality} | {plans} | {leans} | {first_sentence(tactic.when_to_use)} |"
         )
     out += ["", "## Each tactic", ""]
     for tactic in tactics:
@@ -137,6 +139,12 @@ def render() -> str:
             out.append(f"- **{line}:** {names}")
         out += [
             "",
+            "- **Game plan:** " + (
+                "; ".join(
+                    f"{label.label} ({', '.join(label.reasons)})"
+                    for label in game_plans(tactic, MVP_CATALOGUE)
+                ) or "—"
+            ),
             f"- **Leans on:** " + leans_detail(tactic),
             *([f"- **Expects at least (tapers below):** " + taper_detail(tactic)] if tactic.attribute_taper else []),
             f"- **Needs:** " + ("; ".join(tactic.key_requirements) or "—"),
@@ -148,6 +156,7 @@ def render() -> str:
                 ) or "—"
             ),
             f"- **Avoid when:** {first_sentence(tactic.when_not_to_use)}",
+            *([f"- **When leading:** {tactic.when_leading}"] if tactic.when_leading else []),
             "",
         ]
     out += [

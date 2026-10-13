@@ -75,6 +75,13 @@ while you led, the last 15 minutes, and the 15 minutes either side of each
 substitution and recorded mentality change, for every match, the last 10 and the
 last 5. Its chance figures read matches through `match_breakdowns.match_clock` and
 `counted_split`, so they are the "By the score" and "By period" panels' own.
+`reporting.build_control_scorecard` is the one behind the Matches page's "Control
+against each third", the same lines of `fm-matches review` and the exports'
+`control_scorecard` (`analytics/control_scorecard.py`): possession, territorial and
+chance measures by opponent third and by game plan, beside the league's top third
+from the other clubs' archived matches (`docs/control-tactics-plan.md`). Game plans
+come from `analytics/game_plan.py`, read from each tactic's settings; they label,
+filter and group, and never reach a score.
 `reporting.build_experiment_report` is the one behind the Experiments pages and
 `fm-experiments compare`: stored matches compared label by label
 (`docs/match-experiments.md`); `reporting.build_stored_match_report` is a stored
@@ -97,7 +104,9 @@ labelled near/back post and "who was around" guesses (`analytics/conceded.py`).
 list) or any league club, from its own matches before the fixture, ours against
 it and every other one FM archived (`MatchHistoryStore.load_club_matches`, kept
 out of `load_history`); `reporting.build_opponent_export` is its JSON copy
-(`docs/opponent-report.md`).
+(`docs/opponent-report.md`). Both live in `opponent_reporting.py`, which `reporting`
+re-exports to stay under the line cap; the report carries a suggested game plan
+(`analytics/game_plan_suggestion.py`), a labelled guess.
 `reporting.build_league_comparison` is the one behind `/league` and its team
 pages, deliberately without recent form (it exists only for our players), and
 `reporting.league_scope` decides which earlier read a new one is compared with.
@@ -148,8 +157,8 @@ there are no migrations, so an old capture is simply unreadable.
 
 For performance work, generate a synthetic squad of the size you care about
 rather than reaching for the fixture or a capture. Measure the full bundle
-against the whole shipped catalogue (42 tactics, 84 roles, 265 legal role
-versions in total): it evaluates every permitted role version for every tactic
+against the whole shipped catalogue (63 tactics, 107 roles, 986 legal role
+versions in total, 13 October 2026): it evaluates every permitted role version for every tactic
 and then solves the player assignment, so a change that does not improve that
 end-to-end measurement has not improved the page load.
 

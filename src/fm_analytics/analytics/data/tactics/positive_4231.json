@@ -59,11 +59,8 @@
     {
       "key": "DCL",
       "position": "DC",
-      "role": "cd_defend",
-      "roles": [
-        "cd_cover"
-      ],
-      "why": "Defends simply in a standard line. Cover is an alternative for a quicker, anticipatory defender, but only one centre-back should use Cover."
+      "role": "bpd_defend",
+      "why": "Ball-playing defender who receives the goalkeeper's short kicks and starts Play Out Of Defence, passing into the DLP(S) or breaking the first line himself. The build-up needs one passer at the back, so this slot is fixed."
     },
     {
       "key": "DCR",
@@ -72,7 +69,7 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Defends simply in a standard line. Cover is an alternative for a quicker, anticipatory defender, but only one centre-back should use Cover."
+      "why": "Defends simply in a standard line beside the ball-playing defender. Cover is the alternate for a quicker, anticipatory defender."
     },
     {
       "key": "DR",
@@ -330,6 +327,20 @@
       "roles": [
         "pf_attack"
       ]
+    },
+    {
+      "attributes": {
+        "passing": 2,
+        "technique": 1,
+        "decisions": 1,
+        "composure": 1
+      },
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
     }
   ],
   "keyRequirements": [
@@ -337,7 +348,8 @@
     "A technically secure deep playmaker capable of receiving and progressing the ball under pressure",
     "An attacking midfielder with the first touch, decisions and passing to connect the front four",
     "Complementary wide attackers: one inside scoring threat and one genuine source of width",
-    "A pressing forward with the work rate, stamina and movement to lead the counter-press and threaten space behind"
+    "A pressing forward with the work rate, stamina and movement to lead the counter-press and threaten space behind",
+    "A ball-playing centre-back to receive the goalkeeper's short kicks and start the build-up"
   ],
   "tags": [
     "positive",
@@ -643,6 +655,26 @@
       ],
       "roles": [
         "pf_attack"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
+      ]
+    },
+    {
+      "attribute": "decisions",
+      "taperBelow": 7,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "bpd_defend"
       ]
     }
   ]

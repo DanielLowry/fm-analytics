@@ -30,7 +30,10 @@
       "key": "DCC",
       "position": "DC",
       "role": "bpd_defend",
-      "why": "Ball-playing defender in the centre starts moves with a pass out of defence."
+      "why": "Ball-playing defender in the centre starts moves with a pass out of defence. Central Defender (Defend) is the alternative: with more direct passing, the long ball does not need a specialist passer.",
+      "roles": [
+        "cd_defend"
+      ]
     },
     {
       "key": "DCR",

@@ -28,18 +28,22 @@
       "position": "DC",
       "role": "cd_defend",
       "roles": [
-        "cd_cover"
+        "cd_cover",
+        "nncb_defend",
+        "nncb_cover"
       ],
-      "why": "Central defender, with the depth to defend the box. Cover is the alternate."
+      "why": "Central defender, with the depth to defend the box. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: a very deep line is defended by clearing the box. Only one centre-back may use Cover."
     },
     {
       "key": "DCR",
       "position": "DC",
       "role": "cd_defend",
       "roles": [
-        "cd_cover"
+        "cd_cover",
+        "nncb_defend",
+        "nncb_cover"
       ],
-      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+      "why": "Central defender on the right. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: a very deep line is defended by clearing the box. Only one centre-back may use Cover."
     },
     {
       "key": "DR",
