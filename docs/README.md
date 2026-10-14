@@ -84,6 +84,10 @@
   combines the season and all Hampton experiments, ranks the hypotheses,
   closes the right-midfield duty pilot and reviews the new Control 4-3-3
   groups, their mentality/personnel differences and the next useful test.
+- [Concord pre-match decision](concord-prematch-2026-10-13.md) reviews the
+  actual Hampton/Oxford Control wins, the peer-opponent fixture and the
+  initial Balanced recommendation, then audits the 1–4 defeat, the mentality
+  change, confirmed goal routes and the targeted delivery-defence hypothesis.
 - [Tactic experiments](match-experiments.md): store the matches you choose, group
   them and compare what you tried; how many replays a comparison needs.
 - [Hampton & Richmond experiment log](hampton-experiments.md): the replay
