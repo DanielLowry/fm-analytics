@@ -79,6 +79,9 @@ class WebActionsMixin:
                 HTTPStatus.SERVICE_UNAVAILABLE,
             )
             return
+        if self.headers.get("Accept") == "application/json":
+            self._send_json(self.server.scouting_refresh_status(), HTTPStatus.ACCEPTED if started else HTTPStatus.OK)
+            return
         self.send_response(HTTPStatus.SEE_OTHER)
         refresh_kind = "started" if started else "running"
         self.send_header(

@@ -25,6 +25,7 @@ from fm_analytics.web.rendering import (
 from fm_analytics.web.set_piece_render import (
     _set_piece_assignment_cards,
     _set_piece_choice,
+    _set_piece_player_label,
     _set_piece_routine_plan,
     _set_piece_routine_switcher,
     _routine_taker,
@@ -45,6 +46,7 @@ class AuxiliaryPagesMixin:
             tactic_options: tuple[tuple[str, str], ...] = ()
             selected_ids = None
             lineup_positions = None
+            lineup_slots = None
             lineup_name = None
             selected_tactic_key = None
             if has_complete_role_attributes(squad):
@@ -57,6 +59,9 @@ class AuxiliaryPagesMixin:
                 selected_ids = tuple(item.player_id for item in evaluation.assignments)
                 lineup_positions = {
                     item.player_id: item.slot.position for item in evaluation.assignments
+                }
+                lineup_slots = {
+                    item.player_id: item.slot.key for item in evaluation.assignments
                 }
                 lineup_name = f"{evaluation.tactic.name} match XI"
                 tactic_options = tuple(
@@ -112,7 +117,7 @@ class AuxiliaryPagesMixin:
             if task.key in {"attacking_aerial_target", "defensive_aerial_target"}:
                 continue
             suggested = recommendation.suggested
-            player_name, score, evidence_label, warning = _set_piece_choice(
+            chosen_player, score, evidence_label, warning = _set_piece_choice(
                 report, recommendation
             )
             routine, routine_assignment = _routine_taker(
@@ -123,16 +128,19 @@ class AuxiliaryPagesMixin:
                 suggested.side_fit_label if suggested is not None else "—"
             )
             backup_names = [
-                html.escape(candidate.player.name)
+                html.escape(_set_piece_player_label(candidate.player, lineup_slots))
                 for candidate in recommendation.candidates
-                if candidate.player.name != player_name
+                if chosen_player is None or candidate.player.id != chosen_player.id
             ][:2]
             backups = ", ".join(backup_names) or "—"
             note = (
                 "<small class='inline-warning'>" + html.escape(warning) + "</small>"
                 if warning else ""
             )
-            displayed_name = html.escape(player_name) if player_name else "No evidence-based recommendation"
+            displayed_name = (
+                html.escape(_set_piece_player_label(chosen_player, lineup_slots))
+                if chosen_player else "No evidence-based recommendation"
+            )
             summary_rows.append(
                 "<tr>"
                 f"<th scope='row'>{html.escape(recommendation.name)}{note}</th>"
@@ -154,7 +162,7 @@ class AuxiliaryPagesMixin:
             )
             candidate_rows = "".join(
                 "<tr>"
-                f"<th scope='row'>{html.escape(candidate.player.name)}</th>"
+                f"<th scope='row'>{html.escape(_set_piece_player_label(candidate.player, lineup_slots))}</th>"
                 f"<td>{_band(candidate.score.score)}</td>"
                 f"<td>{html.escape(candidate.evidence_label)}</td>"
                 f"<td>{html.escape(candidate.side_fit_label)}</td>"
@@ -181,7 +189,7 @@ class AuxiliaryPagesMixin:
 
         unavailable = (
             "<p class='muted'><b>Not proposed for this match:</b> "
-            + ", ".join(html.escape(player.name) for player in report.unavailable_players)
+            + ", ".join(html.escape(_set_piece_player_label(player, lineup_slots)) for player in report.unavailable_players)
             + ".</p>"
             if report.unavailable_players else ""
         )
@@ -270,7 +278,7 @@ class AuxiliaryPagesMixin:
             "<div><h2 id='match-day-assignments'>Match-day assignments</h2>"
             "<p>These are the final choices to copy into FM.</p></div><span class='fm-panel-count'>"
             f"{actionable_takers} named takers</span></div>"
-            + _set_piece_assignment_cards(report)
+            + _set_piece_assignment_cards(report, lineup_slots)
             + "<details class='taker-evidence fm-set-piece-evidence'><summary>Why these takers? View specialist rankings and backups</summary>"
             "<p class='muted'>Routine takers are chosen with the whole routine in mind. The rankings below show the underlying specialists and alternatives.</p>"
             "<div class='table-scroll'><table><thead><tr><th scope='col'>Assignment</th>"
@@ -282,7 +290,7 @@ class AuxiliaryPagesMixin:
             "<div><h2 id='routines'>Routines</h2>"
             "<p>Select one situation to see the instructions to copy into FM.</p></div></div>"
             + _set_piece_routine_switcher(
-                report, selected_routine_key, routine_query, labels
+                report, selected_routine_key, routine_query, labels, lineup_slots
             )
             + "</section>"
             + "<section class='fm-workspace-panel fm-set-piece-notes'><details class='operating-notes'><summary>Evidence and operating notes</summary>"

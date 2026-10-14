@@ -515,21 +515,24 @@ class PlayerKnowledgeStore:
                 )
         added = 0
         for observed_on in sorted(groups):
-            latest = {
-                (row[0], row[1]): tuple(row)[2:] for row in connection.execute(
-                    "SELECT player_id, attribute, visibility, value, minimum, maximum FROM ("
-                    "  SELECT *, ROW_NUMBER() OVER (PARTITION BY player_id, attribute "
-                    "    ORDER BY observed_on DESC, id DESC) AS rn "
-                    "  FROM attribute_observations WHERE save_id = ? AND observed_on <= ?"
-                    ") WHERE rn = 1",
-                    (save_id, observed_on),
-                )
-            }
+            # Seek through attributes_by_player for just the requested keys.
+            # Scanning the entire save once per historical date grows with
+            # unrelated history and cost ~20 s for a 30-date capture.
+            latest = {}
             changed = []
             for player_id, source, name, observation in groups[observed_on]:
+                key = (player_id, name)
+                if key not in latest:
+                    row = connection.execute(
+                        "SELECT visibility, value, minimum, maximum FROM attribute_observations "
+                        "WHERE save_id = ? AND player_id = ? AND attribute = ? AND observed_on <= ? "
+                        "ORDER BY observed_on DESC, id DESC LIMIT 1",
+                        (save_id, player_id, name, observed_on),
+                    ).fetchone()
+                    latest[key] = tuple(row) if row is not None else None
                 state = _attribute_state(observation)
-                if latest.get((player_id, name)) != state:
-                    latest[(player_id, name)] = state
+                if latest[key] != state:
+                    latest[key] = state
                     changed.append(
                         (save_id, player_id, name, observed_on, ingest_id, source, *state)
                     )

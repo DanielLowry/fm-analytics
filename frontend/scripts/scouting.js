@@ -212,5 +212,15 @@ export function initScouting() {
     [...form.elements].forEach((control) => { if (!control.name || control.type === 'submit') return; if (control.type === 'checkbox') control.checked = params.get(control.name) === control.value; else control.value = params.get(control.name) || ''; });
     syncSortOptions(); changed(false);
   });
+  document.addEventListener('scouting:refreshed', (event) => {
+    const counts = event.detail;
+    const heading = document.querySelector('[data-scouting-pool-summary]');
+    if (heading) heading.textContent = `${counts.current_players} players in current capture${counts.history_players ? ` · ${counts.history_players} from history` : ''} · Scores retain floor / estimate / ceiling.`;
+    sequence++;
+    controller?.abort(); controller = null; requestKey = null;
+    snapshots.clear(); activeKey = null;
+    delete results.dataset.context;
+    apply();
+  });
   apply().then(() => { try { const key = 'fm-scouting-scroll:' + location.pathname + location.search; const y = sessionStorage.getItem(key); if (y !== null && !location.hash) { sessionStorage.removeItem(key); window.scrollTo(0, Number(y)); } } catch { /* Scroll restoration is optional. */ } });
 }

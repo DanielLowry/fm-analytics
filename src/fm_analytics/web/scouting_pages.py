@@ -96,14 +96,14 @@ class ScoutingPagesMixin:
         current_feed = sum(1 for candidate in candidates if candidate.in_current_feed)
         history_only = len(candidates) - current_feed
         return (
-            "<p class='fm-scouting-context'>"
+            "<p class='fm-scouting-context' data-scouting-pool-summary>"
             f"{current_feed} players in current capture" + (f" · {history_only} from history" if history_only else "")
             + " · Scores retain floor / estimate / ceiling.</p>"
             + _scouting_tab_nav(query)
             + _refresh_notice(_query_first(query, "refreshed"))
-            + _refresh_job_notice(refresh_job, self.server.scouting_capture_age)
-            + _knowledge_notice(self.server.knowledge_note)
-            + ( _pool_not_built_body() if refresh_job.needs_player_search else "")
+            + _refresh_job_notice(refresh_job, self.server.scouting_capture_age, self.server.scouting_refresh_status())
+            + "<div data-scouting-knowledge>" + _knowledge_notice(self.server.knowledge_note) + "</div>"
+            + "<div data-scouting-recovery>" + (_pool_not_built_body() if refresh_job.needs_player_search else "") + "</div>"
             + ("<details class='fm-disclosure fm-workspace-panel fm-scouting-capture-panel'>"
                "<summary>Capture and refresh</summary>" + _scouting_refresh_panel(filters.scouted_only) + "</details>"
                if not self.server.read_only else "")
@@ -376,12 +376,11 @@ class ScoutingPagesMixin:
             return notice + role_results(
                 assessments, role_name=role.name if role else "selected role", **common
             )
-        rankings = rank_for_position(
-            filter_scouting_candidates(candidates, filters), MVP_CATALOGUE, filters.position,
+        rankings = self.server.scouting_rankings(
+            filter_scouting_candidates(candidates, filters), position=filters.position,
             sort=filters.ranking_sort, descending=descending,
             include_raw_external_positions=filters.include_raw_external_positions,
             familiarity_policy=familiarity_policy,
-            cache=self.server.scouting_rank_cache,  # type: ignore[attr-defined]
         )
         return notice + ranking_results(
             filter_position_rankings(rankings, filters), position=filters.position, **common

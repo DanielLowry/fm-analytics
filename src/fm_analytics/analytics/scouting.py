@@ -10,10 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
-from typing import Mapping, MutableMapping, NamedTuple, Sequence
+from typing import Callable, Mapping, MutableMapping, NamedTuple, Sequence
 
 from fm_analytics.analytics.catalogue import FootballCatalogue
-from fm_analytics.analytics.role_scoring import RoleScore, score_role
+from fm_analytics.analytics.role_scoring import RoleScore, score_role, score_role_summary
 from fm_analytics.analytics.scouting_candidate import ScoutingCandidate, plays_in_goal
 from fm_analytics.analytics.xi_models import FamiliarityPolicy
 from fm_analytics.domain import Visibility
@@ -387,6 +387,7 @@ def rank_for_position(
     include_raw_external_positions: bool = False,
     familiarity_policy: FamiliarityPolicy | None = None,
     cache: MutableMapping[tuple[object, ...], tuple[ScoutingCandidate, PositionRanking | None]] | None = None,
+    progress: Callable[[int, int], None] | None = None,
 ) -> tuple[PositionRanking, ...]:
     """Rank candidates, each by whichever role suits him best.
 
@@ -433,7 +434,7 @@ def rank_for_position(
     # he is, and most of a Player Search pool is exactly that.
     empty_fits = _role_fits(None, cache)
     rankings: list[PositionRanking] = []
-    for candidate in candidates:
+    for processed, candidate in enumerate(candidates, 1):
         key = (candidate.id, position, include_raw_external_positions, familiarity_policy)
         cached = cache.get(key) if cache is not None else None
         if cached is not None and cached[0] is candidate:
@@ -451,6 +452,8 @@ def rank_for_position(
                 cache[key] = (candidate, ranking)
         if ranking is not None:
             rankings.append(ranking)
+        if progress is not None and (processed % 25 == 0 or processed == len(candidates)):
+            progress(processed, len(candidates))
     return sort_position_rankings(rankings, sort=sort, descending=descending)
 
 
@@ -569,7 +572,7 @@ def _rank_one(
     for role in roles:
         fit = fits.get(role.key)
         if fit is None:
-            fit = fits[role.key] = _role_fit(score_role(role, candidate.attributes))
+            fit = fits[role.key] = score_role_summary(role, candidate.attributes)
         rating = _role_rating(role, position, ratings)
         scored.append((role, fit, rating, _familiarity_multiplier(rating, familiarity_policy)))
     best_role, best, best_rating, best_multiplier = max(

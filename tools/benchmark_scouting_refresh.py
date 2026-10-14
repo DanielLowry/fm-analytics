@@ -2,10 +2,10 @@
 
     uv run python -m tools.benchmark_scouting_refresh
 
-This never reads FM or writes to the source database. The two alternative
-implementations below are experiments, not application code. Complete ranking
-equality and replayed observation-table equality are checked against the
-current implementations. Absolute timings are diagnostic, not CI thresholds.
+This never reads FM or writes to the source database. It compares compact
+ranking with detailed scoring, and indexed history recording with the former
+window queries. Complete ranking equality and replayed observation-table
+equality are checked. Absolute timings are diagnostic, not CI thresholds.
 """
 
 from __future__ import annotations
@@ -26,9 +26,8 @@ from types import SimpleNamespace
 
 from fm_analytics.analytics import MVP_CATALOGUE, ScoutingFilters, rank_for_position
 from fm_analytics.analytics import scouting
-from fm_analytics.analytics.role_scoring import ScoringPolicy, _raw_band, _score_points
+from fm_analytics.analytics.role_scoring import score_role
 from fm_analytics.candidate_pool import compose_candidate_pool
-from fm_analytics.domain import AttributeObservation, Visibility
 from fm_analytics.knowledge_ingest import capture_from_document
 from fm_analytics.persistence.player_knowledge import PlayerKnowledgeStore, _attribute_state
 from fm_analytics.web.handlers import SquadWebHandler
@@ -58,12 +57,8 @@ def _rewind_latest(connection: sqlite3.Connection, capture) -> None:
     connection.execute("DELETE FROM ingests WHERE id = ?", (row[0],))
 
 
-def _targeted_attributes(connection, save_id, ingest_id, capture) -> int:
-    """Prototype: query only the dated attribute keys the capture contains.
-
-    Preserve the current implementation's group and insertion order, including
-    seeing earlier groups' inserts when looking up a later date.
-    """
+def _legacy_attributes(connection, save_id, ingest_id, capture) -> int:
+    """Frozen pre-optimization window-query reference for history recording."""
     groups = {}
     for player in capture.players:
         if player.attributes:
@@ -78,20 +73,20 @@ def _targeted_attributes(connection, save_id, ingest_id, capture) -> int:
             )
     added = 0
     for observed_on in sorted(groups):
-        latest = {}
+        latest = {
+            (row[0], row[1]): tuple(row)[2:] for row in connection.execute(
+                "SELECT player_id, attribute, visibility, value, minimum, maximum FROM ("
+                " SELECT *, ROW_NUMBER() OVER (PARTITION BY player_id, attribute "
+                " ORDER BY observed_on DESC, id DESC) AS rn "
+                " FROM attribute_observations WHERE save_id = ? AND observed_on <= ?"
+                ") WHERE rn = 1", (save_id, observed_on),
+            )
+        }
         changed = []
         for player_id, source, name, observation in groups[observed_on]:
             key = (player_id, name)
-            if key not in latest:
-                row = connection.execute(
-                    "SELECT visibility, value, minimum, maximum FROM attribute_observations "
-                    "WHERE save_id = ? AND player_id = ? AND attribute = ? AND observed_on <= ? "
-                    "ORDER BY observed_on DESC, id DESC LIMIT 1",
-                    (save_id, player_id, name, observed_on),
-                ).fetchone()
-                latest[key] = tuple(row) if row is not None else None
             state = _attribute_state(observation)
-            if latest[key] != state:
+            if latest.get(key) != state:
                 latest[key] = state
                 changed.append((save_id, player_id, name, observed_on, ingest_id, source, *state))
         connection.executemany(
@@ -102,54 +97,6 @@ def _targeted_attributes(connection, save_id, ingest_id, capture) -> int:
         )
         added += len(changed)
     return added
-
-
-def _numeric_scorer():
-    """Prototype compact fits from the existing band and normalization helpers.
-
-    An application implementation should share its numeric kernel with
-    score_role rather than adopting this benchmark's independent loop.
-    """
-    policy = ScoringPolicy()
-    unknown = AttributeObservation(Visibility.UNKNOWN)
-    plans = {}
-    for role in MVP_CATALOGUE.roles.values():
-        total = sum(attribute.weight for attribute in role.attributes)
-        plans[role.key] = [(attribute.name, attribute.weight / total) for attribute in role.attributes]
-    raw_cache = {}
-    point_cache = {}
-
-    def numeric_fit(role, observations):
-        lows, highs = [], []
-        median = 0.0
-        known = ranged = 0
-        for name, share in plans[role.key]:
-            observation = observations.get(name, unknown)
-            raw = raw_cache.get(observation)
-            if raw is None:
-                band = _raw_band(observation, policy)
-                middle = (
-                    (policy.scale_minimum + policy.scale_maximum) / 2
-                    if observation.visibility is Visibility.UNKNOWN else band.central
-                )
-                raw = (band.lower, band.upper, middle)
-                raw_cache[observation] = raw
-            key = (share, raw)
-            points = point_cache.get(key)
-            if points is None:
-                points = tuple(_score_points(value, share, policy) for value in raw)
-                point_cache[key] = points
-            lows.append(points[0])
-            highs.append(points[1])
-            median += points[2]
-            known += observation.visibility is Visibility.KNOWN
-            ranged += observation.visibility is Visibility.RANGE
-        return scouting._RoleFit(
-            round(sum(lows), 6), round(median, 6), round(sum(highs), 6),
-            known, ranged, len(plans[role.key]) - known - ranged,
-        )
-
-    return numeric_fit
 
 
 def _table_equal(left: Path, right: Path, table: str) -> bool:
@@ -199,22 +146,20 @@ def main(argv: list[str] | None = None) -> int:
         ))
         print(f"Feed: {len(feed)} players; merged pool: {len(pool)}; game date: {capture.game_date}", flush=True)
         cache = {}
-        baseline = timed("rank_cold", lambda: rank_for_position(pool, MVP_CATALOGUE, cache=cache))
-        timed("rank_warm", lambda: rank_for_position(pool, MVP_CATALOGUE, cache=cache))
-        print(f"Role fits: {sum(len(value[1]) for key, value in cache.items() if len(key) == 1)}", flush=True)
+        original_summary = scouting.score_role_summary
+        scouting.score_role_summary = lambda role, observations: scouting._role_fit(score_role(role, observations))
+        try:
+            baseline = timed("rank_detailed_reference", lambda: rank_for_position(pool, MVP_CATALOGUE, cache=cache))
+            timed("rank_warm", lambda: rank_for_position(pool, MVP_CATALOGUE, cache=cache))
+        finally:
+            scouting.score_role_summary = original_summary
         if args.profile:
             profile = cProfile.Profile()
             profile.runcall(rank_for_position, pool[:500], MVP_CATALOGUE, cache={})
             pstats.Stats(profile).strip_dirs().sort_stats("cumtime").print_stats(20)
-
-        original_score, original_fit = scouting.score_role, scouting._role_fit
-        scouting.score_role, scouting._role_fit = _numeric_scorer(), lambda score: score
-        try:
-            numeric_cache = {}
-            numeric = timed("rank_numeric_prototype", lambda: rank_for_position(pool, MVP_CATALOGUE, cache=numeric_cache))
-        finally:
-            scouting.score_role, scouting._role_fit = original_score, original_fit
-        assert numeric == baseline, "Numeric prototype changed a complete ranking."
+        numeric_cache = {}
+        numeric = timed("rank_compact", lambda: rank_for_position(pool, MVP_CATALOGUE, cache=numeric_cache))
+        assert numeric == baseline, "Compact scoring changed a complete ranking."
         print("All complete rankings identical.", flush=True)
 
         for path in paths:
@@ -227,16 +172,16 @@ def main(argv: list[str] | None = None) -> int:
             if player.last_known_attributes:
                 dates[player.last_known_observed_on] += len(player.last_known_attributes)
         print(f"Attribute groups: {len(dates)} dates, {sum(dates.values())} readings", flush=True)
+        stores[0]._record_attributes = _legacy_attributes
         reference = timed("record_reference_replay", lambda: stores[0].record(capture))
-        stores[1]._record_attributes = _targeted_attributes
-        optimized = timed("record_targeted_prototype", lambda: stores[1].record(capture))
+        optimized = timed("record_indexed", lambda: stores[1].record(capture))
         assert reference == optimized, "Targeted lookups changed the record result."
         for table in ("profile_observations", "attribute_observations", "sightings"):
             assert _table_equal(paths[0], paths[1], table), f"Targeted lookups changed {table}."
         print(f"Replayed tables identical: {asdict(reference)}", flush=True)
 
         handler = object.__new__(SquadWebHandler)
-        handler.server = SimpleNamespace(scouting_rank_cache=numeric_cache)
+        handler.server = SimpleNamespace(scouting_rankings=lambda candidates, **options: rank_for_position(candidates, MVP_CATALOGUE, cache=numeric_cache, **options))
         token = SNAPSHOT.set({"mode": "ranking", "rejected": set(), "raw_positions": False})
         try:
             body = timed("render_warm_snapshot", lambda: handler._scouting_results_block(

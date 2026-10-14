@@ -219,6 +219,12 @@ tactic. It re-optimises that tactic's XI and role combination for each target,
 then shows the projected tactic score, score gain, best job, and likely
 replacement while preserving scouting floor/estimate/ceiling uncertainty.
 
+Scouting refreshes show a progress bar with the current stage, players read,
+elapsed time and estimated time remaining. The previous results stay available
+until the refreshed data and generic rankings are ready, then update
+automatically with your filters preserved. See the
+[refresh measurements](docs/scouting-workspace.md#implementation-14-october-2026).
+
 These sources are composable functions in `fm_analytics.web.providers`
 (`fixture_provider`, `snapshot_provider`, `live_provider`,
 `html_overlay_provider`), not special cases baked into the server, so a manual

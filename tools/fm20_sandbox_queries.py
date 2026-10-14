@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import os
 import struct
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Mapping, Sequence
@@ -448,6 +449,7 @@ def _capture_pass(
     *,
     margin: float,
     workers: int,
+    progress=None,
 ) -> dict[int, PlayerCapture]:
     """One sharded pass over ``player_ids``, each shard its own fresh sandbox.
 
@@ -458,6 +460,17 @@ def _capture_pass(
     shard_size = -(-len(player_ids) // worker_count)  # ceiling division
     shards = [player_ids[start:start + shard_size] for start in range(0, len(player_ids), shard_size)]
     snapshot = MemorySnapshot(pid)
+    progress_lock = threading.Lock()
+    processed = 0
+
+    def completed():
+        nonlocal processed
+        if progress is None:
+            return
+        with progress_lock:
+            processed += 1
+            if processed % 25 == 0 or processed == len(player_ids):
+                progress(processed, len(player_ids))
 
     def run_shard(shard: list[int]) -> dict[int, PlayerCapture]:
         results: dict[int, PlayerCapture] = {}
@@ -472,6 +485,8 @@ def _capture_pass(
                     interest = read_interest(box, filter_context, rules, persons[player_id], margin=margin)
                 except SandboxError:
                     continue
+                finally:
+                    completed()
                 results[player_id] = PlayerCapture(attributes=attributes, interest=interest)
         return results
 
@@ -491,6 +506,7 @@ def capture_players(
     *,
     margin: float = DEFAULT_INTEREST_MARGIN,
     workers: int = DEFAULT_SANDBOX_WORKERS,
+    progress=None,
 ) -> dict[int, PlayerCapture]:
     """FM's visible attributes and interest for many players, sharded in parallel.
 
@@ -520,9 +536,12 @@ def capture_players(
     for pass_number in range(1, MAX_CAPTURE_PASSES + 1):
         if not remaining:
             break
+        if progress:
+            progress(0, len(remaining), pass_number)
         captured = _capture_pass(
             pid, context, remaining, interfaces, persons, scout_by_id, margin=margin,
             workers=workers if pass_number == 1 else min(workers, 4),
+            **({"progress": lambda done, total: progress(done, total, pass_number)} if progress else {}),
         )
         combined.update(captured)
         remaining = [player_id for player_id in remaining if player_id not in captured]

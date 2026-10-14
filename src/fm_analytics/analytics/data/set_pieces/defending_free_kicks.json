@@ -246,6 +246,18 @@
           "edge": 1,
           "forward": 2
         }
+      },
+      {
+        "key": "two_player_wall_marking",
+        "name": "Two-player wall with runner marking",
+        "description": "Three covering defenders and three markers protect the box, with two wall players, one clearance guard and one outlet.",
+        "jobs": {
+          "wall": 2,
+          "mark": 3,
+          "back": 3,
+          "edge": 1,
+          "forward": 1
+        }
       }
     ],
     "indirect_deep": [
@@ -306,6 +318,18 @@
           "mark": 2,
           "back": 4,
           "edge": 2,
+          "forward": 2
+        }
+      },
+      {
+        "key": "two_outlets_marking",
+        "name": "Two outlets with runner marking",
+        "description": "Four covering defenders and three markers protect the box, with one clearance guard and two outlets.",
+        "jobs": {
+          "wall": 0,
+          "mark": 3,
+          "back": 4,
+          "edge": 1,
           "forward": 2
         }
       }

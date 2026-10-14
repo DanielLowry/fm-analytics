@@ -83,8 +83,8 @@ before equivalent controller recipes exist would break working evidence paths.
   blocks. The blocks are hand-owned now, so it refuses to overwrite tuning
   without `--force` — it is kept for reference, not part of any normal workflow.
 - `benchmark_scouting_refresh.py` profiles stored scouting data using disposable
-  database copies, compares history and numeric-ranking prototypes with the
-  current code, and measures the browser snapshot. Run
+  database copies, checks indexed history recording against the former queries
+  and compact ranking against detailed scores, and measures the browser snapshot. Run
   `uv run python -m tools.benchmark_scouting_refresh [--profile]`; it needs a
   capture matching the knowledge database's latest ingest and never reads FM.
 

@@ -1,4 +1,5 @@
 import { initScouting } from "./scouting.js";
+import { initScoutingRefresh } from "./scouting-refresh.js";
 import { initTables } from "./tables.js";
 import { initSquadFilters } from "./position-roles.js";
 import { initPlayerAttributeExports, initPlayerCopies } from "./attribute-export.js";
@@ -9,6 +10,7 @@ import { initTrendCharts } from "./trend-chart.js";
   initTables();
   initSquadFilters();
   initScouting();
+  initScoutingRefresh();
   initPlayerAttributeExports();
   initPlayerCopies();
   initFetchCopies();

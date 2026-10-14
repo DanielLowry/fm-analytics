@@ -54,6 +54,17 @@ class StoreCase(unittest.TestCase):
 
 
 class RecordingTests(StoreCase):
+    def test_dated_lookups_see_earlier_groups_and_same_date_changes(self):
+        # The old sheet is inserted first, then today's state. A later
+        # same-date replacement must compare with the newest inserted row.
+        self.store.record(capture("2019-10-01", player(
+            attributes={"pace": known(14)}, attributes_observed_on="2019-10-01",
+            last_known_attributes={"pace": known(12)}, last_known_observed_on="2019-09-01")))
+        self.store.record(capture("2019-10-01", player(attributes={"pace": UNKNOWN})))
+        history = self.store.attribute_history("club:1", "1", "pace")
+        self.assertEqual([(row.observed_on, row.observation) for row in history],
+                         [("2019-09-01", known(12)), ("2019-10-01", known(14)), ("2019-10-01", UNKNOWN)])
+
     def test_first_recording_reports_what_it_added(self) -> None:
         result = self.store.record(
             capture("2019-09-08", player(attributes={"pace": known(14), "passing": spread(9, 13)}))

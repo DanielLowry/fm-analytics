@@ -631,7 +631,7 @@ class RankingCacheTests(unittest.TestCase):
         ]
 
     def calls_for(self, position: str | None = "DC", **kwargs) -> int:
-        with patch.object(scouting_module, "score_role", wraps=scouting_module.score_role) as spy:
+        with patch.object(scouting_module, "score_role_summary", wraps=scouting_module.score_role_summary) as spy:
             rank_for_position(self.pool, MVP_CATALOGUE, position, **kwargs)
             return spy.call_count
 
@@ -695,7 +695,7 @@ class RankingCacheTests(unittest.TestCase):
     def test_players_with_nothing_visible_share_one_set_of_role_scores(self) -> None:
         blanks = [candidate(name, {}) for name in ("x", "y", "z")]
 
-        with patch.object(scouting_module, "score_role", wraps=scouting_module.score_role) as spy:
+        with patch.object(scouting_module, "score_role_summary", wraps=scouting_module.score_role_summary) as spy:
             rank_for_position(blanks, MVP_CATALOGUE, "DC", cache={})
 
         self.assertEqual(spy.call_count, sum("DC" in role.eligible_positions for role in MVP_CATALOGUE.roles.values()))

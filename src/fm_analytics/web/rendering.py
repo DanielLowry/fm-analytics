@@ -14,6 +14,7 @@ from urllib.parse import urlencode
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup
+from fm_analytics.web.capture_progress import monitor_progress
 
 from fm_analytics.analytics import (
     MVP_CATALOGUE,
@@ -432,10 +433,11 @@ def _scouting_refresh_command(path: Path) -> Callable[..., str]:
     capture_tool = project_root / "tools" / "fm20_scouting_feed.py"
     target = path.resolve()
 
-    def refresh(*, allow_rebuild: bool = False) -> str:
+    def refresh(*, allow_rebuild: bool = False, progress=None) -> str:
         from fm_analytics.web.providers import scouting_json_provider
 
         temporary = target.with_suffix(target.suffix + ".tmp")
+        progress_path = temporary.with_suffix(temporary.suffix + ".progress")
         command = [
             "uv",
             "run",
@@ -450,17 +452,17 @@ def _scouting_refresh_command(path: Path) -> Callable[..., str]:
             command.append("--allow-rebuild")
         if target.exists():
             command.extend(("--base-feed", str(target)))
+        if progress is not None:
+            command.extend(("--progress-file", str(progress_path)))
         try:
             temporary.unlink(missing_ok=True)
+            progress_path.unlink(missing_ok=True)
             try:
-                result = subprocess.run(
-                    command,
-                    cwd=project_root,
-                    capture_output=True,
-                    text=True,
-                    timeout=240,
-                    check=False,
-                )
+                with monitor_progress(progress_path, progress):
+                    result = subprocess.run(
+                        command, cwd=project_root, capture_output=True,
+                        text=True, timeout=240, check=False,
+                    )
             except subprocess.TimeoutExpired as exc:
                 raise RuntimeError("Scouting refresh timed out after four minutes.") from exc
             if result.returncode == POOL_NOT_BUILT_EXIT_CODE:
@@ -471,10 +473,14 @@ def _scouting_refresh_command(path: Path) -> Callable[..., str]:
                 detail = (result.stderr or result.stdout or "unknown capture failure").strip()
                 raise RuntimeError(f"Scouting refresh failed: {detail[-2_000:]}")
             # Validate the complete feed before promoting it to last-good data.
+            if progress:
+                progress("validating")
             scouting_json_provider(temporary)()
             os.replace(temporary, target)
             return (result.stdout or "Scouting data refreshed.").strip()
         finally:
             temporary.unlink(missing_ok=True)
+            progress_path.unlink(missing_ok=True)
+            progress_path.with_name(progress_path.name + ".writing").unlink(missing_ok=True)
 
     return refresh

@@ -75,6 +75,7 @@ class SquadWebHandler(
             "/contracts": self._contracts_page,
             "/scouting": self._scouting_page,
             "/scouting/results": self._scouting_results_fragment,
+            "/scouting/refresh/status": lambda _path, _query: self._send_json(self.server.scouting_refresh_status()),
             "/matches": self._matches_page,
             "/opponent": self._opponent_page,
             "/conceded": self._conceded_page,

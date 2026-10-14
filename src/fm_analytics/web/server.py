@@ -20,7 +20,6 @@ import sys
 import threading
 import time
 from collections import OrderedDict
-from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -85,19 +84,10 @@ from fm_analytics.web.server_args import build_parser
 from fm_analytics.persistence.league_history import LeagueHistoryStore
 
 
-@dataclass(frozen=True)
-class ScoutingRefreshJob:
-    status: str = "idle"
-    started_at: datetime | None = None
-    ended_at: datetime | None = None
-    message: str = ""
-    error: str = ""
-    allow_rebuild: bool = False
-    needs_player_search: bool = False
+from fm_analytics.web.scouting_jobs import ScoutingJobs, ScoutingRefreshJob
 
 
-
-class SquadWebServer(LeagueState, HiddenState, MatchHistoryState, ExperimentState, ThreadingHTTPServer):
+class SquadWebServer(ScoutingJobs, LeagueState, HiddenState, MatchHistoryState, ExperimentState, ThreadingHTTPServer):
     """Serves `SquadWebHandler`, with a short-TTL cache in front of the source.
 
     Both the provider call and the full recommendation computation can cost
@@ -183,9 +173,7 @@ class SquadWebServer(LeagueState, HiddenState, MatchHistoryState, ExperimentStat
         self.scouting_provider = scouting_provider or empty_scouting_provider()
         self.scouting_refresh = scouting_refresh
         self.scouting_capture_path = scouting_capture_path
-        self._scouting_refresh_lock = threading.Lock()
-        self._scouting_refresh_job = ScoutingRefreshJob()
-        self._scouting_refresh_thread: threading.Thread | None = None
+        self.setup_scouting_jobs()
         # Scores of scouting candidates per (player, position, options), and
         # each player's score per role beneath them; see ``rank_for_position``.
         # Lets sorting, filtering and a new position or raw-positions choice
@@ -226,17 +214,23 @@ class SquadWebServer(LeagueState, HiddenState, MatchHistoryState, ExperimentStat
         """
         # Completed captures are swapped atomically, so readers never need to
         # wait for the slow capture subprocess.
-        current = self.scouting_provider()
-        generation = self._knowledge_generation
-        return self._with_knowledge(current, generation)
+        if self._scouting_refresh_job.status in {"running", "failed"} and self._scouting_visible_pool is not None:
+            return self._scouting_visible_pool
+        with self._scouting_preparation_lock:
+            current = self.scouting_provider()
+            generation = self._knowledge_generation
+            pool = self._with_knowledge(current, generation)
+            self._scouting_visible_pool = pool
+            return pool
 
-    def _with_knowledge(self, current, generation: int):
+    def _with_knowledge(self, current, generation: int, *, save_key=...):
         """Merge the save's best-known profiles into ``current``, once per change.
 
         Never raises: a history that cannot be read leaves the page on the
         current feed alone, which is what it showed before the history existed.
         """
-        store, key = self.knowledge_store, self.knowledge_save_key
+        store = self.knowledge_store
+        key = self.knowledge_save_key if save_key is Ellipsis else save_key
         as_of = next((item.captured_game_date for item in current if item.captured_game_date), None)
         if store is None or key is None or as_of is None:
             return current
@@ -253,80 +247,6 @@ class SquadWebServer(LeagueState, HiddenState, MatchHistoryState, ExperimentStat
                 return current
             self._pool = (current, generation, pool)
             return pool
-
-    def warm_scouting_rankings(self) -> None:
-        """Score the whole pool once, off the request path.
-
-        Scoring every player against every role is the slow part of the default
-        Scouting view (seconds for a full Player Search pool); ``scouting_rank_cache``
-        makes every later sort and filter of it instant, so pay for it before
-        the manager asks. Best effort: a missing or unreadable capture just
-        means the first page load pays instead.
-        """
-        try:
-            rank_for_position(self.scouting(), MVP_CATALOGUE, cache=self.scouting_rank_cache)
-        except (OSError, ValueError, KeyError):
-            pass
-
-    def refresh_scouting(self, *, allow_rebuild: bool = False) -> str:
-        """Run a refresh synchronously (kept for startup and direct callers)."""
-        if self.scouting_refresh is None:
-            raise ValueError("Scouting refresh is not configured for this server.")
-        result = self.scouting_refresh(allow_rebuild=allow_rebuild)
-        if self.scouting_capture_path is not None:
-            # A refresh can be the first capture, or belong to a different
-            # playthrough. Never merge one save's notebook into another's feed.
-            self.knowledge_save_key = _capture_save_key(self.scouting_capture_path)
-        self.record_knowledge()
-        threading.Thread(target=self.warm_scouting_rankings, daemon=True, name="scouting-warm").start()
-        return result
-
-    def request_scouting_refresh(self, *, allow_rebuild: bool = False) -> bool:
-        """Start one background refresh, returning immediately."""
-        if self.scouting_refresh is None:
-            raise ValueError("Scouting refresh is not configured for this server.")
-        with self._scouting_refresh_lock:
-            if self._scouting_refresh_job.status == "running":
-                return False
-            self._scouting_refresh_job = ScoutingRefreshJob(
-                status="running", started_at=datetime.now(timezone.utc),
-                allow_rebuild=allow_rebuild,
-            )
-            worker = threading.Thread(
-                target=self._background_scouting_refresh,
-                kwargs={"allow_rebuild": allow_rebuild},
-                daemon=True,
-                name="scouting-refresh",
-            )
-            self._scouting_refresh_thread = worker
-            worker.start()
-        return True
-
-    def _background_scouting_refresh(self, *, allow_rebuild: bool) -> None:
-        try:
-            message = self.refresh_scouting(allow_rebuild=allow_rebuild)
-        except Exception as exc:  # noqa: BLE001 - failure is retained as job state
-            with self._scouting_refresh_lock:
-                started = self._scouting_refresh_job.started_at
-                self._scouting_refresh_job = ScoutingRefreshJob(
-                    status="failed", started_at=started,
-                    ended_at=datetime.now(timezone.utc), error=str(exc),
-                    allow_rebuild=allow_rebuild,
-                    needs_player_search=isinstance(exc, ScoutingPoolNotBuilt),
-                )
-            return
-        with self._scouting_refresh_lock:
-            started = self._scouting_refresh_job.started_at
-            self._scouting_refresh_job = ScoutingRefreshJob(
-                status="succeeded", started_at=started,
-                ended_at=datetime.now(timezone.utc), message=message,
-                allow_rebuild=allow_rebuild,
-            )
-
-    @property
-    def scouting_refresh_job(self) -> ScoutingRefreshJob:
-        with self._scouting_refresh_lock:
-            return self._scouting_refresh_job
 
     @property
     def scouting_capture_age(self) -> str | None:

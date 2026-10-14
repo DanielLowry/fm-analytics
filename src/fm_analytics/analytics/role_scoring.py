@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import lru_cache
 from math import isfinite
-from typing import Mapping
+from typing import Mapping, NamedTuple
 
 from fm_analytics.domain import AttributeObservation
 from fm_analytics.domain.models import Visibility
@@ -181,6 +182,92 @@ def is_position_eligible(
     return bool(set(role.eligible_positions).intersection(player_positions))
 
 
+class RoleScoreSummary(NamedTuple):
+    """The same scores as RoleScore, without per-attribute display evidence."""
+
+    lower: float
+    central: float
+    upper: float
+    median: float
+    known: int
+    ranged: int
+    unknown: int
+
+
+_UNKNOWN = AttributeObservation(Visibility.UNKNOWN)
+
+
+@lru_cache(maxsize=32)
+def _numeric_caches(policy: ScoringPolicy):
+    # Scope transforms to the entire policy, hashing it once per role rather
+    # than per attribute. Plans retain their immutable input tuple and verify
+    # its identity; no unverified id-only cache can survive object reuse.
+    return {}, {}, {}
+
+
+def _role_numbers(role, observations, policy, *, evidence=False):
+    """One numeric kernel for compact rankings and fully explained scores.
+
+    Sum unrounded bounds once. The median retains its original sequential
+    addition order; Python's sum and repeated addition can round differently.
+    """
+    lower, central, upper = [], [], []
+    median = 0.0
+    known = ranged = 0
+    contributions = []
+    plans, raw_cache, point_cache = _numeric_caches(policy)
+    entry = plans.get(id(role.attributes))
+    if entry is None or entry[0] is not role.attributes:
+        total = sum(attribute.weight for attribute in role.attributes)
+        plan = tuple((attribute.name, attribute.weight, attribute.weight / total) for attribute in role.attributes)
+        if len(plans) >= 2048:
+            plans.clear()
+        plans[id(role.attributes)] = (role.attributes, plan)
+    else:
+        plan = entry[1]
+    for name, weight, share in plan:
+        observation = observations.get(name, _UNKNOWN)
+        values = raw_cache.get(observation)
+        if values is None:
+            raw = _raw_band(observation, policy)
+            middle = (policy.scale_minimum + policy.scale_maximum) / 2 if observation.visibility is Visibility.UNKNOWN else raw.central
+            values = raw, (raw.lower, raw.central, raw.upper, middle)
+            if len(raw_cache) >= 8192:
+                raw_cache.clear()
+            raw_cache[observation] = values
+        raw, bounds = values
+        point_key = (share, bounds)
+        points = point_cache.get(point_key)
+        if points is None:
+            points = tuple(_score_points(value, share, policy) for value in bounds)
+            if len(point_cache) >= 65536:
+                point_cache.clear()
+            point_cache[point_key] = points
+        lower.append(points[0])
+        central.append(points[1])
+        upper.append(points[2])
+        median += points[3]
+        known += observation.visibility is Visibility.KNOWN
+        ranged += observation.visibility is Visibility.RANGE
+        if evidence:
+            contributions.append(AttributeContribution(
+                attribute=name, weight=weight, supplied=name in observations,
+                observation=observation, raw=raw,
+                points=ScoreBand(*(round(value, 6) for value in points[:3])),
+            ))
+    return RoleScoreSummary(
+        round(sum(lower), 6), round(sum(central), 6), round(sum(upper), 6),
+        round(median, 6), known, ranged, len(plan) - known - ranged,
+    ), tuple(contributions)
+
+
+def score_role_summary(
+    role: RoleDefinition, observations: Mapping[str, AttributeObservation], *,
+    policy: ScoringPolicy = ScoringPolicy(),
+) -> RoleScoreSummary:
+    return _role_numbers(role, observations, policy)[0]
+
+
 def score_role(
     role: RoleDefinition,
     observations: Mapping[str, AttributeObservation],
@@ -202,87 +289,17 @@ def score_role(
         if cached is not None:
             return cached
 
-    total_weight = sum(attribute.weight for attribute in role.attributes)
-    contributions: list[AttributeContribution] = []
-    # Each contribution is rounded for display, but the totals below are summed
-    # from these unrounded values and rounded once -- the same way `_median_score`
-    # does it. Summing pre-rounded terms let the error accumulate, so a fully
-    # known player's `lower` drifted off his `median`, and an all-unknown
-    # player's `upper` came to 99.999999 instead of 100.
-    exact_points: list[ScoreBand] = []
-
-    for weighted_attribute in role.attributes:
-        supplied = weighted_attribute.name in observations
-        observation = observations.get(
-            weighted_attribute.name,
-            AttributeObservation(visibility=Visibility.UNKNOWN),
-        )
-        raw = _raw_band(observation, policy)
-        weight_share = weighted_attribute.weight / total_weight
-        exact = ScoreBand(
-            lower=_score_points(raw.lower, weight_share, policy),
-            central=_score_points(raw.central, weight_share, policy),
-            upper=_score_points(raw.upper, weight_share, policy),
-        )
-        exact_points.append(exact)
-        points = ScoreBand(
-            lower=round(exact.lower, 6),
-            central=round(exact.central, 6),
-            upper=round(exact.upper, 6),
-        )
-        contributions.append(
-            AttributeContribution(
-                attribute=weighted_attribute.name,
-                weight=weighted_attribute.weight,
-                supplied=supplied,
-                observation=observation,
-                raw=raw,
-                points=points,
-            )
-        )
-
+    numbers, contributions = _role_numbers(role, observations, policy, evidence=True)
     result = RoleScore(
         role_key=role.key,
         role_name=role.name,
         catalogue_version=role.catalogue_version,
         scoring_version=policy.version,
-        score=ScoreBand(
-            lower=round(sum(band.lower for band in exact_points), 6),
-            central=round(sum(band.central for band in exact_points), 6),
-            upper=round(sum(band.upper for band in exact_points), 6),
-        ),
-        contributions=tuple(contributions),
-        median=_median_score(role, observations, total_weight, policy),
+        score=ScoreBand(numbers.lower, numbers.central, numbers.upper),
+        contributions=contributions,
+        median=numbers.median,
     )
     return cache.put(role, observations, policy, result) if cache is not None else result
-
-
-def _median_score(
-    role: RoleDefinition,
-    observations: Mapping[str, AttributeObservation],
-    total_weight: float,
-    policy: ScoringPolicy,
-) -> float:
-    midpoint = (policy.scale_minimum + policy.scale_maximum) / 2
-    total = 0.0
-    for weighted_attribute in role.attributes:
-        observation = observations.get(
-            weighted_attribute.name, AttributeObservation(visibility=Visibility.UNKNOWN)
-        )
-        if observation.visibility is Visibility.KNOWN:
-            assert observation.value is not None
-            raw = float(observation.value)
-        elif observation.visibility is Visibility.RANGE:
-            assert observation.minimum is not None and observation.maximum is not None
-            raw = (observation.minimum + observation.maximum) / 2
-        else:
-            raw = midpoint
-        scale_span = policy.scale_maximum - policy.scale_minimum
-        normalized = (raw - policy.scale_minimum) / scale_span
-        total += normalized * (weighted_attribute.weight / total_weight) * 100
-    # Rounded once, at the end: rounding each term first (as the banded scores
-    # do) lets the error accumulate, giving 50.000001 for an all-unknown player.
-    return round(total, 6)
 
 
 def observation_band(

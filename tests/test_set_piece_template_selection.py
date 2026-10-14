@@ -18,6 +18,7 @@ from fm_analytics.domain import AttributeObservation, Visibility
 
 
 CAPTURE = Path(__file__).parent / "fixtures/hungerford-control-433dm-2020-10-20.json"
+CURRENT_CAPTURE = Path(__file__).parent / "fixtures/hungerford-control-433dm-2020-11-01.json"
 KINDS = ("indirect_wide", "indirect_deep")
 GROUP_INSTRUCTIONS = {"wall": "Wall", "back": "Go back", "mark": "Man mark", "edge": "Edge of area", "forward": "Stay forward"}
 
@@ -26,11 +27,13 @@ def known(value):
     return AttributeObservation(Visibility.KNOWN, value=value)
 
 
-class TemplateSelectionTests(unittest.TestCase):
+class CapturedXITests(unittest.TestCase):
+    capture = CAPTURE
+
     @classmethod
     def setUpClass(cls):
-        _, cls.squad = load_fixture(CAPTURE)
-        cls.positions = json.loads(CAPTURE.read_text())["lineupPositions"]
+        _, cls.squad = load_fixture(cls.capture)
+        cls.positions = json.loads(cls.capture.read_text())["lineupPositions"]
 
     def routines(self, squad=None, approach="balanced"):
         return tuple(r for r in recommend_set_pieces(
@@ -46,9 +49,11 @@ class TemplateSelectionTests(unittest.TestCase):
             lineup_positions=self.positions, notes=(),
         )
 
-    def test_captured_control_xi_selects_two_outlets_and_distinct_wide_deep_shapes(self):
+
+class TemplateSelectionTests(CapturedXITests):
+    def test_earlier_control_xi_uses_one_wide_outlet_and_two_deep_outlets(self):
         wide, deep = self.routines()
-        self.assertEqual(wide.selection.template_key, "two_outlets_marking")
+        self.assertEqual(wide.selection.template_key, "two_player_wall_marking")
         self.assertEqual(deep.selection.template_key, "two_outlets_second_balls")
         expected_deep = {
             "Jonathan De Bie": "Defend area", "Ejiro Okosieme": "Go back",
@@ -58,14 +63,15 @@ class TemplateSelectionTests(unittest.TestCase):
             "Ross Holden": "Stay forward", "Abdul Sankoh": "Stay forward",
         }
         self.assertEqual({a.player.name: a.role.instruction for a in deep.assignments}, expected_deep)
-        self.assertEqual(sum(a.role.instruction == "Wall" for a in wide.assignments), 1)
+        self.assertEqual(sum(a.role.instruction == "Wall" for a in wide.assignments), 2)
         self.assertEqual(sum(a.role.instruction == "Wall" for a in deep.assignments), 0)
+        self.assertEqual(wide.players_held_back, 1)
+        self.assertEqual(deep.players_held_back, 2)
         for routine in (wide, deep):
             self.assertFalse(routine.unfilled_roles)
             self.assertEqual(len(routine.assignments), 11)
             self.assertEqual(len({a.player.id for a in routine.assignments}), 11)
             self.assertGreaterEqual(routine.players_in_box, 6)
-            self.assertEqual(routine.players_held_back, 2)
             self.assertEqual(next(a.player.name for a in routine.assignments if a.role.goalkeeper), "Jonathan De Bie")
             self.assertEqual(next(a.role.instruction for a in routine.assignments if a.player.name == "Ejiro Okosieme"), "Go back")
 
@@ -185,6 +191,69 @@ class TemplateSelectionTests(unittest.TestCase):
             self.assertTrue(all(candidate.box_defenders >= 7 for candidate in plan.selection.comparisons))
             with self.assertRaisesRegex(ValueError, "No defensive free-kick template"):
                 select_defensive_plan(SET_PIECE_WEIGHTS.defensive_templates[kind], DefensiveApproach(10, 1, 2), "balanced", lambda t: self.solve(kind, t))
+
+
+class UpdatedControlXITests(CapturedXITests):
+    capture = CURRENT_CAPTURE
+
+    def test_current_xi_selects_reviewed_wide_and_deep_assignments(self):
+        common = {
+            "Jonathan De Bie": "Defend area", "Ejiro Okosieme": "Go back",
+            "Harrison Ashby": "Go back", "Jamie Bradley-Green": "Go back",
+            "David Lynch": "Man mark", "Ben Jefford": "Man mark", "Tom Sharpe": "Edge of area",
+        }
+        expected = (
+            ("two_player_wall_marking", {
+                **common, "Nathan Collier": "Man mark", "Ross Holden": "Wall",
+                "Abdul Sankoh": "Wall", "Victor Fundi": "Stay forward",
+            }),
+            ("two_outlets_marking", {
+                **common, "Nathan Collier": "Go back", "Victor Fundi": "Man mark",
+                "Ross Holden": "Stay forward", "Abdul Sankoh": "Stay forward",
+            }),
+        )
+        for routine, (key, assignments) in zip(self.routines(), expected):
+            with self.subTest(routine=routine.key):
+                self.assertEqual(routine.selection.template_key, key)
+                self.assertEqual({a.player.name: a.role.instruction for a in routine.assignments}, assignments)
+                self.assertEqual(len({a.player.id for a in routine.assignments}), 11)
+                self.assertFalse(routine.unfilled_roles)
+
+    def test_new_structures_beat_the_previous_catalogue_for_current_xi(self):
+        expected = (
+            ("two_player_wall_marking", "two_outlets_marking", 49.268941, 49.589936),
+            ("two_outlets_marking", "two_outlets_second_balls", 48.588466, 48.810750),
+        )
+        policy = SET_PIECE_WEIGHTS.defensive_approaches["balanced"]
+        for kind, routine, (added, old_key, old_score, new_score) in zip(KINDS, self.routines(), expected):
+            with self.subTest(kind=kind):
+                previous = select_defensive_plan(
+                    tuple(t for t in SET_PIECE_WEIGHTS.defensive_templates[kind] if t.key != added),
+                    policy, "balanced", lambda t: self.solve(kind, t),
+                )
+                self.assertEqual(previous.selection.template_key, old_key)
+                self.assertAlmostEqual(previous.score.central, old_score, places=5)
+                self.assertAlmostEqual(routine.score.central, new_score, places=5)
+                self.assertGreater(routine.score.central, previous.score.central)
+                self.assertTrue(all(routine.score.central >= candidate.score.central for candidate in routine.selection.comparisons))
+
+    def test_approach_filters_preserve_defensive_balance_with_new_choices(self):
+        expected = {
+            "secure": (("runner_cover", 2, 1, 7), ("runner_cover", 3, 1, 8)),
+            "balanced": (("two_player_wall_marking", 6, 1, 6), ("two_outlets_marking", 6, 2, 7)),
+            "aggressive": (("two_outlets_marking", 2, 2, 6), ("two_outlets_marking", 3, 2, 7)),
+        }
+        for approach, outcomes in expected.items():
+            for routine, (key, candidates, outlets, box) in zip(self.routines(approach=approach), outcomes):
+                with self.subTest(approach=approach, routine=routine.key):
+                    self.assertEqual(routine.selection.template_key, key)
+                    self.assertEqual(len(routine.selection.comparisons), candidates)
+                    self.assertEqual(routine.players_held_back, outlets)
+                    self.assertEqual(routine.players_in_box, box)
+                    for candidate in routine.selection.comparisons:
+                        self.assertGreaterEqual(candidate.box_defenders, 7 if approach == "secure" else 6)
+                        if approach != "balanced":
+                            self.assertEqual(candidate.outlets, outlets)
 
 
 class TemplateCatalogueValidationTests(unittest.TestCase):

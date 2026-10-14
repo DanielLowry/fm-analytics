@@ -83,6 +83,7 @@ from tools.fm20_scouting_feed_contract import (
     feed_document,
     load_prior_visibility,
 )
+from fm_analytics.progress import ProgressFile
 
 
 def connect_to_fm(remote_address: str) -> tuple[Any, int]:
@@ -117,6 +118,7 @@ def _sandbox_capture(
     *,
     interest_margin: float,
     call_number: int,
+    progress=None,
 ) -> tuple[dict[int, dict[str, Any]], dict[int, str | None], dict[int, str | None]]:
     """FM's own visible attributes and interest for every live candidate.
 
@@ -138,6 +140,9 @@ def _sandbox_capture(
     started = time.monotonic()
     results = capture_players(
         pid, context, interfaces, candidate_persons, scout_by_id, margin=interest_margin,
+        **({"progress": lambda done, total, attempt: progress(
+            "players", done, total, f"Retrying players (attempt {attempt})" if attempt > 1 else "",
+        )} if progress else {}),
     )
     log_event(
         "scouting_sandbox_capture_completed", call_number=call_number, pid=pid,
@@ -227,6 +232,7 @@ def capture_pool(
     prior_scouting_knowledge: Mapping[int, int] | None = None,
     prior_scout_reports: Iterable[int] | None = None,
     prior_names: Mapping[int, str] | None = None,
+    progress=None,
 ) -> dict[str, Any]:
     """Read the manager's scouted players and, if available, the wider pool.
 
@@ -291,6 +297,8 @@ def capture_pool(
         prior_game_date=prior_game_date,
     )
     try:
+        report = progress or (lambda *_args, **_kwargs: None)
+        report("preparing")
         before, arguments, before_ids = _live_context(pid)
         log_event(
             "scouting_pool_read", call_number=call_number, pid=pid,
@@ -324,6 +332,7 @@ def capture_pool(
         # Player Search in FM and is never older than the refresh itself. FM's
         # own live list is only the fallback if that fails.
         sandbox_records: dict[int, int] = {}
+        report("pool")
         try:
             sandbox_records = build_pool_in_sandbox(pid, module_base, arguments)
             log_event(
@@ -457,6 +466,7 @@ def capture_pool(
             if player_id not in own_ids
         }
 
+        report("identities")
         if pool_available:
             external_ids = sorted(set(pool_ids) - own_ids)
             names = resolve_source_player_names(
@@ -538,9 +548,11 @@ def capture_pool(
         sandbox_error: str | None = None
         if candidate_persons:
             try:
+                report("players", 0, len(candidate_persons))
                 sandboxed_attributes, transfer_interest_by_id, loan_interest_by_id = _sandbox_capture(
                     pid, module_base, candidate_persons,
                     interest_margin=interest_margin, call_number=call_number,
+                    **({"progress": progress} if progress else {}),
                 )
             except (SandboxError, SandboxQueryError, ProbeError, OSError) as error:
                 sandbox_error = str(error)
@@ -619,6 +631,7 @@ def capture_pool(
             else dropped_from_scout_reports_ids & set(prior_scout_reports)
         )
 
+        report("validating")
         final, final_arguments, final_pool_ids = _live_context(pid)
         if (
             _active_manager(final).id != manager.id
@@ -677,6 +690,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pid", type=int)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--progress-file", type=Path, help="publish atomic job progress for the web app")
     parser.add_argument(
         "--base-feed", type=Path,
         help=(
@@ -728,6 +742,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             prior_scouting_knowledge=prior.scouting_knowledge if prior else {},
             prior_scout_reports=prior.scout_reports if prior else None,
             prior_names=prior.names if prior else {},
+            **({"progress": ProgressFile(args.progress_file)} if args.progress_file else {}),
         )
         # Frida is needed only for a pool rebuild that will actually run --
         # the one remaining step that runs FM's own code live. A plain

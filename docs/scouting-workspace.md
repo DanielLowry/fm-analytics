@@ -672,6 +672,222 @@ was opened. FM's own list is the fallback if the sandbox build fails
 fail and nothing is scouted either; with the sandbox builder working it is a
 candidate for deletion rather than a route anyone should need.
 
+### Sub-minute refresh investigation (13 October 2026)
+
+**Finding:** getting the normal refresh below one minute looks achievable by
+optimising history recording and generic role ranking. The FM capture is
+already fast after the 11 October sandbox change. The app does not yet have
+these new optimisations or a progress bar at this investigation's date. They
+were integrated on 14 October; see the implementation results below.
+
+The latest real capture in `data/logs/fm20-native-calls.jsonl` started at
+21:04:30 BST on 13 October and completed its `capture_pool` work in **17.03 s**:
+897 knowledge records, 4,010 Player Search entries, 4,205 sandbox reads, and
+5,862 players in the output feed. All 4,205 sandbox reads succeeded. The prior
+post-fix run, on 11 October, took 17.15 s. These events precede JSON writing,
+subprocess exit, feed validation, history recording, and ranking; they do not
+measure the whole button-to-ready experience.
+
+#### Reproduction and measurements
+
+Added `tools/benchmark_scouting_refresh.py`:
+
+```bash
+uv run python -m tools.benchmark_scouting_refresh --profile
+```
+
+It reads the stored capture, backs up the knowledge database into temporary
+files, and measures current code alongside two experimental alternatives. It
+never reads FM or changes the source history. The capture must match the
+database's latest ingest. To replay that ingest, its observation/sighting rows
+are removed from the copies; player identity rows remain, so first discovery
+of a new player is excluded. Profile, attribute, and sighting rows are compared
+in full after replay, including row IDs, dates, sources, and values.
+
+Context: revision `2817d64`, Python 3.12.3, AMD Ryzen 9 9900X3D, 12 physical
+cores / 24 logical CPUs; capture game date 22 October 2020. The real feed has
+5,862 players and the history-merged pool has **9,533**, against **107 roles**.
+The database contains 56,867 profile observations, 525,472 attribute
+observations, and 625,937 sightings. Timings below are wall time from one
+paired benchmark run; the FM capture row comes from the existing live log.
+
+| Component | Current code | Experimental alternative |
+| --- | ---: | ---: |
+| FM capture, before writing JSON | 17.03 s | unchanged |
+| Parse the feed into candidates | 0.85 s | unchanged |
+| Read best-known history and compose the pool | 4.52 s | unchanged |
+| Record the latest capture into history | 20.29 s | **1.40 s** |
+| Cold generic ranking of the full merged pool | 79.41 s | **8.79 s** |
+| Repeat ranking with its object cache warm | 0.009 s | — |
+| Render the complete warm browser snapshot | 0.60 s | unchanged |
+
+The history replay added the same 2,485 profile rows and 7,076 attribute rows
+in both versions; **all three replayed observation/sighting tables were
+identical**. The numeric alternative returned **exactly equal complete
+`PositionRanking` results for all 9,533 players**, including order, chosen
+roles, scores, and knowledge counts. No application scorer was changed.
+
+Measured components with both alternatives total about **33 s**. Allowing for
+startup, reading the previous feed, writing and validating JSON, parsing the
+knowledge capture, and browser work gives a **35–45 s estimate**. This is an
+implementation target supported by component measurements, not a measured
+end-to-end optimized live refresh. Larger pools, more history, sandbox retries,
+and concurrent work still need live validation. Generic role ranking is the
+scope here; tactic-specific scouting has its own cost budget. The Scouting
+page's squad-needs and alerts panels can also build the owned-squad
+recommendation on a cold visit. That cost is excluded; a normal scouting
+refresh reuses the already prepared squad bundle.
+
+#### What makes it slow
+
+1. **History recording repeatedly scans unrelated history.**
+   `PlayerKnowledgeStore._record_attributes` groups this capture's 278,153
+   readings into 30 observation dates. For each date it runs a window query
+   over every qualifying attribute observation for the save. In the first
+   component profile, this method consumed 19.03 s of a 19.77 s recording.
+   The alternative queries just each requested player/attribute/date through
+   the existing `attributes_by_player` index. It preserves date order and
+   same-date insertion order, including seeing an earlier group's changes
+   when processing a later group. No schema change was needed for the trial.
+
+2. **Ranking builds explanations it immediately discards.**
+   The generic view computed 905,461 role fits. Its 500-player profile spent
+   about 95% of ranking time inside `score_role`: allocating, validating, and
+   rounding per-attribute explanation objects, plus traversing attributes
+   again for the median. `_role_fit` then keeps only three scores and three
+   knowledge counts. The alternative prepares role weight shares once,
+   reuses the existing band/normalization helpers, caches their numeric
+   transforms, and produces those compact fits directly. A production change
+   should put a shared numeric kernel in `analytics/role_scoring.py` so full
+   explanations and compact fits use one scoring implementation.
+
+3. **Background work is not coordinated with page requests.**
+   `refresh_scouting` waits for recording, starts `warm_scouting_rankings` in
+   another thread, and returns. The job becomes `succeeded` before ranking
+   finishes. A page request can miss the same cache and calculate the same
+   fits concurrently; there is no mechanism that lets it share the in-flight
+   computation. A fresh feed creates new candidate objects, invalidating the
+   object-identity score cache even for unchanged players. The first browser
+   snapshot also requests the whole pool, including history, regardless of
+   the displayed tab. Each new capture needs one coordinated preparation job.
+
+An additional content-cache experiment reduced 79.85 s to 56.28 s with exactly
+equal complete rankings, sharing fits between identical attribute sheets.
+There were still 6,831 distinct sheets and 643,114 role fits. This improvement
+alone does not leave enough time for the other refresh stages.
+
+The full snapshot is **29,748,833 bytes**, sent without compression. Server
+rendering is cheap compared with scoring; browser download, HTML parsing, and
+JSON parsing were not measured here. Reusing the initial snapshot, invalidating
+it on capture generation changes, and reducing/compressing this response are
+useful follow-up work, especially for a remotely accessed app.
+
+#### Progress bar and implementation sequence
+
+Define refresh completion as **new scouting data and generic rankings ready**.
+Keep the previous results visible while preparing the next generation. Use one
+preparation per capture/history/catalogue generation, shared by the worker and
+page requests, and make the prepared pool/rank cache available together.
+
+1. Replace the broad recording queries with indexed lookups for requested
+   dated readings. Preserve append-only history, rewind handling, duplicate
+   capture detection, and the existing separate history-failure notice.
+2. Add the shared compact scoring path, generating detailed explanations when
+   a player/role report needs them. Preserve exact rounding, unknown/ranged
+   semantics, goalkeeper eligibility, ties, and raw-position consent.
+3. Extend `ScoutingRefreshJob` with job ID, stage, processed/total work,
+   monotonic elapsed time, estimated remaining time, and prepared generation.
+   Stream job-scoped progress from the subprocess as it runs; the current
+   `subprocess.run(capture_output=True)` exposes output only after exit. Keep
+   operational logs separate from the progress protocol.
+4. Add a lightweight `/scouting/refresh/status` JSON endpoint that reads job
+   state without parsing the feed, querying history, or scoring candidates.
+   Poll it about once per second while a job runs. Put a labelled native
+   `<progress>` element outside the collapsed capture panel, alongside an
+   accessible status such as **“Reading attributes · 2,100 / 4,205 players ·
+   about 18 s remaining”**.
+5. Show stages: preparing, building the player list, reading players, recording
+   history, loading history, preparing rankings, ready. Estimate time from
+   recent stage timings and observed throughput, weighted by actual stage
+   cost rather than equal percentages. Before enough timing data exists,
+   show an approximate range or “Estimating…”; show retries explicitly and
+   never reach 100% before preparation finishes. On success invalidate the
+   browser's old scoring snapshots and fetch the new generation automatically.
+
+Validate the implementation with full result/table equality, mixed
+known/ranged/unknown inputs, same-day updates and rewinds, duplicate starts,
+concurrent page reads, status polling, failed captures, failed history writes,
+and delayed/retried stages. Finally measure button-to-visible-current-results
+on repeated live refreshes at this pool size, including a first visit during
+the refresh. The target is under 60 s for normal successful refreshes, with a
+visible and honest estimate throughout; the existing failure and timeout
+paths remain necessary for exceptional runs.
+
+#### Implementation (14 October 2026)
+
+Integrated into the application:
+
+- `PlayerKnowledgeStore._record_attributes` now seeks only the requested dated
+  attribute keys through the existing index. No migration or history reset.
+- `score_role` and `score_role_summary` share one numeric kernel, including
+  rounding, conservative central scores, neutral medians and input validation.
+  Bounded caches hold immutable weight plans and numeric transforms. Generic
+  scouting uses summaries; player reports keep full per-attribute explanations.
+- `web/scouting_jobs.py` coordinates capture, recording, history loading and
+  ranking. Refresh prepares the next cache privately, keeps the old pool and
+  save identity available, and publishes the prepared generation together.
+  Failed preparation retains the previous displayed pool and save identity.
+  Startup/page ranking requests share a lock to avoid duplicate cold scoring.
+- The capture tool accepts `--progress-file`, publishing atomic, throttled
+  job progress. The web command watches it while the child is still running.
+  Per-player updates include failed attempts; retries explicitly report their
+  attempt and remaining-player count. Capture failure and timeout still keep
+  the good file and remove temporary files.
+- `/scouting/refresh/status` reads only job state. The browser polls every
+  second during work and every five seconds while idle, showing a native
+  progress bar, stage, processed/total players, elapsed time and an approximate
+  countdown. Uncounted stages that overrun their estimate show “Estimating…”;
+  successful stage timings refine later estimates. Readiness stays below 100%
+  until the prepared pool/cache is published. Results, counts, knowledge notice
+  and recovery controls update automatically while preserving filters.
+
+Validated against the newer **2 November 2020** capture: 5,669 feed players,
+**9,662** after history, and 107 roles, on the same machine/Python as above.
+
+| Check | Result |
+| --- | --- |
+| Integrated compact ranking | **9.85 s** |
+| Pre-change scorer, loaded independently from Git | **79.42 s** |
+| Indexed history replay | **1.35 s**, versus 22.34 s with the former queries |
+| Complete refresh job replay, excluding live FM capture | **19.55 s** |
+| Replay through rendering the full browser snapshot | **20.18 s** |
+| Slowest sampled status read during that replay | **0.08 ms** |
+| Latest existing real FM capture log, same capture | **15.78 s** |
+
+Every complete ranking and every selected player's full role explanation
+matched the pre-change scorer exactly. Replaying the ingest with the indexed
+and former recording paths produced identical profile, attribute and sighting
+tables. The replay uses temporary copies and includes parsing/validation,
+recording, history composition, ranking and the 30.4 MB browser snapshot.
+It excludes the live FM read; FM was not running during implementation checks.
+Combining these measured stages supports the **35–45 s** expected normal
+refresh, with an actual button-to-ready FM run still to be measured when the
+game is available. Tactic-specific ranking and a cold owned-squad bundle remain
+outside these generic-refresh timings.
+
+Verification: the full 1,902-test suite passed, followed by final refresh tests
+covering publication/failure recovery. Additional coverage checks mixed
+visibility and custom policies, dated/same-day writes, retries, progress
+streaming, duplicate starts, lightweight status, JSON start responses and
+readiness. An isolated Chrome check exercised the actual built frontend:
+previous results remained visible while the bar/countdown advanced, buttons
+were disabled during the job, the bar finished at 100%, and new rows replaced
+the old ones with the age filter and URL preserved, without JavaScript errors.
+Frontend build, Python compilation, package build and extracted-wheel imports,
+catalogue, template and progress assets also passed.
+
+Restart `fm-web` to load the implementation into an already-running server.
+
 ### Known gaps after this change
 
 - **Footedness has no live source any more.** Its only capture path was the

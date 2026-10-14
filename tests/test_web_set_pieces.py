@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 FIXTURE = ROOT / "src/fm_analytics/fixtures/sample-game.json"
 CAPTURE = ROOT / "tests/fixtures/hungerford-vertical-442-2020-10-20.json"
 CONTROL_CAPTURE = ROOT / "tests/fixtures/hungerford-control-433dm-2020-10-20.json"
+CURRENT_CONTROL_CAPTURE = ROOT / "tests/fixtures/hungerford-control-433dm-2020-11-01.json"
 
 
 def _complete_fixture(directory: Path) -> Path:
@@ -81,6 +82,8 @@ class SetPiecePageTests(unittest.TestCase):
         self.assertIn("Incomplete role data", body)
         self.assertIn("provisional squad-wide plan", body)
         self.assertIn("Chris Centreback", body)
+        self.assertIn("Chris Centreback (DC/DM)", body)
+        self.assertIn("Morgan Midfielder (MC/AMC)", body)
         self.assertIn("Provisional — dedicated taker evidence is missing", body)
         self.assertNotIn("No rated taker", body)
         self.assertIn("id='selected-routine'>Left attacking corner", body)
@@ -148,11 +151,11 @@ class SetPiecePageTests(unittest.TestCase):
         self.assertIn("Vertical 4-4-2 match XI", body)
         # Check the actual assignment cards, rather than names appearing
         # elsewhere in specialist rankings or the explanation table.
-        self.assertIn("<b>Ejiro Okosieme</b><span><strong>Zonally mark 6 yard box centre</strong>", body)
-        self.assertIn("<b>Jamie Bradley-Green</b><span><strong>Mark tall player</strong>", body)
-        self.assertIn("<b>Challis Johnson</b><span><strong>Zonally mark 6 yard box near post</strong>", body)
-        self.assertIn("<b>Ross Holden</b><span><strong>Mark near post</strong>", body)
-        self.assertIn("<b>Terrance Saydee</b><span><strong>Mark far post</strong>", body)
+        self.assertIn("<b>Ejiro Okosieme (DCR)</b><span><strong>Zonally mark 6 yard box centre</strong>", body)
+        self.assertIn("<b>Jamie Bradley-Green (DCL)</b><span><strong>Mark tall player</strong>", body)
+        self.assertIn("<b>Challis Johnson (STL)</b><span><strong>Zonally mark 6 yard box near post</strong>", body)
+        self.assertIn("<b>Ross Holden (ML)</b><span><strong>Mark near post</strong>", body)
+        self.assertIn("<b>Terrance Saydee (MR)</b><span><strong>Mark far post</strong>", body)
         self.assertIn("<dt>Responsibility weight</dt><dd>1.5×</dd>", body)
         self.assertIn("<dt>Responsibility weight</dt><dd>1.6×</dd>", body)
         self.assertIn("<dt>Responsibility weight</dt><dd>0.7×</dd>", body)
@@ -167,12 +170,12 @@ class SetPiecePageTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("Vertical 4-4-2 match XI", body)
         for player, instruction in (
-            ("Ross Holden", "Come short"),
-            ("Victor Fundi", "Lurk far post"),
-            ("Challis Johnson", "Attack ball from edge of area"),
-            ("Ben Jefford", "Mark keeper"),
-            ("Lucas Odunston", "Stay back"),
-            ("David Lynch", "Stay back"),
+            ("Ross Holden (ML)", "Come short"),
+            ("Victor Fundi (STR)", "Lurk far post"),
+            ("Challis Johnson (STL)", "Attack ball from edge of area"),
+            ("Ben Jefford (DL)", "Mark keeper"),
+            ("Lucas Odunston (DR)", "Stay back"),
+            ("David Lynch (MCL)", "Stay back"),
         ):
             self.assertIn(f"<b>{player}</b><span><strong>{instruction}</strong>", body)
         self.assertIn("Challenges the goalkeeper for deliveries and reacts to rebounds.", body)
@@ -208,9 +211,9 @@ class SetPiecePageTests(unittest.TestCase):
 
     def test_control_xi_displays_selected_templates_alternatives_and_real_assignments(self) -> None:
         port = self._serve(CONTROL_CAPTURE)
-        for kind, title, edge_count in (
-            ("indirect_wide", "Two outlets with runner marking", 1),
-            ("indirect_deep", "Two outlets and second-ball cover", 2),
+        for kind, title, edge_count, outlets in (
+            ("indirect_wide", "Two-player wall with runner marking", 1, 1),
+            ("indirect_deep", "Two outlets and second-ball cover", 2, 2),
         ):
             with self.subTest(kind=kind):
                 status, body = self._get(port, "/set-pieces?tactic=control_433dm&routine=defending_" + kind)
@@ -219,14 +222,40 @@ class SetPiecePageTests(unittest.TestCase):
                 self.assertIn("Set-piece approach<select name='risk'>", body)
                 self.assertNotIn("Attacking commitment", body)
                 self.assertIn("Selected: " + title, body)
-                self.assertIn("Compared 5 sensible templates", body)
+                self.assertIn("Compared 6 sensible templates", body)
                 self.assertIn("Plan fit", body)
-                self.assertIn(f"{edge_count} on edge · 2 outlets", body)
-                self.assertIn("<b>Ejiro Okosieme</b><span><strong>Go back</strong>", body)
+                self.assertIn(f"{edge_count} on edge · {outlets} outlet", body)
+                self.assertIn("<b>Ejiro Okosieme (DCR)</b><span><strong>Go back</strong>", body)
                 self.assertEqual(body.count("class='routine-assignment-note'"), 11)
                 if kind == "indirect_deep":
-                    for name, job in (("Tom Sharpe", "Edge of area"), ("Lucas Odunston", "Edge of area"), ("Ross Holden", "Stay forward"), ("Abdul Sankoh", "Stay forward")):
+                    for name, job in (("Tom Sharpe (MCL)", "Edge of area"), ("Lucas Odunston (DR)", "Edge of area"), ("Ross Holden (AML)", "Stay forward"), ("Abdul Sankoh (AMR)", "Stay forward")):
                         self.assertIn(f"<b>{name}</b><span><strong>{job}</strong>", body)
+
+    def test_current_control_xi_displays_the_two_new_structures(self) -> None:
+        port = self._serve(CURRENT_CONTROL_CAPTURE)
+        for kind, title, outlets, jobs in (
+            ("indirect_wide", "Two-player wall with runner marking", 1, {
+                "Nathan Collier (DM)": "Man mark", "Victor Fundi (ST)": "Stay forward",
+                "Ross Holden (AML)": "Wall", "Abdul Sankoh (AMR)": "Wall",
+            }),
+            ("indirect_deep", "Two outlets with runner marking", 2, {
+                "Nathan Collier (DM)": "Go back", "Victor Fundi (ST)": "Man mark",
+                "Ross Holden (AML)": "Stay forward", "Abdul Sankoh (AMR)": "Stay forward",
+            }),
+        ):
+            with self.subTest(kind=kind):
+                status, body = self._get(port, "/set-pieces?tactic=control_433dm&routine=defending_" + kind)
+                self.assertEqual(status, 200)
+                self.assertIn("Selected: " + title, body)
+                self.assertIn("Compared 6 sensible templates", body)
+                self.assertIn(f"1 on edge · {outlets} outlet", body)
+                self.assertEqual(body.count("class='routine-assignment-note'"), 11)
+                for name, job in {
+                    **jobs, "Jamie Bradley-Green (DCL)": "Go back", "Harrison Ashby (DR)": "Go back",
+                    "Ejiro Okosieme (DCR)": "Go back", "David Lynch (MCR)": "Man mark", "Tom Sharpe (MCL)": "Edge of area",
+                    "Jonathan De Bie (GK)": "Defend area", "Ben Jefford (DL)": "Man mark",
+                }.items():
+                    self.assertIn(f"<b>{name}</b><span><strong>{job}</strong>", body)
 
     def test_existing_risk_dropdown_changes_defensive_templates_and_preserves_links(self) -> None:
         port = self._serve(CONTROL_CAPTURE)

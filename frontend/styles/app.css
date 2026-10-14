@@ -12,6 +12,7 @@
 @import "./conceded.css";
 @import "./season-trends.css";
 @import "./hidden-strength.css";
+@import "./scouting-refresh.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

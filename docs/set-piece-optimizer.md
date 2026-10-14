@@ -5,6 +5,11 @@ player rankings. When the role-scoring feed is complete it uses the exact XI
 from the selected tactic. On a partial snapshot it remains available as a
 clearly labelled squad-wide template.
 
+Player labels in assignments, taker lists and evidence tables include their
+selected tactic slot, for example `Ejiro Okosieme (DCR)`. This distinguishes
+left/right centre-backs and central midfielders. Provisional squad-wide plans
+show the player's known positions instead, or `Position unknown` when absent.
+
 ## What it produces
 
 - left- and right-side orders for corners, direct free kicks, and indirect
@@ -81,11 +86,12 @@ The Python builders retain legal FM instructions and inclusion priorities.
 Wide/deep defensive free-kick job counts and approach coverage requirements
 also live in `defending_free_kicks.json`, under `templates` and `approaches`.
 The extraction initially retained `set-piece-v11`; template selection and
-the revised wide/deep profiles now use `set-piece-v12`.
+the revised wide/deep profiles shipped as `set-piece-v12`. The two additional
+wide/deep structures use `set-piece-v13`, with the same weights and solver.
 
 ## Choosing a defensive free-kick structure
 
-Wide and deep free kicks each have five authored candidate templates. Every
+Wide and deep free kicks each have six authored candidate templates. Every
 candidate assigns all ten outfield players, plus the goalkeeper. The loader
 requires at least six box defenders, two man markers, a clearance guard and
 one outlet. Wide candidates use one or two wall players and at least three
@@ -132,15 +138,26 @@ using a deep clearance. Direct and small-chance defensive free kicks retain
 their previous profiles and structures. Corners and attacking free kicks also
 retain their existing structures and assignments.
 
-For the captured Control XI on Balanced, wide kicks select **Two outlets with
-runner marking**: Okosieme, Bradley-Green and Collier cover the delivery;
-Lynch, Jefford and Odunston mark; Holden takes the small wall; Sharpe protects
-the edge; Neufville and Sankoh stay forward. Holden is a weak wall player, but
-this is a low-importance wide-delivery job and keeps better defenders behind
-him. This is a model trade-off rather than an ability cutoff or a name rule.
-Deep kicks select **Two outlets and second-ball cover**: Okosieme, Bradley-Green,
-Collier and Neufville cover; Lynch and Jefford mark; Odunston and Sharpe protect
-the edge; Holden and Sankoh stay forward. Secure chooses one-outlet structures.
+For the captured 1 November Control XI on Balanced, wide kicks select
+**Two-player wall with runner marking**: Okosieme, Ashby and Bradley-Green
+cover the delivery; Lynch, Jefford and Collier mark; Holden and Sankoh form
+the wall; Sharpe protects the edge; Fundi stays forward. Deep kicks select
+**Two outlets with runner marking**: Okosieme, Ashby, Bradley-Green and Collier
+cover; Lynch, Jefford and Fundi mark; Sharpe protects the edge; Holden and
+Sankoh stay forward. Both structures preserve the existing coverage rules.
+
+Compared with the previous five candidates per variant, the new structures
+raise model fit from 49.268941 to 49.589936 wide and from 48.588466 to 48.810750
+deep. These are small gains. Holden and Sankoh's low bravery still makes the
+wide wall a compromise; these scores do not establish superiority in FM.
+Secure excludes both additions under its existing rules. Aggressive excludes
+the one-outlet wide addition and permits the two-outlet deep addition.
+
+For the earlier 20 October Control XI, Balanced also selects the new two-player
+wide wall, with Collier covering, Odunston marking and Neufville as the outlet.
+Its deep plan retains **Two outlets and second-ball cover**: Okosieme,
+Bradley-Green, Collier and Neufville cover; Lynch and Jefford mark; Odunston
+and Sharpe protect the edge; Holden and Sankoh stay forward.
 
 Opposition strengths are not automatically applied yet. Candidate eligibility
 is separated from assignment and comparison: future opposition coverage
@@ -277,7 +294,7 @@ proxy profiles themselves, and every real taker score, remain covered.
 Deliberate future tuning should update the model version and review the real-XI
 expectations and frozen baseline together. The v11 fingerprints remain preserved;
 an independently frozen projection continues to guard all unchanged corner,
-attacking, direct defensive and taker outputs after the v12 change, ignoring
+attacking, direct defensive and taker outputs after the v12/v13 changes, ignoring
 only the bumped model version and new selection metadata.
 
 `tests/fixtures/hungerford-control-433dm-2020-10-20.json` preserves the separate
@@ -286,6 +303,10 @@ constraints, complete and partial assignments, constant responsibility budgets,
 equal-player comparisons, different squads choosing different structures,
 attribute exchanges, ranged/unknown evidence, unavailable players, deterministic
 ties, stricter future coverage policies and the actual web assignment cards.
+`tests/fixtures/hungerford-control-433dm-2020-11-01.json` preserves the later
+visible XI. Regressions pin its complete wide/deep assignments, compare the
+new structures against the previous catalogue, and check eligibility and
+coverage at every approach setting.
 
 ## Evidence boundary
 

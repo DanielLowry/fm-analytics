@@ -27,11 +27,27 @@ def _refresh_notice(refreshed: str | None) -> str:
     return ""
 
 
-def _refresh_job_notice(job, capture_age: str | None) -> str:
+def _refresh_job_notice(job, capture_age: str | None, progress=None) -> str:
     """Render the latest background job without coupling HTML to its type."""
     age = f" Last good capture: {html.escape(capture_age)} old." if capture_age else ""
+    progress = progress or {}
+    label = progress.get("label", "Scouting refresh") if job.status == "running" else "Scouting results ready" if job.status == "succeeded" else "Scouting refresh failed"
+    remaining = progress.get("remaining_seconds")
+    detail = "Estimating time remaining…" if remaining is None else f"About {remaining}s remaining"
+    if progress.get("total"):
+        detail = f"{progress.get('completed', 0):,} / {progress['total']:,} players · {detail}"
+    panel = (
+        "<section id='scouting-refresh-progress' class='fm-refresh-progress fm-workspace-panel'"
+        f" data-status='{html.escape(job.status)}' data-job-id='{progress.get('job_id', 0)}'"
+        f" data-generation='{progress.get('generation', 0)}'"
+        + (" hidden" if job.status == "idle" else "") + ">"
+        "<strong data-refresh-label>" + html.escape(label) + "</strong>"
+        f"<progress max='100' value='{progress.get('percent', 0)}' aria-label='Scouting refresh progress'></progress>"
+        "<p data-refresh-detail role='status' aria-live='polite'>" + (html.escape(detail) if job.status == "running" else "") + "</p>"
+        "<p class='muted' data-refresh-summary>"
+    )
     if job.status == "idle":
-        return f"<p class='muted'>Refresh idle.{age}</p>"
+        return panel + f"Refresh idle.{age}</p></section>"
     started = job.started_at.isoformat(timespec="seconds") if job.started_at else "unknown"
     route = (
         "<p class='warn'>This refresh asks FM to build its player list inside the "
@@ -40,20 +56,11 @@ def _refresh_job_notice(job, capture_age: str | None) -> str:
     )
     reload = "<a href='' class='fm-text-link'>Reload to check refresh status</a>"
     if job.status == "running":
-        return (
-            f"<p class='muted'>Refresh running since {html.escape(started)}.{age} "
-            f"{reload}</p>" + route
-        )
+        return panel + f"Refresh running since {html.escape(started)}.{age} {reload}</p>{route}</section>"
     ended = job.ended_at.isoformat(timespec="seconds") if job.ended_at else "unknown"
     if job.status == "failed":
-        return (
-            f"<p class='warn'>Refresh failed at {html.escape(ended)}: "
-            f"{html.escape(job.error)}.{age}</p>"
-        ) + route
-    return (
-        f"<p class='muted'>Refresh succeeded at {html.escape(ended)}: "
-        f"{html.escape(job.message)}.{age}</p>"
-    ) + route
+        return panel + f"Refresh failed at {html.escape(ended)}: {html.escape(job.error)}.{age}</p>{route}</section>"
+    return panel + f"Refresh succeeded at {html.escape(ended)}: {html.escape(job.message)}.{age}</p>{route}</section>"
 
 
 def _knowledge_notice(note: tuple[str, bool] | None) -> str:

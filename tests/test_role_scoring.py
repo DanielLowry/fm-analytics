@@ -1,4 +1,7 @@
 import unittest
+import random
+from fm_analytics.analytics import MVP_CATALOGUE
+from fm_analytics.analytics.role_scoring import score_role_summary
 
 from fm_analytics.analytics import (
     RoleAttribute,
@@ -36,6 +39,35 @@ def role() -> RoleDefinition:
 
 
 class RoleScoringTests(unittest.TestCase):
+    def test_compact_scores_match_explanations_for_every_role_and_policy(self):
+        rng = random.Random(41)
+        for policy in (ScoringPolicy(), ScoringPolicy(unknown_central=10),
+                       ScoringPolicy(scale_minimum=0, scale_maximum=25, unknown_central=3)):
+            for definition in MVP_CATALOGUE.roles.values():
+                observations = {}
+                for weighted in definition.attributes:
+                    choices = [known(rng.randint(1, 20)), ranged(4, 17), AttributeObservation(Visibility.UNKNOWN), None]
+                    chosen = rng.choice(choices)
+                    if chosen is not None:
+                        observations[weighted.name] = chosen
+                full = score_role(definition, observations, policy=policy)
+                compact = score_role_summary(definition, observations, policy=policy)
+                self.assertEqual((compact.lower, compact.central, compact.upper, compact.median),
+                                 (full.score.lower, full.score.central, full.score.upper, full.median))
+                for visibility, count in ((Visibility.KNOWN, compact.known), (Visibility.RANGE, compact.ranged), (Visibility.UNKNOWN, compact.unknown)):
+                    self.assertEqual(count, sum(c.observation.visibility is visibility for c in full.contributions))
+
+    def test_compact_cache_distinguishes_weights_and_policy_and_rejects_bad_scale(self):
+        from dataclasses import replace
+        definition = role()
+        observations = {"passing": known(20)}
+        original = score_role_summary(definition, observations)
+        changed = score_role_summary(replace(definition, attributes=(RoleAttribute("passing", 1), RoleAttribute("vision", 9))), observations)
+        self.assertNotEqual(original, changed)
+        self.assertNotEqual(original.central, score_role_summary(definition, observations, policy=ScoringPolicy(unknown_central=10)).central)
+        with self.assertRaisesRegex(ValueError, "outside"):
+            score_role_summary(definition, observations, policy=ScoringPolicy(scale_maximum=15))
+
     def test_exact_score_is_weighted_and_reproducible(self) -> None:
         result = score_role(role(), {"passing": known(20), "vision": known(1)})
 

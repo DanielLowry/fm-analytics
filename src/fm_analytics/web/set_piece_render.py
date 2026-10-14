@@ -3,11 +3,21 @@
 from __future__ import annotations
 
 import html
+from typing import Mapping
 from urllib.parse import urlencode
 
-from fm_analytics.web.ui import cell_details
+from fm_analytics.domain import Player
+from fm_analytics.web.ui import cell_details, ordered_positions
 from fm_analytics.analytics.set_piece_templates import FREE_KICK_TYPE_TABS
 from fm_analytics.web.rendering import _band
+
+
+def _set_piece_player_label(player: Player, lineup_slots: Mapping[str, str] | None = None) -> str:
+    position = (lineup_slots or {}).get(player.id)
+    if not position:
+        position = "/".join(ordered_positions(player.positions)) or "Position unknown"
+    return f"{player.name} ({position})"
+
 
 def _routine_taker(
     report, task_key: str, side: str | None, routine_prefix: str | None = None,
@@ -39,7 +49,7 @@ def _set_piece_choice(report, recommendation, routine_prefix: str | None = None)
             if recommendation.suggested is None else ""
         )
         return (
-            assignment.player.name,
+            assignment.player,
             _band(assignment.score.score),
             f"Whole-routine choice · {round(routine.evidence_coverage * 100):.0f}% evidence",
             warning,
@@ -54,10 +64,10 @@ def _set_piece_choice(report, recommendation, routine_prefix: str | None = None)
         f"Proxy — {recommendation.task.proxy_for_unread_attribute} is not captured."
         if candidate.evidence_mode == "proxy" else ""
     )
-    return candidate.player.name, _band(candidate.score.score), candidate.evidence_label, warning
+    return candidate.player, _band(candidate.score.score), candidate.evidence_label, warning
 
 
-def _set_piece_assignment_cards(report) -> str:
+def _set_piece_assignment_cards(report, lineup_slots: Mapping[str, str] | None = None) -> str:
     groups = (
         (
             "Corners",
@@ -105,14 +115,18 @@ def _set_piece_assignment_cards(report) -> str:
         lines = []
         for task_key, side, label, routine_prefix in entries:
             recommendation = recommendations[(task_key, side)]
-            player_name, _score, evidence, warning = _set_piece_choice(
+            player, _score, evidence, warning = _set_piece_choice(
                 report, recommendation, routine_prefix
             )
-            evidence_class = " class='choice-warning'" if warning or player_name is None else ""
+            evidence_class = " class='choice-warning'" if warning or player is None else ""
+            player_label = (
+                html.escape(_set_piece_player_label(player, lineup_slots))
+                if player else "No evidence-based recommendation"
+            )
             lines.append(
                 "<div class='set-piece-choice'>"
                 f"<span>{html.escape(label)}</span>"
-                f"<b>{html.escape(player_name) if player_name else 'No evidence-based recommendation'}</b>"
+                f"<b>{player_label}</b>"
                 f"<small{evidence_class}>{html.escape(warning or evidence)}</small></div>"
             )
         cards.append(
@@ -122,7 +136,9 @@ def _set_piece_assignment_cards(report) -> str:
     return "<div class='set-piece-assignments'>" + "".join(cards) + "</div>"
 
 
-def _set_piece_routine_plan(routine, labels: dict[str, str]) -> str:
+def _set_piece_routine_plan(
+    routine, labels: dict[str, str], lineup_slots: Mapping[str, str] | None = None,
+) -> str:
     selection_summary = ""
     selection_evidence = ""
     if routine.selection is not None:
@@ -155,6 +171,7 @@ def _set_piece_routine_plan(routine, labels: dict[str, str]) -> str:
     assignments = []
     evidence_rows = []
     for assignment in routine.assignments:
+        player_label = html.escape(_set_piece_player_label(assignment.player, lineup_slots))
         contributions = sorted(
             assignment.score.contributions,
             key=lambda item: (-item.weight, item.attribute),
@@ -185,7 +202,7 @@ def _set_piece_routine_plan(routine, labels: dict[str, str]) -> str:
         )
         assignments.append(
             "<div class='routine-assignment'>"
-            f"<b>{html.escape(assignment.player.name)}</b>"
+            f"<b>{player_label}</b>"
             "<span><strong>" + html.escape(assignment.role.instruction) + "</strong>"
             f"<small>{html.escape(assignment.role.zone)}</small></span>"
             f"<span class='set-piece-unit'>{html.escape(assignment.role.unit)}</span>"
@@ -193,7 +210,7 @@ def _set_piece_routine_plan(routine, labels: dict[str, str]) -> str:
         )
         evidence_rows.append(
             "<tr>"
-            f"<th scope='row'>{html.escape(assignment.player.name)}</th>"
+            f"<th scope='row'>{player_label}</th>"
             f"<td>{html.escape(assignment.role.instruction)}</td>"
             f"<td>{_band(assignment.score.score)}</td>"
             f"<td>{html.escape(evidence)}</td>"
@@ -237,7 +254,10 @@ def _set_piece_routine_plan(routine, labels: dict[str, str]) -> str:
     )
 
 
-def _set_piece_routine_switcher(report, selected_key: str, query: dict[str, str], labels) -> str:
+def _set_piece_routine_switcher(
+    report, selected_key: str, query: dict[str, str], labels,
+    lineup_slots: Mapping[str, str] | None = None,
+) -> str:
     routines = {item.key: item for item in report.routines}
     selected = routines[selected_key]
 
@@ -287,5 +307,5 @@ def _set_piece_routine_switcher(report, selected_key: str, query: dict[str, str]
     return (
         "<div class='routine-switcher'>"
         "<nav class='routine-tabs primary' aria-label='Routine phase'>" + phase_tabs + "</nav>"
-        + secondary + "</div>" + _set_piece_routine_plan(selected, labels)
+        + secondary + "</div>" + _set_piece_routine_plan(selected, labels, lineup_slots)
     )

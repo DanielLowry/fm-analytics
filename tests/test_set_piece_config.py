@@ -152,7 +152,7 @@ class SetPieceConfigTests(unittest.TestCase):
 
     def test_shipped_config_exposes_all_families_and_variants(self):
         config = load_set_piece_weights(self.directory)
-        self.assertEqual(config.version, "set-piece-v12")
+        self.assertEqual(config.version, "set-piece-v13")
         self.assertEqual(len(config.roles), 2)
         for family in ("attacking_free_kicks", "defending_free_kicks"):
             self.assertEqual(set(config.variants[family]), set(VARIANTS))
