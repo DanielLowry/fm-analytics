@@ -3,8 +3,8 @@
 None is unauthored. Boolean fields accept True, False or "Neutral"; neutral
 leaves the corresponding control unselected. New choices without an existing
 scoring rule are presentation only. That includes defensive width (Narrow,
-Standard or Wide, confirmed against FM20's screen by the manager on 11 October
-2026), which only the control range (`analytics/CLAUDE.md`, "Game plans") sets so far.
+Standard or Wide, confirmed against FM20's screen by the manager). Every shipped
+tactic explicitly sets all fields; optional fields remain for older catalogues.
 
 Each scale's options run from one end to the other, as FM's slider does, so the
 tactic page can show where a choice sits.
@@ -18,6 +18,7 @@ DEFENSIVE_WIDTH_OPTIONS = ("Narrow", "Standard", "Wide")
 PRESSING_INTENSITY_OPTIONS = (
     "Much Less Urgent", "Less Urgent", "Standard", "More Urgent", "Extremely Urgent",
 )
+TACKLING_OPTIONS = ("Stay On Feet", "Neutral", "Get Stuck In")
 FIELD_LABELS = (
     ("line_of_engagement", "line of engagement"),
     ("defensive_line", "defensive line"),
@@ -25,11 +26,14 @@ FIELD_LABELS = (
     ("use_tighter_marking", "use tighter marking"),
     ("pressing_intensity", "pressing intensity"),
     ("prevent_short_gk_distribution", "prevent short GK distribution"),
+    ("use_offside_trap", "use offside trap"),
+    ("tackling", "tackling"),
 )
 ALL_FIELD_LABELS = tuple(label for _, label in FIELD_LABELS)
 OUT_OF_POSSESSION_KEYS = frozenset({
     "lineOfEngagement", "defensiveLine", "defensiveWidth", "useTighterMarking", "pressingIntensity",
     "preventShortGKDistribution",
+    "useOffsideTrap", "tackling",
 })
 
 # Explicit mappings preserve the app's existing scoring vocabulary and demands.
@@ -47,6 +51,8 @@ LEGACY_INSTRUCTION_GROUPS = {
     | frozenset(_SCORED_PRESSING.values()),
     "use_tighter_marking": frozenset({"Use Tighter Marking"}),
     "prevent_short_gk_distribution": frozenset({"Prevent Short GK Distribution"}),
+    "use_offside_trap": frozenset({"Use Offside Trap"}),
+    "tackling": frozenset({"Stay On Feet", "Get Stuck In"}),
 }
 LEGACY_INSTRUCTIONS = frozenset().union(*LEGACY_INSTRUCTION_GROUPS.values())
 
@@ -59,16 +65,19 @@ class OutOfPossessionSettings:
     use_tighter_marking: bool | str | None = None
     pressing_intensity: str | None = None
     prevent_short_gk_distribution: bool | str | None = None
+    use_offside_trap: bool | str | None = None
+    tackling: str | None = None
 
     def __post_init__(self) -> None:
         for name, options in (
             ("line_of_engagement", LINE_OPTIONS), ("defensive_line", LINE_OPTIONS),
             ("defensive_width", DEFENSIVE_WIDTH_OPTIONS), ("pressing_intensity", PRESSING_INTENSITY_OPTIONS),
+            ("tackling", TACKLING_OPTIONS),
         ):
             value = getattr(self, name)
             if value is not None and (not isinstance(value, str) or value not in options):
                 raise ValueError(f"{name} must be one of {options!r}")
-        for name in ("use_tighter_marking", "prevent_short_gk_distribution"):
+        for name in ("use_tighter_marking", "prevent_short_gk_distribution", "use_offside_trap"):
             value = getattr(self, name)
             if value is not None and not isinstance(value, bool) and value != "Neutral":
                 raise ValueError(f"{name} must be true/false or 'Neutral'")
@@ -119,6 +128,10 @@ def out_of_possession_selected_instructions(settings: OutOfPossessionSettings | 
         ))
     if settings.prevent_short_gk_distribution is True:
         instructions.append("Prevent Short GK Distribution")
+    if settings.use_offside_trap is True:
+        instructions.append("Use Offside Trap")
+    if settings.tackling not in (None, "Neutral"):
+        instructions.append(settings.tackling)
     return tuple(instructions)
 
 
@@ -151,6 +164,8 @@ def out_of_possession_from_json(value: Any, tactic_key: str, *, only_known_keys)
             use_tighter_marking=value.get("useTighterMarking"),
             pressing_intensity=value.get("pressingIntensity"),
             prevent_short_gk_distribution=value.get("preventShortGKDistribution"),
+            use_offside_trap=value.get("useOffsideTrap"),
+            tackling=value.get("tackling"),
         )
     except ValueError as error:
         raise ValueError(f"{where}: {error}") from error

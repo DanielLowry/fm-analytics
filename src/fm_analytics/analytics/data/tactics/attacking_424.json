@@ -43,20 +43,25 @@
     "defensiveLine": "Standard",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "More Urgent",
-    "preventShortGKDistribution": false
+    "preventShortGKDistribution": false,
+    "defensiveWidth": "Standard",
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
   },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Keeps goalkeeping simple while distributing quickly and directly toward the flanks; a sweeper keeper is unnecessary with the standard defensive line."
+      "why": "Keeps goalkeeping simple while distributing quickly and directly toward the flanks; a sweeper keeper is unnecessary with the standard defensive line.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Provides conservative support behind the advanced left-sided attacker without being instructed to overlap aggressively."
+      "why": "Provides conservative support behind the advanced left-sided attacker without being instructed to overlap aggressively.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -65,7 +70,8 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Defends simply in a standard line. Cover is available when the selected defender's pace and anticipation justify it."
+      "why": "Defends simply in a standard line. Cover is available when the selected defender's pace and anticipation justify it.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -74,37 +80,43 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Defends simply in a standard line. At most one centre-back should use Cover."
+      "why": "Defends simply in a standard line. At most one centre-back should use Cover.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Provides conservative support behind the advanced right-sided attacker without being instructed to overlap aggressively."
+      "why": "Provides conservative support behind the advanced right-sided attacker without being instructed to overlap aggressively.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "bwm_mc_defend",
-      "why": "Ball-Winning Midfielder (Defend) contests central possession and supports the counter-press. He can leave his position to chase the ball, so the midfield pair must recover together when the first press is beaten."
+      "why": "Ball-Winning Midfielder (Defend) contests central possession and supports the counter-press. He can leave his position to chase the ball, so the midfield pair must recover together when the first press is beaten.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "dlp_mc_support",
-      "why": "Deep-Lying Playmaker (Support) provides the secure distributor who can release the four attackers without needing an extra midfield runner."
+      "why": "Deep-Lying Playmaker (Support) provides the secure distributor who can release the four attackers without needing an extra midfield runner.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "if_attack",
-      "why": "Inside forward cuts in from the left to attack the box alongside the strikers."
+      "why": "Inside forward cuts in from the left to attack the box alongside the strikers.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "winger_aml_amr_attack",
-      "why": "Winger stays wide and delivers, stretching the back line for the two strikers."
+      "why": "Winger stays wide and delivers, stretching the back line for the two strikers.",
+      "instructions": []
     },
     {
       "key": "STL",
@@ -114,7 +126,8 @@
         "dlf_support",
         "cf_support"
       ],
-      "why": "Pressing Forward (Support) links the front four and leads the counter-press. DLF(S) or CF(S) remain alternatives for a more technical support striker."
+      "why": "Pressing Forward (Support) links the front four and leads the counter-press. DLF(S) or CF(S) remain alternatives for a more technical support striker.",
+      "instructions": []
     },
     {
       "key": "STR",
@@ -123,7 +136,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Advanced Forward runs the channels to stretch the back line. Poacher is the alternate if he is more of a finisher than a runner."
+      "why": "Advanced Forward runs the channels to stretch the back line. Poacher is the alternate if he is more of a finisher than a runner.",
+      "instructions": []
     }
   ],
   "system": {
@@ -146,11 +160,21 @@
   "whenToUse": "Situationally rather than as a default: when you want to attack an opponent aggressively, particularly a back line that can be stretched or wide areas that can be attacked, or when you are chasing a game and need more players on the opposition back line without a wholesale tactical rewrite.",
   "whenNotToUse": "When you expect to be the better side and want to control the match: with only two central midfielders it is outnumbered by any three-man centre, even more so than the 4-4-2. Against strong three-man central midfields or technically secure opponents who can consistently play through the first counter-press. Avoid it for long runs of matches: Counter-Press with More Urgent pressing is physically demanding and the ball-winner is another player who leaves his position, so rotate it with a less demanding system and do not use it when the midfield pair or wide attackers are tired.",
   "instructionRationale": {
-    "Counter-Press": "Uses the four advanced players to contest the ball immediately after it is lost.",
-    "Counter": "Attacks quickly after regains while the front four are already positioned high.",
-    "More Urgent Pressing": "Supports the counter-press without using the most extreme pressing level. It is still physically demanding over a run of matches.",
-    "Standard Line of Engagement": "Sets the settled press in a middle block; recovery after a failed counter-press still needs to be coordinated.",
-    "Standard Defensive Line": "Reduces space behind the back four and allows a conventional goalkeeper, while positioning and awareness remain important."
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "More Urgent Pressing": "Challenge more often inside the selected engagement zone without making the settled press maximal.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Pass Into Space": "Lead the mobile forwards and midfield runners into space rather than requiring every pass to arrive at their feet.",
+    "Run At Defence": "Encourage ball carriers to engage defenders; review against their dribbling and the opponent.",
+    "Slightly More Direct Passing": "Reach the forward outlets earlier without turning every possession into a long ball.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -693,5 +717,9 @@
         "winger_aml_amr_attack"
       ]
     }
+  ],
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

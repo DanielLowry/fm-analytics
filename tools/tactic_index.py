@@ -20,6 +20,7 @@ from fm_analytics.analytics.catalogue import MVP_CATALOGUE, TacticDefinition
 from fm_analytics.analytics.game_plan import game_plans
 from fm_analytics.analytics.in_transition import in_transition_selected_instructions
 from fm_analytics.analytics.in_possession import in_possession_instruction_strings
+from fm_analytics.analytics.out_of_possession import FIELD_LABELS
 from fm_analytics.analytics.out_of_possession import out_of_possession_selected_instructions
 
 OUTPUT = Path(__file__).resolve().parents[1] / "docs" / "tactic-catalogue.md"
@@ -137,6 +138,18 @@ def render() -> str:
         ]
         for line, names in roles_by_line(tactic):
             out.append(f"- **{line}:** {names}")
+        if tactic.source:
+            out.append(f"- **Published source:** [{tactic.source.author}]({tactic.source.url}); "
+                       f"[original FM file](../src/fm_analytics/analytics/data/tactic_files/{tactic.source.filename}).")
+            out.append(f"- **Verification:** {tactic.source.verification}")
+        for slot in tactic.slots:
+            if slot.instructions:
+                out.append(f"- **{slot.key} player instructions:** " + "; ".join(slot.instructions))
+        if tactic.out_of_possession:
+            settings = tactic.out_of_possession
+            values = "; ".join(f"{label}: {getattr(settings, name)}" for name, label in FIELD_LABELS)
+            out.append(f"- **Defensive settings:** {values}")
+        out.extend(f"- **Setup:** {note}" for note in tactic.setup_notes)
         out += [
             "",
             "- **Game plan:** " + (

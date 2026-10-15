@@ -4,25 +4,22 @@
   "formation": "4-4-2",
   "mentality": "Balanced",
   "instructions": [
-    "Much More Direct Passing",
-    "Higher Tempo",
-    "Pass Into Space",
-    "Hit Early Crosses",
-    "Counter",
-    "Regroup"
+    "Hit Early Crosses"
   ],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Kicks long to the target man, so kicking and throwing matter."
+      "why": "Kicks long to the target man, so kicking and throwing matter.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back provides width for the early crosses."
+      "why": "Support full-back provides width for the early crosses.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -33,7 +30,8 @@
         "nncb_defend",
         "nncb_cover"
       ],
-      "why": "Central defender. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: every pass goes long and early anyway. Only one centre-back may use Cover."
+      "why": "Central defender. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: every pass goes long and early anyway. Only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -44,43 +42,50 @@
         "nncb_defend",
         "nncb_cover"
       ],
-      "why": "Central defender on the right. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: every pass goes long and early anyway. Only one centre-back may use Cover."
+      "why": "Central defender on the right. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: every pass goes long and early anyway. Only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right."
+      "why": "Support full-back on the right.",
+      "instructions": []
     },
     {
       "key": "ML",
       "position": "ML",
       "role": "winger_ml_mr_support",
-      "why": "Winger (Support) crosses early for the target man and second striker."
+      "why": "Winger (Support) crosses early for the target man and second striker.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Defensive central midfielder wins the ball and passes it forward simply."
+      "why": "Defensive central midfielder wins the ball and passes it forward simply.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "bwm_mc_support",
-      "why": "Ball-winning midfielder wins the second ball from the knock-downs."
+      "why": "Ball-winning midfielder wins the second ball from the knock-downs.",
+      "instructions": []
     },
     {
       "key": "MR",
       "position": "MR",
       "role": "winger_ml_mr_support",
-      "why": "Winger (Support) crosses early from the right."
+      "why": "Winger (Support) crosses early from the right.",
+      "instructions": []
     },
     {
       "key": "STL",
       "position": "ST",
       "role": "tm_attack",
-      "why": "Target Man (Attack) is the primary long-ball outlet: he competes aerially, pins the centre-backs and attacks early crosses while the second striker attacks knock-downs and space around him."
+      "why": "Target Man (Attack) is the primary long-ball outlet: he competes aerially, pins the centre-backs and attacks early crosses while the second striker attacks knock-downs and space around him.",
+      "instructions": []
     },
     {
       "key": "STR",
@@ -89,7 +94,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Advanced Forward runs onto the flick-ons. Poacher is the alternate."
+      "why": "Advanced Forward runs onto the flick-ons. Poacher is the alternate.",
+      "instructions": []
     }
   ],
   "system": {
@@ -112,12 +118,20 @@
   "whenToUse": "When you have a big target man and a quick second striker, but weak technical midfielders; or against teams with small defenders.",
   "whenNotToUse": "Against tall, strong centre-backs who win the aerial duels, or when your squad is technical and would waste its passing.",
   "instructionRationale": {
-    "Much More Direct Passing": "Long balls go straight to the target man, which is the point of the system.",
-    "Higher Tempo": "Gets the ball forward before the defence has set.",
-    "Pass Into Space": "The second striker runs onto the flick-ons behind the defence.",
-    "Hit Early Crosses": "The wingers cross early for the target man, instead of dribbling.",
-    "Counter": "Attacks quickly when the ball is won.",
-    "Regroup": "Drops back into shape after losing the ball."
+    "Much More Direct Passing": "Deliberately bypass midfield pressure toward the target and second-ball runners.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Pass Into Space": "Lead the mobile forwards and midfield runners into space rather than requiring every pass to arrive at their feet.",
+    "Hit Early Crosses": "Deliver before the defensive line resets, using the target or forward runners already attacking the box.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Target Man": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Floated Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -431,5 +445,53 @@
         "p_attack"
       ]
     }
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Much More Direct Passing",
+      "tempo": "Higher Tempo",
+      "selected": [
+        "Pass Into Space"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Floated",
+      "selected": [
+        "Hit Early Crosses"
+      ]
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
+    "distributionTargets": [
+      "Distribute To Target Man"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "pressingIntensity": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

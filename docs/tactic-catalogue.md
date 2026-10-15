@@ -5,13 +5,15 @@ after changing any tactic. Each tactic's full detail (per-slot reasoning,
 per-instruction rationale, balance requirements) lives in its own file under
 `src/fm_analytics/analytics/data/tactics/`.
 
-63 tactics, 107 roles.
+65 tactics, 107 roles.
 
 ## At a glance
 
 | Tactic | Shape | Mentality | Game plan | Leans on | Use it when |
 | --- | --- | --- | --- | --- | --- |
-| [Attacking 4-3-3](#attacking-433) | 4-3-3 (Attacking) | Attacking | Territorial control | stamina, anticipation, work rate, first touch | Against sides that defend deep and cannot get past your press, or when you are clearly the stronger team and want to pin them back |
+| [Apache v1.0 (Pulsar / TFF)](#apache-v1) | 4-4-1-1 DM WB Asymmetric AM (CR) | Attacking | Territorial control, Counter-attack | — | As the first performance benchmark when the available squad can field its wing-backs, flat wingers, deep playmaker and asymmetric central runners without major positional compromises |
+| [Attacking 4-3-3](#attacking-433) | 4-3-3 (Attacking) | Attacking | Territorial control, Counter-attack | stamina, anticipation, work rate, first touch | Against sides that defend deep and cannot get past your press, or when you are clearly the stronger team and want to pin them back |
+| [Rosler Lower League Special 4-4-2](#rosler-lls-442) | 4-4-2 | Attacking | Territorial control, Counter-attack | — | As a practical published high-press comparison when you want to retain natural full-backs, flat wide players and two forwards, and can field midfielders who share the running and passing work |
 | [Balanced 4-1-2-1-2 Diamond](#balanced-41212-diamond) | 4-1-2-1-2 DM Narrow | Balanced | Counter-attack | stamina, crossing, work rate, acceleration, positioning, anticipation, decisions, teamwork, off the ball, passing, first touch, vision, technique, pace | When your strongest players are central, you can field two complementary strikers, and your wide defenders are capable of supplying the width the shape otherwise lacks |
 | [Balanced 4-1-4-1](#balanced-4141) | 4-1-4-1 | Balanced | Chance control | teamwork, positioning, concentration, stamina, passing, decisions, work rate, off the ball, anticipation, acceleration | As a safe default when you want control without committing many players forward, or away from home against a stronger side |
 | [Balanced 4-3-3 DM Wide](#balanced-433dm) | 4-3-3 DM Wide | Balanced | Counter-attack | teamwork, positioning, concentration, jumping reach, pace, anticipation, acceleration, stamina, work rate, crossing, decisions, passing, first touch, off the ball, finishing, dribbling | As a stable lower-league default when you have one good striker, a dependable holding midfielder and usable wide attackers |
@@ -29,31 +31,31 @@ per-instruction rationale, balance requirements) lives in its own file under
 | [Route One 4-4-2](#route-one-442) | 4-4-2 | Balanced | Counter-attack | teamwork, kicking, positioning, concentration, crossing, stamina, pace, work rate, anticipation, strength, aggression, jumping reach, heading, bravery, first touch, off the ball, acceleration | When you have a big target man and a quick second striker, but weak technical midfielders |
 | [Vertical 4-4-2](#vertical-442) | 4-4-2 | Balanced | Counter-attack | teamwork, positioning, concentration, jumping reach, stamina, work rate, crossing, pace, acceleration, off the ball, anticipation, decisions, passing, first touch, strength | As the primary lower-league default when you want a compact 4-4-2 with quick vertical progression |
 | [Counter 3-4-1-2](#counter-3412) | 3-4-1-2 | Cautious | Counter-attack, Low block | off the ball, positioning, anticipation, concentration | Against stronger sides that will have most of the ball, or when your squad has quick forwards and dependable centre-backs |
+| [Counter 3-5-2 Wing-Back](#counter-352-wingback) | 3-5-2 | Cautious | Counter-attack, Low block | positioning, concentration, composure, decisions | Against stronger opponents who will dominate the ball, or when you have good wing-backs and forwards but a weaker midfield |
 | [Direct Counter 4-4-2](#direct-counter-442) | 4-4-2 | Cautious | Counter-attack, Low block | teamwork, positioning, concentration, anticipation, stamina, pace, acceleration, off the ball, crossing, work rate | Against a stronger or possession-based team that will leave space behind its defence, when you have quick wingers and forwards |
 | [Fluid Counter 4-1-4-1](#fluid-counter-4141) | 4-1-4-1 | Cautious | Counter-attack, Low block | teamwork, positioning, concentration, anticipation, stamina, passing, decisions, first touch, work rate, off the ball, pace, acceleration | Against stronger or possession-based sides when you have a good holding midfielder, quick wingers and a mobile lone striker |
 | [Raumdeuter Counter 4-2-3-1](#raumdeuter-counter-4231) | 4-2-3-1 DM AM Wide | Cautious | Counter-attack, Low block | off the ball, positioning, anticipation, concentration | Against a stronger team that will leave space behind its full-backs, when you have a smart off-the-ball player who scores goals |
 | [Solid 4-2-3-1](#solid-4231) | 4-2-3-1 DM AM Wide | Cautious | Direct, Low block | decisions, kicking, positioning, concentration, marking, tackling, strength, anticipation, jumping reach, pace, acceleration, teamwork, passing, first touch, work rate, stamina, off the ball, dribbling, crossing, heading | Away to a stronger side, when protecting a result, or whenever the priority is reducing transition risk while retaining enough of an outlet to stop the team becoming permanently pinned back |
-| [Counter 3-5-2 Wing-Back](#counter-352-wingback) | 3-5-2 | Counter | Counter-attack, Low block | positioning, concentration, composure, decisions | Against stronger opponents who will dominate the ball, or when you have good wing-backs and forwards but a weaker midfield |
 | [Deep Counter 5-4-1](#deep-counter-541) | 5-4-1 | Defensive | Counter-attack, Low block | kicking, decisions, positioning, concentration, anticipation, jumping reach, pace, acceleration, passing, first touch, technique, composure, tackling, work rate, stamina, off the ball, dribbling, crossing, teamwork, strength, heading | When protecting a lead or playing away against a substantially stronger side, especially when you have a strong aerial striker and quick wide players who can turn clearances into genuine counters |
 | [Defensive 4-5-1](#defensive-451) | 4-5-1 | Defensive | Low block | teamwork, positioning, concentration, marking, anticipation, tackling, work rate, stamina, jumping reach, strength, heading, bravery | Protecting a lead late in a game, or away against a much stronger side where a draw is a good result |
 | [Defensive 5-3-2](#defensive-532) | 5-3-2 | Defensive | Counter-attack, Low block | positioning, concentration, marking, teamwork | Protecting a lead, or against stronger opponents who will have most of the ball |
 | [Low-Block 4-4-2](#lowblock-442) | 4-4-2 (Low Block) | Defensive | Counter-attack, Low block | teamwork, positioning, concentration, marking, anticipation, work rate, stamina, tackling, off the ball | Protecting a lead, or away against a stronger side |
 | [No-Nonsense 5-3-2](#no-nonsense-532) | 5-3-2 | Defensive | Counter-attack, Low block | command of area, aerial reach, handling, heading, jumping reach, positioning, marking, concentration, strength, anticipation, pace, acceleration, aggression, bravery, stamina, work rate, teamwork, first touch, off the ball | When protecting a result against stronger opposition, particularly with dominant aerial centre-backs and a forward able to hold direct passes |
 | [Aerial 3-4-3](#aerial-343) | 3-4-3 | Positive | Direct | crossing, anticipation, off the ball, heading | When you have two wing-backs who cross well and three tall forwards, especially against a back four that struggles with aerial balls |
-| [Aggressive Playing 3-4-3](#aggressive-playing-343) | 3-4-3 | Positive | Possession control, Territorial control | anticipation, pace, composure, passing, acceleration, concentration, positioning | When your centre-backs are quick, brave and technically secure, and you want to dominate territory with a back three |
-| [Attacking 3-4-3 Wing-Back](#attacking-343) | 3-4-3 | Positive | Possession control, Territorial control | stamina, anticipation, work rate, passing | When you are clearly the stronger side and expect the opponent to sit deep, or you need goals late |
+| [Aggressive Playing 3-4-3](#aggressive-playing-343) | 3-4-3 | Positive | Possession control, Territorial control, Counter-attack | anticipation, pace, composure, passing, acceleration, concentration, positioning | When your centre-backs are quick, brave and technically secure, and you want to dominate territory with a back three |
+| [Attacking 3-4-3 Wing-Back](#attacking-343) | 3-4-3 | Positive | Possession control, Territorial control, Counter-attack | stamina, anticipation, work rate, passing | When you are clearly the stronger side and expect the opponent to sit deep, or you need goals late |
 | [Attacking 4-2-4](#attacking-424) | 4-2-4 | Positive | Territorial control, Counter-attack | kicking, decisions, anticipation, positioning, concentration, pace, acceleration, stamina, work rate, aggression, passing, first touch, vision, off the ball, dribbling, finishing, crossing, teamwork | Situationally rather than as a default: when you want to attack an opponent aggressively, particularly a back line that can be stretched or wide areas that can be attacked, or when you are chasing a game and need more players on the opposition back line without a wholesale tactical rewrite |
 | [Box Midfield 4-2-3-1](#box-midfield-4231) | 4-2-3-1 DM AM Wide | Positive | Possession control | composure, technique, positioning, passing | When you want to control the middle of the pitch against a side that defends in a narrow block, and your full-backs are comfortable on the ball |
 | [Complete Wing-Back 4-2-3-1](#complete-wingback-4231) | 4-2-3-1 DM AM Wide | Positive | Possession control, Territorial control | stamina, composure, technique, crossing | When your two full-backs are among your best attacking players, or against a team that defends narrowly and leaves the flanks open |
 | [Control Possession 4-2-3-1](#control-possession-4231) | 4-2-3-1 DM AM Wide | Positive | Possession control | composure, decisions, technique, positioning | When your squad is technically better than the opponent's and you expect them to sit deep, or when you want to protect a lead by keeping the ball |
 | [Crossing 4-3-3](#crossing-433) | 4-3-3 | Positive | Direct | crossing, stamina, heading, jumping reach | When you have two tall forwards who can play wide, a strong central striker, and full-backs who can cross, especially against defences that are short or slow to turn |
 | [False Nine 4-3-3](#false-nine-433) | 4-3-3 DM Wide | Positive | Possession control, Territorial control | composure, technique, anticipation, stamina | Against a back four that defends deep and narrow, when you have a striker who is a better passer than a finisher and two wingers who can score |
-| [Front-Foot 4-4-2](#front-foot-442) | 4-4-2 | Positive | Territorial control, Direct | stamina, work rate, aggression, anticipation, pace, acceleration, concentration | When you have an aggressive, aerial stopper, a quick covering partner and forwards able to sustain the first press |
+| [Front-Foot 4-4-2](#front-foot-442) | 4-4-2 | Positive | Territorial control, Counter-attack | stamina, work rate, aggression, anticipation, pace, acceleration, concentration | When you have an aggressive, aerial stopper, a quick covering partner and forwards able to sustain the first press |
 | [Gegenpress 4-2-3-1](#gegenpress-4231) | 4-2-3-1 DM AM Wide | Positive | Territorial control, Counter-attack | work rate, aggression, stamina, anticipation | When you have fit, aggressive players with high work rate and stamina, and you want to play in the opponent's half against sides that struggle to play out from the back |
-| [High-Press 4-3-3](#highpress-433) | 4-3-3 (High Press) | Positive | Territorial control | stamina, work rate, anticipation, aggression | When you have fit, energetic players and want to play in the opponent's half, especially against sides that build slowly from the back |
+| [High-Press 4-3-3](#highpress-433) | 4-3-3 (High Press) | Positive | Territorial control, Counter-attack | stamina, work rate, anticipation, aggression | When you have fit, energetic players and want to play in the opponent's half, especially against sides that build slowly from the back |
 | [Inverted Wide 4-4-2](#inverted-wide-442) | 4-4-2 | Positive | Counter-attack | stamina, work rate, anticipation, positioning, tackling, marking, acceleration, dribbling, off the ball | When you have a natural flat inverted winger, an energetic attacking full-back and a wide defensive specialist on the opposite side |
 | [Inverted Wing-Back 4-3-3](#inverted-wingback-433) | 4-3-3 DM Wide | Positive | Possession control, Territorial control | composure, technique, stamina, passing | When your full-backs are better passers than crossers, you want to dominate the centre of the pitch, and you have two wingers who are happy to stay wide |
-| [Narrow 4-2-2-2](#narrow-4222) | 4-2-2-2 | Positive | Territorial control | first touch, teamwork, stamina, work rate | When your best players are central and you lack wingers, especially against a team with two central midfielders who will be overrun |
+| [Narrow 4-2-2-2](#narrow-4222) | 4-2-2-2 | Positive | Territorial control, Counter-attack | first touch, teamwork, stamina, work rate | When your best players are central and you lack wingers, especially against a team with two central midfielders who will be overrun |
 | [Positional Play 4-3-3](#positional-play-433) | 4-3-3 | Positive | Possession control | composure, decisions, technique, passing, positioning, teamwork | When you have a composed central organiser, a hard-working channel midfielder, and a technical half-space player |
 | [Positive 3-4-2-1](#positive-3421) | 3-4-2-1 | Positive | Possession control, Territorial control | composure, technique, stamina, passing | When you have two good creative players and a wing-back pair who can cover the flanks, especially against a back four that has no midfielder in the half-spaces |
 | [Positive 4-2-3-1 Wide](#positive-4231) | 4-2-3-1 DM AM Wide | Positive | Possession control, Territorial control, Counter-attack | decisions, kicking, first touch, positioning, concentration, anticipation, passing, pace, acceleration, stamina, work rate, teamwork, vision, technique, off the ball, dribbling, finishing, crossing, composure | As a proactive default when you have a good attacking midfielder, two complementary wide attackers, a striker who can lead pressure and enough quality in the double pivot to build through pressure |
@@ -66,7 +68,7 @@ per-instruction rationale, balance requirements) lives in its own file under
 | [Roaming Playmaker 4-3-3](#roaming-playmaker-433) | 4-3-3 | Positive | Possession control, Territorial control | stamina, work rate, technique, passing, decisions, composure | When a roaming, high-stamina playmaker is one of your best players and you can protect him with a disciplined ball-winner |
 | [Siege 4-4-2](#siege-442) | 4-4-2 | Positive | Territorial control, Direct | work rate, bravery, heading, jumping reach, strength, crossing, stamina, anticipation, off the ball | Against weaker sides that defend their box deep but are physically ordinary, when you have a genuine target man, centre-backs who dominate in the air and wide players who cross |
 | [Squeeze 4-3-3 DM Wide](#squeeze-433dm) | 4-3-3 DM Wide | Positive | Territorial control | stamina, work rate, teamwork, pace, acceleration, anticipation, crossing, positioning, off the ball, passing, decisions, finishing, aggression | Against weaker sides that sit deep or go long to escape pressure, when the squad is fit and hard-working and the back line has the pace to defend space behind it |
-| [Territorial 3-5-2 Wing-Back](#territorial-352) | 3-5-2 | Positive | Territorial control | stamina, work rate, teamwork, pace, acceleration, tackling, anticipation, crossing, positioning, off the ball, passing, decisions, first touch | Against weaker sides in a back four that defend deep and try to clear their lines, when you have two wing-backs with the stamina for a whole flank, three centre-backs including two comfortable stepping out, and two forwards |
+| [Territorial 3-5-2 Wing-Back](#territorial-352) | 3-5-2 | Positive | Territorial control | stamina, work rate, teamwork, pace, acceleration, tackling, anticipation, crossing, positioning, off the ball, passing, decisions, first touch | Against weaker sides that defend deep and clear their lines, when you have two attacking wing-backs, three centre-backs who can protect their channels, and two useful forwards |
 | [Trequartista 4-3-1-2](#trequartista-4312) | 4-3-1-2 | Positive | Chance control | first touch, teamwork, technique, composure | When you have one player of clearly superior creativity who is not suited to a fixed role, and a striker partner who will run and press for him |
 | [Trequartista 4-4-2](#trequartista-442) | 4-4-2 | Positive | Chance control | teamwork, positioning, concentration, stamina, work rate, off the ball, vision, technique, first touch, decisions, flair, composure, passing, aggression, anticipation | When you have a creative forward who is not a natural goalscorer, and a partner with pace and work rate |
 | [Vertical Tiki-Taka 4-3-3 DM](#vertical-tikitaka-433dm) | 4-3-3 DM Wide | Positive | Possession control, Territorial control, Counter-attack | anticipation, first touch, technique, pace | When you have good passers and quick forwards, against teams that sit in a mid-block and leave space behind their line |
@@ -76,6 +78,33 @@ per-instruction rationale, balance requirements) lives in its own file under
 | [Wing Play 4-4-2](#wing-play-442) | 4-4-2 | Positive | Counter-attack | teamwork, positioning, concentration, stamina, crossing, work rate, pace, acceleration, dribbling, passing, vision, first touch, decisions, jumping reach, strength, heading, bravery, off the ball, anticipation | When you have two good wingers, full-backs with stamina, and a striker who wins headers |
 
 ## Each tactic
+
+### Apache v1.0 (Pulsar / TFF)
+
+`apache_v1` · 4-4-1-1 DM WB Asymmetric AM (CR) · Attacking · Published FM20 benchmark
+
+Pulsar’s Apache v1.0, based on TFF Cerber V4: an Attacking, extremely wide asymmetric system with a deep playmaker, two central runners and very urgent pressure.
+
+- **Goal:** Sweeper Keeper (Attack)
+- **Defence:** Ball-Playing Defender (Defend) ×2, Wing-Back (Support) [WBL/WBR] ×2
+- **Midfield:** Deep-Lying Playmaker (Support) [DM], Winger (Attack) [ML/MR] ×2, Central Midfielder (Attack)
+- **Attack:** Shadow Striker (Attack), Advanced Forward (Attack)
+- **Published source:** [Pulsar, based on TFF Cerber V4](https://fm-arena.com/thread/604-apache-v1-0-cerber-v4-tweak/); [original FM file](../src/fm_analytics/analytics/data/tactic_files/apache_v1.fmf).
+- **Verification:** Formation, roles and selected team instructions checked against FM-Arena’s screenshot of the original tactic. The unmodified FM file retains all player instructions and set-piece routines; those are not fully decoded into the catalogue. Import the original file for the benchmark.
+- **Defensive settings:** line of engagement: Much Higher; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Extremely Urgent; prevent short GK distribution: True; use offside trap: True; tackling: Neutral
+- **Setup:** Import the original .fmf using the download on this page. Keep its complete player instructions and set-piece routines for the first benchmark; the catalogue is the selection guide, not a replacement file.
+- **Setup:** Use no additional opposition instructions. Keep the starting mentality throughout the replay, and retain the same holiday management policy as the reference.
+- **Setup:** The published score describes another test environment. Assess both teams’ chances, goals, crosses and red cards with this squad before adopting it.
+- **Setup:** The source screenshot leaves the defensive-line modifier unselected: Standard here means the Attacking mentality’s default. Do not silently replace this with a Higher line.
+- **Setup:** Corners: ML from the left, MR from the right. Throw-ins: WBL from the left, WBR from the right. Keep the downloaded routines, including the attacking free-kick tweak.
+- **Setup:** The TFF source discusses hard tackling player instructions and managing bookings. A holiday benchmark tests the assistant’s handling of these too; retain and flag red-card games.
+
+- **Game plan:** Territorial control (Counter-Press, Much Higher Line of Engagement, Much More Urgent Pressing); Counter-attack (Counter when the ball is won)
+- **Leans on:** —
+- **Needs:** Wing-backs and flat wide midfielders; A supporting deep playmaker; A Shadow Striker and attacking central runner; Use the original FM file for complete player instructions and set pieces
+- **Instructions:** Extremely Wide; More Direct Passing; Much Higher Tempo; Pass Into Space; Play Out Of Defence; Work Ball Into Box; Counter-Press; Counter; Slow Pace Down; Distribute To Centre Backs; Roll It Out; Much Higher Line of Engagement; Standard Defensive Line; Much More Urgent Pressing; Prevent Short GK Distribution; Use Offside Trap
+- **Avoid when:** When the available XI cannot cover those jobs, or when the goal is to isolate one instruction: this is a complete published package and changes several phases together
+- **When leading:** Keep the benchmark’s Attacking mentality during the experiment; make a separate labelled version if you later test a lead-protection policy.
 
 ### Attacking 4-3-3
 
@@ -87,13 +116,45 @@ An aggressive 4-3-3 committing full-backs, midfield runners and wide forwards to
 - **Defence:** Wing-Back (Attack) [DL/DR] ×2, Central Defender (Defend) *, Ball-Playing Defender (Defend)
 - **Midfield:** Central Midfielder (Defend), Box-to-Box Midfielder (Support), Mezzala (Attack)
 - **Attack:** Winger (Attack) [AML/AMR], Inside Forward (Attack), Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Much Higher; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
-- **Game plan:** Territorial control (Counter-Press, Much Higher Line of Engagement, Higher Defensive Line)
+- **Game plan:** Territorial control (Counter-Press, Much Higher Line of Engagement, Higher Defensive Line, More Urgent Pressing); Counter-attack (Counter when the ball is won)
 - **Leans on:** stamina +2, anticipation +2, work rate +2, first touch +2 (whole team)
 - **Expects at least (tapers below):** stamina 10 (DL, DR, MC, AML, AMR, ST); work rate 10 (MC, AML, AMR, ST)
 - **Needs:** Fast recovery defenders; Attacking full-backs; Midfield legs; Wide forwards with end product
-- **Instructions:** Much Higher Line of Engagement; Higher Defensive Line; Shorter Passing; Higher Tempo; Counter-Press
+- **Instructions:** Fairly Wide; Shorter Passing; Higher Tempo; Counter-Press; Counter; Distribute To Centre Backs; Take Short Kicks; Much Higher Line of Engagement; Higher Defensive Line; More Urgent Pressing
 - **Avoid when:** Against quick counter-attackers when your full-backs are slow to recover: the space behind both full-backs is the weakness
+
+### Rosler Lower League Special 4-4-2
+
+`rosler_lls_442` · 4-4-2 · Attacking · Published lower-league high press
+
+Mr U Rosler’s FM20.3 LLS 442: two attacking pressing forwards and wingers, two supporting central midfielders, conservative full-backs and a very high, urgent defensive approach.
+
+- **Goal:** Goalkeeper (Defend)
+- **Defence:** Full-Back (Support) ×2, Central Defender (Defend) ×2
+- **Midfield:** Winger (Attack) [ML/MR] ×2, Central Midfielder (Support) ×2
+- **Attack:** Pressing Forward (Attack) ×2
+- **Published source:** [Mr U Rosler](https://community.sports-interactive.com/forums/topic/514991-fm203-442-lower-league-special-stockport-98-points-108-goals/); [original FM file](../src/fm_analytics/analytics/data/tactic_files/rosler_lls_442.fmf).
+- **Verification:** Formation, roles and selected team instructions checked against FM-Arena’s screenshot of the original tactic. The unmodified FM file retains all player instructions and set-piece routines; those are not fully decoded into the catalogue. Import the original file for the benchmark.
+- **DL player instructions:** Sit Narrower
+- **DR player instructions:** Sit Narrower
+- **Defensive settings:** line of engagement: Much Higher; defensive line: Much Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Extremely Urgent; prevent short GK distribution: True; use offside trap: True; tackling: Get Stuck In
+- **Setup:** Import the original .fmf using the download on this page. Keep its complete player instructions and set-piece routines for the first benchmark; the catalogue is the selection guide, not a replacement file.
+- **Setup:** Use no additional opposition instructions. Keep the starting mentality throughout the replay, and retain the same holiday management policy as the reference.
+- **Setup:** The published score describes another test environment. Assess both teams’ chances, goals, crosses and red cards with this squad before adopting it.
+- **Setup:** Standard width, passing and tempo mean no extra slider modifier relative to Attacking mentality; they do not describe slow or cautious play.
+- **Setup:** Left-back takes left corners and throw-ins; right-back takes right corners and throw-ins. Retain the downloaded routines.
+- **Setup:** Get Stuck In and the original player instructions can affect bookings. Record red cards rather than silently deleting these instructions from the benchmark.
+
+- **Game plan:** Territorial control (Counter-Press, Much Higher Line of Engagement, Much Higher Defensive Line, Much More Urgent Pressing); Counter-attack (Counter when the ball is won)
+- **Leans on:** —
+- **Needs:** Two attacking Pressing Forwards; Two supporting central midfielders; Natural wide attackers and supporting full-backs; Keep the original player instructions and set pieces
+- **Instructions:** Overlap Left; Overlap Right; Play Out Of Defence; Counter-Press; Counter; Distribute To Flanks; Much Higher Line of Engagement; Much Higher Defensive Line; Much More Urgent Pressing; Prevent Short GK Distribution; Use Offside Trap; Get Stuck In
+- **Avoid when:** When you cannot field two useful pressing forwards and a hard-working midfield pair, or when you need proof that a lower-league label guarantees suitability
+- **When leading:** Retain Attacking and the original settings for the fixed-policy benchmark. Any later change to mentality or tackling should be recorded as a separate version.
 
 ### Balanced 4-1-2-1-2 Diamond
 
@@ -105,12 +166,15 @@ A compact narrow 4-1-2-1-2 built around central combinations, a holding midfield
 - **Defence:** Wing-Back (Support) [DL/DR] * ×2, Central Defender (Defend) * ×2
 - **Midfield:** Defensive Midfielder (Defend), Box-to-Box Midfielder (Support), Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Attacking Midfielder (Support), Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Counter-attack (Counter when the ball is won)
 - **Leans on:** stamina +2, crossing +2, work rate +1, acceleration +1 (DL, DR; Wing-Back (Support) [DL/DR], Full-Back (Support)); positioning +2, anticipation +1, decisions +1, teamwork +1 (DM; Defensive Midfielder (Defend)); work rate +2, stamina +2, off the ball +2, teamwork +1 (MC; Box-to-Box Midfielder (Support)); passing +2, first touch +2, vision +2, decisions +1 (MC; Deep-Lying Playmaker (Support) [MC]); first touch +2, vision +2, passing +2, decisions +1, technique +1 (AMC; Attacking Midfielder (Support)); first touch +2, passing +1, decisions +1, teamwork +1 (ST; Deep-Lying Forward (Support), Complete Forward (Support)); off the ball +2, acceleration +2, anticipation +2, pace +1 (ST; Advanced Forward (Attack)); off the ball +3, anticipation +3, acceleration +1 (ST; Poacher (Attack))
 - **Expects at least (tapers below):** stamina 9 (DL, DR; Wing-Back (Support) [DL/DR], Full-Back (Support)); crossing 8 (DL, DR; Wing-Back (Support) [DL/DR], Full-Back (Support)); positioning 9 (DM; Defensive Midfielder (Defend)); work rate 9 (MC; Box-to-Box Midfielder (Support)); stamina 9 (MC; Box-to-Box Midfielder (Support)); off the ball 8 (MC; Box-to-Box Midfielder (Support)); passing 9 (MC; Deep-Lying Playmaker (Support) [MC]); first touch 8 (MC; Deep-Lying Playmaker (Support) [MC]); vision 8 (MC; Deep-Lying Playmaker (Support) [MC]); first touch 9 (AMC; Attacking Midfielder (Support)); passing 8 (AMC; Attacking Midfielder (Support)); vision 8 (AMC; Attacking Midfielder (Support)); decisions 8 (AMC; Attacking Midfielder (Support)); first touch 8 (ST; Deep-Lying Forward (Support), Complete Forward (Support)); acceleration 8 (ST; Advanced Forward (Attack)); pace 8 (ST; Advanced Forward (Attack)); off the ball 8 (ST; Advanced Forward (Attack)); off the ball 9 (ST; Poacher (Attack)); anticipation 8 (ST; Poacher (Attack))
 - **Needs:** Wide defenders capable of providing the formation's width repeatedly; A disciplined holding midfielder at the base of the diamond; A reliable deep distributor and an energetic midfield runner; An attacking midfielder comfortable receiving and creating in congested central areas; A linking forward paired with a striker who threatens the space beyond
-- **Instructions:** Fairly Narrow; Shorter Passing; Counter; Regroup; Standard Line of Engagement; Standard Defensive Line
+- **Instructions:** Fairly Narrow; Shorter Passing; Regroup; Counter; Distribute To Full Backs; Roll It Out; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** When the opposition can isolate your wide defenders repeatedly, when your wide defenders cannot cover the flank athletically, or when your central players are not secure enough to combine in congested areas
 
 ### Balanced 4-1-4-1
@@ -123,12 +187,15 @@ A compact 4-1-4-1 with a dedicated screen behind a four-man midfield.
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) *, Ball-Playing Defender (Defend)
 - **Midfield:** Defensive Midfielder (Defend), Wide Midfielder (Support) ×2, Central Midfielder (Defend), Box-to-Box Midfielder (Support)
 - **Attack:** Poacher (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Chance control (Defensive Midfielder (Defend) holds behind the ball, Central Midfielder (Defend) holds behind the ball)
 - **Leans on:** teamwork +1 (whole team); positioning +1, concentration +1 (DC); stamina +1, teamwork +1, positioning +1 (DL, DR); positioning +2, teamwork +2, passing +2, decisions +1, concentration +1 (DM); work rate +2, stamina +2, passing +1, teamwork +1, positioning +1 (MC); work rate +2, teamwork +2, stamina +1 (ML, MR); off the ball +2, anticipation +2, acceleration +1 (ST)
 - **Expects at least (tapers below):** positioning 7 (DM); passing 7 (DM); work rate 7 (MC); stamina 7 (MC); work rate 7 (ML, MR); teamwork 7 (ML, MR); off the ball 7 (ST)
 - **Needs:** Disciplined holding midfielder who can also circulate the ball; Hard-working wide midfielders who recover into shape; One central midfielder able to cover ground and support the lone striker; Compact defensive spacing; A self-sufficient striker with good movement
-- **Instructions:** Standard Line of Engagement; Standard Defensive Line; Shorter Passing; Regroup
+- **Instructions:** Shorter Passing; Regroup; Distribute To Full Backs; Roll It Out; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you need to chase a goal: there is a single striker and no creative attacking midfielder to feed him
 
 ### Balanced 4-3-3 DM Wide
@@ -141,6 +208,9 @@ A simple lower-league 4-3-3 with a dedicated holding midfielder, natural width o
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Defensive Midfielder (Defend), Central Midfielder (Support) *, Central Midfielder (Attack)
 - **Attack:** Inside Forward (Attack), Winger (Support) [AML/AMR], Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Counter-attack (Counter when the ball is won)
 - **Leans on:** teamwork +1 (whole team); positioning +2, concentration +2, jumping reach +1 (DC; Central Defender (Defend)); pace +2, anticipation +2, acceleration +1, concentration +1 (DC; Central Defender (Cover)); stamina +1, work rate +1, positioning +1, crossing +1 (DL, DR; Full-Back (Support)); positioning +2, concentration +1, anticipation +1, decisions +1, teamwork +1 (DM; Defensive Midfielder (Defend)); passing +1, first touch +1, decisions +1, teamwork +1 (MC; Central Midfielder (Support)); work rate +2, stamina +2, off the ball +2, anticipation +1 (MC; Box-to-Box Midfielder (Support)); off the ball +2, anticipation +2, stamina +1, finishing +1 (MC; Central Midfielder (Attack)); acceleration +2, pace +2, off the ball +2, dribbling +1, finishing +1 (AML; Inside Forward (Attack)); crossing +2, pace +2, acceleration +2, dribbling +1, work rate +1 (AMR; Winger (Support) [AML/AMR]); acceleration +2, pace +2, off the ball +2, anticipation +2 (ST; Advanced Forward (Attack)); off the ball +3, anticipation +3, acceleration +1 (ST; Poacher (Attack))
@@ -159,11 +229,14 @@ A conventional 4-4-2 defensive shell with one attacker dropping into the number-
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Wide Midfielder (Support), Central Midfielder (Defend), Central Midfielder (Support), Winger (Support) [ML/MR]
 - **Attack:** Attacking Midfielder (Support), Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Counter-attack (Counter when the ball is won)
 - **Leans on:** pace +2, off the ball +2, crossing +2, anticipation +2 (whole team)
 - **Needs:** Intelligent AMC; Mobile striker; Hard-working wide midfielders; Balanced CM pair
-- **Instructions:** Fairly Wide; Slightly More Direct Passing; Counter; Regroup; Standard Line of Engagement; Standard Defensive Line
+- **Instructions:** Fairly Wide; Slightly More Direct Passing; Regroup; Counter; Distribute Quickly; Distribute To Flanks; Take Long Kicks; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you need two players to attack the box, or against sides that overload the middle: two central midfielders can be outnumbered
 
 ### Balanced 4-4-2
@@ -176,6 +249,9 @@ A simple two-banks-of-four structure with natural width and two complementary fo
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Winger (Support) [ML/MR] ×2, Central Midfielder (Defend), Central Midfielder (Support)
 - **Attack:** Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Counter-attack (Counter when the ball is won)
 - **Leans on:** teamwork +2 (whole team); positioning +2, concentration +2 (DC); stamina +2, positioning +1, crossing +1 (DL, DR); crossing +2, pace +2, acceleration +2 (ML, MR); work rate +2, positioning +2 (MC); off the ball +2, anticipation +2, acceleration +2 (ST)
@@ -194,6 +270,9 @@ A balanced, more direct 4-3-3 with a dedicated holding midfielder behind a ball-
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Defensive Midfielder (Defend), Deep-Lying Playmaker (Support) [MC], Ball-Winning Midfielder (Support) [MC]
 - **Attack:** Inside Forward (Attack), Winger (Attack) [AML/AMR], Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Counter-attack (Counter when the ball is won)
 - **Leans on:** teamwork +1 (whole team); positioning +2, concentration +2, jumping reach +1 (DC; Central Defender (Defend)); pace +2, anticipation +2, acceleration +1, concentration +1 (DC; Central Defender (Cover)); stamina +1, work rate +1, positioning +1, crossing +1 (DL, DR; Full-Back (Support)); positioning +2, concentration +1, anticipation +1, decisions +1, teamwork +1 (DM; Defensive Midfielder (Defend)); acceleration +2, pace +2, off the ball +2, dribbling +1, finishing +1 (AML; Inside Forward (Attack)); acceleration +2, pace +2, off the ball +2, anticipation +2 (ST; Advanced Forward (Attack)); off the ball +3, anticipation +3, acceleration +1 (ST; Poacher (Attack)); work rate +2, stamina +2, tackling +1, anticipation +1, decisions +1 (MC; Ball-Winning Midfielder (Support) [MC]); passing +2, first touch +1, vision +1, decisions +2 (MC; Deep-Lying Playmaker (Support) [MC]); acceleration +2, pace +2, crossing +2, off the ball +1 (AMR; Winger (Attack) [AML/AMR]); work rate +2, stamina +2, off the ball +2, acceleration +1 (ST; Pressing Forward (Attack))
@@ -212,6 +291,9 @@ A balanced, asymmetric 3-4-3 for games you are expected to win: three centre-bac
 - **Defence:** Central Defender (Defend) * ×2, Ball-Playing Defender (Defend) *, Wing-Back (Attack) [WBL/WBR], Wing-Back (Support) [WBL/WBR]
 - **Midfield:** Deep-Lying Playmaker (Defend) [MC], Central Midfielder (Support)
 - **Attack:** Inside Forward (Attack), Winger (Attack) [AML/AMR], Poacher (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Chance control (Deep-Lying Playmaker (Defend) [MC] holds behind the ball)
 - **Leans on:** decisions +1, teamwork +1 (whole team); positioning +2, concentration +2, composure +1 (DC); passing +1 (DC; Central Defender (Defend)); passing +1, composure +1, vision +1 (DC; Ball-Playing Defender (Defend)); crossing +2, stamina +1, work rate +1 (WBL; Wing-Back (Attack) [WBL/WBR]); passing +1, positioning +1, crossing +1 (WBR; Wing-Back (Support) [WBL/WBR]); positioning +2, passing +2, decisions +1, composure +1 (MC; Deep-Lying Playmaker (Defend) [MC]); passing +2, first touch +1, positioning +1 (MC; Central Midfielder (Support)); off the ball +2, finishing +1, anticipation +1 (AML; Inside Forward (Attack)); crossing +2, dribbling +1, technique +1, decisions +1 (AMR; Winger (Attack) [AML/AMR]); off the ball +2, anticipation +2, finishing +1, composure +1 (ST; Poacher (Attack), Advanced Forward (Attack))
@@ -231,6 +313,9 @@ A balanced 3-5-2 for games you are expected to win: three centre-backs and a hol
 - **Defence:** Central Defender (Defend), Ball-Playing Defender (Defend) *, Central Defender (Defend) *, Wing-Back (Attack) [WBL/WBR] ×2
 - **Midfield:** Defensive Midfielder (Defend), Deep-Lying Playmaker (Support) [MC], Box-to-Box Midfielder (Support)
 - **Attack:** Deep-Lying Forward (Support) *, Poacher (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Chance control (Defensive Midfielder (Defend) holds behind the ball)
 - **Leans on:** decisions +1, teamwork +1 (whole team); positioning +2, concentration +2, composure +1 (DC); passing +1 (DC; Central Defender (Defend)); passing +1, composure +1, vision +1 (DC; Ball-Playing Defender (Defend)); crossing +2, stamina +1, work rate +1 (WBL, WBR; Wing-Back (Attack) [WBL/WBR]); positioning +2, passing +2, composure +1, concentration +1 (DM; Defensive Midfielder (Defend)); passing +2, decisions +2, composure +2, first touch +1, vision +1 (MC; Deep-Lying Playmaker (Support) [MC]); passing +1, off the ball +1, positioning +1 (MC; Box-to-Box Midfielder (Support)); first touch +2, passing +2, decisions +1, composure +1 (ST; Deep-Lying Forward (Support), Complete Forward (Support)); off the ball +2, anticipation +2, finishing +1, composure +1 (ST; Poacher (Attack), Advanced Forward (Attack))
@@ -250,6 +335,9 @@ A balanced 4-2-3-1 for games you are expected to win: a central-midfield pivot o
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Central Midfielder (Defend), Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Winger (Attack) [AML/AMR] ×2, Attacking Midfielder (Attack), Poacher (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Chance control (Central Midfielder (Defend) holds behind the ball)
 - **Leans on:** decisions +1, teamwork +1 (whole team); positioning +2, concentration +2, composure +1 (DC); passing +1, crossing +1, positioning +1 (DL, DR; Full-Back (Support)); positioning +2, passing +2, composure +1 (MC; Central Midfielder (Defend)); passing +2, decisions +2, composure +2, first touch +1, vision +1 (MC; Deep-Lying Playmaker (Support) [MC]); off the ball +2, passing +1, anticipation +1, composure +1 (AMC; Attacking Midfielder (Attack)); crossing +2, dribbling +1, technique +1, decisions +1 (AML, AMR; Winger (Attack) [AML/AMR]); off the ball +2, anticipation +2, finishing +1, composure +1 (ST; Poacher (Attack), Advanced Forward (Attack))
@@ -269,6 +357,9 @@ A balanced 4-3-3 for games you are expected to win: keeps the ball through a dee
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Defensive Midfielder (Defend), Deep-Lying Playmaker (Support) [MC], Central Midfielder (Attack)
 - **Attack:** Winger (Attack) [AML/AMR] ×2, Poacher (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Chance control (Defensive Midfielder (Defend) holds behind the ball)
 - **Leans on:** decisions +1, teamwork +1 (whole team); positioning +2, concentration +2, composure +1 (DC); passing +1, crossing +1, positioning +1 (DL, DR; Full-Back (Support)); positioning +2, passing +2, composure +1, concentration +1 (DM; Defensive Midfielder (Defend)); passing +2, decisions +2, composure +2, first touch +1, vision +1 (MC; Deep-Lying Playmaker (Support) [MC]); passing +2, first touch +1, off the ball +1, anticipation +1 (MC; Central Midfielder (Attack)); crossing +2, dribbling +1, technique +1, decisions +1 (AML, AMR; Winger (Attack) [AML/AMR]); off the ball +2, anticipation +2, finishing +1, composure +1 (ST; Poacher (Attack), Advanced Forward (Attack))
@@ -288,6 +379,9 @@ A balanced 4-4-2 for games you are expected to win: a holder and a deep-lying pl
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Winger (Attack) [ML/MR] ×2, Central Midfielder (Defend), Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Deep-Lying Forward (Support) *, Poacher (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Chance control (Central Midfielder (Defend) holds behind the ball)
 - **Leans on:** decisions +1, teamwork +1 (whole team); positioning +2, concentration +2, composure +1 (DC); passing +1, crossing +1, positioning +1 (DL, DR; Full-Back (Support)); positioning +2, passing +2, composure +1 (MC; Central Midfielder (Defend)); passing +2, decisions +2, composure +2, first touch +1, vision +1 (MC; Deep-Lying Playmaker (Support) [MC]); crossing +2, dribbling +1, technique +1, decisions +1 (ML, MR; Winger (Attack) [ML/MR]); first touch +2, passing +2, decisions +1, composure +1 (ST; Deep-Lying Forward (Support), Complete Forward (Support)); off the ball +2, anticipation +2, finishing +1, composure +1 (ST; Poacher (Attack), Advanced Forward (Attack))
@@ -307,6 +401,9 @@ A 4-2-3-1 built around one specialist number ten who is protected from defensive
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Ball-Winning Midfielder (Support) [DM], Defensive Midfielder (Defend)
 - **Attack:** Winger (Attack) [AML/AMR] ×2, Enganche (Support), Target Man (Support) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Direct (Slightly More Direct Passing)
 - **Leans on:** kicking +2, decisions +1 (GK; Goalkeeper (Defend)); positioning +2, concentration +2, jumping reach +1 (DC; Central Defender (Defend)); pace +2, anticipation +2, acceleration +1, concentration +1 (DC; Central Defender (Cover)); stamina +1, work rate +1, crossing +1, positioning +1 (DL, DR; Full-Back (Support)); work rate +2, stamina +2, aggression +2, anticipation +2, positioning +1 (DM; Ball-Winning Midfielder (Support) [DM]); positioning +2, concentration +2, decisions +1, teamwork +1 (DM; Defensive Midfielder (Defend)); pace +2, acceleration +2, crossing +2, off the ball +1, work rate +2, stamina +1 (AML, AMR; Winger (Attack) [AML/AMR]); first touch +3, passing +3, vision +3, technique +2, decisions +2, flair +2, composure +1 (AMC; Enganche (Support)); strength +3, jumping reach +3, heading +2, first touch +2, teamwork +1 (ST; Target Man (Support)); strength +2, jumping reach +3, heading +2, off the ball +2, anticipation +1, finishing +1 (ST; Target Man (Attack))
@@ -325,6 +422,9 @@ A balanced possession 4-3-3: the Half-Back drops in to make a back three, the fu
 - **Defence:** Wing-Back (Support) [DL/DR] ×2, Ball-Playing Defender (Defend), Central Defender (Cover) *
 - **Midfield:** Half-Back (Defend), Mezzala (Attack), Central Midfielder (Support)
 - **Attack:** Inside Forward (Support), Winger (Attack) [AML/AMR], Deep-Lying Forward (Support) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Possession control (Shorter Passing, Lower Tempo, Play Out Of Defence, Hold Shape)
 - **Leans on:** passing +1, first touch +1, composure +1 (whole team); passing +2, first touch +1 (GK; Sweeper Keeper (Support)); passing +1, vision +1 (DC; Ball-Playing Defender (Defend)); positioning +1, concentration +1 (DC; Central Defender (Cover), Central Defender (Defend)); passing +1, stamina +1 (DL, DR); passing +2, positioning +1 (DM; Half-Back (Defend)); off the ball +1, dribbling +1 (MC; Mezzala (Attack)); passing +2, decisions +1 (MC; Central Midfielder (Support)); technique +1, decisions +1 (AML; Inside Forward (Support)); crossing +1, dribbling +1 (AMR; Winger (Attack) [AML/AMR]); first touch +2, passing +1, vision +1 (ST; Deep-Lying Forward (Support), False Nine (Support))
@@ -344,6 +444,9 @@ A balanced 4-3-3 built around a fixed rest defence: two centre-backs, the holdin
 - **Defence:** Inverted Wing Back (Support), Central Defender (Defend) *, Central Defender (Cover) *, Wing-Back (Attack) [DL/DR]
 - **Midfield:** Defensive Midfielder (Defend), Mezzala (Attack), Central Midfielder (Support)
 - **Attack:** Winger (Attack) [AML/AMR], Inside Forward (Support), Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Chance control (Defensive Midfielder (Defend) holds behind the ball)
 - **Leans on:** decisions +1, teamwork +1 (whole team); positioning +2, concentration +2 (DC); positioning +2, passing +1, composure +1 (DL; Inverted Wing Back (Support)); crossing +2, stamina +1 (DR; Wing-Back (Attack) [DL/DR]); positioning +2, anticipation +1, concentration +1 (DM; Defensive Midfielder (Defend)); off the ball +2, anticipation +1, finishing +1 (MC; Mezzala (Attack)); passing +2, decisions +1, positioning +1 (MC; Central Midfielder (Support)); crossing +2, dribbling +1 (AML; Winger (Attack) [AML/AMR]); passing +1, off the ball +1, technique +1 (AMR; Inside Forward (Support)); off the ball +2, finishing +1 (ST; Advanced Forward (Attack), Poacher (Attack))
@@ -363,12 +466,15 @@ A deliberately direct system that moves the ball forward early toward a physical
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Winger (Support) [ML/MR] ×2, Central Midfielder (Defend), Ball-Winning Midfielder (Support) [MC]
 - **Attack:** Target Man (Attack), Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Counter-attack (Counter when the ball is won)
 - **Leans on:** teamwork +1 (whole team); kicking +2 (GK); positioning +1, concentration +1 (DC); crossing +1, stamina +1 (DL, DR); crossing +2, pace +1, work rate +1 (ML, MR; Winger (Support) [ML/MR]); anticipation +2, work rate +1, strength +1, aggression +1 [new requirement] (MC; Central Midfielder (Defend)); work rate +2, aggression +2, anticipation +2, strength +1 (MC; Ball-Winning Midfielder (Support) [MC]); jumping reach +3, strength +3, heading +2, bravery +2, first touch +1 (ST; Target Man (Attack)); off the ball +2, anticipation +2, acceleration +2, pace +1 (ST; Advanced Forward (Attack)); off the ball +3, anticipation +3, acceleration +1 (ST; Poacher (Attack))
 - **Expects at least (tapers below):** kicking 8 (GK); crossing 8 (ML, MR; Winger (Support) [ML/MR]); anticipation 8 (MC; Central Midfielder (Defend)); aggression 7 (MC; Central Midfielder (Defend)); work rate 8 (MC; Ball-Winning Midfielder (Support) [MC]); aggression 8 (MC; Ball-Winning Midfielder (Support) [MC]); anticipation 8 (MC; Ball-Winning Midfielder (Support) [MC]); jumping reach 10 (ST; Target Man (Attack)); strength 9 (ST; Target Man (Attack)); heading 8 (ST; Target Man (Attack)); bravery 8 (ST; Target Man (Attack)); first touch 7 (ST; Target Man (Attack)); acceleration 9 (ST; Advanced Forward (Attack)); pace 8 (ST; Advanced Forward (Attack)); off the ball 8 (ST; Advanced Forward (Attack)); off the ball 9 (ST; Poacher (Attack)); anticipation 9 (ST; Poacher (Attack)); acceleration 8 (ST; Poacher (Attack))
 - **Needs:** A genuinely dominant aerial Target Man who can make long distribution repeatable rather than hopeful; A fast or exceptionally well-timed second striker who attacks knock-downs and the space beyond; A BWM who aggressively competes for second balls while the CM(D) protects the centre; Wide players with reliable early delivery; A goalkeeper with adequate kicking to reach the intended outlet consistently
-- **Instructions:** Much More Direct Passing; Higher Tempo; Pass Into Space; Hit Early Crosses; Counter; Regroup
+- **Instructions:** Hit Early Crosses; Fairly Wide; Much More Direct Passing; Higher Tempo; Pass Into Space; Regroup; Counter; Distribute Quickly; Distribute To Target Man; Take Long Kicks; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against tall, strong centre-backs who win the aerial duels, or when your squad is technical and would waste its passing
 
 ### Vertical 4-4-2
@@ -381,6 +487,9 @@ A simple lower-league 4-4-2 that keeps two banks of four but attacks vertically,
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Winger (Support) [ML/MR] ×2, Central Midfielder (Defend), Box-to-Box Midfielder (Support) *
 - **Attack:** Pressing Forward (Support) *, Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Counter-attack (Counter when the ball is won)
 - **Leans on:** teamwork +1 (whole team); positioning +2, concentration +2, jumping reach +1 (DC); stamina +1, work rate +1, crossing +1 (DL, DR); pace +2, acceleration +2, crossing +2, work rate +1 (ML, MR; Winger (Support) [ML/MR]); positioning +2, concentration +1, teamwork +1, work rate +1 (MC; Central Midfielder (Defend)); work rate +2, stamina +2, off the ball +2, anticipation +1 (MC; Box-to-Box Midfielder (Support)); decisions +2, passing +2, teamwork +2, first touch +1, work rate +1 (MC; Central Midfielder (Support)); first touch +2, decisions +1, teamwork +1, strength +1 (ST; Deep-Lying Forward (Support), Pressing Forward (Support), Complete Forward (Support)); off the ball +2, anticipation +2, acceleration +2, pace +2 (ST; Advanced Forward (Attack)); off the ball +3, anticipation +3, acceleration +1 (ST; Poacher (Attack))
@@ -399,12 +508,35 @@ A cautious back-three system retaining an AMC and two strikers so regains can be
 - **Defence:** Central Defender (Defend) *, Ball-Playing Defender (Defend), Central Defender (Cover) *, Wing-Back (Support) [WBL/WBR], Wing-Back (Attack) [WBL/WBR]
 - **Midfield:** Central Midfielder (Defend), Box-to-Box Midfielder (Support)
 - **Attack:** Attacking Midfielder (Support), Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Lower; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Counter-attack (Counter when the ball is won); Low block (Lower Line of Engagement)
 - **Leans on:** off the ball +2, positioning +2, anticipation +2, concentration +2 (whole team)
 - **Needs:** Three reliable centre-backs; High-stamina wing-backs; Strong AMC; Complementary strikers
-- **Instructions:** Slightly More Direct Passing; Pass Into Space; Counter; Regroup; Lower Line of Engagement; Standard Defensive Line
+- **Instructions:** Slightly More Direct Passing; Pass Into Space; Regroup; Counter; Distribute Quickly; Distribute To Flanks; Take Long Kicks; Lower Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you need to dominate the game, or when your wing-backs cannot defend as well as they run
+
+### Counter 3-5-2 Wing-Back
+
+`counter_352_wingback` · 3-5-2 · Cautious · 3-5-2 Counter
+
+A back-three counter system using wing-backs for width and two forwards as immediate outlets.
+
+- **Goal:** Goalkeeper (Defend)
+- **Defence:** Central Defender (Defend) *, Ball-Playing Defender (Defend), Central Defender (Cover) *, Wing-Back (Support) [WBL/WBR], Wing-Back (Attack) [WBL/WBR]
+- **Midfield:** Defensive Midfielder (Support), Box-to-Box Midfielder (Support), Mezzala (Attack)
+- **Attack:** Complete Forward (Support) *, Poacher (Attack) *
+- **Defensive settings:** line of engagement: Lower; defensive line: Lower; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
+
+- **Game plan:** Counter-attack (Counter when the ball is won); Low block (Lower Line of Engagement, Drop Off More Defensive Line)
+- **Leans on:** positioning +2, concentration +2, composure +2, decisions +2 (whole team)
+- **Needs:** Three dependable centre-backs; High-stamina wing-backs; Transition runners; Complementary forwards
+- **Instructions:** Fairly Wide; Lower Tempo; Counter; Distribute Quickly; Distribute To Flanks; Take Long Kicks; Lower Line of Engagement; Drop Off More Defensive Line
+- **Avoid when:** When you need to dominate the ball, or when your wing-backs are not fit enough to cover the whole flank
 
 ### Direct Counter 4-4-2
 
@@ -416,12 +548,15 @@ A compact 4-4-2 that accepts periods without the ball and attacks space quickly 
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) *, Central Defender (Cover) *
 - **Midfield:** Winger (Support) [ML/MR] ×2, Central Midfielder (Defend), Box-to-Box Midfielder (Support)
 - **Attack:** Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Lower; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Counter-attack (Counter when the ball is won); Low block (Lower Line of Engagement)
 - **Leans on:** teamwork +1 (whole team); positioning +1, concentration +1, anticipation +1 (DC); positioning +1, stamina +1, teamwork +1 (DL, DR); pace +2, acceleration +2, off the ball +2, crossing +1 (ML, MR); work rate +2, stamina +2, anticipation +1, off the ball +1 (MC); off the ball +2, anticipation +2, acceleration +1, pace +1 (ST)
 - **Expects at least (tapers below):** pace 8 (ML, MR); acceleration 8 (ML, MR); off the ball 8 (ML, MR); work rate 8 (MC); stamina 8 (MC); off the ball 8 (ST); anticipation 8 (ST); acceleration 7 (ST)
 - **Needs:** Quick wide players who can attack space immediately after regains; A mobile strike pair with enough movement to make direct transitions dangerous; One midfielder able to hold position and one with the engine to join counters; A compact back four comfortable defending without the ball; Opponents willing to leave space behind or around their defensive shape
-- **Instructions:** Slightly More Direct Passing; Higher Tempo; Pass Into Space; Counter; Regroup; Lower Line of Engagement; Standard Defensive Line
+- **Instructions:** Fairly Wide; Slightly More Direct Passing; Higher Tempo; Pass Into Space; Regroup; Counter; Distribute Quickly; Distribute To Flanks; Take Long Kicks; Lower Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against a team that sits deep and does not leave space to run into, since the counter has nothing to attack
 
 ### Fluid Counter 4-1-4-1
@@ -434,12 +569,15 @@ A compact 4-1-4-1 that counters through short combinations and supporting runs r
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) *, Central Defender (Cover) *
 - **Midfield:** Defensive Midfielder (Defend), Winger (Support) [ML/MR] ×2, Box-to-Box Midfielder (Support), Central Midfielder (Support)
 - **Attack:** Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Lower; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Counter-attack (Counter when the ball is won); Low block (Lower Line of Engagement)
 - **Leans on:** teamwork +1 (whole team); positioning +2, concentration +1, anticipation +1 (DC); positioning +1, stamina +1, teamwork +1 (DL, DR); positioning +2, passing +2, decisions +2, first touch +2, teamwork +1 (DM; Defensive Midfielder (Defend)); work rate +2, stamina +2, off the ball +2, passing +1, first touch +1, decisions +1 (MC; Box-to-Box Midfielder (Support)); passing +2, first touch +2, decisions +2, teamwork +1, off the ball +1 (MC; Central Midfielder (Support)); pace +2, acceleration +2, off the ball +2, first touch +1 (ML, MR; Winger (Support) [ML/MR]); acceleration +2, pace +2, off the ball +2, anticipation +2 (ST; Advanced Forward (Attack)); off the ball +3, anticipation +3, acceleration +1, pace +1 (ST; Poacher (Attack))
 - **Expects at least (tapers below):** positioning 8 (DM; Defensive Midfielder (Defend)); passing 8 (DM; Defensive Midfielder (Defend)); decisions 8 (DM; Defensive Midfielder (Defend)); first touch 8 (DM; Defensive Midfielder (Defend)); work rate 8 (MC; Box-to-Box Midfielder (Support)); stamina 8 (MC; Box-to-Box Midfielder (Support)); passing 7 (MC; Box-to-Box Midfielder (Support)); first touch 7 (MC; Box-to-Box Midfielder (Support)); passing 8 (MC; Central Midfielder (Support)); first touch 8 (MC; Central Midfielder (Support)); decisions 8 (MC; Central Midfielder (Support)); pace 8 (ML, MR; Winger (Support) [ML/MR]); acceleration 8 (ML, MR; Winger (Support) [ML/MR]); off the ball 8 (ML, MR; Winger (Support) [ML/MR]); acceleration 9 (ST; Advanced Forward (Attack)); pace 8 (ST; Advanced Forward (Attack)); off the ball 8 (ST; Advanced Forward (Attack)); off the ball 9 (ST; Poacher (Attack)); anticipation 8 (ST; Poacher (Attack)); acceleration 8 (ST; Poacher (Attack))
 - **Needs:** A reliable DM who can defend positionally and start counters cleanly with his first touch and passing; A Box-to-Box midfielder with the engine to become an extra runner without breaking the midfield structure; A CM(S) technically secure enough to connect short transition combinations; Quick wide players who immediately attack space after regains; A lone striker with enough movement and speed to threaten in behind before support arrives; A compact defensive block that is comfortable conceding harmless possession before countering
-- **Instructions:** Slightly Shorter Passing; Pass Into Space; Counter; Regroup; Lower Line of Engagement; Standard Defensive Line
+- **Instructions:** Slightly Shorter Passing; Pass Into Space; Regroup; Counter; Distribute To Full Backs; Roll It Out; Lower Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you need to dominate the ball, or when you have no quick striker to run behind
 
 ### Raumdeuter Counter 4-2-3-1
@@ -452,11 +590,14 @@ A cautious 4-2-3-1 that defends in a compact shape and counters through a raumde
 - **Defence:** Full-Back (Defend) ×2, Central Defender (Defend) *, Central Defender (Cover) *
 - **Midfield:** Defensive Midfielder (Defend), Defensive Midfielder (Support)
 - **Attack:** Raumdeuter (Attack), Attacking Midfielder (Attack), Winger (Support) [AML/AMR], Complete Forward (Attack)
+- **Defensive settings:** line of engagement: Lower; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Counter-attack (Counter when the ball is won); Low block (Lower Line of Engagement)
 - **Leans on:** off the ball +2, positioning +2, anticipation +2, concentration +2 (whole team)
 - **Needs:** A raumdeuter with good movement and finishing; A quick, mobile striker; Disciplined full-backs; A dependable double pivot
-- **Instructions:** Slightly More Direct Passing; Pass Into Space; Counter; Regroup; Lower Line of Engagement; Standard Defensive Line
+- **Instructions:** Fairly Wide; Slightly More Direct Passing; Pass Into Space; Regroup; Counter; Distribute Quickly; Distribute To Flanks; Take Long Kicks; Lower Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you have to dominate the ball, since only two players create
 
 ### Solid 4-2-3-1
@@ -469,6 +610,9 @@ A cautious 4-2-3-1 built to defend in a compact block, preserve a strong rest de
 - **Defence:** No-Nonsense Full Back (Defend) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Defensive Midfielder (Defend), Defensive Midfielder (Support)
 - **Attack:** Inside Forward (Support), Attacking Midfielder (Support), Winger (Attack) [AML/AMR], Deep-Lying Forward (Support) *
+- **Defensive settings:** line of engagement: Lower; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Less Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Direct (Slightly More Direct Passing); Low block (Lower Line of Engagement)
 - **Leans on:** decisions +1, kicking +1 (GK; Goalkeeper (Defend)); positioning +2, concentration +2, marking +1, tackling +1, strength +1 (DL, DR; No-Nonsense Full Back (Defend)); positioning +2, concentration +2, anticipation +1, jumping reach +1 (DC; Central Defender (Defend)); pace +2, anticipation +2, acceleration +1, concentration +1 (DC; Central Defender (Cover)); positioning +2, concentration +2, decisions +1, teamwork +1 (DM; Defensive Midfielder (Defend)); positioning +1, decisions +2, passing +1, teamwork +2, first touch +1 (DM; Defensive Midfielder (Support)); work rate +2, stamina +1, first touch +1, off the ball +1, dribbling +1 (AML; Inside Forward (Support)); decisions +2, passing +2, first touch +2, teamwork +2, work rate +1 (AMC; Attacking Midfielder (Support)); pace +2, acceleration +2, crossing +2, off the ball +1, work rate +1 (AMR; Winger (Attack) [AML/AMR]); first touch +2, decisions +2, teamwork +1, strength +1 (ST; Deep-Lying Forward (Support), Complete Forward (Support)); strength +3, jumping reach +3, heading +2, first touch +1, teamwork +1 (ST; Target Man (Support))
@@ -476,23 +620,6 @@ A cautious 4-2-3-1 built to defend in a compact block, preserve a strong rest de
 - **Needs:** A back four and holding midfielder with strong positioning and concentration; A second DM who can make safe decisions and connect the defensive block to the front four; An AMC with enough touch and passing to make direct possession stick; At least one genuinely quick wide runner so the shape retains a counter-attacking threat; A support striker who can receive under pressure and link play, with a true target man as an alternative when available; Wide attackers willing to contribute enough work rate for the compact defensive block
 - **Instructions:** Slightly More Direct Passing; Regroup; Hold Shape; Slow Pace Down; Distribute To Flanks; Take Long Kicks; Lower Line of Engagement; Standard Defensive Line; Less Urgent Pressing
 - **Avoid when:** When you need sustained possession or several players attacking the box
-
-### Counter 3-5-2 Wing-Back
-
-`counter_352_wingback` · 3-5-2 · Counter · 3-5-2 Counter
-
-A back-three counter system using wing-backs for width and two forwards as immediate outlets.
-
-- **Goal:** Goalkeeper (Defend)
-- **Defence:** Central Defender (Defend) *, Ball-Playing Defender (Defend), Central Defender (Cover) *, Wing-Back (Support) [WBL/WBR], Wing-Back (Attack) [WBL/WBR]
-- **Midfield:** Defensive Midfielder (Support), Box-to-Box Midfielder (Support), Mezzala (Attack)
-- **Attack:** Complete Forward (Support) *, Poacher (Attack) *
-
-- **Game plan:** Counter-attack (Counter when the ball is won); Low block (Drop Deeper Line of Engagement, Drop Off More Defensive Line)
-- **Leans on:** positioning +2, concentration +2, composure +2, decisions +2 (whole team)
-- **Needs:** Three dependable centre-backs; High-stamina wing-backs; Transition runners; Complementary forwards
-- **Instructions:** Fairly Wide; Lower Tempo; Counter; Drop Deeper Line of Engagement; Drop Off More Defensive Line
-- **Avoid when:** When you need to dominate the ball, or when your wing-backs are not fit enough to cover the whole flank
 
 ### Deep Counter 5-4-1
 
@@ -504,6 +631,10 @@ A deep defensive 5-4-1 that protects the box with a back five and compact midfie
 - **Defence:** Wing-Back (Defend) [DL/DR] ×2, Central Defender (Defend) * ×3
 - **Midfield:** Winger (Attack) [ML/MR] ×2, Central Midfielder (Defend), Central Midfielder (Support)
 - **Attack:** Target Man (Support)
+- **Defensive settings:** line of engagement: Lower; defensive line: Lower; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Less Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
+- **Setup:** The deep block deliberately concedes territory; check chances and effective deliveries allowed rather than assuming a deeper line protects a lead.
 
 - **Game plan:** Counter-attack (Counter when the ball is won); Low block (Lower Line of Engagement, Drop Off More Defensive Line, Defensive mentality)
 - **Leans on:** kicking +2, decisions +1 (GK; Goalkeeper (Defend)); positioning +2, concentration +2, anticipation +1, jumping reach +1 (DC; Central Defender (Defend)); pace +2, anticipation +2, acceleration +1, concentration +1 (DC; Central Defender (Cover)); passing +2, decisions +2, first touch +1, technique +1, composure +1 (DC; Ball-Playing Defender (Defend)); positioning +2, concentration +2, tackling +1, work rate +1, stamina +1 (DL, DR; Wing-Back (Defend) [DL/DR]); pace +2, acceleration +2, off the ball +2, dribbling +1, crossing +1, work rate +1 (ML, MR; Winger (Attack) [ML/MR]); positioning +2, concentration +2, decisions +1, teamwork +1, tackling +1 (MC; Central Midfielder (Defend)); passing +2, decisions +2, teamwork +2, first touch +1, off the ball +1 (MC; Central Midfielder (Support)); strength +3, jumping reach +3, heading +2, first touch +2, teamwork +1 (ST; Target Man (Support))
@@ -522,12 +653,17 @@ A conservative five-man midfield shape designed to deny central space and protec
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Defensive Midfielder (Defend), Wide Midfielder (Support) ×2, Central Midfielder (Defend) ×2
 - **Attack:** Target Man (Attack)
+- **Defensive settings:** line of engagement: Much Lower; defensive line: Much Lower; defensive width: Narrow; use tighter marking: Neutral; pressing intensity: Less Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
+- **Setup:** The deep block deliberately concedes territory; check chances and effective deliveries allowed rather than assuming a deeper line protects a lead.
+- **Setup:** Standard attacking width keeps wide escape outlets available. Defensive width is set separately; a compact block does not require narrow possession play.
 
 - **Game plan:** Low block (Much Lower Line of Engagement, Much Deeper Defensive Line, Defensive mentality)
 - **Leans on:** teamwork +1 (whole team); positioning +2, concentration +2, marking +2, anticipation +1 (DC); positioning +2, concentration +1, marking +1, teamwork +1 (DL, DR); positioning +2, concentration +2, teamwork +2, tackling +1 (DM); positioning +2, work rate +2, teamwork +2, concentration +1 (MC); work rate +2, teamwork +2, stamina +2, positioning +1 (ML, MR); jumping reach +2, strength +2, heading +2, bravery +1 (ST)
 - **Expects at least (tapers below):** positioning 8 (DC); concentration 8 (DC); positioning 8 (DM); concentration 8 (DM); work rate 8 (ML, MR); teamwork 8 (ML, MR); positioning 8 (MC); teamwork 8 (MC); jumping reach 9 (ST); strength 8 (ST); heading 8 (ST)
 - **Needs:** Centre-backs and holding midfielder with strong positioning and concentration; Wide midfielders with the work rate and teamwork to recover into a deep narrow block; Central midfielders disciplined enough to hold shape rather than chase the ball; A genuinely physical Target Man who can win direct balls and relieve pressure; A squad willing to concede territory for long periods
-- **Instructions:** Much Lower Line of Engagement; Much Deeper Defensive Line; Narrower; Slower Tempo; Regroup
+- **Instructions:** Lower Tempo; Regroup; Distribute To Flanks; Take Long Kicks; Much Lower Line of Engagement; Much Deeper Defensive Line; Narrow Defensive Width; Less Urgent Pressing
 - **Avoid when:** When you need to win: there is only one striker and the team will invite pressure
 
 ### Defensive 5-3-2
@@ -540,11 +676,16 @@ A deep five-defender system prioritising central protection and counter-attackin
 - **Defence:** Central Defender (Defend) * ×2, Ball-Playing Defender (Defend), Wing-Back (Support) [WBL/WBR] ×2
 - **Midfield:** Central Midfielder (Defend) ×2, Ball-Winning Midfielder (Support) [MC]
 - **Attack:** Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Much Lower; defensive line: Much Lower; defensive width: Narrow; use tighter marking: Neutral; pressing intensity: Less Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
+- **Setup:** The deep block deliberately concedes territory; check chances and effective deliveries allowed rather than assuming a deeper line protects a lead.
+- **Setup:** Standard attacking width keeps wide escape outlets available. Defensive width is set separately; a compact block does not require narrow possession play.
 
 - **Game plan:** Counter-attack (Counter when the ball is won); Low block (Much Lower Line of Engagement, Much Deeper Defensive Line, Defensive mentality)
 - **Leans on:** positioning +2, concentration +2, marking +2, teamwork +2 (whole team)
 - **Needs:** Aerially strong centre-backs; High-stamina wing-backs; Defensive midfield discipline; Direct-capable forwards
-- **Instructions:** Much Lower Line of Engagement; Much Deeper Defensive Line; Narrower; Slower Tempo; Counter; Regroup
+- **Instructions:** Lower Tempo; Regroup; Counter; Distribute Quickly; Distribute To Flanks; Take Long Kicks; Much Lower Line of Engagement; Much Deeper Defensive Line; Narrow Defensive Width; Less Urgent Pressing
 - **Avoid when:** When you need to control the ball or score: the shape is built to absorb pressure
 
 ### Low-Block 4-4-2
@@ -557,12 +698,17 @@ Two compact banks of four with two forwards retained as direct counter outlets.
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Wide Midfielder (Support) ×2, Central Midfielder (Defend), Ball-Winning Midfielder (Support) [MC]
 - **Attack:** Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Much Lower; defensive line: Much Lower; defensive width: Narrow; use tighter marking: Neutral; pressing intensity: Less Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
+- **Setup:** The deep block deliberately concedes territory; check chances and effective deliveries allowed rather than assuming a deeper line protects a lead.
+- **Setup:** Standard attacking width keeps wide escape outlets available. Defensive width is set separately; a compact block does not require narrow possession play.
 
 - **Game plan:** Counter-attack (Counter when the ball is won); Low block (Much Lower Line of Engagement, Much Deeper Defensive Line, Defensive mentality)
 - **Leans on:** teamwork +1 (whole team); positioning +2, concentration +2, marking +2, anticipation +1 (DC); positioning +2, marking +1, concentration +1, teamwork +1 (DL, DR); work rate +2, teamwork +2, stamina +1, positioning +1 (ML, MR); positioning +2, work rate +2, teamwork +1, tackling +1, concentration +1 (MC); off the ball +1, anticipation +1 (ST)
 - **Expects at least (tapers below):** positioning 7 (DC); concentration 7 (DC); positioning 7 (DL, DR); work rate 7 (ML, MR); teamwork 7 (ML, MR); positioning 7 (MC); work rate 7 (MC)
 - **Needs:** Centre-backs with reliable positioning and concentration; Wide midfielders willing and able to recover into the defensive bank; Central midfielders disciplined enough to protect the space in front of the box; One forward who can hold the ball up; One forward who can attack space on the counter
-- **Instructions:** Much Lower Line of Engagement; Much Deeper Defensive Line; Narrower; Slower Tempo; Counter; Regroup
+- **Instructions:** Lower Tempo; Regroup; Counter; Distribute Quickly; Distribute To Flanks; Take Long Kicks; Much Lower Line of Engagement; Much Deeper Defensive Line; Narrow Defensive Width; Less Urgent Pressing
 - **Avoid when:** When you need to control the ball or score, since the team will be under pressure for long periods
 
 ### No-Nonsense 5-3-2
@@ -575,12 +721,17 @@ A pragmatic 5-3-2 for aerially strong defenders: it protects the box, clears dan
 - **Defence:** No-Nonsense Centre-Back (Defend), No-Nonsense Centre-Back (Cover), No-Nonsense Centre-Back (Stopper), Wing-Back (Support) [WBL/WBR] ×2
 - **Midfield:** Central Midfielder (Defend) ×2, Ball-Winning Midfielder (Support) [MC]
 - **Attack:** Target Man (Support), Advanced Forward (Attack)
+- **Defensive settings:** line of engagement: Much Lower; defensive line: Much Lower; defensive width: Narrow; use tighter marking: Neutral; pressing intensity: Less Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
+- **Setup:** The deep block deliberately concedes territory; check chances and effective deliveries allowed rather than assuming a deeper line protects a lead.
+- **Setup:** Standard attacking width keeps wide escape outlets available. Defensive width is set separately; a compact block does not require narrow possession play.
 
 - **Game plan:** Counter-attack (Counter when the ball is won); Low block (Much Lower Line of Engagement, Much Deeper Defensive Line, Defensive mentality)
 - **Leans on:** command of area +2, aerial reach +2, handling +1 (GK; Goalkeeper (Defend)); heading +2, jumping reach +2, positioning +2, marking +1, concentration +1, strength +1 (DC; No-Nonsense Centre-Back (Defend)); anticipation +2, concentration +2, positioning +1, pace +1, acceleration +1, heading +1, jumping reach +1 (DC; No-Nonsense Centre-Back (Cover)); aggression +2, bravery +2, strength +2, heading +2, jumping reach +2, anticipation +1 (DC; No-Nonsense Centre-Back (Stopper)); stamina +2, positioning +2, work rate +1, teamwork +1, marking +1 (WBL, WBR; Wing-Back (Support) [WBL/WBR]); positioning +2, concentration +1, anticipation +1, teamwork +1 (MC; Central Midfielder (Defend)); work rate +2, aggression +2, anticipation +2, stamina +1 (MC; Ball-Winning Midfielder (Support) [MC]); jumping reach +3, strength +3, heading +2, first touch +1, teamwork +1 (ST; Target Man (Support)); acceleration +2, pace +2, off the ball +2, anticipation +2 (ST; Advanced Forward (Attack))
 - **Expects at least (tapers below):** command of area 8 (GK; Goalkeeper (Defend)); heading 9 (DC; No-Nonsense Centre-Back (Defend), No-Nonsense Centre-Back (Cover), No-Nonsense Centre-Back (Stopper)); jumping reach 9 (DC; No-Nonsense Centre-Back (Defend), No-Nonsense Centre-Back (Cover), No-Nonsense Centre-Back (Stopper)); positioning 8 (DC; No-Nonsense Centre-Back (Defend), No-Nonsense Centre-Back (Cover), No-Nonsense Centre-Back (Stopper)); anticipation 8 (DC; No-Nonsense Centre-Back (Cover)); bravery 8 (DC; No-Nonsense Centre-Back (Stopper)); strength 8 (DC; No-Nonsense Centre-Back (Stopper)); stamina 9 (WBL, WBR; Wing-Back (Support) [WBL/WBR]); positioning 8 (MC; Central Midfielder (Defend)); work rate 9 (MC; Ball-Winning Midfielder (Support) [MC]); aggression 8 (MC; Ball-Winning Midfielder (Support) [MC]); anticipation 8 (MC; Ball-Winning Midfielder (Support) [MC]); jumping reach 9 (ST; Target Man (Support)); strength 9 (ST; Target Man (Support)); heading 8 (ST; Target Man (Support)); first touch 7 (ST; Target Man (Support)); acceleration 8 (ST; Advanced Forward (Attack)); pace 8 (ST; Advanced Forward (Attack)); off the ball 8 (ST; Advanced Forward (Attack))
 - **Needs:** Three centre-backs who are dominant in the air and comfortable defending the box; A Cover centre-back with enough anticipation and mobility to sweep behind the line; Wing-backs with the stamina and discipline to complete the back five and provide the outlet; A compact midfield with a dedicated second-ball winner; A strong Target Man to make direct clearances useful; A mobile Advanced Forward to turn those first and second balls into counter-attacks
-- **Instructions:** Much Lower Line of Engagement; Much Deeper Defensive Line; Narrower; More Direct Passing; Counter; Regroup
+- **Instructions:** More Direct Passing; Regroup; Counter; Distribute Quickly; Distribute To Flanks; Take Long Kicks; Much Lower Line of Engagement; Much Deeper Defensive Line; Narrow Defensive Width; Less Urgent Pressing
 - **Avoid when:** When you need sustained possession or your defenders are uncomfortable defending a large number of crosses and second balls
 
 ### Aerial 3-4-3
@@ -593,11 +744,15 @@ A 3-4-3 with attacking wing-backs supplying crosses for two wide target men and 
 - **Defence:** Central Defender (Defend) * ×2, Ball-Playing Defender (Defend) *, Wing-Back (Attack) [WBL/WBR] ×2
 - **Midfield:** Central Midfielder (Defend), Central Midfielder (Support)
 - **Attack:** Wide Target Man (Attack) [AML/AMR] ×2, Target Man (Support)
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
+- **Setup:** No forced Counter after a regain: the receiving and linking roles choose when to release the runners, rather than requiring every regain to become a break.
 
 - **Game plan:** Direct (More Direct Passing)
 - **Leans on:** crossing +2, anticipation +2, off the ball +2, heading +2 (whole team)
 - **Needs:** Two attacking wing-backs with stamina; Two tall wide forwards; A strong central target man; Three centre-backs who defend the box
-- **Instructions:** Fairly Wide; More Direct Passing; Hit Early Crosses; Higher Tempo; Regroup
+- **Instructions:** Hit Early Crosses; Fairly Wide; More Direct Passing; Higher Tempo; Regroup; Distribute Quickly; Distribute To Flanks; Take Long Kicks; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against quick counter-attackers who target the space behind the wing-backs
 
 ### Aggressive Playing 3-4-3
@@ -610,12 +765,15 @@ A high-line 3-4-3 that pairs an aggressive ball-playing stopper with a ball-play
 - **Defence:** Ball-Playing Defender (Stopper), Ball-Playing Defender (Cover), Ball-Playing Defender (Defend), Wing-Back (Attack) [WBL/WBR] ×2
 - **Midfield:** Box-to-Box Midfielder (Support), Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Winger (Attack) [AML/AMR], Inside Forward (Attack), Pressing Forward (Attack)
+- **Defensive settings:** line of engagement: Much Higher; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
-- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Much Higher Line of Engagement, Higher Defensive Line)
+- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Much Higher Line of Engagement, Higher Defensive Line, More Urgent Pressing); Counter-attack (Counter when the ball is won)
 - **Leans on:** anticipation +2, pace +2, composure +2, passing +2 (whole team); acceleration +2, concentration +2, positioning +2 (DC)
 - **Expects at least (tapers below):** pace 8 (DC); acceleration 8 (DC); anticipation 8 (DC); passing 8 (DC); stamina 10 (WBL, WBR, MC, AML, AMR, ST); work rate 10 (MC, AML, AMR, ST)
 - **Needs:** A ball-playing stopper; A fast ball-playing cover defender; Aggressive wing-backs; A pressing forward
-- **Instructions:** Much Higher Line of Engagement; Higher Defensive Line; Shorter Passing; Play Out Of Defence; Counter-Press
+- **Instructions:** Fairly Wide; Shorter Passing; Play Out Of Defence; Counter-Press; Counter; Distribute To Centre Backs; Take Short Kicks; Much Higher Line of Engagement; Higher Defensive Line; More Urgent Pressing
 - **Avoid when:** Against quick direct counters if the cover defender lacks pace or the wing-backs cannot recover
 
 ### Attacking 3-4-3 Wing-Back
@@ -628,12 +786,15 @@ A front-foot back-three system with wing-backs stretching the pitch and a front 
 - **Defence:** Central Defender (Defend) * ×2, Ball-Playing Defender (Defend), Wing-Back (Attack) [WBL/WBR] ×2
 - **Midfield:** Box-to-Box Midfielder (Support), Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Winger (Attack) [AML/AMR], Inside Forward (Attack), Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Much Higher; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
-- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Much Higher Line of Engagement, Higher Defensive Line)
+- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Much Higher Line of Engagement, Higher Defensive Line, More Urgent Pressing); Counter-attack (Counter when the ball is won)
 - **Leans on:** stamina +2, anticipation +2, work rate +2, passing +2 (whole team)
 - **Expects at least (tapers below):** stamina 10 (WBL, WBR, MC, AML, AMR, ST); work rate 10 (MC, AML, AMR, ST)
 - **Needs:** Mobile outside centre-backs; Elite wing-back stamina; Midfield pair with defensive range; Fast front three
-- **Instructions:** Much Higher Line of Engagement; Higher Defensive Line; Shorter Passing; Play Out Of Defence; Counter-Press
+- **Instructions:** Fairly Wide; Shorter Passing; Play Out Of Defence; Counter-Press; Counter; Distribute To Centre Backs; Take Short Kicks; Much Higher Line of Engagement; Higher Defensive Line; More Urgent Pressing
 - **Avoid when:** Against quick counter-attacking sides that target the space behind your wing-backs, or if your centre-backs are slow or your wing-backs tire before the hour
 
 ### Attacking 4-2-4
@@ -646,6 +807,9 @@ A proactive 4-2-4: four advanced attackers stretch the opposition, a BWM contest
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Ball-Winning Midfielder (Defend) [MC], Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Inside Forward (Attack), Winger (Attack) [AML/AMR], Pressing Forward (Support) *, Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Territorial control (Counter-Press, More Urgent Pressing); Counter-attack (Counter when the ball is won)
 - **Leans on:** kicking +2, decisions +1, anticipation +1 (GK; Goalkeeper (Defend)); positioning +2, concentration +2, anticipation +1, pace +1 (DC; Central Defender (Defend)); pace +2, anticipation +2, acceleration +1, concentration +1 (DC; Central Defender (Cover)); stamina +1, work rate +1, positioning +1 (DL, DR; Full-Back (Support)); work rate +2, stamina +2, aggression +2, anticipation +2, positioning +1 (MC; Ball-Winning Midfielder (Defend) [MC]); passing +2, first touch +2, vision +2, decisions +2, stamina +1 (MC; Deep-Lying Playmaker (Support) [MC]); acceleration +2, pace +2, off the ball +2, dribbling +1, finishing +1, stamina +2 [new requirement], work rate +1 [new requirement] (AML; Inside Forward (Attack)); acceleration +2, pace +2, dribbling +2, crossing +2, stamina +1, work rate +1 (AMR; Winger (Attack) [AML/AMR]); work rate +2, stamina +2, anticipation +1, first touch +1, teamwork +1 (ST; Pressing Forward (Support)); first touch +2, decisions +2, passing +1, teamwork +1, stamina +1 (ST; Deep-Lying Forward (Support), Complete Forward (Support)); acceleration +2, pace +2, off the ball +2, anticipation +2, stamina +1 (ST; Advanced Forward (Attack)); off the ball +3, anticipation +3, acceleration +1 (ST; Poacher (Attack))
@@ -664,11 +828,14 @@ A possession 4-2-3-1 in which one full-back tucks into midfield to defend and th
 - **Defence:** Inverted Wing Back (Defend), Ball-Playing Defender (Defend), Central Defender (Defend) *, Inverted Wing Back (Attack)
 - **Midfield:** Defensive Midfielder (Defend), Deep-Lying Playmaker (Support) [DM]
 - **Attack:** Inverted Winger (Support) [AML/AMR], Attacking Midfielder (Support), Inverted Winger (Attack) [AML/AMR], Complete Forward (Support)
+- **Defensive settings:** line of engagement: Standard; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Possession control (Shorter Passing, Play Out Of Defence, Hold Shape)
 - **Leans on:** composure +2, technique +2, positioning +2, passing +2 (whole team)
 - **Needs:** Two full-backs who can play in midfield; A deep-lying playmaker; Two inverted wide players; A sweeper keeper
-- **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Hold Shape; Standard Line of Engagement; Higher Defensive Line
+- **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Hold Shape; Distribute To Centre Backs; Take Short Kicks; Standard Line of Engagement; Higher Defensive Line
 - **Avoid when:** Against teams with fast wingers who use the flanks, since nobody is covering the wide areas
 
 ### Complete Wing-Back 4-2-3-1
@@ -681,11 +848,14 @@ A 4-2-3-1 with two complete wing-backs who provide both the width and the creati
 - **Defence:** Complete Wing Back (Attack), Ball-Playing Defender (Defend), Central Defender (Defend) *, Complete Wing Back (Support)
 - **Midfield:** Defensive Midfielder (Defend), Ball-Winning Midfielder (Support) [DM]
 - **Attack:** Advanced Playmaker (Support) [AML/AMR], Advanced Playmaker (Support) [AMC], Inverted Winger (Attack) [AML/AMR], Deep-Lying Forward (Attack)
+- **Defensive settings:** line of engagement: Higher; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
-- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement)
+- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement, More Urgent Pressing)
 - **Leans on:** stamina +2, composure +2, technique +2, crossing +2 (whole team)
 - **Needs:** Two complete wing-backs with stamina and skill; Playmakers on the left and in the middle; An inside forward who scores; A double pivot to cover the flanks
-- **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Overlap Left; Counter-Press; Higher Line of Engagement
+- **Instructions:** Overlap Left; Fairly Wide; Shorter Passing; Play Out Of Defence; Work Ball Into Box; Counter-Press; Distribute To Centre Backs; Take Short Kicks; Higher Line of Engagement; Standard Defensive Line; More Urgent Pressing
 - **Avoid when:** Against quick wingers, if your wing-backs cannot recover
 
 ### Control Possession 4-2-3-1
@@ -698,11 +868,14 @@ A patient 4-2-3-1 that controls territory and circulates until space opens betwe
 - **Defence:** Full-Back (Support) ×2, Ball-Playing Defender (Defend), Central Defender (Defend) *
 - **Midfield:** Defensive Midfielder (Defend), Deep-Lying Playmaker (Support) [DM]
 - **Attack:** Inside Forward (Attack), Advanced Playmaker (Attack) [AMC], Winger (Support) [AML/AMR], Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Possession control (Shorter Passing, Lower Tempo, Play Out Of Defence, Hold Shape)
 - **Leans on:** composure +2, decisions +2, technique +2, positioning +2 (whole team)
 - **Needs:** Technically secure defenders/midfielders; High-quality distributor; Intelligent AMC; Good first touch and decisions
-- **Instructions:** Shorter Passing; Lower Tempo; Play Out Of Defence; Work Ball Into Box; Hold Shape; Standard Line of Engagement; Higher Defensive Line
+- **Instructions:** Shorter Passing; Lower Tempo; Play Out Of Defence; Work Ball Into Box; Hold Shape; Distribute To Centre Backs; Take Short Kicks; Standard Line of Engagement; Higher Defensive Line
 - **Avoid when:** Against a well-organised high press if your defenders and pivot are not calm on the ball, and when you need goals quickly: lower tempo makes it slow to change the game
 
 ### Crossing 4-3-3
@@ -715,11 +888,15 @@ A 4-3-3 where attacking full-backs overlap two wide target men, and the ball is 
 - **Defence:** Full-Back (Attack) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Central Midfielder (Defend), Central Midfielder (Support), Box-to-Box Midfielder (Support)
 - **Attack:** Wide Target Man (Support) [AML/AMR] ×2, Target Man (Support)
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
+- **Setup:** No forced Counter after a regain: the receiving and linking roles choose when to release the runners, rather than requiring every regain to become a break.
 
 - **Game plan:** Direct (Slightly More Direct Passing)
 - **Leans on:** crossing +2, stamina +2, heading +2, jumping reach +2 (whole team)
 - **Needs:** Two tall wide forwards who win headers; A strong central target man; Full-backs with stamina and crossing; Central midfielders who cover the flanks
-- **Instructions:** Fairly Wide; Slightly More Direct Passing; Hit Early Crosses; Overlap Left; Overlap Right; Higher Tempo
+- **Instructions:** Hit Early Crosses; Overlap Left; Overlap Right; Fairly Wide; Slightly More Direct Passing; Higher Tempo; Distribute Quickly; Distribute To Flanks; Take Long Kicks; Standard Line of Engagement; Standard Defensive Line; More Urgent Pressing
 - **Avoid when:** Against tall centre-backs who win the crosses, or against quick wingers, since both full-backs are pushed high and the space behind them is open
 
 ### False Nine 4-3-3
@@ -732,11 +909,14 @@ A possession 4-3-3 whose striker drops into midfield, dragging a centre-back wit
 - **Defence:** Full-Back (Support) ×2, Ball-Playing Defender (Defend), Central Defender (Defend) *
 - **Midfield:** Defensive Midfielder (Support), Box-to-Box Midfielder (Support), Advanced Playmaker (Attack) [MC]
 - **Attack:** Inverted Winger (Attack) [AML/AMR] ×2, False Nine (Support)
+- **Defensive settings:** line of engagement: Higher; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
-- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement, Higher Defensive Line)
+- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement, Higher Defensive Line, More Urgent Pressing)
 - **Leans on:** composure +2, technique +2, anticipation +2, stamina +2 (whole team)
 - **Needs:** A forward who passes and dribbles better than he finishes; Two wingers who cut in and score; A sweeper keeper who is comfortable on the ball; Midfielders who press together
-- **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Counter-Press; Higher Line of Engagement; Higher Defensive Line
+- **Instructions:** Fairly Wide; Shorter Passing; Play Out Of Defence; Work Ball Into Box; Counter-Press; Distribute To Centre Backs; Take Short Kicks; Higher Line of Engagement; Higher Defensive Line; More Urgent Pressing
 - **Avoid when:** Against a back three, or a side that keeps its centre-backs in position, since there is no gap to exploit
 
 ### Front-Foot 4-4-2
@@ -749,12 +929,16 @@ A front-foot 4-4-2 that uses a stopper-cover centre-back partnership to squeeze 
 - **Defence:** Full-Back (Support) ×2, Central Defender (Stopper), Central Defender (Cover)
 - **Midfield:** Wide Midfielder (Support) ×2, Ball-Winning Midfielder (Support) [MC], Box-to-Box Midfielder (Support)
 - **Attack:** Pressing Forward (Defend), Advanced Forward (Attack)
+- **Defensive settings:** line of engagement: Higher; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Extremely Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
+- **Setup:** The pressing shape is a catalogue hypothesis, not a copy of Rosler or another externally tested download.
 
-- **Game plan:** Territorial control (Counter-Press, Higher Line of Engagement, Higher Defensive Line, Much More Urgent Pressing); Direct (Slightly More Direct Passing)
+- **Game plan:** Territorial control (Counter-Press, Higher Line of Engagement, Higher Defensive Line, Much More Urgent Pressing); Counter-attack (Counter when the ball is won)
 - **Leans on:** stamina +2, work rate +2, aggression +2, anticipation +2 (whole team); aggression +2 [new requirement] (Advanced Forward (Attack)); aggression +2 [new requirement] (Wide Midfielder (Support)); pace +2, acceleration +2, concentration +2 (DC)
 - **Expects at least (tapers below):** pace 8 (DC; Central Defender (Cover)); anticipation 8 (DC); stamina 10 (ML, MR, MC, ST); work rate 10 (ML, MR, MC, ST)
 - **Needs:** An aggressive stopper and quick cover defender; Two energetic forwards; Hard-working wide midfielders; A ball-winning midfielder
-- **Instructions:** Higher Line of Engagement; Higher Defensive Line; Much More Urgent Pressing; Slightly More Direct Passing; Higher Tempo; Counter-Press
+- **Instructions:** Slightly More Direct Passing; Higher Tempo; Counter-Press; Counter; Distribute Quickly; Distribute To Flanks; Take Long Kicks; Higher Line of Engagement; Higher Defensive Line; Much More Urgent Pressing
 - **Avoid when:** Against direct sides if the cover defender is slow, or when the squad lacks the stamina to press for a full match
 
 ### Gegenpress 4-2-3-1
@@ -767,12 +951,15 @@ An intense 4-2-3-1 intended to regain the ball immediately after losing it and a
 - **Defence:** Wing-Back (Support) [DL/DR] ×2, Ball-Playing Defender (Defend), Central Defender (Cover) *
 - **Midfield:** Ball-Winning Midfielder (Support) [DM], Deep-Lying Playmaker (Support) [DM]
 - **Attack:** Inside Forward (Attack), Shadow Striker (Attack), Winger (Attack) [AML/AMR], Pressing Forward (Attack) *
+- **Defensive settings:** line of engagement: Much Higher; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Extremely Urgent; prevent short GK distribution: True; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Territorial control (Counter-Press, Much Higher Line of Engagement, Higher Defensive Line, Much More Urgent Pressing); Counter-attack (Counter when the ball is won)
 - **Leans on:** work rate +2, aggression +2, stamina +2, anticipation +2 (whole team); work rate +2 [new requirement], stamina +2 [new requirement] (Ball-Playing Defender (Defend), Central Defender (Cover), Central Defender (Defend), Inside Forward (Attack)); aggression +2 [new requirement] (Wing-Back (Support) [DL/DR], Deep-Lying Playmaker (Support) [DM], Inside Forward (Attack), Winger (Attack) [AML/AMR], Advanced Forward (Attack))
 - **Expects at least (tapers below):** stamina 11 (DL, DR, DM, AML, AMC, AMR, ST); work rate 11 (DM, AML, AMC, AMR, ST)
 - **Needs:** High work rate/stamina; Fast defenders; Sweeper keeper; Squad depth
-- **Instructions:** Shorter Passing; Higher Tempo; Counter-Press; Counter; Much Higher Line of Engagement; Higher Defensive Line; Much More Urgent Pressing; Prevent Short GK Distribution
+- **Instructions:** Fairly Wide; Shorter Passing; Higher Tempo; Counter-Press; Counter; Distribute To Centre Backs; Roll It Out; Much Higher Line of Engagement; Higher Defensive Line; Much More Urgent Pressing; Prevent Short GK Distribution
 - **Avoid when:** Against teams that play long balls over the press, or when your players are tired: the press falls apart quickly and leaves large spaces
 
 ### High-Press 4-3-3
@@ -785,12 +972,15 @@ An aggressive 4-3-3 designed to regain possession high and sustain pressure in t
 - **Defence:** Wing-Back (Support) [DL/DR], Ball-Playing Defender (Defend), Central Defender (Cover) *, Wing-Back (Attack) [DL/DR]
 - **Midfield:** Ball-Winning Midfielder (Support) [DM], Box-to-Box Midfielder (Support), Mezzala (Attack)
 - **Attack:** Winger (Attack) [AML/AMR], Inside Forward (Attack), Pressing Forward (Attack) *
+- **Defensive settings:** line of engagement: Much Higher; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Extremely Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
-- **Game plan:** Territorial control (Counter-Press, Much Higher Line of Engagement, Much More Urgent Pressing, Higher Defensive Line)
+- **Game plan:** Territorial control (Counter-Press, Much Higher Line of Engagement, Higher Defensive Line, Much More Urgent Pressing); Counter-attack (Counter when the ball is won)
 - **Leans on:** stamina +2, work rate +2, anticipation +2, aggression +2 (whole team); stamina +2 [new requirement], work rate +2 [new requirement] (Ball-Playing Defender (Defend), Central Defender (Cover), Central Defender (Defend), Inside Forward (Attack)); aggression +2 [new requirement] (Wing-Back (Support) [DL/DR], Wing-Back (Attack) [DL/DR], Mezzala (Attack), Winger (Attack) [AML/AMR], Inside Forward (Attack), Advanced Forward (Attack))
 - **Expects at least (tapers below):** stamina 11 (DL, DR, DM, MC, AML, AMR, ST); work rate 11 (DM, MC, AML, AMR, ST)
 - **Needs:** High work rate/stamina; Fast centre-backs; Sweeper keeper; Squad depth
-- **Instructions:** Much Higher Line of Engagement; Much More Urgent Pressing; Higher Defensive Line; Shorter Passing; Counter-Press
+- **Instructions:** Fairly Wide; Shorter Passing; Counter-Press; Counter; Distribute To Full Backs; Roll It Out; Much Higher Line of Engagement; Higher Defensive Line; Much More Urgent Pressing
 - **Avoid when:** Against sides that play long over the press, or when your players lack stamina: the press cannot be kept up for 90 minutes
 
 ### Inverted Wide 4-4-2
@@ -803,12 +993,15 @@ A 4-4-2 with a defensive winger securing one side and an inverted winger plus at
 - **Defence:** Full-Back (Defend), Central Defender (Defend) *, Ball-Playing Defender (Defend), Wing-Back (Attack) [DL/DR]
 - **Midfield:** Defensive Winger (Defend) [ML/MR], Central Midfielder (Defend), Box-to-Box Midfielder (Support), Inverted Winger (Attack) [ML/MR]
 - **Attack:** Deep-Lying Forward (Support), Advanced Forward (Attack)
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Counter-attack (Counter when the ball is won)
 - **Leans on:** stamina +2, work rate +2, anticipation +2 (whole team); positioning +2, tackling +2, marking +2 (ML); acceleration +2, dribbling +2, off the ball +2 (MR)
 - **Expects at least (tapers below):** work rate 8 (ML); positioning 8 (ML); acceleration 8 (MR); off the ball 8 (MR)
 - **Needs:** A defensive winger; A flat inverted winger; An attacking right wing-back; Complementary forwards
-- **Instructions:** Fairly Wide; Slightly More Direct Passing; Pass Into Space; Overlap Right; Counter; Regroup; Standard Line of Engagement; Standard Defensive Line
+- **Instructions:** Overlap Right; Fairly Wide; Slightly More Direct Passing; Pass Into Space; Regroup; Counter; Distribute To Full Backs; Roll It Out; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against an opponent that can repeatedly isolate the attacking right-back, or when the defensive winger cannot carry his side's defensive load
 
 ### Inverted Wing-Back 4-3-3
@@ -821,11 +1014,14 @@ A 4-3-3 in which both full-backs step into midfield when the team has the ball, 
 - **Defence:** Inverted Wing Back (Support) ×2, Ball-Playing Defender (Defend), Central Defender (Defend) *
 - **Midfield:** Defensive Midfielder (Defend), Central Midfielder (Support), Mezzala (Attack)
 - **Attack:** Winger (Attack) [AML/AMR], Inside Forward (Attack), Complete Forward (Attack)
+- **Defensive settings:** line of engagement: Higher; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
-- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement)
+- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement, More Urgent Pressing)
 - **Leans on:** composure +2, technique +2, stamina +2, passing +2 (whole team)
 - **Needs:** Full-backs who pass well and read the game; Two wingers who provide width; A sweeper keeper; A reliable holding midfielder
-- **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Counter-Press; Higher Line of Engagement; Standard Defensive Line
+- **Instructions:** Fairly Wide; Shorter Passing; Play Out Of Defence; Work Ball Into Box; Counter-Press; Distribute To Centre Backs; Take Short Kicks; Higher Line of Engagement; Standard Defensive Line; More Urgent Pressing
 - **Avoid when:** Against sides that attack down the flanks, since the full-backs are not covering the wide areas
 
 ### Narrow 4-2-2-2
@@ -838,11 +1034,14 @@ A narrow 4-2-2-2 with a double pivot, two attacking midfielders in the half-spac
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Ball-Winning Midfielder (Support) [DM], Deep-Lying Playmaker (Support) [DM]
 - **Attack:** Shadow Striker (Attack), Attacking Midfielder (Support), Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Higher; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
-- **Game plan:** Territorial control (Counter-Press, Higher Line of Engagement)
+- **Game plan:** Territorial control (Counter-Press, Higher Line of Engagement, More Urgent Pressing); Counter-attack (Counter when the ball is won)
 - **Leans on:** first touch +2, teamwork +2, stamina +2, work rate +2 (whole team)
 - **Needs:** Full-backs who provide all the width; A ball-winner and a playmaker in the pivot; A shadow striker and a creative attacking midfielder; Two complementary strikers
-- **Instructions:** Fairly Narrow; Shorter Passing; Higher Tempo; Counter-Press; Higher Line of Engagement; Standard Defensive Line
+- **Instructions:** Fairly Narrow; Shorter Passing; Higher Tempo; Counter-Press; Counter; Distribute To Full Backs; Roll It Out; Higher Line of Engagement; Standard Defensive Line; More Urgent Pressing
 - **Avoid when:** Against sides that attack down the flanks and outnumber your full-backs, and when your full-backs cannot cover a whole flank
 
 ### Positional Play 4-3-3
@@ -855,12 +1054,15 @@ A 4-3-3 built around a disciplined central triangle, with a Carrilero protecting
 - **Defence:** Inverted Wing Back (Support), Ball-Playing Defender (Defend), Central Defender (Cover) *, Full-Back (Support)
 - **Midfield:** Carrilero (Support) [MC], Deep-Lying Playmaker (Defend) [MC], Mezzala (Support)
 - **Attack:** Inside Forward (Support), Winger (Attack) [AML/AMR], Complete Forward (Support)
+- **Defensive settings:** line of engagement: Higher; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Possession control (Shorter Passing, Play Out Of Defence, Hold Shape)
 - **Leans on:** composure +2, decisions +2, technique +2, passing +2 (whole team); positioning +2, teamwork +2 (MC)
 - **Expects at least (tapers below):** passing 8 (MC); first touch 8 (MC); stamina 8 (MC; Carrilero (Support) [MC]); technique 8 (MC)
 - **Needs:** A composed DLP at MC; A high-stamina Carrilero; A technical Mezzala; Full-backs comfortable in a positional build-up
-- **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Hold Shape; Higher Line of Engagement; Standard Defensive Line
+- **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Hold Shape; Distribute To Centre Backs; Take Short Kicks; Higher Line of Engagement; Standard Defensive Line; More Urgent Pressing
 - **Avoid when:** When your midfield lacks passing security or the opponent can repeatedly isolate the full-backs in wide transition
 
 ### Positive 3-4-2-1
@@ -873,11 +1075,14 @@ A modern back-three system using two central attacking midfielders to occupy the
 - **Defence:** Central Defender (Defend) *, Ball-Playing Defender (Defend), Central Defender (Cover) *, Wing-Back (Support) [WBL/WBR], Wing-Back (Attack) [WBL/WBR]
 - **Midfield:** Central Midfielder (Defend), Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Advanced Playmaker (Attack) [AMC], Shadow Striker (Attack), Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Higher; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
-- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement)
+- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement, More Urgent Pressing)
 - **Leans on:** composure +2, technique +2, stamina +2, passing +2 (whole team)
 - **Needs:** Mobile centre-backs; Very strong wing-backs; Two quality AMCs; Midfield pair with defensive range
-- **Instructions:** Shorter Passing; Play Out Of Defence; Counter-Press; Higher Line of Engagement; Standard Defensive Line; Work Ball Into Box
+- **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Counter-Press; Distribute To Centre Backs; Take Short Kicks; Higher Line of Engagement; Standard Defensive Line; More Urgent Pressing
 - **Avoid when:** Against sides with quick wingers who target the space behind the wing-backs, or if your centre-backs are not comfortable defending wide
 
 ### Positive 4-2-3-1 Wide
@@ -890,6 +1095,9 @@ A proactive 4-2-3-1 with a holding midfielder and deep playmaker supporting four
 - **Defence:** Full-Back (Support) ×2, Ball-Playing Defender (Defend), Central Defender (Defend) *
 - **Midfield:** Defensive Midfielder (Defend), Deep-Lying Playmaker (Support) [DM]
 - **Attack:** Inside Forward (Attack), Attacking Midfielder (Support), Winger (Attack) [AML/AMR], Pressing Forward (Attack) *
+- **Defensive settings:** line of engagement: Higher; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement, More Urgent Pressing); Counter-attack (Counter when the ball is won)
 - **Leans on:** decisions +1, kicking +1, first touch +1 (GK; Goalkeeper (Defend)); positioning +2, concentration +2, anticipation +1, passing +1 (DC; Central Defender (Defend)); pace +2, anticipation +2, acceleration +1, concentration +1 (DC; Central Defender (Cover)); stamina +1, work rate +1, passing +1, first touch +1 (DL, DR; Full-Back (Support)); positioning +2, concentration +2, decisions +2, teamwork +1, passing +1 (DM; Defensive Midfielder (Defend)); passing +2, first touch +2, vision +2, decisions +2, technique +1, positioning +1 (DM; Deep-Lying Playmaker (Support) [DM]); first touch +2, passing +2, vision +2, decisions +2, technique +1, off the ball +1 (AMC; Attacking Midfielder (Support)); acceleration +2, pace +2, off the ball +2, dribbling +1, finishing +1, first touch +1 (AML; Inside Forward (Attack)); acceleration +2, pace +2, dribbling +2, crossing +2, off the ball +1 (AMR; Winger (Attack) [AML/AMR]); acceleration +2, pace +2, off the ball +2, anticipation +2, finishing +1 (ST; Advanced Forward (Attack)); off the ball +3, anticipation +3, acceleration +1, finishing +1 (ST; Poacher (Attack)); work rate +2, stamina +2, off the ball +2, acceleration +2, anticipation +1, finishing +1 (ST; Pressing Forward (Attack)); passing +2, technique +1, decisions +1, composure +1 (DC; Ball-Playing Defender (Defend))
@@ -908,12 +1116,15 @@ A narrow 4-3-1-2 using three central midfielders and an advanced playmaker behin
 - **Defence:** Wing-Back (Attack) [DL/DR], Central Defender (Defend) *, Ball-Playing Defender (Defend), Wing-Back (Support) [DL/DR]
 - **Midfield:** Central Midfielder (Defend), Deep-Lying Playmaker (Support) [MC], Box-to-Box Midfielder (Support)
 - **Attack:** Advanced Playmaker (Attack) [AMC], Deep-Lying Forward (Support) *, Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Chance control (Central Midfielder (Defend) holds behind the ball)
 - **Leans on:** stamina +2, crossing +2, first touch +2, teamwork +2 (whole team)
 - **Expects at least (tapers below):** passing 8 (MC); vision 8 (AMC); first touch 8 (AMC); technique 8 (AMC); stamina 9 (DL, DR); crossing 8 (DL, DR)
 - **Needs:** Excellent attacking full-backs; Three capable central midfielders; Creative AMC; Complementary strikers
-- **Instructions:** Fairly Narrow; Shorter Passing; Work Ball Into Box; Overlap Left; Overlap Right; Counter-Press; Standard Line of Engagement; Standard Defensive Line
+- **Instructions:** Overlap Left; Overlap Right; Fairly Narrow; Shorter Passing; Work Ball Into Box; Counter-Press; Distribute To Full Backs; Roll It Out; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against sides that attack the flanks, since your full-backs are the only wide players and will be stretched
 
 ### Positive 4-3-3 DM Wide
@@ -926,6 +1137,9 @@ A positive 4-3-3 built around a genuine holding midfielder, two complementary ei
 - **Defence:** Full-Back (Support) ×2, Ball-Playing Defender (Defend), Central Defender (Defend) *
 - **Midfield:** Defensive Midfielder (Defend), Deep-Lying Playmaker (Support) [MC], Central Midfielder (Support)
 - **Attack:** Inside Forward (Attack), Winger (Attack) [AML/AMR], Pressing Forward (Attack) *
+- **Defensive settings:** line of engagement: Higher; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement, More Urgent Pressing); Counter-attack (Counter when the ball is won)
 - **Leans on:** decisions +1, kicking +1, first touch +1 (GK; Goalkeeper (Defend)); positioning +2, concentration +2, anticipation +1, passing +1 (DC; Central Defender (Defend)); pace +2, anticipation +2, acceleration +1, concentration +1 (DC; Central Defender (Cover)); stamina +1, work rate +1, passing +1, first touch +1 (DL, DR; Full-Back (Support)); positioning +2, concentration +2, decisions +2, teamwork +1, passing +1 (DM; Defensive Midfielder (Defend)); passing +2, first touch +2, vision +2, decisions +2, technique +1 (MC; Deep-Lying Playmaker (Support) [MC]); decisions +2, passing +2, teamwork +2, first touch +1, off the ball +1 (MC; Central Midfielder (Support)); acceleration +2, pace +2, off the ball +2, dribbling +1, finishing +1, first touch +1, work rate +1 [new requirement], stamina +1 [new requirement] (AML; Inside Forward (Attack)); acceleration +2, pace +2, dribbling +2, crossing +2, off the ball +1, work rate +1, stamina +1 (AMR; Winger (Attack) [AML/AMR]); acceleration +2, pace +2, off the ball +2, anticipation +2, finishing +1, stamina +1 (ST; Advanced Forward (Attack)); off the ball +3, anticipation +3, acceleration +1, finishing +1 (ST; Poacher (Attack)); work rate +2, stamina +2, off the ball +2, acceleration +2, anticipation +1, finishing +1 (ST; Pressing Forward (Attack)); passing +2, technique +1, decisions +1, composure +1 (DC; Ball-Playing Defender (Defend))
@@ -944,6 +1158,9 @@ A positive possession 4-3-3 with a holding DM behind a ball-winner and playmaker
 - **Defence:** Wing-Back (Attack) [DL/DR], Ball-Playing Defender (Defend), Central Defender (Defend) *, Full-Back (Support)
 - **Midfield:** Defensive Midfielder (Defend), Deep-Lying Playmaker (Support) [MC], Ball-Winning Midfielder (Support) [MC]
 - **Attack:** Inside Forward (Attack), Winger (Support) [AML/AMR], Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Higher; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement, More Urgent Pressing); Counter-attack (Counter when the ball is won)
 - **Leans on:** decisions +1, kicking +1, first touch +1 (GK; Goalkeeper (Defend)); positioning +2, concentration +2, anticipation +1, passing +1 (DC; Central Defender (Defend)); pace +2, anticipation +2, acceleration +1, concentration +1 (DC; Central Defender (Cover)); stamina +1, work rate +1, passing +1, first touch +1 (DL, DR; Full-Back (Support)); positioning +2, concentration +2, decisions +2, teamwork +1, passing +1 (DM; Defensive Midfielder (Defend)); passing +2, first touch +2, vision +2, decisions +2, technique +1 (MC; Deep-Lying Playmaker (Support) [MC]); acceleration +2, pace +2, off the ball +2, dribbling +1, finishing +1, first touch +1, work rate +1 [new requirement], stamina +1 [new requirement] (AML; Inside Forward (Attack)); acceleration +2, pace +2, off the ball +2, anticipation +2, finishing +1, stamina +1 (ST; Advanced Forward (Attack)); off the ball +3, anticipation +3, acceleration +1, finishing +1 (ST; Poacher (Attack)); work rate +2, stamina +2, off the ball +2, acceleration +2, anticipation +1, finishing +1 (ST; Pressing Forward (Attack)); work rate +2, stamina +2, tackling +1, anticipation +1, passing +1, first touch +1, decisions +1 (MC; Ball-Winning Midfielder (Support) [MC]); passing +2, first touch +2, decisions +2, crossing +2, teamwork +1, stamina +1, work rate +1 (AMR; Winger (Support) [AML/AMR]); pace +2, acceleration +1, off the ball +2, crossing +2, stamina +2, work rate +1, first touch +1 (DL; Wing-Back (Attack) [DL/DR]); passing +2, technique +1, decisions +1, composure +1 (DC; Ball-Playing Defender (Defend))
@@ -962,11 +1179,14 @@ A patient possession structure with a playmaker at the base, a linking striker a
 - **Defence:** Full-Back (Support) ×2, Ball-Playing Defender (Defend), Central Defender (Defend) *
 - **Midfield:** Deep-Lying Playmaker (Support) [DM], Wide Midfielder (Support), Central Midfielder (Support), Box-to-Box Midfielder (Support), Winger (Attack) [ML/MR]
 - **Attack:** Deep-Lying Forward (Support) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Possession control (Shorter Passing, Lower Tempo, Play Out Of Defence, Hold Shape)
 - **Leans on:** composure +2, decisions +2, technique +2, positioning +2 (whole team)
 - **Needs:** Technically reliable midfield; Linking striker; Ball-playing defender; Good first touch/decisions; An attacking right winger with the movement and pace to give the linking striker a forward outlet
-- **Instructions:** Shorter Passing; Lower Tempo; Play Out Of Defence; Work Ball Into Box; Hold Shape; Standard Line of Engagement; Standard Defensive Line
+- **Instructions:** Shorter Passing; Lower Tempo; Play Out Of Defence; Work Ball Into Box; Hold Shape; Distribute To Centre Backs; Take Short Kicks; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you need immediate, high-tempo attacks, your defenders and midfield are uncomfortable on the ball, or the right winger lacks the movement to support the dropping striker
 
 ### High-Press 4-4-2
@@ -979,12 +1199,17 @@ A 4-4-2 that presses from the front with two pressing forwards, a ball-winning m
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Wide Midfielder (Support) ×2, Ball-Winning Midfielder (Support) [MC], Box-to-Box Midfielder (Support)
 - **Attack:** Pressing Forward (Defend), Pressing Forward (Attack)
+- **Defensive settings:** line of engagement: Higher; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Extremely Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
+- **Setup:** The pressing shape is a catalogue hypothesis, not a copy of Rosler or another externally tested download.
+- **Setup:** No forced Counter after a regain: the receiving and linking roles choose when to release the runners, rather than requiring every regain to become a break.
 
-- **Game plan:** Territorial control (Counter-Press, Higher Line of Engagement, Much More Urgent Pressing); Direct (Slightly More Direct Passing)
+- **Game plan:** Territorial control (Counter-Press, Higher Line of Engagement, Higher Defensive Line, Much More Urgent Pressing); Direct (Slightly More Direct Passing)
 - **Leans on:** teamwork +1 (whole team); stamina +1, work rate +1, positioning +1 (DL, DR); anticipation +1, concentration +1, positioning +1 (DC); stamina +2, work rate +2, teamwork +2, aggression +1 [new requirement], anticipation +1 (ML, MR; Wide Midfielder (Support)); stamina +2, work rate +2, aggression +2, anticipation +1, teamwork +1 (MC); stamina +2, work rate +2, aggression +2, anticipation +2, off the ball +1 (ST)
 - **Expects at least (tapers below):** stamina 9 (DL, DR); work rate 9 (DL, DR); stamina 10 (ML, MR); work rate 10 (ML, MR); stamina 10 (MC); work rate 10 (MC); stamina 10 (ST); work rate 10 (ST); aggression 7 (ST)
 - **Needs:** Two forwards with high stamina and work rate to initiate the press; Central midfielders with the engine and aggression to support the first line; Wide midfielders who can repeatedly recover and press the flanks; Full-backs fit enough to step forward behind the wide midfielders; Enough squad depth and fitness to sustain the intensity across a season
-- **Instructions:** Higher Line of Engagement; Much More Urgent Pressing; Counter-Press; Slightly More Direct Passing; Higher Tempo; Standard Defensive Line
+- **Instructions:** Slightly More Direct Passing; Higher Tempo; Counter-Press; Distribute Quickly; Distribute To Flanks; Take Long Kicks; Higher Line of Engagement; Higher Defensive Line; Much More Urgent Pressing
 - **Avoid when:** Against sides that play long over the press, or when your players are tired: a two-man press leaves gaps behind it if it is beaten
 
 ### Regista 4-2-3-1 DM Wide
@@ -997,6 +1222,9 @@ A positive possession 4-2-3-1 that runs through one deep playmaker: the Regista 
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Anchor (Defend), Regista (Support)
 - **Attack:** Winger (Attack) [AML/AMR] ×2, Attacking Midfielder (Attack), Pressing Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Possession control (Shorter Passing, Hold Shape)
 - **Leans on:** decisions +1, teamwork +1 (whole team); positioning +2, concentration +2 (DC); crossing +1, passing +1, stamina +1 (DL, DR); positioning +2, concentration +1, passing +1 (DM; Anchor (Defend)); passing +2, vision +1, composure +1 (DM; Regista (Support)); off the ball +2, passing +1, anticipation +1 (AMC; Attacking Midfielder (Attack)); crossing +2, dribbling +1 (AML, AMR; Winger (Attack) [AML/AMR]); off the ball +1, anticipation +1 (ST; Pressing Forward (Attack), Advanced Forward (Attack), Poacher (Attack))
@@ -1016,12 +1244,15 @@ A 4-3-3 built to give an elite roaming playmaker freedom while a ball-winner and
 - **Defence:** Wing-Back (Support) [DL/DR] ×2, Ball-Playing Defender (Defend), Central Defender (Cover) *
 - **Midfield:** Ball-Winning Midfielder (Defend) [MC], Roaming Playmaker (Support) [MC], Advanced Playmaker (Support) [MC]
 - **Attack:** Inverted Winger (Attack) [AML/AMR], Winger (Attack) [AML/AMR], Pressing Forward (Attack)
+- **Defensive settings:** line of engagement: Higher; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
-- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement)
+- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement, More Urgent Pressing)
 - **Leans on:** stamina +2, work rate +2, technique +2, passing +2 (whole team); decisions +2, composure +2 (MC)
 - **Expects at least (tapers below):** stamina 8 (MC; Roaming Playmaker (Support) [MC]); work rate 8 (MC); passing 8 (MC)
 - **Needs:** An elite roaming playmaker; A disciplined ball-winner; A second creative midfielder; Energetic pressing support
-- **Instructions:** Shorter Passing; Play Out Of Defence; Work Ball Into Box; Counter-Press; Higher Line of Engagement; Standard Defensive Line
+- **Instructions:** Fairly Wide; Shorter Passing; Play Out Of Defence; Work Ball Into Box; Counter-Press; Distribute To Centre Backs; Take Short Kicks; Higher Line of Engagement; Standard Defensive Line; More Urgent Pressing
 - **Avoid when:** Against sides that can exploit a midfield that follows the roaming playmaker away from its defensive position, or when the squad lacks work rate
 
 ### Siege 4-4-2
@@ -1034,6 +1265,9 @@ A positive, direct 4-4-2 that keeps a weaker side pinned back: the ball goes int
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Winger (Attack) [ML/MR], Ball-Winning Midfielder (Support) [MC], Box-to-Box Midfielder (Support), Winger (Support) [ML/MR]
 - **Attack:** Target Man (Support) *, Poacher (Attack) *
+- **Defensive settings:** line of engagement: Higher; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Territorial control (Counter-Press, Higher Line of Engagement, Higher Defensive Line); Direct (Slightly More Direct Passing)
 - **Leans on:** work rate +1, bravery +1 (whole team); heading +2, jumping reach +2, strength +1 (DC); crossing +1, stamina +1 (DL, DR); crossing +2, work rate +1 (ML, MR); anticipation +2, strength +1 (MC; Ball-Winning Midfielder (Support) [MC]); off the ball +1, stamina +1 (MC; Box-to-Box Midfielder (Support)); heading +2, jumping reach +2, strength +1 (ST; Target Man (Support), Target Man (Attack)); anticipation +2, off the ball +1, heading +1 (ST; Poacher (Attack), Advanced Forward (Attack))
@@ -1053,6 +1287,9 @@ A positive 4-3-3 that holds territory: a higher line and engagement, more urgent
 - **Defence:** Wing-Back (Attack) [DL/DR], Central Defender (Cover) *, Central Defender (Defend) *, Full-Back (Support)
 - **Midfield:** Defensive Midfielder (Defend), Box-to-Box Midfielder (Support), Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Inside Forward (Attack), Winger (Attack) [AML/AMR], Pressing Forward (Attack) *
+- **Defensive settings:** line of engagement: Higher; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: True; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Territorial control (Counter-Press, Higher Line of Engagement, Higher Defensive Line, More Urgent Pressing)
 - **Leans on:** stamina +1, work rate +1, teamwork +1 (whole team); pace +2, acceleration +2, anticipation +1 (DC); crossing +1, stamina +1 (DL, DR); positioning +2, anticipation +1 (DM; Defensive Midfielder (Defend)); off the ball +1, anticipation +1 (MC; Box-to-Box Midfielder (Support)); passing +1, decisions +1 (MC; Deep-Lying Playmaker (Support) [MC]); off the ball +1, finishing +1 (AML; Inside Forward (Attack)); crossing +2 (AMR; Winger (Attack) [AML/AMR]); aggression +1, anticipation +1 (ST; Pressing Forward (Attack))
@@ -1066,20 +1303,24 @@ A positive 4-3-3 that holds territory: a higher line and engagement, more urgent
 
 `territorial_352` · 3-5-2 · Positive · Territorial 3-5-2
 
-A positive 3-5-2 that holds territory: wing-backs live in the opponent's half, the wide centre-backs step out to win the ball back on the flanks, and two forwards and a runner meet the crosses.
+A positive 3-5-2 that holds territory with two attacking wing-backs, a counter-press and two forwards plus a midfield runner meeting the deliveries.
 
 - **Goal:** Sweeper Keeper (Defend)
-- **Defence:** Wide Centre-Back (Support) ×2, Central Defender (Cover) *, Wing-Back (Attack) [WBL/WBR] ×2
+- **Defence:** Ball-Playing Defender (Defend), Central Defender (Cover) *, Central Defender (Defend), Wing-Back (Attack) [WBL/WBR] ×2
 - **Midfield:** Defensive Midfielder (Defend), Box-to-Box Midfielder (Support), Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Pressing Forward (Support), Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Higher; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
+- **Setup:** FM20 compatibility correction: BPD (Defend) left, CD (Cover) centre, CD (Defend) right replace the previously listed outer Wide Centre-Back roles, which were introduced in FM22. The wing-backs now supply the attacking width; this is a revised template.
 
 - **Game plan:** Territorial control (Counter-Press, Higher Line of Engagement, Higher Defensive Line, More Urgent Pressing)
-- **Leans on:** stamina +1, work rate +1, teamwork +1 (whole team); pace +1, acceleration +1, tackling +1 (DC; Wide Centre-Back (Support)); pace +2, anticipation +1 (DC; Central Defender (Cover), Central Defender (Defend)); crossing +2, stamina +1 (WBL, WBR); positioning +2, anticipation +1 (DM; Defensive Midfielder (Defend)); off the ball +1, stamina +1 (MC; Box-to-Box Midfielder (Support)); passing +1, decisions +1 (MC; Deep-Lying Playmaker (Support) [MC]); work rate +1, first touch +1 (ST; Pressing Forward (Support)); off the ball +1, anticipation +1 (ST; Advanced Forward (Attack), Poacher (Attack))
+- **Leans on:** stamina +1, work rate +1, teamwork +1 (whole team); pace +1, acceleration +1, tackling +1 (DC; Ball-Playing Defender (Defend)); pace +2, anticipation +1 (DC; Central Defender (Cover), Central Defender (Defend)); crossing +2, stamina +1 (WBL, WBR); positioning +2, anticipation +1 (DM; Defensive Midfielder (Defend)); off the ball +1, stamina +1 (MC; Box-to-Box Midfielder (Support)); passing +1, decisions +1 (MC; Deep-Lying Playmaker (Support) [MC]); work rate +1, first touch +1 (ST; Pressing Forward (Support)); off the ball +1, anticipation +1 (ST; Advanced Forward (Attack), Poacher (Attack))
 - **Expects at least (tapers below):** stamina 11 (WBL, WBR); crossing 9 (WBL, WBR); stamina 10 (MC, ST); work rate 10 (MC, ST); pace 9 (DC); positioning 9 (DM; Defensive Midfielder (Defend))
-- **Needs:** Two wing-backs with the stamina to cover a whole flank and the crossing to finish moves; Two centre-backs comfortable stepping out wide, and a quick covering centre-back; A holding midfielder who screens and reads second balls; A pressing forward who links play and a striker who attacks the near post; Stamina and work rate across midfield and attack
+- **Needs:** Two wing-backs with the stamina to cover a whole flank and the crossing to finish moves; Three centre-backs who protect the channels, including a ball-player and a covering defender; A holding midfielder who screens and reads second balls; A pressing forward who links play and a striker who attacks the near post; Stamina and work rate across midfield and attack
 - **Instructions:** Fairly Wide; Slightly Shorter Passing; Counter-Press; Distribute To Centre Backs; Roll It Out; Higher Line of Engagement; Higher Defensive Line; More Urgent Pressing
 - **Avoid when:** With wing-backs who cannot sustain the running, against wingers who will attack the space behind them, or against a side with quick forwards who run behind a higher line
-- **When leading:** Keep the wing-backs high and the counter-press on; the five at the back are already there if needed. If the wing-backs tire, replace them like for like before considering a deeper line, and keep the two forwards so clearances still have someone to find.
+- **When leading:** Keep the supporting central platform while assessing the pressure and the wing-backs. Replace tired wide players before they stop recovering; dropping the entire block is a separate in-match decision, not an automatic consequence of taking the lead.
 
 ### Trequartista 4-3-1-2
 
@@ -1091,12 +1332,15 @@ A narrow 4-3-1-2 with one trequartista who roams freely behind two strikers, and
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Ball-Winning Midfielder (Support) [MC], Central Midfielder (Defend), Box-to-Box Midfielder (Support)
 - **Attack:** Trequartista (Attack) [AMC], Pressing Forward (Support), Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Chance control (Central Midfielder (Defend) holds behind the ball)
 - **Leans on:** first touch +2, teamwork +2, technique +2, composure +2 (whole team)
 - **Expects at least (tapers below):** vision 10 (AMC); technique 10 (AMC); first touch 9 (AMC); composure 9 (AMC); stamina 8 (DL, DR)
 - **Needs:** An exceptional creative player with vision and technique; A pressing forward with high work rate; A ball-winning midfielder; Full-backs who provide all the width
-- **Instructions:** Fairly Narrow; Shorter Passing; Work Ball Into Box; Counter-Press; Standard Line of Engagement; Standard Defensive Line
+- **Instructions:** Fairly Narrow; Shorter Passing; Work Ball Into Box; Counter-Press; Distribute To Full Backs; Roll It Out; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against teams that man-mark the playmaker or overload the flanks, since the full-backs are your only wide players
 
 ### Trequartista 4-4-2
@@ -1109,12 +1353,15 @@ A 4-4-2 in which one striker is a trequartista who drops off and creates, paired
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Wide Midfielder (Support) ×2, Central Midfielder (Defend), Box-to-Box Midfielder (Support)
 - **Attack:** Trequartista (Attack) [ST], Pressing Forward (Support)
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Chance control (Central Midfielder (Defend) holds behind the ball)
 - **Leans on:** teamwork +1 (whole team); positioning +1, concentration +1 (DC); stamina +1, teamwork +1, positioning +1 (DL, DR); work rate +2, teamwork +2, stamina +2, positioning +1 (ML, MR); positioning +2, teamwork +1, concentration +1 (MC; Central Midfielder (Defend)); work rate +2, stamina +2, off the ball +1, teamwork +1 (MC; Box-to-Box Midfielder (Support)); vision +3, technique +3, first touch +2, decisions +2, flair +2, composure +2, passing +2, off the ball +1 (ST; Trequartista (Attack) [ST]); work rate +3, stamina +2, aggression +2, teamwork +2, anticipation +1, off the ball +1 (ST; Pressing Forward (Support))
 - **Expects at least (tapers below):** work rate 8 (ML, MR); stamina 8 (ML, MR); positioning 8 (MC; Central Midfielder (Defend)); work rate 8 (MC; Box-to-Box Midfielder (Support)); stamina 8 (MC; Box-to-Box Midfielder (Support)); vision 10 (ST; Trequartista (Attack) [ST]); technique 10 (ST; Trequartista (Attack) [ST]); first touch 9 (ST; Trequartista (Attack) [ST]); decisions 9 (ST; Trequartista (Attack) [ST]); passing 9 (ST; Trequartista (Attack) [ST]); composure 8 (ST; Trequartista (Attack) [ST]); work rate 9 (ST; Pressing Forward (Support)); stamina 8 (ST; Pressing Forward (Support)); aggression 8 (ST; Pressing Forward (Support)); teamwork 8 (ST; Pressing Forward (Support))
 - **Needs:** A genuinely high-quality Trequartista with strong vision, technique, first touch, decisions and passing; A Pressing Forward partner with exceptional work rate and enough stamina, aggression and teamwork to press for both forwards; Wide midfielders with the stamina and work rate to compensate for the Trequartista's defensive freedom; A disciplined Central Midfielder (Defend) behind an energetic Box-to-Box runner; Enough technical quality in the front pair to make Work Ball Into Box worthwhile
-- **Instructions:** Fairly Wide; Work Ball Into Box; Counter-Press; Standard Line of Engagement; Standard Defensive Line
+- **Instructions:** Fairly Wide; Work Ball Into Box; Counter-Press; Distribute To Full Backs; Roll It Out; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against sides that overload the midfield, since the trequartista does not track back
 
 ### Vertical Tiki-Taka 4-3-3 DM
@@ -1127,11 +1374,14 @@ Short combinations are used to progress quickly rather than simply retain posses
 - **Defence:** Wing-Back (Support) [DL/DR], Ball-Playing Defender (Defend), Central Defender (Cover) *, Full-Back (Support)
 - **Midfield:** Deep-Lying Playmaker (Support) [DM], Box-to-Box Midfielder (Support), Mezzala (Attack)
 - **Attack:** Inside Forward (Attack), Winger (Support) [AML/AMR], Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Higher; defensive line: Higher; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
-- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement, Higher Defensive Line); Counter-attack (Counter when the ball is won)
+- **Game plan:** Possession control (Shorter Passing, Play Out Of Defence); Territorial control (Counter-Press, Higher Line of Engagement, Higher Defensive Line, More Urgent Pressing); Counter-attack (Counter when the ball is won)
 - **Leans on:** anticipation +2, first touch +2, technique +2, pace +2 (whole team)
 - **Needs:** Excellent first touch/passing; Mobile midfield; Fast attacking movement; Quick defenders
-- **Instructions:** Shorter Passing; Play Out Of Defence; Higher Tempo; Pass Into Space; Counter-Press; Counter; Higher Line of Engagement; Higher Defensive Line
+- **Instructions:** Shorter Passing; Higher Tempo; Play Out Of Defence; Pass Into Space; Counter-Press; Counter; Distribute To Centre Backs; Take Short Kicks; Higher Line of Engagement; Higher Defensive Line; More Urgent Pressing
 - **Avoid when:** Against sides that press well, or when your defenders are not comfortable on the ball or with a high line
 
 ### Wide Control 4-1-4-1
@@ -1144,12 +1394,15 @@ A 4-1-4-1 that controls the ball through a Wide Playmaker and flat Inverted Wing
 - **Defence:** Wing-Back (Support) [DL/DR], Ball-Playing Defender (Defend), Central Defender (Cover) *, Full-Back (Support)
 - **Midfield:** Deep-Lying Playmaker (Support) [DM], Wide Playmaker (Support) [ML/MR], Central Midfielder (Defend), Box-to-Box Midfielder (Support), Inverted Winger (Support) [ML/MR]
 - **Attack:** Complete Forward (Support)
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Possession control (Shorter Passing, Play Out Of Defence, Hold Shape)
 - **Leans on:** composure +2, decisions +2, technique +2, passing +2 (whole team); vision +2, first touch +2 (ML); dribbling +2, off the ball +2 (MR)
 - **Expects at least (tapers below):** passing 8 (ML); vision 8 (ML); first touch 8 (ML); technique 8 (ML)
 - **Needs:** A genuine flat wide playmaker; A supporting inverted winger; A deep distributor; Full-backs with disciplined width
-- **Instructions:** Fairly Wide; Shorter Passing; Play Out Of Defence; Work Ball Into Box; Hold Shape; Standard Line of Engagement; Standard Defensive Line
+- **Instructions:** Fairly Wide; Shorter Passing; Play Out Of Defence; Work Ball Into Box; Hold Shape; Distribute To Centre Backs; Take Short Kicks; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** When you need constant runners beyond the striker, or when the full-backs cannot provide the width the creators leave behind
 
 ### Wide Creator 4-4-2
@@ -1162,12 +1415,15 @@ A 4-4-2 with a defensive winger securing one flank and an attacking wide playmak
 - **Defence:** Full-Back (Support), Central Defender (Defend) *, Ball-Playing Defender (Defend), Wing-Back (Attack) [DL/DR]
 - **Midfield:** Defensive Winger (Support) [ML/MR], Central Midfielder (Defend), Central Midfielder (Support), Wide Playmaker (Attack) [ML/MR]
 - **Attack:** Deep-Lying Forward (Support), Advanced Forward (Attack)
+- **Defensive settings:** line of engagement: Higher; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
-- **Game plan:** Territorial control (Counter-Press, Higher Line of Engagement)
+- **Game plan:** Territorial control (Counter-Press, Higher Line of Engagement, More Urgent Pressing)
 - **Leans on:** stamina +2, work rate +2, teamwork +2 (whole team); passing +2, vision +2, technique +2, first touch +2 (MR); positioning +2, tackling +2 (ML)
 - **Expects at least (tapers below):** stamina 8 (ML); work rate 8 (ML); passing 8 (MR); vision 8 (MR); technique 8 (MR)
 - **Needs:** A technical wide playmaker; A defensive winger with stamina; An overlapping right-back; Complementary linking and running forwards
-- **Instructions:** Fairly Wide; Slightly Shorter Passing; Work Ball Into Box; Overlap Right; Counter-Press; Higher Line of Engagement; Standard Defensive Line
+- **Instructions:** Overlap Right; Fairly Wide; Slightly Shorter Passing; Work Ball Into Box; Counter-Press; Distribute To Centre Backs; Take Short Kicks; Higher Line of Engagement; Standard Defensive Line; More Urgent Pressing
 - **Avoid when:** Against a side that can overload the space behind the attacking right-back, or if the wide playmaker lacks the technical quality to justify the imbalance
 
 ### Wide Playmakers 4-3-3
@@ -1180,6 +1436,9 @@ A possession-oriented 4-3-3 with two different creators starting wide and moving
 - **Defence:** Full-Back (Support), Ball-Playing Defender (Defend), Central Defender (Defend) *, Wing-Back (Support) [DL/DR] *
 - **Midfield:** Defensive Midfielder (Defend), Box-to-Box Midfielder (Support), Central Midfielder (Support)
 - **Attack:** Trequartista (Attack) [AML/AMR], Advanced Playmaker (Attack) [AML/AMR], Pressing Forward (Attack)
+- **Defensive settings:** line of engagement: Higher; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: More Urgent; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Possession control (Shorter Passing, Play Out Of Defence, Hold Shape); Territorial control (Counter-Press, Higher Line of Engagement, More Urgent Pressing)
 - **Leans on:** decisions +1, first touch +1, passing +1 (GK; Sweeper Keeper (Defend)); stamina +2, work rate +2, crossing +2, pace +1 (DL, DR; Full-Back (Support), Wing-Back (Support) [DL/DR]); passing +2, technique +1, decisions +1, composure +1 (DC; Ball-Playing Defender (Defend)); positioning +2, concentration +2, anticipation +1 (DC; Central Defender (Defend)); pace +2, anticipation +2, acceleration +1, concentration +1 (DC; Central Defender (Cover)); positioning +2, concentration +2, decisions +1, teamwork +1, work rate +1 (DM; Defensive Midfielder (Defend)); work rate +2, stamina +2, off the ball +2, anticipation +1 (MC; Box-to-Box Midfielder (Support)); passing +2, decisions +2, teamwork +2, first touch +1, work rate +1 (MC; Central Midfielder (Support)); technique +2, vision +2, passing +2, first touch +2, flair +2, off the ball +1 (AML; Trequartista (Attack) [AML/AMR]); passing +2, vision +2, technique +2, first touch +2, decisions +2, off the ball +1 (AMR; Advanced Playmaker (Attack) [AML/AMR]); work rate +2, stamina +2, off the ball +2, acceleration +2, anticipation +1, finishing +1 (ST; Pressing Forward (Attack))
@@ -1198,12 +1457,15 @@ A width-first 4-4-2 designed to create repeated crossing opportunities through w
 - **Defence:** Full-Back (Support) ×2, Central Defender (Defend) * ×2
 - **Midfield:** Winger (Support) [ML/MR] ×2, Central Midfielder (Defend), Deep-Lying Playmaker (Support) [MC]
 - **Attack:** Target Man (Attack), Advanced Forward (Attack) *
+- **Defensive settings:** line of engagement: Standard; defensive line: Standard; defensive width: Standard; use tighter marking: Neutral; pressing intensity: Standard; prevent short GK distribution: False; use offside trap: False; tackling: Neutral
+- **Setup:** All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.
+- **Setup:** Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.
 
 - **Game plan:** Counter-attack (Counter when the ball is won)
 - **Leans on:** teamwork +1 (whole team); positioning +1, concentration +1 (DC; Central Defender (Defend), Central Defender (Cover)); stamina +2, crossing +2, work rate +1, pace +1 (DL, DR; Full-Back (Support)); crossing +3, pace +2, acceleration +1, dribbling +1 (ML, MR; Winger (Support) [ML/MR]); positioning +2, teamwork +1, work rate +1, concentration +1 (MC; Central Midfielder (Defend)); passing +2, vision +2, first touch +1, decisions +1 (MC; Deep-Lying Playmaker (Support) [MC]); jumping reach +3, strength +3, heading +2, bravery +1 (ST; Target Man (Attack)); acceleration +2, pace +2, off the ball +2, anticipation +2 (ST; Advanced Forward (Attack)); off the ball +3, anticipation +3, acceleration +1 (ST; Poacher (Attack))
 - **Expects at least (tapers below):** stamina 8 (DL, DR; Full-Back (Support)); crossing 7 (DL, DR; Full-Back (Support)); crossing 8 (ML, MR; Winger (Support) [ML/MR]); pace 7 (ML, MR; Winger (Support) [ML/MR]); positioning 8 (MC; Central Midfielder (Defend)); passing 8 (MC; Deep-Lying Playmaker (Support) [MC]); vision 7 (MC; Deep-Lying Playmaker (Support) [MC]); jumping reach 9 (ST; Target Man (Attack)); strength 8 (ST; Target Man (Attack)); heading 8 (ST; Target Man (Attack)); acceleration 8 (ST; Advanced Forward (Attack)); pace 8 (ST; Advanced Forward (Attack)); off the ball 8 (ST; Advanced Forward (Attack)); off the ball 9 (ST; Poacher (Attack)); anticipation 8 (ST; Poacher (Attack))
 - **Needs:** Wingers with reliable crossing and enough pace to create separation on the outside; Full-backs with the stamina and delivery to overlap repeatedly without destroying the defensive shape; A central midfielder disciplined enough to cover the wide attacks; A distributor capable of moving possession quickly toward the flanks; An aerially strong Target Man to make repeated crossing worthwhile; A mobile second striker who attacks the space around the Target Man
-- **Instructions:** Overlap Left; Overlap Right; Fairly Wide; Slightly More Direct Passing; Higher Tempo; Counter
+- **Instructions:** Overlap Left; Overlap Right; Fairly Wide; Slightly More Direct Passing; Higher Tempo; Regroup; Counter; Distribute Quickly; Distribute To Flanks; Take Long Kicks; Standard Line of Engagement; Standard Defensive Line
 - **Avoid when:** Against tall centre-backs who win the crosses, or when your full-backs cannot get back, since the flanks are left open
 
 `*` marks a slot whose role the optimiser may swap for a declared alternative.

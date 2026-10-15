@@ -41,20 +41,25 @@
     "defensiveLine": "Standard",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "Standard",
-    "preventShortGKDistribution": false
+    "preventShortGKDistribution": false,
+    "defensiveWidth": "Standard",
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
   },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Keeps the goalkeeping role simple but must be able to kick accurately toward the striker when the direct outlet is available."
+      "why": "Keeps the goalkeeping role simple but must be able to kick accurately toward the striker when the direct outlet is available.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back provides secondary width and cover behind the attacking winger without being asked to dominate the flank."
+      "why": "Support full-back provides secondary width and cover behind the attacking winger without being asked to dominate the flank.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -63,7 +68,8 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender. Cover is the alternate."
+      "why": "Central defender. Cover is the alternate.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -72,43 +78,50 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back provides secondary width and cover behind the attacking winger without being asked to dominate the flank."
+      "why": "Support full-back provides secondary width and cover behind the attacking winger without being asked to dominate the flank.",
+      "instructions": []
     },
     {
       "key": "DMCL",
       "position": "DM",
       "role": "bwm_dm_support",
-      "why": "Ball-Winning Midfielder (Support) steps out to contest possession and supplies the running that the Enganche does not provide, while the other DM remains in position."
+      "why": "Ball-Winning Midfielder (Support) steps out to contest possession and supplies the running that the Enganche does not provide, while the other DM remains in position.",
+      "instructions": []
     },
     {
       "key": "DMCR",
       "position": "DM",
       "role": "dm_defend",
-      "why": "Defensive Midfielder (Defend) is the fixed screen: he holds position, protects the centre-backs and gives the Enganche a secure platform."
+      "why": "Defensive Midfielder (Defend) is the fixed screen: he holds position, protects the centre-backs and gives the Enganche a secure platform.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "winger_aml_amr_attack",
-      "why": "Winger (Attack) stays wide, attacks the outside channel and supplies aerial service, but still needs enough work rate to recover because the Enganche contributes little defensively."
+      "why": "Winger (Attack) stays wide, attacks the outside channel and supplies aerial service, but still needs enough work rate to recover because the Enganche contributes little defensively.",
+      "instructions": []
     },
     {
       "key": "AMC",
       "position": "AMC",
       "role": "eng_support",
-      "why": "Enganche is the focal creator: he stays high between the lines, receives to feet and is trusted to dictate the final pass rather than contribute defensive running."
+      "why": "Enganche is the focal creator: he stays high between the lines, receives to feet and is trusted to dictate the final pass rather than contribute defensive running.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "winger_aml_amr_attack",
-      "why": "Winger (Attack) stays wide, attacks the outside channel and supplies aerial service, but still needs enough work rate to recover because the Enganche contributes little defensively."
+      "why": "Winger (Attack) stays wide, attacks the outside channel and supplies aerial service, but still needs enough work rate to recover because the Enganche contributes little defensively.",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -117,7 +130,8 @@
       "why": "Target Man (Support) is the default outlet, winning direct balls and bringing the Enganche and wingers into play. Target Man (Attack) is the alternative when the striker is a stronger penalty-box threat and the side needs more central presence.",
       "roles": [
         "tm_attack"
-      ]
+      ],
+      "instructions": []
     }
   ],
   "system": {
@@ -142,14 +156,18 @@
   "whenToUse": "When one attacking midfielder is clearly your best creator, a striker can provide a genuine aerial/hold-up outlet, and the rest of the side is willing to carry the defensive and running load around them.",
   "whenNotToUse": "Against teams able to suffocate or man-mark the Enganche, when the striker cannot dominate direct service, or when the wingers and double pivot lack the work rate to compensate for the free number ten.",
   "instructionRationale": {
-    "Fairly Wide": "The wingers stretch the back line and create central space for the Enganche.",
-    "Slightly More Direct Passing": "Allows the side to find the target man or Enganche before the opposition can lock onto the creator.",
-    "Work Ball Into Box": "Once the creator is involved, the team values his final pass rather than low-quality shooting.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Slightly More Direct Passing": "Reach the forward outlets earlier without turning every possession into a long ball.",
+    "Work Ball Into Box": "Look for an opening around the penalty area rather than encouraging speculative shots.",
     "Floated Crosses": "Uses the target man as a genuine aerial target for the two attacking wingers.",
-    "Regroup": "Restores the double-pivot protection because the Enganche contributes little defensive work.",
-    "Hold Shape": "Keeps the attack connected to the Enganche rather than bypassing him in an uncontrolled counter.",
-    "Standard Line of Engagement": "Keeps the block compact without asking a team containing a non-defending number ten to press relentlessly.",
-    "Standard Defensive Line": "Avoids creating excessive space behind an otherwise conventional back four."
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Hold Shape": "Retain the available passing structure after a regain rather than forcing an immediate counter.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Target Man": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -568,5 +586,9 @@
         "tm_attack"
       ]
     }
+  ],
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

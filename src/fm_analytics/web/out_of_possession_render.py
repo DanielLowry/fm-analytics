@@ -8,6 +8,7 @@ from fm_analytics.analytics.out_of_possession import (
     LEGACY_INSTRUCTIONS,
     LINE_OPTIONS,
     PRESSING_INTENSITY_OPTIONS,
+    TACKLING_OPTIONS,
 )
 from fm_analytics.web.instruction_controls import Flag, Group, Scale, group_cards
 
@@ -16,11 +17,13 @@ GROUPS = (
         Scale("Line of engagement", "line_of_engagement", LINE_OPTIONS),
         Scale("Defensive line", "defensive_line", LINE_OPTIONS),
         Scale("Defensive width", "defensive_width", DEFENSIVE_WIDTH_OPTIONS),
+        Flag("Use offside trap", "use_offside_trap"),
     )),
     Group("Pressing and marking", (
         Scale("Pressing intensity", "pressing_intensity", PRESSING_INTENSITY_OPTIONS),
         Flag("Use tighter marking", "use_tighter_marking"),
         Flag("Prevent short GK distribution", "prevent_short_gk_distribution"),
+        Scale("Tackling", "tackling", TACKLING_OPTIONS, dropdown=True),
     )),
 )
 
@@ -43,7 +46,7 @@ def out_of_possession_section(tactic: TacticDefinition) -> str:
     )
     return (
         "<section class='out-of-possession-section'><h3>Out of possession</h3>"
-        "<p class='subhead'>Where the team defends and how hard it presses. Neutral leaves marking or "
-        "preventing short goalkeeper distribution unselected.</p>"
+        "<p class='subhead'>Where the team defends and how hard it presses. Neutral leaves the "
+        "corresponding instruction unselected. Standard width leaves FM's default defensive spacing.</p>"
         f"{cards}{note}{legacy_note}</section>"
     )

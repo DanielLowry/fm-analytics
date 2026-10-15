@@ -1,23 +1,256 @@
 {
-  "key":"front_foot_442", "name":"Front-Foot 4-4-2", "formation":"4-4-2", "mentality":"Positive",
-  "instructions":["Higher Line of Engagement","Higher Defensive Line","Much More Urgent Pressing","Slightly More Direct Passing","Higher Tempo","Counter-Press"],
-  "slots":[
-    {"key":"GK","position":"GK","role":"sk_defend","why":"The sweeper keeper supports the defence behind an aggressive line."},
-    {"key":"DL","position":"DL","role":"fb_support","why":"The support full-back presses the flank without leaving both sides exposed."},
-    {"key":"DCL","position":"DC","role":"cd_stopper","why":"The stopper attacks the first pass or forward, making the high press more compact."},
-    {"key":"DCR","position":"DC","role":"cd_cover","why":"The cover defender sweeps behind the stopper and protects balls played over the press."},
-    {"key":"DR","position":"DR","role":"fb_support","why":"The right full-back supports the press and provides width after regains."},
-    {"key":"ML","position":"ML","role":"wm_support","why":"The wide midfielder presses the full-back and tracks the return run."},
-    {"key":"MCL","position":"MC","role":"bwm_mc_support","why":"The ball-winner makes the central press aggressive and wins loose balls."},
-    {"key":"MCR","position":"MC","role":"b2b_support","why":"The box-to-box midfielder supports both pressing and forward running."},
-    {"key":"MR","position":"MR","role":"wm_support","why":"The right midfielder maintains the compact four-man midfield line."},
-    {"key":"STL","position":"ST","role":"pf_defend","why":"The defensive pressing forward starts the press and drops toward midfield."},
-    {"key":"STR","position":"ST","role":"af_attack","why":"The advanced forward attacks the space exposed by the high press."}
+  "key": "front_foot_442",
+  "name": "Front-Foot 4-4-2",
+  "formation": "4-4-2",
+  "mentality": "Positive",
+  "instructions": [],
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "sk_defend",
+      "why": "The sweeper keeper supports the defence behind an aggressive line.",
+      "instructions": []
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support",
+      "why": "The support full-back presses the flank without leaving both sides exposed.",
+      "instructions": []
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_stopper",
+      "why": "The stopper attacks the first pass or forward, making the high press more compact.",
+      "instructions": []
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_cover",
+      "why": "The cover defender sweeps behind the stopper and protects balls played over the press.",
+      "instructions": []
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "why": "The right full-back supports the press and provides width after regains.",
+      "instructions": []
+    },
+    {
+      "key": "ML",
+      "position": "ML",
+      "role": "wm_support",
+      "why": "The wide midfielder presses the full-back and tracks the return run.",
+      "instructions": []
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "bwm_mc_support",
+      "why": "The ball-winner makes the central press aggressive and wins loose balls.",
+      "instructions": []
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "b2b_support",
+      "why": "The box-to-box midfielder supports both pressing and forward running.",
+      "instructions": []
+    },
+    {
+      "key": "MR",
+      "position": "MR",
+      "role": "wm_support",
+      "why": "The right midfielder maintains the compact four-man midfield line.",
+      "instructions": []
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "pf_defend",
+      "why": "The defensive pressing forward starts the press and drops toward midfield.",
+      "instructions": []
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "af_attack",
+      "why": "The advanced forward attacks the space exposed by the high press.",
+      "instructions": []
+    }
   ],
-  "system":{"minimums":{"width":3.5,"defensiveCover":6.0,"ballProgression":3.0,"runners":2.5,"penetration":1.5,"restDefence":5.5,"pressing":5.0},"maximumAttackDuties":5,"maximumCreators":3},
-  "style":"Stopper-cover high press", "description":"A front-foot 4-4-2 that uses a stopper-cover centre-back partnership to squeeze play behind an aggressive two-forward press.", "whyGood":"It gives a genuine Stopper a clear partner and protects the risk with a Cover defender rather than treating both centre-backs as identical.", "whyThisShape":"The pressing forward and advanced forward lead the press, the stopper steps into the first duel, and the cover defender reads the ball behind. The midfield four keeps short distances around the ball.", "whenToUse":"When you have an aggressive, aerial stopper, a quick covering partner and forwards able to sustain the first press.", "whenNotToUse":"Against direct sides if the cover defender is slow, or when the squad lacks the stamina to press for a full match.",
-  "instructionRationale":{"Higher Line of Engagement":"Brings the front two close to the opponent's build-up.","Higher Defensive Line":"Lets the stopper engage early while the cover defender protects depth.","Much More Urgent Pressing":"Makes the front-foot defensive partnership meaningful.","Slightly More Direct Passing":"Turns a high regain into a quick chance before the opponent recovers.","Higher Tempo":"Keeps the attack moving after regains.","Counter-Press":"Restores pressure immediately if the first attack breaks down."},
-  "attributeEmphasis":[{"attributes":{"stamina":2,"workRate":2,"aggression":2,"anticipation":2}},{"attributes":{"aggression":2},"roles":["af_attack"],"introduceAttributes":["aggression"]},{"attributes":{"aggression":2},"roles":["wm_support"],"introduceAttributes":["aggression"]},{"attributes":{"pace":2,"acceleration":2,"concentration":2},"positions":["DC"]}],
-  "attributeTaper":[{"attribute":"pace","taperBelow":8,"positions":["DC"],"roles":["cd_cover"]},{"attribute":"anticipation","taperBelow":8,"positions":["DC"]},{"attribute":"stamina","taperBelow":10,"positions":["ML","MR","MC","ST"]},{"attribute":"workRate","taperBelow":10,"positions":["ML","MR","MC","ST"]}],
-  "keyRequirements":["An aggressive stopper and quick cover defender","Two energetic forwards","Hard-working wide midfielders","A ball-winning midfielder"], "tags":["442","high-press","stopper-cover","counterpress"]
+  "system": {
+    "minimums": {
+      "width": 3.5,
+      "defensiveCover": 6.0,
+      "ballProgression": 3.0,
+      "runners": 2.5,
+      "penetration": 1.5,
+      "restDefence": 5.5,
+      "pressing": 5.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Stopper-cover high press",
+  "description": "A front-foot 4-4-2 that uses a stopper-cover centre-back partnership to squeeze play behind an aggressive two-forward press.",
+  "whyGood": "It gives a genuine Stopper a clear partner and protects the risk with a Cover defender rather than treating both centre-backs as identical.",
+  "whyThisShape": "The pressing forward and advanced forward lead the press, the stopper steps into the first duel, and the cover defender reads the ball behind. The midfield four keeps short distances around the ball.",
+  "whenToUse": "When you have an aggressive, aerial stopper, a quick covering partner and forwards able to sustain the first press.",
+  "whenNotToUse": "Against direct sides if the cover defender is slow, or when the squad lacks the stamina to press for a full match.",
+  "instructionRationale": {
+    "Higher Line of Engagement": "Engage the build-up earlier, accepting that the forwards need support from the midfield behind them.",
+    "Higher Defensive Line": "Move the back line up to reduce the space behind the midfield and support territorial pressure.",
+    "Much More Urgent Pressing": "Use a very urgent settled press; assess recoveries, chances allowed and fitness rather than assuming it succeeds.",
+    "Slightly More Direct Passing": "Reach the forward outlets earlier without turning every possession into a long ball.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
+  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "stamina": 2,
+        "workRate": 2,
+        "aggression": 2,
+        "anticipation": 2
+      }
+    },
+    {
+      "attributes": {
+        "aggression": 2
+      },
+      "roles": [
+        "af_attack"
+      ],
+      "introduceAttributes": [
+        "aggression"
+      ]
+    },
+    {
+      "attributes": {
+        "aggression": 2
+      },
+      "roles": [
+        "wm_support"
+      ],
+      "introduceAttributes": [
+        "aggression"
+      ]
+    },
+    {
+      "attributes": {
+        "pace": 2,
+        "acceleration": 2,
+        "concentration": 2
+      },
+      "positions": [
+        "DC"
+      ]
+    }
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "pace",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ],
+      "roles": [
+        "cd_cover"
+      ]
+    },
+    {
+      "attribute": "anticipation",
+      "taperBelow": 8,
+      "positions": [
+        "DC"
+      ]
+    },
+    {
+      "attribute": "stamina",
+      "taperBelow": 10,
+      "positions": [
+        "ML",
+        "MR",
+        "MC",
+        "ST"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 10,
+      "positions": [
+        "ML",
+        "MR",
+        "MC",
+        "ST"
+      ]
+    }
+  ],
+  "keyRequirements": [
+    "An aggressive stopper and quick cover defender",
+    "Two energetic forwards",
+    "Hard-working wide midfielders",
+    "A ball-winning midfielder"
+  ],
+  "tags": [
+    "442",
+    "high-press",
+    "stopper-cover",
+    "counterpress"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Standard",
+      "passingDirectness": "Slightly More Direct Passing",
+      "tempo": "Higher Tempo",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Mixed",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Higher",
+    "defensiveLine": "Higher",
+    "pressingIntensity": "Extremely Urgent",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.",
+    "The pressing shape is a catalogue hypothesis, not a copy of Rosler or another externally tested download."
+  ]
 }

@@ -3,25 +3,21 @@
   "name": "Trequartista 4-4-2",
   "formation": "4-4-2",
   "mentality": "Positive",
-  "instructions": [
-    "Fairly Wide",
-    "Work Ball Into Box",
-    "Counter-Press",
-    "Standard Line of Engagement",
-    "Standard Defensive Line"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes to the wide midfielders or forwards, simply and quickly."
+      "why": "Distributes to the wide midfielders or forwards, simply and quickly.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back provides width and cover behind the wide midfielder."
+      "why": "Support full-back provides width and cover behind the wide midfielder.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -30,7 +26,8 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender. Cover is the alternate."
+      "why": "Central defender. Cover is the alternate.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -39,49 +36,57 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right."
+      "why": "Support full-back on the right.",
+      "instructions": []
     },
     {
       "key": "ML",
       "position": "ML",
       "role": "wm_support",
-      "why": "Wide midfielder (Support) works hard on the flank and covers for the trequartista's lack of defensive work."
+      "why": "Wide midfielder (Support) works hard on the flank and covers for the trequartista's lack of defensive work.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Defensive central midfielder screens the defence."
+      "why": "Defensive central midfielder screens the defence.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Box-to-box midfielder supports both forwards with runs from deep."
+      "why": "Box-to-box midfielder supports both forwards with runs from deep.",
+      "instructions": []
     },
     {
       "key": "MR",
       "position": "MR",
       "role": "wm_support",
-      "why": "Wide midfielder (Support) on the right, doing the same job as on the left."
+      "why": "Wide midfielder (Support) on the right, doing the same job as on the left.",
+      "instructions": []
     },
     {
       "key": "STL",
       "position": "ST",
       "role": "treq_st_attack",
-      "why": "Trequartista drops off the front and roams to create chances; he does not press or track back."
+      "why": "Trequartista drops off the front and roams to create chances; he does not press or track back.",
+      "instructions": []
     },
     {
       "key": "STR",
       "position": "ST",
       "role": "pf_support",
-      "why": "Pressing forward (Support) presses the defenders and links with the trequartista."
+      "why": "Pressing forward (Support) presses the defenders and links with the trequartista.",
+      "instructions": []
     }
   ],
   "system": {
@@ -105,11 +110,15 @@
   "whenToUse": "When you have a creative forward who is not a natural goalscorer, and a partner with pace and work rate.",
   "whenNotToUse": "Against sides that overload the midfield, since the trequartista does not track back; and when your wide midfielders lack the stamina to cover.",
   "instructionRationale": {
-    "Fairly Wide": "The wide midfielders and full-backs stretch the opponent, giving the trequartista space between the lines.",
-    "Work Ball Into Box": "Patient movement of the ball until the trequartista finds a pass.",
-    "Counter-Press": "Presses at once after losing the ball, led by the pressing forward, since the trequartista will not.",
-    "Standard Line of Engagement": "A balanced press keeps the two banks compact.",
-    "Standard Defensive Line": "A balanced line keeps the block compact behind a trequartista who does not defend."
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Work Ball Into Box": "Look for an opening around the penalty area rather than encouraging speculative shots.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Distribute To Full Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Roll It Out": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
   },
   "attributeEmphasis": [
     {
@@ -370,5 +379,47 @@
         "pf_support"
       ]
     }
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Standard",
+      "tempo": "Standard",
+      "selected": [
+        "Work Ball Into Box"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Full Backs"
+    ],
+    "distributionTypes": [
+      "Roll It Out"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "pressingIntensity": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

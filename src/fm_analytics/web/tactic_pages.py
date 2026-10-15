@@ -34,6 +34,7 @@ from fm_analytics.web.rendering import (
 )
 from fm_analytics.web.scouting_render import squad_player_link
 from fm_analytics.web.tactic_checks_page import tactic_checks_body
+from fm_analytics.web.tactic_setup_render import tactic_setup_section
 from fm_analytics.web.xi_options import (
     exclude_link, excluded_from_query, exclusion_panel, exclusion_query, selection_controls,
     selection_options_from_query, selection_options_query, tactic_query, xi_href,
@@ -526,6 +527,7 @@ class TacticPagesMixin:
             "<a class='button-link secondary' href='#matchday-risks'>Check matchday risks</a>"
             + ("<a class='button-link secondary' href='#tactic-history'>How it has played</a>" if history_panel else "")
             + "</div></section>"
+            + tactic_setup_section(evaluation.tactic)
             + "<section class='fm-decision-grid fm-tactic-summary' aria-label='Matchday summary'>"
             "<article class='fm-decision-stat'><span>Starting XI</span>"
             f"<b>{selected_count} / {total_slots}</b><small>{line_up_note}</small></article>"

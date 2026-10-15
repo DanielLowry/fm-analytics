@@ -3,19 +3,14 @@
   "name": "Attacking 3-4-3 Wing-Back",
   "formation": "3-4-3",
   "mentality": "Positive",
-  "instructions": [
-    "Much Higher Line of Engagement",
-    "Higher Defensive Line",
-    "Shorter Passing",
-    "Play Out Of Defence",
-    "Counter-Press"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "A high line leaves space behind the defence, so the keeper needs to claim through balls early and distribute quickly."
+      "why": "A high line leaves space behind the defence, so the keeper needs to claim through balls early and distribute quickly.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -24,13 +19,15 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Wide centre-back who defends the channel the wing-back has vacated. The Cover alternate lets him sit behind a more aggressive partner."
+      "why": "Wide centre-back who defends the channel the wing-back has vacated. The Cover alternate lets him sit behind a more aggressive partner.",
+      "instructions": []
     },
     {
       "key": "DCC",
       "position": "DC",
       "role": "bpd_defend",
-      "why": "Ball-playing defender in the middle starts build-up and passes through the opposition's press."
+      "why": "Ball-playing defender in the middle starts build-up and passes through the opposition's press.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -39,43 +36,50 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Wide centre-back on the other side, covering the space left by the right wing-back. Cover is the alternate if he is the safer of the two."
+      "why": "Wide centre-back on the other side, covering the space left by the right wing-back. Cover is the alternate if he is the safer of the two.",
+      "instructions": []
     },
     {
       "key": "WBL",
       "position": "WBL",
       "role": "wb_wbl_wbr_attack",
-      "why": "Attacking wing-back supplies the width, so the whole shape depends on him getting up the pitch and back again."
+      "why": "Attacking wing-back supplies the width, so the whole shape depends on him getting up the pitch and back again.",
+      "instructions": []
     },
     {
       "key": "WBR",
       "position": "WBR",
       "role": "wb_wbl_wbr_attack",
-      "why": "Mirror of the left side: with two wing-backs pushed on, the front three can play narrower and closer to the striker."
+      "why": "Mirror of the left side: with two wing-backs pushed on, the front three can play narrower and closer to the striker.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Box-to-box midfielder covers the ground the wing-backs leave and supplies the runs that support the counter-press."
+      "why": "Box-to-box midfielder covers the ground the wing-backs leave and supplies the runs that support the counter-press.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "dlp_mc_support",
-      "why": "Deep-lying playmaker sets the tempo and keeps the ball moving so the back three can push up."
+      "why": "Deep-lying playmaker sets the tempo and keeps the ball moving so the back three can push up.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "winger_aml_amr_attack",
-      "why": "Winger stays wide and beats his full-back, giving the attack a wide threat to go with the inside forward."
+      "why": "Winger stays wide and beats his full-back, giving the attack a wide threat to go with the inside forward.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "if_attack",
-      "why": "Inside forward cuts in from the right to shoot and attack the far post, overloading the box with the striker."
+      "why": "Inside forward cuts in from the right to shoot and attack the far post, overloading the box with the striker.",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -84,7 +88,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Advanced Forward runs in behind the defence. Poacher is the alternate for a striker who is better as a finisher than a runner."
+      "why": "Advanced Forward runs in behind the defence. Poacher is the alternate for a striker who is better as a finisher than a runner.",
+      "instructions": []
     }
   ],
   "system": {
@@ -107,11 +112,18 @@
   "whenToUse": "When you are clearly the stronger side and expect the opponent to sit deep, or you need goals late. It needs wing-backs with real stamina and centre-backs who can defend wide areas.",
   "whenNotToUse": "Against quick counter-attacking sides that target the space behind your wing-backs, or if your centre-backs are slow or your wing-backs tire before the hour.",
   "instructionRationale": {
-    "Much Higher Line of Engagement": "Starts the press in the opponent's half, so the wing-backs' advanced positions are backed by pressure on the ball.",
-    "Higher Defensive Line": "Keeps the back three close to the midfield and the team compact; it needs pace in the centre-backs.",
-    "Shorter Passing": "Keeps possession inside the triangles the wing-backs, midfielders and forwards form.",
-    "Play Out Of Defence": "Three centre-backs are a natural build-up base and draw opposition forwards out of position.",
-    "Counter-Press": "Wins the ball straight back after a loss, before the space behind the wing-backs can be attacked."
+    "Much Higher Line of Engagement": "Begin pressure close to the opposition build-up and goalkeeper.",
+    "Higher Defensive Line": "Move the back line up to reduce the space behind the midfield and support territorial pressure.",
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Play Out Of Defence": "Use short first-line outlets and midfield connections to start attacks; this asks for secure decisions under pressure.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Distribute To Centre Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "More Urgent Pressing": "Challenge more often inside the selected engagement zone without making the settled press maximal.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Short Kicks": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
   },
   "attributeEmphasis": [
     {
@@ -157,5 +169,49 @@
     "positive",
     "343",
     "wing-backs"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Standard",
+      "selected": [
+        "Play Out Of Defence"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Centre Backs"
+    ],
+    "distributionTypes": [
+      "Take Short Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Much Higher",
+    "defensiveLine": "Higher",
+    "pressingIntensity": "More Urgent",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

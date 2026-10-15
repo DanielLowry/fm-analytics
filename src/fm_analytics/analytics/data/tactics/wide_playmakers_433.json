@@ -44,26 +44,32 @@
     "defensiveLine": "Standard",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "More Urgent",
-    "preventShortGKDistribution": false
+    "preventShortGKDistribution": false,
+    "defensiveWidth": "Standard",
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
   },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "sk_defend",
-      "why": "Sweeper Keeper (Defend) gives the back line an extra short passing option and can deal with balls beyond the defence without requiring an aggressive sweeper role."
+      "why": "Sweeper Keeper (Defend) gives the back line an extra short passing option and can deal with balls beyond the defence without requiring an aggressive sweeper role.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back is essential for width because the wide creator ahead of him moves inside; stamina, work rate and crossing matter more here than in a conventional 4-3-3."
+      "why": "Support full-back is essential for width because the wide creator ahead of him moves inside; stamina, work rate and crossing matter more here than in a conventional 4-3-3.",
+      "instructions": []
     },
     {
       "key": "DCL",
       "position": "DC",
       "role": "bpd_defend",
-      "why": "Ball-Playing Defender (Defend) starts possession cleanly and can find midfield before the opposition closes the creative players."
+      "why": "Ball-Playing Defender (Defend) starts possession cleanly and can find midfield before the opposition closes the creative players.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -72,7 +78,8 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central Defender (Defend) supplies the simpler defensive partner. Cover remains an alternative when pace and anticipation justify it."
+      "why": "Central Defender (Defend) supplies the simpler defensive partner. Cover remains an alternative when pace and anticipation justify it.",
+      "instructions": []
     },
     {
       "key": "DR",
@@ -81,43 +88,50 @@
       "roles": [
         "fb_support"
       ],
-      "why": "Wing-Back (Support) provides the width and pressing behind the attacking advanced playmaker, while the left full-back and fixed DM protect the structure. Full-Back (Support) is a safer fallback that trades away width and pressure on this flank. Stamina, work rate and crossing matter for both roles."
+      "why": "Wing-Back (Support) provides the width and pressing behind the attacking advanced playmaker, while the left full-back and fixed DM protect the structure. Full-Back (Support) is a safer fallback that trades away width and pressure on this flank. Stamina, work rate and crossing matter for both roles.",
+      "instructions": []
     },
     {
       "key": "DM",
       "position": "DM",
       "role": "dm_defend",
-      "why": "Defensive Midfielder (Defend) is the fixed anchor. With both wide creators drifting inside and the BBM moving, this role must hold rather than chase possession."
+      "why": "Defensive Midfielder (Defend) is the fixed anchor. With both wide creators drifting inside and the BBM moving, this role must hold rather than chase possession.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Box-to-Box Midfielder (Support) supplies the running and defensive work the two creators do not, while also arriving beyond them when space opens."
+      "why": "Box-to-Box Midfielder (Support) supplies the running and defensive work the two creators do not, while also arriving beyond them when space opens.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "cm_support",
-      "why": "Central Midfielder (Support) is the reliable connector who keeps possession moving between the defensive unit, full-backs and two creators."
+      "why": "Central Midfielder (Support) is the reliable connector who keeps possession moving between the defensive unit, full-backs and two creators.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "treq_aml_amr_attack",
-      "why": "Trequartista (Attack) starts wide then roams into pockets to create. He is deliberately protected from defensive work, so his technical and creative quality must justify that freedom."
+      "why": "Trequartista (Attack) starts wide then roams into pockets to create. He is deliberately protected from defensive work, so his technical and creative quality must justify that freedom.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "ap_aml_amr_attack",
-      "why": "Advanced Playmaker (Attack) moves inside from the right half-space to create and combine, giving a second creative source without duplicating the Trequartista exactly. His attacking duty preserves penetration alongside the pressing forward, with the right wing-back supplying width outside him."
+      "why": "Advanced Playmaker (Attack) moves inside from the right half-space to create and combine, giving a second creative source without duplicating the Trequartista exactly. His attacking duty preserves penetration alongside the pressing forward, with the right wing-back supplying width outside him.",
+      "instructions": []
     },
     {
       "key": "ST",
       "position": "ST",
       "role": "pf_attack",
-      "why": "Pressing Forward (Attack) supplies vertical running and leads the press, compensating for the limited defensive contribution of the two wide creators."
+      "why": "Pressing Forward (Attack) supplies vertical running and leads the press, compensating for the limited defensive contribution of the two wide creators.",
+      "instructions": []
     }
   ],
   "system": {
@@ -142,17 +156,22 @@
   "whenToUse": "When your best attacking players are creators rather than conventional touchline wingers and your left full-back and right wing-back have enough engine to supply width for them.",
   "whenNotToUse": "When the full-backs lack stamina or crossing, the holding midfielder cannot defend space reliably, or the opposition can press the first build-up line so effectively that the two creators rarely receive facing goal.",
   "instructionRationale": {
-    "Fairly Wide": "Creates room for the wide defenders to stretch the pitch while the two nominal wide attackers move inside; a supporting right wing-back supplies the extra width when the advanced playmaker attacks inside.",
-    "Shorter Passing": "Connects the build-up players to the two creators through repeatable short combinations.",
-    "Play Out Of Defence": "Uses the Sweeper Keeper, BPD, DM and supporting midfielders to establish controlled possession.",
-    "Higher Tempo": "Moves the ball quickly once the creators have pulled the defensive shape out of position.",
-    "Work Ball Into Box": "Lets the Trequartista and Advanced Playmaker create the final action rather than settling for low-quality shots.",
-    "Be More Expressive": "Gives the two specialist creators freedom to exploit the spaces they find.",
-    "Counter-Press": "Uses the PF, BBM and nearby midfielders to contest losses before the wide creators have to recover fully; the supporting right wing-back adds pressure on that flank.",
-    "Hold Shape": "Keeps clean regains connected to the creative structure instead of immediately launching low-percentage counters.",
-    "Higher Line of Engagement": "Keeps the team close enough to its creators to sustain possession and counter-pressure.",
-    "More Urgent Pressing": "Closes the ball down quickly near the creators, so the counter-press can win possession back high rather than letting the opposition settle.",
-    "Standard Defensive Line": "Avoids adding high-line recovery demands to a shape already committing both full-backs to provide width."
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Play Out Of Defence": "Use short first-line outlets and midfield connections to start attacks; this asks for secure decisions under pressure.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Work Ball Into Box": "Look for an opening around the penalty area rather than encouraging speculative shots.",
+    "Be More Expressive": "Allow more improvisation within the selected roles when a rigid pattern would restrict the creators.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Hold Shape": "Retain the available passing structure after a regain rather than forcing an immediate counter.",
+    "Higher Line of Engagement": "Engage the build-up earlier, accepting that the forwards need support from the midfield behind them.",
+    "More Urgent Pressing": "Challenge more often inside the selected engagement zone without making the settled press maximal.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Centre Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Short Kicks": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
   },
   "attributeEmphasis": [
     {
@@ -618,5 +637,9 @@
         "pf_attack"
       ]
     }
+  ],
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

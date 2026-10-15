@@ -3,26 +3,21 @@
   "name": "Balanced 4-4-1-1",
   "formation": "4-4-1-1",
   "mentality": "Balanced",
-  "instructions": [
-    "Fairly Wide",
-    "Slightly More Direct Passing",
-    "Counter",
-    "Regroup",
-    "Standard Line of Engagement",
-    "Standard Defensive Line"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes to a compact block; plays it long or short depending on the pressure."
+      "why": "Distributes to a compact block; plays it long or short depending on the pressure.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back gives width behind the wide midfielder without leaving the defence exposed."
+      "why": "Support full-back gives width behind the wide midfielder without leaving the defence exposed.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -33,7 +28,8 @@
         "nncb_defend",
         "nncb_cover"
       ],
-      "why": "Central defender in a balanced back four. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: slightly more direct passing does not ask the pair to build. Only one centre-back may use Cover."
+      "why": "Central defender in a balanced back four. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: slightly more direct passing does not ask the pair to build. Only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -44,43 +40,50 @@
         "nncb_defend",
         "nncb_cover"
       ],
-      "why": "Central defender on the right. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: slightly more direct passing does not ask the pair to build. Only one centre-back may use Cover."
+      "why": "Central defender on the right. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: slightly more direct passing does not ask the pair to build. Only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right."
+      "why": "Support full-back on the right.",
+      "instructions": []
     },
     {
       "key": "ML",
       "position": "ML",
       "role": "wm_support",
-      "why": "Wide midfielder is the safer side: he helps his full-back and keeps the shape compact."
+      "why": "Wide midfielder is the safer side: he helps his full-back and keeps the shape compact.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Defensive central midfielder protects the back four and lets his partner go forward."
+      "why": "Defensive central midfielder protects the back four and lets his partner go forward.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "cm_support",
-      "why": "Supporting central midfielder links the defence to the attacking midfielder and striker."
+      "why": "Supporting central midfielder links the defence to the attacking midfielder and striker.",
+      "instructions": []
     },
     {
       "key": "MR",
       "position": "MR",
       "role": "winger_ml_mr_support",
-      "why": "Winger is the more attacking side, so the team has one safe flank and one creative flank."
+      "why": "Winger is the more attacking side, so the team has one safe flank and one creative flank.",
+      "instructions": []
     },
     {
       "key": "AMC",
       "position": "AMC",
       "role": "am_support",
-      "why": "Attacking midfielder plays behind the striker, linking play and arriving late in the box."
+      "why": "Attacking midfielder plays behind the striker, linking play and arriving late in the box.",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -89,7 +92,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Lone striker: Advanced Forward runs in behind, Poacher stays in the box."
+      "why": "Lone striker: Advanced Forward runs in behind, Poacher stays in the box.",
+      "instructions": []
     }
   ],
   "system": {
@@ -112,12 +116,17 @@
   "whenToUse": "When you have one good striker and a creative player who is not a natural second striker, or as a steady all-round system for a mixed squad.",
   "whenNotToUse": "When you need two players to attack the box, or against sides that overload the middle: two central midfielders can be outnumbered.",
   "instructionRationale": {
-    "Fairly Wide": "The full-backs and wide midfielders stretch the opponent so the striker has room.",
-    "Slightly More Direct Passing": "Quicker balls to the striker suit a lone forward with support behind him.",
-    "Counter": "Hits quickly when the ball is won, with the striker and attacking midfielder as outlets.",
-    "Regroup": "Drops back into the two banks after losing the ball.",
-    "Standard Line of Engagement": "A balanced press: engages when the ball enters the compact midfield.",
-    "Standard Defensive Line": "A balanced line keeps the block compact without taking risks."
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Slightly More Direct Passing": "Reach the forward outlets earlier without turning every possession into a long ball.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -139,5 +148,49 @@
     "balanced",
     "4411",
     "compact"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Slightly More Direct Passing",
+      "tempo": "Standard",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "pressingIntensity": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

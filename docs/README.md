@@ -88,6 +88,22 @@
   actual Hampton/Oxford Control wins, the peer-opponent fixture and the
   initial Balanced recommendation, then audits the 1–4 defeat, the mentality
   change, confirmed goal routes and the targeted delivery-defence hypothesis.
+- [Dorking review](dorking-review-2026-10-14.md) separates the 3–1 defeat's
+  failed chance creation from delivery defending, corrects the squad-strength
+  premise and specifies a bounded Balanced/team-pressing test with existing
+  capture fields.
+- [Pressing benchmark review](pressing-benchmark-review-2026-10-15.md) validates
+  the FM20-era sources and local tactic coverage, distinguishes a complete
+  high-press benchmark from earlier OI tests, and prioritises a full-package
+  comparison before further isolated adjustments.
+- [Further tactical research review](further-tactical-research-review-2026-10-15.md)
+  checks the simple 4-4-2, low-block, Rosler and Apache sources, adds Rosler's
+  omitted comparative test, and ranks practical benchmark options.
+- [Tactic instruction audit](tactic-instruction-audit-2026-10-15.md) records
+  the review of all 63 existing tactics, including explicit defensive width,
+  offside trap and tackling, and the two published imports.
+- [Apache and Rosler setup](apache-rosler-setup.md) links original FM files,
+  verified settings, import instructions and benchmark recording guidance.
 - [Tactic experiments](match-experiments.md): store the matches you choose, group
   them and compare what you tried; how many replays a comparison needs.
 - [Hampton & Richmond experiment log](hampton-experiments.md): the replay

@@ -52,7 +52,8 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertNotIn("Starting XI", body)
         self.assertNotIn("Matchday bench", body)
         # Owned players' attributes are exact, so scores collapse to one number.
-        self.assertNotIn(" / ", body.split("Compare tactics")[1].split("</table>")[0])
+        table = body.split("Compare tactics")[1].split("</table>")[0]
+        self.assertNotRegex(table, r"<td><b>[^<]* / [^<]*</b></td>")
 
     def test_tactics_page_renders_every_opponent_slider(self) -> None:
         status, body = self._get("/tactics")
@@ -308,14 +309,29 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         for slot in tactic.slots:
             self.assertIn(html.escape(slot.why), body)
 
-    def test_tactic_detail_flags_missing_in_possession_settings(self) -> None:
-        # lowblock_442 has not been given an inPossession block yet.
+    def test_previously_incomplete_tactic_now_has_all_settings(self) -> None:
         status, body = self._get("/tactics/lowblock_442")
 
         self.assertEqual(status, 200)
         self.assertIn("In possession", body)
-        self.assertIn("Not yet set:", body)
-        self.assertIn("Not set</b>", body)
+        self.assertNotIn("Not yet set:", body)
+        self.assertNotIn("Not set</b>", body)
+        self.assertIn("Role and duty defaults", body)
+
+    def test_benchmark_page_links_to_the_original_download(self) -> None:
+        status, body = self._get('/tactics/rosler_lls_442')
+        self.assertEqual(status, 200)
+        self.assertIn("href='/tactics/rosler_lls_442/download'", body)
+        self.assertIn('Sit Narrower', body)
+        self.assertIn('not fully decoded', body)
+        self.assertIn('Use offside trap</span><b>Yes', body)
+        connection = HTTPConnection('127.0.0.1', self.port)
+        connection.request('GET', '/tactics/rosler_lls_442/download')
+        response = connection.getresponse()
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.getheader('Content-Type'), 'application/octet-stream')
+        self.assertEqual(len(response.read()), 47153)
+        connection.close()
 
     def test_tactic_detail_shows_specified_in_possession_settings(self) -> None:
         for key in ("vertical_442", "balanced_442", "attacking_424"):
@@ -330,9 +346,8 @@ class TacticsAndDepthPageTests(unittest.TestCase):
                 self.assertIn(html.escape(tactic.in_possession.attacking_width), body)
                 self.assertEqual(tactic.in_transition_missing_fields, ())
                 self.assertIn("Every in-transition setting is specified.", body)
-                # Defensive width joined the model after these were authored; nothing else is missing.
                 missing = tactic.out_of_possession_missing_fields
-                self.assertLessEqual(set(missing), {"defensive width"})
+                self.assertEqual(missing, ())
                 self.assertEqual(body.count("Not set</b>"), len(missing))
 
     def test_tactic_detail_says_which_attributes_the_tactic_leans_on(self) -> None:
@@ -375,8 +390,10 @@ class TacticsAndDepthPageTests(unittest.TestCase):
         self.assertIn("Use tighter marking</span><b>Neutral", section)
         self.assertIn("Pressing intensity</span><b>Standard", section)
         self.assertIn("Prevent short GK distribution</span><b>No", section)
-        self.assertIn("Defensive width</span><b>Not set", section)
-        self.assertIn("Out-of-possession settings not yet specified: defensive width.", section)
+        self.assertIn("Defensive width</span><b>Standard", section)
+        self.assertIn("Use offside trap</span><b>No", section)
+        self.assertIn("Tackling</span><b>Neutral", section)
+        self.assertIn("Every out-of-possession setting is specified.", section)
 
     def test_tactic_detail_labels_an_introduced_role_requirement(self) -> None:
         status, body = self._get("/tactics/pressing_442")

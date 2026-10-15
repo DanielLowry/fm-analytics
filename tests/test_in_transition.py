@@ -155,9 +155,11 @@ class TransitionTests(unittest.TestCase):
         self.assertEqual(effective_instructions(tactic), ("Counter-Press", "Counter"))
 
     def test_migrated_tactics_keep_the_same_scoring_and_explanations(self):
-        for key, legacy in (("vertical_442", ("Regroup", "Counter")), ("wing_play_442", ("Counter",))):
+        for key, legacy in (("vertical_442", ("Regroup", "Counter")), ("wing_play_442", ("Regroup", "Counter"))):
             tactic = MVP_CATALOGUE.tactics[key]
-            old = replace(tactic, in_transition=None, instructions=tactic.instructions + legacy)
+            distribution = set(in_transition_selected_instructions(tactic.in_transition)) - set(legacy)
+            old = replace(tactic, in_transition=None, instructions=tactic.instructions + legacy,
+                          instruction_rationale={k: v for k, v in tactic.instruction_rationale.items() if k not in distribution})
             roles = [MVP_CATALOGUE.role_for_slot(slot, slot.role_key) for slot in tactic.slots]
             self.assertEqual(assess_instruction_suitability(roles, tactic), assess_instruction_suitability(roles, old))
             self.assertEqual(set(effective_instructions(tactic)), set(effective_instructions(old)))

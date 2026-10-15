@@ -3,32 +3,28 @@
   "name": "False Nine 4-3-3",
   "formation": "4-3-3 DM Wide",
   "mentality": "Positive",
-  "instructions": [
-    "Shorter Passing",
-    "Play Out Of Defence",
-    "Work Ball Into Box",
-    "Counter-Press",
-    "Higher Line of Engagement",
-    "Higher Defensive Line"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "sk_defend",
-      "why": "Sweeper keeper is an extra passer in build-up and covers the space behind a higher line."
+      "why": "Sweeper keeper is an extra passer in build-up and covers the space behind a higher line.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back gives width while the inverted wingers move inside."
+      "why": "Support full-back gives width while the inverted wingers move inside.",
+      "instructions": []
     },
     {
       "key": "DCL",
       "position": "DC",
       "role": "bpd_defend",
-      "why": "Ball-playing defender starts moves with progressive passes through the press."
+      "why": "Ball-playing defender starts moves with progressive passes through the press.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -37,49 +33,57 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender who defends while his partner plays. Cover is the alternate."
+      "why": "Central defender who defends while his partner plays. Cover is the alternate.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right, doing the same job as on the left."
+      "why": "Support full-back on the right, doing the same job as on the left.",
+      "instructions": []
     },
     {
       "key": "DM",
       "position": "DM",
       "role": "dm_support",
-      "why": "Supporting holding midfielder screens the defence and gives the midfield a passing base."
+      "why": "Supporting holding midfielder screens the defence and gives the midfield a passing base.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Box-to-box midfielder runs into the space the false nine vacates and supports the counter-press."
+      "why": "Box-to-box midfielder runs into the space the false nine vacates and supports the counter-press.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "ap_mc_attack",
-      "why": "Advanced playmaker is the creative centre of the midfield and links with the false nine."
+      "why": "Advanced playmaker is the creative centre of the midfield and links with the false nine.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "iw_attack",
-      "why": "Inverted winger starts wide and cuts inside, running into the space the false nine leaves and attacking the far post."
+      "why": "Inverted winger starts wide and cuts inside, running into the space the false nine leaves and attacking the far post.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "iw_attack",
-      "why": "Inverted winger on the right, mirroring the left so both centre-back gaps are attacked."
+      "why": "Inverted winger on the right, mirroring the left so both centre-back gaps are attacked.",
+      "instructions": []
     },
     {
       "key": "ST",
       "position": "ST",
       "role": "f9_support",
-      "why": "False nine drops between the lines to link play and pulls a centre-back out of position."
+      "why": "False nine drops between the lines to link play and pulls a centre-back out of position.",
+      "instructions": []
     }
   ],
   "system": {
@@ -104,12 +108,18 @@
   "whenToUse": "Against a back four that defends deep and narrow, when you have a striker who is a better passer than a finisher and two wingers who can score.",
   "whenNotToUse": "Against a back three, or a side that keeps its centre-backs in position, since there is no gap to exploit; and when your wingers cannot finish, since nobody is left in the box.",
   "instructionRationale": {
-    "Shorter Passing": "Keeps the ball in tight triangles, which is how the false nine and midfield combine.",
-    "Play Out Of Defence": "The sweeper keeper and ball-playing defender build from the back so the midfield can receive under little pressure.",
-    "Work Ball Into Box": "Patient combinations until a run behind the pulled-out centre-back opens up.",
-    "Counter-Press": "Presses at once after losing the ball, since many players are close to it.",
-    "Higher Line of Engagement": "Presses in the opponent's half to keep the play high and the ball near the forwards.",
-    "Higher Defensive Line": "Keeps the team compact around the ball; it needs a keeper who sweeps and defenders with pace."
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Play Out Of Defence": "Use short first-line outlets and midfield connections to start attacks; this asks for secure decisions under pressure.",
+    "Work Ball Into Box": "Look for an opening around the penalty area rather than encouraging speculative shots.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Higher Line of Engagement": "Engage the build-up earlier, accepting that the forwards need support from the midfield behind them.",
+    "Higher Defensive Line": "Move the back line up to reduce the space behind the midfield and support territorial pressure.",
+    "Distribute To Centre Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "More Urgent Pressing": "Challenge more often inside the selected engagement zone without making the settled press maximal.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Short Kicks": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
   },
   "attributeEmphasis": [
     {
@@ -131,5 +141,48 @@
     "possession",
     "433",
     "false-nine"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Standard",
+      "selected": [
+        "Play Out Of Defence",
+        "Work Ball Into Box"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Centre Backs"
+    ],
+    "distributionTypes": [
+      "Take Short Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Higher",
+    "defensiveLine": "Higher",
+    "pressingIntensity": "More Urgent",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

@@ -1,0 +1,198 @@
+{
+  "key": "apache_v1",
+  "name": "Apache v1.0 (Pulsar / TFF)",
+  "formation": "4-4-1-1 DM WB Asymmetric AM (CR)",
+  "mentality": "Attacking",
+  "instructions": [],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Extremely Wide",
+      "passingDirectness": "More Direct Passing",
+      "tempo": "Much Higher Tempo",
+      "selected": [
+        "Pass Into Space",
+        "Play Out Of Defence",
+        "Work Ball Into Box"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [
+      "Slow Pace Down"
+    ],
+    "distributionTargets": [
+      "Distribute To Centre Backs"
+    ],
+    "distributionTypes": [
+      "Roll It Out"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Much Higher",
+    "defensiveLine": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "Extremely Urgent",
+    "preventShortGKDistribution": true,
+    "useOffsideTrap": true,
+    "tackling": "Neutral"
+  },
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "sk_attack",
+      "instructions": [],
+      "why": "The published setup pins Sweeper Keeper (Attack); preserve his sweeping and distribution role for the benchmark."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "bpd_defend",
+      "instructions": [],
+      "why": "The original left centre-back is a Ball-Playing Defender (Defend), not a generic defensive alternate."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "bpd_defend",
+      "instructions": [],
+      "why": "The original right centre-back is also a Ball-Playing Defender (Defend); retain the pair rather than optimising it into a different tactic."
+    },
+    {
+      "key": "WBL",
+      "position": "WBL",
+      "role": "wb_wbl_wbr_support",
+      "instructions": [],
+      "why": "The supporting wing-back receives outside the centre-backs and supports the left winger."
+    },
+    {
+      "key": "DM",
+      "position": "DM",
+      "role": "dlp_dm_support",
+      "instructions": [],
+      "why": "The deep playmaker connects the first pass with the runners ahead of him."
+    },
+    {
+      "key": "WBR",
+      "position": "WBR",
+      "role": "wb_wbl_wbr_support",
+      "instructions": [],
+      "why": "The supporting right wing-back connects with the winger; the author removed the shorter-passing override here."
+    },
+    {
+      "key": "ML",
+      "position": "ML",
+      "role": "winger_ml_mr_attack",
+      "instructions": [],
+      "why": "The attacking left winger holds an outside outlet in the extremely wide setup."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_attack",
+      "instructions": [],
+      "why": "The attacking central midfielder starts left of centre and runs beyond the deep playmaker."
+    },
+    {
+      "key": "MR",
+      "position": "MR",
+      "role": "winger_ml_mr_attack",
+      "instructions": [],
+      "why": "The attacking right winger gives the other outside outlet and supplies the arriving forwards."
+    },
+    {
+      "key": "AMCR",
+      "position": "AMC",
+      "role": "ss_attack",
+      "instructions": [],
+      "why": "The Shadow Striker starts right of centre, creating the published asymmetry and a second penalty-area runner."
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "af_attack",
+      "instructions": [],
+      "why": "The Advanced Forward stays high and attacks the space the wide and central runners create."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 3.5,
+      "ballProgression": 3.0,
+      "runners": 3.0,
+      "pressing": 3.5
+    },
+    "maximumAttackDuties": 6,
+    "maximumCreators": 4
+  },
+  "style": "Published FM20 benchmark",
+  "description": "Pulsar\u2019s Apache v1.0, based on TFF Cerber V4: an Attacking, extremely wide asymmetric system with a deep playmaker, two central runners and very urgent pressure.",
+  "whyGood": "Provides an external whole-tactic benchmark: FM-Arena reports 82.4 points and +49 goal difference per 38 matches over 456 tests on patch 20.4.4. Those results are not a forecast for this squad.",
+  "whyThisShape": "The original combines wing-backs and flat attacking wingers with a supporting deep playmaker, an attacking left central midfielder, a right-sided Shadow Striker and an Advanced Forward. More direct passing and much higher tempo reach the runners; the extremely wide shape separates the outside outlets. Counter-Press, very high engagement and very urgent pressing contest losses, while the offside trap is part of the published setup. Preserve the original file\u2019s player instructions and set pieces rather than simplifying the system to match the app\u2019s preferred roles.",
+  "whenToUse": "As the first performance benchmark when the available squad can field its wing-backs, flat wingers, deep playmaker and asymmetric central runners without major positional compromises.",
+  "whenNotToUse": "When the available XI cannot cover those jobs, or when the goal is to isolate one instruction: this is a complete published package and changes several phases together.",
+  "whenLeading": "Keep the benchmark\u2019s Attacking mentality during the experiment; make a separate labelled version if you later test a lead-protection policy.",
+  "keyRequirements": [
+    "Wing-backs and flat wide midfielders",
+    "A supporting deep playmaker",
+    "A Shadow Striker and attacking central runner",
+    "Use the original FM file for complete player instructions and set pieces"
+  ],
+  "tags": [
+    "benchmark",
+    "published",
+    "apache",
+    "counterpress",
+    "asymmetric"
+  ],
+  "source": {
+    "author": "Pulsar, based on TFF Cerber V4",
+    "url": "https://fm-arena.com/thread/604-apache-v1-0-cerber-v4-tweak/",
+    "downloadUrl": "https://fm-arena.com/download-tactic/578/",
+    "filename": "apache_v1.fmf",
+    "sha256": "c9d00ecad8215fc4e548246ad200153a79fe83d162ca2acb4e75756abab4fc05",
+    "verification": "Formation, roles and selected team instructions checked against FM-Arena\u2019s screenshot of the original tactic. The unmodified FM file retains all player instructions and set-piece routines; those are not fully decoded into the catalogue. Import the original file for the benchmark."
+  },
+  "setupNotes": [
+    "Import the original .fmf using the download on this page. Keep its complete player instructions and set-piece routines for the first benchmark; the catalogue is the selection guide, not a replacement file.",
+    "Use no additional opposition instructions. Keep the starting mentality throughout the replay, and retain the same holiday management policy as the reference.",
+    "The published score describes another test environment. Assess both teams\u2019 chances, goals, crosses and red cards with this squad before adopting it.",
+    "The source screenshot leaves the defensive-line modifier unselected: Standard here means the Attacking mentality\u2019s default. Do not silently replace this with a Higher line.",
+    "Corners: ML from the left, MR from the right. Throw-ins: WBL from the left, WBR from the right. Keep the downloaded routines, including the attacking free-kick tweak.",
+    "The TFF source discusses hard tackling player instructions and managing bookings. A holiday benchmark tests the assistant\u2019s handling of these too; retain and flag red-card games."
+  ],
+  "attributeEmphasis": [],
+  "attributeTaper": [],
+  "instructionRationale": {
+    "Counter": "Retained as part of the source\u2019s full attacking and transition package, rather than inferred from the formation or our app score.",
+    "Counter-Press": "Retained as part of the source\u2019s full attacking and transition package, rather than inferred from the formation or our app score.",
+    "Distribute To Centre Backs": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Extremely Wide": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "More Direct Passing": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Much Higher Line of Engagement": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Much Higher Tempo": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Much More Urgent Pressing": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Pass Into Space": "Lead the mobile forwards and midfield runners into space rather than requiring every pass to arrive at their feet.",
+    "Play Out Of Defence": "Retained as part of the source\u2019s full attacking and transition package, rather than inferred from the formation or our app score.",
+    "Prevent Short GK Distribution": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Roll It Out": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Slow Pace Down": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Use Offside Trap": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Work Ball Into Box": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation."
+  }
+}

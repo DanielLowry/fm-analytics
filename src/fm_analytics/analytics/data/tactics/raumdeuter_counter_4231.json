@@ -3,26 +3,21 @@
   "name": "Raumdeuter Counter 4-2-3-1",
   "formation": "4-2-3-1 DM AM Wide",
   "mentality": "Cautious",
-  "instructions": [
-    "Slightly More Direct Passing",
-    "Pass Into Space",
-    "Counter",
-    "Regroup",
-    "Lower Line of Engagement",
-    "Standard Defensive Line"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes quickly to the wingers or attacking midfielder to start the counter."
+      "why": "Distributes quickly to the wingers or attacking midfielder to start the counter.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_defend",
-      "why": "Defensive full-back stays back and lets the winger and raumdeuter do the attacking, which keeps the block compact."
+      "why": "Defensive full-back stays back and lets the winger and raumdeuter do the attacking, which keeps the block compact.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -33,7 +28,8 @@
         "nncb_defend",
         "nncb_cover"
       ],
-      "why": "Central defender. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the counter goes forward early and the pair is not asked to build. Only one centre-back may use Cover."
+      "why": "Central defender. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the counter goes forward early and the pair is not asked to build. Only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -44,49 +40,57 @@
         "nncb_defend",
         "nncb_cover"
       ],
-      "why": "Cover centre-back sweeps up behind his partner. Defend is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the counter goes forward early and the pair is not asked to build. Only one centre-back may use Cover."
+      "why": "Cover centre-back sweeps up behind his partner. Defend is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the counter goes forward early and the pair is not asked to build. Only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_defend",
-      "why": "Defensive full-back on the right stays back for the same reason."
+      "why": "Defensive full-back on the right stays back for the same reason.",
+      "instructions": []
     },
     {
       "key": "DMCL",
       "position": "DM",
       "role": "dm_defend",
-      "why": "Holding midfielder screens the defence and does the simple defensive work."
+      "why": "Holding midfielder screens the defence and does the simple defensive work.",
+      "instructions": []
     },
     {
       "key": "DMCR",
       "position": "DM",
       "role": "dm_support",
-      "why": "Supporting midfielder wins the ball and starts the counter with a simple pass."
+      "why": "Supporting midfielder wins the ball and starts the counter with a simple pass.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "raum_attack",
-      "why": "Raumdeuter drifts inside from his flank into the gaps between defenders and arrives at the far post; he does little defensive work."
+      "why": "Raumdeuter drifts inside from his flank into the gaps between defenders and arrives at the far post; he does little defensive work.",
+      "instructions": []
     },
     {
       "key": "AMC",
       "position": "AMC",
       "role": "am_attack",
-      "why": "Attacking midfielder plays between the lines and runs beyond the striker on the counter."
+      "why": "Attacking midfielder plays between the lines and runs beyond the striker on the counter.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "winger_aml_amr_support",
-      "why": "Winger (Support) provides the width the raumdeuter does not, so the counter is not all down one side."
+      "why": "Winger (Support) provides the width the raumdeuter does not, so the counter is not all down one side.",
+      "instructions": []
     },
     {
       "key": "ST",
       "position": "ST",
       "role": "cf_attack",
-      "why": "Complete forward runs in behind or holds the ball up, according to what the counter needs."
+      "why": "Complete forward runs in behind or holds the ball up, according to what the counter needs.",
+      "instructions": []
     }
   ],
   "system": {
@@ -109,12 +113,18 @@
   "whenToUse": "Against a stronger team that will leave space behind its full-backs, when you have a smart off-the-ball player who scores goals.",
   "whenNotToUse": "When you have to dominate the ball, since only two players create; or when the raumdeuter cannot finish.",
   "instructionRationale": {
-    "Slightly More Direct Passing": "Gets the ball forward to the runners quickly after winning it.",
-    "Pass Into Space": "Plays the ball behind the defence for the raumdeuter and striker to run onto.",
-    "Counter": "Attacks straight away on winning the ball, which is the purpose of the system.",
-    "Regroup": "Falls back into shape after losing the ball, before the next counter.",
-    "Lower Line of Engagement": "Lets the opponent have the ball in their own half, which creates the space to counter into.",
-    "Standard Defensive Line": "A balanced line keeps the block compact."
+    "Slightly More Direct Passing": "Reach the forward outlets earlier without turning every possession into a long ball.",
+    "Pass Into Space": "Lead the mobile forwards and midfield runners into space rather than requiring every pass to arrive at their feet.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Lower Line of Engagement": "Let the opposition advance before engaging, keeping space for the forward outlets after a regain.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -136,5 +146,51 @@
     "counter",
     "4231",
     "raumdeuter"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Slightly More Direct Passing",
+      "tempo": "Standard",
+      "selected": [
+        "Pass Into Space"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Lower",
+    "defensiveLine": "Standard",
+    "pressingIntensity": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

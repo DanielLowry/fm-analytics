@@ -123,7 +123,9 @@ players. The balance checks cannot see these rules, so
   Central Defender. Midfielders alone meet Play Out Of Defence's balance
   demand, which is how `positive_4231`, `positive_433dm` and
   `positive_ball_winning_433dm` shipped with no passer at the back until 13
-  October 2026.
+  October 2026. Published benchmarks are an explicit exception: preserve the
+  author's roles, including Rosler's two CD(D) with Play Out Of Defence,
+  even where they disagree with our design preference.
 - **Keeps the ball, but not through the centre-backs:** Central Defender, with
   BPD(D) as an alternate on one side where the slot leaves his passing open
   (`balanced_41212_diamond`, `narrow_4222`, `trequartista_4312`,
@@ -146,8 +148,9 @@ players. The balance checks cannot see these rules, so
   (`front_foot_442`, `aggressive_playing_343`, `no_nonsense_532`), not as a
   general alternate. `siege_442` is the one exception (Stopper on the left,
   Cover on the right), and it therefore also allows Stopper + Defend behind its
-  higher line. In a back three, the outer centre-back who steps out is a Wide
-  Centre-Back (`territorial_352`), not a second Stopper.
+  higher line. `territorial_352` uses BPD(D), CD(Cover), CD(D), with the
+  wing-backs supplying width. Its former Wide Centre-Back roles were not
+  available in FM20 and were replaced in the 15 October instruction audit.
 
 `vertical_442` shows all three: CD(D) by default, CD(Cover) and NCB(D/Cover)
 on both sides, and BPD(D) on the left only, so the pair never has two
@@ -300,15 +303,10 @@ for the other two phases to reuse once they are reviewed.
 - **Fixed** (`attackingWidth`, `passingDirectness`, `tempo`, and the toggles
   Pass Into Space, Play Out Of Defence, the three Focus Play options and Work
   Ball Into Box): part of what makes this tactic *this* tactic, always
-  hand-authored. Only a handful of
-  tactics have been given these so far (`attacking_424`, `balanced_433dm`,
-  `balanced_442`, the control range (see "Game plans" below), `deep_counter_541`, `enganche_4231`, `positive_4231`,
-  `positive_433dm`, `ball_winning_counter_433dm`, `positive_ball_winning_433dm`,
-  `solid_4231`, `vertical_442`, `wide_playmakers_433` and
-  `wing_play_442`); the rest report every fixed field as missing. `TacticDefinition.in_possession_missing_fields`
-  is what `web/in_possession_render.py` reads to flag the gap on the tactic
-  page rather than silently showing nothing — filling in the rest is
-  ongoing, tactic by tactic. **This half does reach scoring**: see below.
+  hand-authored. All 65 shipped tactics specify these (15 October 2026).
+  `TacticDefinition.in_possession_missing_fields` still flags gaps in older or
+  externally supplied incomplete catalogues. **This half reaches scoring**:
+  see below.
 - **Player-dependent** (`crossingType`, and the toggles Overlap/Underlap
   Left/Right, Shoot On Sight, Hit Early Crosses, Play For Set Pieces, Dribble
   Less, Run At Defence, Be More Expressive, Be More Disciplined):
@@ -409,13 +407,10 @@ choice is not. Moving an instruction into `inTransition` requires removing its
 legacy `instructions` string, but its `instructionRationale` stays. Duplicates and
 conflicts between structured and legacy transition choices are rejected.
 
-`attacking_424`, `balanced_433dm`, `balanced_442`, the control range,
-`deep_counter_541`, `enganche_4231`, `positive_4231`, `positive_433dm`,
-`ball_winning_counter_433dm`, `positive_ball_winning_433dm`, `solid_4231`, `vertical_442`
-and `wide_playmakers_433` have complete transition
-blocks, including goalkeeper distribution. `wing_play_442` carries only its
-possession-won choice in this block; other tactics retain their legacy
-instruction lists, which are shown alongside the phase's missing fields.
+All 65 shipped tactics have complete transition blocks. Empty lists mean
+intentionally unselected, not missing. Rosler's original has no selected
+keeper pace or delivery type; do not infer long kicks from distribution to
+flanks alone.
 
 ## Out-of-possession settings
 
@@ -429,7 +424,9 @@ detail page always renders its defensive settings, flagging unauthored fields.
   "defensiveWidth": "Standard",
   "useTighterMarking": "Neutral",
   "pressingIntensity": "Standard",
-  "preventShortGKDistribution": false
+  "preventShortGKDistribution": false,
+  "useOffsideTrap": false,
+  "tackling": "Neutral"
 }
 ```
 
@@ -437,7 +434,9 @@ Both line fields allow Much Lower, Lower, Standard, Higher, or Much Higher.
 Defensive width allows Narrow, Standard or Wide (confirmed against FM20 by the
 manager, 11 October 2026). Pressing intensity allows Much Less Urgent, Less
 Urgent, Standard, More Urgent or Extremely Urgent. Each option list runs from
-one end of FM's slider to the other, which is how the tactic page draws it. Marking and preventing short goalkeeper distribution
+one end of FM's slider to the other, which is how the tactic page draws it.
+Tackling allows Stay On Feet, Neutral or Get Stuck In. Marking, offside trap
+and preventing short goalkeeper distribution
 each accept JSON `true`, `false`, or `"Neutral"`. Neutral leaves the control
 unselected; it is distinct from an omitted, unauthored field. Null values,
 unknown choices/keys, incorrect types and multiple selections are rejected.
@@ -446,7 +445,8 @@ Existing line, pressing and goalkeeper-distribution scoring is preserved through
 explicit legacy mappings in `out_of_possession_instruction_strings`. Lower
 defensive line maps to the existing `Drop Off More Defensive Line`, Much Lower
 to `Much Deeper Defensive Line`, and Extremely Urgent pressing to
-`Much More Urgent Pressing`. Tighter marking, Much Higher defensive line, defensive width and
+`Much More Urgent Pressing`. Offside trap, tackling, tighter marking,
+Much Higher defensive line, defensive width and
 the other nonstandard pressing intensities have no existing scoring rule:
 they are displayed without inventing new scoring demands. Standard pressing,
 false and neutral flags add no scoring demand either.
@@ -456,13 +456,32 @@ CLI, export and catalogue-index presentation. Explanations may refer to
 structured defensive instructions. Once a field is authored, a legacy string
 for that same setting is refused, including contradictory and duplicate
 choices. Migrating a tactic removes those legacy strings and retains their
-`instructionRationale` text. `attacking_424`, `balanced_433dm`, `balanced_442`, `deep_counter_541`,
-`enganche_4231`, `positive_4231`, `positive_433dm`, `ball_winning_counter_433dm`,
-`positive_ball_winning_433dm`, `solid_4231`, `vertical_442`
-and `wide_playmakers_433` set every defensive field except defensive width,
-which joined the model after they were authored, so their pages flag it as not
-set. The control range sets every defensive field, defensive width included. Other tactics' legacy defensive instructions remain visible alongside
-the new section.
+`instructionRationale` text. All shipped tactics set every defensive field,
+including width, offside trap and tackling. The complete audit is recorded in
+`docs/tactic-instruction-audit-2026-10-15.md`, and
+`tests/test_tactic_instruction_audit.py` guards settings/rationale coverage.
+
+## Published tactic sources and player instructions
+
+`apache_v1` and `rosler_lls_442` preserve published roles without optimiser
+alternates. Their `source` holds author, HTTPS source/download URLs, safe
+filename, SHA-256 and verification description. Unmodified `.fmf` files are
+packaged in `data/tactic_files/`. `/tactics/<key>/download` serves only these
+catalogued files after checking their hashes, without a live FM connection.
+
+`setupNotes` reaches the page, CLI, export and generated index. Slot
+`instructions` lists extra player instructions on those surfaces. For authored
+templates an empty list means role/duty defaults. For published imports it
+means no independently transcribed additions: the complete player instructions
+and set pieces remain authoritative in the original file. Source verification
+and the UI explicitly disclose this distinction. These fields never score.
+
+Imported benchmarks use base role weights without invented emphasis or tapers.
+They may miss an opponent-model floor: show the shortfall instead of rewriting
+the published tactic to fit the app's assumptions. Apache's Extremely Wide
+and Much Higher Tempo reuse the instruction-demand framework as declared
+football hypotheses, not calibrated match-engine evidence. Offside trap,
+tackling and defensive width remain display-only.
 
 ## How the tactic page shows the three phases
 

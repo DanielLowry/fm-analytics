@@ -1,0 +1,198 @@
+{
+  "key": "rosler_lls_442",
+  "name": "Rosler Lower League Special 4-4-2",
+  "formation": "4-4-2",
+  "mentality": "Attacking",
+  "instructions": [
+    "Overlap Left",
+    "Overlap Right"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Standard",
+      "passingDirectness": "Standard",
+      "tempo": "Standard",
+      "selected": [
+        "Play Out Of Defence"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": [
+        "Overlap Left",
+        "Overlap Right"
+      ]
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": []
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Much Higher",
+    "defensiveLine": "Much Higher",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "pressingIntensity": "Extremely Urgent",
+    "preventShortGKDistribution": true,
+    "useOffsideTrap": true,
+    "tackling": "Get Stuck In"
+  },
+  "slots": [
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "gk_defend",
+      "instructions": [],
+      "why": "A conventional Goalkeeper (Defend), as in the original; do not replace him with a sweeper keeper for this benchmark."
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "fb_support",
+      "instructions": [
+        "Sit Narrower"
+      ],
+      "why": "The supporting full-back narrows to cover the midfield rather than becoming an attacking wing-back."
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "cd_defend",
+      "instructions": [],
+      "why": "A conventional Central Defender (Defend), matching the published setup even with Play Out Of Defence selected."
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_defend",
+      "instructions": [],
+      "why": "The second conventional centre-back preserves the original two-defender platform."
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "fb_support",
+      "instructions": [
+        "Sit Narrower"
+      ],
+      "why": "The right full-back also supports and tucks in behind the two supporting midfielders."
+    },
+    {
+      "key": "ML",
+      "position": "ML",
+      "role": "winger_ml_mr_attack",
+      "instructions": [],
+      "why": "The attacking winger supplies byline deliveries while the full-back offers a supporting outside option."
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "cm_support",
+      "instructions": [],
+      "why": "The original uses Central Midfielder (Support), not a ball-winner or deep playmaker selected by the optimiser."
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "cm_support",
+      "instructions": [],
+      "why": "The other supporting central midfielder shares the running, passing and recovery load."
+    },
+    {
+      "key": "MR",
+      "position": "MR",
+      "role": "winger_ml_mr_attack",
+      "instructions": [],
+      "why": "The right attacking winger provides the second natural wide delivery route."
+    },
+    {
+      "key": "STL",
+      "position": "ST",
+      "role": "pf_attack",
+      "instructions": [],
+      "why": "The first Pressing Forward (Attack) contests the build-up and runs into the box."
+    },
+    {
+      "key": "STR",
+      "position": "ST",
+      "role": "pf_attack",
+      "instructions": [],
+      "why": "The second Pressing Forward (Attack) preserves the published two-forward press and finishing presence."
+    }
+  ],
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "ballProgression": 3.0,
+      "runners": 3.0,
+      "pressing": 3.5
+    },
+    "maximumAttackDuties": 4,
+    "maximumCreators": 2
+  },
+  "style": "Published lower-league high press",
+  "description": "Mr U Rosler\u2019s FM20.3 LLS 442: two attacking pressing forwards and wingers, two supporting central midfielders, conservative full-backs and a very high, urgent defensive approach.",
+  "whyGood": "Offers a documented lower-league benchmark with conventional full-backs and two strikers. The Stockport report records 98 points and 108 goals; FM-Arena\u2019s 20.4.4 test records 67.8 points per 38 over 456 games, so lower-league success is not proof of superiority.",
+  "whyThisShape": "Two central midfielders on Support provide connections and share the physical work behind two attacking wingers and two Pressing Forwards. Supporting full-backs tuck in to cover those midfielders; overlap instructions encourage consideration of their safe supporting runs, not an automatic switch to attacking wing-backs. The original uses Play Out Of Defence with two ordinary centre-backs, a deliberate exception to the catalogue\u2019s usual ball-playing-defender preference. The very high lines, urgent pressure, Counter-Press, Counter, Get Stuck In and offside trap are retained as one published package.",
+  "whenToUse": "As a practical published high-press comparison when you want to retain natural full-backs, flat wide players and two forwards, and can field midfielders who share the running and passing work.",
+  "whenNotToUse": "When you cannot field two useful pressing forwards and a hard-working midfield pair, or when you need proof that a lower-league label guarantees suitability; this system still needs a local test.",
+  "whenLeading": "Retain Attacking and the original settings for the fixed-policy benchmark. Any later change to mentality or tackling should be recorded as a separate version.",
+  "keyRequirements": [
+    "Two attacking Pressing Forwards",
+    "Two supporting central midfielders",
+    "Natural wide attackers and supporting full-backs",
+    "Keep the original player instructions and set pieces"
+  ],
+  "tags": [
+    "benchmark",
+    "published",
+    "rosler",
+    "442",
+    "counterpress"
+  ],
+  "source": {
+    "author": "Mr U Rosler",
+    "url": "https://community.sports-interactive.com/forums/topic/514991-fm203-442-lower-league-special-stockport-98-points-108-goals/",
+    "downloadUrl": "https://fm-arena.com/download-tactic/305/",
+    "filename": "rosler_lls_442.fmf",
+    "sha256": "bb3a05b8bd631f8ba99d49a43fe7d7ace74e643f686abfcdea21eefc48563eca",
+    "verification": "Formation, roles and selected team instructions checked against FM-Arena\u2019s screenshot of the original tactic. The unmodified FM file retains all player instructions and set-piece routines; those are not fully decoded into the catalogue. Import the original file for the benchmark."
+  },
+  "setupNotes": [
+    "Import the original .fmf using the download on this page. Keep its complete player instructions and set-piece routines for the first benchmark; the catalogue is the selection guide, not a replacement file.",
+    "Use no additional opposition instructions. Keep the starting mentality throughout the replay, and retain the same holiday management policy as the reference.",
+    "The published score describes another test environment. Assess both teams\u2019 chances, goals, crosses and red cards with this squad before adopting it.",
+    "Standard width, passing and tempo mean no extra slider modifier relative to Attacking mentality; they do not describe slow or cautious play.",
+    "Left-back takes left corners and throw-ins; right-back takes right corners and throw-ins. Retain the downloaded routines.",
+    "Get Stuck In and the original player instructions can affect bookings. Record red cards rather than silently deleting these instructions from the benchmark."
+  ],
+  "attributeEmphasis": [],
+  "attributeTaper": [],
+  "instructionRationale": {
+    "Counter": "Retained as part of the source\u2019s full attacking and transition package, rather than inferred from the formation or our app score.",
+    "Counter-Press": "Retained as part of the source\u2019s full attacking and transition package, rather than inferred from the formation or our app score.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Get Stuck In": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Much Higher Defensive Line": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Much Higher Line of Engagement": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Much More Urgent Pressing": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Overlap Left": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Overlap Right": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Play Out Of Defence": "Retained as part of the source\u2019s full attacking and transition package, rather than inferred from the formation or our app score.",
+    "Prevent Short GK Distribution": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation.",
+    "Use Offside Trap": "Retained from the published tactic screenshot for the complete-system benchmark; use the original FM file rather than changing this setting in isolation."
+  }
+}

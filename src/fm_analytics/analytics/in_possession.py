@@ -56,7 +56,7 @@ from typing import Any
 
 from fm_analytics.analytics.instruction_toggles import check_clashes, check_names, unavailable
 
-ATTACKING_WIDTH_OPTIONS = ("Very Narrow", "Fairly Narrow", "Standard", "Fairly Wide", "Very Wide")
+ATTACKING_WIDTH_OPTIONS = ("Very Narrow", "Fairly Narrow", "Standard", "Fairly Wide", "Very Wide", "Extremely Wide")
 PASSING_DIRECTNESS_OPTIONS = (
     "Much Shorter Passing", "Shorter Passing", "Slightly Shorter Passing", "Standard",
     "Slightly More Direct Passing", "More Direct Passing", "Much More Direct Passing",

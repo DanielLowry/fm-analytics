@@ -23,7 +23,9 @@
     "defensiveWidth": "Standard",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "Standard",
-    "preventShortGKDistribution": false
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
   },
   "inTransition": {
     "whenPossessionLost": [
@@ -43,13 +45,15 @@
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "A conventional keeper who rolls the ball to a wide centre-back to start a move. Possession starts short, but the build-up does not ask him to be a passer."
+      "why": "A conventional keeper who rolls the ball to a wide centre-back to start a move. Possession starts short, but the build-up does not ask him to be a passer.",
+      "instructions": []
     },
     {
       "key": "DCL",
       "position": "DC",
       "role": "cd_defend",
-      "why": "The left of the three. He spreads wide when the team has the ball to receive from the keeper and give a short pass to the wing-back or holder, and covers the space the wing-back leaves."
+      "why": "The left of the three. He spreads wide when the team has the ball to receive from the keeper and give a short pass to the wing-back or holder, and covers the space the wing-back leaves.",
+      "instructions": []
     },
     {
       "key": "DCC",
@@ -58,7 +62,8 @@
       "roles": [
         "cd_defend"
       ],
-      "why": "The middle of the three has the most time on the ball against a deep opponent, so a Ball-Playing Defender lets him step in and pass into midfield. Central Defender (Defend) is the alternate, at the cost of that progression."
+      "why": "The middle of the three has the most time on the ball against a deep opponent, so a Ball-Playing Defender lets him step in and pass into midfield. Central Defender (Defend) is the alternate, at the cost of that progression.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -67,37 +72,43 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "The right of the three. He spreads wide in possession and covers behind the wing-back. Cover is the alternate when he is quicker than he is strong."
+      "why": "The right of the three. He spreads wide in possession and covers behind the wing-back. Cover is the alternate when he is quicker than he is strong.",
+      "instructions": []
     },
     {
       "key": "WBL",
       "position": "WBL",
       "role": "wb_wbl_wbr_attack",
-      "why": "Supplies the width on his flank on his own, so he plays on Attack: he gets beyond the ball to the byline and crosses low. The wide centre-back and the ball-side central midfielder cover behind him."
+      "why": "Supplies the width on his flank on his own, so he plays on Attack: he gets beyond the ball to the byline and crosses low. The wide centre-back and the ball-side central midfielder cover behind him.",
+      "instructions": []
     },
     {
       "key": "DM",
       "position": "DM",
       "role": "dm_defend",
-      "why": "Stays in front of the back three as the first pass out and the screen when the ball is lost. With both wing-backs high, he is the player who stops a counter reaching the defence through the middle."
+      "why": "Stays in front of the back three as the first pass out and the screen when the ball is lost. With both wing-backs high, he is the player who stops a counter reaching the defence through the middle.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "dlp_mc_support",
-      "why": "The main passer. He collects from the holder and the back three and switches play to the wing-back with the most space."
+      "why": "The main passer. He collects from the holder and the back three and switches play to the wing-back with the most space.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Covers ground both ways: he helps the wing-back on his side when the ball is lost and arrives late in the box when it goes wide, as a third body for crosses behind the two forwards."
+      "why": "Covers ground both ways: he helps the wing-back on his side when the ball is lost and arrives late in the box when it goes wide, as a third body for crosses behind the two forwards.",
+      "instructions": []
     },
     {
       "key": "WBR",
       "position": "WBR",
       "role": "wb_wbl_wbr_attack",
-      "why": "Supplies the width on his flank on his own, so he plays on Attack: he gets beyond the ball to the byline and crosses low. The wide centre-back and the ball-side central midfielder cover behind him."
+      "why": "Supplies the width on his flank on his own, so he plays on Attack: he gets beyond the ball to the byline and crosses low. The wide centre-back and the ball-side central midfielder cover behind him.",
+      "instructions": []
     },
     {
       "key": "STL",
@@ -106,7 +117,8 @@
       "roles": [
         "cf_support"
       ],
-      "why": "Drops off the front line to give the two central midfielders a forward pass, then rejoins the attack. Complete Forward (Support) is the alternate for a striker who also carries the ball and finishes; both link play rather than running in behind."
+      "why": "Drops off the front line to give the two central midfielders a forward pass, then rejoins the attack. Complete Forward (Support) is the alternate for a striker who also carries the ball and finishes; both link play rather than running in behind.",
+      "instructions": []
     },
     {
       "key": "STR",
@@ -115,7 +127,8 @@
       "roles": [
         "af_attack"
       ],
-      "why": "Poacher stays on the last defender's shoulder to meet low crosses and cut-backs at the near post. Advanced Forward is the alternate for a striker who also runs the channels."
+      "why": "Poacher stays on the last defender's shoulder to meet low crosses and cut-backs at the near post. Advanced Forward is the alternate for a striker who also runs the channels.",
+      "instructions": []
     }
   ],
   "system": {
@@ -140,14 +153,14 @@
   "whenNotToUse": "When the wing-backs cannot sustain the running or cross, because the shape has no other width; against a side whose wingers attack the space behind the wing-backs; or against a strong press, where three centre-backs on the ball are a target.",
   "whenLeading": "Stay Balanced: the wing-backs already drop in to make five when the ball is lost, so there is no need to change shape. Replace a tiring wing-back like for like, since he is the only width on his side, and keep two forwards on as an outlet.",
   "instructionRationale": {
-    "Fairly Wide": "Tells the wing-backs to hold the touchline, since nobody else provides width, so the playmaker always has a switch of play.",
-    "Slightly Shorter Passing": "Keeps the ball against a deep block without asking defenders with ordinary passing to play intricate short combinations.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Slightly Shorter Passing": "Retain connected passing options while still allowing progression into the forward line.",
     "Low Crosses": "Played to the near post and the penalty spot, where forwards who are not aerial specialists can still finish.",
     "Never Time Wasting": "Keeps playing to win the ball back and attack when ahead, rather than inviting pressure late in a game.",
-    "Regroup": "Recovers the defensive shape after losing the ball instead of a counter-press the squad's stamina would not sustain for ninety minutes.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
     "Roll It Out": "Keeps goal kicks and catches in the team's possession rather than contesting long balls.",
-    "Standard Line of Engagement": "Leaves the defensive approach unchanged from the side's usual tactics: the attacking phase is what this tactic changes.",
-    "Standard Defensive Line": "Keeps the recovery distance behind the back four moderate, so a rare counter does not find a high line.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
     "Distribute To Centre Backs": "The wide centre-backs split towards the touchlines as the first, low-risk pass, which is where a back three starts possession."
   },
   "attributeEmphasis": [
@@ -436,5 +449,9 @@
     "wing-backs",
     "control",
     "possession"
+  ],
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

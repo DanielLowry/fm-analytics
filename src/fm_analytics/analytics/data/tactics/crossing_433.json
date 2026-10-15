@@ -4,25 +4,24 @@
   "formation": "4-3-3",
   "mentality": "Positive",
   "instructions": [
-    "Fairly Wide",
-    "Slightly More Direct Passing",
     "Hit Early Crosses",
     "Overlap Left",
-    "Overlap Right",
-    "Higher Tempo"
+    "Overlap Right"
   ],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes to the target men or full-backs; long kicking helps."
+      "why": "Distributes to the target men or full-backs; long kicking helps.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_attack",
-      "why": "Attacking full-back overlaps the wide target man and supplies the crosses."
+      "why": "Attacking full-back overlaps the wide target man and supplies the crosses.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -31,7 +30,8 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender. Cover is the alternate."
+      "why": "Central defender. Cover is the alternate.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -40,49 +40,57 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_attack",
-      "why": "Attacking full-back on the right, doing the same job as on the left."
+      "why": "Attacking full-back on the right, doing the same job as on the left.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Defensive central midfielder covers the space the full-backs leave when they overlap."
+      "why": "Defensive central midfielder covers the space the full-backs leave when they overlap.",
+      "instructions": []
     },
     {
       "key": "MCC",
       "position": "MC",
       "role": "cm_support",
-      "why": "Supporting central midfielder links the defence to the forwards."
+      "why": "Supporting central midfielder links the defence to the forwards.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Box-to-box midfielder runs into the box to attack the crosses and second balls."
+      "why": "Box-to-box midfielder runs into the box to attack the crosses and second balls.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "wtm_support",
-      "why": "Wide target man (Support) holds the touchline, wins headers and gets the ball out for the overlapping full-back."
+      "why": "Wide target man (Support) holds the touchline, wins headers and gets the ball out for the overlapping full-back.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "wtm_support",
-      "why": "Wide target man (Support) on the right, doing the same job as on the left."
+      "why": "Wide target man (Support) on the right, doing the same job as on the left.",
+      "instructions": []
     },
     {
       "key": "ST",
       "position": "ST",
       "role": "tm_support",
-      "why": "Target man (Support) attacks the crosses and holds up the ball."
+      "why": "Target man (Support) attacks the crosses and holds up the ball.",
+      "instructions": []
     }
   ],
   "system": {
@@ -104,12 +112,20 @@
   "whenToUse": "When you have two tall forwards who can play wide, a strong central striker, and full-backs who can cross, especially against defences that are short or slow to turn.",
   "whenNotToUse": "Against tall centre-backs who win the crosses, or against quick wingers, since both full-backs are pushed high and the space behind them is open.",
   "instructionRationale": {
-    "Fairly Wide": "The wide target men and full-backs stretch the opponent, so the crosses come from the flanks.",
-    "Slightly More Direct Passing": "Gets the ball wide and forward quicker than short passing does.",
-    "Hit Early Crosses": "The crosses are delivered before the defence can set, into the target men.",
-    "Overlap Left": "The left full-back overlaps the wide target man to supply the cross.",
-    "Overlap Right": "The right full-back does the same on the right.",
-    "Higher Tempo": "Moves the ball to the flanks quickly."
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Slightly More Direct Passing": "Reach the forward outlets earlier without turning every possession into a long ball.",
+    "Hit Early Crosses": "Deliver before the defensive line resets, using the target or forward runners already attacking the box.",
+    "Overlap Left": "Ask the left-sided receiver to consider the outside run; this requires a wide defender who can supply that run.",
+    "Overlap Right": "Ask the right-sided receiver to consider the outside run; this requires a wide defender who can supply that run.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Floated Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "More Urgent Pressing": "Challenge more often inside the selected engagement zone without making the settled press maximal.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -131,5 +147,50 @@
     "crossing",
     "433",
     "aerial"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Slightly More Direct Passing",
+      "tempo": "Higher Tempo",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Floated",
+      "selected": [
+        "Hit Early Crosses",
+        "Overlap Left",
+        "Overlap Right"
+      ]
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [],
+    "whenPossessionWon": [],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "pressingIntensity": "More Urgent",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.",
+    "No forced Counter after a regain: the receiving and linking roles choose when to release the runners, rather than requiring every regain to become a break."
   ]
 }

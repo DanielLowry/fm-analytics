@@ -421,6 +421,11 @@ class ShippedSeedTests(unittest.TestCase):
 
     def test_every_tactic_declares_an_emphasis(self) -> None:
         for tactic in MVP_CATALOGUE.tactics.values():
+            if tactic.source is not None:
+                # Imported packages use role weights until a separately
+                # justified tuning is authored; do not invent benchmark weights.
+                self.assertEqual(tactic.attribute_emphasis, ())
+                continue
             self.assertTrue(tactic.attribute_emphasis, tactic.key)
 
     def test_no_slot_level_emphasis_is_seeded(self) -> None:

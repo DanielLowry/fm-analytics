@@ -9,6 +9,7 @@ Work Ball Into Box from the Hit Early Crosses that makes it unavailable.
 import re
 import unittest
 from collections import Counter
+from dataclasses import replace
 
 from fm_analytics.analytics import MVP_CATALOGUE, InPossessionSettings
 from fm_analytics.analytics.in_possession import (
@@ -114,7 +115,7 @@ class RenderedPageTests(unittest.TestCase):
         self.assertRegex(row, "<span class='fm-toggles-label'>Dribbling<span class='fm-depends'")
 
     def test_unauthored_toggles_are_not_set_and_player_fallbacks_are_not_selected(self) -> None:
-        tactic = MVP_CATALOGUE.tactics["lowblock_442"]
+        tactic = replace(MVP_CATALOGUE.tactics["lowblock_442"], in_possession=None, instruction_rationale={})
         self.assertIsNone(tactic.in_possession)
         section = in_possession_render.in_possession_section(tactic)
         self.assertEqual(section.count("<b>Not set</b>"), len(FIXED_TOGGLES) + 3)

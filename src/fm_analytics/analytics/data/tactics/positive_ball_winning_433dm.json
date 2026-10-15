@@ -42,26 +42,32 @@
     "defensiveLine": "Standard",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "More Urgent",
-    "preventShortGKDistribution": false
+    "preventShortGKDistribution": false,
+    "defensiveWidth": "Standard",
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
   },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Keeps the role simple but must distribute securely into the short build-up when the press allows it."
+      "why": "Keeps the role simple but must distribute securely into the short build-up when the press allows it.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "wb_dl_dr_attack",
-      "why": "The attacking left wing-back provides width and forward runs outside the inside forward. His penetration compensates for the supporting right winger; he needs stamina, pace and acceleration to advance and recover on this exposed flank."
+      "why": "The attacking left wing-back provides width and forward runs outside the inside forward. His penetration compensates for the supporting right winger; he needs stamina, pace and acceleration to advance and recover on this exposed flank.",
+      "instructions": []
     },
     {
       "key": "DCL",
       "position": "DC",
       "role": "bpd_defend",
-      "why": "Ball-playing defender who takes the goalkeeper's short kicks and starts Play Out Of Defence through the DLP(S), with the attacking left wing-back already ahead of him. The short build-up needs one passer at the back, so this slot is fixed."
+      "why": "Ball-playing defender who takes the goalkeeper's short kicks and starts Play Out Of Defence through the DLP(S), with the attacking left wing-back already ahead of him. The short build-up needs one passer at the back, so this slot is fixed.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -70,43 +76,50 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender on the right, the steadier partner who holds the line while the ball-playing defender builds. Cover is the alternate."
+      "why": "Central defender on the right, the steadier partner who holds the line while the ball-playing defender builds. Cover is the alternate.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back offers a safe outlet behind the supporting winger on the ball-winner's flank. Keeping this flank restrained limits extra exposure when the BWM challenges ahead of the holding DM."
+      "why": "Support full-back offers a safe outlet behind the supporting winger on the ball-winner's flank. Keeping this flank restrained limits extra exposure when the BWM challenges ahead of the holding DM.",
+      "instructions": []
     },
     {
       "key": "DM",
       "position": "DM",
       "role": "dm_defend",
-      "why": "The dedicated holding midfielder protects the centre in front of the centre-backs while the ball-winner challenges ahead of him. Positional discipline matters more here than adding another chaser."
+      "why": "The dedicated holding midfielder protects the centre in front of the centre-backs while the ball-winner challenges ahead of him. Positional discipline matters more here than adding another chaser.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "dlp_mc_support",
-      "why": "The deep-lying playmaker is the midfield passing outlet, receiving from the holder and ball-winner and supplying the front three. He complements the ball-winner rather than sharing his pursuit of the ball."
+      "why": "The deep-lying playmaker is the midfield passing outlet, receiving from the holder and ball-winner and supplying the front three. He complements the ball-winner rather than sharing his pursuit of the ball.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "bwm_mc_support",
-      "why": "Ball-Winning Midfielder (Support) challenges for possession ahead of a dedicated DM(D). He must also receive and return simple passes; the holder covers the centre when he leaves his starting position."
+      "why": "Ball-Winning Midfielder (Support) challenges for possession ahead of a dedicated DM(D). He must also receive and return simple passes; the holder covers the centre when he leaves his starting position.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "if_attack",
-      "why": "The inside forward attacks the box from the left, with the attacking wing-back supplying outside width. Together they preserve penetration while the opposite winger supports possession."
+      "why": "The inside forward attacks the box from the left, with the attacking wing-back supplying outside width. Together they preserve penetration while the opposite winger supports possession.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "winger_aml_amr_support",
-      "why": "The supporting right winger provides width, passing and creative service on the ball-winner's flank. He replaces some of the connective play lost by changing CM(S) to BWM(S)."
+      "why": "The supporting right winger provides width, passing and creative service on the ball-winner's flank. He replaces some of the connective play lost by changing CM(S) to BWM(S).",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -116,7 +129,8 @@
         "pf_attack",
         "p_attack"
       ],
-      "why": "Advanced Forward attacks space behind and supplies the main box threat. The BWM and advancing wing-back add pressing elsewhere in this configuration. Pressing Forward is an alternative for more pressure; Poacher is an alternative for movement and finishing with less pressing contribution."
+      "why": "Advanced Forward attacks space behind and supplies the main box threat. The BWM and advancing wing-back add pressing elsewhere in this configuration. Pressing Forward is an alternative for more pressure; Poacher is an alternative for movement and finishing with less pressing contribution.",
+      "instructions": []
     }
   ],
   "system": {
@@ -140,15 +154,20 @@
   "whenToUse": "When you want a positive possession 4-3-3 with an MC ball-winner and also have a secure holder, a capable playmaker, a supporting winger and a left wing-back who can sustain attacking runs.",
   "whenNotToUse": "When the left wing-back cannot contribute and recover, the BWM cannot receive and pass under pressure, or the back line cannot support short build-up. If opponents repeatedly evade the press and drag the DM into wide gaps, the holding midfielder alone cannot make the shape secure.",
   "instructionRationale": {
-    "Shorter Passing": "Uses the holder, DLP and supporting right winger as passing outlets; the BWM must still receive and return the ball securely.",
-    "Play Out Of Defence": "The DM and DLP offer short exits, supported by the right winger and full-back. The defenders and BWM need enough technical security for this to work.",
-    "Higher Tempo": "Prevents the shorter passing game from becoming sterile and helps the front three receive before the defence is fully set.",
-    "Work Ball Into Box": "Relies on the DLP and supporting winger to create chances for the striker, inside forward and attacking wing-back.",
-    "Counter-Press": "The BWM joins pressure with the front three and nearby wing-back after losses, while the DM protects the centre and the right full-back limits additional exposure.",
-    "Counter": "Releases the wide forwards and striker immediately when a clean regain creates space.",
-    "Higher Line of Engagement": "Starts pressure higher up the pitch. With a standard defensive line, coordinated pressure matters because opponents who escape it can find space between the lines.",
-    "More Urgent Pressing": "Asks the midfield and forwards to support the ball-winner's pressure rather than leaving him to chase alone.",
-    "Standard Defensive Line": "Keeps centre-back recovery-speed demands moderate; the back four still need enough pace and acceleration to recover, with the holder and supporting right full-back covering transitions behind the advanced left wing-back."
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Play Out Of Defence": "Use short first-line outlets and midfield connections to start attacks; this asks for secure decisions under pressure.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Work Ball Into Box": "Look for an opening around the penalty area rather than encouraging speculative shots.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Higher Line of Engagement": "Engage the build-up earlier, accepting that the forwards need support from the midfield behind them.",
+    "More Urgent Pressing": "Challenge more often inside the selected engagement zone without making the settled press maximal.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Centre Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Short Kicks": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
   },
   "attributeEmphasis": [
     {
@@ -888,5 +907,9 @@
         "bpd_defend"
       ]
     }
+  ],
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

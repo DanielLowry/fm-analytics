@@ -3,34 +3,28 @@
   "name": "Gegenpress 4-2-3-1",
   "formation": "4-2-3-1 DM AM Wide",
   "mentality": "Positive",
-  "instructions": [
-    "Shorter Passing",
-    "Higher Tempo",
-    "Counter-Press",
-    "Counter",
-    "Much Higher Line of Engagement",
-    "Higher Defensive Line",
-    "Much More Urgent Pressing",
-    "Prevent Short GK Distribution"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "sk_defend",
-      "why": "Sweeper keeper covers the space behind a high line and starts moves after winning the ball."
+      "why": "Sweeper keeper covers the space behind a high line and starts moves after winning the ball.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "wb_dl_dr_support",
-      "why": "Support wing-back gives width and helps press high on the flank."
+      "why": "Support wing-back gives width and helps press high on the flank.",
+      "instructions": []
     },
     {
       "key": "DCL",
       "position": "DC",
       "role": "bpd_defend",
-      "why": "Ball-playing defender steps out of the line to press and starts attacks with a pass."
+      "why": "Ball-playing defender steps out of the line to press and starts attacks with a pass.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -39,43 +33,50 @@
       "roles": [
         "cd_defend"
       ],
-      "why": "Cover centre-back sweeps behind his partner, since the line is high; Defend is the alternate."
+      "why": "Cover centre-back sweeps behind his partner, since the line is high; Defend is the alternate.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "wb_dl_dr_support",
-      "why": "Support wing-back on the right, doing the same job as on the left."
+      "why": "Support wing-back on the right, doing the same job as on the left.",
+      "instructions": []
     },
     {
       "key": "DMCL",
       "position": "DM",
       "role": "bwm_dm_support",
-      "why": "Ball-winning midfielder harries the opponent in the middle and wins the ball for the attackers."
+      "why": "Ball-winning midfielder harries the opponent in the middle and wins the ball for the attackers.",
+      "instructions": []
     },
     {
       "key": "DMCR",
       "position": "DM",
       "role": "dlp_dm_support",
-      "why": "Deep-lying playmaker keeps possession after the ball is won and passes it forward."
+      "why": "Deep-lying playmaker keeps possession after the ball is won and passes it forward.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "if_attack",
-      "why": "Inside forward cuts in and presses from the left, attacking the box when the ball is won."
+      "why": "Inside forward cuts in and presses from the left, attacking the box when the ball is won.",
+      "instructions": []
     },
     {
       "key": "AMC",
       "position": "AMC",
       "role": "ss_attack",
-      "why": "Shadow striker presses the opposition midfield and then runs beyond the striker."
+      "why": "Shadow striker presses the opposition midfield and then runs beyond the striker.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "winger_aml_amr_attack",
-      "why": "Winger presses the full-back and stretches the play when the ball is won."
+      "why": "Winger presses the full-back and stretches the play when the ball is won.",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -84,7 +85,8 @@
       "roles": [
         "af_attack"
       ],
-      "why": "Pressing forward starts the press by closing down the defenders and goalkeeper. Advanced Forward is the alternate."
+      "why": "Pressing forward starts the press by closing down the defenders and goalkeeper. Advanced Forward is the alternate.",
+      "instructions": []
     }
   ],
   "system": {
@@ -107,14 +109,19 @@
   "whenToUse": "When you have fit, aggressive players with high work rate and stamina, and you want to play in the opponent's half against sides that struggle to play out from the back.",
   "whenNotToUse": "Against teams that play long balls over the press, or when your players are tired: the press falls apart quickly and leaves large spaces.",
   "instructionRationale": {
-    "Shorter Passing": "Keeps possession after the ball is won, rather than giving it straight back.",
-    "Higher Tempo": "Moves the ball quickly while the opponent is out of shape.",
-    "Counter-Press": "Presses at once after losing the ball, which is the point of the whole system.",
-    "Counter": "Attacks quickly when the ball is won, while the opponent is out of shape.",
-    "Much Higher Line of Engagement": "Starts the press in the opponent's half, so the ball is won close to their goal.",
-    "Higher Defensive Line": "Keeps the team compact so the press is close together; it needs pace in the defence.",
-    "Much More Urgent Pressing": "Presses with more intensity, which is more effective but tiring.",
-    "Prevent Short GK Distribution": "Stops the goalkeeper playing short, forcing a long kick that the defence can win."
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Much Higher Line of Engagement": "Begin pressure close to the opposition build-up and goalkeeper.",
+    "Higher Defensive Line": "Move the back line up to reduce the space behind the midfield and support territorial pressure.",
+    "Much More Urgent Pressing": "Use a very urgent settled press; assess recoveries, chances allowed and fitness rather than assuming it succeeds.",
+    "Prevent Short GK Distribution": "Ask the forward line to contest short goalkeeper outlets as part of the press.",
+    "Distribute To Centre Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Roll It Out": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
   },
   "attributeEmphasis": [
     {
@@ -193,5 +200,47 @@
     "gegenpress",
     "4231",
     "high-intensity"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Higher Tempo",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Centre Backs"
+    ],
+    "distributionTypes": [
+      "Roll It Out"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Much Higher",
+    "defensiveLine": "Higher",
+    "pressingIntensity": "Extremely Urgent",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": true,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

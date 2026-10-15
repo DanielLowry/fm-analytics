@@ -28,7 +28,10 @@
     "defensiveLine": "Standard",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "Standard",
-    "preventShortGKDistribution": false
+    "preventShortGKDistribution": false,
+    "defensiveWidth": "Standard",
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
   },
   "inPossession": {
     "fixed": {
@@ -54,13 +57,15 @@
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Keeps the role simple and gets the ball moving quickly without requiring sweeper-keeper ability."
+      "why": "Keeps the role simple and gets the ball moving quickly without requiring sweeper-keeper ability.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Supports the winger and supplies an additional crossing option without becoming an aggressive overlap."
+      "why": "Supports the winger and supplies an additional crossing option without becoming an aggressive overlap.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -72,7 +77,8 @@
         "nncb_cover",
         "bpd_defend"
       ],
-      "why": "Defends simply in a flat pair and moves the ball on early. Alternates: Cover when pace and anticipation suit it; a No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes, since the keeper's long kicks mean the pair is not asked to build; or a Ball-Playing Defender (Defend), who plays the vertical passes into the support striker. Only one centre-back may use Cover."
+      "why": "Defends simply in a flat pair and moves the ball on early. Alternates: Cover when pace and anticipation suit it; a No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes, since the keeper's long kicks mean the pair is not asked to build; or a Ball-Playing Defender (Defend), who plays the vertical passes into the support striker. Only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -83,25 +89,29 @@
         "nncb_defend",
         "nncb_cover"
       ],
-      "why": "Defends simply in a flat pair and moves the ball on early. Alternates: Cover when pace and anticipation suit it, or a No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes, since the keeper's long kicks mean the pair is not asked to build. Only one centre-back may use Cover. The ball-playing option is on the left only, so the pair never has two risk-takers."
+      "why": "Defends simply in a flat pair and moves the ball on early. Alternates: Cover when pace and anticipation suit it, or a No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes, since the keeper's long kicks mean the pair is not asked to build. Only one centre-back may use Cover. The ball-playing option is on the left only, so the pair never has two risk-takers.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Supports the winger and supplies an additional crossing option without becoming an aggressive overlap."
+      "why": "Supports the winger and supplies an additional crossing option without becoming an aggressive overlap.",
+      "instructions": []
     },
     {
       "key": "ML",
       "position": "ML",
       "role": "winger_ml_mr_support",
-      "why": "Provides natural width and early service while still recovering into the midfield bank."
+      "why": "Provides natural width and early service while still recovering into the midfield bank.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Holds position, protects the centre-backs and gives the more mobile midfielder freedom to run."
+      "why": "Holds position, protects the centre-backs and gives the more mobile midfielder freedom to run.",
+      "instructions": []
     },
     {
       "key": "MCR",
@@ -110,13 +120,15 @@
       "why": "Uses either a Box-to-Box Midfielder to add a third central runner or a Central Midfielder (Support) to provide a more reliable link between the holding midfielder, wingers and front two. The optimiser can choose according to the available player.",
       "roles": [
         "cm_support"
-      ]
+      ],
+      "instructions": []
     },
     {
       "key": "MR",
       "position": "MR",
       "role": "winger_ml_mr_support",
-      "why": "Provides natural width and early service while still recovering into the midfield bank."
+      "why": "Provides natural width and early service while still recovering into the midfield bank.",
+      "instructions": []
     },
     {
       "key": "STL",
@@ -126,7 +138,8 @@
         "dlf_support",
         "cf_support"
       ],
-      "why": "Presses and links the attack while offering a target for vertical passes. DLF(S) or CF(S) remain alternatives when a more technical linking forward suits the player."
+      "why": "Presses and links the attack while offering a target for vertical passes. DLF(S) or CF(S) remain alternatives when a more technical linking forward suits the player.",
+      "instructions": []
     },
     {
       "key": "STR",
@@ -135,7 +148,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Stretches the defence and attacks the space created by the linking striker and early deliveries from wide."
+      "why": "Stretches the defence and attacks the space created by the linking striker and early deliveries from wide.",
+      "instructions": []
     }
   ],
   "system": {
@@ -154,15 +168,26 @@
   "style": "Vertical 4-4-2",
   "description": "A simple lower-league 4-4-2 that keeps two banks of four but attacks vertically, using early wide service, two complementary forwards and either a midfield runner or a conventional supporting connector alongside the holding midfielder.",
   "whyGood": "It preserves the defensive clarity of a basic 4-4-2 while creating direct forward threat without demanding sophisticated possession play. The second central-midfield role is flexible, so the tactic is not dependent on finding a specialist Box-to-Box Midfielder.",
-  "whyThisShape": "Natural width stretches the opponent and gives simple passing options, while two strikers occupy the centre-backs. Slightly more direct passing progresses vertically without making every pass a long ball. Higher tempo, pass into space and early crosses use the movement of the forwards and wingers before the defence resets. The MCR can either add a vertical runner as BBM(S) or act as a steadier connector as CM(S); the wingers and advanced forward already provide substantial penetration, so the tactic does not require the midfielder to break forward in every version. Regroup restores the two banks of four, and standard pressing keeps defensive effort sustainable. Run at defence, low crosses and greater discipline are starting fallbacks to review against the selected players: they encourage dribbling and deliveries into the movement of the front two while preserving the simple structure. Quick goalkeeper distribution with long kicks toward the flanks starts vertical attacks without requiring elaborate build-up.",
+  "whyThisShape": "Natural width stretches the opponent and gives simple passing options, while two strikers occupy the centre-backs. Slightly more direct passing progresses vertically without making every pass a long ball. Higher tempo, pass into space and early crosses use the movement of the forwards and wingers before the defence resets. The MCR can either add a vertical runner as BBM(S) or act as a steadier connector as CM(S); the wingers and advanced forward already provide substantial penetration, so the tactic does not require the midfielder to break forward in every version. Regroup restores the two banks of four, and standard pressing prioritises the block over repeated challenges. Run at defence, low crosses and greater discipline are starting fallbacks to review against the selected players: they encourage dribbling and deliveries into the movement of the front two while preserving the simple structure. Quick goalkeeper distribution with long kicks toward the flanks starts vertical attacks without requiring elaborate build-up.",
   "whenToUse": "As the primary lower-league default when you want a compact 4-4-2 with quick vertical progression. Prefer BBM(S) when a genuinely strong runner is available; prefer CM(S) when the squad is better at passing, decisions and support play than repeated end-to-end running.",
   "whenNotToUse": "Against a side that heavily overloads central midfield with three high-quality midfielders, when the front players lack the pace and movement to exploit early, vertical service, or against a weaker side that sits deep and leaves little space to counter into, where the early, direct passing gives the ball straight back and the team struggles to take control of the game. Against those deep sides, a tactic that keeps the ball and works the wide players into better crossing positions suits better.",
   "instructionRationale": {
-    "Hit Early Crosses": "Uses the productive wide players before the opposition defence is fully set and reduces dependence on overlapping full-backs.",
-    "Counter": "Uses the front two and wide players immediately after regains.",
-    "Regroup": "Restores the two banks of four after possession is lost rather than demanding an intensive counter-press.",
-    "Standard Line of Engagement": "Avoids asking a lower-league squad to sustain a high press.",
-    "Standard Defensive Line": "Keeps the block compact without exposing ordinary centre-backs to excessive space behind."
+    "Hit Early Crosses": "Deliver before the defensive line resets, using the target or forward runners already attacking the box.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Be More Disciplined": "Ask players to retain the defined structure rather than adding further improvisation.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Pass Into Space": "Lead the mobile forwards and midfield runners into space rather than requiring every pass to arrive at their feet.",
+    "Run At Defence": "Encourage ball carriers to engage defenders; review against their dribbling and the opponent.",
+    "Slightly More Direct Passing": "Reach the forward outlets earlier without turning every possession into a long ball.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -491,5 +516,9 @@
         "cm_support"
       ]
     }
+  ],
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

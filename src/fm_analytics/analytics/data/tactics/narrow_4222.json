@@ -3,26 +3,21 @@
   "name": "Narrow 4-2-2-2",
   "formation": "4-2-2-2",
   "mentality": "Positive",
-  "instructions": [
-    "Fairly Narrow",
-    "Shorter Passing",
-    "Higher Tempo",
-    "Counter-Press",
-    "Higher Line of Engagement",
-    "Standard Defensive Line"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes short to the pivot."
+      "why": "Distributes short to the pivot.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back is the only wide player on the left, so he provides the width."
+      "why": "Support full-back is the only wide player on the left, so he provides the width.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -32,7 +27,8 @@
         "cd_cover",
         "bpd_defend"
       ],
-      "why": "Central defender. Cover is the alternate, as is a Ball-Playing Defender (Defend), who can find the double pivot or the half-space attacking midfielders with shorter passing."
+      "why": "Central defender. Cover is the alternate, as is a Ball-Playing Defender (Defend), who can find the double pivot or the half-space attacking midfielders with shorter passing.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -41,37 +37,43 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right, the only width on that side."
+      "why": "Support full-back on the right, the only width on that side.",
+      "instructions": []
     },
     {
       "key": "DMCL",
       "position": "DM",
       "role": "bwm_dm_support",
-      "why": "Ball-winning midfielder wins the ball back and starts the press."
+      "why": "Ball-winning midfielder wins the ball back and starts the press.",
+      "instructions": []
     },
     {
       "key": "DMCR",
       "position": "DM",
       "role": "dlp_dm_support",
-      "why": "Deep-lying playmaker distributes from the base of the midfield."
+      "why": "Deep-lying playmaker distributes from the base of the midfield.",
+      "instructions": []
     },
     {
       "key": "AMCL",
       "position": "AMC",
       "role": "ss_attack",
-      "why": "Shadow striker presses from the half-space and runs beyond the strikers into the box."
+      "why": "Shadow striker presses from the half-space and runs beyond the strikers into the box.",
+      "instructions": []
     },
     {
       "key": "AMCR",
       "position": "AMC",
       "role": "am_support",
-      "why": "Attacking midfielder (Support) links the pivot with the strikers and creates from the other half-space."
+      "why": "Attacking midfielder (Support) links the pivot with the strikers and creates from the other half-space.",
+      "instructions": []
     },
     {
       "key": "STL",
@@ -80,7 +82,8 @@
       "roles": [
         "cf_support"
       ],
-      "why": "Deep-lying forward holds up the ball and links with the attacking midfielders. Complete Forward is the alternate."
+      "why": "Deep-lying forward holds up the ball and links with the attacking midfielders. Complete Forward is the alternate.",
+      "instructions": []
     },
     {
       "key": "STR",
@@ -89,7 +92,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Advanced Forward runs in behind the defence. Poacher is the alternate."
+      "why": "Advanced Forward runs in behind the defence. Poacher is the alternate.",
+      "instructions": []
     }
   ],
   "system": {
@@ -114,12 +118,18 @@
   "whenToUse": "When your best players are central and you lack wingers, especially against a team with two central midfielders who will be overrun.",
   "whenNotToUse": "Against sides that attack down the flanks and outnumber your full-backs, and when your full-backs cannot cover a whole flank.",
   "instructionRationale": {
-    "Fairly Narrow": "The whole team plays through the centre, where it has the numbers.",
-    "Shorter Passing": "Short passes suit six players close together in the middle.",
-    "Higher Tempo": "Moves the ball quickly between the central players.",
-    "Counter-Press": "Presses at once after losing the ball; with six players near it, it is quickly won back.",
-    "Higher Line of Engagement": "Presses higher up the pitch to keep the play in the opponent's half.",
-    "Standard Defensive Line": "A balanced line keeps the defence compact."
+    "Fairly Narrow": "Keep the central combinations close; the selected wide defenders supply the outside outlets.",
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Higher Line of Engagement": "Engage the build-up earlier, accepting that the forwards need support from the midfield behind them.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Distribute To Full Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "More Urgent Pressing": "Challenge more often inside the selected engagement zone without making the settled press maximal.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Roll It Out": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
   },
   "attributeEmphasis": [
     {
@@ -141,5 +151,47 @@
     "positive",
     "4222",
     "narrow"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Narrow",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Higher Tempo",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Full Backs"
+    ],
+    "distributionTypes": [
+      "Roll It Out"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Higher",
+    "defensiveLine": "Standard",
+    "pressingIntensity": "More Urgent",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

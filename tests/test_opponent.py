@@ -245,9 +245,15 @@ class ReachabilityTests(unittest.TestCase):
         for axis, value in product(AXES, SETTINGS):
             self.assertLessEqual(len(self.unable(one_axis(axis, value))), limit, (axis, value))
 
-    def test_one_step_of_defensive_demand_is_within_reach_of_every_tactic(self) -> None:
+    def test_one_step_of_defensive_demand_is_within_reach_of_our_authored_tactics(self) -> None:
+        originals = {key for key, tactic in MVP_CATALOGUE.tactics.items() if tactic.source is not None}
         for axis in ("quality", "pace_in_behind", "attacking_width"):
-            self.assertEqual(self.unable(one_axis(axis, 1)), set(), axis)
+            # Preserve a published tactic even when its exact roles miss our
+            # football model's floors; show that shortfall instead of rewriting it.
+            self.assertEqual(self.unable(one_axis(axis, 1)) - originals, set(), axis)
+
+    def test_apache_keeps_its_defensive_shortfall_visible(self) -> None:
+        self.assertIn('apache_v1', self.unable(one_axis('quality', 1)))
 
     def test_a_strong_fast_opponent_separates_attacking_shapes_from_solid_ones(self) -> None:
         unable = self.unable(one_axis("pace_in_behind", 2))

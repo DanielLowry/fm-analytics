@@ -444,6 +444,15 @@ def _recommendation(bundle: RecommendationBundle, detail: str) -> dict[str, Any]
         "tactic_ranking": [{"rank": rank, **_evaluation(evaluation)} for rank, evaluation in ranked],
         "primary": _evaluation(primary) | {
             "mentality": primary.tactic.mentality,
+            "setup_notes": list(primary.tactic.setup_notes),
+            "source": ({
+                "author": primary.tactic.source.author,
+                "url": primary.tactic.source.url,
+                "download_url": primary.tactic.source.download_url,
+                "filename": primary.tactic.source.filename,
+                "sha256": primary.tactic.source.sha256,
+                "verification": primary.tactic.source.verification,
+            } if primary.tactic.source else None),
             "instructions": list(
                 primary.tactic.instructions
                 + in_possession_instruction_strings(primary.tactic.in_possession)
@@ -454,6 +463,7 @@ def _recommendation(bundle: RecommendationBundle, detail: str) -> dict[str, Any]
                 {
                     "slot": assignment.slot.key, "player": assignment.player_name,
                     "role": assignment.intrinsic_role_score.role_name,
+                    "player_instructions": list(assignment.slot.instructions),
                     "role_score": _round(assignment.intrinsic_role_score.score.central, 1),
                     "selection_score": _round(assignment.selection_score.central, 1),
                     "warnings": list(assignment.readiness_warnings + assignment.familiarity_warnings),

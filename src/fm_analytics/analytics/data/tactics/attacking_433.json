@@ -3,25 +3,21 @@
   "name": "Attacking 4-3-3",
   "formation": "4-3-3 (Attacking)",
   "mentality": "Attacking",
-  "instructions": [
-    "Much Higher Line of Engagement",
-    "Higher Defensive Line",
-    "Shorter Passing",
-    "Higher Tempo",
-    "Counter-Press"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "A high line leaves space behind, so the keeper must claim through balls early; a sweeper keeper would suit this even better."
+      "why": "A high line leaves space behind, so the keeper must claim through balls early; a sweeper keeper would suit this even better.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "wb_dl_dr_attack",
-      "why": "Attacking wing-back supplies the width so the winger can cut inside."
+      "why": "Attacking wing-back supplies the width so the winger can cut inside.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -30,49 +26,57 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender who covers the space the attacking full-backs leave. Cover is the alternate."
+      "why": "Central defender who covers the space the attacking full-backs leave. Cover is the alternate.",
+      "instructions": []
     },
     {
       "key": "DCR",
       "position": "DC",
       "role": "bpd_defend",
-      "why": "Ball-playing defender starts attacks from the back and steps out with the high line."
+      "why": "Ball-playing defender starts attacks from the back and steps out with the high line.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "wb_dl_dr_attack",
-      "why": "Attacking wing-back on the right, giving the inside forward room to cut in."
+      "why": "Attacking wing-back on the right, giving the inside forward room to cut in.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Holding central midfielder screens the back four while the other two go forward."
+      "why": "Holding central midfielder screens the back four while the other two go forward.",
+      "instructions": []
     },
     {
       "key": "MCC",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Box-to-box midfielder links defence to attack and supports the press."
+      "why": "Box-to-box midfielder links defence to attack and supports the press.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "mez_attack",
-      "why": "Mezzala drifts into the half-space to arrive in the box and act as a fourth attacker."
+      "why": "Mezzala drifts into the half-space to arrive in the box and act as a fourth attacker.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "winger_aml_amr_attack",
-      "why": "Winger holds the touchline, stretching the defence for the inside forward and striker."
+      "why": "Winger holds the touchline, stretching the defence for the inside forward and striker.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "if_attack",
-      "why": "Inside forward cuts in to shoot and attack the far post."
+      "why": "Inside forward cuts in to shoot and attack the far post.",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -81,7 +85,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Advanced Forward runs in behind a high defensive line. Poacher is the alternate for a natural finisher."
+      "why": "Advanced Forward runs in behind a high defensive line. Poacher is the alternate for a natural finisher.",
+      "instructions": []
     }
   ],
   "system": {
@@ -104,11 +109,18 @@
   "whenToUse": "Against sides that defend deep and cannot get past your press, or when you are clearly the stronger team and want to pin them back.",
   "whenNotToUse": "Against quick counter-attackers when your full-backs are slow to recover: the space behind both full-backs is the weakness.",
   "instructionRationale": {
-    "Much Higher Line of Engagement": "Starts the press near the opposition box, so the ball is won high and the full-backs start advanced.",
-    "Higher Defensive Line": "Compresses the pitch so the midfield can support the attackers; it needs pace at the back.",
-    "Shorter Passing": "Keeps the ball among the midfielders and wide players rather than giving it away with hopeful passes.",
-    "Higher Tempo": "Moves the ball quickly to the front three before the defence sets.",
-    "Counter-Press": "Regains the ball immediately, which also protects the space behind the full-backs."
+    "Much Higher Line of Engagement": "Begin pressure close to the opposition build-up and goalkeeper.",
+    "Higher Defensive Line": "Move the back line up to reduce the space behind the midfield and support territorial pressure.",
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Distribute To Centre Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "More Urgent Pressing": "Challenge more often inside the selected engagement zone without making the settled press maximal.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Short Kicks": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
   },
   "attributeEmphasis": [
     {
@@ -154,5 +166,47 @@
     "attacking",
     "433",
     "overload"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Higher Tempo",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Centre Backs"
+    ],
+    "distributionTypes": [
+      "Take Short Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Much Higher",
+    "defensiveLine": "Higher",
+    "pressingIntensity": "More Urgent",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

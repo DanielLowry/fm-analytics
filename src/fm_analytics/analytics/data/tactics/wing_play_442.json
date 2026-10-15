@@ -10,6 +10,18 @@
   "inTransition": {
     "whenPossessionWon": [
       "Counter"
+    ],
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
     ]
   },
   "inPossession": {
@@ -33,13 +45,15 @@
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes long or wide depending on the press."
+      "why": "Distributes long or wide depending on the press.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back overlaps the winger to provide a second crossing option."
+      "why": "Support full-back overlaps the winger to provide a second crossing option.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -48,7 +62,8 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender. Cover is the alternate."
+      "why": "Central defender. Cover is the alternate.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -57,43 +72,50 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right overlaps in the same way."
+      "why": "Support full-back on the right overlaps in the same way.",
+      "instructions": []
     },
     {
       "key": "ML",
       "position": "ML",
       "role": "winger_ml_mr_support",
-      "why": "Winger (Support) beats his man and crosses."
+      "why": "Winger (Support) beats his man and crosses.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Defensive central midfielder covers the space the full-backs leave when they overlap."
+      "why": "Defensive central midfielder covers the space the full-backs leave when they overlap.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "dlp_mc_support",
-      "why": "Deep-lying playmaker gets the ball out to the wingers."
+      "why": "Deep-lying playmaker gets the ball out to the wingers.",
+      "instructions": []
     },
     {
       "key": "MR",
       "position": "MR",
       "role": "winger_ml_mr_support",
-      "why": "Winger (Support) on the right, crossing in the same way."
+      "why": "Winger (Support) on the right, crossing in the same way.",
+      "instructions": []
     },
     {
       "key": "STL",
       "position": "ST",
       "role": "tm_attack",
-      "why": "Target man attacks the crosses and wins the aerial duels."
+      "why": "Target man attacks the crosses and wins the aerial duels.",
+      "instructions": []
     },
     {
       "key": "STR",
@@ -102,7 +124,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Advanced Forward attacks the space around the target man. Poacher is the alternate."
+      "why": "Advanced Forward attacks the space around the target man. Poacher is the alternate.",
+      "instructions": []
     }
   ],
   "system": {
@@ -124,9 +147,21 @@
   "whenToUse": "When you have two good wingers, full-backs with stamina, and a striker who wins headers; against teams that defend narrowly.",
   "whenNotToUse": "Against tall centre-backs who win the crosses, or when your full-backs cannot get back, since the flanks are left open.",
   "instructionRationale": {
-    "Overlap Left": "Encourages the left-sided combination to create a second wide runner before delivering.",
-    "Overlap Right": "Creates the same two-player wide threat on the right.",
-    "Counter": "Attacks quickly when the ball is won."
+    "Overlap Left": "Ask the left-sided receiver to consider the outside run; this requires a wide defender who can supply that run.",
+    "Overlap Right": "Ask the right-sided receiver to consider the outside run; this requires a wide defender who can supply that run.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Be More Expressive": "Allow more improvisation within the selected roles when a rigid pattern would restrict the creators.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Floated Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Slightly More Direct Passing": "Reach the forward outlets earlier without turning every possession into a long ball.",
+    "Sometimes Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -415,5 +450,19 @@
         "p_attack"
       ]
     }
+  ],
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "pressingIntensity": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

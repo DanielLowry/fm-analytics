@@ -51,6 +51,8 @@ from fm_analytics.analytics.role_weights import (
     parse_attribute_weights,
     role_documents,
 )
+from fm_analytics.analytics.tactic_source import TacticSource, source_from_json
+from fm_analytics.analytics.tactic_slot import TacticSlot
 
 
 # The role and tactic definitions themselves live in JSON data rather than as
@@ -123,39 +125,6 @@ class AttributeEmphasis:
             (not self.positions or position in self.positions)
             and (not self.roles or role_key in self.roles)
         )
-
-
-@dataclass(frozen=True)
-class TacticSlot:
-    key: str
-    position: str
-    role_key: str
-    alternate_role_keys: tuple[str, ...] = ()
-    # Manager-facing: why this role sits in this slot of this tactic. Not scoring input.
-    why: str = ""
-    # Per-attribute weight *deltas* for whoever fills this slot. Added to every
-    # tactic-level block that covers the slot (see TacticDefinition); use it
-    # to single out one slot when several share a position (the two DCs).
-    attribute_emphasis: Mapping[str, int] = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        if not self.key or not self.position or not self.role_key:
-            raise ValueError("tactic slot key, position, and role are required")
-        if self.role_key in self.alternate_role_keys:
-            raise ValueError("a slot's default role cannot also be an alternate")
-        if len(self.alternate_role_keys) != len(set(self.alternate_role_keys)):
-            raise ValueError("slot alternate role keys must be unique")
-
-    @property
-    def role_keys(self) -> tuple[str, ...]:
-        """Every role the optimiser may choose for this slot.
-
-        `role_key` is deliberately retained as the template's default: it is
-        useful as a readable starting hypothesis and for an unfilled-slot
-        explanation.  It is no longer a command to use that role.
-        """
-
-        return (self.role_key,) + self.alternate_role_keys
 
 
 @dataclass(frozen=True)
@@ -238,6 +207,8 @@ class TacticDefinition:
     in_possession: InPossessionSettings | None = None
     in_transition: InTransitionSettings | None = None
     out_of_possession: OutOfPossessionSettings | None = None
+    setup_notes: tuple[str, ...] = ()
+    source: TacticSource | None = None
 
     @property
     def out_of_possession_missing_fields(self) -> tuple[str, ...]:
@@ -660,6 +631,7 @@ def _slot_from_json(raw: Mapping[str, Any]) -> TacticSlot:
         alternate_role_keys=alternate_role_keys,
         why=raw.get("why") or "",
         attribute_emphasis=_int_mapping(raw.get("attributeEmphasis"), "slot attributeEmphasis"),
+        instructions=_str_tuple(raw, "instructions") if "instructions" in raw else (),
     )
 
 
@@ -703,6 +675,8 @@ def _tactic_from_json(raw: Mapping[str, Any], *, version: str) -> TacticDefiniti
         out_of_possession=out_of_possession_from_json(
             raw.get("outOfPossession"), _str(raw, "key"), only_known_keys=_only_known_keys
         ),
+        setup_notes=_str_tuple(raw, "setupNotes") if "setupNotes" in raw else (),
+        source=source_from_json(raw.get("source"), only_known_keys=_only_known_keys),
     )
 
 
@@ -816,10 +790,10 @@ _TACTIC_KEYS = frozenset({
     "key", "name", "formation", "mentality", "instructions", "slots", "system",
     "style", "description", "whyGood", "whyThisShape", "whenToUse", "whenNotToUse", "whenLeading",
     "instructionRationale", "keyRequirements", "tags", "attributeEmphasis",
-    "attributeTaper", "inPossession", "inTransition", "outOfPossession",
+    "attributeTaper", "inPossession", "inTransition", "outOfPossession", "setupNotes", "source",
 })
 _TAPER_KEYS = frozenset({"attribute", "taperBelow", "positions", "roles"})
-_SLOT_KEYS = frozenset({"key", "position", "role", "roles", "why", "attributeEmphasis"})
+_SLOT_KEYS = frozenset({"key", "position", "role", "roles", "why", "attributeEmphasis", "instructions"})
 _SYSTEM_KEYS = frozenset({"minimums", "maximumAttackDuties", "maximumCreators"})
 _EXCLUSION_KEYS = frozenset({"name", "position", "roles"})
 _CATALOGUE_KEYS = frozenset({"version", "exclusiveRoleGroups"})

@@ -3,80 +3,84 @@
   "name": "No-Nonsense 5-3-2",
   "formation": "5-3-2",
   "mentality": "Defensive",
-  "instructions": [
-    "Much Lower Line of Engagement",
-    "Much Deeper Defensive Line",
-    "Narrower",
-    "More Direct Passing",
-    "Counter",
-    "Regroup"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "The goalkeeper keeps distribution simple and protects a crowded penalty area."
+      "why": "The goalkeeper keeps distribution simple and protects a crowded penalty area.",
+      "instructions": []
     },
     {
       "key": "DCL",
       "position": "DC",
       "role": "nncb_defend",
-      "why": "The no-nonsense defender wins headers and clears the left side of the box without taking risks on the ball."
+      "why": "The no-nonsense defender wins headers and clears the left side of the box without taking risks on the ball.",
+      "instructions": []
     },
     {
       "key": "DCC",
       "position": "DC",
       "role": "nncb_cover",
-      "why": "The cover centre-back reads through balls and sweeps behind the more aggressive defenders."
+      "why": "The cover centre-back reads through balls and sweeps behind the more aggressive defenders.",
+      "instructions": []
     },
     {
       "key": "DCR",
       "position": "DC",
       "role": "nncb_stopper",
-      "why": "The stopper attacks aerial balls and the opposing striker early, while the Cover role protects behind him."
+      "why": "The stopper attacks aerial balls and the opposing striker early, while the Cover role protects behind him.",
+      "instructions": []
     },
     {
       "key": "WBL",
       "position": "WBL",
       "role": "wb_wbl_wbr_support",
-      "why": "The support wing-back gives a cautious wide outlet without abandoning the back five."
+      "why": "The support wing-back gives a cautious wide outlet without abandoning the back five.",
+      "instructions": []
     },
     {
       "key": "WBR",
       "position": "WBR",
       "role": "wb_wbl_wbr_support",
-      "why": "The other wing-back maintains the defensive width and helps clear crosses."
+      "why": "The other wing-back maintains the defensive width and helps clear crosses.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "The defensive midfielder protects the near-post and second-ball zones in front of the back five."
+      "why": "The defensive midfielder protects the near-post and second-ball zones in front of the back five.",
+      "instructions": []
     },
     {
       "key": "MCC",
       "position": "MC",
       "role": "bwm_mc_support",
-      "why": "The ball-winner contests the second ball and starts the direct outlet after a regain."
+      "why": "The ball-winner contests the second ball and starts the direct outlet after a regain.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "cm_defend",
-      "why": "A second defensive midfielder keeps the middle compact rather than leaving the stopper exposed."
+      "why": "A second defensive midfielder keeps the middle compact rather than leaving the stopper exposed.",
+      "instructions": []
     },
     {
       "key": "ST1",
       "position": "ST",
       "role": "tm_support",
-      "why": "The target man gives clearances a destination and holds the ball until midfield can join."
+      "why": "The target man gives clearances a destination and holds the ball until midfield can join.",
+      "instructions": []
     },
     {
       "key": "ST2",
       "position": "ST",
       "role": "af_attack",
-      "why": "The advanced forward attacks the space after the target man competes for the first ball."
+      "why": "The advanced forward attacks the space after the target man competes for the first ball.",
+      "instructions": []
     }
   ],
   "system": {
@@ -99,12 +103,17 @@
   "whenToUse": "When protecting a result against stronger opposition, particularly with dominant aerial centre-backs and a forward able to hold direct passes.",
   "whenNotToUse": "When you need sustained possession or your defenders are uncomfortable defending a large number of crosses and second balls.",
   "instructionRationale": {
-    "Much Lower Line of Engagement": "The team waits close to its box, where the back five can protect the central area.",
-    "Much Deeper Defensive Line": "Removes space behind the slow, physical defensive unit.",
-    "Narrower": "Funnels the opponent wide and concentrates defenders where crosses arrive.",
-    "More Direct Passing": "Avoids asking no-nonsense defenders to build through pressure.",
-    "Counter": "The target man and advanced forward provide a direct route out after a regain.",
-    "Regroup": "Returns the team to its five-three defensive shell when possession is lost."
+    "Much Lower Line of Engagement": "Bring the front line back into the low block; this deliberately concedes territory.",
+    "Much Deeper Defensive Line": "Protect the space behind the back line in a deep block; sustained pressure and shots from outside remain risks.",
+    "More Direct Passing": "Reach the physical or running outlets early and compete for the following ball.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Narrow Defensive Width": "Protect the central lanes and keep defenders close enough to cover one another; outside deliveries remain a trade-off.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Less Urgent Pressing": "Prioritise the block over chasing possession; the counter outlets remain available after regains.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -456,5 +465,51 @@
     "low-block",
     "direct",
     "no-nonsense"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Standard",
+      "passingDirectness": "More Direct Passing",
+      "tempo": "Standard",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Mixed",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Much Lower",
+    "defensiveLine": "Much Lower",
+    "pressingIntensity": "Less Urgent",
+    "defensiveWidth": "Narrow",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.",
+    "The deep block deliberately concedes territory; check chances and effective deliveries allowed rather than assuming a deeper line protects a lead.",
+    "Standard attacking width keeps wide escape outlets available. Defensive width is set separately; a compact block does not require narrow possession play."
   ]
 }

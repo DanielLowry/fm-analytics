@@ -410,6 +410,10 @@ def render_recommendation(
                 + in_transition_selected_instructions(selected.tactic.in_transition)
                 + out_of_possession_selected_instructions(selected.tactic.out_of_possession)
             ),
+            *(f"Setup: {note}" for note in selected.tactic.setup_notes),
+            *([f"Original tactic: {selected.tactic.source.url}",
+               f"FM file: {selected.tactic.source.download_url}",
+               f"Verification: {selected.tactic.source.verification}"] if selected.tactic.source else []),
             "",
             "Starting XI" if selected.has_legal_xi else "Best feasible partial XI",
             "-----------" if selected.has_legal_xi else "------------------------",
@@ -427,6 +431,8 @@ def render_recommendation(
             + (f"form {_form_points(assignment.form_change)}, " if assignment.form_multiplier != 1.0 else "")
             + f"selection {assignment.selection_score.central:.1f}{warnings}"
         )
+        if assignment.slot.instructions:
+            lines.append("      Player instructions: " + "; ".join(assignment.slot.instructions))
     if selected.unfilled_slots:
         lines.append(
             "Unfilled: "

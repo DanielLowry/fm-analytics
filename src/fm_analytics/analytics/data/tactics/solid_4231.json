@@ -42,20 +42,25 @@
     "defensiveLine": "Standard",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "Less Urgent",
-    "preventShortGKDistribution": false
+    "preventShortGKDistribution": false,
+    "defensiveWidth": "Standard",
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
   },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Keeps distribution and decision-making simple; the priority is security rather than acting as an extra playmaker."
+      "why": "Keeps distribution and decision-making simple; the priority is security rather than acting as an extra playmaker.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "nnfb_defend",
-      "why": "No-Nonsense Full-Back (Defend) protects the flank, stays behind the ball and clears danger rather than becoming an attacking outlet."
+      "why": "No-Nonsense Full-Back (Defend) protects the flank, stays behind the ball and clears danger rather than becoming an attacking outlet.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -64,7 +69,8 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender. Cover is the alternate."
+      "why": "Central defender. Cover is the alternate.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -73,43 +79,50 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "nnfb_defend",
-      "why": "No-Nonsense Full-Back (Defend) protects the flank, stays behind the ball and clears danger rather than becoming an attacking outlet."
+      "why": "No-Nonsense Full-Back (Defend) protects the flank, stays behind the ball and clears danger rather than becoming an attacking outlet.",
+      "instructions": []
     },
     {
       "key": "DMCL",
       "position": "DM",
       "role": "dm_defend",
-      "why": "Defensive Midfielder (Defend) is the fixed screen in front of the centre-backs and protects the central zone."
+      "why": "Defensive Midfielder (Defend) is the fixed screen in front of the centre-backs and protects the central zone.",
+      "instructions": []
     },
     {
       "key": "DMCR",
       "position": "DM",
       "role": "dm_support",
-      "why": "Defensive Midfielder (Support) remains positionally responsible but provides the safer passing connection into the front four."
+      "why": "Defensive Midfielder (Support) remains positionally responsible but provides the safer passing connection into the front four.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "if_support",
-      "why": "Inside Forward (Support) comes inside to offer a second outlet around the striker while retaining enough defensive contribution for the compact block."
+      "why": "Inside Forward (Support) comes inside to offer a second outlet around the striker while retaining enough defensive contribution for the compact block.",
+      "instructions": []
     },
     {
       "key": "AMC",
       "position": "AMC",
       "role": "am_support",
-      "why": "Attacking Midfielder (Support) is the main connector: he receives direct or second balls and links the two DMs to the attacking outlets."
+      "why": "Attacking Midfielder (Support) is the main connector: he receives direct or second balls and links the two DMs to the attacking outlets.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "winger_aml_amr_attack",
-      "why": "Winger (Attack) is the one deliberate high runner. He gives the otherwise cautious shape a genuine counter-attacking threat while still providing natural width."
+      "why": "Winger (Attack) is the one deliberate high runner. He gives the otherwise cautious shape a genuine counter-attacking threat while still providing natural width.",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -119,7 +132,8 @@
       "roles": [
         "cf_support",
         "tm_support"
-      ]
+      ],
+      "instructions": []
     }
   ],
   "system": {
@@ -142,14 +156,18 @@
   "whenToUse": "Away to a stronger side, when protecting a result, or whenever the priority is reducing transition risk while retaining enough of an outlet to stop the team becoming permanently pinned back.",
   "whenNotToUse": "When you need sustained possession or several players attacking the box. It is deliberately conservative and should not be your default against passive or substantially weaker opponents.",
   "instructionRationale": {
-    "Lower Line of Engagement": "Concedes harmless possession higher up the pitch and protects the space around the double pivot.",
-    "Standard Defensive Line": "Avoids sinking the entire block onto the goalkeeper while remaining safer than a high line.",
-    "Less Urgent Pressing": "Preserves shape and prevents defenders and midfielders being dragged out by an aggressive press.",
-    "Regroup": "Restores the compact block immediately after possession is lost.",
-    "Hold Shape": "Keeps enough players behind the ball after regains rather than turning every recovery into a risky counter.",
-    "Slightly More Direct Passing": "Provides a practical route into the support striker and wide outlets without demanding elaborate build-up.",
-    "Play For Set Pieces": "Makes territorial gains more valuable for a side that is not designed to create a high volume of open-play chances.",
-    "Be More Disciplined": "Reinforces the tactic's low-risk positional structure."
+    "Lower Line of Engagement": "Let the opposition advance before engaging, keeping space for the forward outlets after a regain.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Less Urgent Pressing": "Prioritise the block over chasing possession; the counter outlets remain available after regains.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Hold Shape": "Retain the available passing structure after a regain rather than forcing an immediate counter.",
+    "Slightly More Direct Passing": "Reach the forward outlets earlier without turning every possession into a long ball.",
+    "Play For Set Pieces": "Use the wide pressure to win dead-ball opportunities when a useful open-play delivery is unavailable.",
+    "Be More Disciplined": "Ask players to retain the defined structure rather than adding further improvisation.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Slow Pace Down": "Allow the defensive and passing structure to recover before the goalkeeper restarts play.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -582,5 +600,9 @@
         "tm_support"
       ]
     }
+  ],
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

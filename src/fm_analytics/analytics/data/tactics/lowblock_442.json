@@ -3,26 +3,21 @@
   "name": "Low-Block 4-4-2",
   "formation": "4-4-2 (Low Block)",
   "mentality": "Defensive",
-  "instructions": [
-    "Much Lower Line of Engagement",
-    "Much Deeper Defensive Line",
-    "Narrower",
-    "Slower Tempo",
-    "Counter",
-    "Regroup"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes quickly to the forwards after a save or claim."
+      "why": "Distributes quickly to the forwards after a save or claim.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back stays back and helps his wide midfielder defend."
+      "why": "Support full-back stays back and helps his wide midfielder defend.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -33,7 +28,8 @@
         "nncb_defend",
         "nncb_cover"
       ],
-      "why": "Central defender in a deep block. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: a deep block is defended by clearing the box. Only one centre-back may use Cover."
+      "why": "Central defender in a deep block. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: a deep block is defended by clearing the box. Only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -44,37 +40,43 @@
         "nncb_defend",
         "nncb_cover"
       ],
-      "why": "Central defender on the right. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: a deep block is defended by clearing the box. Only one centre-back may use Cover."
+      "why": "Central defender on the right. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: a deep block is defended by clearing the box. Only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right."
+      "why": "Support full-back on the right.",
+      "instructions": []
     },
     {
       "key": "ML",
       "position": "ML",
       "role": "wm_support",
-      "why": "Wide midfielder tracks back to help the full-back and keeps the bank of four narrow."
+      "why": "Wide midfielder tracks back to help the full-back and keeps the bank of four narrow.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Defensive central midfielder protects the space in front of the defence."
+      "why": "Defensive central midfielder protects the space in front of the defence.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "bwm_mc_support",
-      "why": "Ball-winning midfielder wins the ball back in front of the box."
+      "why": "Ball-winning midfielder wins the ball back in front of the box.",
+      "instructions": []
     },
     {
       "key": "MR",
       "position": "MR",
       "role": "wm_support",
-      "why": "Wide midfielder on the right, doing the same job as on the left."
+      "why": "Wide midfielder on the right, doing the same job as on the left.",
+      "instructions": []
     },
     {
       "key": "ST1",
@@ -83,7 +85,8 @@
       "roles": [
         "cf_support"
       ],
-      "why": "Deep-lying forward (or Complete Forward) holds the ball up so the team can move up the pitch."
+      "why": "Deep-lying forward (or Complete Forward) holds the ball up so the team can move up the pitch.",
+      "instructions": []
     },
     {
       "key": "ST2",
@@ -92,7 +95,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Advanced Forward runs in behind on the counter. Poacher is the alternate."
+      "why": "Advanced Forward runs in behind on the counter. Poacher is the alternate.",
+      "instructions": []
     }
   ],
   "system": {
@@ -114,12 +118,17 @@
   "whenToUse": "Protecting a lead, or away against a stronger side. It suits disciplined players and wide midfielders who work hard to recover.",
   "whenNotToUse": "When you need to control the ball or score, since the team will be under pressure for long periods.",
   "instructionRationale": {
-    "Much Lower Line of Engagement": "The team waits deep and defends near its own box instead of pressing.",
-    "Much Deeper Defensive Line": "Keeps the defence deep to remove space in behind.",
-    "Narrower": "Compresses the middle so the opponent is pushed wide.",
-    "Slower Tempo": "Slows the game down.",
-    "Counter": "The two forwards are an outlet: the team attacks quickly when it wins the ball.",
-    "Regroup": "Drops back into shape after losing the ball."
+    "Much Lower Line of Engagement": "Bring the front line back into the low block; this deliberately concedes territory.",
+    "Much Deeper Defensive Line": "Protect the space behind the back line in a deep block; sustained pressure and shots from outside remain risks.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Lower Tempo": "Allow the passing structure to form during settled possession; a selected Counter instruction still applies immediately after regains.",
+    "Narrow Defensive Width": "Protect the central lanes and keep defenders close enough to cover one another; outside deliveries remain a trade-off.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Less Urgent Pressing": "Prioritise the block over chasing possession; the counter outlets remain available after regains.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -249,5 +258,51 @@
         "MC"
       ]
     }
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Standard",
+      "passingDirectness": "Standard",
+      "tempo": "Lower Tempo",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Mixed",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Much Lower",
+    "defensiveLine": "Much Lower",
+    "pressingIntensity": "Less Urgent",
+    "defensiveWidth": "Narrow",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.",
+    "The deep block deliberately concedes territory; check chances and effective deliveries allowed rather than assuming a deeper line protects a lead.",
+    "Standard attacking width keeps wide escape outlets available. Defensive width is set separately; a compact block does not require narrow possession play."
   ]
 }

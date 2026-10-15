@@ -36,20 +36,24 @@
     "defensiveWidth": "Standard",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "More Urgent",
-    "preventShortGKDistribution": false
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
   },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "sk_defend",
-      "why": "Sweeps behind a higher back three, so the space behind it is covered without dropping the line."
+      "why": "Sweeps behind a higher back three, so the space behind it is covered without dropping the line.",
+      "instructions": []
     },
     {
       "key": "DCL",
       "position": "DC",
-      "role": "wcb_support",
-      "why": "Steps out of the three to support the left wing-back and win the ball back on the flank, making two against one wide."
+      "role": "bpd_defend",
+      "why": "Starts possession with the short goalkeeper outlet, then defends the left channel behind the attacking wing-back. FM20 has no Wide Centre-Back role.",
+      "instructions": []
     },
     {
       "key": "DCC",
@@ -58,49 +62,57 @@
       "roles": [
         "cd_defend"
       ],
-      "why": "Stays central and covers behind the two wide centre-backs when they step out. Defend is the alternate for a stronger, slower defender."
+      "why": "Stays central and covers behind the outside defenders and attacking wing-backs. Defend is the alternate for a defender better suited to holding the line.",
+      "instructions": []
     },
     {
       "key": "DCR",
       "position": "DC",
-      "role": "wcb_support",
-      "why": "Steps out of the three to support the right wing-back and win the ball back on the flank, making two against one wide."
+      "role": "cd_defend",
+      "why": "Defends the right channel behind the attacking wing-back while the central Cover defender protects the space behind the three.",
+      "instructions": []
     },
     {
       "key": "WBL",
       "position": "WBL",
       "role": "wb_wbl_wbr_attack",
-      "why": "The only width on the left: he lives in the opponent's half, pinning their wide player and crossing from the byline."
+      "why": "The only width on the left: he lives in the opponent's half, pinning their wide player and crossing from the byline.",
+      "instructions": []
     },
     {
       "key": "DM",
       "position": "DM",
       "role": "dm_defend",
-      "why": "Screens the back three and wins the second ball at the edge of the opponent's box when the team attacks."
+      "why": "Screens the back three and wins the second ball at the edge of the opponent's box when the team attacks.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Counter-presses on the left and arrives in the box as the third attacker behind the two forwards."
+      "why": "Counter-presses on the left and arrives in the box as the third attacker behind the two forwards.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "dlp_mc_support",
-      "why": "Recycles possession after each regain and switches play to the wing-back with the most space."
+      "why": "Recycles possession after each regain and switches play to the wing-back with the most space.",
+      "instructions": []
     },
     {
       "key": "WBR",
       "position": "WBR",
       "role": "wb_wbl_wbr_attack",
-      "why": "The only width on the right: he lives in the opponent's half, pinning their wide player and crossing from the byline."
+      "why": "The only width on the right: he lives in the opponent's half, pinning their wide player and crossing from the byline.",
+      "instructions": []
     },
     {
       "key": "STL",
       "position": "ST",
       "role": "pf_support",
-      "why": "Leads the press on the centre-backs and drops in to link play, then joins his partner in the box when the cross comes."
+      "why": "Leads the press on the centre-backs and drops in to link play, then joins his partner in the box when the cross comes.",
+      "instructions": []
     },
     {
       "key": "STR",
@@ -109,12 +121,13 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Attacks the near post and the space behind the centre-backs. Poacher is the alternate for a striker who stays in the box."
+      "why": "Attacks the near post and the space behind the centre-backs. Poacher is the alternate for a striker who stays in the box.",
+      "instructions": []
     }
   ],
   "system": {
     "minimums": {
-      "width": 4.0,
+      "width": 3.5,
       "defensiveCover": 6.5,
       "ballProgression": 5.0,
       "creativity": 1.0,
@@ -128,22 +141,22 @@
     "maximumCreators": 2
   },
   "style": "Territorial 3-5-2",
-  "description": "A positive 3-5-2 that holds territory: wing-backs live in the opponent's half, the wide centre-backs step out to win the ball back on the flanks, and two forwards and a runner meet the crosses.",
-  "whyGood": "Puts two forwards and a runner in the box for every cross and two players on each flank, while three centre-backs and a holder keep the counter covered. The wide centre-backs let the team win the ball back high on the flanks, where weaker sides try to escape pressure.",
-  "whyThisShape": "Territory is the lever, with wing-backs supplying it. Both wing-backs play on Attack and stay in the opponent's half; the wide centre-backs step out behind them, so each flank has two players to win the ball back and to support the cross. The higher line and engagement with more urgent pressing keep the team compact in the opponent's half, and the counter-press stops a weaker side escaping it. The central centre-back covers behind the three and the sweeper keeper behind him, the holding midfielder screens and wins the second balls, and the deep-lying playmaker recycles each regain into another attack. The pressing forward leads the press and links play, and with the box-to-box midfielder arriving there are three bodies for low crosses. On the ball the passing is slightly shorter and there is no Counter: a regain near the box is followed by another attack.",
-  "whenToUse": "Against weaker sides in a back four that defend deep and try to clear their lines, when you have two wing-backs with the stamina for a whole flank, three centre-backs including two comfortable stepping out, and two forwards.",
+  "description": "A positive 3-5-2 that holds territory with two attacking wing-backs, a counter-press and two forwards plus a midfield runner meeting the deliveries.",
+  "whyGood": "Attacking wing-backs supply the width, with two forwards and a runner attacking deliveries. Three centre-backs and a holding midfielder provide cover behind that pressure.",
+  "whyThisShape": "The wing-backs supply the attacking width in this FM20 version. Three centre-backs cover behind them: a left Ball-Playing Defender starts the build-up, the right Central Defender protects his channel, and the central Cover defender reads the space behind both. The higher defensive and engagement lines support the counter-press. The holder screens the defence, the deep playmaker recycles possession, and the box-to-box midfielder joins the pressing forward and Advanced Forward around the box. Slightly shorter passing connects the midfield; with neither Counter nor Hold Shape selected, the team chooses how to use each regain. The outside centre-backs are not instructed to overlap: the specialised Wide Centre-Back role belongs to later FM editions.",
+  "whenToUse": "Against weaker sides that defend deep and clear their lines, when you have two attacking wing-backs, three centre-backs who can protect their channels, and two useful forwards.",
   "whenNotToUse": "With wing-backs who cannot sustain the running, against wingers who will attack the space behind them, or against a side with quick forwards who run behind a higher line.",
-  "whenLeading": "Keep the wing-backs high and the counter-press on; the five at the back are already there if needed. If the wing-backs tire, replace them like for like before considering a deeper line, and keep the two forwards so clearances still have someone to find.",
+  "whenLeading": "Keep the supporting central platform while assessing the pressure and the wing-backs. Replace tired wide players before they stop recovering; dropping the entire block is a separate in-match decision, not an automatic consequence of taking the lead.",
   "instructionRationale": {
-    "Counter-Press": "Stops a pinned-in opponent escaping the pressure, so the ball comes straight back for another attack.",
-    "Higher Line of Engagement": "Starts the press in the opponent's half with the two forwards and the wing-backs.",
-    "Higher Defensive Line": "Keeps the back three close to the midfield so clearances are won in the opponent's half; the covering centre-back and sweeper keeper deal with the space behind.",
-    "More Urgent Pressing": "Closes the ball quickly at a level a squad can sustain, without the extreme press.",
-    "Fairly Wide": "Keeps both wing-backs on the touchlines, the only width the shape has.",
-    "Slightly Shorter Passing": "Recycles possession through the back three and the playmaker rather than forcing it forward.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Higher Line of Engagement": "Engage the build-up earlier, accepting that the forwards need support from the midfield behind them.",
+    "Higher Defensive Line": "Move the back line up to reduce the space behind the midfield and support territorial pressure.",
+    "More Urgent Pressing": "Challenge more often inside the selected engagement zone without making the settled press maximal.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Slightly Shorter Passing": "Retain connected passing options while still allowing progression into the forward line.",
     "Low Crosses": "To the near post and penalty spot for two forwards and the arriving midfielder.",
     "Never Time Wasting": "Keeps the pressure on when ahead.",
-    "Distribute To Centre Backs": "The wide centre-backs split towards the touchlines as the first pass.",
+    "Distribute To Centre Backs": "Start through the back three, with the left Ball-Playing Defender providing the more ambitious first pass.",
     "Roll It Out": "Keeps goal kicks and catches in the team's possession."
   },
   "attributeEmphasis": [
@@ -164,7 +177,7 @@
         "DC"
       ],
       "roles": [
-        "wcb_support"
+        "bpd_defend"
       ]
     },
     {
@@ -305,7 +318,7 @@
   ],
   "keyRequirements": [
     "Two wing-backs with the stamina to cover a whole flank and the crossing to finish moves",
-    "Two centre-backs comfortable stepping out wide, and a quick covering centre-back",
+    "Three centre-backs who protect the channels, including a ball-player and a covering defender",
     "A holding midfielder who screens and reads second balls",
     "A pressing forward who links play and a striker who attacks the near post",
     "Stamina and work rate across midfield and attack"
@@ -317,5 +330,10 @@
     "territorial",
     "pressing",
     "control"
+  ],
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.",
+    "FM20 compatibility correction: BPD (Defend) left, CD (Cover) centre, CD (Defend) right replace the previously listed outer Wide Centre-Back roles, which were introduced in FM22. The wing-backs now supply the attacking width; this is a revised template."
   ]
 }

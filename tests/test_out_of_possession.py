@@ -29,11 +29,11 @@ class DefensiveSettingsTests(unittest.TestCase):
     def test_old_catalogues_load_and_display_missing_settings(self):
         tactic = self.load()
         self.assertIsNone(tactic.out_of_possession)
-        self.assertEqual(len(tactic.out_of_possession_missing_fields), 6)
+        self.assertEqual(len(tactic.out_of_possession_missing_fields), 8)
         section = out_of_possession_section(tactic)
         self.assertIn("Out of possession", section)
         self.assertIn("Out-of-possession settings not yet specified:", section)
-        self.assertEqual(section.count("Not set</b>"), 6)
+        self.assertEqual(section.count("Not set</b>"), 8)
 
     def test_every_requested_line_and_pressing_level_loads_and_displays(self):
         for line in LINE_OPTIONS:
@@ -43,6 +43,7 @@ class DefensiveSettingsTests(unittest.TestCase):
                         "lineOfEngagement": line, "defensiveLine": line, "defensiveWidth": "Standard",
                         "pressingIntensity": pressing, "useTighterMarking": "Neutral",
                         "preventShortGKDistribution": "Neutral",
+                        "useOffsideTrap": False, "tackling": "Neutral",
                     })
                     self.assertTrue(tactic.out_of_possession.is_complete)
                     section = out_of_possession_section(tactic)
@@ -55,7 +56,7 @@ class DefensiveSettingsTests(unittest.TestCase):
         for choice, display in ((True, "Yes"), (False, "No"), ("Neutral", "Neutral")):
             with self.subTest(choice=choice):
                 tactic = self.load({"useTighterMarking": choice, "preventShortGKDistribution": choice})
-                self.assertEqual(len(tactic.out_of_possession_missing_fields), 4)
+                self.assertEqual(len(tactic.out_of_possession_missing_fields), 6)
                 section = out_of_possession_section(tactic)
                 self.assertIn(f"Use tighter marking</span><b>{display}", section)
                 self.assertIn(f"Prevent short GK distribution</span><b>{display}", section)
@@ -84,6 +85,8 @@ class DefensiveSettingsTests(unittest.TestCase):
             {"preventShortGKDistribution": 0}, {"preventShortGKDistribution": []},
             {"defensiveLine": None}, {"useTighterMarking": None},
             {"defensiveWidth": "Very Wide"}, {"defensiveWidth": True}, {"defensiveWidth": None},
+            {"useOffsideTrap": 1}, {"useOffsideTrap": []}, {"useOffsideTrap": None},
+            {"tackling": "Hard"}, {"tackling": True}, {"tackling": None},
         ):
             with self.subTest(block=block), self.assertRaisesRegex(ValueError, "outOfPossession"):
                 self.load(block)
@@ -99,6 +102,8 @@ class DefensiveSettingsTests(unittest.TestCase):
             ({"pressingIntensity": "Standard"}, "Much More Urgent Pressing"),
             ({"useTighterMarking": False}, "Use Tighter Marking"),
             ({"preventShortGKDistribution": "Neutral"}, "Prevent Short GK Distribution"),
+            ({"useOffsideTrap": False}, "Use Offside Trap"),
+            ({"tackling": "Neutral"}, "Get Stuck In"),
         ):
             with self.subTest(block=block), self.assertRaisesRegex(ValueError, "duplicates or conflicts"):
                 self.load(block, instructions=[instruction])

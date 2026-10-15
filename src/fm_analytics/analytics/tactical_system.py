@@ -52,6 +52,8 @@ class SystemAssessment:
 _INSTRUCTION_REQUIREMENTS: Mapping[str, Mapping[str, float]] = {
     "Fairly Narrow": {"creativity": 1.0, "ballProgression": 1.5},
     "Fairly Wide": {"width": 3.0},
+    "Extremely Wide": {"width": 3.5},
+    "Much Higher Tempo": {"runners": 2.0, "pressing": 1.0},
     "Narrower": {"defensiveCover": 2.0, "ballProgression": 1.0},
     "Shorter Passing": {"ballProgression": 2.0},
     "Slightly Shorter Passing": {"ballProgression": 1.5},

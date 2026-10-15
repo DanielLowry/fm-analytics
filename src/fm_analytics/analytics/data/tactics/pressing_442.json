@@ -3,26 +3,21 @@
   "name": "High-Press 4-4-2",
   "formation": "4-4-2",
   "mentality": "Positive",
-  "instructions": [
-    "Higher Line of Engagement",
-    "Much More Urgent Pressing",
-    "Counter-Press",
-    "Slightly More Direct Passing",
-    "Higher Tempo",
-    "Standard Defensive Line"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes to the forwards or wide midfielders after winning the ball."
+      "why": "Distributes to the forwards or wide midfielders after winning the ball.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back gives width and pushes up to join the press on the flank."
+      "why": "Support full-back gives width and pushes up to join the press on the flank.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -31,7 +26,8 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender. Cover is the alternate."
+      "why": "Central defender. Cover is the alternate.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -40,49 +36,57 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used."
+      "why": "Central defender on the right. Cover is the alternate, but only one Cover can be used.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right, doing the same job as on the left."
+      "why": "Support full-back on the right, doing the same job as on the left.",
+      "instructions": []
     },
     {
       "key": "ML",
       "position": "ML",
       "role": "wm_support",
-      "why": "Wide midfielder (Support) works hard to close the full-back and gives the team width when the ball is won."
+      "why": "Wide midfielder (Support) works hard to close the full-back and gives the team width when the ball is won.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "bwm_mc_support",
-      "why": "Ball-winning midfielder harries the opposition midfield and wins the ball for the forwards."
+      "why": "Ball-winning midfielder harries the opposition midfield and wins the ball for the forwards.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Box-to-box midfielder supports the press and runs beyond the forwards."
+      "why": "Box-to-box midfielder supports the press and runs beyond the forwards.",
+      "instructions": []
     },
     {
       "key": "MR",
       "position": "MR",
       "role": "wm_support",
-      "why": "Wide midfielder (Support) on the right, doing the same job as on the left."
+      "why": "Wide midfielder (Support) on the right, doing the same job as on the left.",
+      "instructions": []
     },
     {
       "key": "STL",
       "position": "ST",
       "role": "pf_defend",
-      "why": "Pressing forward (Defend) starts the press and drops back to help the midfield, so he is the workhorse of the pair."
+      "why": "Pressing forward (Defend) starts the press and drops back to help the midfield, so he is the workhorse of the pair.",
+      "instructions": []
     },
     {
       "key": "STR",
       "position": "ST",
       "role": "pf_attack",
-      "why": "Pressing forward (Attack) presses too, but stays higher and looks to run in behind when the ball is won."
+      "why": "Pressing forward (Attack) presses too, but stays higher and looks to run in behind when the ball is won.",
+      "instructions": []
     }
   ],
   "system": {
@@ -104,12 +108,16 @@
   "whenToUse": "When you have fit, energetic forwards and midfielders and want to press the opponent's build-up, especially against a side that plays short from the back.",
   "whenNotToUse": "Against sides that play long over the press, or when your players are tired: a two-man press leaves gaps behind it if it is beaten.",
   "instructionRationale": {
-    "Higher Line of Engagement": "Starts the press in the opponent's half so the ball is won high.",
-    "Much More Urgent Pressing": "Presses with more intensity, which wins the ball more often but tires the team.",
-    "Counter-Press": "Presses at once after losing the ball, so possession is regained before the opponent settles.",
-    "Slightly More Direct Passing": "Gets the ball forward quickly to the forwards when it is won.",
-    "Higher Tempo": "Moves the ball quickly while the opponent is out of shape.",
-    "Standard Defensive Line": "A balanced line rather than a high one, so the two-man press does not leave the defence exposed."
+    "Higher Line of Engagement": "Engage the build-up earlier, accepting that the forwards need support from the midfield behind them.",
+    "Much More Urgent Pressing": "Use a very urgent settled press; assess recoveries, chances allowed and fitness rather than assuming it succeeds.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Slightly More Direct Passing": "Reach the forward outlets earlier without turning every possession into a long ball.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure.",
+    "Higher Defensive Line": "Bring the defence up behind the higher engagement line, reducing the gap behind the midfield press."
   },
   "attributeEmphasis": [
     {
@@ -262,5 +270,49 @@
         "ST"
       ]
     }
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Standard",
+      "passingDirectness": "Slightly More Direct Passing",
+      "tempo": "Higher Tempo",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Mixed",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Higher",
+    "defensiveLine": "Higher",
+    "pressingIntensity": "Extremely Urgent",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.",
+    "The pressing shape is a catalogue hypothesis, not a copy of Rosler or another externally tested download.",
+    "No forced Counter after a regain: the receiving and linking roles choose when to release the runners, rather than requiring every regain to become a break."
   ]
 }

@@ -66,6 +66,10 @@ class CentreBackRoleRuleTests(unittest.TestCase):
         for tactic in MVP_CATALOGUE.tactics.values():
             if "Play Out Of Defence" not in effective_instructions(tactic):
                 continue
+            if tactic.source is not None:
+                # Published originals remain faithful benchmarks, even where
+                # their authors do not follow our design preferences.
+                continue
             fixed = [
                 slot.key for slot in tactic.slots
                 if slot.position == "DC" and set(MVP_CATALOGUE.role_keys_for_slot(slot)) <= self.BALL_PLAYERS

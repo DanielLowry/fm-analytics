@@ -45,20 +45,25 @@
     "defensiveLine": "Lower",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "Less Urgent",
-    "preventShortGKDistribution": false
+    "preventShortGKDistribution": false,
+    "defensiveWidth": "Standard",
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
   },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Keeps goalkeeping simple, then distributes quickly and directly toward the target man or wide outlets when a counter is available."
+      "why": "Keeps goalkeeping simple, then distributes quickly and directly toward the target man or wide outlets when a counter is available.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "wb_dl_dr_defend",
-      "why": "Defensive wing-back stays as part of the back five, protects the flank and only advances cautiously."
+      "why": "Defensive wing-back stays as part of the back five, protects the flank and only advances cautiously.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -69,7 +74,8 @@
         "nncb_defend",
         "nncb_cover"
       ],
-      "why": "Defends the box simply as part of the back three. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the box is defended first and the ball goes long to the target man. Only one centre-back may use Cover."
+      "why": "Defends the box simply as part of the back three. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the box is defended first and the ball goes long to the target man. Only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DCC",
@@ -78,7 +84,8 @@
       "why": "The central defender protects the middle of the box first. Ball-Playing Defender (Defend) is an alternative when one centre-back has enough passing, decisions and composure to launch counters reliably.",
       "roles": [
         "bpd_defend"
-      ]
+      ],
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -89,43 +96,50 @@
         "nncb_defend",
         "nncb_cover"
       ],
-      "why": "Defends the box simply on the right of the back three. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the box is defended first and the ball goes long to the target man. Only one centre-back may use Cover."
+      "why": "Defends the box simply on the right of the back three. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the box is defended first and the ball goes long to the target man. Only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "wb_dl_dr_defend",
-      "why": "Defensive wing-back stays as part of the back five, protects the flank and only advances cautiously."
+      "why": "Defensive wing-back stays as part of the back five, protects the flank and only advances cautiously.",
+      "instructions": []
     },
     {
       "key": "ML",
       "position": "ML",
       "role": "winger_ml_mr_attack",
-      "why": "Winger (Attack) is the primary left-side counter-attacking outlet, using pace to carry the team upfield after deep regains."
+      "why": "Winger (Attack) is the primary left-side counter-attacking outlet, using pace to carry the team upfield after deep regains.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Central Midfielder (Defend) holds the middle, protects the back five and keeps his positioning while the counter-attacking outlets break."
+      "why": "Central Midfielder (Defend) holds the middle, protects the back five and keeps his positioning while the counter-attacking outlets break.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "cm_support",
-      "why": "Central Midfielder (Support) connects deep regains to the target man and wide outlets and can join the second wave of the counter."
+      "why": "Central Midfielder (Support) connects deep regains to the target man and wide outlets and can join the second wave of the counter.",
+      "instructions": []
     },
     {
       "key": "MR",
       "position": "MR",
       "role": "winger_ml_mr_attack",
-      "why": "Winger (Attack) is the primary right-side counter-attacking outlet, using pace to carry the team upfield after deep regains."
+      "why": "Winger (Attack) is the primary right-side counter-attacking outlet, using pace to carry the team upfield after deep regains.",
+      "instructions": []
     },
     {
       "key": "ST",
       "position": "ST",
       "role": "tm_support",
-      "why": "Target Man (Support) provides the essential long outlet, competes for direct balls and holds possession long enough for the wingers and supporting midfielder to join."
+      "why": "Target Man (Support) provides the essential long outlet, competes for direct balls and holds possession long enough for the wingers and supporting midfielder to join.",
+      "instructions": []
     }
   ],
   "system": {
@@ -149,15 +163,21 @@
   "whenToUse": "When protecting a lead or playing away against a substantially stronger side, especially when you have a strong aerial striker and quick wide players who can turn clearances into genuine counters.",
   "whenNotToUse": "When you need sustained possession or must create a high volume of chances. Avoid it if the striker cannot secure direct balls or the wide players lack the pace to turn deep regains into territory.",
   "instructionRationale": {
-    "Lower Line of Engagement": "Concedes harmless possession higher up the pitch and keeps the midfield close to the back five.",
-    "Drop Off More Defensive Line": "Removes space behind the defence and concentrates bodies around the box.",
-    "Counter": "Releases the wide outlets immediately after a regain rather than asking the whole team to build up.",
-    "Pass Into Space": "Targets the space left behind advancing opposition full-backs for the attacking wide midfielders.",
-    "More Direct Passing": "Uses the target man and wide outlets instead of asking a defensive side to play through pressure.",
-    "Regroup": "Restores the deep 5-4-1 structure immediately after possession is lost.",
-    "Lower Tempo": "Reduces unnecessary turnovers once the immediate counter is not available.",
+    "Lower Line of Engagement": "Let the opposition advance before engaging, keeping space for the forward outlets after a regain.",
+    "Drop Off More Defensive Line": "Provide more space in front of the defenders and less behind them, accepting reduced territory.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Pass Into Space": "Lead the mobile forwards and midfield runners into space rather than requiring every pass to arrive at their feet.",
+    "More Direct Passing": "Reach the physical or running outlets early and compete for the following ball.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Lower Tempo": "Allow the passing structure to form during settled possession; a selected Counter instruction still applies immediately after regains.",
     "Sometimes Time Wasting": "Fits the tactic's main use cases without making every possession excessively passive.",
-    "Less Urgent Pressing": "Keeps players in the compact block rather than pulling them out to chase the ball."
+    "Less Urgent Pressing": "Prioritise the block over chasing possession; the counter outlets remain available after regains.",
+    "Be More Disciplined": "Ask players to retain the defined structure rather than adding further improvisation.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Target Man": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Play For Set Pieces": "Use the wide pressure to win dead-ball opportunities when a useful open-play delivery is unavailable.",
+    "Run At Defence": "Encourage ball carriers to engage defenders; review against their dribbling and the opponent.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -512,5 +532,10 @@
         "tm_support"
       ]
     }
+  ],
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.",
+    "The deep block deliberately concedes territory; check chances and effective deliveries allowed rather than assuming a deeper line protects a lead."
   ]
 }

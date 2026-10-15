@@ -36,20 +36,24 @@
     "defensiveWidth": "Standard",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "Standard",
-    "preventShortGKDistribution": false
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
   },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "A conventional keeper who rolls the ball to a full-back to start a move. Possession is started short rather than kicked long, but the build-up does not ask him to be a passer."
+      "why": "A conventional keeper who rolls the ball to a full-back to start a move. Possession is started short rather than kicked long, but the build-up does not ask him to be a passer.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Gives the left winger a safe pass behind him and a second option for an overlap, while staying close enough to the centre-backs to keep the back four intact when the ball is lost."
+      "why": "Gives the left winger a safe pass behind him and a second option for an overlap, while staying close enough to the centre-backs to keep the back four intact when the ball is lost.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -58,7 +62,8 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Defends simply and passes the ball short to the holding midfielder or a full-back. Cover is the alternate, but only one centre-back may use it."
+      "why": "Defends simply and passes the ball short to the holding midfielder or a full-back. Cover is the alternate, but only one centre-back may use it.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -67,37 +72,43 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Defends simply and passes the ball short to the holding midfielder or a full-back. Cover is the alternate, but only one centre-back may use it."
+      "why": "Defends simply and passes the ball short to the holding midfielder or a full-back. Cover is the alternate, but only one centre-back may use it.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Gives the right winger a safe pass behind him and a second option for an overlap, while staying close enough to the centre-backs to keep the back four intact when the ball is lost."
+      "why": "Gives the right winger a safe pass behind him and a second option for an overlap, while staying close enough to the centre-backs to keep the back four intact when the ball is lost.",
+      "instructions": []
     },
     {
       "key": "ML",
       "position": "ML",
       "role": "winger_ml_mr_attack",
-      "why": "Stays wide and attacks the full-back to reach the byline before crossing. On Attack he gets beyond the midfield line, so the cross comes from near the byline rather than from deep."
+      "why": "Stays wide and attacks the full-back to reach the byline before crossing. On Attack he gets beyond the midfield line, so the cross comes from near the byline rather than from deep.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Holds position behind the ball as the first pass out from the centre-backs and the cover when a move breaks down. In a two-man midfield, someone has to stay, so the playmaker beside him can take risks on the ball."
+      "why": "Holds position behind the ball as the first pass out from the centre-backs and the cover when a move breaks down. In a two-man midfield, someone has to stay, so the playmaker beside him can take risks on the ball.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "dlp_mc_support",
-      "why": "The main passer. He collects from the holder and the full-backs and switches the ball to whichever winger is isolated, so possession runs through midfield rather than going long to the strikers."
+      "why": "The main passer. He collects from the holder and the full-backs and switches the ball to whichever winger is isolated, so possession runs through midfield rather than going long to the strikers.",
+      "instructions": []
     },
     {
       "key": "MR",
       "position": "MR",
       "role": "winger_ml_mr_attack",
-      "why": "Stays wide and attacks the full-back to reach the byline before crossing. On Attack he gets beyond the midfield line, so the cross comes from near the byline rather than from deep."
+      "why": "Stays wide and attacks the full-back to reach the byline before crossing. On Attack he gets beyond the midfield line, so the cross comes from near the byline rather than from deep.",
+      "instructions": []
     },
     {
       "key": "STL",
@@ -106,7 +117,8 @@
       "roles": [
         "cf_support"
       ],
-      "why": "Drops off the front line to give the two central midfielders a forward pass, then rejoins the attack. Complete Forward (Support) is the alternate for a striker who also carries the ball and finishes; both link play rather than running in behind."
+      "why": "Drops off the front line to give the two central midfielders a forward pass, then rejoins the attack. Complete Forward (Support) is the alternate for a striker who also carries the ball and finishes; both link play rather than running in behind.",
+      "instructions": []
     },
     {
       "key": "STR",
@@ -115,7 +127,8 @@
       "roles": [
         "af_attack"
       ],
-      "why": "Poacher stays on the last defender's shoulder to meet low crosses and cut-backs at the near post. Advanced Forward is the alternate for a striker who also runs the channels."
+      "why": "Poacher stays on the last defender's shoulder to meet low crosses and cut-backs at the near post. Advanced Forward is the alternate for a striker who also runs the channels.",
+      "instructions": []
     }
   ],
   "system": {
@@ -140,15 +153,15 @@
   "whenNotToUse": "Against three central midfielders who outnumber the pivot, against a strong press, or when the wingers cannot beat a full-back; the shape then has too few central passing options to keep the ball.",
   "whenLeading": "Stay Balanced and keep both forwards on, so clearances still find someone and the opponent cannot push its whole team up. Replace tired wide midfielders like for like rather than switching to a deeper shape.",
   "instructionRationale": {
-    "Fairly Wide": "Stretches a deep back four so the wingers receive in space and the playmaker can switch play.",
-    "Slightly Shorter Passing": "Keeps the ball through midfield and the dropping forward instead of playing early towards the strikers.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Slightly Shorter Passing": "Retain connected passing options while still allowing progression into the forward line.",
     "Low Crosses": "Played to the near post and the penalty spot, where forwards who are not aerial specialists can still finish.",
     "Never Time Wasting": "Keeps playing to win the ball back and attack when ahead, rather than inviting pressure late in a game.",
-    "Regroup": "Recovers the defensive shape after losing the ball instead of a counter-press the squad's stamina would not sustain for ninety minutes.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
     "Distribute To Full Backs": "Starts possession with a short, low-risk pass wide, where there is space against a side that defends deep.",
     "Roll It Out": "Keeps goal kicks and catches in the team's possession rather than contesting long balls.",
-    "Standard Line of Engagement": "Leaves the defensive approach unchanged from the side's usual tactics: the attacking phase is what this tactic changes.",
-    "Standard Defensive Line": "Keeps the recovery distance behind the back four moderate, so a rare counter does not find a high line."
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it."
   },
   "attributeEmphasis": [
     {
@@ -383,5 +396,9 @@
     "control",
     "possession",
     "lower-league-friendly"
+  ],
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

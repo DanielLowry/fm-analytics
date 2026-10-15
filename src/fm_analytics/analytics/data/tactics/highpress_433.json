@@ -3,31 +3,28 @@
   "name": "High-Press 4-3-3",
   "formation": "4-3-3 (High Press)",
   "mentality": "Positive",
-  "instructions": [
-    "Much Higher Line of Engagement",
-    "Much More Urgent Pressing",
-    "Higher Defensive Line",
-    "Shorter Passing",
-    "Counter-Press"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "sk_defend",
-      "why": "Sweeper keeper covers the space behind the high line and starts moves with his feet."
+      "why": "Sweeper keeper covers the space behind the high line and starts moves with his feet.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "wb_dl_dr_support",
-      "why": "Support wing-back gives width and joins the press high up the pitch."
+      "why": "Support wing-back gives width and joins the press high up the pitch.",
+      "instructions": []
     },
     {
       "key": "DCL",
       "position": "DC",
       "role": "bpd_defend",
-      "why": "Ball-playing defender steps out to press and starts attacks with a pass."
+      "why": "Ball-playing defender steps out to press and starts attacks with a pass.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -36,43 +33,50 @@
       "roles": [
         "cd_defend"
       ],
-      "why": "Cover centre-back sweeps behind his partner, since the line is high; Defend is the alternate."
+      "why": "Cover centre-back sweeps behind his partner, since the line is high; Defend is the alternate.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "wb_dl_dr_attack",
-      "why": "Attacking wing-back gives the width on the right and pushes on when the ball is won."
+      "why": "Attacking wing-back gives the width on the right and pushes on when the ball is won.",
+      "instructions": []
     },
     {
       "key": "DM",
       "position": "DM",
       "role": "bwm_dm_support",
-      "why": "Ball-winning midfielder harries opponents in the middle and wins the ball back."
+      "why": "Ball-winning midfielder harries opponents in the middle and wins the ball back.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Box-to-box midfielder supports the press and runs beyond the striker when the ball is won."
+      "why": "Box-to-box midfielder supports the press and runs beyond the striker when the ball is won.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "mez_attack",
-      "why": "Mezzala runs into the half-space to arrive in the box."
+      "why": "Mezzala runs into the half-space to arrive in the box.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "winger_aml_amr_attack",
-      "why": "Winger presses the full-back and stays wide when the ball is won."
+      "why": "Winger presses the full-back and stays wide when the ball is won.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "if_attack",
-      "why": "Inside forward cuts in to shoot and attack the box."
+      "why": "Inside forward cuts in to shoot and attack the box.",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -81,7 +85,8 @@
       "roles": [
         "af_attack"
       ],
-      "why": "Pressing forward leads the press by closing down the defenders. Advanced Forward is the alternate."
+      "why": "Pressing forward leads the press by closing down the defenders. Advanced Forward is the alternate.",
+      "instructions": []
     }
   ],
   "system": {
@@ -104,11 +109,17 @@
   "whenToUse": "When you have fit, energetic players and want to play in the opponent's half, especially against sides that build slowly from the back.",
   "whenNotToUse": "Against sides that play long over the press, or when your players lack stamina: the press cannot be kept up for 90 minutes.",
   "instructionRationale": {
-    "Much Higher Line of Engagement": "Starts the press in the opponent's half, so the ball is won close to their goal.",
-    "Much More Urgent Pressing": "Presses with more intensity, which wins the ball more often but tires the team.",
-    "Higher Defensive Line": "Keeps the team compact so the press is close together; it needs pace in the defence.",
-    "Shorter Passing": "Keeps possession after the ball is won.",
-    "Counter-Press": "Presses at once after losing the ball, so the ball is regained before the opponent is organised."
+    "Much Higher Line of Engagement": "Begin pressure close to the opposition build-up and goalkeeper.",
+    "Much More Urgent Pressing": "Use a very urgent settled press; assess recoveries, chances allowed and fitness rather than assuming it succeeds.",
+    "Higher Defensive Line": "Move the back line up to reduce the space behind the midfield and support territorial pressure.",
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Distribute To Full Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Roll It Out": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
   },
   "attributeEmphasis": [
     {
@@ -188,5 +199,47 @@
     "gegenpress",
     "433",
     "high-line"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Standard",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Full Backs"
+    ],
+    "distributionTypes": [
+      "Roll It Out"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Much Higher",
+    "defensiveLine": "Higher",
+    "pressingIntensity": "Extremely Urgent",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

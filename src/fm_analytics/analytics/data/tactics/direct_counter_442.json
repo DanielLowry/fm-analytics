@@ -3,27 +3,21 @@
   "name": "Direct Counter 4-4-2",
   "formation": "4-4-2",
   "mentality": "Cautious",
-  "instructions": [
-    "Slightly More Direct Passing",
-    "Higher Tempo",
-    "Pass Into Space",
-    "Counter",
-    "Regroup",
-    "Lower Line of Engagement",
-    "Standard Defensive Line"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes quickly to the wingers or forwards to start the break."
+      "why": "Distributes quickly to the wingers or forwards to start the break.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back stays reasonably back, but supplies width when the counter is on."
+      "why": "Support full-back stays reasonably back, but supplies width when the counter is on.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -34,7 +28,8 @@
         "nncb_defend",
         "nncb_cover"
       ],
-      "why": "Central defender. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the counter goes forward early and the pair is not asked to build. Only one centre-back may use Cover."
+      "why": "Central defender. Cover is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the counter goes forward early and the pair is not asked to build. Only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -45,37 +40,43 @@
         "nncb_defend",
         "nncb_cover"
       ],
-      "why": "Cover centre-back sweeps behind his partner, which suits a deeper block. Defend is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the counter goes forward early and the pair is not asked to build. Only one centre-back may use Cover."
+      "why": "Cover centre-back sweeps behind his partner, which suits a deeper block. Defend is the alternate, as is the No-Nonsense Centre-Back (Defend or Cover), who clears rather than passes: the counter goes forward early and the pair is not asked to build. Only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right."
+      "why": "Support full-back on the right.",
+      "instructions": []
     },
     {
       "key": "ML",
       "position": "ML",
       "role": "winger_ml_mr_support",
-      "why": "Winger (Support) is a quick outlet who receives the ball wide and runs at the defence."
+      "why": "Winger (Support) is a quick outlet who receives the ball wide and runs at the defence.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Defensive central midfielder breaks up play and shields the back four."
+      "why": "Defensive central midfielder breaks up play and shields the back four.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Box-to-box midfielder is the runner who supports the forwards on the break."
+      "why": "Box-to-box midfielder is the runner who supports the forwards on the break.",
+      "instructions": []
     },
     {
       "key": "MR",
       "position": "MR",
       "role": "winger_ml_mr_support",
-      "why": "Winger (Support) on the right, doing the same job as on the left."
+      "why": "Winger (Support) on the right, doing the same job as on the left.",
+      "instructions": []
     },
     {
       "key": "STL",
@@ -84,7 +85,8 @@
       "roles": [
         "cf_support"
       ],
-      "why": "Deep-lying forward (or Complete Forward) holds up the ball so the others can arrive."
+      "why": "Deep-lying forward (or Complete Forward) holds up the ball so the others can arrive.",
+      "instructions": []
     },
     {
       "key": "STR",
@@ -93,7 +95,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Advanced Forward runs in behind the defence. Poacher is the alternate."
+      "why": "Advanced Forward runs in behind the defence. Poacher is the alternate.",
+      "instructions": []
     }
   ],
   "system": {
@@ -115,13 +118,18 @@
   "whenToUse": "Against a stronger or possession-based team that will leave space behind its defence, when you have quick wingers and forwards.",
   "whenNotToUse": "Against a team that sits deep and does not leave space to run into, since the counter has nothing to attack.",
   "instructionRationale": {
-    "Slightly More Direct Passing": "Gets the ball forward to the outlets quicker after winning it.",
-    "Higher Tempo": "Speeds up the break so the defence has no time to reorganise.",
-    "Pass Into Space": "Plays the ball behind the defence for the runners.",
-    "Counter": "Attacks straight away on winning the ball.",
-    "Regroup": "Falls back into shape after losing the ball, before the next break.",
-    "Lower Line of Engagement": "Lets the opponent have the ball in their own half, which leaves the space to counter into.",
-    "Standard Defensive Line": "A balanced line keeps the block compact without giving up too much space in behind."
+    "Slightly More Direct Passing": "Reach the forward outlets earlier without turning every possession into a long ball.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Pass Into Space": "Lead the mobile forwards and midfield runners into space rather than requiring every pass to arrive at their feet.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Lower Line of Engagement": "Let the opposition advance before engaging, keeping space for the forward outlets after a regain.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -257,5 +265,51 @@
         "ST"
       ]
     }
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Slightly More Direct Passing",
+      "tempo": "Higher Tempo",
+      "selected": [
+        "Pass Into Space"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Mixed",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Lower",
+    "defensiveLine": "Standard",
+    "pressingIntensity": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

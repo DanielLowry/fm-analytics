@@ -3,20 +3,14 @@
   "name": "Positive 3-4-2-1",
   "formation": "3-4-2-1",
   "mentality": "Positive",
-  "instructions": [
-    "Shorter Passing",
-    "Play Out Of Defence",
-    "Counter-Press",
-    "Higher Line of Engagement",
-    "Standard Defensive Line",
-    "Work Ball Into Box"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "sk_defend",
-      "why": "Sweeper keeper is the extra passer in build-up with three centre-backs."
+      "why": "Sweeper keeper is the extra passer in build-up with three centre-backs.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -25,13 +19,15 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Wide centre-back who defends the channel. Cover is the alternate."
+      "why": "Wide centre-back who defends the channel. Cover is the alternate.",
+      "instructions": []
     },
     {
       "key": "DCC",
       "position": "DC",
       "role": "bpd_defend",
-      "why": "Ball-playing defender in the centre starts moves with progressive passes."
+      "why": "Ball-playing defender in the centre starts moves with progressive passes.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -40,43 +36,50 @@
       "roles": [
         "cd_defend"
       ],
-      "why": "Cover centre-back sweeps up behind his partner and the wing-back's space; Defend is the alternate, but only one Cover can be used."
+      "why": "Cover centre-back sweeps up behind his partner and the wing-back's space; Defend is the alternate, but only one Cover can be used.",
+      "instructions": []
     },
     {
       "key": "WBL",
       "position": "WBL",
       "role": "wb_wbl_wbr_support",
-      "why": "Support wing-back gives width but holds a safer position on this side."
+      "why": "Support wing-back gives width but holds a safer position on this side.",
+      "instructions": []
     },
     {
       "key": "WBR",
       "position": "WBR",
       "role": "wb_wbl_wbr_attack",
-      "why": "Attacking wing-back is the team's main width on the right."
+      "why": "Attacking wing-back is the team's main width on the right.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Defensive central midfielder protects the back three and lets his partner go forward."
+      "why": "Defensive central midfielder protects the back three and lets his partner go forward.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "dlp_mc_support",
-      "why": "Deep-lying playmaker keeps the ball moving and sets the tempo."
+      "why": "Deep-lying playmaker keeps the ball moving and sets the tempo.",
+      "instructions": []
     },
     {
       "key": "AMCL",
       "position": "AMC",
       "role": "ap_amc_attack",
-      "why": "Advanced playmaker in the half-space finds passes between the lines."
+      "why": "Advanced playmaker in the half-space finds passes between the lines.",
+      "instructions": []
     },
     {
       "key": "AMCR",
       "position": "AMC",
       "role": "ss_attack",
-      "why": "Shadow striker runs beyond the striker and arrives in the box from the half-space."
+      "why": "Shadow striker runs beyond the striker and arrives in the box from the half-space.",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -85,7 +88,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Lone striker: Advanced Forward runs in behind. Poacher is the alternate."
+      "why": "Lone striker: Advanced Forward runs in behind. Poacher is the alternate.",
+      "instructions": []
     }
   ],
   "system": {
@@ -109,12 +113,17 @@
   "whenToUse": "When you have two good creative players and a wing-back pair who can cover the flanks, especially against a back four that has no midfielder in the half-spaces.",
   "whenNotToUse": "Against sides with quick wingers who target the space behind the wing-backs, or if your centre-backs are not comfortable defending wide.",
   "instructionRationale": {
-    "Shorter Passing": "Keeps possession through the triangles the half-space players form.",
-    "Play Out Of Defence": "Three centre-backs and a sweeper keeper make building from the back safe.",
-    "Counter-Press": "Presses at once after losing the ball, close to where it was lost.",
-    "Higher Line of Engagement": "Presses in the opponent's half to keep the play high.",
-    "Standard Defensive Line": "A balanced line keeps the back three compact.",
-    "Work Ball Into Box": "Patient combinations through the half-spaces until a clear chance opens up."
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Play Out Of Defence": "Use short first-line outlets and midfield connections to start attacks; this asks for secure decisions under pressure.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Higher Line of Engagement": "Engage the build-up earlier, accepting that the forwards need support from the midfield behind them.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Work Ball Into Box": "Look for an opening around the penalty area rather than encouraging speculative shots.",
+    "Distribute To Centre Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "More Urgent Pressing": "Challenge more often inside the selected engagement zone without making the settled press maximal.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Short Kicks": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
   },
   "attributeEmphasis": [
     {
@@ -136,5 +145,48 @@
     "positive",
     "3421",
     "half-spaces"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Standard",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Standard",
+      "selected": [
+        "Play Out Of Defence",
+        "Work Ball Into Box"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Centre Backs"
+    ],
+    "distributionTypes": [
+      "Take Short Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Higher",
+    "defensiveLine": "Standard",
+    "pressingIntensity": "More Urgent",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

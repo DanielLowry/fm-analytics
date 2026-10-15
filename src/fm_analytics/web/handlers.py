@@ -31,6 +31,7 @@ from fm_analytics.web.opponent_pages import OpponentPagesMixin
 from fm_analytics.web.experiment_pages import ExperimentPagesMixin
 from fm_analytics.web.scouting_pages import ScoutingPagesMixin
 from fm_analytics.web.tactic_pages import TacticPagesMixin
+from fm_analytics.web.tactic_download import send_tactic_download
 from fm_analytics.web.league_pages import LeaguePagesMixin
 from fm_analytics.web.hidden_pages import HiddenPagesMixin
 from fm_analytics.web.scouting_render import squad_player_link
@@ -101,6 +102,9 @@ class SquadWebHandler(
         if handler is None and path.startswith("/experiments/match/"):
             handler = self._stored_match_page
         if handler is None and path.startswith("/tactics/") and path != "/tactics/":
+            if path.endswith("/download"):
+                send_tactic_download(self, path, parse_qs(parsed.query))
+                return
             handler = self._tactic_detail_page
         if handler is None:
             self._send(

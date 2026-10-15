@@ -1,23 +1,224 @@
 {
-  "key": "roaming_playmaker_433", "name": "Roaming Playmaker 4-3-3", "formation": "4-3-3", "mentality": "Positive",
-  "instructions": ["Shorter Passing", "Play Out Of Defence", "Work Ball Into Box", "Counter-Press", "Higher Line of Engagement", "Standard Defensive Line"],
+  "key": "roaming_playmaker_433",
+  "name": "Roaming Playmaker 4-3-3",
+  "formation": "4-3-3",
+  "mentality": "Positive",
+  "instructions": [],
   "slots": [
-    {"key":"GK","position":"GK","role":"sk_defend","why":"The sweeper keeper provides a short option behind the midfield triangle."},
-    {"key":"DL","position":"DL","role":"wb_dl_dr_support","why":"The wing-back supports circulation and presses the flank."},
-    {"key":"DCL","position":"DC","role":"bpd_defend","why":"The ball-playing defender starts attacks through the midfield."},
-    {"key":"DCR","position":"DC","role":"cd_cover","roles":["cd_defend"],"why":"The cover defender protects the space behind the active midfield; Defend is the alternate."},
-    {"key":"DR","position":"DR","role":"wb_dl_dr_support","why":"The right wing-back supplies width while the midfield creators move inside."},
-    {"key":"MCL","position":"MC","role":"bwm_mc_defend","why":"The ball-winner stays disciplined and wins the ball for the two creative midfielders."},
-    {"key":"MCC","position":"MC","role":"rpm_mc_support","why":"The roaming playmaker carries and receives across the midfield, connecting each phase of the attack."},
-    {"key":"MCR","position":"MC","role":"ap_mc_support","why":"The advanced playmaker offers a stable creative receiving point while the RPM roams."},
-    {"key":"AML","position":"AML","role":"iw_attack","why":"The inverted winger attacks the box from the left when the playmakers draw opponents inside."},
-    {"key":"AMR","position":"AMR","role":"winger_aml_amr_attack","why":"The winger keeps the right side wide and creates room for the playmakers."},
-    {"key":"ST","position":"ST","role":"pf_attack","why":"The pressing forward leads the counter-press and runs beyond the midfield creators."}
+    {
+      "key": "GK",
+      "position": "GK",
+      "role": "sk_defend",
+      "why": "The sweeper keeper provides a short option behind the midfield triangle.",
+      "instructions": []
+    },
+    {
+      "key": "DL",
+      "position": "DL",
+      "role": "wb_dl_dr_support",
+      "why": "The wing-back supports circulation and presses the flank.",
+      "instructions": []
+    },
+    {
+      "key": "DCL",
+      "position": "DC",
+      "role": "bpd_defend",
+      "why": "The ball-playing defender starts attacks through the midfield.",
+      "instructions": []
+    },
+    {
+      "key": "DCR",
+      "position": "DC",
+      "role": "cd_cover",
+      "roles": [
+        "cd_defend"
+      ],
+      "why": "The cover defender protects the space behind the active midfield; Defend is the alternate.",
+      "instructions": []
+    },
+    {
+      "key": "DR",
+      "position": "DR",
+      "role": "wb_dl_dr_support",
+      "why": "The right wing-back supplies width while the midfield creators move inside.",
+      "instructions": []
+    },
+    {
+      "key": "MCL",
+      "position": "MC",
+      "role": "bwm_mc_defend",
+      "why": "The ball-winner stays disciplined and wins the ball for the two creative midfielders.",
+      "instructions": []
+    },
+    {
+      "key": "MCC",
+      "position": "MC",
+      "role": "rpm_mc_support",
+      "why": "The roaming playmaker carries and receives across the midfield, connecting each phase of the attack.",
+      "instructions": []
+    },
+    {
+      "key": "MCR",
+      "position": "MC",
+      "role": "ap_mc_support",
+      "why": "The advanced playmaker offers a stable creative receiving point while the RPM roams.",
+      "instructions": []
+    },
+    {
+      "key": "AML",
+      "position": "AML",
+      "role": "iw_attack",
+      "why": "The inverted winger attacks the box from the left when the playmakers draw opponents inside.",
+      "instructions": []
+    },
+    {
+      "key": "AMR",
+      "position": "AMR",
+      "role": "winger_aml_amr_attack",
+      "why": "The winger keeps the right side wide and creates room for the playmakers.",
+      "instructions": []
+    },
+    {
+      "key": "ST",
+      "position": "ST",
+      "role": "pf_attack",
+      "why": "The pressing forward leads the counter-press and runs beyond the midfield creators.",
+      "instructions": []
+    }
   ],
-  "system":{"minimums":{"width":3.0,"defensiveCover":5.5,"ballProgression":6.5,"creativity":3.5,"runners":3.0,"penetration":2.0,"boxPresence":1.5,"restDefence":5.0,"pressing":3.0},"maximumAttackDuties":5,"maximumCreators":3},
-  "style":"Mobile midfield creator", "description":"A 4-3-3 built to give an elite roaming playmaker freedom while a ball-winner and an advanced playmaker keep the midfield coherent.", "whyGood":"It gives the roaming player passing options and runners around him without leaving the centre unguarded.", "whyThisShape":"The BWM holds his zone, the AP remains a reliable creative reference, and the RPM is free to find the overload. Width comes from the wing-backs and wingers, so the central three do not need to stay flat.", "whenToUse":"When a roaming, high-stamina playmaker is one of your best players and you can protect him with a disciplined ball-winner.", "whenNotToUse":"Against sides that can exploit a midfield that follows the roaming playmaker away from its defensive position, or when the squad lacks work rate.",
-  "instructionRationale":{"Shorter Passing":"The three midfield roles create short combinations around the ball.","Play Out Of Defence":"The goalkeeper and ball-playing defender can find the BWM, AP or RPM.","Work Ball Into Box":"The creators wait for a winger or pressing-forward run rather than forcing early crosses.","Counter-Press":"The BWM and pressing forward recover the ball while the AP and RPM close the surrounding space.","Higher Line of Engagement":"Keeps the creative midfield close enough to attacks to regain loose balls.","Standard Defensive Line":"Protects the roaming midfielder without demanding a high defensive recovery line."},
-  "attributeEmphasis":[{"attributes":{"stamina":2,"workRate":2,"technique":2,"passing":2}},{"attributes":{"decisions":2,"composure":2},"positions":["MC"]}],
-  "attributeTaper":[{"attribute":"stamina","taperBelow":8,"positions":["MC"],"roles":["rpm_mc_support"]},{"attribute":"workRate","taperBelow":8,"positions":["MC"]},{"attribute":"passing","taperBelow":8,"positions":["MC"]}],
-  "keyRequirements":["An elite roaming playmaker","A disciplined ball-winner","A second creative midfielder","Energetic pressing support"], "tags":["433","roaming-playmaker","possession","counterpress"]
+  "system": {
+    "minimums": {
+      "width": 3.0,
+      "defensiveCover": 5.5,
+      "ballProgression": 6.5,
+      "creativity": 3.5,
+      "runners": 3.0,
+      "penetration": 2.0,
+      "boxPresence": 1.5,
+      "restDefence": 5.0,
+      "pressing": 3.0
+    },
+    "maximumAttackDuties": 5,
+    "maximumCreators": 3
+  },
+  "style": "Mobile midfield creator",
+  "description": "A 4-3-3 built to give an elite roaming playmaker freedom while a ball-winner and an advanced playmaker keep the midfield coherent.",
+  "whyGood": "It gives the roaming player passing options and runners around him without leaving the centre unguarded.",
+  "whyThisShape": "The BWM contests possession while the other midfielders provide the passing structure, the AP remains a reliable creative reference, and the RPM is free to find the overload. Width comes from the wing-backs and wingers, so the central three do not need to stay flat.",
+  "whenToUse": "When a roaming, high-stamina playmaker is one of your best players and you can protect him with a disciplined ball-winner.",
+  "whenNotToUse": "Against sides that can exploit a midfield that follows the roaming playmaker away from its defensive position, or when the squad lacks work rate.",
+  "instructionRationale": {
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Play Out Of Defence": "Use short first-line outlets and midfield connections to start attacks; this asks for secure decisions under pressure.",
+    "Work Ball Into Box": "Look for an opening around the penalty area rather than encouraging speculative shots.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Higher Line of Engagement": "Engage the build-up earlier, accepting that the forwards need support from the midfield behind them.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Distribute To Centre Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "More Urgent Pressing": "Challenge more often inside the selected engagement zone without making the settled press maximal.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Short Kicks": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
+  },
+  "attributeEmphasis": [
+    {
+      "attributes": {
+        "stamina": 2,
+        "workRate": 2,
+        "technique": 2,
+        "passing": 2
+      }
+    },
+    {
+      "attributes": {
+        "decisions": 2,
+        "composure": 2
+      },
+      "positions": [
+        "MC"
+      ]
+    }
+  ],
+  "attributeTaper": [
+    {
+      "attribute": "stamina",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ],
+      "roles": [
+        "rpm_mc_support"
+      ]
+    },
+    {
+      "attribute": "workRate",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    },
+    {
+      "attribute": "passing",
+      "taperBelow": 8,
+      "positions": [
+        "MC"
+      ]
+    }
+  ],
+  "keyRequirements": [
+    "An elite roaming playmaker",
+    "A disciplined ball-winner",
+    "A second creative midfielder",
+    "Energetic pressing support"
+  ],
+  "tags": [
+    "433",
+    "roaming-playmaker",
+    "possession",
+    "counterpress"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Standard",
+      "selected": [
+        "Play Out Of Defence",
+        "Work Ball Into Box"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Counter-Press"
+    ],
+    "whenPossessionWon": [],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Centre Backs"
+    ],
+    "distributionTypes": [
+      "Take Short Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Higher",
+    "defensiveLine": "Standard",
+    "pressingIntensity": "More Urgent",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
+  ]
 }

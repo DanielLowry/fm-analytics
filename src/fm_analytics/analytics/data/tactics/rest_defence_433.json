@@ -36,20 +36,24 @@
     "defensiveWidth": "Standard",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "Standard",
-    "preventShortGKDistribution": false
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
   },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "A conventional keeper who rolls the ball to a full-back to start a move; the build-up does not ask him to be a passer."
+      "why": "A conventional keeper who rolls the ball to a full-back to start a move; the build-up does not ask him to be a passer.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "iwb_dl_dr_support",
-      "why": "Steps inside beside the holding midfielder when the team has the ball, making the second line of the 2-3 base that stops counters, and gives the playmakers a short pass."
+      "why": "Steps inside beside the holding midfielder when the team has the ball, making the second line of the 2-3 base that stops counters, and gives the playmakers a short pass.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -58,7 +62,8 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "One of the two that always stay. Cover is the alternate, but only one centre-back may use it."
+      "why": "One of the two that always stay. Cover is the alternate, but only one centre-back may use it.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -67,43 +72,50 @@
       "roles": [
         "cd_defend"
       ],
-      "why": "One of the two that always stay, covering behind the other when a counter does start. Defend is the alternate; only one centre-back may use Cover."
+      "why": "One of the two that always stay, covering behind the other when a counter does start. Defend is the alternate; only one centre-back may use Cover.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "wb_dl_dr_attack",
-      "why": "The width on the right: he overlaps the inside forward to reach the byline, which is safe because the inverted wing-back has stayed."
+      "why": "The width on the right: he overlaps the inside forward to reach the byline, which is safe because the inverted wing-back has stayed.",
+      "instructions": []
     },
     {
       "key": "DM",
       "position": "DM",
       "role": "dm_defend",
-      "why": "The middle of the 2-3 base: he stays in front of the centre-backs, screens the first pass of a counter and starts the counter-press."
+      "why": "The middle of the 2-3 base: he stays in front of the centre-backs, screens the first pass of a counter and starts the counter-press.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "mez_attack",
-      "why": "Runs into the left half-space inside the winger, the underlap that drags a full-back or centre-back out of position, and arrives in the box."
+      "why": "Runs into the left half-space inside the winger, the underlap that drags a full-back or centre-back out of position, and arrives in the box.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "cm_support",
-      "why": "Recycles the ball when an attack stalls, plays the switch, and waits on the edge of the box for the cut-back and the half-clearance."
+      "why": "Recycles the ball when an attack stalls, plays the switch, and waits on the edge of the box for the cut-back and the half-clearance.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "winger_aml_amr_attack",
-      "why": "Holds the left touchline so the Mezzala can run inside him, and takes his full-back on to the byline."
+      "why": "Holds the left touchline so the Mezzala can run inside him, and takes his full-back on to the byline.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "if_support",
-      "why": "Comes inside from the right as the wing-back overlaps, to combine around the box and arrive at the back post."
+      "why": "Comes inside from the right as the wing-back overlaps, to combine around the box and arrive at the back post.",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -112,7 +124,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Pins the centre-backs and attacks the near post and the space they leave when they step out. Poacher is the alternate for a striker who stays in the box."
+      "why": "Pins the centre-backs and attacks the near post and the space they leave when they step out. Poacher is the alternate for a striker who stays in the box.",
+      "instructions": []
     }
   ],
   "system": {
@@ -137,11 +150,11 @@
   "whenNotToUse": "When the inverted wing-back is not comfortable in midfield, since the whole rest defence depends on him; or against a high press, where the slower build-up gives the ball away near your own goal.",
   "whenLeading": "Keep the 2-2 base and the counter-press, and stay Balanced; the rest defence is what makes a lead safe, not dropping deeper. If the wing-back and winger are tiring, replace them with fresh players in the same roles rather than taking the width away.",
   "instructionRationale": {
-    "Counter-Press": "Wins the ball back where the attack broke down, which the 2-2 base behind it makes safe.",
-    "Standard Line of Engagement": "Keeps the defensive approach unchanged; the counter-press is the only extra demand.",
-    "Standard Defensive Line": "Keeps the recovery distance behind the back line moderate in case the counter-press is beaten.",
-    "Fairly Wide": "Keeps a winger on the left touchline and a wing-back on the right one, so both underlap and overlap have room.",
-    "Slightly Shorter Passing": "Keeps the ball through the inverted wing-back and the central midfielders without forcing it.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Slightly Shorter Passing": "Retain connected passing options while still allowing progression into the forward line.",
     "Low Crosses": "Cut-backs and near-post balls for the striker, the inside forward and the arriving midfielders.",
     "Never Time Wasting": "Keeps playing to attack when ahead, rather than inviting pressure.",
     "Distribute To Full Backs": "Starts possession with the inverted wing-back, who steps straight into midfield.",
@@ -362,5 +375,9 @@
     "control",
     "counter-press",
     "asymmetric"
+  ],
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

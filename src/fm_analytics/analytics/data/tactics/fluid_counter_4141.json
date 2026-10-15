@@ -3,26 +3,21 @@
   "name": "Fluid Counter 4-1-4-1",
   "formation": "4-1-4-1",
   "mentality": "Cautious",
-  "instructions": [
-    "Slightly Shorter Passing",
-    "Pass Into Space",
-    "Counter",
-    "Regroup",
-    "Lower Line of Engagement",
-    "Standard Defensive Line"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes quickly, with a short option to the holding midfielder or long to the striker."
+      "why": "Distributes quickly, with a short option to the holding midfielder or long to the striker.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back stays reasonably back but supplies width on the break."
+      "why": "Support full-back stays reasonably back but supplies width on the break.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -32,7 +27,8 @@
         "cd_cover",
         "bpd_defend"
       ],
-      "why": "Central defender. Cover is the alternate, as is a Ball-Playing Defender (Defend), who can start the counter with a short forward pass rather than a long ball."
+      "why": "Central defender. Cover is the alternate, as is a Ball-Playing Defender (Defend), who can start the counter with a short forward pass rather than a long ball.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -41,43 +37,50 @@
       "roles": [
         "cd_defend"
       ],
-      "why": "Cover centre-back sweeps behind his partner in the deeper block; Defend is the alternate."
+      "why": "Cover centre-back sweeps behind his partner in the deeper block; Defend is the alternate.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right."
+      "why": "Support full-back on the right.",
+      "instructions": []
     },
     {
       "key": "DM",
       "position": "DM",
       "role": "dm_defend",
-      "why": "Holding midfielder screens the defence and starts moves with short passes."
+      "why": "Holding midfielder screens the defence and starts moves with short passes.",
+      "instructions": []
     },
     {
       "key": "ML",
       "position": "ML",
       "role": "winger_ml_mr_support",
-      "why": "Winger (Support) is a wide outlet who receives the ball and runs at the defence."
+      "why": "Winger (Support) is a wide outlet who receives the ball and runs at the defence.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Box-to-box midfielder supports the striker with runs from midfield."
+      "why": "Box-to-box midfielder supports the striker with runs from midfield.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "cm_support",
-      "why": "Supporting central midfielder links the defence to the attack and gives the team a passing option."
+      "why": "Supporting central midfielder links the defence to the attack and gives the team a passing option.",
+      "instructions": []
     },
     {
       "key": "MR",
       "position": "MR",
       "role": "winger_ml_mr_support",
-      "why": "Winger (Support) on the right, doing the same job as on the left."
+      "why": "Winger (Support) on the right, doing the same job as on the left.",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -86,7 +89,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Lone striker: Advanced Forward runs in behind. Poacher is the alternate."
+      "why": "Lone striker: Advanced Forward runs in behind. Poacher is the alternate.",
+      "instructions": []
     }
   ],
   "system": {
@@ -108,12 +112,16 @@
   "whenToUse": "Against stronger or possession-based sides when you have a good holding midfielder, quick wingers and a mobile lone striker.",
   "whenNotToUse": "When you need to dominate the ball, or when you have no quick striker to run behind.",
   "instructionRationale": {
-    "Slightly Shorter Passing": "Keeps a passing option in midfield rather than relying only on long balls.",
-    "Pass Into Space": "Plays the ball behind the defence for the striker and wingers.",
-    "Counter": "Attacks straight away on winning the ball.",
-    "Regroup": "Falls back into shape after losing the ball.",
-    "Lower Line of Engagement": "Lets the opponent have the ball in their own half, leaving the space to counter into.",
-    "Standard Defensive Line": "A balanced line keeps the block compact."
+    "Slightly Shorter Passing": "Retain connected passing options while still allowing progression into the forward line.",
+    "Pass Into Space": "Lead the mobile forwards and midfield runners into space rather than requiring every pass to arrive at their feet.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Lower Line of Engagement": "Let the opposition advance before engaging, keeping space for the forward outlets after a regain.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Distribute To Full Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Roll It Out": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
   },
   "attributeEmphasis": [
     {
@@ -449,5 +457,49 @@
         "p_attack"
       ]
     }
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Standard",
+      "passingDirectness": "Slightly Shorter Passing",
+      "tempo": "Standard",
+      "selected": [
+        "Pass Into Space"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Full Backs"
+    ],
+    "distributionTypes": [
+      "Roll It Out"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Lower",
+    "defensiveLine": "Standard",
+    "pressingIntensity": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

@@ -42,26 +42,31 @@
     "defensiveWidth": "Standard",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "Standard",
-    "preventShortGKDistribution": false
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
   },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "sk_support",
-      "why": "Takes part in the build-up as the spare man behind the back three, receiving back-passes and playing short so the team rarely has to clear."
+      "why": "Takes part in the build-up as the spare man behind the back three, receiving back-passes and playing short so the team rarely has to clear.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "wb_dl_dr_support",
-      "why": "Pushes high on the left, because the Half-Back covers behind him, and overlaps when the inside forward comes inside."
+      "why": "Pushes high on the left, because the Half-Back covers behind him, and overlaps when the inside forward comes inside.",
+      "instructions": []
     },
     {
       "key": "DCL",
       "position": "DC",
       "role": "bpd_defend",
-      "why": "Splits wide when the Half-Back drops in and carries or passes the ball into midfield; the first progressive passer."
+      "why": "Splits wide when the Half-Back drops in and carries or passes the ball into midfield; the first progressive passer.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -70,43 +75,50 @@
       "roles": [
         "cd_defend"
       ],
-      "why": "Splits wide on the right in build-up and covers behind the back three when the ball is lost. Defend is the alternate."
+      "why": "Splits wide on the right in build-up and covers behind the back three when the ball is lost. Defend is the alternate.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "wb_dl_dr_support",
-      "why": "Pushes high on the right because the Half-Back covers behind him, underlapping the winger when he holds the touchline."
+      "why": "Pushes high on the right because the Half-Back covers behind him, underlapping the winger when he holds the touchline.",
+      "instructions": []
     },
     {
       "key": "DM",
       "position": "DM",
       "role": "hb_defend",
-      "why": "Drops between the centre-backs when the team has the ball, making a back three so both full-backs can push on, and screens the defence when it does not."
+      "why": "Drops between the centre-backs when the team has the ball, making a back three so both full-backs can push on, and screens the defence when it does not.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "mez_attack",
-      "why": "Drifts into the left channel as the inside forward comes inside, the rotation that pulls defenders out of position, and runs beyond the dropping forward."
+      "why": "Drifts into the left channel as the inside forward comes inside, the rotation that pulls defenders out of position, and runs beyond the dropping forward.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "cm_support",
-      "why": "The main circulator in midfield: always available for a short pass, moving the ball from side to side until a gap appears."
+      "why": "The main circulator in midfield: always available for a short pass, moving the ball from side to side until a gap appears.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "if_support",
-      "why": "Comes inside from the left to combine with the Mezzala and the forward, leaving the touchline to the wing-back."
+      "why": "Comes inside from the left to combine with the Mezzala and the forward, leaving the touchline to the wing-back.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "winger_aml_amr_attack",
-      "why": "Holds the right touchline to keep the pitch wide and takes his full-back on to cross or cut back."
+      "why": "Holds the right touchline to keep the pitch wide and takes his full-back on to cross or cut back.",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -115,7 +127,8 @@
       "roles": [
         "f9_support"
       ],
-      "why": "Drops off the centre-backs to receive and lay the ball off, so the inside forward and Mezzala can run into the space he leaves. False Nine is the alternate for a forward who drops deeper still and creates."
+      "why": "Drops off the centre-backs to receive and lay the ball off, so the inside forward and Mezzala can run into the space he leaves. False Nine is the alternate for a forward who drops deeper still and creates.",
+      "instructions": []
     }
   ],
   "system": {
@@ -140,17 +153,17 @@
   "whenNotToUse": "When the centre-backs or keeper are uncomfortable on the ball, against a strong press, or with a forward line that only runs in behind; the plan then produces sterile possession and turnovers near your own goal.",
   "whenLeading": "Keep the ball rather than dropping off: possession is the defence, and the counter-press keeps it. Stay Balanced; if anything, slow the tempo further. Do not bring on a direct forward to see the game out; it gives the ball back.",
   "instructionRationale": {
-    "Counter-Press": "Wins the ball back immediately, so possession is rarely given up for long.",
-    "Hold Shape": "Keeps possession after a regain and lets the team reset into its shape instead of forcing a quick attack.",
-    "Standard Line of Engagement": "Keeps the defensive approach unchanged; possession and the counter-press do the controlling.",
-    "Standard Defensive Line": "Keeps the recovery distance moderate behind a side that commits its full-backs.",
-    "Shorter Passing": "Keeps the ball with short, low-risk passes between the back three, the midfield and the dropping forward.",
-    "Lower Tempo": "Gives the team time to move the opponent's block until a gap appears, rather than forcing the ball forward.",
-    "Play Out Of Defence": "Builds from the back three instead of clearing; the Half-Back and the ball-playing defender are there for it.",
-    "Fairly Wide": "Keeps the right winger and the left wing-back on the touchlines, so the opponent's block has to stretch.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Hold Shape": "Retain the available passing structure after a regain rather than forcing an immediate counter.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Lower Tempo": "Allow the passing structure to form during settled possession; a selected Counter instruction still applies immediately after regains.",
+    "Play Out Of Defence": "Use short first-line outlets and midfield connections to start attacks; this asks for secure decisions under pressure.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
     "Low Crosses": "Cut-backs and near-post balls when the movement gets someone to the byline.",
     "Never Time Wasting": "Possession, not stoppages, is how this tactic sees a game out.",
-    "Slow Pace Down": "Lets the team take its build-up positions before the keeper restarts play.",
+    "Slow Pace Down": "Allow the defensive and passing structure to recover before the goalkeeper restarts play.",
     "Distribute To Centre Backs": "Starts every move with the back three, the base the tactic is built on.",
     "Take Short Kicks": "Keeps goal kicks in the team's possession."
   },
@@ -421,5 +434,9 @@
     "possession",
     "control",
     "technical"
+  ],
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

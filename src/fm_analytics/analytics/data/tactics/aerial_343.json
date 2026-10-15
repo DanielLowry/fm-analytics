@@ -4,18 +4,15 @@
   "formation": "3-4-3",
   "mentality": "Positive",
   "instructions": [
-    "Fairly Wide",
-    "More Direct Passing",
-    "Hit Early Crosses",
-    "Higher Tempo",
-    "Regroup"
+    "Hit Early Crosses"
   ],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes long to the target men after winning the ball."
+      "why": "Distributes long to the target men after winning the ball.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -24,7 +21,8 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Wide centre-back who defends the channel behind the wing-back. Cover is the alternate."
+      "why": "Wide centre-back who defends the channel behind the wing-back. Cover is the alternate.",
+      "instructions": []
     },
     {
       "key": "DCC",
@@ -33,7 +31,8 @@
       "why": "Ball-playing defender in the centre starts moves with a pass out of defence. Central Defender (Defend) is the alternative: with more direct passing, the long ball does not need a specialist passer.",
       "roles": [
         "cd_defend"
-      ]
+      ],
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -42,49 +41,57 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Wide centre-back on the right. Cover is the alternate, but only one Cover can be used."
+      "why": "Wide centre-back on the right. Cover is the alternate, but only one Cover can be used.",
+      "instructions": []
     },
     {
       "key": "WBL",
       "position": "WBL",
       "role": "wb_wbl_wbr_attack",
-      "why": "Attacking wing-back gives the width and delivers the cross."
+      "why": "Attacking wing-back gives the width and delivers the cross.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "cm_defend",
-      "why": "Defensive central midfielder protects the back three."
+      "why": "Defensive central midfielder protects the back three.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "cm_support",
-      "why": "Supporting central midfielder links the defence with the forwards."
+      "why": "Supporting central midfielder links the defence with the forwards.",
+      "instructions": []
     },
     {
       "key": "WBR",
       "position": "WBR",
       "role": "wb_wbl_wbr_attack",
-      "why": "Attacking wing-back on the right, doing the same job as on the left."
+      "why": "Attacking wing-back on the right, doing the same job as on the left.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "wtm_attack",
-      "why": "Wide target man (Attack) runs to the far post to attack the cross."
+      "why": "Wide target man (Attack) runs to the far post to attack the cross.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "wtm_attack",
-      "why": "Wide target man (Attack) on the right, attacking the far post."
+      "why": "Wide target man (Attack) on the right, attacking the far post.",
+      "instructions": []
     },
     {
       "key": "ST",
       "position": "ST",
       "role": "tm_support",
-      "why": "Target man (Support) attacks the near post and wins the flick-ons."
+      "why": "Target man (Support) attacks the near post and wins the flick-ons.",
+      "instructions": []
     }
   ],
   "system": {
@@ -106,11 +113,18 @@
   "whenToUse": "When you have two wing-backs who cross well and three tall forwards, especially against a back four that struggles with aerial balls.",
   "whenNotToUse": "Against quick counter-attackers who target the space behind the wing-backs; and when you need to keep the ball, since the two midfielders will be outnumbered.",
   "instructionRationale": {
-    "Fairly Wide": "The wing-backs and wide target men stretch the opponent, so the crosses come from wide.",
-    "More Direct Passing": "Gets the ball forward to the target men quickly, skipping the two-man midfield.",
-    "Hit Early Crosses": "The crosses are delivered before the defence can set.",
-    "Higher Tempo": "Moves the ball forward quickly.",
-    "Regroup": "Drops back into shape after losing the ball, which matters with two wing-backs pushed high."
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "More Direct Passing": "Reach the physical or running outlets early and compete for the following ball.",
+    "Hit Early Crosses": "Deliver before the defensive line resets, using the target or forward runners already attacking the box.",
+    "Higher Tempo": "Move the ball before the opponent resets, using the receivers and runners supplied by the roles.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Floated Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -132,5 +146,50 @@
     "crossing",
     "343",
     "aerial"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "More Direct Passing",
+      "tempo": "Higher Tempo",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Floated",
+      "selected": [
+        "Hit Early Crosses"
+      ]
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "pressingIntensity": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players.",
+    "No forced Counter after a regain: the receiving and linking roles choose when to release the runners, rather than requiring every regain to become a break."
   ]
 }

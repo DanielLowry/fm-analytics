@@ -191,8 +191,9 @@ Ashby central, Okosieme marking tall, Bradley-Green and Lynch marking, Collier
 and Holden providing spare cover, Jefford in the wall, Sharpe on the edge,
 and Neufville/Sankoh forward. Deep kicks retain that structure with Jefford
 as an additional marker and no wall. Small-chance kicks choose a three-player
-wall, Okosieme marking tall, Bradley-Green marking, Sharpe/Holden covering,
-Lynch on the edge and Neufville/Sankoh forward. De Bie keeps goal throughout.
+wall (Ashby, Lynch and Jefford), Okosieme marking tall, Bradley-Green marking,
+Collier/Holden covering, Sharpe on the edge and Neufville/Sankoh forward.
+De Bie keeps goal throughout.
 These are model results for review; the remaining general-cover jobs and
 the choice of only one fixed zone remain football trade-offs.
 

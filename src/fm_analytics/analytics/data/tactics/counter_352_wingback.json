@@ -2,20 +2,15 @@
   "key": "counter_352_wingback",
   "name": "Counter 3-5-2 Wing-Back",
   "formation": "3-5-2",
-  "mentality": "Counter",
-  "instructions": [
-    "Fairly Wide",
-    "Lower Tempo",
-    "Counter",
-    "Drop Deeper Line of Engagement",
-    "Drop Off More Defensive Line"
-  ],
+  "mentality": "Cautious",
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes quickly to start counters."
+      "why": "Distributes quickly to start counters.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -24,13 +19,15 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Wide centre-back who defends the channel. Cover is the alternate."
+      "why": "Wide centre-back who defends the channel. Cover is the alternate.",
+      "instructions": []
     },
     {
       "key": "DCC",
       "position": "DC",
       "role": "bpd_defend",
-      "why": "Ball-playing defender starts counters with a forward pass."
+      "why": "Ball-playing defender starts counters with a forward pass.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -39,37 +36,43 @@
       "roles": [
         "cd_defend"
       ],
-      "why": "Cover centre-back sweeps up behind his partner and the wing-back's space; Defend is the alternate, but only one Cover can be used."
+      "why": "Cover centre-back sweeps up behind his partner and the wing-back's space; Defend is the alternate, but only one Cover can be used.",
+      "instructions": []
     },
     {
       "key": "WBL",
       "position": "WBL",
       "role": "wb_wbl_wbr_support",
-      "why": "Support wing-back is the safer side and stays back more."
+      "why": "Support wing-back is the safer side and stays back more.",
+      "instructions": []
     },
     {
       "key": "WBR",
       "position": "WBR",
       "role": "wb_wbl_wbr_attack",
-      "why": "Attacking wing-back is the main wide outlet on the counter."
+      "why": "Attacking wing-back is the main wide outlet on the counter.",
+      "instructions": []
     },
     {
       "key": "DM",
       "position": "DM",
       "role": "dm_support",
-      "why": "Supporting holding midfielder screens the back three and passes to the runners."
+      "why": "Supporting holding midfielder screens the back three and passes to the runners.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Box-to-box midfielder supports the counter with runs from deep."
+      "why": "Box-to-box midfielder supports the counter with runs from deep.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "mez_attack",
-      "why": "Mezzala breaks forward into the half-space to join the forwards."
+      "why": "Mezzala breaks forward into the half-space to join the forwards.",
+      "instructions": []
     },
     {
       "key": "STL",
@@ -78,7 +81,8 @@
       "roles": [
         "dlf_support"
       ],
-      "why": "Complete Forward or Deep-lying Forward holds up the ball while the others run."
+      "why": "Complete Forward or Deep-lying Forward holds up the ball while the others run.",
+      "instructions": []
     },
     {
       "key": "STR",
@@ -87,7 +91,8 @@
       "roles": [
         "af_attack"
       ],
-      "why": "Poacher (or Advanced Forward) finishes the counter and runs in behind."
+      "why": "Poacher (or Advanced Forward) finishes the counter and runs in behind.",
+      "instructions": []
     }
   ],
   "system": {
@@ -109,11 +114,15 @@
   "whenToUse": "Against stronger opponents who will dominate the ball, or when you have good wing-backs and forwards but a weaker midfield.",
   "whenNotToUse": "When you need to dominate the ball, or when your wing-backs are not fit enough to cover the whole flank.",
   "instructionRationale": {
-    "Fairly Wide": "The wing-backs provide the width this shape depends on.",
-    "Lower Tempo": "Builds calmly when the team has the ball, and saves energy for the counters.",
-    "Counter": "Attacks immediately on winning the ball, with the wing-backs and forwards as outlets.",
-    "Drop Deeper Line of Engagement": "Leaves the opponent with the ball in their own half and defends the space nearer the box.",
-    "Drop Off More Defensive Line": "Keeps the defence deep, which suits the back three and leaves space in front of them."
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
+    "Lower Tempo": "Allow the passing structure to form during settled possession; a selected Counter instruction still applies immediately after regains.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Drop Off More Defensive Line": "Provide more space in front of the defenders and less behind them, accepting reduced territory.",
+    "Lower Line of Engagement": "Let the opposition advance before engaging, keeping space for the forward outlets after a regain.",
+    "Distribute Quickly": "Release the forward outlets before the opponent recovers.",
+    "Distribute To Flanks": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Long Kicks": "Use the selected forward or wide outlets without demanding short build-up under pressure."
   },
   "attributeEmphasis": [
     {
@@ -135,5 +144,47 @@
     "counter",
     "352",
     "back-three"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Wide",
+      "passingDirectness": "Standard",
+      "tempo": "Lower Tempo",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Mixed",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [
+      "Distribute Quickly"
+    ],
+    "distributionTargets": [
+      "Distribute To Flanks"
+    ],
+    "distributionTypes": [
+      "Take Long Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Lower",
+    "defensiveLine": "Lower",
+    "pressingIntensity": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

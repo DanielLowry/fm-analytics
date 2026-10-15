@@ -38,20 +38,24 @@
     "defensiveWidth": "Standard",
     "useTighterMarking": "Neutral",
     "pressingIntensity": "Standard",
-    "preventShortGKDistribution": false
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
   },
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Rolls the ball to the Regista to start possession; the build-up does not ask him to be a passer."
+      "why": "Rolls the ball to the Regista to start possession; the build-up does not ask him to be a passer.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Supports the left winger and offers a safe pass back to recycle possession, while staying close enough to defend."
+      "why": "Supports the left winger and offers a safe pass back to recycle possession, while staying close enough to defend.",
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -60,7 +64,8 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Defends simply and gives the ball to the Regista or Anchor. Cover is the alternate, but only one centre-back may use it."
+      "why": "Defends simply and gives the ball to the Regista or Anchor. Cover is the alternate, but only one centre-back may use it.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -69,43 +74,50 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Defends simply and gives the ball to the Regista or Anchor. Cover is the alternate, but only one centre-back may use it."
+      "why": "Defends simply and gives the ball to the Regista or Anchor. Cover is the alternate, but only one centre-back may use it.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Supports the right winger and offers a safe pass back to recycle possession, while staying close enough to defend."
+      "why": "Supports the right winger and offers a safe pass back to recycle possession, while staying close enough to defend.",
+      "instructions": []
     },
     {
       "key": "DMCL",
       "position": "DM",
       "role": "anchor_defend",
-      "why": "Never leaves the space in front of the centre-backs, so the Regista beside him can roam and the team is never caught by a counter through the middle."
+      "why": "Never leaves the space in front of the centre-backs, so the Regista beside him can roam and the team is never caught by a counter through the middle.",
+      "instructions": []
     },
     {
       "key": "DMCR",
       "position": "DM",
       "role": "regista_support",
-      "why": "The hub: free to roam from the base to find the ball, dictate the tempo and switch play to a winger, or thread it to the attacking midfielder."
+      "why": "The hub: free to roam from the base to find the ball, dictate the tempo and switch play to a winger, or thread it to the attacking midfielder.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "winger_aml_amr_attack",
-      "why": "Holds the left touchline and goes to the byline when the Regista switches play to him."
+      "why": "Holds the left touchline and goes to the byline when the Regista switches play to him.",
+      "instructions": []
     },
     {
       "key": "AMC",
       "position": "AMC",
       "role": "am_attack",
-      "why": "Takes the ball between the lines from the Regista and arrives late in the box, the second goal threat beside the striker."
+      "why": "Takes the ball between the lines from the Regista and arrives late in the box, the second goal threat beside the striker.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "winger_aml_amr_attack",
-      "why": "Holds the right touchline and goes to the byline when the Regista switches play to him."
+      "why": "Holds the right touchline and goes to the byline when the Regista switches play to him.",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -115,7 +127,8 @@
         "af_attack",
         "p_attack"
       ],
-      "why": "Leads the counter-press and attacks the near post. Advanced Forward and Poacher are the alternates for a striker who runs or finishes but presses less; the tactic then falls short of its pressing."
+      "why": "Leads the counter-press and attacks the near post. Advanced Forward and Poacher are the alternates for a striker who runs or finishes but presses less; the tactic then falls short of its pressing.",
+      "instructions": []
     }
   ],
   "system": {
@@ -141,12 +154,12 @@
   "whenNotToUse": "Without a genuine passer for the Regista role, since every move goes through him; against a side that man-marks or presses the holding line; or when the wingers cannot beat a full-back.",
   "whenLeading": "Keep the ball through the Regista and let the Anchor hold; possession is the safest way to see a game out. If the Regista is being targeted, switch the goal kicks to the centre-backs rather than taking him off, and keep the wingers on Attack so the opponent cannot push up.",
   "instructionRationale": {
-    "Counter-Press": "Wins the ball back where the attack broke down, led by the pressing forward and the attacking midfielder.",
-    "Hold Shape": "Keeps the ball after a regain and lets the Regista set the tempo again.",
-    "Standard Line of Engagement": "Keeps the defensive approach unchanged; possession does the controlling.",
-    "Standard Defensive Line": "Keeps the space behind the back four moderate with only one holder fixed in front of it.",
-    "Shorter Passing": "Keeps possession through the Regista with short, low-risk passes.",
-    "Fairly Wide": "Keeps both wingers on the touchlines for the Regista's switches.",
+    "Counter-Press": "Challenge immediately after losing possession, with the roles around the ball supporting the first pressure.",
+    "Hold Shape": "Retain the available passing structure after a regain rather than forcing an immediate counter.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Fairly Wide": "Give the wide outlets space to receive and stretch the opponent without isolating every central passer.",
     "Low Crosses": "From the byline to the striker and the arriving attacking midfielder.",
     "Never Time Wasting": "Possession, not stoppages, is how this tactic sees a game out.",
     "Distribute To Playmaker": "Starts every move with the Regista, the player the tactic is built around.",
@@ -363,5 +376,9 @@
     "possession",
     "control",
     "playmaker"
+  ],
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

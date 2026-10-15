@@ -68,6 +68,12 @@ class FreeKickAvailabilityTests(unittest.TestCase):
         for template in choices:
             self.assertGreaterEqual(template.box_defenders, 6)
 
+    def test_small_chance_wall_and_edge_keep_their_reviewed_group_influence(self):
+        for template in SET_PIECE_WEIGHTS.defensive_templates["direct_small_chance"]:
+            roles = defensive_roles("direct_small_chance", template)
+            self.assertAlmostEqual(sum(r.importance for r in roles if r.instruction == "Wall"), 5.6)
+            self.assertAlmostEqual(sum(r.importance for r in roles if r.instruction == "Edge of area"), 1.0)
+
     def test_a_template_cannot_be_used_for_a_different_variant(self):
         wide = SET_PIECE_WEIGHTS.defensive_templates["indirect_wide"][0]
         with self.assertRaisesRegex(ValueError, "different free-kick variant"):

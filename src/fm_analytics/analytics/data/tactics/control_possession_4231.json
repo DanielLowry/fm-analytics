@@ -3,33 +3,28 @@
   "name": "Control Possession 4-2-3-1",
   "formation": "4-2-3-1 DM AM Wide",
   "mentality": "Positive",
-  "instructions": [
-    "Shorter Passing",
-    "Lower Tempo",
-    "Play Out Of Defence",
-    "Work Ball Into Box",
-    "Hold Shape",
-    "Standard Line of Engagement",
-    "Higher Defensive Line"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "sk_defend",
-      "why": "Sweeper keeper is the extra outfield player in build-up and covers the space behind the higher line."
+      "why": "Sweeper keeper is the extra outfield player in build-up and covers the space behind the higher line.",
+      "instructions": []
     },
     {
       "key": "DL",
       "position": "DL",
       "role": "fb_support",
-      "why": "Support full-back offers a passing option wide and provides width without leaving the team open."
+      "why": "Support full-back offers a passing option wide and provides width without leaving the team open.",
+      "instructions": []
     },
     {
       "key": "DCL",
       "position": "DC",
       "role": "bpd_defend",
-      "why": "Ball-playing defender starts moves with progressive passes through the opposition's press."
+      "why": "Ball-playing defender starts moves with progressive passes through the opposition's press.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -38,43 +33,50 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender who defends while his partner plays. Cover is the alternate."
+      "why": "Central defender who defends while his partner plays. Cover is the alternate.",
+      "instructions": []
     },
     {
       "key": "DR",
       "position": "DR",
       "role": "fb_support",
-      "why": "Support full-back on the right, doing the same job as on the left."
+      "why": "Support full-back on the right, doing the same job as on the left.",
+      "instructions": []
     },
     {
       "key": "DMCL",
       "position": "DM",
       "role": "dm_defend",
-      "why": "Holding midfielder protects the back line and gives the playmaker beside him the freedom to pass."
+      "why": "Holding midfielder protects the back line and gives the playmaker beside him the freedom to pass.",
+      "instructions": []
     },
     {
       "key": "DMCR",
       "position": "DM",
       "role": "dlp_dm_support",
-      "why": "Deep-lying playmaker is the team's main passer and sets the tempo from deep."
+      "why": "Deep-lying playmaker is the team's main passer and sets the tempo from deep.",
+      "instructions": []
     },
     {
       "key": "AML",
       "position": "AML",
       "role": "if_attack",
-      "why": "Inside forward comes inside onto his stronger foot, so the wide areas are left to the full-back and the other winger."
+      "why": "Inside forward comes inside onto his stronger foot, so the wide areas are left to the full-back and the other winger.",
+      "instructions": []
     },
     {
       "key": "AMC",
       "position": "AMC",
       "role": "ap_amc_attack",
-      "why": "Advanced playmaker is the creative centre of the team and finds passes between the lines."
+      "why": "Advanced playmaker is the creative centre of the team and finds passes between the lines.",
+      "instructions": []
     },
     {
       "key": "AMR",
       "position": "AMR",
       "role": "winger_aml_amr_support",
-      "why": "Winger (Support) stays wide and gives the team a wide outlet and something to stretch the opponent."
+      "why": "Winger (Support) stays wide and gives the team a wide outlet and something to stretch the opponent.",
+      "instructions": []
     },
     {
       "key": "ST",
@@ -83,7 +85,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Lone striker: Advanced Forward runs in behind, Poacher stays in the box."
+      "why": "Lone striker: Advanced Forward runs in behind, Poacher stays in the box.",
+      "instructions": []
     }
   ],
   "system": {
@@ -106,13 +109,17 @@
   "whenToUse": "When your squad is technically better than the opponent's and you expect them to sit deep, or when you want to protect a lead by keeping the ball.",
   "whenNotToUse": "Against a well-organised high press if your defenders and pivot are not calm on the ball, and when you need goals quickly: lower tempo makes it slow to change the game.",
   "instructionRationale": {
-    "Shorter Passing": "Keeps possession in short passes rather than risking it with long balls.",
-    "Lower Tempo": "Slows the game down so the team can control it and rest with the ball.",
-    "Play Out Of Defence": "The sweeper keeper and ball-playing defender make building from the back safe.",
-    "Work Ball Into Box": "Patient movement of the ball until a clear chance opens up.",
-    "Hold Shape": "Keeps positions rather than pushing players forward, so the team stays balanced while it keeps the ball.",
-    "Standard Line of Engagement": "A balanced press: does not chase the ball wildly and lose the shape.",
-    "Higher Defensive Line": "Keeps the team compact around the ball and squeezes the space for the opponent."
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Lower Tempo": "Allow the passing structure to form during settled possession; a selected Counter instruction still applies immediately after regains.",
+    "Play Out Of Defence": "Use short first-line outlets and midfield connections to start attacks; this asks for secure decisions under pressure.",
+    "Work Ball Into Box": "Look for an opening around the penalty area rather than encouraging speculative shots.",
+    "Hold Shape": "Retain the available passing structure after a regain rather than forcing an immediate counter.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Higher Defensive Line": "Move the back line up to reduce the space behind the midfield and support territorial pressure.",
+    "Distribute To Centre Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Low Crosses": "A starting delivery choice for the receiving roles, to review against the actual forwards.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Take Short Kicks": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
   },
   "attributeEmphasis": [
     {
@@ -134,5 +141,48 @@
     "possession",
     "4231",
     "technical"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Standard",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Lower Tempo",
+      "selected": [
+        "Play Out Of Defence",
+        "Work Ball Into Box"
+      ]
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Low",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [],
+    "whenPossessionWon": [
+      "Hold Shape"
+    ],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Centre Backs"
+    ],
+    "distributionTypes": [
+      "Take Short Kicks"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Higher",
+    "pressingIntensity": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }

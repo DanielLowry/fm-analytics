@@ -135,7 +135,7 @@
       },
       "wall": {
         "profile": "wall",
-        "importance": 1.4
+        "importance": 5.6
       },
       "mark": {
         "profile": "man_marking",

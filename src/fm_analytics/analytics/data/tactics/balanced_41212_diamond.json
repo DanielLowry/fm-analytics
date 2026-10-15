@@ -3,20 +3,14 @@
   "name": "Balanced 4-1-2-1-2 Diamond",
   "formation": "4-1-2-1-2 DM Narrow",
   "mentality": "Balanced",
-  "instructions": [
-    "Fairly Narrow",
-    "Shorter Passing",
-    "Counter",
-    "Regroup",
-    "Standard Line of Engagement",
-    "Standard Defensive Line"
-  ],
+  "instructions": [],
   "slots": [
     {
       "key": "GK",
       "position": "GK",
       "role": "gk_defend",
-      "why": "Distributes to a compact team; the short passing game does not need a sweeper."
+      "why": "Distributes to a compact team; the short passing game does not need a sweeper.",
+      "instructions": []
     },
     {
       "key": "DL",
@@ -25,7 +19,8 @@
       "why": "Primary source of width on this side. Wing-Back (Support) is preferred because the diamond has no winger; Full-Back (Support) is the more conservative alternate.",
       "roles": [
         "fb_support"
-      ]
+      ],
+      "instructions": []
     },
     {
       "key": "DCL",
@@ -35,7 +30,8 @@
         "cd_cover",
         "bpd_defend"
       ],
-      "why": "Central defender in a narrow, compact block. Cover is the alternate, as is a Ball-Playing Defender (Defend), who passes into the narrow midfield himself when shorter passing brings the ball back to the pair."
+      "why": "Central defender in a narrow, compact block. Cover is the alternate, as is a Ball-Playing Defender (Defend), who passes into the narrow midfield himself when shorter passing brings the ball back to the pair.",
+      "instructions": []
     },
     {
       "key": "DCR",
@@ -44,7 +40,8 @@
       "roles": [
         "cd_cover"
       ],
-      "why": "Central defender on the right of the pair. Cover is the alternate, but at most one of the two can be Cover."
+      "why": "Central defender on the right of the pair. Cover is the alternate, but at most one of the two can be Cover.",
+      "instructions": []
     },
     {
       "key": "DR",
@@ -53,31 +50,36 @@
       "why": "Primary source of width on this side. Wing-Back (Support) is preferred because the diamond has no winger; Full-Back (Support) is the more conservative alternate.",
       "roles": [
         "fb_support"
-      ]
+      ],
+      "instructions": []
     },
     {
       "key": "DM",
       "position": "DM",
       "role": "dm_defend",
-      "why": "Holding midfielder is the base of the diamond and shields the centre-backs."
+      "why": "Holding midfielder is the base of the diamond and shields the centre-backs.",
+      "instructions": []
     },
     {
       "key": "MCL",
       "position": "MC",
       "role": "b2b_support",
-      "why": "Provides the main midfield running from the side of the diamond, shuttling between phases and joining attacks while the DM and DLP provide structure."
+      "why": "Provides the main midfield running from the side of the diamond, shuttling between phases and joining attacks while the DM and DLP provide structure.",
+      "instructions": []
     },
     {
       "key": "MCR",
       "position": "MC",
       "role": "dlp_mc_support",
-      "why": "Deep-lying playmaker receives from the defensive unit and controls progression through the compact midfield."
+      "why": "Deep-lying playmaker receives from the defensive unit and controls progression through the compact midfield.",
+      "instructions": []
     },
     {
       "key": "AMC",
       "position": "AMC",
       "role": "am_support",
-      "why": "Operates between the lines as the advanced central creator, combining with both strikers and the midfield behind him."
+      "why": "Operates between the lines as the advanced central creator, combining with both strikers and the midfield behind him.",
+      "instructions": []
     },
     {
       "key": "STL",
@@ -86,7 +88,8 @@
       "roles": [
         "cf_support"
       ],
-      "why": "Deep-lying forward (or Complete Forward) links the attacking midfielder to the other striker."
+      "why": "Deep-lying forward (or Complete Forward) links the attacking midfielder to the other striker.",
+      "instructions": []
     },
     {
       "key": "STR",
@@ -95,7 +98,8 @@
       "roles": [
         "p_attack"
       ],
-      "why": "Second striker runs in behind, using the space the other forward creates. Poacher is the alternate."
+      "why": "Second striker runs in behind, using the space the other forward creates. Poacher is the alternate.",
+      "instructions": []
     }
   ],
   "system": {
@@ -119,12 +123,15 @@
   "whenToUse": "When your strongest players are central, you can field two complementary strikers, and your wide defenders are capable of supplying the width the shape otherwise lacks.",
   "whenNotToUse": "When the opposition can isolate your wide defenders repeatedly, when your wide defenders cannot cover the flank athletically, or when your central players are not secure enough to combine in congested areas.",
   "instructionRationale": {
-    "Fairly Narrow": "Fits the diamond, where the four central players work in tight combinations.",
-    "Shorter Passing": "Short triangles in the middle are the diamond's strength.",
-    "Counter": "The diamond can win the ball in the centre and break quickly through the two strikers.",
-    "Regroup": "Drops back into shape after losing the ball; a narrow shape has to stay compact.",
-    "Standard Line of Engagement": "A balanced press: engages when the ball enters the compact block rather than chasing wide.",
-    "Standard Defensive Line": "A balanced line keeps the team compact without exposing the centre-backs."
+    "Fairly Narrow": "Keep the central combinations close; the selected wide defenders supply the outside outlets.",
+    "Shorter Passing": "Use the short connections supplied by the selected midfield and supporting forwards.",
+    "Counter": "Use the forward runners immediately after a regain, before the opponent can recover its shape.",
+    "Regroup": "Recover the defensive shape after losing possession; this is a positioning choice, not a measured guarantee about stamina or defensive success.",
+    "Standard Line of Engagement": "Defend from a middle block; the forward roles still determine which players challenge the ball.",
+    "Standard Defensive Line": "Keep the back line at its mentality-relative default rather than explicitly pushing it up or dropping it.",
+    "Distribute To Full Backs": "The selected outlets match where this tactic starts its build-up or releases pressure.",
+    "Never Time Wasting": "The kick-off baseline; review deliberately when score and time justify a different policy.",
+    "Roll It Out": "Start possession through the chosen short outlets instead of routinely contesting a long kick."
   },
   "attributeEmphasis": [
     {
@@ -451,5 +458,47 @@
     "narrow",
     "balanced",
     "two-strikers"
+  ],
+  "inPossession": {
+    "fixed": {
+      "attackingWidth": "Fairly Narrow",
+      "passingDirectness": "Shorter Passing",
+      "tempo": "Standard",
+      "selected": []
+    },
+    "dependsOnPlayers": {
+      "crossingType": "Mixed",
+      "selected": []
+    },
+    "timeWasting": "Never"
+  },
+  "inTransition": {
+    "whenPossessionLost": [
+      "Regroup"
+    ],
+    "whenPossessionWon": [
+      "Counter"
+    ],
+    "goalkeeperPace": [],
+    "distributionTargets": [
+      "Distribute To Full Backs"
+    ],
+    "distributionTypes": [
+      "Roll It Out"
+    ]
+  },
+  "outOfPossession": {
+    "lineOfEngagement": "Standard",
+    "defensiveLine": "Standard",
+    "pressingIntensity": "Standard",
+    "defensiveWidth": "Standard",
+    "useTighterMarking": "Neutral",
+    "preventShortGKDistribution": false,
+    "useOffsideTrap": false,
+    "tackling": "Neutral"
+  },
+  "setupNotes": [
+    "All three phases have been reviewed. Standard sliders are relative to the chosen mentality; unselected toggles intentionally leave FM to choose the response.",
+    "Player instructions use the selected role and duty defaults unless additional instructions are listed. Crossing and overlap settings are starting choices to review against the selected players."
   ]
 }
