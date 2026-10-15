@@ -19,7 +19,7 @@ from fm_analytics.domain import AttributeObservation, Visibility
 
 
 CAPTURE = Path(__file__).parent / "fixtures/hungerford-vertical-442-2020-10-20.json"
-BASELINE = Path(__file__).parent / "fixtures/set-piece-v11-config-migration.json"
+BASELINE = Path(__file__).parent / "fixtures/set-piece-v13-free-kick-migration.json"
 RISKS = ("secure", "balanced", "aggressive")
 VARIANTS = ("direct_free_kick", "direct_small_chance", "indirect_wide", "indirect_deep")
 
@@ -91,16 +91,16 @@ def definitions(module):
 
 
 def unaffected_fingerprint(value):
-    """Keep v11 migration evidence for every responsibility outside this change."""
+    """Keep independently frozen evidence for every unchanged responsibility."""
     if "defending_free_kicks" in value:
         value = {**value, "defending_free_kicks": {
             key: roles for key, roles in value["defending_free_kicks"].items()
-            if key not in {"indirect_wide", "indirect_deep"}
+            if key not in {"direct_small_chance", "indirect_wide", "indirect_deep"}
         }}
     if "routines" in value:
         value = {**value, "routines": [
             routine for routine in value["routines"]
-            if routine["key"] not in {"defending_indirect_wide", "defending_indirect_deep"}
+            if routine["key"] not in {"defending_direct_small_chance", "defending_indirect_wide", "defending_indirect_deep"}
         ]}
 
     def compatibility(item):
@@ -117,12 +117,12 @@ def unaffected_fingerprint(value):
 
 class ConfigMigrationParityTests(unittest.TestCase):
     def test_unreviewed_roles_and_taker_rules_retain_the_original_definitions(self):
-        baseline = json.loads(BASELINE.read_text())["unchangedAfterTemplateSelection"]
+        baseline = json.loads(BASELINE.read_text())
         self.assertEqual(unaffected_fingerprint(definitions(set_piece_routines)), baseline["roles"])
         self.assertEqual(fingerprint([asdict(task) for task in SET_PIECE_TASKS]), baseline["tasks"])
 
     def test_unreviewed_routines_and_taker_scores_retain_the_pre_extraction_outputs(self):
-        baseline = json.loads(BASELINE.read_text())["unchangedAfterTemplateSelection"]["reports"]
+        baseline = json.loads(BASELINE.read_text())["reports"]
         _, squad = load_fixture(CAPTURE)
         positions = json.loads(CAPTURE.read_text())["lineupPositions"]
         for scenario, players in scenarios(squad):
@@ -152,7 +152,7 @@ class SetPieceConfigTests(unittest.TestCase):
 
     def test_shipped_config_exposes_all_families_and_variants(self):
         config = load_set_piece_weights(self.directory)
-        self.assertEqual(config.version, "set-piece-v13")
+        self.assertEqual(config.version, "set-piece-v14")
         self.assertEqual(len(config.roles), 2)
         for family in ("attacking_free_kicks", "defending_free_kicks"):
             self.assertEqual(set(config.variants[family]), set(VARIANTS))

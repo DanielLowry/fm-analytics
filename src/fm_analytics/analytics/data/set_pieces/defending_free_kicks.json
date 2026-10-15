@@ -81,13 +81,31 @@
       "decisions": 14,
       "firstTouch": 12,
       "passing": 10
+    },
+    "box_cover": {
+      "anticipation": 25,
+      "positioning": 20,
+      "concentration": 15,
+      "decisions": 15,
+      "tackling": 10,
+      "heading": 10,
+      "jumpingReach": 5
+    },
+    "aerial_marking": {
+      "jumpingReach": 30,
+      "heading": 20,
+      "marking": 20,
+      "strength": 10,
+      "bravery": 10,
+      "anticipation": 5,
+      "concentration": 5
     }
   },
   "variants": {
     "direct_free_kick": {
       "keeper": {
         "profile": "keeper",
-        "importance": 1.0
+        "importance": 1
       },
       "wall": {
         "profile": "wall",
@@ -99,11 +117,11 @@
       },
       "back": {
         "profile": "zonal_defence",
-        "importance": 1.0
+        "importance": 1
       },
       "edge": {
         "profile": "edge_defence",
-        "importance": 1.0
+        "importance": 1
       },
       "forward": {
         "profile": "counter_outlet",
@@ -113,7 +131,7 @@
     "direct_small_chance": {
       "keeper": {
         "profile": "keeper",
-        "importance": 1.0
+        "importance": 1
       },
       "wall": {
         "profile": "wall",
@@ -124,22 +142,26 @@
         "importance": 1.1
       },
       "back": {
-        "profile": "zonal_defence",
-        "importance": 1.0
+        "profile": "box_cover",
+        "importance": 0.9
       },
       "edge": {
         "profile": "edge_defence",
-        "importance": 1.0
+        "importance": 1
       },
       "forward": {
         "profile": "counter_outlet",
         "importance": 0.8
+      },
+      "tall": {
+        "profile": "aerial_marking",
+        "importance": 1.5
       }
     },
     "indirect_wide": {
       "keeper": {
         "profile": "keeper",
-        "importance": 1.0
+        "importance": 1
       },
       "wall": {
         "profile": "wall",
@@ -147,11 +169,11 @@
       },
       "mark": {
         "profile": "delivery_marking",
-        "importance": 2.4
+        "importance": 1.1
       },
       "back": {
-        "profile": "zonal_defence",
-        "importance": 3
+        "profile": "box_cover",
+        "importance": 0.9
       },
       "edge": {
         "profile": "wide_second_ball",
@@ -160,20 +182,36 @@
       "forward": {
         "profile": "counter_outlet",
         "importance": 1.2
+      },
+      "tall": {
+        "profile": "aerial_marking",
+        "importance": 1.5
+      },
+      "zonal_near": {
+        "profile": "zonal_defence",
+        "importance": 1.4
+      },
+      "zonal_centre": {
+        "profile": "zonal_defence",
+        "importance": 1.6
+      },
+      "zonal_far": {
+        "profile": "zonal_defence",
+        "importance": 1.4
       }
     },
     "indirect_deep": {
       "keeper": {
         "profile": "keeper",
-        "importance": 1.0
+        "importance": 1
       },
       "mark": {
         "profile": "delivery_marking",
-        "importance": 2.4
+        "importance": 1.1
       },
       "back": {
-        "profile": "zonal_defence",
-        "importance": 3
+        "profile": "box_cover",
+        "importance": 0.9
       },
       "edge": {
         "profile": "deep_second_ball",
@@ -182,79 +220,347 @@
       "forward": {
         "profile": "counter_outlet",
         "importance": 1.2
+      },
+      "tall": {
+        "profile": "aerial_marking",
+        "importance": 1.5
+      },
+      "zonal_near": {
+        "profile": "zonal_defence",
+        "importance": 1.4
+      },
+      "zonal_centre": {
+        "profile": "zonal_defence",
+        "importance": 1.6
+      },
+      "zonal_far": {
+        "profile": "zonal_defence",
+        "importance": 1.4
+      },
+      "wall": {
+        "profile": "wall",
+        "importance": 0.3
       }
     }
   },
   "templates": {
-    "indirect_wide": [
+    "direct_small_chance": [
+      {
+        "key": "four_player_wall",
+        "name": "Four-player wall",
+        "description": "Four wall players protect the shot; ordinary markers and spare cover defend a delivery.",
+        "jobs": {
+          "wall": 4,
+          "mark": 2,
+          "tall": 0,
+          "back": 2,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "four_player_wall_tall",
+        "name": "Four-player wall with aerial marking",
+        "description": "Four wall players protect the shot while a tall-player marker contests the aerial threat.",
+        "jobs": {
+          "wall": 4,
+          "mark": 1,
+          "tall": 1,
+          "back": 2,
+          "edge": 1,
+          "forward": 1
+        }
+      },
       {
         "key": "delivery_cover",
         "name": "Extra delivery cover",
-        "description": "Seven box defenders and one outlet, with a small wall and a clearance guard.",
+        "description": "A three-player wall leaves five box defenders to track runners and cover loose balls.",
         "jobs": {
-          "wall": 1,
+          "wall": 3,
           "mark": 2,
-          "back": 5,
+          "tall": 0,
+          "back": 3,
           "edge": 1,
           "forward": 1
         }
       },
       {
-        "key": "runner_cover",
-        "name": "Extra runner marking",
-        "description": "Three markers track runs while four covering defenders attack the delivery.",
+        "key": "delivery_cover_tall",
+        "name": "Extra delivery cover with aerial marking",
+        "description": "A three-player wall leaves five box defenders, including a dedicated tall-player marker.",
         "jobs": {
-          "wall": 1,
-          "mark": 3,
-          "back": 4,
-          "edge": 1,
-          "forward": 1
-        }
-      },
-      {
-        "key": "two_player_wall",
-        "name": "Two-player wall",
-        "description": "A second wall player protects the delivery angle, with six box defenders and one outlet.",
-        "jobs": {
-          "wall": 2,
+          "wall": 3,
           "mark": 2,
-          "back": 4,
+          "tall": 1,
+          "back": 2,
           "edge": 1,
           "forward": 1
         }
       },
       {
         "key": "two_outlets",
-        "name": "Two outlets with aerial cover",
-        "description": "Four covering defenders and two markers protect the box while two players offer an outlet.",
+        "name": "Two outlets with delivery cover",
+        "description": "Three wall players and four box defenders retain an edge guard and two outlets.",
+        "jobs": {
+          "wall": 3,
+          "mark": 2,
+          "tall": 0,
+          "back": 2,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "two_outlets_tall",
+        "name": "Two outlets with aerial marking",
+        "description": "Three wall players and four box defenders, including a tall-player marker, retain two outlets.",
+        "jobs": {
+          "wall": 3,
+          "mark": 1,
+          "tall": 1,
+          "back": 2,
+          "edge": 1,
+          "forward": 2
+        }
+      }
+    ],
+    "indirect_wide": [
+      {
+        "key": "three_zones",
+        "name": "Three zones with aerial marking",
+        "description": "Three six-yard zones, one tall-player marker, two ordinary markers and spare cover protect the delivery.",
         "jobs": {
           "wall": 1,
           "mark": 2,
-          "back": 4,
+          "tall": 1,
+          "back": 1,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
           "edge": 1,
-          "forward": 2
+          "forward": 1
         }
       },
       {
-        "key": "two_outlets_marking",
-        "name": "Two outlets with runner marking",
-        "description": "Three markers and three covering defenders share delivery protection, with two outlets.",
-        "jobs": {
-          "wall": 1,
-          "mark": 3,
-          "back": 3,
-          "edge": 1,
-          "forward": 2
-        }
-      },
-      {
-        "key": "two_player_wall_marking",
-        "name": "Two-player wall with runner marking",
-        "description": "Three covering defenders and three markers protect the box, with two wall players, one clearance guard and one outlet.",
+        "key": "three_zones_two_wall",
+        "name": "Three zones with a two-player wall",
+        "description": "Three six-yard zones, aerial and ordinary marking, and spare cover support a two-player wall.",
         "jobs": {
           "wall": 2,
-          "mark": 3,
+          "mark": 1,
+          "tall": 1,
+          "back": 1,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "three_zones_two_outlets",
+        "name": "Three zones with two outlets",
+        "description": "Three six-yard zones, aerial and ordinary marking, and spare cover retain two outlets.",
+        "jobs": {
+          "wall": 1,
+          "mark": 1,
+          "tall": 1,
+          "back": 1,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "zonal_cover",
+        "name": "Three zones with extra spare cover",
+        "description": "Three zonal defenders, two ordinary markers and two spare defenders retain one outlet.",
+        "jobs": {
+          "wall": 1,
+          "mark": 2,
+          "tall": 0,
+          "back": 2,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "zonal_cover_two_outlets",
+        "name": "Three zones with runner marking",
+        "description": "Three zonal defenders, two ordinary markers and spare cover retain two outlets.",
+        "jobs": {
+          "wall": 1,
+          "mark": 2,
+          "tall": 0,
+          "back": 1,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "marking_led",
+        "name": "Marking-led aerial defence",
+        "description": "Two tall-player markers and two ordinary markers work with three spare defenders and one outlet.",
+        "jobs": {
+          "wall": 1,
+          "mark": 2,
+          "tall": 2,
           "back": 3,
+          "zonal_near": 0,
+          "zonal_centre": 0,
+          "zonal_far": 0,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "marking_led_two_outlets",
+        "name": "Marking-led defence with two outlets",
+        "description": "Two tall-player markers, two ordinary markers and two spare defenders retain two outlets.",
+        "jobs": {
+          "wall": 1,
+          "mark": 2,
+          "tall": 2,
+          "back": 2,
+          "zonal_near": 0,
+          "zonal_centre": 0,
+          "zonal_far": 0,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "central_anchor",
+        "name": "Central zone with aerial marking",
+        "description": "A central zonal defender and tall-player marker work with two ordinary markers and three spare defenders.",
+        "jobs": {
+          "wall": 1,
+          "mark": 2,
+          "tall": 1,
+          "back": 3,
+          "zonal_near": 0,
+          "zonal_centre": 1,
+          "zonal_far": 0,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "central_anchor_two_outlets",
+        "name": "Central zone with two outlets",
+        "description": "Central zonal cover and a tall-player marker support two ordinary markers, two spare defenders and two outlets.",
+        "jobs": {
+          "wall": 1,
+          "mark": 2,
+          "tall": 1,
+          "back": 2,
+          "zonal_near": 0,
+          "zonal_centre": 1,
+          "zonal_far": 0,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "two_zones_near",
+        "name": "Centre and near zone with aerial marking",
+        "description": "Two fixed zones and a tall-player marker combine with runner marking and extra spare cover.",
+        "jobs": {
+          "wall": 1,
+          "mark": 2,
+          "tall": 1,
+          "back": 2,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 0,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "two_zones_near_two_outlets",
+        "name": "Centre and near zone with two outlets",
+        "description": "Two fixed zones, a tall-player marker, two ordinary markers and spare cover retain two outlets.",
+        "jobs": {
+          "wall": 1,
+          "mark": 2,
+          "tall": 1,
+          "back": 1,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 0,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "two_zones_near_two_wall",
+        "name": "Centre and near zone with a two-player wall",
+        "description": "Two fixed zones, aerial and ordinary marking, and spare cover support a two-player wall.",
+        "jobs": {
+          "wall": 2,
+          "mark": 2,
+          "tall": 1,
+          "back": 1,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 0,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "two_zones_far",
+        "name": "Centre and far zone with aerial marking",
+        "description": "Two fixed zones and a tall-player marker combine with runner marking and extra spare cover.",
+        "jobs": {
+          "wall": 1,
+          "mark": 2,
+          "tall": 1,
+          "back": 2,
+          "zonal_near": 0,
+          "zonal_centre": 1,
+          "zonal_far": 1,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "two_zones_far_two_outlets",
+        "name": "Centre and far zone with two outlets",
+        "description": "Two fixed zones, a tall-player marker, two ordinary markers and spare cover retain two outlets.",
+        "jobs": {
+          "wall": 1,
+          "mark": 2,
+          "tall": 1,
+          "back": 1,
+          "zonal_near": 0,
+          "zonal_centre": 1,
+          "zonal_far": 1,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "two_zones_far_two_wall",
+        "name": "Centre and far zone with a two-player wall",
+        "description": "Two fixed zones, aerial and ordinary marking, and spare cover support a two-player wall.",
+        "jobs": {
+          "wall": 2,
+          "mark": 2,
+          "tall": 1,
+          "back": 1,
+          "zonal_near": 0,
+          "zonal_centre": 1,
+          "zonal_far": 1,
           "edge": 1,
           "forward": 1
         }
@@ -262,73 +568,273 @@
     ],
     "indirect_deep": [
       {
-        "key": "delivery_cover",
-        "name": "Extra delivery cover",
-        "description": "Six covering defenders and two markers protect the long delivery, with one clearance guard and one outlet.",
+        "key": "three_zones",
+        "name": "Three zones with aerial marking",
+        "description": "Three six-yard zones, a tall-player marker, two ordinary markers and two spare defenders retain one outlet.",
         "jobs": {
           "wall": 0,
           "mark": 2,
-          "back": 6,
+          "tall": 1,
+          "back": 2,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
           "edge": 1,
           "forward": 1
         }
       },
       {
-        "key": "runner_cover",
-        "name": "Extra runner marking",
-        "description": "Four markers and four covering defenders protect the delivery and attacking runs.",
-        "jobs": {
-          "wall": 0,
-          "mark": 4,
-          "back": 4,
-          "edge": 1,
-          "forward": 1
-        }
-      },
-      {
-        "key": "second_balls",
-        "name": "Extra second-ball cover",
-        "description": "Seven box defenders and two clearance guards retain one outlet.",
-        "jobs": {
-          "wall": 0,
-          "mark": 3,
-          "back": 4,
-          "edge": 2,
-          "forward": 1
-        }
-      },
-      {
-        "key": "two_outlets",
-        "name": "Two outlets with aerial cover",
-        "description": "Seven box defenders protect the delivery, with one clearance guard and two outlets.",
+        "key": "three_zones_two_outlets",
+        "name": "Three zones with two outlets",
+        "description": "Three six-yard zones, aerial and ordinary marking, and spare cover retain two outlets.",
         "jobs": {
           "wall": 0,
           "mark": 2,
-          "back": 5,
+          "tall": 1,
+          "back": 1,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
           "edge": 1,
           "forward": 2
         }
       },
       {
-        "key": "two_outlets_second_balls",
-        "name": "Two outlets and second-ball cover",
-        "description": "Six box defenders attack the delivery and track runners; two clearance guards support two outlets.",
+        "key": "three_zones_second_balls",
+        "name": "Three zones with second-ball cover",
+        "description": "Three zonal defenders, aerial and ordinary marking, and two spare defenders support two edge guards.",
         "jobs": {
           "wall": 0,
-          "mark": 2,
-          "back": 4,
+          "mark": 1,
+          "tall": 1,
+          "back": 2,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
+          "edge": 2,
+          "forward": 1
+        }
+      },
+      {
+        "key": "three_zones_two_outlets_second_balls",
+        "name": "Three zones, second balls and two outlets",
+        "description": "Three zones, aerial and ordinary marking, and spare cover retain two edge guards and two outlets.",
+        "jobs": {
+          "wall": 0,
+          "mark": 1,
+          "tall": 1,
+          "back": 1,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
           "edge": 2,
           "forward": 2
         }
       },
       {
-        "key": "two_outlets_marking",
-        "name": "Two outlets with runner marking",
-        "description": "Four covering defenders and three markers protect the box, with one clearance guard and two outlets.",
+        "key": "zonal_cover",
+        "name": "Three zones with runner marking",
+        "description": "Three zonal defenders, three ordinary markers and two spare defenders retain one outlet.",
         "jobs": {
           "wall": 0,
           "mark": 3,
-          "back": 4,
+          "tall": 0,
+          "back": 2,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "zonal_cover_two_outlets",
+        "name": "Three zones with extra spare cover",
+        "description": "Three zonal defenders, two ordinary markers and two spare defenders retain two outlets.",
+        "jobs": {
+          "wall": 0,
+          "mark": 2,
+          "tall": 0,
+          "back": 2,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "marking_led",
+        "name": "Marking-led aerial defence",
+        "description": "Two tall-player markers, three ordinary markers and three spare defenders retain one outlet.",
+        "jobs": {
+          "wall": 0,
+          "mark": 3,
+          "tall": 2,
+          "back": 3,
+          "zonal_near": 0,
+          "zonal_centre": 0,
+          "zonal_far": 0,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "marking_led_two_outlets",
+        "name": "Marking-led defence with two outlets",
+        "description": "Two tall-player markers, three ordinary markers and two spare defenders retain two outlets.",
+        "jobs": {
+          "wall": 0,
+          "mark": 3,
+          "tall": 2,
+          "back": 2,
+          "zonal_near": 0,
+          "zonal_centre": 0,
+          "zonal_far": 0,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "central_anchor",
+        "name": "Central zone with aerial marking",
+        "description": "One central zone and an aerial marker combine with three ordinary markers and three spare defenders.",
+        "jobs": {
+          "wall": 0,
+          "mark": 3,
+          "tall": 1,
+          "back": 3,
+          "zonal_near": 0,
+          "zonal_centre": 1,
+          "zonal_far": 0,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "central_anchor_two_outlets",
+        "name": "Central zone with two outlets",
+        "description": "One central zone and an aerial marker combine with three ordinary markers, two spare defenders and two outlets.",
+        "jobs": {
+          "wall": 0,
+          "mark": 3,
+          "tall": 1,
+          "back": 2,
+          "zonal_near": 0,
+          "zonal_centre": 1,
+          "zonal_far": 0,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "one_player_wall",
+        "name": "Three zones with a one-player wall",
+        "description": "A wall player screens the delivery angle; three zones, aerial and ordinary marking, and spare cover defend the box.",
+        "jobs": {
+          "wall": 1,
+          "mark": 1,
+          "tall": 1,
+          "back": 2,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "one_player_wall_two_outlets",
+        "name": "One-player wall with two outlets",
+        "description": "A wall player screens the delivery angle while six box defenders retain an edge guard and two outlets.",
+        "jobs": {
+          "wall": 1,
+          "mark": 1,
+          "tall": 1,
+          "back": 1,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "two_player_wall",
+        "name": "Three zones with a two-player wall",
+        "description": "Two wall players screen the delivery angle while six box defenders retain an edge guard and one outlet.",
+        "jobs": {
+          "wall": 2,
+          "mark": 1,
+          "tall": 1,
+          "back": 1,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 1,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "two_zones_near",
+        "name": "Centre and near zone with aerial marking",
+        "description": "Two fixed zones and two tall-player markers support two ordinary markers and two spare defenders.",
+        "jobs": {
+          "wall": 0,
+          "mark": 2,
+          "tall": 2,
+          "back": 2,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 0,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "two_zones_near_two_outlets",
+        "name": "Centre and near zone with two outlets",
+        "description": "Two fixed zones and two tall-player markers support two ordinary markers, spare cover and two outlets.",
+        "jobs": {
+          "wall": 0,
+          "mark": 2,
+          "tall": 2,
+          "back": 1,
+          "zonal_near": 1,
+          "zonal_centre": 1,
+          "zonal_far": 0,
+          "edge": 1,
+          "forward": 2
+        }
+      },
+      {
+        "key": "two_zones_far",
+        "name": "Centre and far zone with aerial marking",
+        "description": "Two fixed zones and two tall-player markers support two ordinary markers and two spare defenders.",
+        "jobs": {
+          "wall": 0,
+          "mark": 2,
+          "tall": 2,
+          "back": 2,
+          "zonal_near": 0,
+          "zonal_centre": 1,
+          "zonal_far": 1,
+          "edge": 1,
+          "forward": 1
+        }
+      },
+      {
+        "key": "two_zones_far_two_outlets",
+        "name": "Centre and far zone with two outlets",
+        "description": "Two fixed zones and two tall-player markers support two ordinary markers, spare cover and two outlets.",
+        "jobs": {
+          "wall": 0,
+          "mark": 2,
+          "tall": 2,
+          "back": 1,
+          "zonal_near": 0,
+          "zonal_centre": 1,
+          "zonal_far": 1,
           "edge": 1,
           "forward": 2
         }
@@ -339,17 +845,43 @@
     "secure": {
       "minimumBoxDefenders": 7,
       "minimumOutlets": 1,
-      "maximumOutlets": 1
+      "maximumOutlets": 1,
+      "minimumSmallChanceBoxDefenders": 5
     },
     "balanced": {
       "minimumBoxDefenders": 6,
       "minimumOutlets": 1,
-      "maximumOutlets": 2
+      "maximumOutlets": 2,
+      "minimumSmallChanceBoxDefenders": 4
     },
     "aggressive": {
       "minimumBoxDefenders": 6,
       "minimumOutlets": 2,
-      "maximumOutlets": 2
+      "maximumOutlets": 2,
+      "minimumSmallChanceBoxDefenders": 4
+    }
+  },
+  "budgets": {
+    "direct_small_chance": {
+      "keeper": 1,
+      "delivery": 3,
+      "marking": 2.2,
+      "perimeter": 6.6,
+      "outlet": 0.8
+    },
+    "indirect_wide": {
+      "keeper": 1,
+      "delivery": 4.5,
+      "marking": 1.8,
+      "perimeter": 1.5,
+      "outlet": 1.2
+    },
+    "indirect_deep": {
+      "keeper": 1,
+      "delivery": 4.5,
+      "marking": 1.8,
+      "perimeter": 1.8,
+      "outlet": 1.2
     }
   }
 }

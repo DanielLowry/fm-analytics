@@ -418,7 +418,7 @@ def _build_routines(
                     notes=(
                         wall_note,
                         "The selected XI and set-piece approach determine the template and all player assignments.",
-                        "Each responsibility keeps the same importance across templates; extra players share its budget.",
+                        "Fixed responsibility budgets compare delivery defence, runner marking, perimeter protection and outlets; repeated jobs share their allocation.",
                         "Bring an outlet back if the opponent overloads the delivery area.",
                     ),
                 )

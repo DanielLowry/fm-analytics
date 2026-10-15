@@ -87,83 +87,118 @@ Wide/deep defensive free-kick job counts and approach coverage requirements
 also live in `defending_free_kicks.json`, under `templates` and `approaches`.
 The extraction initially retained `set-piece-v11`; template selection and
 the revised wide/deep profiles shipped as `set-piece-v12`. The two additional
-wide/deep structures use `set-piece-v13`, with the same weights and solver.
+wide/deep structures used `set-piece-v13`. The instruction-availability and
+role-profile correction below uses `set-piece-v14`; the assignment solver is unchanged.
 
 ## Choosing a defensive free-kick structure
 
-Wide and deep free kicks each have six authored candidate templates. Every
-candidate assigns all ten outfield players, plus the goalkeeper. The loader
-requires at least six box defenders, two man markers, a clearance guard and
-one outlet. Wide candidates use one or two wall players and at least three
-covering defenders; deep candidates have no wall and at least four covering
-defenders. No template can omit second-ball protection, add a third outlet,
-or leave a player unassigned. Duplicate identities and duplicate job-count
-structures are rejected.
+The manager supplied the actual FM20 instruction menus on 14 October 2026.
+They are represented per variant in `set_piece_defence.py`, independently
+checked against literal expectations in `test_set_piece_availability.py`:
 
-The existing `risk=secure|balanced|aggressive` control is labelled **Set-piece
-approach** and keeps its attacking effect. For wide/deep defensive free kicks:
-
-| Approach | Eligible structures |
+| Variant | Supported outfield instructions |
 | --- | --- |
-| Secure | At least seven box defenders and exactly one outlet |
-| Balanced | At least six box defenders and one or two outlets |
-| Aggressive | At least six box defenders and exactly two outlets |
+| Direct | Stay forward, Wall, Edge of area, Go back, Man mark |
+| Direct, small chance of shot | Direct instructions plus Man mark tall player |
+| Indirect wide | Small-chance instructions plus six-yard zonal near, centre and far |
+| Indirect deep | The same options as wide, including Wall |
 
-For each eligible structure, the existing exact assignment solver allocates
-each player once. The optimizer compares those completed plans and shows the
-chosen template, its counts and the eligible alternatives in **Why this plan?**
-Near-equal numbers should be treated as a modest model preference, not proof
-of a better result in FM.
+The former shared five-instruction list omitted real options. Its absence of
+zonal jobs was an implementation restriction, not a tactical comparison.
+`set-piece-v14` corrects this. The existing direct routine retains its five-player
+wall and assignments; corners, attacking routines and taker scoring are unchanged.
 
-Comparing raw totals or role-fit averages with the former per-job importance
-would give a responsibility more influence merely by repeating it. Instead,
-for these two variants the configured `importance` is a **budget for the whole
-responsibility group**. A template divides that budget equally over the players
-doing the job. For example, a marking budget of 2.4 becomes 1.2 per player with
-two markers, or 0.8 with three. Every template consequently has the same total
-importance and each responsibility has the same influence. Individual fit
-scores stay on 0–100. This comparison is still linear, so the player assignment
-for each template remains exact for its objective.
+Small-chance kicks compare six authored templates; wide kicks compare fifteen;
+deep kicks compare seventeen. Candidates include ordinary or tall-player
+marking for small-chance kicks, one/two/three zonal defenders and marking-led
+alternatives for indirect kicks, and wall-free or one/two-player walls for deep
+kicks. The goalkeeper and all ten outfield jobs are assigned together.
 
-On a partial feed, absent jobs contribute zero coverage to the comparison;
-their planned importance remains in the denominator. This prevents an
-incomplete plan winning through a high average over a few filled jobs. The
-ordinary assigned-job fit retains its uncertainty bands, and the UI continues
-to show the unfilled responsibilities and provisional scope.
+The loader separates instruction availability from authored balance policy.
+Every candidate retains ordinary runner marking, general spare cover, edge
+protection and one or two outlets. Wide/deep candidates require at least six
+box defenders, including at least two dedicated aerial jobs across tall-player
+marking and zonal defence. Small-chance candidates require at least four box
+defenders alongside their larger wall. Each named zonal position can appear
+only once. Tall-player markers and zonal defenders both count towards box
+coverage. No role from another variant can be added, even with a zero count.
+The catalogue's wall/count limits are tactical policy, not claimed FM limits.
 
-The wide/deep marking profile now includes bravery and strength as well as
-tracking inputs, without treating every marker as a tall aerial defender. The
-clearance profiles distinguish closing a wide short option from receiving and
-using a deep clearance. Direct and small-chance defensive free kicks retain
-their previous profiles and structures. Corners and attacking free kicks also
-retain their existing structures and assignments.
+The existing `risk=secure|balanced|aggressive` control remains **Set-piece
+approach**, with its existing attacking effect:
 
-For the captured 1 November Control XI on Balanced, wide kicks select
-**Two-player wall with runner marking**: Okosieme, Ashby and Bradley-Green
-cover the delivery; Lynch, Jefford and Collier mark; Holden and Sankoh form
-the wall; Sharpe protects the edge; Fundi stays forward. Deep kicks select
-**Two outlets with runner marking**: Okosieme, Ashby, Bradley-Green and Collier
-cover; Lynch, Jefford and Fundi mark; Sharpe protects the edge; Holden and
-Sankoh stay forward. Both structures preserve the existing coverage rules.
+| Approach | Wide/deep minimum box defenders | Small-chance minimum box defenders | Outlets |
+| --- | --- | --- | --- |
+| Secure | 7 | 5 | Exactly 1 |
+| Balanced | 6 | 4 | 1 or 2 |
+| Aggressive | 6 | 4 | Exactly 2 |
 
-Compared with the previous five candidates per variant, the new structures
-raise model fit from 49.268941 to 49.589936 wide and from 48.588466 to 48.810750
-deep. These are small gains. Holden and Sankoh's low bravery still makes the
-wide wall a compromise; these scores do not establish superiority in FM.
-Secure excludes both additions under its existing rules. Aggressive excludes
-the one-outlet wide addition and permits the two-outlet deep addition.
+For each eligible structure, the exact assignment solver allocates each player
+once. The optimizer compares complete plans and shows the chosen structure,
+zonal and tall-marker counts, and alternatives in **Why this plan?** It does not
+force three zonal players or pick by player identity. Near-equal scores express
+a modest model preference, not proof of better results in FM.
 
-For the earlier 20 October Control XI, Balanced also selects the new two-player
-wide wall, with Collier covering, Odunston marking and Neufville as the outlet.
-Its deep plan retains **Two outlets and second-ball cover**: Okosieme,
-Bradley-Green, Collier and Neufville cover; Lynch and Jefford mark; Odunston
-and Sharpe protect the edge; Holden and Sankoh stay forward.
+### Distinct jobs and comparable responsibility budgets
 
-Opposition strengths are not automatically applied yet. Candidate eligibility
-is separated from assignment and comparison: future opposition coverage
-requirements can restrict the catalogue before any player assignment is solved.
-The current choices use the selected XI and explicit baseline approach rules,
-all based on manager-visible data.
+A fixed six-yard zone uses aerial attributes and an actual zonal instruction.
+A tall-player marker combines aerial ability with marking. Ordinary marking
+tracks other runners. `Go back` uses a separate spare-cover profile emphasizing
+anticipation, positioning, concentration and decisions; its displayed zone is
+**General box cover**, without invented near/far placement.
+
+For these flexible routines, `budgets` in `defending_free_kicks.json` fixes
+the influence of five responsibilities independently of candidate counts:
+
+| Responsibility | Small chance | Wide | Deep |
+| --- | --- | --- | --- |
+| Goalkeeper | 1.0 | 1.0 | 1.0 |
+| Delivery defence: zones, tall markers and spare cover | 3.0 | 4.5 | 4.5 |
+| Ordinary runner marking | 2.2 | 1.8 | 1.8 |
+| Perimeter: wall and edge guards | 6.6 | 1.5 | 1.8 |
+| Counter outlet | 0.8 | 1.2 | 1.2 |
+
+Within a responsibility, each active job type receives a share proportional
+to its configured `importance`. Repeated players doing that same job split
+its allocation. For indirect delivery defence, centre/near/far zonal jobs have
+relative importance 1.6/1.4/1.4, tall marking 1.5 and spare cover 0.9. This gives
+central aerial defence more influence than generic spare cover. A plan with
+no wall gives its perimeter budget to edge guards, so both wall-free and wall
+candidates retain the same total importance. Attribute profiles and budgets
+remain explicit football hypotheses in the per-family JSON.
+
+Every candidate within a variant therefore has the same total importance,
+including missing jobs on a partial feed. Unfilled jobs contribute zero to
+plan comparison while remaining in its denominator. All-attribute-equal teams
+receive equal plan scores; deterministic tie-breaking prefers fewer outlets,
+more box cover and then the canonical key. Player assignment remains linear.
+
+### Captured Control XIs
+
+The 20 October Control XI chooses a central zonal defender (Okosieme), a
+tall-player marker (Bradley-Green), ordinary marking and spare cover for wide
+and deep kicks, with two outlets on Balanced.
+
+The 1 November XI chooses Ashby centrally and Okosieme on tall-player marking.
+This is a whole-team allocation: the model compares their suitability for both
+roles, including the cost of moving the other player. It does not reserve the
+central zone for a name. The other zonal and marking-led candidates are solved
+and compared too.
+
+The visible live XI copied on 14 October (game date 14 November) has Neufville
+at striker. On Balanced, wide kicks select **Central zone with two outlets**:
+Ashby central, Okosieme marking tall, Bradley-Green and Lynch marking, Collier
+and Holden providing spare cover, Jefford in the wall, Sharpe on the edge,
+and Neufville/Sankoh forward. Deep kicks retain that structure with Jefford
+as an additional marker and no wall. Small-chance kicks choose a three-player
+wall, Okosieme marking tall, Bradley-Green marking, Sharpe/Holden covering,
+Lynch on the edge and Neufville/Sankoh forward. De Bie keeps goal throughout.
+These are model results for review; the remaining general-cover jobs and
+the choice of only one fixed zone remain football trade-offs.
+
+Opposition strengths are not automatically applied. Eligibility remains
+separate from assignment and comparison so future opposition requirements
+can restrict the reviewed candidates before solving.
 
 ## Job suitability and responsibility importance
 
@@ -194,9 +229,9 @@ when it has enough available players.
 The attacking routines also distinguish delivery (1.5; 2.0 for direct free
 kicks), aerial first contact (1.4), rest defence (1.3, with third wide cover
 1.1), short support (0.9), goalkeeper challengers (0.8), and other runners (1.0).
-Direct defensive free kicks weight each wall player at 1.4. Wide/deep routines
-use the group budgets explained above, with a much smaller wide-wall budget
-and separate marking, aerial-cover and second-ball profiles.
+Direct defensive free kicks weight each wall player at 1.4. The other defensive
+free-kick variants use the group budgets explained above, with distinct marking,
+zonal, tall-player, spare-cover and second-ball profiles.
 
 `priority` is separate: it decides which responsibilities survive a partial
 player feed and their display order. For defensive corners, aerial jobs now
@@ -291,11 +326,12 @@ routine variant, assignment, score band and scoring contribution is covered.
 Only the old free-kick roles' unused taker placeholder attributes are omitted;
 those role descriptions now use the actual task profile. The dedicated and
 proxy profiles themselves, and every real taker score, remain covered.
-Deliberate future tuning should update the model version and review the real-XI
-expectations and frozen baseline together. The v11 fingerprints remain preserved;
-an independently frozen projection continues to guard all unchanged corner,
-attacking, direct defensive and taker outputs after the v12/v13 changes, ignoring
-only the bumped model version and new selection metadata.
+Deliberate tuning should update the model version and review the real-XI
+expectations together. The v11 fingerprints remain preserved. Before the v14
+edits, `tests/fixtures/set-piece-v13-free-kick-migration.json` independently froze
+a projection of all unchanged corner, attacking, direct defensive and taker
+outputs across those 24 scenarios, ignoring the model version and selection
+metadata. That projection remains checked without regenerating its hashes.
 
 `tests/fixtures/hungerford-control-433dm-2020-10-20.json` preserves the separate
 Control XI visible export used in this review. Template tests cover all approach
@@ -305,8 +341,10 @@ attribute exchanges, ranged/unknown evidence, unavailable players, deterministic
 ties, stricter future coverage policies and the actual web assignment cards.
 `tests/fixtures/hungerford-control-433dm-2020-11-01.json` preserves the later
 visible XI. Regressions pin its complete wide/deep assignments, compare the
-new structures against the previous catalogue, and check eligibility and
-coverage at every approach setting.
+zonal plans against marking-led alternatives under the same model, and check
+eligibility and coverage at every approach setting. The 14 November fixture
+preserves the refreshed live XI. Availability tests use the manager's literal
+menu lists rather than deriving expectations from application constants.
 
 ## Evidence boundary
 

@@ -247,8 +247,9 @@ class AuxiliaryPagesMixin:
         settings = (
             "<details class='fm-set-piece-settings'><summary>Adjust plan settings</summary>"
             "<p class='muted'>Change the match XI, delivery curve, or set-piece approach, then rebuild the plan. "
-            "Secure adds delivery cover and keeps one outlet when defending wide or deep free kicks; "
-            "Balanced considers one or two outlets; Aggressive keeps two with at least six box defenders. "
+            "Secure adds delivery cover and keeps one outlet; Balanced considers one or two; Aggressive keeps two. "
+            "Wide and deep kicks retain at least six box defenders, or seven on Secure. "
+            "Small-chance kicks retain at least four, or five on Secure, alongside the larger wall. "
             "The approach also sets attacking commitments.</p>"
             + controls
             + "</details>"

@@ -143,6 +143,7 @@ def _set_piece_routine_plan(
     selection_evidence = ""
     if routine.selection is not None:
         selection = routine.selection
+        has_zonal = any(candidate.zonal_defenders for candidate in selection.comparisons)
         selection_summary = (
             "<p class='routine-template-choice'><b>Selected: "
             + html.escape(selection.template_name) + "</b> · "
@@ -152,7 +153,9 @@ def _set_piece_routine_plan(
         comparisons = "".join(
             "<tr><th scope='row'>" + html.escape(candidate.name)
             + (" (selected)" if candidate.key == selection.template_key else "") + "</th>"
-            f"<td>{candidate.box_defenders}</td><td>{candidate.wall_players}</td>"
+            f"<td>{candidate.box_defenders}</td>"
+            + (f"<td>{candidate.zonal_defenders}</td>" if has_zonal else "")
+            + f"<td>{candidate.tall_markers}</td><td>{candidate.wall_players}</td>"
             f"<td>{candidate.edge_players}</td><td>{candidate.outlets}</td>"
             f"<td>{_band(candidate.score)}</td></tr>"
             for candidate in selection.comparisons
@@ -160,11 +163,13 @@ def _set_piece_routine_plan(
         selection_evidence = (
             f"<p>Compared {len(selection.comparisons)} sensible templates for this XI and approach. "
             "Each plan protects the delivery, runners and second balls. "
-            "The comparison gives each responsibility the same influence across plans; "
-            "adding more players to a job does not increase its importance. "
+            "Fixed budgets compare delivery defence, runner marking, perimeter protection and outlets. "
+            "Each repeated job shares its type's allocation; central zonal defence carries more than spare cover. "
             "Missing jobs reduce coverage in a provisional plan.</p>"
             "<div class='table-scroll'><table><thead><tr><th scope='col'>Template</th>"
-            "<th scope='col'>Box defenders</th><th scope='col'>Wall</th>"
+            "<th scope='col'>Box defenders</th>"
+            + ("<th scope='col'>Zonal defenders</th>" if has_zonal else "")
+            + "<th scope='col'>Tall-player markers</th><th scope='col'>Wall</th>"
             "<th scope='col'>Edge</th><th scope='col'>Outlets</th><th scope='col'>Plan fit</th>"
             "</tr></thead><tbody>" + comparisons + "</tbody></table></div>"
         )

@@ -11,6 +11,11 @@ from typing import Mapping
 
 from fm_analytics.analytics.role_scoring import RoleAttribute
 from fm_analytics.domain.attributes import VISIBLE_ATTRIBUTES
+from fm_analytics.analytics.set_piece_defence import (
+    DEFENSIVE_FREE_KICK_JOBS, DEFENSIVE_JOBS, DEFENSIVE_RESPONSIBILITIES,
+    FLEXIBLE_DEFENSIVE_FREE_KICKS, DefensiveApproach, DefensiveTemplate,
+    validate_defensive_counts,
+)
 
 
 DATA_DIR = Path(__file__).with_name("data") / "set_pieces"
@@ -36,7 +41,7 @@ _FREE_KICK_ATTACK_JOBS = frozenset((
     "taker", "near", "far", "edge_left", "edge_right", "partner",
     "go_left", "go_centre", "go_right", "stay", "cover", "wide_cover",
 ))
-_FREE_KICK_DEFENCE_JOBS = frozenset(("keeper", "wall", "mark", "back", "edge", "forward"))
+_FREE_KICK_DEFENCE_JOBS = DEFENSIVE_JOBS | {"keeper"}
 _TASK_FILES = {
     "corners": "attacking_corners",
     "attacking_aerial_target": "attacking_corners",
@@ -51,29 +56,6 @@ _DEDICATED_TASKS = {
     "penalties": "penaltyTaking",
 }
 _ATTRIBUTES = VISIBLE_ATTRIBUTES | {"freeKickTaking", "penaltyTaking", "longThrows"}
-FLEXIBLE_DEFENSIVE_FREE_KICKS = frozenset(("indirect_wide", "indirect_deep"))
-DEFENSIVE_JOBS = frozenset(("wall", "mark", "back", "edge", "forward"))
-
-
-@dataclass(frozen=True)
-class DefensiveTemplate:
-    key: str
-    name: str
-    description: str
-    jobs: Mapping[str, int]
-
-
-@dataclass(frozen=True)
-class DefensiveApproach:
-    minimum_box_defenders: int
-    minimum_outlets: int
-    maximum_outlets: int
-
-    def accepts(self, template: DefensiveTemplate) -> bool:
-        return (
-            template.jobs["back"] + template.jobs["mark"] >= self.minimum_box_defenders
-            and self.minimum_outlets <= template.jobs["forward"] <= self.maximum_outlets
-        )
 
 
 @dataclass(frozen=True)
@@ -97,6 +79,7 @@ class SetPieceWeights:
     tasks: Mapping[str, TakerWeights]
     defensive_templates: Mapping[str, tuple[DefensiveTemplate, ...]]
     defensive_approaches: Mapping[str, DefensiveApproach]
+    defensive_budgets: Mapping[str, Mapping[str, float]]
 
     def routine(self, family: str, variant: str | None = None) -> Mapping[str, JobWeights]:
         return self.roles[family] if variant is None else self.variants[family][variant]
@@ -145,7 +128,7 @@ def _read(path: Path) -> dict:
 
 
 def _defensive_choices(document: dict, context: str):
-    """Only football-valid structures enter the catalogue, at every emphasis."""
+    """Only reviewed, balanced structures enter the candidate catalogue."""
     raw_templates = _object(document["templates"], context + ".templates")
     _keys(raw_templates, FLEXIBLE_DEFENSIVE_FREE_KICKS, context + ".templates")
     templates = {}
@@ -162,24 +145,21 @@ def _defensive_choices(document: dict, context: str):
                 if not isinstance(entry[field], str) or not entry[field].strip():
                     raise ValueError(f"{label}.{field}: expected a non-empty string")
             jobs = _object(entry["jobs"], label + ".jobs")
-            _keys(jobs, DEFENSIVE_JOBS, label + ".jobs")
+            _keys(jobs, frozenset(DEFENSIVE_FREE_KICK_JOBS[kind]), label + ".jobs")
             if any(isinstance(n, bool) or not isinstance(n, int) or n < 0 for n in jobs.values()):
                 raise ValueError(f"{label}: job counts must be non-negative integers")
             if sum(jobs.values()) != 10:
                 raise ValueError(f"{label}: a template must assign all ten outfield players")
-            if (
-                not 2 <= jobs["mark"] <= 4 or not 1 <= jobs["edge"] <= 2
-                or not 1 <= jobs["forward"] <= 2 or jobs["back"] + jobs["mark"] < 6
-                or not (3 if kind == "indirect_wide" else 4) <= jobs["back"] <= 6
-                or (not 1 <= jobs["wall"] <= 2 if kind == "indirect_wide" else jobs["wall"] != 0)
-            ):
-                raise ValueError(f"{label}: inadequate balance of delivery cover, marking, second balls, wall and outlets")
-            shape = tuple(jobs[key] for key in sorted(DEFENSIVE_JOBS))
+            try:
+                validate_defensive_counts(kind, jobs)
+            except ValueError as error:
+                raise ValueError(f"{label}: {error}") from error
+            shape = tuple(jobs[key] for key in sorted(jobs))
             if entry["key"] in keys or shape in shapes:
                 raise ValueError(f"{label}: duplicate template key or job structure")
             keys.add(entry["key"])
             shapes.add(shape)
-            entries.append(DefensiveTemplate(entry["key"], entry["name"], entry["description"], MappingProxyType(jobs)))
+            entries.append(DefensiveTemplate(entry["key"], entry["name"], entry["description"], MappingProxyType(jobs), kind))
         templates[kind] = tuple(entries)
 
     raw_approaches = _object(document["approaches"], context + ".approaches")
@@ -188,14 +168,15 @@ def _defensive_choices(document: dict, context: str):
     for key, value in raw_approaches.items():
         where = context + ".approaches." + key
         entry = _object(value, where)
-        _keys(entry, {"minimumBoxDefenders", "minimumOutlets", "maximumOutlets"}, where)
+        _keys(entry, {"minimumBoxDefenders", "minimumSmallChanceBoxDefenders", "minimumOutlets", "maximumOutlets"}, where)
         if any(isinstance(n, bool) or not isinstance(n, int) for n in entry.values()):
             raise ValueError(f"{where}: coverage requirements must be integers")
-        approach = DefensiveApproach(entry["minimumBoxDefenders"], entry["minimumOutlets"], entry["maximumOutlets"])
+        approach = DefensiveApproach(entry["minimumBoxDefenders"], entry["minimumOutlets"], entry["maximumOutlets"], entry["minimumSmallChanceBoxDefenders"])
         if (
             not 6 <= approach.minimum_box_defenders <= 8
+            or not 4 <= approach.minimum_small_chance_box_defenders <= 6
             or not 1 <= approach.minimum_outlets <= approach.maximum_outlets <= 2
-            or key == "secure" and (approach.minimum_box_defenders < 7 or approach.maximum_outlets != 1)
+            or key == "secure" and (approach.minimum_box_defenders < 7 or approach.minimum_small_chance_box_defenders < 5 or approach.maximum_outlets != 1)
             or key == "aggressive" and approach.minimum_outlets != 2
         ):
             raise ValueError(f"{where}: approach must retain defensive coverage and its requested outlet commitment")
@@ -203,7 +184,17 @@ def _defensive_choices(document: dict, context: str):
             if not any(approach.accepts(choice) for choice in choices):
                 raise ValueError(f"{where}: no eligible {kind} template")
         approaches[key] = approach
-    return MappingProxyType(templates), MappingProxyType(approaches)
+    budgets = {}
+    raw_budgets = _object(document["budgets"], context + ".budgets")
+    _keys(raw_budgets, FLEXIBLE_DEFENSIVE_FREE_KICKS, context + ".budgets")
+    for kind, value in raw_budgets.items():
+        where = context + ".budgets." + kind
+        entry = _object(value, where)
+        _keys(entry, frozenset(DEFENSIVE_RESPONSIBILITIES), where)
+        budgets[kind] = MappingProxyType({key: _number(n, where + "." + key) for key, n in entry.items()})
+        if not isfinite(sum(budgets[kind].values()) * 104):
+            raise ValueError(f"{where}: responsibility budget is too large to score safely")
+    return MappingProxyType(templates), MappingProxyType(approaches), MappingProxyType(budgets)
 
 
 def load_set_piece_weights(directory: Path = DATA_DIR) -> SetPieceWeights:
@@ -216,7 +207,7 @@ def load_set_piece_weights(directory: Path = DATA_DIR) -> SetPieceWeights:
         raise ValueError("model.json.version: expected a non-empty string")
     foot_bonus = _number(model["deliveryFootBonus"], "model.json.deliveryFootBonus", allow_zero=True)
     roles, variants, tasks = {}, {}, {}
-    defensive_templates, defensive_approaches = {}, {}
+    defensive_templates, defensive_approaches, defensive_budgets = {}, {}, {}
     family_jobs = {
         "attacking_corners": _CORNER_ATTACK_JOBS,
         "defending_corners": _CORNER_DEFENCE_JOBS,
@@ -240,10 +231,10 @@ def load_set_piece_weights(directory: Path = DATA_DIR) -> SetPieceWeights:
         if family_tasks:
             expected.add("tasks")
         if family == "defending_free_kicks":
-            expected.update(("templates", "approaches"))
+            expected.update(("templates", "approaches", "budgets"))
         _keys(document, expected, context)
         if family == "defending_free_kicks":
-            defensive_templates, defensive_approaches = _defensive_choices(document, context)
+            defensive_templates, defensive_approaches, defensive_budgets = _defensive_choices(document, context)
         profiles = {}
         for key, raw in _object(document["profiles"], context + ".profiles").items():
             where = context + ".profiles." + key
@@ -317,7 +308,7 @@ def load_set_piece_weights(directory: Path = DATA_DIR) -> SetPieceWeights:
             variants[family] = MappingProxyType({
                 key: parse_jobs(
                     raw_variants[key], context + ".variants." + key,
-                    job_keys - {"wall"} if family == "defending_free_kicks" and key == "indirect_deep" else job_keys,
+                    frozenset(DEFENSIVE_FREE_KICK_JOBS[key]) | {"keeper"} if family == "defending_free_kicks" else job_keys,
                     "direct_free_kicks" if key.startswith("direct") else "indirect_free_kicks",
                 )
                 for key in FREE_KICK_VARIANTS
@@ -332,7 +323,7 @@ def load_set_piece_weights(directory: Path = DATA_DIR) -> SetPieceWeights:
 
     return SetPieceWeights(
         version, foot_bonus, MappingProxyType(roles), MappingProxyType(variants), MappingProxyType(tasks),
-        defensive_templates, defensive_approaches,
+        defensive_templates, defensive_approaches, defensive_budgets,
     )
 
 

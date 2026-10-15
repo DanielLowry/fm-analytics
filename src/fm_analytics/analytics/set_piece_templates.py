@@ -44,7 +44,7 @@ DEFENDING_FREE_KICK_TEMPLATES = (
     (
         "direct_small_chance", "Direct free kicks (small chance of shot)",
         "Respect the shot while adding marking cover for a probable delivery.",
-        "Four wall players balance the reduced shot threat against extra runners.",
+        "Candidate structures compare three- or four-player walls and dedicated tall-player marking against ordinary marking.",
     ),
     (
         "indirect_wide", "Indirect free kicks (wide)",
@@ -54,6 +54,6 @@ DEFENDING_FREE_KICK_TEMPLATES = (
     (
         "indirect_deep", "Indirect free kicks (deep)",
         "Protect the long delivery, runners and second balls while retaining counter outlets.",
-        "No wall is used because the routine is outside realistic shooting range.",
+        "Wall-free, one-player and two-player wall candidates are compared; the wall is optional rather than unavailable.",
     ),
 )

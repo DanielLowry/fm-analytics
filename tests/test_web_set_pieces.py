@@ -211,9 +211,8 @@ class SetPiecePageTests(unittest.TestCase):
 
     def test_control_xi_displays_selected_templates_alternatives_and_real_assignments(self) -> None:
         port = self._serve(CONTROL_CAPTURE)
-        for kind, title, edge_count, outlets in (
-            ("indirect_wide", "Two-player wall with runner marking", 1, 1),
-            ("indirect_deep", "Two outlets and second-ball cover", 2, 2),
+        for kind, candidates in (
+            ("indirect_wide", 15), ("indirect_deep", 17),
         ):
             with self.subTest(kind=kind):
                 status, body = self._get(port, "/set-pieces?tactic=control_433dm&routine=defending_" + kind)
@@ -221,45 +220,58 @@ class SetPiecePageTests(unittest.TestCase):
                 self.assertIn("Control 4-3-3 DM Wide match XI", body)
                 self.assertIn("Set-piece approach<select name='risk'>", body)
                 self.assertNotIn("Attacking commitment", body)
-                self.assertIn("Selected: " + title, body)
-                self.assertIn("Compared 6 sensible templates", body)
+                self.assertIn("Selected: Central zone with two outlets", body)
+                self.assertIn(f"Compared {candidates} sensible templates", body)
                 self.assertIn("Plan fit", body)
-                self.assertIn(f"{edge_count} on edge · {outlets} outlet", body)
-                self.assertIn("<b>Ejiro Okosieme (DCR)</b><span><strong>Go back</strong>", body)
+                self.assertIn("1 on edge · 2 outlets", body)
+                self.assertIn("Zonal defenders</th>", body)
+                self.assertIn("Tall-player markers</th>", body)
+                self.assertIn("<b>Ejiro Okosieme (DCR)</b><span><strong>Zonally mark 6 yard box centre</strong>", body)
+                self.assertIn("<b>Jamie Bradley-Green (DCL)</b><span><strong>Man mark tall player</strong>", body)
                 self.assertEqual(body.count("class='routine-assignment-note'"), 11)
                 if kind == "indirect_deep":
-                    for name, job in (("Tom Sharpe (MCL)", "Edge of area"), ("Lucas Odunston (DR)", "Edge of area"), ("Ross Holden (AML)", "Stay forward"), ("Abdul Sankoh (AMR)", "Stay forward")):
+                    for name, job in (("Tom Sharpe (MCL)", "Edge of area"), ("Lucas Odunston (DR)", "Man mark"), ("Ross Holden (AML)", "Go back"), ("Abdul Sankoh (AMR)", "Stay forward")):
                         self.assertIn(f"<b>{name}</b><span><strong>{job}</strong>", body)
 
-    def test_current_control_xi_displays_the_two_new_structures(self) -> None:
+    def test_current_control_xi_displays_zonal_aerial_and_general_cover_instructions(self) -> None:
         port = self._serve(CURRENT_CONTROL_CAPTURE)
-        for kind, title, outlets, jobs in (
-            ("indirect_wide", "Two-player wall with runner marking", 1, {
-                "Nathan Collier (DM)": "Man mark", "Victor Fundi (ST)": "Stay forward",
-                "Ross Holden (AML)": "Wall", "Abdul Sankoh (AMR)": "Wall",
+        for kind, candidates, jobs in (
+            ("indirect_wide", 15, {
+                "Nathan Collier (DM)": "Go back", "Victor Fundi (ST)": "Wall",
+                "Ross Holden (AML)": "Stay forward", "Abdul Sankoh (AMR)": "Stay forward", "David Lynch (MCR)": "Go back",
             }),
-            ("indirect_deep", "Two outlets with runner marking", 2, {
-                "Nathan Collier (DM)": "Go back", "Victor Fundi (ST)": "Man mark",
-                "Ross Holden (AML)": "Stay forward", "Abdul Sankoh (AMR)": "Stay forward",
+            ("indirect_deep", 17, {
+                "Nathan Collier (DM)": "Go back", "Victor Fundi (ST)": "Stay forward",
+                "Ross Holden (AML)": "Go back", "Abdul Sankoh (AMR)": "Stay forward", "David Lynch (MCR)": "Man mark",
             }),
         ):
             with self.subTest(kind=kind):
                 status, body = self._get(port, "/set-pieces?tactic=control_433dm&routine=defending_" + kind)
                 self.assertEqual(status, 200)
-                self.assertIn("Selected: " + title, body)
-                self.assertIn("Compared 6 sensible templates", body)
-                self.assertIn(f"1 on edge · {outlets} outlet", body)
+                self.assertIn("Selected: Central zone with two outlets", body)
+                self.assertIn(f"Compared {candidates} sensible templates", body)
+                self.assertIn("1 on edge · 2 outlets", body)
                 self.assertEqual(body.count("class='routine-assignment-note'"), 11)
                 for name, job in {
-                    **jobs, "Jamie Bradley-Green (DCL)": "Go back", "Harrison Ashby (DR)": "Go back",
-                    "Ejiro Okosieme (DCR)": "Go back", "David Lynch (MCR)": "Man mark", "Tom Sharpe (MCL)": "Edge of area",
+                    **jobs, "Jamie Bradley-Green (DCL)": "Man mark", "Harrison Ashby (DR)": "Zonally mark 6 yard box centre",
+                    "Ejiro Okosieme (DCR)": "Man mark tall player", "Tom Sharpe (MCL)": "Edge of area",
                     "Jonathan De Bie (GK)": "Defend area", "Ben Jefford (DL)": "Man mark",
                 }.items():
                     self.assertIn(f"<b>{name}</b><span><strong>{job}</strong>", body)
 
+    def test_small_chance_kicks_show_tall_player_marking_without_unavailable_zonal_roles(self) -> None:
+        status, body = self._get(self._serve(CURRENT_CONTROL_CAPTURE), "/set-pieces?tactic=control_433dm&routine=defending_direct_small_chance")
+        self.assertEqual(status, 200)
+        self.assertIn("Selected: Two outlets with aerial marking", body)
+        self.assertIn("Compared 6 sensible templates", body)
+        self.assertIn("<b>Ejiro Okosieme (DCR)</b><span><strong>Man mark tall player</strong>", body)
+        self.assertNotIn("<strong>Zonally mark", body)
+        self.assertNotIn("Zonal defenders</th>", body)
+        self.assertIn("Tall-player markers</th>", body)
+
     def test_existing_risk_dropdown_changes_defensive_templates_and_preserves_links(self) -> None:
         port = self._serve(CONTROL_CAPTURE)
-        for approach, count, candidates in (("secure", 1, 2), ("aggressive", 2, 2)):
+        for approach, count, candidates in (("secure", 1, 6), ("aggressive", 2, 6)):
             status, body = self._get(port, f"/set-pieces?tactic=control_433dm&routine=defending_indirect_wide&risk={approach}")
             self.assertEqual(status, 200)
             self.assertIn(f"{approach.capitalize()} approach", body)

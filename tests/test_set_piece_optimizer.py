@@ -327,7 +327,10 @@ class CapturedStartingXIRegressionTests(unittest.TestCase):
         for routine in self.report().routines:
             if routine.key not in {"defending_indirect_wide", "defending_indirect_deep"}:
                 continue
-            aerial_players = {a.player.name for a in routine.assignments if a.role.instruction == "Go back"}
+            aerial_players = {a.player.name for a in routine.assignments if a.role.instruction in {
+                "Man mark tall player", "Zonally mark 6 yard box centre",
+                "Zonally mark 6 yard box near post", "Zonally mark 6 yard box far post",
+            }}
             self.assertTrue({"Ejiro Okosieme", "Jamie Bradley-Green"}.issubset(aerial_players))
 
 

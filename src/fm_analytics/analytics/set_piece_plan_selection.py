@@ -25,6 +25,8 @@ class TemplateComparison:
     wall_players: int
     edge_players: int
     outlets: int
+    zonal_defenders: int
+    tall_markers: int
     score: ScoreBand
     unfilled_jobs: int
 
@@ -64,8 +66,9 @@ def select_defensive_plan(
             continue
         routine = solve(template)
         comparison = TemplateComparison(
-            template.key, template.name, template.jobs["back"] + template.jobs["mark"],
+            template.key, template.name, template.box_defenders,
             template.jobs["wall"], template.jobs["edge"], template.jobs["forward"],
+            template.zonal_defenders, template.jobs.get("tall", 0),
             comparison_score(routine), len(routine.unfilled_roles),
         )
         candidates.append((template, routine, comparison))

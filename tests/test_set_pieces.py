@@ -8,6 +8,7 @@ from fm_analytics.analytics.set_piece_routines import (
     ATTACKING_FREE_KICK_INSTRUCTIONS,
     DEFENDING_CORNER_INSTRUCTIONS,
     DEFENDING_FREE_KICK_INSTRUCTIONS,
+    DEFENDING_FREE_KICK_INSTRUCTIONS_BY_VARIANT,
     attacking_roles,
     defensive_roles,
 )
@@ -265,8 +266,8 @@ class SetPieceRecommendationTests(unittest.TestCase):
         expected_counts = {
             "direct_free_kick": (5, 1, 2),
             "direct_small_chance": (4, 2, 2),
-            "indirect_wide": (1, 2, 5),
-            "indirect_deep": (0, 2, 6),
+            "indirect_wide": (1, 2, 1),
+            "indirect_deep": (0, 2, 2),
         }
         seen = set()
 
@@ -277,7 +278,7 @@ class SetPieceRecommendationTests(unittest.TestCase):
             ]
 
             self.assertEqual(len(roles), 11)
-            self.assertLessEqual(set(instructions), set(DEFENDING_FREE_KICK_INSTRUCTIONS))
+            self.assertLessEqual(set(instructions), DEFENDING_FREE_KICK_INSTRUCTIONS_BY_VARIANT[kind])
             self.assertEqual(instructions.count("Wall"), walls)
             self.assertEqual(instructions.count("Man mark"), markers)
             self.assertEqual(instructions.count("Go back"), cover)
